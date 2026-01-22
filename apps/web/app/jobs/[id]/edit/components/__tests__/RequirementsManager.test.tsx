@@ -1,23 +1,24 @@
+import { vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { RequirementsManager } from '../RequirementsManager';
 import toast from 'react-hot-toast';
 
 // Mock react-hot-toast
-jest.mock('react-hot-toast', () => ({
-  error: jest.fn(),
-  success: jest.fn(),
+vi.mock('react-hot-toast', () => ({
+  error: vi.fn(),
+  success: vi.fn(),
 }));
 
 // Mock MotionDiv
-jest.mock('@/components/ui/MotionDiv', () => ({
+vi.mock('@/components/ui/MotionDiv', () => ({
   MotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
 }));
 
 describe('RequirementsManager', () => {
-  const mockOnRequirementsChange = jest.fn();
+  const mockOnRequirementsChange = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders with empty requirements', () => {

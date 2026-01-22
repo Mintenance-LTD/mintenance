@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Comprehensive Unit Tests for WeatherService
  *
@@ -7,27 +8,27 @@
 import { WeatherService, WeatherForecast } from '../WeatherService';
 
 // Mock the logger
-jest.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
 // Mock fetch
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('WeatherService', () => {
   const mockApiKey = 'test-api-key-12345';
   const originalEnv = process.env;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     WeatherService.clearCache();
     process.env = { ...originalEnv };
     process.env.OPENWEATHER_API_KEY = mockApiKey;
-    (global.fetch as jest.Mock).mockClear();
+    vi.mocked(global.fetch).mockClear();
   });
 
   afterEach(() => {
@@ -60,7 +61,7 @@ describe('WeatherService', () => {
 
     it('should fetch weather forecast successfully', async () => {
       const mockHeaders = new Headers();
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockForecastResponse,
         headers: mockHeaders,
@@ -76,7 +77,7 @@ describe('WeatherService', () => {
 
     it('should return cached data on subsequent requests', async () => {
       const mockHeaders = new Headers();
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockForecastResponse,
         headers: mockHeaders,
@@ -84,11 +85,11 @@ describe('WeatherService', () => {
 
       // First request
       const result1 = await WeatherService.getForecast(51.5074, -0.1278, 7);
-      const firstCallCount = (global.fetch as jest.Mock).mock.calls.length;
+      const firstCallCount = vi.mocked(global.fetch).mock.calls.length;
 
       // Second request - should use cache
       const result2 = await WeatherService.getForecast(51.5074, -0.1278, 7);
-      const secondCallCount = (global.fetch as jest.Mock).mock.calls.length;
+      const secondCallCount = vi.mocked(global.fetch).mock.calls.length;
 
       expect(secondCallCount).toBe(firstCallCount); // No additional API call
       expect(result2).toEqual(result1);
@@ -106,7 +107,7 @@ describe('WeatherService', () => {
     });
 
     it('should return fallback forecast on API error', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(
+      vi.mocked(global.fetch).mockRejectedValueOnce(
         new Error('Network error')
       );
 
@@ -127,7 +128,7 @@ describe('WeatherService', () => {
 
     it('should enforce rate limiting between requests', async () => {
       const mockHeaders = new Headers();
-      (global.fetch as jest.Mock).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => mockForecastResponse,
         headers: mockHeaders,
@@ -151,7 +152,7 @@ describe('WeatherService', () => {
       mockHeaders1.set('Retry-After', '1');
       const mockHeaders2 = new Headers();
 
-      (global.fetch as jest.Mock)
+      vi.mocked(global.fetch)
         .mockResolvedValueOnce({
           ok: false,
           status: 429,
@@ -167,11 +168,11 @@ describe('WeatherService', () => {
       const result = await WeatherService.getForecast(51.5074, -0.1278, 7);
 
       expect(result).toBeDefined();
-      expect((global.fetch as jest.Mock).mock.calls.length).toBeGreaterThanOrEqual(2);
+      expectvi.mocked((global.fetch).mock.calls.length).toBeGreaterThanOrEqual(2);
     });
 
     it('should handle API timeout', async () => {
-      (global.fetch as jest.Mock).mockImplementation(
+      vi.mocked(global.fetch).mockImplementation(
         () =>
           new Promise((_, reject) => {
             setTimeout(() => reject(new Error('Timeout')), 100);
@@ -212,7 +213,7 @@ describe('WeatherService', () => {
     };
 
     it('should fetch forecast by location string', async () => {
-      (global.fetch as jest.Mock)
+      vi.mocked(global.fetch)
         .mockResolvedValueOnce({
           ok: true,
           json: async () => mockGeocodingResponse,
@@ -232,7 +233,7 @@ describe('WeatherService', () => {
     });
 
     it('should return fallback forecast when geocoding fails', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => [],
         headers: new Headers(),
@@ -248,7 +249,7 @@ describe('WeatherService', () => {
     });
 
     it('should cache geocoding results', async () => {
-      (global.fetch as jest.Mock)
+      vi.mocked(global.fetch)
         .mockResolvedValueOnce({
           ok: true,
           json: async () => mockGeocodingResponse,
@@ -282,7 +283,7 @@ describe('WeatherService', () => {
         },
       ];
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
         headers: new Headers(),
@@ -297,7 +298,7 @@ describe('WeatherService', () => {
     });
 
     it('should return null when no results found', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => [],
         headers: new Headers(),
@@ -318,7 +319,7 @@ describe('WeatherService', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
@@ -486,7 +487,7 @@ describe('WeatherService', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
         headers: new Headers(),
@@ -518,7 +519,7 @@ describe('WeatherService', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => mockResponse,
         headers: new Headers(),
@@ -540,7 +541,7 @@ describe('WeatherService', () => {
 
   describe('Error Handling - Edge Cases', () => {
     it('should handle null API response', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => null,
       });
@@ -552,7 +553,7 @@ describe('WeatherService', () => {
     });
 
     it('should handle malformed API response', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ invalid: 'data' }),
       });
@@ -564,7 +565,7 @@ describe('WeatherService', () => {
     });
 
     it('should handle JSON parsing errors', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => {
           throw new Error('JSON parsing failed');
@@ -578,7 +579,7 @@ describe('WeatherService', () => {
     });
 
     it('should handle network errors', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(
+      vi.mocked(global.fetch).mockRejectedValueOnce(
         new Error('Network error')
       );
 
@@ -605,7 +606,7 @@ describe('WeatherService', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       });
@@ -637,7 +638,7 @@ describe('WeatherService', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       });
@@ -667,7 +668,7 @@ describe('WeatherService', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
         headers: new Headers(),
@@ -697,7 +698,7 @@ describe('WeatherService', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
         headers: new Headers(),
@@ -727,7 +728,7 @@ describe('WeatherService', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
         headers: new Headers(),
@@ -757,7 +758,7 @@ describe('WeatherService', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
         headers: new Headers(),
@@ -787,7 +788,7 @@ describe('WeatherService', () => {
         },
       };
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       });

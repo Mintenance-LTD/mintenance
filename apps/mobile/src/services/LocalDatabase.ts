@@ -1,6 +1,6 @@
 import * as SQLite from 'expo-sqlite';
+import type { User, Job, Message, Bid } from '@mintenance/types';
 import { logger } from '../utils/logger';
-import { User, Job, Message, Bid } from '@mintenance/types';
 
 export interface LocalDatabaseConfig {
   name: string;
@@ -220,7 +220,7 @@ class LocalDatabaseService {
     const query = 'SELECT * FROM users WHERE id = ?';
     const result = await this.db.getFirstAsync(query, [userId]);
 
-    return result ? this.mapRowToUser(result as any) : null;
+    return result ? this.mapRowToUser(result as unknown) : null;
   }
 
   async getAllUsers(): Promise<User[]> {
@@ -232,7 +232,7 @@ class LocalDatabaseService {
     return rows.map(this.mapRowToUser);
   }
 
-  private mapRowToUser(row: any): User {
+  private mapRowToUser(row: unknown): User {
     return {
       id: row.id,
       email: row.email,
@@ -300,7 +300,7 @@ class LocalDatabaseService {
     const query = 'SELECT * FROM jobs WHERE id = ?';
     const result = await this.db.getFirstAsync(query, [jobId]);
 
-    return result ? this.mapRowToJob(result as any) : null;
+    return result ? this.mapRowToJob(result as unknown) : null;
   }
 
   async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
@@ -330,7 +330,7 @@ class LocalDatabaseService {
     return rows.map(this.mapRowToJob);
   }
 
-  private mapRowToJob(row: any): Job {
+  private mapRowToJob(row: unknown): Job {
     return {
       id: row.id,
       title: row.title,
@@ -411,7 +411,7 @@ class LocalDatabaseService {
     return rows.map(this.mapRowToMessage).reverse(); // Chronological order
   }
 
-  private mapRowToMessage(row: any): Message {
+  private mapRowToMessage(row: unknown): Message {
     return {
       id: row.id,
       jobId: row.job_id,
@@ -457,10 +457,10 @@ class LocalDatabaseService {
     if (!result) return null;
 
     return {
-      table: (result as any).table_name,
-      lastSyncTimestamp: (result as any).last_sync_timestamp,
-      recordCount: (result as any).record_count,
-      isDirty: Boolean((result as any).is_dirty),
+      table: (result as unknown).table_name,
+      lastSyncTimestamp: (result as unknown).last_sync_timestamp,
+      recordCount: (result as unknown).record_count,
+      isDirty: Boolean((result as unknown).is_dirty),
     };
   }
 
@@ -489,7 +489,7 @@ class LocalDatabaseService {
     id: string;
     type: string;
     entity: string;
-    data: any;
+    data: unknown;
     maxRetries: number;
     queryKey?: string[];
   }): Promise<void> {
@@ -583,9 +583,9 @@ class LocalDatabaseService {
     ]);
 
     return {
-      totalRecords: (totalResult as any)?.total || 0,
-      dirtyRecords: (dirtyResult as any)?.dirty || 0,
-      pendingActions: (actionsResult as any)?.actions || 0,
+      totalRecords: (totalResult as unknown)?.total || 0,
+      dirtyRecords: (dirtyResult as unknown)?.dirty || 0,
+      pendingActions: (actionsResult as unknown)?.actions || 0,
     };
   }
 

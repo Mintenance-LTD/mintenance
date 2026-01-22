@@ -16,15 +16,15 @@ import toast from 'react-hot-toast';
  */
 
 // Mock dependencies
-jest.mock('next/navigation');
-jest.mock('@/hooks/useCurrentUser');
-jest.mock('@/lib/hooks/useCSRF');
-jest.mock('@/app/jobs/create/utils/submitJob');
-jest.mock('react-hot-toast');
+vi.mock('next/navigation');
+vi.mock('@/hooks/useCurrentUser');
+vi.mock('@/lib/hooks/useCSRF');
+vi.mock('@/app/jobs/create/utils/submitJob');
+vi.mock('react-hot-toast');
 
 const mockRouter = {
-  push: jest.fn(),
-  back: jest.fn(),
+  push: vi.fn(),
+  back: vi.fn(),
 };
 
 const mockUser = {
@@ -54,20 +54,20 @@ const mockProperties = [
 
 describe('CreateJobPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (useRouter as jest.Mock).mockReturnValue(mockRouter);
-    (useCurrentUser as jest.Mock).mockReturnValue({
+    vi.clearAllMocks();
+    vi.mocked(useRouter).mockReturnValue(mockRouter);
+    vi.mocked(useCurrentUser).mockReturnValue({
       user: mockUser,
       loading: false,
     });
-    (useCSRF as jest.Mock).mockReturnValue({ csrfToken: 'test-token' });
+    vi.mocked(useCSRF).mockReturnValue({ csrfToken: 'test-token' });
 
     // Mock fetch for properties
-    global.fetch = jest.fn(() =>
+    global.fetch = vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve({ properties: mockProperties }),
       })
-    ) as jest.Mock;
+    ) as any;
   });
 
   describe('Step 1: Property and Details', () => {
@@ -228,7 +228,7 @@ describe('CreateJobPage', () => {
 
     it('should submit job successfully', async () => {
       const user = userEvent.setup();
-      (submitJob as jest.Mock).mockResolvedValue({ jobId: 'job-123' });
+      vi.mocked(submitJob).mockResolvedValue({ jobId: 'job-123' });
 
       render(<CreateJobPage />);
 
@@ -255,7 +255,7 @@ describe('CreateJobPage', () => {
 
     it('should handle submission error', async () => {
       const user = userEvent.setup();
-      (submitJob as jest.Mock).mockRejectedValue(new Error('Network error'));
+      vi.mocked(submitJob).mockRejectedValue(new Error('Network error'));
 
       render(<CreateJobPage />);
 
@@ -298,18 +298,18 @@ describe('CreateJobPage', () => {
 
 describe('QuickJobPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (useRouter as jest.Mock).mockReturnValue(mockRouter);
-    (useCurrentUser as jest.Mock).mockReturnValue({
+    vi.clearAllMocks();
+    vi.mocked(useRouter).mockReturnValue(mockRouter);
+    vi.mocked(useCurrentUser).mockReturnValue({
       user: mockUser,
       loading: false,
     });
 
-    global.fetch = jest.fn(() =>
+    global.fetch = vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve({ properties: mockProperties }),
       })
-    ) as jest.Mock;
+    ) as any;
   });
 
   it('should render repair templates', () => {
@@ -354,7 +354,7 @@ describe('QuickJobPage', () => {
 
   it('should submit quick job', async () => {
     const user = userEvent.setup();
-    (submitJob as jest.Mock).mockResolvedValue({ jobId: 'quick-job-123' });
+    vi.mocked(submitJob).mockResolvedValue({ jobId: 'quick-job-123' });
 
     render(<QuickJobPage />);
 

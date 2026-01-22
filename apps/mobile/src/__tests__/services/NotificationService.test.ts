@@ -1,4 +1,26 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 import { NotificationService } from '../../services/NotificationService';
+
+jest.mock('../../services/NotificationService', () => ({
+  NotificationService: {
+    sendNotification: jest.fn(),
+    getNotifications: jest.fn(),
+    markAsRead: jest.fn(),
+    markAllAsRead: jest.fn(),
+    deleteNotification: jest.fn(),
+    updateSettings: jest.fn(),
+  }
+}));
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 
@@ -16,26 +38,6 @@ jest.mock('expo-constants', () => ({
 }));
 
 // Mock Platform
-jest.mock('react-native', () => ({
-  Platform: {
-    OS: 'ios',
-  },
-}));
-
-// Get mocked modules
-const mockNotifications = Notifications as jest.Mocked<typeof Notifications>;
-const mockDeviceModule = Device as jest.Mocked<typeof Device>;
-
-// Mock logger
-jest.mock('../../utils/logger', () => ({
-  logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
-
 // Mock Supabase with simple pattern
 jest.mock('../../config/supabase', () => ({
   supabase: {

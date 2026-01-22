@@ -16,7 +16,7 @@ export default function QuickCreateJobError({
   const router = useRouter();
 
   useEffect(() => {
-    logger.error('Quick create job error:', error', [object Object], { service: 'app' });
+    logger.error('Quick create job error:', error, { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

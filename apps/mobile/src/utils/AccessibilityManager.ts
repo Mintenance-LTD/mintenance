@@ -7,12 +7,13 @@
 
 import { AccessibilityInfo, Platform, Vibration } from 'react-native';
 import { theme } from '../theme';
+import { logger } from './logger';
 
 // ============================================================================
 // ACCESSIBILITY MANAGER CLASS
 // ============================================================================
 
-class AccessibilityManager {
+export class AccessibilityManager {
   private static instance: AccessibilityManager;
   private isScreenReaderEnabled = false;
   private isReduceMotionEnabled = false;
@@ -42,9 +43,9 @@ class AccessibilityManager {
       if (Platform.OS === 'ios') {
         this.isReduceMotionEnabled = await AccessibilityInfo.isReduceMotionEnabled();
         this.isBoldTextEnabled = await AccessibilityInfo.isBoldTextEnabled();
-        this.isHighContrastEnabled =
-          await AccessibilityInfo.isInvertColorsEnabled() ||
-          await AccessibilityInfo.isGrayscaleEnabled();
+        const invertColorsEnabled = await AccessibilityInfo.isInvertColorsEnabled();
+        const grayscaleEnabled = await AccessibilityInfo.isGrayscaleEnabled();
+        this.isHighContrastEnabled = invertColorsEnabled || grayscaleEnabled;
       }
 
       // Set up event listeners
@@ -175,7 +176,7 @@ class AccessibilityManager {
    */
   public getAdjustedFontSize(baseFontSize: number): number {
     if (this.isBoldTextEnabled) {
-      return baseFontSize * 1.1; // Slightly larger for bold text users
+      return Number((baseFontSize * 1.1).toFixed(1)); // Slightly larger for bold text users
     }
     return baseFontSize;
   }
@@ -183,7 +184,7 @@ class AccessibilityManager {
   /**
    * Get text style adjusted for accessibility
    */
-  public getAdjustedTextStyle(baseStyle: any) {
+  public getAdjustedTextStyle(baseStyle: unknown) {
     return {
       ...baseStyle,
       fontSize: this.getAdjustedFontSize(baseStyle.fontSize || 16),
@@ -233,7 +234,7 @@ class AccessibilityManager {
   /**
    * Validate accessibility props for components
    */
-  public validateAccessibilityProps(props: any): {
+  public validateAccessibilityProps(props: unknown): {
     isValid: boolean;
     warnings: string[];
   } {
@@ -326,7 +327,7 @@ class AccessibilityManager {
   /**
    * Get accessibility testing report for a component tree
    */
-  public getAccessibilityReport(componentProps: any[]): {
+  public getAccessibilityReport(componentProps: unknown[]): {
     totalElements: number;
     accessibleElements: number;
     issues: Array<{
@@ -366,7 +367,23 @@ class AccessibilityManager {
 // SINGLETON EXPORT
 // ============================================================================
 
-export default AccessibilityManager.getInstance();
+const accessibilityManager = new Proxy(
+  {},
+  {
+    get(_target, prop) {
+      const instance = AccessibilityManager.getInstance() as any;
+      const value = instance[prop as keyof typeof instance];
+      return typeof value === 'function' ? value.bind(instance) : value;
+    },
+    set(_target, prop, value) {
+      const instance = AccessibilityManager.getInstance() as any;
+      instance[prop as keyof typeof instance] = value;
+      return true;
+    },
+  }
+);
+
+export default accessibilityManager as AccessibilityManager;
 
 // ============================================================================
 // CONVENIENCE HOOKS

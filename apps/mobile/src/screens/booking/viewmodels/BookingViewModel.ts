@@ -80,7 +80,7 @@ export const cancellationReasons: CancellationReason[] = [
 /**
  * Custom hook for Booking business logic
  */
-export const useBookingViewModel = (user: any): BookingViewModel => {
+export const useBookingViewModel = (user: unknown): BookingViewModel => {
   const [activeTab, setActiveTab] = useState<BookingStatus>('upcoming');
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +96,7 @@ export const useBookingViewModel = (user: any): BookingViewModel => {
 
     setLoading(true);
     try {
-      let allJobs: any[] = [];
+      let allJobs: unknown[] = [];
 
       if (user.role === 'homeowner') {
         allJobs = await JobService.getJobsByHomeowner(user.id);

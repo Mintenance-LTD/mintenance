@@ -70,7 +70,7 @@ export async function GET(
       userRole: user?.role,
     });
   } catch (error) {
-    logger.error('[FeatureFlags API] Error:', error', [object Object], { service: 'api' });
+    logger.error('[FeatureFlags API] Error:', error, { service: 'api' });
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

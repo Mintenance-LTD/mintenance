@@ -71,7 +71,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       if (onContractorAssigned) {
         onContractorAssigned(bid.contractorId, bid.id);
       }
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Failed to accept bid:', error);
       Alert.alert(
         'Error',

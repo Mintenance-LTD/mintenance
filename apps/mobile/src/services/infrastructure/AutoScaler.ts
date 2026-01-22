@@ -20,7 +20,7 @@ export interface ServiceInstance {
   currentLoad: number;
   healthScore: number;
   lastHealthCheck: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export class AutoScaler {
@@ -30,7 +30,7 @@ export class AutoScaler {
   async evaluateScalingPolicies(
     policies: Map<string, ScalingPolicy>,
     currentMetrics: ScalingMetrics,
-    evaluateTriggers: (triggers: any[], metrics: ScalingMetrics) => boolean
+    evaluateTriggers: (triggers: unknown[], metrics: ScalingMetrics) => boolean
   ): Promise<void> {
     for (const [policyId, policy] of Array.from(policies)) {
       if (!policy.enabled) continue;
@@ -88,7 +88,7 @@ export class AutoScaler {
     }
   }
 
-  async scaleUp(parameters: any): Promise<void> {
+  async scaleUp(parameters: unknown): Promise<void> {
     // Increase resources for existing instances
     logger.info('Scaling up resources', parameters);
 
@@ -100,7 +100,7 @@ export class AutoScaler {
     }
   }
 
-  async scaleDown(parameters: any): Promise<void> {
+  async scaleDown(parameters: unknown): Promise<void> {
     // Decrease resources for existing instances
     logger.info('Scaling down resources', parameters);
 
@@ -112,7 +112,7 @@ export class AutoScaler {
     }
   }
 
-  async scaleOut(parameters: any): Promise<void> {
+  async scaleOut(parameters: unknown): Promise<void> {
     // Add more instances
     const { increment = 1, maxInstances = 10 } = parameters;
     const currentInstances = this.serviceInstances.size;
@@ -152,7 +152,7 @@ export class AutoScaler {
     logger.info(`Scaled out: added ${instancesToAdd} new instances`);
   }
 
-  async scaleIn(parameters: any): Promise<void> {
+  async scaleIn(parameters: unknown): Promise<void> {
     // Remove instances
     const { decrement = 1, minInstances = 2 } = parameters;
     const currentInstances = this.serviceInstances.size;
@@ -181,7 +181,7 @@ export class AutoScaler {
     logger.info(`Scaled in: removing ${instancesToRemove} instances`);
   }
 
-  async performFailover(parameters: any): Promise<void> {
+  async performFailover(parameters: unknown): Promise<void> {
     const { sourceRegion, targetRegion } = parameters;
 
     logger.warn(`Performing failover from ${sourceRegion} to ${targetRegion}`);
@@ -198,7 +198,7 @@ export class AutoScaler {
     }, 'failover-policy');
   }
 
-  private async sendAlert(parameters: any, policyId: string): Promise<void> {
+  private async sendAlert(parameters: unknown, policyId: string): Promise<void> {
     const { severity = 'medium', message, recipients = [] } = parameters;
 
     logger.warn(`Infrastructure alert (${severity}): ${message}`, { policyId, recipients });

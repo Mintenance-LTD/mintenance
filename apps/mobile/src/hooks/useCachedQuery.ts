@@ -4,6 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient, QueryKey } from '@tanstack/react-query';
+import type { Job } from '@/types';
 import { CacheService } from '../services/CacheService';
 import { CACHE_TIMES, STALE_TIMES, QUERY_KEYS } from '../config/reactQuery.config';
 import { logger } from '../utils/logger';
@@ -79,7 +80,7 @@ export function useCachedQuery<TData>({
     gcTime: cacheTime,
     staleTime,
     enabled,
-    retry: (failureCount, error: any) => {
+    retry: (failureCount, error: Error | unknown) => {
       // Don't retry on 4xx errors
       if (error?.status >= 400 && error?.status < 500) {
         return false;
@@ -143,7 +144,7 @@ export function useCachedMutation<TData, TVariables>({
   invalidateKeys?: QueryKey[];
   optimisticUpdate?: {
     queryKey: QueryKey;
-    updater: (old: any, variables: TVariables) => any;
+    updater: (old: unknown, variables: TVariables) => any;
   };
   onSuccess?: (data: TData, variables: TVariables) => void;
   onError?: (error: Error, variables: TVariables) => void;
@@ -164,13 +165,13 @@ export function useCachedMutation<TData, TVariables>({
         // Optimistically update
         queryClient.setQueryData(
           optimisticUpdate.queryKey,
-          (old: any) => optimisticUpdate.updater(old, variables)
+          (old: unknown) => optimisticUpdate.updater(old, variables)
         );
 
         return { previousValue };
       }
     },
-    onError: (error, variables, context: any) => {
+    onError: (error, variables, context: unknown) => {
       // Rollback on error
       if (optimisticUpdate && context?.previousValue) {
         queryClient.setQueryData(optimisticUpdate.queryKey, context.previousValue);
@@ -307,7 +308,7 @@ export function useContractorProfile(contractorId: string) {
  */
 export function useCreateJob() {
   return useCachedMutation({
-    mutationFn: async (jobData: any) => {
+    mutationFn: async (jobData: unknown) => {
       const response = await fetch('/api/jobs', {
         method: 'POST',
         body: JSON.stringify(jobData),
@@ -317,7 +318,7 @@ export function useCreateJob() {
     invalidateKeys: [QUERY_KEYS.JOBS_LIST],
     optimisticUpdate: {
       queryKey: QUERY_KEYS.JOBS_LIST,
-      updater: (old: any[], variables: any) => {
+      updater: (old: unknown[], variables: unknown) => {
         return [
           ...old,
           {

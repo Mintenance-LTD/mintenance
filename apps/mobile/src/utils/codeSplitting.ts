@@ -32,8 +32,8 @@ export interface SplittingStrategy {
 
 class CodeSplittingManager {
   private static instance: CodeSplittingManager;
-  private chunkCache = new Map<string, any>();
-  private loadingChunks = new Map<string, Promise<any>>();
+  private chunkCache = new Map<string, unknown>();
+  private loadingChunks = new Map<string, Promise<unknown>>();
   private chunkMetrics: ChunkMetrics[] = [];
   private preloadQueue: string[] = [];
 
@@ -203,7 +203,7 @@ class CodeSplittingManager {
   /**
    * Estimate chunk size (placeholder implementation)
    */
-  private estimateChunkSize(chunk: any): number {
+  private estimateChunkSize(chunk: unknown): number {
     try {
       // In a real implementation, you'd get actual bundle size
       // For now, estimate based on component complexity
@@ -391,7 +391,9 @@ export const useChunkPreloader = (chunkNames: string[]) => {
 
 // Performance monitoring hook
 export const useChunkPerformance = () => {
-  const [metrics, setMetrics] = React.useState<ChunkMetrics[]>([]);
+  const [metrics, setMetrics] = React.useState<ChunkMetrics[]>(
+    codeSplittingManager.getChunkMetrics()
+  );
 
   React.useEffect(() => {
     const updateMetrics = () => {
@@ -408,6 +410,6 @@ export const useChunkPerformance = () => {
   return {
     metrics,
     report: codeSplittingManager.getPerformanceReport(),
-    clearCache: codeSplittingManager.clearChunkCache,
+    clearCache: codeSplittingManager.clearChunkCache.bind(codeSplittingManager),
   };
 };

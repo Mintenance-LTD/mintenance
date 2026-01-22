@@ -352,9 +352,9 @@ export const useAccessibility = () => {
   // ============================================================================
 
   const announceStateChange = useCallback((
-    oldState: any,
-    newState: any,
-    getMessage: (oldVal: any, newVal: any) => string
+    oldState: unknown,
+    newState: unknown,
+    getMessage: (oldVal: unknown, newVal: unknown) => string
   ) => {
     if (accessibilityState.isScreenReaderEnabled && oldState !== newState) {
       const message = getMessage(oldState, newState);
@@ -471,7 +471,7 @@ export const useAccessibility = () => {
 
 export const AccessibilityTestHelpers = {
   // Test if element has proper accessibility props
-  hasAccessibilityProps: (element: any) => {
+  hasAccessibilityProps: (element: unknown) => {
     return (
       element.props.accessible !== false &&
       (element.props.accessibilityLabel || element.props.accessibilityRole)
@@ -479,7 +479,7 @@ export const AccessibilityTestHelpers = {
   },
 
   // Test if interactive element has proper role
-  hasInteractiveRole: (element: any) => {
+  hasInteractiveRole: (element: unknown) => {
     const interactiveRoles = ['button', 'link', 'tab', 'checkbox', 'radio', 'switch', 'adjustable'];
     return interactiveRoles.includes(element.props.accessibilityRole);
   },

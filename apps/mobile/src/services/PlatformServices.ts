@@ -33,7 +33,7 @@ export const ImagePicker = createPlatformAdapter({
 export const Haptics = Platform.select({
   web: {
     // Web fallback for haptics
-    impactAsync: async (style: any) => {
+    impactAsync: async (style: unknown) => {
       try {
         if ('vibrate' in navigator) {
           const patterns = {
@@ -47,7 +47,7 @@ export const Haptics = Platform.select({
         // Silently fail on web if vibration not supported
       }
     },
-    notificationAsync: async (type: any) => {
+    notificationAsync: async (type: unknown) => {
       try {
         if ('vibrate' in navigator) {
           const patterns = {
@@ -95,7 +95,7 @@ export const Location = Platform.select({
         return { status: 'denied' };
       }
     },
-    getCurrentPositionAsync: async (options: any = {}) => {
+    getCurrentPositionAsync: async (options: Record<string, unknown> = {}) => {
       return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
           reject(new Error('Geolocation not supported'));
@@ -153,7 +153,7 @@ export const CameraPermissions = {
 export const MediaRecording = Platform.select({
   web: {
     // Web media recording implementation
-    startRecording: async (options: any = {}) => {
+    startRecording: async (options: Record<string, unknown> = {}) => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
@@ -201,7 +201,7 @@ export const MediaRecording = Platform.select({
   },
   default: {
     // Mobile implementation would use expo-av
-    startRecording: async (options: any = {}) => {
+    startRecording: async (options: Record<string, unknown> = {}) => {
       throw new Error('Media recording not implemented for mobile in this adapter');
     },
   },
@@ -238,3 +238,16 @@ export const SecureStore = Platform.select({
 
 // Export platform detection utilities
 export { isWeb, isMobile, platformCapabilities } from '../utils/platformAdapter';
+
+const PlatformServices = {
+  BiometricService,
+  NotificationService,
+  ImagePicker,
+  Haptics,
+  Location,
+  CameraPermissions,
+  MediaRecording,
+  SecureStore,
+};
+
+export default PlatformServices;

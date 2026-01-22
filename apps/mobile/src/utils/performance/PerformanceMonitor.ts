@@ -242,7 +242,7 @@ export class PerformanceMonitor {
     return this.metricsCollector.onMetric(listener);
   }
 
-  onBudgetViolation(listener: (violation: any) => void): () => void {
+  onBudgetViolation(listener: (violation: unknown) => void): () => void {
     return this.budgetEnforcer.onBudgetViolation(listener);
   }
 
@@ -257,7 +257,7 @@ export class PerformanceMonitor {
   /**
    * Record multiple metrics (stub for compatibility)
    */
-  recordMetrics(serviceName: string, responseTime: number, context?: any): void {
+  recordMetrics(serviceName: string, responseTime: number, context?: unknown): void {
     this.recordMetric(`${serviceName}_response_time`, responseTime, 'custom');
     if (context) {
       logger.info('PerformanceMonitor', `Recorded metrics for ${serviceName}`, context);

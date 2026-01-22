@@ -19,7 +19,7 @@ export interface TrainingMetadata {
   category: string;
   userId?: string;
   sessionId?: string;
-  deviceInfo?: any;
+  deviceInfo?: unknown;
 }
 
 export interface BiasMetrics {
@@ -234,7 +234,7 @@ export interface TrainingEvent {
   type: TrainingEventType;
   modelType: ModelType;
   timestamp: number;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   metadata?: {
     userId?: string;
     sessionId?: string;

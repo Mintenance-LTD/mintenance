@@ -1,5 +1,4 @@
 import React, { ReactNode } from 'react';
-
 export interface Column<T> {
   key: string;
   label: string;
@@ -7,7 +6,6 @@ export interface Column<T> {
   align?: 'left' | 'center' | 'right';
   width?: string;
 }
-
 export interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
@@ -16,7 +14,6 @@ export interface DataTableProps<T> {
   title?: string;
   actions?: ReactNode;
 }
-
 export function DataTable<T extends { id: string | number }>({
   data,
   columns,
@@ -59,7 +56,6 @@ export function DataTable<T extends { id: string | number }>({
           {actions}
         </div>
       )}
-
       {data.length === 0 ? (
         <div
           style={{

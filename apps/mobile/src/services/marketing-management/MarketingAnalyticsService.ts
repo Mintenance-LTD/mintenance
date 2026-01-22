@@ -93,7 +93,7 @@ export class MarketingAnalyticsService {
     if (error) throw error;
   }
 
-  async createCompetitorAnalysis(contractorId: string, competitorData: any): Promise<CompetitorAnalysis> {
+  async createCompetitorAnalysis(contractorId: string, competitorData: unknown): Promise<CompetitorAnalysis> {
     const { data, error } = await supabase
       .from('competitor_analyses')
       .insert({
@@ -156,7 +156,7 @@ export class MarketingAnalyticsService {
     return data;
   }
 
-  async getCampaignPerformance(campaignId: string): Promise<any> {
+  async getCampaignPerformance(campaignId: string): Promise<unknown> {
     const campaign = await this.getCampaignById(campaignId);
     return {
       campaign,
@@ -221,7 +221,7 @@ export class MarketingAnalyticsService {
   }
 
   private calculateChannelPerformance(campaigns: MarketingCampaign[]) {
-    const channelMap = new Map<string, any>();
+    const channelMap = new Map<string, unknown>();
 
     campaigns.forEach(campaign => {
       campaign.channels.forEach(channel => {
@@ -266,14 +266,14 @@ export class MarketingAnalyticsService {
       .slice(0, 5);
   }
 
-  private getTopPerformingContent(campaigns: MarketingCampaign[]): any[] {
+  private getTopPerformingContent(campaigns: MarketingCampaign[]): unknown[] {
     const allContent = campaigns.flatMap(c => c.content);
     return allContent
       .sort((a, b) => b.performance.engagement - a.performance.engagement)
       .slice(0, 5);
   }
 
-  private async getCampaignTrends(campaignId: string): Promise<any> {
+  private async getCampaignTrends(campaignId: string): Promise<unknown> {
     // This would typically query historical performance data
     return {
       impressions: [0],

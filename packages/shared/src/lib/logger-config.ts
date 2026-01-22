@@ -5,8 +5,8 @@
  * Supports multiple transports for production monitoring
  */
 
-import { EnhancedLogger, LogTransport, LogEntry } from '../enhanced-logger';
-import { logger } from '@mintenance/shared';
+import { EnhancedLogger, LogTransport, EnhancedLogEntry } from '../enhanced-logger';
+import { logger } from '../logger';
 
 /**
  * Datadog Transport for production logging
@@ -17,7 +17,7 @@ export class DatadogTransport implements LogTransport {
   private endpoint: string;
   private service: string;
   private environment: string;
-  private buffer: LogEntry[] = [];
+  private buffer: EnhancedLogEntry[] = [];
   private flushTimer?: NodeJS.Timeout;
 
   constructor(config: {
@@ -47,7 +47,7 @@ export class DatadogTransport implements LogTransport {
     }
   }
 
-  async send(entry: LogEntry): Promise<void> {
+  async send(entry: EnhancedLogEntry): Promise<void> {
     this.buffer.push(entry);
 
     if (this.buffer.length >= 50) {
@@ -88,14 +88,14 @@ export class DatadogTransport implements LogTransport {
       });
 
       if (!response.ok) {
-        logger.error('Datadog logging failed: %s %s', [object Object], { service: 'lib' });
+        logger.error('Datadog logging failed:', response.status, { service: 'lib' });
       }
     } catch (error) {
-      logger.error('Failed to send logs to Datadog:', error', [object Object], { service: 'lib' });
+      logger.error('Failed to send logs to Datadog:', error, { service: 'lib' });
     }
   }
 
-  async sendBatch(entries: LogEntry[]): Promise<void> {
+  async sendBatch(entries: EnhancedLogEntry[]): Promise<void> {
     for (const entry of entries) {
       this.buffer.push(entry);
     }
@@ -111,7 +111,7 @@ export class CloudWatchTransport implements LogTransport {
   private logGroupName: string;
   private logStreamName: string;
   private region: string;
-  private buffer: LogEntry[] = [];
+  private buffer: EnhancedLogEntry[] = [];
 
   constructor(config: {
     logGroupName: string;
@@ -123,7 +123,7 @@ export class CloudWatchTransport implements LogTransport {
     this.region = config.region || process.env.AWS_REGION || 'eu-west-2';
   }
 
-  async send(entry: LogEntry): Promise<void> {
+  async send(entry: EnhancedLogEntry): Promise<void> {
     // In a real implementation, you would use AWS SDK
     // This is a placeholder showing the structure
     const logEvent = {
@@ -142,7 +142,7 @@ export class CloudWatchTransport implements LogTransport {
 
     // AWS CloudWatch SDK would be used here
     if (process.env.NODE_ENV === 'development') {
-      logger.info('[CloudWatch]', logEvent', [object Object], { service: 'lib' });
+      logger.info(`[CloudWatch] ${JSON.stringify(logEvent)}`, { service: 'lib' });
     }
   }
 }
@@ -153,7 +153,7 @@ export class CloudWatchTransport implements LogTransport {
 export class FileTransport implements LogTransport {
   name = 'file';
   private filePath: string;
-  private stream?: any;
+  private stream?: unknown;
 
   constructor(config: { filePath: string }) {
     this.filePath = config.filePath;
@@ -174,7 +174,7 @@ export class FileTransport implements LogTransport {
     }
   }
 
-  async send(entry: LogEntry): Promise<void> {
+  async send(entry: EnhancedLogEntry): Promise<void> {
     if (!this.stream) return;
 
     const line = JSON.stringify({
@@ -189,7 +189,7 @@ export class FileTransport implements LogTransport {
       } : undefined
     }) + '\n';
 
-    this.stream.write(line);
+    (this.stream as any).write(line);
   }
 }
 
@@ -205,7 +205,7 @@ export function createLogger(customConfig?: {
   enableCloudWatch?: boolean;
   enableFileLogging?: boolean;
   datadogApiKey?: string;
-  cloudWatchConfig?: any;
+  cloudWatchConfig?: unknown;
   fileLogPath?: string;
 }): EnhancedLogger {
   const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -240,7 +240,7 @@ export function createLogger(customConfig?: {
 
     // CloudWatch integration (for AWS deployments)
     if (!isDevelopment && customConfig?.enableCloudWatch && customConfig?.cloudWatchConfig) {
-      logger.addTransport(new CloudWatchTransport(customConfig.cloudWatchConfig));
+      logger.addTransport(new CloudWatchTransport(customConfig.cloudWatchConfig as any));
     }
 
     // File logging (for debugging in production)
@@ -337,7 +337,7 @@ export function requestLoggingMiddleware(logger?: EnhancedLogger) {
 
     // Override res.end to log response
     const originalEnd = res.end;
-    res.end = function(...args: any[]) {
+    res.end = function (...args: unknown[]) {
       const duration = Date.now() - startTime;
 
       log.info('Request completed', {

@@ -45,7 +45,7 @@ export class OnlineLearningService {
   async addDataPoint(
     keys: number[],
     values: number[],
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     if (!this.config.enableIncremental) {
       logger.debug('Online learning disabled, skipping data point', {

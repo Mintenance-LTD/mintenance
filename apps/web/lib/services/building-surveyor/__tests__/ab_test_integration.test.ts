@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Integration tests for A/B test flow
  * 
@@ -14,9 +15,9 @@ import { ConformalPredictionMonitoringService } from '../ConformalPredictionMoni
 import { CriticModule } from '../critic';
 
 // Mock dependencies
-jest.mock('@/lib/api/supabaseServer');
-jest.mock('../BuildingSurveyorService');
-jest.mock('../DetectorFusionService');
+vi.mock('@/lib/api/supabaseServer');
+vi.mock('../BuildingSurveyorService');
+vi.mock('../DetectorFusionService');
 
 describe('A/B Test Integration', () => {
   describe('Context Vector Consistency', () => {

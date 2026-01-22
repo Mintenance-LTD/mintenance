@@ -221,7 +221,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
             onPress={() => setSelectedService(filter.id)}
           >
             <Ionicons
-              name={filter.icon as any}
+              name={filter.icon as unknown}
               size={16}
               color={selectedService === filter.id ? theme.colors.white : filter.color}
             />

@@ -38,11 +38,11 @@ export interface FormField {
   section_name?: string;
   help_text?: string;
   placeholder_text?: string;
-  field_options?: any;
+  field_options?: unknown;
   default_value?: string;
-  validation_rules?: any;
-  error_messages?: any;
-  conditional_logic?: any;
+  validation_rules?: unknown;
+  error_messages?: unknown;
+  conditional_logic?: unknown;
   field_width: string;
   custom_classes?: string;
   created_at: string;
@@ -145,7 +145,7 @@ export class FormFieldService {
   }
 
   static validateFormData(
-    formData: any,
+    formData: unknown,
     fields: FormField[]
   ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];

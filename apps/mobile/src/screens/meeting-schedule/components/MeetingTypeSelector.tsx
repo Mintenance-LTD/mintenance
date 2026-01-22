@@ -49,7 +49,7 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
           >
             <View style={styles.typeIcon}>
               <Ionicons 
-                name={type.icon as any} 
+                name={type.icon as unknown} 
                 size={24} 
                 color={selectedType === type.id ? theme.colors.textInverse : theme.colors.primary} 
               />

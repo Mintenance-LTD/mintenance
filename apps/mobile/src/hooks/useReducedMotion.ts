@@ -44,7 +44,7 @@ export function useReducedMotion(): boolean {
         setPrefersReducedMotion(isReduceMotionEnabled);
       } catch (error) {
         // Fallback to false if AccessibilityInfo is not available
-        logger.warn('AccessibilityInfo.isReduceMotionEnabled not available:', error', [object Object], { service: 'mobile' });
+        logger.warn('AccessibilityInfo.isReduceMotionEnabled not available:', error, { service: 'mobile' });
         setPrefersReducedMotion(false);
       }
     };
@@ -191,7 +191,7 @@ export function useScreenReaderEnabled(): boolean {
         const screenReaderEnabled = await AccessibilityInfo.isScreenReaderEnabled();
         setIsEnabled(screenReaderEnabled);
       } catch (error) {
-        logger.warn('AccessibilityInfo.isScreenReaderEnabled not available:', error', [object Object], { service: 'mobile' });
+        logger.warn('AccessibilityInfo.isScreenReaderEnabled not available:', error, { service: 'mobile' });
         setIsEnabled(false);
       }
     };

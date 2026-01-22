@@ -1,4 +1,4 @@
-import { logger } from '@mintenance/shared';
+// Logger implementation - uses console directly to avoid circular dependencies
 /**
  * Production-Safe Logger
  * 
@@ -123,15 +123,15 @@ class Logger {
         }
         break;
       case 'info':
-        logger.info('Log output', formattedMessage, { service: 'general' });
+        console.info('[INFO]', formattedMessage);
         break;
       case 'warn':
-        logger.warn('Log output', formattedMessage, { service: 'general' });
+        console.warn('[WARN]', formattedMessage);
         break;
       case 'error':
-        logger.error('Log output', formattedMessage, { service: 'general' });
+        console.error('[ERROR]', formattedMessage);
         if (error) {
-          logger.error('Error details:', error', [object Object], { service: 'general' });
+          console.error('[ERROR] Details:', error);
         }
         break;
     }

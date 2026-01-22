@@ -205,7 +205,7 @@ const TabNavigator: React.FC = () => {
           ),
         }}
         listeners={({ navigation }: { navigation: any }) => ({
-          tabPress: (e: any) => {
+          tabPress: (e: unknown) => {
             e.preventDefault();
             const tabNavigation =
               navigation as BottomTabNavigationProp<RootTabParamList>;
@@ -220,7 +220,6 @@ const TabNavigator: React.FC = () => {
           },
         })}
       />
-
 
       <Tab.Screen
         name="MessagingTab"
@@ -370,7 +369,6 @@ export const AppNavigator: React.FC = () => {
     </AppErrorBoundary>
   );
 };
-
 
 // ============================================================================
 // FLOATING ACTION BUTTON COMPONENT

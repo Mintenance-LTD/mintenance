@@ -1,7 +1,7 @@
 // Use the global ErrorUtils provided by React Native
 import { logger } from './logger';
 declare const ErrorUtils: {
-  setGlobalHandler: (handler: (error: any, isFatal?: boolean) => void) => void;
+  setGlobalHandler: (handler: (error: Error | unknown, isFatal?: boolean) => void) => void;
 };
 
 // Global error handler for unhandled JS errors
@@ -36,7 +36,7 @@ export const setupGlobalErrorHandler = () => {
   const originalHandler =
     require('react-native/Libraries/Core/ExceptionsManager').unstable_setGlobalHandler;
   if (originalHandler) {
-    originalHandler((error: any, isFatal: boolean) => {
+    originalHandler((error: Error | unknown, isFatal: boolean) => {
       logger.error('Unhandled Promise Rejection:', error);
 
       import('@sentry/react-native')
@@ -60,7 +60,7 @@ export const setupGlobalErrorHandler = () => {
 };
 
 // Custom error logger
-export const logError = (error: Error, context?: any) => {
+export const logError = (error: Error, context?: unknown) => {
   logger.error('App Error:', error, context);
 
   import('@sentry/react-native')

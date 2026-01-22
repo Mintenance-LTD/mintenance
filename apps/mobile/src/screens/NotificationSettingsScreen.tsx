@@ -86,7 +86,7 @@ const NotificationSettingsScreen: React.FC = () => {
       <View style={styles.settingLeft}>
         <View style={styles.iconContainer}>
           <Ionicons
-            name={icon as any}
+            name={icon as unknown}
             size={20}
             color={disabled ? '#C7C7CC' : theme.colors.primary}
           />

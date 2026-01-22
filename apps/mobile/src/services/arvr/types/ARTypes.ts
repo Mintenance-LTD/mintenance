@@ -25,7 +25,7 @@ export interface AR3DModel {
   scale: { x: number; y: number; z: number };
   materials: string[];
   price?: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ARJobVisualization {
@@ -41,7 +41,7 @@ export interface ARJobVisualization {
   timeline: ARTimelineStep[];
   createdAt: number;
   updatedAt: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ARPlacedModel {
@@ -53,7 +53,7 @@ export interface ARPlacedModel {
   anchorId?: string;
   isLocked: boolean;
   visibility: boolean;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ARAnnotation {
@@ -86,7 +86,7 @@ export interface ARPhotoReference {
   thumbnailUrl: string;
   description: string;
   timestamp: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ARLightingSetup {
@@ -134,7 +134,7 @@ export interface ARMaterialDefinition {
     occlusion?: string;
     emissive?: string;
   };
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
 }
 
 export interface ARTimelineStep {
@@ -154,8 +154,8 @@ export interface ARAnimation {
   id: string;
   targetId: string;
   type: 'position' | 'rotation' | 'scale' | 'material' | 'visibility';
-  fromValue: any;
-  toValue: any;
+  fromValue: unknown;
+  toValue: unknown;
   duration: number;
   delay: number;
   easing: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';

@@ -8,7 +8,7 @@ import React, {
 import * as SecureStore from 'expo-secure-store';
 import { AuthService } from '../services/AuthService';
 import { NotificationService } from '../services/NotificationService';
-import { User } from '@mintenance/types';
+import type { User } from '@mintenance/types';
 import { handleError } from '../utils/errorHandler';
 import { logger } from '../utils/logger';
 import { setUserContext, trackUserAction, addBreadcrumb, measureAsyncPerformance } from '../utils/sentryUtils';
@@ -33,7 +33,7 @@ const parseJWT = (token: string): { exp?: number } | null => {
 
 interface AuthContextType {
   user: User | null;
-  session: any | null; // Add session for compatibility with tests
+  session: Session | null | null; // Add session for compatibility with tests
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (
@@ -88,7 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // TOKEN EXPIRATION FIX: Set up auth state listener for session changes
-      const authStateSubscription = AuthService.onAuthStateChange(async (event: string, session: any) => {
+      const authStateSubscription = AuthService.onAuthStateChange(async (event: string, session: unknown) => {
         if (!mounted) return;
 
         logger.info('[AUTH] Auth state changed:', { event, hasSession: !!session });
@@ -151,7 +151,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // SECURITY FIX: Persist session to SecureStore
-  const saveSessionToSecureStore = async (sessionData: any) => {
+  const saveSessionToSecureStore = async (sessionData: unknown) => {
     try {
       if (!sessionData) return;
 

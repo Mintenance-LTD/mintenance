@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 /** @jest-environment node */
 import { NextRequest } from 'next/server';
 
-jest.mock('next/headers', () => {
+vi.mock('next/headers', () => {
   const store = new Map<string, string>();
   return {
     cookies: async () => ({
@@ -14,11 +14,11 @@ jest.mock('next/headers', () => {
   };
 });
 
-jest.mock('@/lib/auth', () => {
+vi.mock('@/lib/auth', () => {
   return {
-    rotateTokens: jest.fn(async () => ({ accessToken: 'new-access', refreshToken: 'new-refresh' })),
-    setAuthCookie: jest.fn(async () => undefined),
-    verifyToken: jest.fn(async () => ({ sub: 'u1', email: 'u@example.com', role: 'homeowner', exp: Math.floor(Date.now()/1000) + 10 })),
+    rotateTokens: vi.fn(async () => ({ accessToken: 'new-access', refreshToken: 'new-refresh' })),
+    setAuthCookie: vi.fn(async () => undefined),
+    verifyToken: vi.fn(async () => ({ sub: 'u1', email: 'u@example.com', role: 'homeowner', exp: Math.floor(Date.now()/1000) + 10 })),
   };
 });
 
@@ -40,7 +40,7 @@ describe('POST /api/auth/refresh', () => {
     const { cookies } = await import('next/headers');
     const lib = await import('@/lib/auth');
     const cs = await cookies();
-    (lib.verifyToken as jest.Mock).mockResolvedValueOnce({ sub: 'u1', email: 'u@example.com', role: 'homeowner', exp: Math.floor(Date.now()/1000) + 10 });
+    vi.mocked(lib.verifyToken).mockResolvedValueOnce({ sub: 'u1', email: 'u@example.com', role: 'homeowner', exp: Math.floor(Date.now()/1000) + 10 });
     cs.set('auth-token', 'old-access');
     cs.set('refresh-token', 'old-refresh');
 
@@ -48,8 +48,8 @@ describe('POST /api/auth/refresh', () => {
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect((lib.rotateTokens as jest.Mock)).toHaveBeenCalled();
-    expect((lib.setAuthCookie as jest.Mock)).toHaveBeenCalled();
+    expectvi.mocked((lib.rotateTokens)).toHaveBeenCalled();
+    expectvi.mocked((lib.setAuthCookie)).toHaveBeenCalled();
   });
 
   it('401 for invalid refresh token', async () => {
@@ -57,8 +57,8 @@ describe('POST /api/auth/refresh', () => {
     const { cookies } = await import('next/headers');
     const lib = await import('@/lib/auth');
     const cs = await cookies();
-    (lib.verifyToken as jest.Mock).mockResolvedValueOnce({ sub: 'u1', email: 'u@example.com', role: 'homeowner', exp: Math.floor(Date.now()/1000) + 10 });
-    (lib.rotateTokens as jest.Mock).mockRejectedValueOnce(new Error('Invalid refresh token'));
+    vi.mocked(lib.verifyToken).mockResolvedValueOnce({ sub: 'u1', email: 'u@example.com', role: 'homeowner', exp: Math.floor(Date.now()/1000) + 10 });
+    vi.mocked(lib.rotateTokens).mockRejectedValueOnce(new Error('Invalid refresh token'));
     cs.set('auth-token', 'old-access');
     cs.set('refresh-token', 'bad-refresh');
 

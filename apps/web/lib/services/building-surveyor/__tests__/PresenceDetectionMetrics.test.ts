@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Metrics Validation Tests for SAM3 Presence Detection
  *
@@ -11,19 +12,19 @@ import { supabase } from '@/lib/supabase';
 import { logger } from '@mintenance/shared';
 
 // Mock dependencies
-jest.mock('@/lib/supabase');
-jest.mock('@mintenance/shared', () => ({
+vi.mock('@/lib/supabase');
+vi.mock('@mintenance/shared', () => ({
     logger: {
-        info: jest.fn(),
-        debug: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
     },
 }));
 
 describe('Presence Detection Metrics Validation', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         HybridInferenceService.resetYoloSavingsMetrics();
     });
 
@@ -36,8 +37,8 @@ describe('Presence Detection Metrics Validation', () => {
                 const shouldSkip = Math.random() < expectedSkipRate;
 
                 // Mock based on whether we should skip
-                jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
-                jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
+                vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
+                vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
                     success: true,
                     presence_results: {},
                     damage_detected: shouldSkip ? [] : ['damage'],
@@ -68,8 +69,8 @@ describe('Presence Detection Metrics Validation', () => {
             const numAssessments = 10;
 
             for (let i = 0; i < numAssessments; i++) {
-                jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
-                jest.spyOn(SAM3Service, 'checkDamagePresence').mockImplementationOnce(
+                vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
+                vi.spyOn(SAM3Service, 'checkDamagePresence').mockImplementationOnce(
                     async () => {
                         // Simulate SAM3 timing
                         await new Promise(resolve => setTimeout(resolve, avgSam3TimeMs));
@@ -105,8 +106,8 @@ describe('Presence Detection Metrics Validation', () => {
 
             // Process assessments with YOLO skipped
             for (let i = 0; i < assessmentsWithSkip; i++) {
-                jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
-                jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
+                vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
+                vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
                     success: true,
                     presence_results: {},
                     damage_detected: [],
@@ -123,8 +124,8 @@ describe('Presence Detection Metrics Validation', () => {
 
             // Process assessments without YOLO skipped
             for (let i = 0; i < assessmentsWithoutSkip; i++) {
-                jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
-                jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
+                vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
+                vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
                     success: true,
                     presence_results: {},
                     damage_detected: ['damage'],
@@ -161,8 +162,8 @@ describe('Presence Detection Metrics Validation', () => {
             let totalUndamagedCorrectlyIdentified = 0;
 
             for (const scenario of testScenarios) {
-                jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
-                jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
+                vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
+                vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
                     success: true,
                     presence_results: {},
                     damage_detected: scenario.sam3Detection ? ['damage'] : [],
@@ -200,8 +201,8 @@ describe('Presence Detection Metrics Validation', () => {
             for (let i = 0; i < numSamples; i++) {
                 const score = Math.random(); // Generate random score
 
-                jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
-                jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
+                vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
+                vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
                     success: true,
                     presence_results: {
                         'damage': {
@@ -262,8 +263,8 @@ describe('Presence Detection Metrics Validation', () => {
 
                 if (useSam3) {
                     const startTime = Date.now();
-                    jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
-                    jest.spyOn(SAM3Service, 'checkDamagePresence').mockImplementationOnce(
+                    vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
+                    vi.spyOn(SAM3Service, 'checkDamagePresence').mockImplementationOnce(
                         async () => {
                             // Simulate SAM3 inference time
                             await new Promise(resolve => setTimeout(resolve, 250 + Math.random() * 100));
@@ -333,23 +334,23 @@ describe('Presence Detection Metrics Validation', () => {
 
     describe('Production Monitoring Metrics', () => {
         it('should track and report key production metrics', async () => {
-            const mockSupabaseInsert = jest.fn().mockReturnValue({
-                select: jest.fn().mockReturnValue({
-                    single: jest.fn().mockResolvedValue({
+            const mockSupabaseInsert = vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({
                         data: { id: 'metric-123' },
                         error: null,
                     }),
                 }),
             });
 
-            (supabase.from as jest.Mock).mockReturnValue({
+            vi.mocked(supabase.from).mockReturnValue({
                 insert: mockSupabaseInsert,
             });
 
             // Process assessments to generate metrics
             for (let i = 0; i < 5; i++) {
-                jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
-                jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
+                vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValueOnce(true);
+                vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
                     success: true,
                     presence_results: {},
                     damage_detected: i % 2 === 0 ? [] : ['damage'],
@@ -432,7 +433,7 @@ describe('Presence Detection Metrics Validation', () => {
                 for (const score of test.testScores) {
                     const shouldDetect = score >= test.threshold;
 
-                    jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
+                    vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
                         success: true,
                         presence_results: {
                             [test.damageType]: {

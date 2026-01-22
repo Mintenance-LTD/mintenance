@@ -1,6 +1,5 @@
 import { supabase } from '../config/supabase';
-import { User } from '@mintenance/types';
-import type { Database } from '@mintenance/types';
+import type { User, Database } from '@mintenance/types';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { NetworkDiagnosticsService } from '../utils/networkDiagnostics';
 import { logger } from '../utils/logger';
@@ -14,7 +13,7 @@ export interface SignUpData {
 }
 
 export class AuthService {
-  static async signUp(userData: SignUpData): Promise<any> {
+  static async signUp(userData: SignUpData): Promise<unknown> {
     const context = {
       service: 'AuthService',
       method: 'signUp',
@@ -64,7 +63,7 @@ export class AuthService {
   static async signIn(
     email: string,
     password: string
-  ): Promise<{ user: any; session: any } | any> {
+  ): Promise<{ user: User | null; session: Session | null } | any> {
     const context = {
       service: 'AuthService',
       method: 'signIn',
@@ -156,7 +155,6 @@ export class AuthService {
     return result.data;
   }
 
-
   static async signOut(): Promise<void> {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -211,7 +209,7 @@ export class AuthService {
     }
   }
 
-  static async getCurrentSession(): Promise<any> {
+  static async getCurrentSession(): Promise<unknown> {
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -264,8 +262,8 @@ export class AuthService {
     }
   }
 
-  static onAuthStateChange(callback: (session: any) => void) {
-    return supabase.auth.onAuthStateChange((event: any, session: any) => {
+  static onAuthStateChange(callback: (session: unknown) => void) {
+    return supabase.auth.onAuthStateChange((event: unknown, session: unknown) => {
       callback(session);
     });
   }
@@ -317,7 +315,7 @@ export class AuthService {
   }
 
   // Helper method to safely decode JWT payload without signature verification (for additional checks)
-  private static decodeJWTPayload(token: string): any {
+  private static decodeJWTPayload(token: string): unknown {
     try {
       const parts = token.split('.');
       if (parts.length !== 3) return null;
@@ -326,7 +324,7 @@ export class AuthService {
       const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/');
       let decoded = '';
 
-      const g: any = globalThis as any;
+      const g: unknown = globalThis as unknown;
       if (typeof g.atob === 'function') {
         decoded = g.atob(base64Url);
       } else if (typeof Buffer !== 'undefined') {
@@ -341,12 +339,11 @@ export class AuthService {
     }
   }
 
-
   // Restore a session using stored biometric tokens
   static async restoreSessionFromBiometricTokens({
     accessToken,
     refreshToken,
-  }: { accessToken: string; refreshToken: string }): Promise<{ user: User | null; session: any }> {
+  }: { accessToken: string; refreshToken: string }): Promise<{ user: User | null; session: Session | null }> {
     if (!refreshToken) {
       throw new Error('We could not restore your session. Please sign in with your password.');
     }
@@ -405,7 +402,7 @@ export class AuthService {
   }
 
   // Refresh session token
-  static async refreshToken(): Promise<any> {
+  static async refreshToken(): Promise<unknown> {
     const { data, error } = await supabase.auth.refreshSession();
     if (error) throw error;
     return data;

@@ -16,7 +16,7 @@ export default function JobsNearYouError({
   const router = useRouter();
 
   useEffect(() => {
-    logger.error('Jobs near you error:', error', [object Object], { service: 'app' });
+    logger.error('Jobs near you error:', error, { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

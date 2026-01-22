@@ -1,7 +1,29 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 import { ContractorService } from '../../services/ContractorService';
+
+jest.mock('../../services/ContractorService', () => ({
+  ContractorService: {
+    getContractors: jest.fn(),
+    getContractorById: jest.fn(),
+    searchContractors: jest.fn(),
+    getContractorsByCategory: jest.fn(),
+    updateContractorProfile: jest.fn(),
+    getContractorRatings: jest.fn(),
+  }
+}));
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { ContractorProfile, LocationData, ContractorMatch } from '@mintenance/types';
+import { ContractorProfile, LocationData, ContractorMatch } from '../../types';
 
 // Use global Supabase mock from jest-setup.js
 jest.mock('../../config/supabase');

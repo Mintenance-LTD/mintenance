@@ -18,7 +18,7 @@ interface ContractorMapParams {
 
 interface Props {
   route?: RouteProp<{ params: ContractorMapParams }>;
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -44,17 +44,17 @@ const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
     handleMyLocation,
   } = useContractorMap({ contractorId, initialRegion, navigation });
 
-  const handleMarkerPressWithHaptics = (contractor: any) => {
+  const handleMarkerPressWithHaptics = (contractor: unknown) => {
     haptics.buttonPress();
     handleMarkerPress(contractor);
   };
 
-  const handleGetDirectionsWithHaptics = (contractor: any) => {
+  const handleGetDirectionsWithHaptics = (contractor: unknown) => {
     haptics.buttonPress();
     handleGetDirections(contractor);
   };
 
-  const handleContactContractorWithHaptics = (contractor: any) => {
+  const handleContactContractorWithHaptics = (contractor: unknown) => {
     haptics.buttonPress();
     handleContactContractor(contractor);
   };

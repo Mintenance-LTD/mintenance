@@ -71,7 +71,7 @@ export interface UseFormReturn<T> {
 // HOOK IMPLEMENTATION
 // ============================================================================
 
-export const useForm = <T extends Record<string, any>>(
+export const useForm = <T extends Record<string, unknown>>(
   options: UseFormOptions<T>
 ): UseFormReturn<T> => {
   const {
@@ -362,7 +362,7 @@ export const useForm = <T extends Record<string, any>>(
  */
 export const useFieldArray = <T>(
   name: string,
-  form: UseFormReturn<any>
+  form: UseFormReturn<unknown>
 ) => {
   const value = form.values[name] as T[] || [];
 

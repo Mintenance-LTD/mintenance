@@ -25,8 +25,8 @@ export interface FormTemplate {
   allows_signatures: boolean;
   requires_location: boolean;
   requires_approval: boolean;
-  approval_workflow?: any;
-  notification_settings?: any;
+  approval_workflow?: unknown;
+  notification_settings?: unknown;
   usage_count: number;
   last_used_at?: string;
   tags?: string[];
@@ -44,8 +44,8 @@ export interface CreateFormTemplateData {
   allows_signatures?: boolean;
   requires_location?: boolean;
   requires_approval?: boolean;
-  approval_workflow?: any;
-  notification_settings?: any;
+  approval_workflow?: unknown;
+  notification_settings?: unknown;
   tags?: string[];
   custom_css?: string;
   instructions?: string;

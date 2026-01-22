@@ -64,9 +64,9 @@ export function useResponsiveValue<T>(values: {
 }
 
 export function useResponsiveStyle(styles: {
-  mobile: any;
-  tablet?: any;
-  desktop?: any;
+  mobile: unknown;
+  tablet?: unknown;
+  desktop?: unknown;
 }) {
   return useResponsiveValue(styles);
 }

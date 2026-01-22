@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
+import type { User } from '@/types';
 import { User } from '@mintenance/types';
 import { AuthService } from '../services/AuthService';
 
 export interface AuthContextType {
   user: User | null;
-  session: any;
+  session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (userData: any) => Promise<void>;
+  signUp: (userData: unknown) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
 export function useAuth(): AuthContextType {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export function useAuth(): AuthContextType {
     }
   };
 
-  const signUp = async (userData: any) => {
+  const signUp = async (userData: unknown) => {
     setLoading(true);
     try {
       const result = await AuthService.signUp(userData);

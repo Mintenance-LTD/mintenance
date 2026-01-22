@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -7,7 +7,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
  * GET /api/stats/platform
  * Returns platform-wide statistics for the landing page
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

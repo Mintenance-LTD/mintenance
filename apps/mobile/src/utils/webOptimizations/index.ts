@@ -179,7 +179,7 @@ export class WebOptimizationsManager {
   /**
    * Performance Tracking Methods
    */
-  trackEvent(eventName: string, properties: Record<string, any> = {}): void {
+  trackEvent(eventName: string, properties: Record<string, unknown> = {}): void {
     this.performanceTracker?.trackEvent(eventName, properties);
   }
 

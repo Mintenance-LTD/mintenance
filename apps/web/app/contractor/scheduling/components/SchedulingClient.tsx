@@ -100,7 +100,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
         loadAvailability(),
       ]);
     } catch (error) {
-      logger.error('Error loading data:', error', [object Object], { service: 'ui' });
+      logger.error('Error loading data', error, { service: 'ui' });
       toast.error('Failed to load scheduling data');
     } finally {
       setLoading(false);
@@ -128,7 +128,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
       setAppointments(transformedAppointments);
     } catch (error) {
-      logger.error('Error loading appointments:', error', [object Object], { service: 'ui' });
+      logger.error('Error loading appointments:', error, { service: 'ui' });
       throw error;
     }
   };
@@ -141,7 +141,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       const data = await response.json();
       setStats(data.stats || stats);
     } catch (error) {
-      logger.error('Error loading stats:', error', [object Object], { service: 'ui' });
+      logger.error('Error loading stats:', error, { service: 'ui' });
       throw error;
     }
   };
@@ -179,7 +179,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
       setAvailability(fullAvailability);
     } catch (error) {
-      logger.error('Error loading availability:', error', [object Object], { service: 'ui' });
+      logger.error('Error loading availability:', error, { service: 'ui' });
       throw error;
     }
   };
@@ -249,7 +249,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       // Reload data
       await loadData();
     } catch (error: unknown) {
-      logger.error('Error creating appointment:', error', [object Object], { service: 'ui' });
+      logger.error('Error creating appointment:', error, { service: 'ui' });
       toast.error(error.message || 'Failed to create appointment');
     }
   };
@@ -269,7 +269,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
       toast.success('Availability settings saved');
     } catch (error) {
-      logger.error('Error saving availability:', error', [object Object], { service: 'ui' });
+      logger.error('Error saving availability:', error, { service: 'ui' });
       toast.error('Failed to save availability settings');
     } finally {
       setSavingAvailability(false);

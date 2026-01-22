@@ -45,7 +45,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
       <View style={styles.statusRow}>
         <View style={styles.statusBadge}>
           <Ionicons 
-            name={getStatusIcon(job.status) as any} 
+            name={getStatusIcon(job.status) as unknown} 
             size={16} 
             color={getStatusColor(job.status)} 
           />

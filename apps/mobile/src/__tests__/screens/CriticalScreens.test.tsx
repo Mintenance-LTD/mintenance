@@ -1,17 +1,45 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
+import React from 'react';
 /**
  * Tests for critical mobile screens
  * 
  * Ensures critical screens render correctly and handle edge cases
  */
 
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+
+import { render, fireEvent, waitFor } from '../test-utils';
 import { NavigationContainer } from '@react-navigation/native';
 import { LoginScreen } from '../../screens/LoginScreen';
 import { RegisterScreen } from '../../screens/RegisterScreen';
 import { JobPostingScreen } from '../../screens/JobPostingScreen';
 import { BidSubmissionScreen } from '../../screens/BidSubmissionScreen';
 import { useAuth } from '../../contexts/AuthContext';
+
+const mockNavigation = {
+  navigate: jest.fn(),
+  goBack: jest.fn(),
+  dispatch: jest.fn(),
+  reset: jest.fn(),
+  setParams: jest.fn(),
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+  canGoBack: jest.fn(() => true),
+  isFocused: jest.fn(() => true),
+  setOptions: jest.fn(),
+};
+
+const mockRoute = {
+  params: {},
+  key: 'test-route',
+  name: 'TestScreen',
+};
 
 jest.mock('../../contexts/AuthContext');
 jest.mock('@react-navigation/native', () => ({
@@ -29,6 +57,10 @@ describe('Critical Screens - Edge Cases', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   describe('LoginScreen', () => {
     it('should handle empty email input', async () => {
@@ -49,8 +81,8 @@ describe('Critical Screens - Edge Cases', () => {
       const emailInput = getByPlaceholderText(/email/i);
       const submitButton = getByText(/login|sign in/i);
 
-      fireEvent.changeText(emailInput, '');
-      fireEvent.press(submitButton);
+      act(() => fireEvent.changeText(emailInput, ''));
+      act(() => fireEvent.press(submitButton));
 
       await waitFor(() => {
         // Should show validation error
@@ -74,7 +106,7 @@ describe('Critical Screens - Edge Cases', () => {
       );
 
       const emailInput = getByPlaceholderText(/email/i);
-      fireEvent.changeText(emailInput, 'invalid-email');
+      act(() => fireEvent.changeText(emailInput, 'invalid-email'));
 
       await waitFor(() => {
         // Should show validation error
@@ -103,9 +135,9 @@ describe('Critical Screens - Edge Cases', () => {
       const passwordInput = getByPlaceholderText(/password/i);
       const submitButton = getByText(/login|sign in/i);
 
-      fireEvent.changeText(emailInput, 'test@example.com');
-      fireEvent.changeText(passwordInput, 'wrongpassword');
-      fireEvent.press(submitButton);
+      act(() => fireEvent.changeText(emailInput, 'test@example.com'));
+      act(() => fireEvent.changeText(passwordInput, 'wrongpassword'));
+      act(() => fireEvent.press(submitButton));
 
       await waitFor(() => {
         // Should show error message
@@ -133,8 +165,8 @@ describe('Critical Screens - Edge Cases', () => {
       const passwordInput = getByPlaceholderText(/password/i);
       const confirmPasswordInput = getByPlaceholderText(/confirm.*password/i);
 
-      fireEvent.changeText(passwordInput, 'Password123!');
-      fireEvent.changeText(confirmPasswordInput, 'DifferentPassword123!');
+      act(() => fireEvent.changeText(passwordInput, 'Password123!'));
+      act(() => fireEvent.changeText(confirmPasswordInput, 'DifferentPassword123!'));
 
       await waitFor(() => {
         // Should show mismatch error
@@ -158,7 +190,7 @@ describe('Critical Screens - Edge Cases', () => {
       );
 
       const passwordInput = getByPlaceholderText(/password/i);
-      fireEvent.changeText(passwordInput, 'weak');
+      act(() => fireEvent.changeText(passwordInput, 'weak'));
 
       await waitFor(() => {
         // Should show password requirements
@@ -190,7 +222,7 @@ describe('Critical Screens - Edge Cases', () => {
       );
 
       const submitButton = getByText(/submit|post/i);
-      fireEvent.press(submitButton);
+      act(() => fireEvent.press(submitButton));
 
       await waitFor(() => {
         // Should show validation error
@@ -220,10 +252,10 @@ describe('Critical Screens - Edge Cases', () => {
       );
 
       const titleInput = getByPlaceholderText(/title/i);
-      fireEvent.changeText(titleInput, 'Test Job');
+      act(() => fireEvent.changeText(titleInput, 'Test Job'));
       
       const submitButton = getByText(/submit|post/i);
-      fireEvent.press(submitButton);
+      act(() => fireEvent.press(submitButton));
 
       await waitFor(() => {
         // Should show validation errors for missing fields
@@ -255,7 +287,7 @@ describe('Critical Screens - Edge Cases', () => {
       );
 
       const amountInput = getByPlaceholderText(/amount|price/i);
-      fireEvent.changeText(amountInput, '-100');
+      act(() => fireEvent.changeText(amountInput, '-100'));
 
       await waitFor(() => {
         // Should show validation error
@@ -285,10 +317,10 @@ describe('Critical Screens - Edge Cases', () => {
       );
 
       const amountInput = getByPlaceholderText(/amount|price/i);
-      fireEvent.changeText(amountInput, '500');
+      act(() => fireEvent.changeText(amountInput, '500'));
 
       const submitButton = getByText(/submit|send/i);
-      fireEvent.press(submitButton);
+      act(() => fireEvent.press(submitButton));
 
       await waitFor(() => {
         // Should either allow empty message or show validation

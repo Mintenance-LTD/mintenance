@@ -200,7 +200,7 @@ export class GoalManagementService {
   /**
    * Get goal analytics
    */
-  async getGoalAnalytics(goalId: string): Promise<any> {
+  async getGoalAnalytics(goalId: string): Promise<unknown> {
     try {
       return await this.analyticsService.getGoalAnalytics(goalId);
     } catch (error) {

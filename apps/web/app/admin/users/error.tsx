@@ -16,7 +16,7 @@ export default function AdminUsersError({
   const router = useRouter();
 
   useEffect(() => {
-    logger.error('Admin users error:', error', [object Object], { service: 'app' });
+    logger.error('Admin users error:', error, { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

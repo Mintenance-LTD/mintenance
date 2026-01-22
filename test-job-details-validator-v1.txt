@@ -1,0 +1,171 @@
+﻿
+ RUN  v4.0.16 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services
+
+ ÔØ» src/jobs/__tests__/JobDetailsValidator.test.ts (6 tests | 6 failed) 15ms
+       ├ù should validate valid checklist item 4ms
+       ├ù should throw error if title is too short 5ms
+       ├ù should validate valid material 1ms
+       ├ù should throw error if quantity is negative 1ms
+       ├ù should validate valid time entry 2ms
+       ├ù should throw error for invalid hours 2ms
+node.exe : 
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 6 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  
+src/jobs/__tests__/JobDetailsValidator.test.ts > 
+JobDetailsValidator > validateChecklistItem > should 
+validate valid checklist item
+TypeError: validator.validateChecklistItem is not a 
+function
+ ÔØ» 
+src/jobs/__tests__/JobDetailsValidator.test.ts:17:32
+     15|         status: 'pending'
+     16|       };
+     17|       const result = 
+validator.validateChecklistItem(item);
+       |                                ^
+     18|       expect(result.title).toBe('Check 
+plumbing');
+     19|       expect(result.status).toBe('pending');
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/6]ÔÄ»
+
+ FAIL  
+src/jobs/__tests__/JobDetailsValidator.test.ts > 
+JobDetailsValidator > validateChecklistItem > should 
+throw error if title is too short
+AssertionError: expected [Function] to throw error 
+including 'Required' but got 
+'validator.validateChecklistItem is noÔÇª'
+
+Expected: [32m"Required"[39m
+Received: [31m"validator.validateChecklistItem is 
+not a function"[39m
+
+ ÔØ» 
+src/jobs/__tests__/JobDetailsValidator.test.ts:24:59
+     22|     it('should throw error if title is too 
+short', () => {
+     23|       const item = { title: '' };
+     24|       expect(() => validator.validateCheckli
+stItem(item)).toThrow('ReqÔÇª
+       |                                             
+              ^
+     25|     });
+     26|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/6]ÔÄ»
+
+ FAIL  
+src/jobs/__tests__/JobDetailsValidator.test.ts > 
+JobDetailsValidator > validateMaterial > should 
+validate valid material
+TypeError: validator.validateMaterial is not a 
+function
+ ÔØ» 
+src/jobs/__tests__/JobDetailsValidator.test.ts:36:32
+     34|         estimated_cost: 50.5
+     35|       };
+     36|       const result = 
+validator.validateMaterial(material);
+       |                                ^
+     37|       expect(result.name).toBe('Copper 
+Pipe');
+     38|       
+expect(result.estimated_cost).toBe(50.5);
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/6]ÔÄ»
+
+ FAIL  
+src/jobs/__tests__/JobDetailsValidator.test.ts > 
+JobDetailsValidator > validateMaterial > should 
+throw error if quantity is negative
+AssertionError: expected [Function] to throw error 
+including 'Number must be greater than 0' but got 
+'validator.validateMaterial is not a fÔÇª'
+
+Expected: [32m"Number must be greater than 0"[39m
+Received: [31m"validator.validateMaterial is not a 
+function"[39m
+
+ ÔØ» 
+src/jobs/__tests__/JobDetailsValidator.test.ts:43:58
+     41|     it('should throw error if quantity is 
+negative', () => {
+     42|       const material = { name: 'Pipe', 
+quantity: -1 };
+     43|       expect(() => validator.validateMateria
+l(material)).toThrow('NumbÔÇª
+       |                                             
+             ^
+     44|     });
+     45|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/6]ÔÄ»
+
+ FAIL  
+src/jobs/__tests__/JobDetailsValidator.test.ts > 
+JobDetailsValidator > validateTimeEntry > should 
+validate valid time entry
+TypeError: validator.validateTimeEntry is not a 
+function
+ ÔØ» 
+src/jobs/__tests__/JobDetailsValidator.test.ts:54:32
+     52|         date: new Date().toISOString()
+     53|       };
+     54|       const result = 
+validator.validateTimeEntry(entry);
+       |                                ^
+     55|       expect(result.hours).toBe(4.5);
+     56|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/6]ÔÄ»
+
+ FAIL  
+src/jobs/__tests__/JobDetailsValidator.test.ts > 
+JobDetailsValidator > validateTimeEntry > should 
+throw error for invalid hours
+AssertionError: expected [Function] to throw error 
+including 'Number must be less than or equal to ÔÇª' 
+but got 'validator.validateTimeEntry is not a ÔÇª'
+
+Expected: [32m"Number must be less than or equal to 
+24"[39m
+Received: [31m"validator.validateTimeEntry is not a 
+function"[39m
+
+ ÔØ» 
+src/jobs/__tests__/JobDetailsValidator.test.ts:60:56
+     58|     it('should throw error for invalid 
+hours', () => {
+     59|       const entry = { worker_id: 'w1', 
+hours: 25 }; // Max 24
+     60|       expect(() => validator.validateTimeEnt
+ry(entry)).toThrow('NumberÔÇª
+       |                                             
+           ^
+     61|     });
+     62|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/6]ÔÄ»
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed (6)
+   Start at  14:12:18
+   Duration  524ms (transform 120ms, setup 0ms, import 183ms, tests 15ms, environment 0ms)
+

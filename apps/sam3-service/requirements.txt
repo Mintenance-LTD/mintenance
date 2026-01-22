@@ -29,6 +29,9 @@ decord
 pycocotools
 psutil
 
+# YOLO / Object Detection
+ultralytics>=8.4.6
+
 # PyTorch with CUDA support (install separately with --index-url)
 # torch==2.7.0
 # torchvision

@@ -1,0 +1,57 @@
+﻿
+ RUN  v4.0.16 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services
+
+stdout | src/jobs/__tests__/JobService.test.ts > JobService > listJobs > should fetch and enrich jobs for homeowner
+[INFO] [2026-01-13T14:28:41.607Z] INFO  Jobs listed successfully {"service":"JobService","userId":"user-123","count":1,"hasMore":false}
+
+stdout | src/jobs/__tests__/JobService.test.ts > JobService > listJobs > should fetch available jobs for contractor
+[INFO] [2026-01-13T14:28:41.615Z] INFO  Jobs listed successfully {"service":"JobService","count":1,"hasMore":false}
+
+stdout | src/jobs/__tests__/JobService.test.ts > JobService > deleteJob > should delete job and attachments if owned
+[INFO] [2026-01-13T14:28:41.630Z] INFO  Job deleted successfully {"service":"JobService","jobId":"new-job-123","userId":"user-123"}
+
+ ÔØ» src/jobs/__tests__/JobService.test.ts (5 tests | 1 failed) 32ms
+       Ô£ô should fetch and enrich jobs for homeowner 10ms
+       Ô£ô should fetch available jobs for contractor 3ms
+       ├ù should successfully create a job with photos and AI assessment 12ms
+       Ô£ô should delete job and attachments if owned 1ms
+       Ô£ô should throw error if job is in progress 3ms
+node.exe : 
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/jobs/__tests__/JobService.test.ts > 
+JobService > createJob > should successfully create 
+a job with photos and AI assessment
+Error: Validation failed: photoUrls.0: Invalid photo 
+URL, photoUrls.1: Invalid photo URL
+ ÔØ» JobValidator.validateCreateJobData 
+src/jobs/JobValidator.ts:157:13
+    155|     if (!result.success) {
+    156|       const errors = 
+result.error.issues.map((e: any) => `${e.path.joiÔÇª
+    157|       throw new Error(`Validation failed: 
+${errors.join(', ')}`);
+       |             ^
+    158|     }
+    159|     return result.data;
+ ÔØ» JobService.createJob 
+src/jobs/JobService.ts:106:42
+ ÔØ» src/jobs/__tests__/JobService.test.ts:140:36
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  14:28:40
+   Duration  764ms (transform 255ms, setup 0ms, import 361ms, tests 32ms, environment 0ms)
+

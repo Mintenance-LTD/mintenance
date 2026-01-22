@@ -250,7 +250,7 @@ const getTextStyles = (theme: any, size: string) => ({
   marginLeft: designTokens.spacing[2],
 });
 
-const getSwitchStyles = (theme: any) => ({
+const getSwitchStyles = (theme: unknown) => ({
   backgroundColor: theme.colors.surface.secondary,
   borderWidth: 2,
   borderColor: theme.colors.border.primary,

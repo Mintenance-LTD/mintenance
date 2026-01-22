@@ -5,7 +5,6 @@ export { ConfigManager } from './config';
 export { PasswordValidator } from './password-validator';
 export { PasswordHistoryManager } from './password-history';
 export { AccountLockoutManager } from './account-lockout';
-
 // Re-export types
 export type { User, AuthResult, LoginCredentials, RegisterData, JWTPayload } from '@mintenance/types';
 export type { PasswordValidationResult, PasswordRequirements } from './password-validator';

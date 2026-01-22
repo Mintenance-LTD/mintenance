@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-01-19T11:44:19.961543",
+  "model": "best_model_final_v2.pt",
+  "image_directory": "yolo_dataset_merged_final\\val\\images",
+  "confidence_threshold": 0.25,
+  "total_images": 3,
+  "successful_images": 3,
+  "failed_images": 0,
+  "total_detections": 1,
+  "class_statistics": {
+    "insulation_issues": 1
+  },
+  "results": [
+    {
+      "image": "yolo_dataset_merged_final\\val\\images\\existing_-15-_jpg.rf.71626d3d57495edebd77d5dc5a5ecf95.jpg",
+      "success": true,
+      "detections_count": 0,
+      "detections": [],
+      "error": null
+    },
+    {
+      "image": "yolo_dataset_merged_final\\val\\images\\existing_-19-_jpg.rf.53b4f2c392b3b7dcba1a7a4adceb6228.jpg",
+      "success": true,
+      "detections_count": 0,
+      "detections": [],
+      "error": null
+    },
+    {
+      "image": "yolo_dataset_merged_final\\val\\images\\existing_-9-_jpg.rf.14a35867a22436a3c655b701d0963894.jpg",
+      "success": true,
+      "detections_count": 1,
+      "detections": [
+        {
+          "class_id": 14,
+          "class_name": "insulation_issues",
+          "confidence": 0.4822065532207489,
+          "bbox": [
+            188.3643798828125,
+            112.27751922607422,
+            320.53179931640625,
+            335.2091064453125
+          ]
+        }
+      ],
+      "error": null
+    }
+  ]
+}

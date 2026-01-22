@@ -80,7 +80,7 @@ export function categorizeError(error: unknown): CategorizedError {
   // Handle standard Error objects
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
-    const errorAny = error as any;
+    const errorAny = error as unknown;
 
     // Network errors
     if (
@@ -306,7 +306,7 @@ export function isRetryable(error: unknown): boolean {
  */
 export function logCategorizedError(
   error: unknown,
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ): void {
   const categorized = categorizeError(error);
 

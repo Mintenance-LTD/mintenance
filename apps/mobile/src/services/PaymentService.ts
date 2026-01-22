@@ -1,6 +1,10 @@
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { config } from '../config/environment';
+import {
+  confirmPayment as stripeConfirmPayment,
+  createPaymentMethod as stripeCreatePaymentMethod,
+} from '@stripe/stripe-react-native';
 
 interface PaymentMethod {
   id: string;
@@ -26,6 +30,433 @@ interface CreateSetupIntentResponse {
 }
 
 export class PaymentService {
+  /**
+   * Initialize a payment by creating a Stripe payment intent via Supabase
+   */
+  static async initializePayment({
+    amount,
+    jobId,
+    contractorId,
+  }: {
+    amount: number;
+    jobId: string;
+    contractorId: string;
+  }): Promise<{ client_secret: string }> {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+    if (amount > 10000) {
+      throw new Error('Amount cannot exceed $10,000');
+    }
+
+    const amountInCents = Math.round(amount * 100);
+
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'create-payment-intent',
+        {
+          body: {
+            amount: amountInCents,
+            jobId,
+            contractorId,
+          },
+        }
+      );
+
+      if (error) {
+        throw new Error(error.message || 'Failed to initialize payment');
+      }
+
+      return data as { client_secret: string };
+    } catch (error) {
+      const errorInstance =
+        error instanceof Error ? error : new Error(String(error));
+      logger.error('Failed to initialize payment', { error: errorInstance });
+      throw errorInstance;
+    }
+  }
+
+  /**
+   * Create a payment method using Stripe SDK
+   */
+  static async createPaymentMethod(params: {
+    type: 'card';
+    card: {
+      number: string;
+      expMonth: number;
+      expYear: number;
+      cvc: string;
+    };
+    billingDetails?: {
+      name?: string;
+      email?: string;
+    };
+  }): Promise<{ id: string; card?: { last4?: string } }> {
+    const { expMonth, expYear } = params.card;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+      throw new Error('Card has expired');
+    }
+
+    const { paymentMethod, error } = await stripeCreatePaymentMethod({
+      paymentMethodType: 'Card',
+      card: {
+        number: params.card.number,
+        expMonth: params.card.expMonth,
+        expYear: params.card.expYear,
+        cvc: params.card.cvc,
+      },
+      billingDetails: params.billingDetails,
+    });
+
+    if (error || !paymentMethod) {
+      throw new Error(error?.message || 'Failed to create payment method');
+    }
+
+    return paymentMethod as { id: string; card?: { last4?: string } };
+  }
+
+  /**
+   * Confirm a payment intent using Stripe SDK
+   */
+  static async confirmPayment(params: {
+    clientSecret: string;
+    paymentMethodId: string;
+  }): Promise<{ id: string; status: string }> {
+    const { paymentIntent, error } = await stripeConfirmPayment(
+      params.clientSecret,
+      {
+        paymentMethodType: 'Card',
+        paymentMethodData: {
+          paymentMethodId: params.paymentMethodId,
+        },
+      }
+    );
+
+    if (error || !paymentIntent) {
+      throw new Error(error?.message || 'Failed to confirm payment');
+    }
+
+    return paymentIntent as { id: string; status: string };
+  }
+
+  /**
+   * Create an escrow transaction record after payment intent creation
+   */
+  static async createEscrowTransaction(
+    jobId: string,
+    payerId: string,
+    payeeId: string,
+    amount: number
+  ): Promise<{
+    id: string;
+    status: string;
+    amount: number;
+  }> {
+    const { data, error } = await supabase
+      .from('escrow_transactions')
+      .insert({
+        job_id: jobId,
+        payer_id: payerId,
+        payee_id: payeeId,
+        amount,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message || 'Failed to create escrow transaction');
+    }
+
+    return data as { id: string; status: string; amount: number };
+  }
+
+  /**
+   * Hold payment in escrow after payment confirmation
+   */
+  static async holdPaymentInEscrow(
+    transactionId: string,
+    paymentIntentId: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('escrow_transactions')
+      .update({
+        status: 'held',
+        payment_intent_id: paymentIntentId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', transactionId);
+
+    if (error) {
+      throw new Error(error.message || 'Failed to hold payment in escrow');
+    }
+  }
+
+  /**
+   * Release escrow payment by transaction id
+   */
+  static async releaseEscrowPayment(transactionId: string): Promise<void> {
+    const { data: transaction, error: transactionError } = await supabase
+      .from('escrow_transactions')
+      .select('id, amount, payment_intent_id, job:job_id ( contractor_id )')
+      .eq('id', transactionId)
+      .single();
+
+    if (transactionError || !transaction) {
+      throw new Error(transactionError?.message || 'Escrow transaction not found');
+    }
+
+    const contractorId = (transaction as any).job?.contractor_id;
+
+    const { error: releaseError } = await supabase.functions.invoke(
+      'release-escrow-payment',
+      {
+        body: {
+          transactionId,
+          contractorId,
+          amount: (transaction as any).amount,
+        },
+      }
+    );
+
+    if (releaseError) {
+      throw new Error(releaseError.message || 'Failed to release escrow payment');
+    }
+
+    const { error: updateError } = await supabase
+      .from('escrow_transactions')
+      .update({
+        status: 'released',
+        released_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', transactionId);
+
+    if (updateError) {
+      throw new Error(updateError.message || 'Failed to update escrow status');
+    }
+  }
+
+  /**
+   * Refund escrow payment by transaction id
+   */
+  static async refundEscrowPayment(transactionId: string): Promise<void> {
+    const { error: refundError } = await supabase.functions.invoke(
+      'refund-escrow-payment',
+      { body: { transactionId } }
+    );
+
+    if (refundError) {
+      throw new Error(refundError.message || 'Failed to refund escrow payment');
+    }
+
+    const { error: updateError } = await supabase
+      .from('escrow_transactions')
+      .update({
+        status: 'refunded',
+        refunded_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', transactionId);
+
+    if (updateError) {
+      throw new Error(updateError.message || 'Failed to update escrow status');
+    }
+  }
+
+  /**
+   * Set up contractor payout account
+   */
+  static async setupContractorPayout(
+    contractorId: string
+  ): Promise<{ accountUrl: string }> {
+    const { data, error } = await supabase.functions.invoke(
+      'setup-contractor-payout',
+      { body: { contractorId } }
+    );
+
+    if (error) {
+      throw new Error(error.message || 'Failed to setup contractor payout');
+    }
+
+    return data as { accountUrl: string };
+  }
+
+  /**
+   * Get contractor payout account status
+   */
+  static async getContractorPayoutStatus(contractorId: string): Promise<{
+    hasAccount: boolean;
+    accountComplete: boolean;
+    accountId?: string;
+  }> {
+    const { data, error } = await supabase
+      .from('contractor_payout_accounts')
+      .select('contractor_id, stripe_account_id, account_complete')
+      .eq('contractor_id', contractorId)
+      .single();
+
+    if (error) {
+      if ((error as { code?: string }).code === 'PGRST116') {
+        return { hasAccount: false, accountComplete: false };
+      }
+      throw new Error(error.message || 'Failed to fetch payout status');
+    }
+
+    return {
+      hasAccount: true,
+      accountComplete: Boolean((data as any).account_complete),
+      accountId: (data as any).stripe_account_id,
+    };
+  }
+
+  /**
+   * Get user payment history (payer or payee)
+   */
+  static async getUserPaymentHistory(userId: string): Promise<unknown[]> {
+    const { data, error } = await supabase
+      .from('escrow_transactions')
+      .select(
+        `
+        *,
+        job:job_id ( title ),
+        payer:payer_id ( first_name, last_name ),
+        payee:payee_id ( first_name, last_name )
+      `
+      )
+      .or(`payer_id.eq.${userId},payee_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('Failed to fetch user payment history', { error, userId });
+      return [];
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Get escrow transactions for a specific job
+   */
+  static async getJobEscrowTransactions(jobId: string): Promise<
+    Array<{ jobId: string; status: string }>
+  > {
+    const { data, error } = await supabase
+      .from('escrow_transactions')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      logger.error('Failed to fetch job escrow transactions', { error, jobId });
+      return [];
+    }
+
+    return (data || []).map((transaction: any) => ({
+      ...transaction,
+      jobId: transaction.job_id,
+    }));
+  }
+
+  /**
+   * Release escrow payment and update job status
+   */
+  static async releaseEscrow(params: {
+    paymentIntentId: string;
+    jobId: string;
+    contractorId: string;
+    amount: number;
+  }): Promise<{ success: boolean; transfer_id?: string }> {
+    const { data, error } = await supabase.functions.invoke(
+      'release-escrow-payment',
+      { body: params }
+    );
+
+    if (error) {
+      throw new Error(error.message || 'Failed to release escrow payment');
+    }
+
+    const { error: updateError } = await supabase
+      .from('jobs')
+      .update({
+        status: 'completed',
+        payment_released: true,
+      })
+      .eq('id', params.jobId);
+
+    if (updateError) {
+      throw new Error(updateError.message || 'Failed to update job status');
+    }
+
+    return data as { success: boolean; transfer_id?: string };
+  }
+
+  /**
+   * Refund a payment intent
+   */
+  static async refundPayment(params: {
+    paymentIntentId: string;
+    amount: number;
+    reason: string;
+  }): Promise<{ success: boolean; refund_id?: string }> {
+    if (!Number.isFinite(params.amount) || params.amount <= 0) {
+      throw new Error('Refund amount must be greater than 0');
+    }
+
+    const { data, error } = await supabase.functions.invoke('process-refund', {
+      body: {
+        paymentIntentId: params.paymentIntentId,
+        amount: params.amount,
+        reason: params.reason,
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message || 'Failed to process refund');
+    }
+
+    return data as { success: boolean; refund_id?: string };
+  }
+
+  /**
+   * Calculate platform and Stripe fees for a payment amount
+   */
+  static calculateFees(amount: number): {
+    platformFee: number;
+    stripeFee: number;
+    contractorAmount: number;
+    totalFees: number;
+  } {
+    const platformRate = 0.05;
+    const stripeRate = 0.029;
+    const stripeFixed = 0.3;
+    const minPlatformFee = 0.5;
+    const maxPlatformFee = 50;
+
+    const rawPlatformFee = amount * platformRate;
+    const platformFee = Math.min(
+      maxPlatformFee,
+      Math.max(minPlatformFee, Number(rawPlatformFee.toFixed(2)))
+    );
+
+    const stripeFee = Number((amount * stripeRate + stripeFixed).toFixed(2));
+    const totalFees = Number((platformFee + stripeFee).toFixed(2));
+    const contractorAmount = Number((amount - totalFees).toFixed(2));
+
+    return {
+      platformFee,
+      stripeFee,
+      contractorAmount,
+      totalFees,
+    };
+  }
+
   /**
    * Create a payment intent for a job payment
    */
@@ -312,13 +743,38 @@ export class PaymentService {
    * Get payment history for a user
    */
   static async getPaymentHistory(
-    limit: number = 20,
-    offset: number = 0
-  ): Promise<{
-    payments?: any[];
-    total?: number;
-    error?: string;
-  }> {
+    userIdOrLimit: string | number = 20,
+    statusOrOffset?: string | number,
+    offset?: number
+  ): Promise<unknown> {
+    if (typeof userIdOrLimit === 'string') {
+      const userId = userIdOrLimit;
+      const status = typeof statusOrOffset === 'string' ? statusOrOffset : undefined;
+
+      const query = supabase
+        .from('payments')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (status) {
+        query.eq('status', status);
+      }
+
+      const { data, error } = await query.order('created_at', {
+        ascending: false,
+      });
+
+      if (error) {
+        logger.error('Failed to fetch payment history', { error, userId });
+        return [];
+      }
+
+      return data || [];
+    }
+
+    const limit = userIdOrLimit;
+    const resolvedOffset = typeof statusOrOffset === 'number' ? statusOrOffset : offset || 0;
+
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.access_token) {
@@ -326,7 +782,7 @@ export class PaymentService {
       }
 
       const response = await fetch(
-        `${config.apiBaseUrl}/api/payments/history?limit=${limit}&offset=${offset}`,
+        `${config.apiBaseUrl}/api/payments/history?limit=${limit}&offset=${resolvedOffset}`,
         {
           method: 'GET',
           headers: {

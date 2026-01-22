@@ -99,7 +99,7 @@ export const AISearchScreen: React.FC = () => {
     performSearch(suggestion.text);
   };
 
-  const handleFilterChange = (key: keyof SearchFilters, value: any) => {
+  const handleFilterChange = (key: keyof SearchFilters, value: unknown) => {
     setFilters((prev: SearchFilters) => ({ ...prev, [key]: value }));
   };
 
@@ -138,7 +138,7 @@ export const AISearchScreen: React.FC = () => {
       <View style={styles.resultContent}>
         <View style={styles.resultIcon}>
           <Ionicons
-            name={getResultIcon(item.type) as any}
+            name={getResultIcon(item.type) as unknown}
             size={24}
             color={getResultTypeColor(item.type)}
           />

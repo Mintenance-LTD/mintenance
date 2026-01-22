@@ -193,6 +193,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             size='small'
             color={theme.colors.primary}
             style={styles.loadingIndicator}
+            testID='activity-indicator'
           />
         )}
 

@@ -462,7 +462,7 @@ export class ContractorMatchingMLService {
   private _extractMatchingFeatures(
     contractor: ContractorProfile,
     jobRequirements: JobRequirements,
-    compatibility: any
+    compatibility: unknown
   ): number[] {
     const features: number[] = [];
 
@@ -532,7 +532,7 @@ export class ContractorMatchingMLService {
   private _generateMatchRecommendations(
     contractor: ContractorProfile,
     jobRequirements: JobRequirements,
-    compatibility: any
+    compatibility: unknown
   ): string[] {
     const recommendations: string[] = [];
 
@@ -562,7 +562,7 @@ export class ContractorMatchingMLService {
   /**
    * Calculate confidence level
    */
-  private _calculateConfidenceLevel(compatibility: any): 'low' | 'medium' | 'high' {
+  private _calculateConfidenceLevel(compatibility: unknown): 'low' | 'medium' | 'high' {
     const scores = Object.values(compatibility) as number[];
     const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
     const variance = scores.reduce((sum, score) => sum + Math.pow(score - averageScore, 2), 0) / scores.length;
@@ -599,7 +599,7 @@ export class ContractorMatchingMLService {
   }
 
   // Additional helper methods for personalization and performance prediction...
-  private _extractPersonalizationFeatures(clientHistory: any, currentJob: any): number[] {
+  private _extractPersonalizationFeatures(clientHistory: unknown, currentJob: unknown): number[] {
     // Mock implementation - would analyze client history patterns
     return [0.5, 0.7, 0.6]; // Example features
   }
@@ -607,7 +607,7 @@ export class ContractorMatchingMLService {
   private _applyPersonalizationScore(
     match: ContractorMatchResult,
     personalizedFeatures: number[],
-    clientHistory: any
+    clientHistory: unknown
   ): number {
     // Apply personalization adjustment (±20% of base score)
     const personalizedAdjustment = (Math.random() - 0.5) * 0.4; // ±20%
@@ -616,7 +616,7 @@ export class ContractorMatchingMLService {
 
   private _generatePersonalizedRecommendations(
     match: ContractorMatchResult,
-    clientHistory: any
+    clientHistory: unknown
   ): string[] {
     return ['Based on your previous jobs, this contractor matches your preferences'];
   }
@@ -645,7 +645,7 @@ export class ContractorMatchingMLService {
     results: number[],
     contractor: ContractorProfile,
     jobRequirements: JobRequirements
-  ): any {
+  ): unknown {
     const [quality, timeMultiplier, successProb] = results;
 
     return {

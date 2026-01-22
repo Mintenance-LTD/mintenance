@@ -221,7 +221,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(response);
 
     } catch (error) {
-        logger.error('Model learning API error:', error', [object Object], { service: 'api' });
+        logger.error('Model learning API error:', error, { service: 'api' });
         return NextResponse.json(
             { error: 'Failed to fetch learning metrics' },
             { status: 500 }

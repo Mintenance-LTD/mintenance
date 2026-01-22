@@ -1,9 +1,8 @@
-import { logger } from '@mintenance/shared';
+import { logger } from '../logger';
 /**
  * Enhanced Hybrid Inference Service with Conformal Prediction
  * Provides routing decisions with mathematical confidence guarantees
  */
-
 import {
   conformalPrediction,
   ConformalPredictionInterval,
@@ -11,11 +10,9 @@ import {
   PredictionScores,
   SeverityLevel
 } from './conformal-prediction';
-
 // ============================================================================
 // Types
 // ============================================================================
-
 interface DamageAssessment {
   damageType: string;
   severity: SeverityLevel;
@@ -25,19 +22,16 @@ interface DamageAssessment {
   complianceScore: number;
   insuranceRiskScore: number;
 }
-
 interface InternalModelPrediction {
   severity: SeverityLevel;
   confidence: number;
   scores: PredictionScores;
   inferenceTimeMs: number;
 }
-
 interface GPT4Prediction {
   assessment: DamageAssessment;
   inferenceTimeMs: number;
 }
-
 interface RoutingDecision {
   route: 'internal' | 'gpt4_vision' | 'hybrid';
   reasoning: string;
@@ -45,35 +39,28 @@ interface RoutingDecision {
   conformalInterval?: ConformalPredictionInterval;
   confidenceGuarantee?: number;
 }
-
 interface EnhancedAssessment extends DamageAssessment {
   predictionInterval: ConformalPredictionInterval;
   uncertaintyQuantified: boolean;
   guaranteedCoverage: number;
   intervalEfficiency: number;
 }
-
 // ============================================================================
 // Enhanced Hybrid Inference Service
 // ============================================================================
-
 export class EnhancedHybridInferenceService {
   private static instance: EnhancedHybridInferenceService;
-
   // Thresholds
   private readonly CONFIDENCE_THRESHOLD = 0.85;
   private readonly CRITICAL_SAFETY_THRESHOLD = 70;
   private readonly GPT4_COST_PER_CALL = 0.01; // Example cost
-
   private constructor() {}
-
   public static getInstance(): EnhancedHybridInferenceService {
     if (!EnhancedHybridInferenceService.instance) {
       EnhancedHybridInferenceService.instance = new EnhancedHybridInferenceService();
     }
     return EnhancedHybridInferenceService.instance;
   }
-
   /**
    * Main assessment method with conformal prediction
    */
@@ -85,16 +72,13 @@ export class EnhancedHybridInferenceService {
   ): Promise<EnhancedAssessment> {
     // Classify property age
     const propertyAgeCategory = this.classifyPropertyAge(propertyAge);
-
     // Get internal model prediction first
     const internalPrediction = await this.runInternalModel(imageUrls);
-
     // Determine adaptive confidence level based on context
     const targetConfidenceLevel = this.determineTargetConfidence(
       internalPrediction,
       requireHighConfidence
     );
-
     // Get conformal prediction interval (mutable since it may be updated for GPT-4 predictions)
     let predictionInterval = await conformalPrediction.getPredictionInterval(
       internalPrediction.scores,
@@ -102,17 +86,14 @@ export class EnhancedHybridInferenceService {
       this.extractDamageType(imageUrls), // Simplified for example
       targetConfidenceLevel
     );
-
     // Make routing decision with conformal guarantees
     const routingDecision = await this.makeConformalRoutingDecision(
       internalPrediction,
       predictionInterval,
       requireHighConfidence
     );
-
     // Execute routing decision
     let finalAssessment: DamageAssessment;
-
     if (routingDecision.route === 'internal') {
       // Use internal model with conformal interval
       finalAssessment = this.createAssessmentFromInternal(
@@ -123,7 +104,6 @@ export class EnhancedHybridInferenceService {
       // Use GPT-4 Vision
       const gpt4Result = await this.runGPT4Vision(imageUrls);
       finalAssessment = gpt4Result.assessment;
-
       // Still provide conformal interval for GPT-4 predictions
       const gpt4Scores = this.convertToScores(gpt4Result.assessment);
       predictionInterval = await conformalPrediction.getPredictionInterval(
@@ -140,10 +120,8 @@ export class EnhancedHybridInferenceService {
         predictionInterval
       );
     }
-
     // Calculate interval efficiency
     const intervalEfficiency = predictionInterval.interval_size / 3;
-
     // Return enhanced assessment with guarantees
     return {
       ...finalAssessment,
@@ -153,7 +131,6 @@ export class EnhancedHybridInferenceService {
       intervalEfficiency
     };
   }
-
   /**
    * Make routing decision using conformal prediction insights
    */
@@ -173,7 +150,6 @@ export class EnhancedHybridInferenceService {
         confidenceGuarantee: predictionInterval.confidence_level
       };
     }
-
     // Case 2: Large uncertainty interval - use GPT-4
     if (predictionInterval.interval_size === 3) {
       return {
@@ -184,7 +160,6 @@ export class EnhancedHybridInferenceService {
         confidenceGuarantee: predictionInterval.confidence_level
       };
     }
-
     // Case 3: Critical scenarios requiring high confidence
     if (requireHighConfidence && predictionInterval.interval_size > 1) {
       return {
@@ -195,13 +170,11 @@ export class EnhancedHybridInferenceService {
         confidenceGuarantee: predictionInterval.confidence_level
       };
     }
-
     // Case 4: Moderate confidence - decide based on cost-benefit
     const costBenefit = this.calculateCostBenefit(
       internalPrediction,
       predictionInterval
     );
-
     if (costBenefit.netBenefit > 0) {
       return {
         route: 'gpt4_vision',
@@ -211,7 +184,6 @@ export class EnhancedHybridInferenceService {
         confidenceGuarantee: predictionInterval.confidence_level
       };
     }
-
     return {
       route: 'internal',
       reasoning: 'Acceptable uncertainty level for internal model',
@@ -220,7 +192,6 @@ export class EnhancedHybridInferenceService {
       confidenceGuarantee: predictionInterval.confidence_level
     };
   }
-
   /**
    * Calculate cost-benefit of using GPT-4
    */
@@ -233,20 +204,16 @@ export class EnhancedHybridInferenceService {
       internalPrediction.severity,
       interval
     );
-
     // Expected value of improved accuracy
     const expectedAccuracyGain = 0.15; // GPT-4 typically 15% more accurate
     const expectedBenefit = misclassificationRisk * expectedAccuracyGain;
-
     // Net benefit
     const netBenefit = expectedBenefit - this.GPT4_COST_PER_CALL;
-
     return {
       netBenefit,
       shouldUseGPT4: netBenefit > 0
     };
   }
-
   /**
    * Estimate cost of misclassification based on severity
    */
@@ -259,13 +226,10 @@ export class EnhancedHybridInferenceService {
       midway: 500,   // Moderate cost
       early: 100     // Low cost for early-stage issues
     };
-
     // Adjust based on interval uncertainty
     const uncertaintyMultiplier = interval.interval_size;
-
     return baseCosts[severity] * uncertaintyMultiplier;
   }
-
   /**
    * Combine predictions using conformal weighting
    */
@@ -277,19 +241,16 @@ export class EnhancedHybridInferenceService {
     // Weight based on interval efficiency
     const internalWeight = 1 / (interval.interval_size + 1);
     const gpt4Weight = 1 - internalWeight;
-
     // Combine confidence scores
     const combinedConfidence =
       internalPred.confidence * internalWeight +
       gpt4Pred.assessment.confidence * gpt4Weight;
-
     // Use GPT-4's assessment as base but adjust confidence
     return {
       ...gpt4Pred.assessment,
       confidence: Math.min(combinedConfidence, interval.confidence_level)
     };
   }
-
   /**
    * Create assessment from internal model with conformal interval
    */
@@ -299,12 +260,10 @@ export class EnhancedHybridInferenceService {
   ): DamageAssessment {
     // Use the most likely severity from the prediction set
     const finalSeverity = interval.prediction_set[0] || internalPred.severity;
-
     // Adjust confidence based on interval size
     const adjustedConfidence = interval.interval_size === 1
       ? internalPred.confidence
       : internalPred.confidence * (1 / interval.interval_size);
-
     return {
       damageType: 'structural', // Simplified
       severity: finalSeverity,
@@ -315,7 +274,6 @@ export class EnhancedHybridInferenceService {
       insuranceRiskScore: 75
     };
   }
-
   /**
    * Determine target confidence level adaptively
    */
@@ -326,7 +284,6 @@ export class EnhancedHybridInferenceService {
     if (requireHighConfidence) {
       return 0.99;
     }
-
     // Adaptive based on initial confidence
     if (prediction.confidence < 0.6) {
       return 0.95; // Need higher guarantee when model is uncertain
@@ -336,7 +293,6 @@ export class EnhancedHybridInferenceService {
       return 0.85; // Can accept lower guarantee when model is confident
     }
   }
-
   /**
    * Monitor and track conformal prediction performance
    */
@@ -350,7 +306,6 @@ export class EnhancedHybridInferenceService {
       actualSeverity,
       predictedInterval
     );
-
     // Log to performance metrics
     await this.logPerformanceMetric({
       assessmentId,
@@ -360,35 +315,29 @@ export class EnhancedHybridInferenceService {
       actualSeverity,
       calibrationSetId: predictedInterval.calibration_set_id
     });
-
     // Check if recalibration is needed
     if (predictedInterval.calibration_set_id) {
       const needsRecalibration = await conformalPrediction.isRecalibrationNeeded(
         predictedInterval.calibration_set_id
       );
-
       if (needsRecalibration) {
-        logger.info('Recalibration recommended for set:', predictedInterval.calibration_set_id', [object Object], { service: 'general' });
+        logger.info(`Recalibration recommended for set: ${predictedInterval.calibration_set_id}`, { service: 'general' });
         // Could trigger automated recalibration here
       }
     }
   }
-
   // ============================================================================
   // Helper Methods
   // ============================================================================
-
   private classifyPropertyAge(age?: number): PropertyAgeCategory {
     if (!age) return 'unknown';
     const constructionYear = new Date().getFullYear() - age;
     return conformalPrediction.classifyPropertyAge(constructionYear);
   }
-
   private extractDamageType(imageUrls: string[]): string {
     // Simplified - in real implementation, extract from image analysis
     return 'structural';
   }
-
   private determineUrgency(severity: SeverityLevel): string {
     switch (severity) {
       case 'full':
@@ -401,29 +350,23 @@ export class EnhancedHybridInferenceService {
         return 'planned';
     }
   }
-
   private convertToScores(assessment: DamageAssessment): PredictionScores {
     const scores: PredictionScores = {
       early: 0,
       midway: 0,
       full: 0
     };
-
     // Set score for predicted severity
     scores[assessment.severity] = assessment.confidence;
-
     // Distribute remaining probability
     const remaining = 1 - assessment.confidence;
     const otherSeverities = (['early', 'midway', 'full'] as SeverityLevel[])
       .filter(s => s !== assessment.severity);
-
     otherSeverities.forEach(severity => {
       scores[severity] = remaining / otherSeverities.length;
     });
-
     return scores;
   }
-
   // Placeholder methods for actual model calls
   private async runInternalModel(imageUrls: string[]): Promise<InternalModelPrediction> {
     // Implement actual YOLO/internal model call
@@ -434,7 +377,6 @@ export class EnhancedHybridInferenceService {
       inferenceTimeMs: 50
     };
   }
-
   private async runGPT4Vision(imageUrls: string[]): Promise<GPT4Prediction> {
     // Implement actual GPT-4 Vision API call
     return {
@@ -450,15 +392,12 @@ export class EnhancedHybridInferenceService {
       inferenceTimeMs: 2000
     };
   }
-
-  private async logPerformanceMetric(metric: any): Promise<void> {
+  private async logPerformanceMetric(metric: unknown): Promise<void> {
     // Implement logging to database
-    logger.info('Performance metric:', metric', [object Object], { service: 'general' });
+    logger.info(`Performance metric: ${JSON.stringify(metric)}`, { service: 'general' });
   }
 }
-
 // ============================================================================
 // Export singleton
 // ============================================================================
-
 export const enhancedHybridInference = EnhancedHybridInferenceService.getInstance();

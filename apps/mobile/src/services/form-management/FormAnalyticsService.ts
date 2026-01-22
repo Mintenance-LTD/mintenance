@@ -7,7 +7,7 @@ export interface FormAnalytics {
   template_id?: string;
   job_sheet_id?: string;
   form_completion_time?: number;
-  field_completion_rates?: any;
+  field_completion_rates?: unknown;
   error_count: number;
   revision_count: number;
   accuracy_score?: number;
@@ -49,15 +49,15 @@ export class FormAnalyticsService {
       const sheets = data || [];
       const totalSheets = sheets.length;
       const completedSheets = sheets.filter(
-        (s: any) => s.status === 'completed' || s.status === 'approved'
+        (s: unknown) => s.status === 'completed' || s.status === 'approved'
       ).length;
-      const pendingSheets = sheets.filter((s: any) =>
+      const pendingSheets = sheets.filter((s: unknown) =>
         ['created', 'in_progress', 'pending_review'].includes(s.status)
       ).length;
 
       const now = new Date();
       const overdueSheets = sheets.filter(
-        (s: any) =>
+        (s: unknown) =>
           s.due_date &&
           new Date(s.due_date) < now &&
           !['completed', 'approved'].includes(s.status)
@@ -65,11 +65,11 @@ export class FormAnalyticsService {
 
       // Calculate average completion time (in hours)
       const completedWithTimes = sheets.filter(
-        (s: any) => s.started_at && s.completed_at
+        (s: unknown) => s.started_at && s.completed_at
       );
       const avgCompletionTime =
         completedWithTimes.length > 0
-          ? completedWithTimes.reduce((sum: number, s: any) => {
+          ? completedWithTimes.reduce((sum: number, s: unknown) => {
               const start = new Date(s.started_at!).getTime();
               const end = new Date(s.completed_at!).getTime();
               return sum + (end - start) / (1000 * 60 * 60); // Convert to hours
@@ -78,12 +78,12 @@ export class FormAnalyticsService {
 
       // Calculate average quality score
       const sheetsWithQuality = sheets.filter(
-        (s: any) => s.quality_score !== null
+        (s: unknown) => s.quality_score !== null
       );
       const avgQualityScore =
         sheetsWithQuality.length > 0
           ? sheetsWithQuality.reduce(
-              (sum: number, s: any) => sum + (s.quality_score || 0),
+              (sum: number, s: unknown) => sum + (s.quality_score || 0),
               0
             ) / sheetsWithQuality.length
           : 0;
@@ -94,7 +94,7 @@ export class FormAnalyticsService {
 
       // Calculate on-time completion rate
       const completedOnTime = sheets.filter(
-        (s: any) =>
+        (s: unknown) =>
           s.completed_at &&
           s.due_date &&
           new Date(s.completed_at) <= new Date(s.due_date)
@@ -222,7 +222,7 @@ export class FormAnalyticsService {
       job_sheet_id?: string;
       field_name: string;
       action: 'focus' | 'blur' | 'change' | 'error';
-      value?: any;
+      value?: unknown;
       error_message?: string;
     }
   ): Promise<void> {
@@ -250,8 +250,8 @@ export class FormAnalyticsService {
     dateRange: { start: string; end: string }
   ): Promise<{
     summary: JobSheetSummaryStats;
-    template_performance: any[];
-    trends: any;
+    template_performance: unknown[];
+    trends: unknown;
   }> {
     try {
       // Get summary stats

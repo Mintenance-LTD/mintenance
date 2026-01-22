@@ -81,7 +81,7 @@ export function RootNavigatorWithNotifications() {
   useEffect(() => {
     // Set navigation reference once it's ready
     if (navigationRef?.current) {
-      NotificationService.setNavigationRef(navigationRef.current as any);
+      NotificationService.setNavigationRef(navigationRef.current as unknown);
       logger.info('Navigation reference set for notification deep linking');
     }
   }, [navigationRef]);

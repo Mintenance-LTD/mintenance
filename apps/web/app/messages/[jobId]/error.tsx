@@ -16,7 +16,7 @@ export default function MessageThreadError({
   const router = useRouter();
 
   useEffect(() => {
-    logger.error('Message thread error:', error', [object Object], { service: 'app' });
+    logger.error('Message thread error:', error, { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

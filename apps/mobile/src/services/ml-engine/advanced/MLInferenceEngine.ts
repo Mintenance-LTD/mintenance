@@ -138,8 +138,8 @@ export class MLInferenceEngine {
   /**
    * Preprocess features for model
    */
-  private preprocessFeatures(features: MLFeature[], model: MLModel): any {
-    const processed: Record<string, any> = {};
+  private preprocessFeatures(features: MLFeature[], model: MLModel): unknown {
+    const processed: Record<string, unknown> = {};
 
     for (const feature of features) {
       switch (feature.type) {
@@ -166,7 +166,7 @@ export class MLInferenceEngine {
   /**
    * Run model inference
    */
-  private async runInference(model: MLModel, features: any, timeout?: number): Promise<any> {
+  private async runInference(model: MLModel, features: unknown, timeout?: number): Promise<unknown> {
     return new Promise((resolve) => {
       setTimeout(() => {
         switch (model.type) {
@@ -204,7 +204,7 @@ export class MLInferenceEngine {
   /**
    * Calculate confidence score
    */
-  private calculateConfidence(model: MLModel, output: any): number {
+  private calculateConfidence(model: MLModel, output: unknown): number {
     switch (model.type) {
       case 'classification':
         return output.probability || 0.5;

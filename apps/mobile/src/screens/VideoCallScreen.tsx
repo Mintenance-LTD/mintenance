@@ -30,7 +30,7 @@ interface VideoCallScreenProps {
       jobId?: string;
     };
   };
-  navigation: any;
+  navigation: unknown;
 }
 
 export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({

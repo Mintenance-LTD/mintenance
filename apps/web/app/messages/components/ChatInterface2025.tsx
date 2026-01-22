@@ -62,7 +62,7 @@ export function ChatInterface2025({
       setMessageInput('');
       inputRef.current?.focus();
     } catch (error) {
-      logger.error('Failed to send message:', error', [object Object], { service: 'ui' });
+      logger.error('Failed to send message:', error, { service: 'ui' });
     } finally {
       setSending(false);
     }

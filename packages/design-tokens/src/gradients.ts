@@ -4,7 +4,6 @@
  * CSS gradient definitions for web platform.
  * These are web-specific and not applicable to mobile.
  */
-
 export const gradients = {
   primary: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
   primaryLight: 'linear-gradient(135deg, #1E293B 0%, #334155 100%)',
@@ -22,6 +21,4 @@ export const gradients = {
   cardSuccess: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(52, 211, 153, 0.05) 100%)',
   cardWarning: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(252, 211, 77, 0.05) 100%)',
 } as const;
-
 export type Gradients = typeof gradients;
-

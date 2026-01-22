@@ -1,4 +1,26 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 import { MessagingService, Message, MessageThread } from '../../services/MessagingService';
+
+jest.mock('../../services/MessagingService', () => ({
+  MessagingService: {
+    sendMessage: jest.fn(),
+    getMessages: jest.fn(),
+    getConversations: jest.fn(),
+    markAsRead: jest.fn(),
+    deleteMessage: jest.fn(),
+    deleteConversation: jest.fn(),
+  }
+}));
 
 // Mock external dependencies only
 jest.mock('../../config/supabase', () => ({

@@ -63,7 +63,7 @@ export function BidComparisonClient({ bids, jobId }: BidComparisonClientProps) {
       toast.success('Bid accepted successfully!');
       router.refresh();
     } catch (error) {
-      logger.error('Error accepting bid:', error', [object Object], { service: 'ui' });
+      logger.error('Error accepting bid:', error, { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to accept bid');
     } finally {
       setProcessingBid(null);
@@ -96,7 +96,7 @@ export function BidComparisonClient({ bids, jobId }: BidComparisonClientProps) {
       toast.success('Bid declined');
       router.refresh();
     } catch (error) {
-      logger.error('Error rejecting bid:', error', [object Object], { service: 'ui' });
+      logger.error('Error rejecting bid:', error, { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to reject bid');
     } finally {
       setProcessingBid(null);

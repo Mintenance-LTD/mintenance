@@ -53,7 +53,7 @@ export const supabase = {
 };
 
 // Helper functions for tests
-export const __setMockData = (data: any) => {
+export const __setMockData = (data: unknown) => {
   mockState.data = data;
 };
 

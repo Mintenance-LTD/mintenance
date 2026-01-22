@@ -21,9 +21,9 @@ import {
 
 export class ValidationError extends Error {
   public field: string;
-  public value: any;
+  public value: unknown;
 
-  constructor(message: string, field: string, value?: any) {
+  constructor(message: string, field: string, value?: unknown) {
     super(message);
     this.name = 'ValidationError';
     this.field = field;
@@ -34,7 +34,7 @@ export class ValidationError extends Error {
 /**
  * Validate required fields are present and not empty
  */
-export function validateRequired(obj: any, fields: string[]): ValidationResult {
+export function validateRequired(obj: unknown, fields: string[]): ValidationResult {
   const errors: string[] = [];
 
   for (const field of fields) {
@@ -351,7 +351,7 @@ export function validateContractorProfile(profile: Partial<ContractorProfile>): 
 /**
  * Validate job creation form
  */
-export function validateJobForm(formData: any): ValidationResult {
+export function validateJobForm(formData: unknown): ValidationResult {
   const allErrors: string[] = [];
 
   // Required fields
@@ -383,7 +383,7 @@ export function validateJobForm(formData: any): ValidationResult {
 /**
  * Validate bid submission form
  */
-export function validateBidForm(formData: any): ValidationResult {
+export function validateBidForm(formData: unknown): ValidationResult {
   const allErrors: string[] = [];
 
   // Required fields
@@ -410,7 +410,7 @@ export function validateBidForm(formData: any): ValidationResult {
 /**
  * Validate user registration form
  */
-export function validateRegistrationForm(formData: any): ValidationResult {
+export function validateRegistrationForm(formData: unknown): ValidationResult {
   const allErrors: string[] = [];
 
   // Required fields
@@ -491,7 +491,7 @@ export function sanitizeHtml(input: string): string {
 /**
  * Sanitize numeric input
  */
-export function sanitizeNumber(input: any): number | null {
+export function sanitizeNumber(input: unknown): number | null {
   const num = Number(input);
   return isNaN(num) ? null : num;
 }

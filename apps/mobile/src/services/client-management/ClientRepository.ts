@@ -456,7 +456,7 @@ export class ClientRepository {
   /**
    * Convert data to CSV format
    */
-  private convertToCSV(data: any[]): string {
+  private convertToCSV(data: unknown[]): string {
     if (data.length === 0) return '';
 
     const headers = Object.keys(data[0]);
@@ -476,7 +476,7 @@ export class ClientRepository {
   /**
    * Convert data to XLSX format (simplified - would use a proper library in production)
    */
-  private convertToXLSX(data: any[]): string {
+  private convertToXLSX(data: unknown[]): string {
     // This is a simplified implementation
     // In production, you would use a library like 'xlsx' or 'exceljs'
     return JSON.stringify(data, null, 2);

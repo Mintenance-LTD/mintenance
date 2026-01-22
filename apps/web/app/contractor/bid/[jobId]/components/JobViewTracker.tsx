@@ -17,13 +17,13 @@ export function JobViewTracker({ jobId }: { jobId: string }) {
         });
 
         if (!response.ok) {
-          logger.error('Failed to track job view', [object Object], { service: 'ui' });
+          logger.error('Failed to track job view', { service: 'ui' });
         } else {
           const data = await response.json();
-          // logger.info('Job view tracked:', data', [object Object], { service: 'ui' });
+          // logger.info('Job view tracked:', data', { service: 'ui' });
         }
       } catch (error) {
-        logger.error('Error tracking job view:', error', [object Object], { service: 'ui' });
+        logger.error('Error tracking job view:', error, { service: 'ui' });
       }
     };
 

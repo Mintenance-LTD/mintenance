@@ -97,7 +97,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             }}
             onAssessmentComplete={(assessment) => {
               // Assessment complete callback
-              logger.info('Building assessment complete:', assessment.id', [object Object], { service: 'mobile' });
+              logger.info('Building assessment complete:', assessment.id, { service: 'mobile' });
             }}
           />
         )}

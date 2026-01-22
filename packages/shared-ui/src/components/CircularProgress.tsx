@@ -1,5 +1,4 @@
 import React from 'react';
-
 export interface CircularProgressProps {
   value: number; // 0-100
   size?: number;
@@ -7,7 +6,6 @@ export interface CircularProgressProps {
   label?: string;
   showPercentage?: boolean;
 }
-
 export const CircularProgress: React.FC<CircularProgressProps> = ({
   value,
   size = 200,
@@ -18,16 +16,13 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
-
   const getColor = () => {
     if (value >= 75) return '#10B981'; // green
     if (value >= 50) return '#F59E0B'; // yellow
     if (value >= 25) return '#EF4444'; // red
     return '#9CA3AF'; // gray
   };
-
   const color = getColor();
-
   return (
     <div
       style={{
@@ -55,7 +50,6 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           stroke="#F3F4F6"
           strokeWidth={strokeWidth}
         />
-
         {/* Progress circle */}
         <circle
           cx={size / 2}
@@ -71,7 +65,6 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
             transition: 'stroke-dashoffset 0.5s ease',
           }}
         />
-
         {/* Scale markers */}
         {[0, 25, 50, 75, 100].map((mark) => {
           const angle = (mark / 100) * 360;
@@ -88,7 +81,6 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           );
         })}
       </svg>
-
       {/* Center text */}
       <div
         style={{

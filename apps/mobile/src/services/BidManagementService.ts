@@ -79,7 +79,7 @@ export class BidManagementService {
       .eq('id', bidId)
       .single();
 
-    if (bidError) throw new Error((bidError as any)?.message || 'Bid fetch failed');
+    if (bidError) throw new Error((bidError as unknown)?.message || 'Bid fetch failed');
     if (!bid) throw new Error('Bid not found');
 
     // Accept the bid
@@ -113,7 +113,7 @@ export class BidManagementService {
   }
 
   // Helper method
-  private static formatBid(data: any): Bid {
+  private static formatBid(data: unknown): Bid {
     if (!data) {
       throw new Error('Bid data cannot be null or undefined');
     }

@@ -20,7 +20,7 @@ export interface SearchResult {
     price?: number;
     rating?: number;
     availability?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -192,7 +192,7 @@ export class AISearchService {
 
       if (searchError) throw searchError;
 
-      return similarJobs.map((job: any) => ({
+      return similarJobs.map((job: unknown) => ({
         id: job.id,
         type: 'job' as const,
         title: job.title,
@@ -260,7 +260,7 @@ export class AISearchService {
 
       if (error) throw error;
 
-      return data.map((job: any) => ({
+      return data.map((job: unknown) => ({
         id: job.id,
         type: 'job' as const,
         title: job.title,
@@ -299,7 +299,7 @@ export class AISearchService {
 
       if (error) throw error;
 
-      return data.map((contractor: any) => ({
+      return data.map((contractor: unknown) => ({
         id: contractor.id,
         type: 'contractor' as const,
         title: `${contractor.first_name} ${contractor.last_name}`,

@@ -1,13 +1,67 @@
-import React from 'react';
 /**
  * Security Tests
  * Tests for common security vulnerabilities and attack vectors
  */
 
 import { JobService } from '../../services/JobService';
+
+jest.mock('../../services/JobService', () => ({
+  JobService: {
+    getJobs: jest.fn(),
+    getAvailableJobs: jest.fn(),
+    getJobsByHomeowner: jest.fn(),
+    getJobsByStatus: jest.fn(),
+    getJobById: jest.fn(),
+    getBidsByJob: jest.fn(),
+    searchJobs: jest.fn(),
+    createJob: jest.fn(),
+    updateJobStatus: jest.fn(),
+    startJob: jest.fn(),
+    completeJob: jest.fn(),
+    submitBid: jest.fn(),
+    acceptBid: jest.fn(),
+  }
+}));
 import { AuthService } from '../../services/AuthService';
+
+jest.mock('../../services/AuthService', () => ({
+  AuthService: {
+    signIn: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(),
+    getCurrentSession: jest.fn(),
+    getCurrentUser: jest.fn(),
+    updateProfile: jest.fn(),
+    resetPassword: jest.fn(),
+    verifyEmail: jest.fn(),
+    onAuthStateChange: jest.fn(),
+  }
+}));
 import { PaymentService } from '../../services/PaymentService';
+
+jest.mock('../../services/PaymentService', () => ({
+  PaymentService: {
+    createPaymentIntent: jest.fn(),
+    confirmPayment: jest.fn(),
+    refundPayment: jest.fn(),
+    getPaymentHistory: jest.fn(),
+    savePaymentMethod: jest.fn(),
+    getPaymentMethods: jest.fn(),
+    deletePaymentMethod: jest.fn(),
+  }
+}));
 import { MessagingService } from '../../services/MessagingService';
+
+jest.mock('../../services/MessagingService', () => ({
+  MessagingService: {
+    sendMessage: jest.fn(),
+    getMessages: jest.fn(),
+    getConversations: jest.fn(),
+    markAsRead: jest.fn(),
+    deleteMessage: jest.fn(),
+    deleteConversation: jest.fn(),
+  }
+}));
 
 // Mock all external services
 jest.mock('../../config/supabase');
@@ -359,7 +413,7 @@ describe('Security Vulnerability Tests', () => {
     });
 
     it('should validate input lengths', () => {
-      const validateInputLengths = (data: any) => {
+      const validateInputLengths = (data: unknown) => {
         const maxLengths = {
           title: 100,
           description: 1000,
@@ -440,7 +494,7 @@ describe('Security Vulnerability Tests', () => {
         ssn: '123-45-6789',
       };
 
-      const maskSensitiveData = (data: any) => {
+      const maskSensitiveData = (data: unknown) => {
         const masked = { ...data };
         if (masked.email) {
           masked.email = masked.email.replace(/(.{2}).*@(.*)/, '$1***@$2');

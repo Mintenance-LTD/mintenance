@@ -1,10 +1,31 @@
+// Mock DOM globals for React Native environment
+global.document = {
+  getElementById: jest.fn(),
+  querySelector: jest.fn(),
+  querySelectorAll: jest.fn(() => []),
+  createElement: jest.fn(() => ({})),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+};
+
+global.window = {
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  matchMedia: jest.fn(() => ({
+    matches: false,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+  })),
+};
+
+
 /**
  * Tests for Performance Tracker Module
  */
 
 import { Platform } from 'react-native';
-import { PerformanceTracker } from '../PerformanceTracker';
-import { AnalyticsConfig } from '@mintenance/types';
+import PerformanceTracker from '../PerformanceTracker';
+import { AnalyticsConfig } from '../../types';
 
 // Mock dependencies
 jest.mock('../../logger');

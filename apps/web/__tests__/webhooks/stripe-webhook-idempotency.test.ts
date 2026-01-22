@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 /** @jest-environment node */
 import { NextRequest, NextResponse } from 'next/server';
 
-jest.mock('@/lib/api/supabaseServer', () => ({
+vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    rpc: jest.fn(async (fn: string, args: any) => {
+    rpc: vi.fn(async (fn: string, args: any) => {
       if (fn === 'check_webhook_idempotency') {
         return { data: [{ is_duplicate: false, event_id: 'evt_row_1' }], error: null };
       }
@@ -16,8 +16,8 @@ jest.mock('@/lib/api/supabaseServer', () => ({
   },
 }));
 
-jest.mock('stripe', () => {
-  return jest.fn().mockImplementation(() => ({
+vi.mock('stripe', () => {
+  return vi.fn().mockImplementation(() => ({
     webhooks: {
       constructEvent: (body: string) => ({ id: 'evt_1', type: 'payment_intent.succeeded', data: { object: { id: 'pi_1' }}}),
     },
@@ -44,7 +44,7 @@ describe('Stripe webhook idempotency', () => {
   it('returns duplicate=true when idempotency detects duplicate', async () => {
     const mod = await import('../../../app/api/webhooks/stripe/route');
     const { serverSupabase } = await import('@/lib/api/supabaseServer');
-    (serverSupabase.rpc as jest.Mock).mockResolvedValueOnce({ data: [{ is_duplicate: true, event_id: 'evt_row_1' }], error: null });
+    vi.mocked(serverSupabase.rpc).mockResolvedValueOnce({ data: [{ is_duplicate: true, event_id: 'evt_row_1' }], error: null });
     const res = await mod.POST(makeReq({ 'stripe-signature': 'sig', 'x-forwarded-for': '1.1.1.1' }, '{}'));
     const body = await res.json();
     expect(res.status).toBe(200);

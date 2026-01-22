@@ -132,7 +132,7 @@ export class EscrowService {
   /**
    * Get homeowner pending approval details
    */
-  static async getHomeownerPendingApproval(escrowId: string): Promise<any> {
+  static async getHomeownerPendingApproval(escrowId: string): Promise<unknown> {
     try {
       return await mobileApiClient.get(`/api/escrow/${escrowId}/homeowner/pending-approval`);
     } catch (error) {

@@ -72,7 +72,16 @@
       "Bash(npm run:*)",
       "Bash(comm:*)",
       "Bash(do if [ -f \"$dir/page.tsx\" ])",
-      "Bash([ ! -f \"$dir/loading.tsx\" ])"
+      "Bash([ ! -f \"$dir/loading.tsx\" ])",
+      "Bash(EMERGENCY_KILL_SWITCH=true npm run rollout:status)",
+      "Bash(set EMERGENCY_KILL_SWITCH=true)",
+      "Bash(./fix-logger-syntax.sh)",
+      "Bash(git checkout:*)",
+      "Bash(npx next dev:*)",
+      "Bash(rm:*)",
+      "Bash(wc:*)",
+      "Bash(npx vitest list:*)",
+      "Bash(npx jest:*)"
     ],
     "deny": [],
     "ask": []

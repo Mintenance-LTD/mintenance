@@ -1,5 +1,14 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { act } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import LoginScreen from '../../screens/LoginScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { NavigationMockFactory } from '../../test-utils/navigationMockFactory';
@@ -64,6 +73,10 @@ describe('LoginScreen', () => {
 
     mockUseAuth.mockReturnValue(AuthMockFactory.createCompleteAuthMock());
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   it('renders login form correctly', () => {
     const { getByTestId, getByText } = render(<LoginScreen navigation={mockNavigation} />);
@@ -75,10 +88,11 @@ describe('LoginScreen', () => {
   });
 
   it('validates required fields', async () => {
-    const { getByTestId, getByText } = render(<LoginScreen navigation={mockNavigation} />);
+    const { getByLabelText, getByText } = render(<LoginScreen navigation={mockNavigation} />);
 
-    // Test empty fields
-    fireEvent.press(getByText('Log In'));
+    await act(async () => {
+      fireEvent.press(getByLabelText('Log In'));
+    });
 
     await waitFor(() => {
       expect(getByText('Please fill in all fields')).toBeTruthy();
@@ -86,11 +100,16 @@ describe('LoginScreen', () => {
   });
 
   it('validates password is required', async () => {
-    const { getByTestId, getByText } = render(<LoginScreen navigation={mockNavigation} />);
+    const { getByLabelText, getByTestId, getByText } = render(
+      <LoginScreen navigation={mockNavigation} />
+    );
 
-    fireEvent.changeText(getByTestId('email-input'), 'test@example.com');
-    // Leave password empty
-    fireEvent.press(getByText('Log In'));
+    act(() => {
+      fireEvent.changeText(getByTestId('email-input'), 'test@example.com');
+    });
+    await act(async () => {
+      fireEvent.press(getByLabelText('Log In'));
+    });
 
     await waitFor(() => {
       expect(getByText('Please fill in all fields')).toBeTruthy();
@@ -103,11 +122,19 @@ describe('LoginScreen', () => {
       signIn: mockSignIn,
     }));
 
-    const { getByTestId, getByText } = render(<LoginScreen navigation={mockNavigation} />);
+    const { getByLabelText, getByTestId } = render(
+      <LoginScreen navigation={mockNavigation} />
+    );
 
-    fireEvent.changeText(getByTestId('email-input'), 'test@example.com');
-    fireEvent.changeText(getByTestId('password-input'), 'password123');
-    fireEvent.press(getByText('Log In'));
+    act(() => {
+      fireEvent.changeText(getByTestId('email-input'), 'test@example.com');
+    });
+    act(() => {
+      fireEvent.changeText(getByTestId('password-input'), 'password123');
+    });
+    await act(async () => {
+      fireEvent.press(getByLabelText('Log In'));
+    });
 
     await waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith(
@@ -133,11 +160,19 @@ describe('LoginScreen', () => {
       signIn: mockSignIn,
     }));
 
-    const { getByTestId, getByText } = render(<LoginScreen navigation={mockNavigation} />);
+    const { getByLabelText, getByTestId, getByText } = render(
+      <LoginScreen navigation={mockNavigation} />
+    );
 
-    fireEvent.changeText(getByTestId('email-input'), 'test@example.com');
-    fireEvent.changeText(getByTestId('password-input'), 'wrongpassword');
-    fireEvent.press(getByText('Log In'));
+    act(() => {
+      fireEvent.changeText(getByTestId('email-input'), 'test@example.com');
+    });
+    act(() => {
+      fireEvent.changeText(getByTestId('password-input'), 'wrongpassword');
+    });
+    await act(async () => {
+      fireEvent.press(getByLabelText('Log In'));
+    });
 
     await waitFor(() => {
       expect(getByText('Invalid credentials')).toBeTruthy();
@@ -147,7 +182,7 @@ describe('LoginScreen', () => {
   it('navigates to register screen when sign up link is pressed', () => {
     const { getByText } = render(<LoginScreen navigation={mockNavigation} />);
 
-    fireEvent.press(getByText('Sign Up'));
+    act(() => fireEvent.press(getByText('Sign Up')));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('Register');
   });
@@ -155,7 +190,7 @@ describe('LoginScreen', () => {
   it('navigates to forgot password screen', () => {
     const { getByText } = render(<LoginScreen navigation={mockNavigation} />);
 
-    fireEvent.press(getByText('Forgot Password?'));
+    act(() => fireEvent.press(getByText('Forgot Password?')));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('ForgotPassword');
   });
@@ -185,15 +220,22 @@ describe('LoginScreen', () => {
       signIn: mockSignIn,
     }));
 
-    const { getByTestId, getByText } = render(<LoginScreen navigation={mockNavigation} />);
+    const { getByLabelText, getByTestId } = render(
+      <LoginScreen navigation={mockNavigation} />
+    );
 
-    fireEvent.changeText(getByTestId('email-input'), 'test@example.com');
-    fireEvent.changeText(getByTestId('password-input'), 'password123');
-    fireEvent.press(getByText('Log In'));
+    act(() => {
+      fireEvent.changeText(getByTestId('email-input'), 'test@example.com');
+    });
+    act(() => {
+      fireEvent.changeText(getByTestId('password-input'), 'password123');
+    });
+    await act(async () => {
+      fireEvent.press(getByLabelText('Log In'));
+    });
 
     await waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
     });
   });
 });
-

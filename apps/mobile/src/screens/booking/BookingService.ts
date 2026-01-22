@@ -5,7 +5,7 @@
  * cancelling, and managing booking data.
  */
 
-import { User } from '@mintenance/types';
+import type { User } from '@mintenance/types';
 import { JobService } from '../../services/JobService';
 import { UserService } from '../../services/UserService';
 import { logger } from '../../utils/logger';
@@ -17,7 +17,7 @@ export class BookingService {
    */
   async loadUserBookings(user: User): Promise<Booking[]> {
     try {
-      let allJobs: any[] = [];
+      let allJobs: unknown[] = [];
 
       if (user.role === 'homeowner') {
         const homeownerJobs = await JobService.getUserJobs(user.id);
@@ -85,7 +85,7 @@ export class BookingService {
   /**
    * Get contractor information by ID
    */
-  private async getContractorInfo(contractorId: string): Promise<any> {
+  private async getContractorInfo(contractorId: string): Promise<unknown> {
     try {
       if (!contractorId) return null;
       return await UserService.getUserById(contractorId);
@@ -149,7 +149,7 @@ export class BookingService {
   /**
    * Check if booking can be cancelled
    */
-  private canCancelBooking(job: any): boolean {
+  private canCancelBooking(job: unknown): boolean {
     const status = job.status?.toLowerCase();
     return status === 'posted' || status === 'assigned';
   }
@@ -157,7 +157,7 @@ export class BookingService {
   /**
    * Check if booking can be rescheduled
    */
-  private canRescheduleBooking(job: any): boolean {
+  private canRescheduleBooking(job: unknown): boolean {
     const status = job.status?.toLowerCase();
     return status === 'posted' || status === 'assigned';
   }

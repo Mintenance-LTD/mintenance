@@ -92,7 +92,7 @@ export class NetworkDiagnosticsService {
         logger.warn(`⚠️ Internet connectivity test failed: HTTP ${response.status}`);
         return { success: false, error: `HTTP ${response.status}`, latency };
       }
-    } catch (error: any) {
+    } catch (error) {
       logger.error('❌ Internet connectivity test error:', error);
       return {
         success: false,
@@ -185,7 +185,7 @@ export class NetworkDiagnosticsService {
   private static getExpoVersion(): string {
     try {
       // This will be available in Expo managed workflow
-      return (global as any).__expo?.version || 'not-expo';
+      return (global as unknown).__expo?.version || 'not-expo';
     } catch {
       return 'unknown';
     }

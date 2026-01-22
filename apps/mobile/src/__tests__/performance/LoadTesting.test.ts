@@ -1,13 +1,64 @@
-import React from 'react';
 /**
  * Performance and Load Testing Suite
  * Tests application performance under various load conditions
  */
 
 import { JobService } from '../../services/JobService';
+
+jest.mock('../../services/JobService', () => ({
+  JobService: {
+    getJobs: jest.fn(),
+    getAvailableJobs: jest.fn(),
+    getJobsByHomeowner: jest.fn(),
+    getJobsByStatus: jest.fn(),
+    getJobById: jest.fn(),
+    getBidsByJob: jest.fn(),
+    searchJobs: jest.fn(),
+    createJob: jest.fn(),
+    updateJobStatus: jest.fn(),
+    startJob: jest.fn(),
+    completeJob: jest.fn(),
+    submitBid: jest.fn(),
+    acceptBid: jest.fn(),
+  }
+}));
 import { MessagingService } from '../../services/MessagingService';
+
+jest.mock('../../services/MessagingService', () => ({
+  MessagingService: {
+    sendMessage: jest.fn(),
+    getMessages: jest.fn(),
+    getConversations: jest.fn(),
+    markAsRead: jest.fn(),
+    deleteMessage: jest.fn(),
+    deleteConversation: jest.fn(),
+  }
+}));
 import { NotificationService } from '../../services/NotificationService';
+
+jest.mock('../../services/NotificationService', () => ({
+  NotificationService: {
+    sendNotification: jest.fn(),
+    getNotifications: jest.fn(),
+    markAsRead: jest.fn(),
+    markAllAsRead: jest.fn(),
+    deleteNotification: jest.fn(),
+    updateSettings: jest.fn(),
+  }
+}));
 import { PaymentService } from '../../services/PaymentService';
+
+jest.mock('../../services/PaymentService', () => ({
+  PaymentService: {
+    createPaymentIntent: jest.fn(),
+    confirmPayment: jest.fn(),
+    refundPayment: jest.fn(),
+    getPaymentHistory: jest.fn(),
+    savePaymentMethod: jest.fn(),
+    getPaymentMethods: jest.fn(),
+    deletePaymentMethod: jest.fn(),
+  }
+}));
 import { RealAIAnalysisService } from '../../services/RealAIAnalysisService';
 import { logger } from '../../utils/logger';
 

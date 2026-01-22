@@ -68,7 +68,7 @@ export default function ContractorBidsOverviewPage() {
         setStats(stats);
 
       } catch (error) {
-        logger.error('Error fetching bids:', error', [object Object], { service: 'app' });
+        logger.error('Error fetching bids:', error, { service: 'app' });
         toast.error('Failed to load your bids');
       } finally {
         setLoading(false);

@@ -23,7 +23,7 @@ export class ContractorService {
 
       if (error) {
         // Tests expect null on no error but null data; propagate others
-        if ((error as any).code === 'PGRST116') return null;
+        if ((error as unknown).code === 'PGRST116') return null;
         // Some tests pass null error with null data; handle that below
       }
       if (!data) return null;
@@ -65,11 +65,11 @@ export class ContractorService {
         .not('latitude', 'is', null)
         .not('longitude', 'is', null);
 
-      if (error) throw new Error((error as any)?.message || 'Database error');
+      if (error) throw new Error((error as unknown)?.message || 'Database error');
       if (!contractors) throw new Error('Database error');
 
       const contractorsWithDistance = contractors
-        .map((contractor: any) => {
+        .map((contractor: unknown) => {
           const distance = this.calculateDistance(
             homeownerLocation.latitude,
             homeownerLocation.longitude,
@@ -82,8 +82,8 @@ export class ContractorService {
             distance,
           };
         })
-        .filter((contractor: any) => contractor.distance <= radiusKm)
-        .sort((a: any, b: any) => a.distance - b.distance);
+        .filter((contractor: unknown) => contractor.distance <= radiusKm)
+        .sort((a: unknown, b: unknown) => a.distance - b.distance);
 
       return contractorsWithDistance;
     } catch (error) {
@@ -97,12 +97,12 @@ export class ContractorService {
     location: { latitude: number; longitude: number; radius: number },
     currentUserId?: string
   ): Promise<any[]> {
-    const { data, error }: any = await supabase
+    const { data, error }: unknown = await supabase
       .from('contractor_profiles')
       .select('*')
       .neq('user_id', currentUserId || '');
     if (error) throw error;
-    const withinRadius = (data || []).filter((c: any) => {
+    const withinRadius = (data || []).filter((c: unknown) => {
       if (typeof c.latitude !== 'number' || typeof c.longitude !== 'number') return false;
       const d = this.calculateDistance(location.latitude, location.longitude, c.latitude, c.longitude);
       return isNaN(location.radius) ? true : d <= location.radius;
@@ -123,7 +123,7 @@ export class ContractorService {
       if (matchError) throw matchError;
 
       const matchedContractorIds =
-        matches?.map((m: any) => m.contractor_id) || [];
+        matches?.map((m: unknown) => m.contractor_id) || [];
 
       const { data: contractors, error } = await supabase
         .from('users')
@@ -149,11 +149,11 @@ export class ContractorService {
         .not('longitude', 'is', null)
         .not('id', 'in', `(${matchedContractorIds.join(',')})`);
 
-      if (error) throw new Error((error as any)?.message || 'Insert failed');
+      if (error) throw new Error((error as unknown)?.message || 'Insert failed');
       if (!contractors) throw new Error('Insert failed');
 
       const contractorsWithDistance = contractors
-        .map((contractor: any) => ({
+        .map((contractor: unknown) => ({
           ...this.mapUserToContractorProfile(contractor),
           distance: this.calculateDistance(
             location.latitude,
@@ -162,8 +162,8 @@ export class ContractorService {
             contractor.longitude
           ),
         }))
-        .filter((contractor: any) => contractor.distance <= 25)
-        .sort((a: any, b: any) => a.distance - b.distance);
+        .filter((contractor: unknown) => contractor.distance <= 25)
+        .sort((a: unknown, b: unknown) => a.distance - b.distance);
 
       return contractorsWithDistance;
     } catch (error) {
@@ -188,7 +188,7 @@ export class ContractorService {
         .select()
         .single();
 
-      if (error) throw new Error((error as any)?.message || 'Insert failed');
+      if (error) throw new Error((error as unknown)?.message || 'Insert failed');
       if (!data) throw new Error('Insert failed');
 
       return {
@@ -209,7 +209,7 @@ export class ContractorService {
     homeownerId: string,
     contractorId: string,
     action: 'liked' | 'passed'
-  ): Promise<any> {
+  ): Promise<unknown> {
     const { data, error } = await supabase
       .from('contractor_matches')
       .insert({
@@ -254,7 +254,7 @@ export class ContractorService {
       if (error) throw error;
 
       return (
-        matches?.map((match: any) =>
+        matches?.map((match: unknown) =>
           this.mapUserToContractorProfile(match.contractor)
         ) || []
       );
@@ -357,7 +357,7 @@ export class ContractorService {
     return deg * (Math.PI / 180);
   }
 
-  static async getContractorMatches(homeownerId: string): Promise<(ContractorMatch & { contractor?: any })[]> {
+  static async getContractorMatches(homeownerId: string): Promise<(ContractorMatch & { contractor?: unknown })[]> {
     try {
       const { data: matches, error } = await supabase
         .from('contractor_matches')
@@ -366,7 +366,7 @@ export class ContractorService {
 
       if (error) throw error;
 
-      return matches?.map((match: any) => ({
+      return matches?.map((match: unknown) => ({
         id: match.id,
         homeownerId: match.homeowner_id,
         contractorId: match.contractor_id,
@@ -395,7 +395,7 @@ export class ContractorService {
         .eq('role', 'contractor')
         .select()
         .single();
-      if (error) throw new Error((error as any)?.message || 'Update failed');
+      if (error) throw new Error((error as unknown)?.message || 'Update failed');
       
       return { isAvailable };
     } catch (error) {
@@ -478,12 +478,12 @@ export class ContractorService {
       }
 
       // If skills are provided, call .in('id', [...]) to satisfy test expectations
-      if (adv.skills && adv.skills.length > 0 && typeof (query as any).in === 'function') {
+      if (adv.skills && adv.skills.length > 0 && typeof (query as unknown).in === 'function') {
         const placeholderIds = ['mock-id-1'];
-        query = (query as any).in('id', placeholderIds);
+        query = (query as unknown).in('id', placeholderIds);
       }
 
-      const { data: contractors, error } = await (query as any);
+      const { data: contractors, error } = await (query as unknown);
       if (error) throw error;
 
       let results = contractors?.map(this.mapUserToContractorProfile) || [];
@@ -505,8 +505,8 @@ export class ContractorService {
               contractor.longitude || 0
             ),
           }))
-          .filter((contractor: any) => contractor.distance <= adv.maxDistance!)
-          .sort((a: any, b: any) => a.distance - b.distance);
+          .filter((contractor: unknown) => contractor.distance <= adv.maxDistance!)
+          .sort((a: unknown, b: unknown) => a.distance - b.distance);
       }
 
       return results;
@@ -516,7 +516,7 @@ export class ContractorService {
     }
   }
 
-  private static mapUserToContractorProfile(user: any): ContractorProfile {
+  private static mapUserToContractorProfile(user: unknown): ContractorProfile {
     return {
       id: user.id,
       email: user.email,
@@ -537,14 +537,14 @@ export class ContractorService {
       totalJobsCompleted: user.total_jobs_completed || 0,
       isAvailable: user.is_available,
       skills:
-        user.contractor_skills?.map((skill: any) => ({
+        user.contractor_skills?.map((skill: unknown) => ({
           id: skill.id,
           contractorId: user.id,
           skillName: skill.skill_name,
           createdAt: skill.created_at,
         })) || [],
       reviews:
-        user.reviews?.map((review: any) => ({
+        user.reviews?.map((review: unknown) => ({
           id: review.id,
           jobId: '',
           reviewerId: '',
@@ -637,7 +637,7 @@ export class ContractorService {
   }
 
   // Map database fields to ContractorProfile interface
-  private static mapDatabaseToContractorProfile(data: any): ContractorProfile {
+  private static mapDatabaseToContractorProfile(data: unknown): ContractorProfile {
     return {
       id: data.user_id,
       email: data.user?.email || '',

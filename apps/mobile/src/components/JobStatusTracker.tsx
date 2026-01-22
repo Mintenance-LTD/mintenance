@@ -156,7 +156,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
     );
   };
 
-  const performStatusUpdate = async (newStatus: any) => {
+  const performStatusUpdate = async (newStatus: unknown) => {
     try {
       logger.info('Updating job status', {
         jobId: job.id,
@@ -181,7 +181,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
         'Success',
         `Job status updated to ${STATUS_CONFIG[newStatus].label}`
       );
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Failed to update job status:', error);
       Alert.alert('Error', error.message || 'Failed to update job status');
     }

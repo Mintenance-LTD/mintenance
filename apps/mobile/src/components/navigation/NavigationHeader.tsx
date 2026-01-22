@@ -58,7 +58,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
         navigation.dispatch(DrawerActions.openDrawer());
       } catch {
         // If no drawer, navigate to menu or do nothing
-        logger.info('No drawer navigator available', [object Object], { service: 'ui' });
+        logger.info('No drawer navigator available', { service: 'ui' });
       }
     }
   };

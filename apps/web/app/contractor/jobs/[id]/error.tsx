@@ -16,7 +16,7 @@ export default function ContractorJobDetailsError({
   const router = useRouter();
 
   useEffect(() => {
-    logger.error('Contractor job details error:', error', [object Object], { service: 'app' });
+    logger.error('Contractor job details error:', error, { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

@@ -1,6 +1,5 @@
 import { BaseService, ServiceConfig } from '../base';
 import { User, Job } from '@mintenance/types';
-
 export interface PaymentMethod {
   id: string;
   type: string;
@@ -13,7 +12,6 @@ export interface PaymentMethod {
   isDefault: boolean;
   createdAt: string;
 }
-
 export interface PaymentIntent {
   id: string;
   amount: number;
@@ -24,7 +22,6 @@ export interface PaymentIntent {
   payment_method?: string;
   metadata?: Record<string, string>;
 }
-
 export interface CreatePaymentIntentParams {
   amount: number;
   jobId: string;
@@ -32,7 +29,6 @@ export interface CreatePaymentIntentParams {
   paymentMethodId?: string;
   metadata?: Record<string, string>;
 }
-
 export interface EscrowTransaction {
   id: string;
   jobId: string;
@@ -44,15 +40,12 @@ export interface EscrowTransaction {
   releasedAt?: string;
   metadata?: Record<string, any>;
 }
-
 export class PaymentService extends BaseService {
   private apiBaseUrl: string;
-
   constructor(config: ServiceConfig & { apiBaseUrl?: string }) {
     super(config);
     this.apiBaseUrl = config.apiBaseUrl || config.apiUrl || '';
   }
-
   /**
    * Create a payment intent for a job payment (shared logic)
    */
@@ -62,7 +55,6 @@ export class PaymentService extends BaseService {
       if (!session?.session?.access_token) {
         throw new Error('Not authenticated');
       }
-
       const response = await fetch(`${this.apiBaseUrl}/api/payments/create-intent`, {
         method: 'POST',
         headers: {
@@ -77,13 +69,10 @@ export class PaymentService extends BaseService {
           metadata: params.metadata,
         }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create payment intent');
       }
-
       return {
         id: data.id,
         amount: data.amount,
@@ -97,7 +86,6 @@ export class PaymentService extends BaseService {
       throw this.handleError(error);
     }
   }
-
   /**
    * Create a setup intent for adding a new payment method
    */
@@ -107,7 +95,6 @@ export class PaymentService extends BaseService {
       if (!session?.session?.access_token) {
         throw new Error('Not authenticated');
       }
-
       const response = await fetch(`${this.apiBaseUrl}/api/payments/create-setup-intent`, {
         method: 'POST',
         headers: {
@@ -115,19 +102,15 @@ export class PaymentService extends BaseService {
           'Authorization': `Bearer ${session.session.access_token}`,
         },
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create setup intent');
       }
-
       return { clientSecret: data.clientSecret || data.client_secret };
     } catch (error) {
       throw this.handleError(error);
     }
   }
-
   /**
    * Get payment methods for the current user
    */
@@ -137,25 +120,20 @@ export class PaymentService extends BaseService {
       if (!session?.session?.access_token) {
         throw new Error('Not authenticated');
       }
-
       const response = await fetch(`${this.apiBaseUrl}/api/payments/methods`, {
         headers: {
           'Authorization': `Bearer ${session.session.access_token}`,
         },
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch payment methods');
       }
-
       return data.methods || [];
     } catch (error) {
       throw this.handleError(error);
     }
   }
-
   /**
    * Save a payment method for future use
    */
@@ -165,7 +143,6 @@ export class PaymentService extends BaseService {
       if (!session?.session?.access_token) {
         throw new Error('Not authenticated');
       }
-
       const response = await fetch(`${this.apiBaseUrl}/api/payments/methods/save`, {
         method: 'POST',
         headers: {
@@ -174,19 +151,15 @@ export class PaymentService extends BaseService {
         },
         body: JSON.stringify({ paymentMethodId }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Failed to save payment method');
       }
-
       return data.method;
     } catch (error) {
       throw this.handleError(error);
     }
   }
-
   /**
    * Delete a saved payment method
    */
@@ -196,14 +169,12 @@ export class PaymentService extends BaseService {
       if (!session?.session?.access_token) {
         throw new Error('Not authenticated');
       }
-
       const response = await fetch(`${this.apiBaseUrl}/api/payments/methods/${paymentMethodId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.session.access_token}`,
         },
       });
-
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Failed to delete payment method');
@@ -212,7 +183,6 @@ export class PaymentService extends BaseService {
       throw this.handleError(error);
     }
   }
-
   /**
    * Get payment history for the current user
    */
@@ -225,11 +195,9 @@ export class PaymentService extends BaseService {
       if (!session?.session?.access_token) {
         throw new Error('Not authenticated');
       }
-
       const searchParams = new URLSearchParams();
       if (params?.limit) searchParams.set('limit', String(params.limit));
       if (params?.cursor) searchParams.set('cursor', params.cursor);
-
       const queryString = searchParams.toString();
       const response = await fetch(
         `${this.apiBaseUrl}/api/payments/history${queryString ? `?${queryString}` : ''}`,
@@ -239,13 +207,10 @@ export class PaymentService extends BaseService {
           },
         }
       );
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Failed to load payment history');
       }
-
       return {
         payments: data.payments || [],
         nextCursor: data.nextCursor
@@ -254,7 +219,6 @@ export class PaymentService extends BaseService {
       throw this.handleError(error);
     }
   }
-
   /**
    * Create escrow for a job payment
    */
@@ -268,7 +232,6 @@ export class PaymentService extends BaseService {
       if (!session?.session?.access_token || !session.session.user) {
         throw new Error('Not authenticated');
       }
-
       const response = await fetch(`${this.apiBaseUrl}/api/payments/escrow`, {
         method: 'POST',
         headers: {
@@ -282,19 +245,15 @@ export class PaymentService extends BaseService {
           payerId: session.session.user.id,
         }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create escrow');
       }
-
       return data.escrow;
     } catch (error) {
       throw this.handleError(error);
     }
   }
-
   /**
    * Release escrow funds to contractor
    */
@@ -304,26 +263,21 @@ export class PaymentService extends BaseService {
       if (!session?.session?.access_token) {
         throw new Error('Not authenticated');
       }
-
       const response = await fetch(`${this.apiBaseUrl}/api/payments/escrow/${escrowId}/release`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.session.access_token}`,
         },
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Failed to release escrow');
       }
-
       return data.escrow;
     } catch (error) {
       throw this.handleError(error);
     }
   }
-
   /**
    * Calculate platform fees for a payment amount
    */
@@ -336,12 +290,10 @@ export class PaymentService extends BaseService {
     const platformFeePercent = 0.15; // 15% platform fee
     const stripePercent = 0.029; // 2.9% Stripe fee
     const stripeFixed = 0.30; // 30 cents Stripe fixed fee
-
     const platformFee = amount * platformFeePercent;
     const processingFee = (amount * stripePercent) + stripeFixed;
     const contractorReceives = amount - platformFee;
     const total = amount + processingFee;
-
     return {
       platformFee: Math.round(platformFee * 100) / 100,
       processingFee: Math.round(processingFee * 100) / 100,

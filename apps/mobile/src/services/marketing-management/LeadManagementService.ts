@@ -110,7 +110,7 @@ export class LeadManagementService {
     status: Lead['status'],
     notes?: string
   ): Promise<Lead> {
-    const updateData: any = {
+    const updateData: unknown = {
       status,
       updated_at: new Date().toISOString(),
     };
@@ -134,7 +134,7 @@ export class LeadManagementService {
     return data;
   }
 
-  private calculateLeadScore(leadData: any): number {
+  private calculateLeadScore(leadData: unknown): number {
     let score = 0;
 
     // Base score

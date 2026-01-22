@@ -247,7 +247,7 @@ export function ProductionLandingPage() {
         setFeaturedContractors(featured);
       }
     } catch (err) {
-      logger.error('Error fetching data:', err', [object Object], { service: 'ui' });
+      logger.error('Error fetching data:', err, { service: 'ui' });
       setError('Failed to load data');
 
       // Set fallback data

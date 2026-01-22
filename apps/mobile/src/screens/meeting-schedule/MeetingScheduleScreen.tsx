@@ -25,11 +25,11 @@ interface Props {
     params: {
       contractorId: string;
       jobId: string;
-      contractor?: any;
-      job?: any;
+      contractor?: unknown;
+      job?: unknown;
     };
   };
-  navigation: any;
+  navigation: unknown;
 }
 
 export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) => {

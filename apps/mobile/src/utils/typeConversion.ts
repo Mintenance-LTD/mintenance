@@ -31,7 +31,7 @@ import {
 /**
  * Convert database user to application user
  */
-export function convertDatabaseUserToUser(dbUser: any): User {
+export function convertDatabaseUserToUser(dbUser: unknown): User {
   return {
     id: dbUser.id,
     email: dbUser.email,
@@ -46,9 +46,9 @@ export function convertDatabaseUserToUser(dbUser: any): User {
     profileImageUrl: dbUser.profile_image_url || dbUser.profileImageUrl,
     bio: dbUser.bio,
     rating: dbUser.rating,
-    totalJobsCompleted: dbUser.total_jobs_completed || dbUser.totalJobsCompleted,
-    isAvailable: dbUser.is_available || dbUser.isAvailable,
-    isVerified: dbUser.is_verified || dbUser.isVerified,
+    totalJobsCompleted: dbUser.total_jobs_completed ?? dbUser.totalJobsCompleted,
+    isAvailable: dbUser.is_available ?? dbUser.isAvailable,
+    isVerified: dbUser.is_verified ?? dbUser.isVerified,
     phone: dbUser.phone
   };
 }
@@ -85,7 +85,7 @@ export function convertUserToDatabaseUser(user: User): DatabaseUser {
 /**
  * Convert database job to application job
  */
-export function convertDatabaseJobToJob(dbJob: any): Job {
+export function convertDatabaseJobToJob(dbJob: unknown): Job {
   return {
     id: dbJob.id,
     title: dbJob.title,
@@ -137,7 +137,7 @@ export function convertJobToDatabaseJob(job: Job): DatabaseJob {
 /**
  * Convert database message to application message
  */
-export function convertDatabaseMessageToMessage(dbMessage: any): Message {
+export function convertDatabaseMessageToMessage(dbMessage: unknown): Message {
   return {
     id: dbMessage.id,
     jobId: dbMessage.job_id || dbMessage.jobId,
@@ -190,7 +190,7 @@ export function convertMessageToDatabaseMessage(message: Message): DatabaseMessa
 /**
  * Convert database bid to application bid
  */
-export function convertDatabaseBidToBid(dbBid: any): Bid {
+export function convertDatabaseBidToBid(dbBid: unknown): Bid {
   return {
     id: dbBid.id,
     jobId: dbBid.job_id || dbBid.jobId,
@@ -220,28 +220,28 @@ export function convertDatabaseBidToBid(dbBid: any): Bid {
 /**
  * Convert array of database users to application users
  */
-export function convertDatabaseUsersToUsers(dbUsers: any[]): User[] {
+export function convertDatabaseUsersToUsers(dbUsers: unknown[]): User[] {
   return dbUsers.map(convertDatabaseUserToUser);
 }
 
 /**
  * Convert array of database jobs to application jobs
  */
-export function convertDatabaseJobsToJobs(dbJobs: any[]): Job[] {
+export function convertDatabaseJobsToJobs(dbJobs: unknown[]): Job[] {
   return dbJobs.map(convertDatabaseJobToJob);
 }
 
 /**
  * Convert array of database messages to application messages
  */
-export function convertDatabaseMessagesToMessages(dbMessages: any[]): Message[] {
+export function convertDatabaseMessagesToMessages(dbMessages: unknown[]): Message[] {
   return dbMessages.map(convertDatabaseMessageToMessage);
 }
 
 /**
  * Convert array of database bids to application bids
  */
-export function convertDatabaseBidsToBids(dbBids: any[]): Bid[] {
+export function convertDatabaseBidsToBids(dbBids: unknown[]): Bid[] {
   return dbBids.map(convertDatabaseBidToBid);
 }
 
@@ -252,7 +252,7 @@ export function convertDatabaseBidsToBids(dbBids: any[]): Bid[] {
 /**
  * Convert any database entity to application entity
  */
-export function convertDatabaseEntity(dbEntity: any, entityType: string): any {
+export function convertDatabaseEntity(dbEntity: unknown, entityType: string): unknown {
   switch (entityType) {
     case 'user':
       return convertDatabaseUserToUser(dbEntity);
@@ -270,7 +270,7 @@ export function convertDatabaseEntity(dbEntity: any, entityType: string): any {
 /**
  * Convert application entity to database entity
  */
-export function convertApplicationEntity(appEntity: any, entityType: string): any {
+export function convertApplicationEntity(appEntity: unknown, entityType: string): unknown {
   switch (entityType) {
     case 'user':
       return convertUserToDatabaseUser(appEntity);
@@ -290,20 +290,22 @@ export function convertApplicationEntity(appEntity: any, entityType: string): an
 /**
  * Ensure proper field names based on context
  */
-export function normalizeFieldNames(obj: any, targetFormat: 'snake_case' | 'camelCase'): any {
+export function normalizeFieldNames(obj: unknown, targetFormat: 'snake_case' | 'camelCase'): unknown {
   if (!obj || typeof obj !== 'object') return obj;
 
-  const normalized: any = {};
+  const normalized: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(obj)) {
     let normalizedKey = key;
 
     if (targetFormat === 'snake_case') {
       // Convert camelCase to snake_case
-      normalizedKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+      normalizedKey = key.replace(/([A-Z])/g, '_$1').replace(/^_/, '').toLowerCase();
     } else {
       // Convert snake_case to camelCase
-      normalizedKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      const leadingUnderscores = key.match(/^_+/)?.[0] ?? '';
+      const coreKey = key.slice(leadingUnderscores.length);
+      normalizedKey = leadingUnderscores + coreKey.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
     }
 
     normalized[normalizedKey] = value;

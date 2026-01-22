@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import toast from 'react-hot-toast';
-import { logger } from '@mintenance/shared';
 
 interface AutomationSettings {
   enableAutomation: boolean;
@@ -131,7 +130,7 @@ export function AgentAutomationPanel() {
         setSettings(data);
       }
     } catch (error) {
-      logger.error('Failed to fetch automation settings:', error', [object Object], { service: 'ui' });
+      console.error('Failed to fetch automation settings:', error);
     } finally {
       setLoading(false);
     }
@@ -155,7 +154,7 @@ export function AgentAutomationPanel() {
         toast.error('Failed to save settings');
       }
     } catch (error) {
-      logger.error('Failed to save settings:', error', [object Object], { service: 'ui' });
+      console.error('Failed to save settings:', error);
       toast.error('Failed to save settings');
     } finally {
       setSaving(false);

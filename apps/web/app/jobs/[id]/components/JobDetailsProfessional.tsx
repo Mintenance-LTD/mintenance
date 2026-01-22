@@ -623,7 +623,7 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
       alert(`Bid accepted successfully! The contractor has been notified.`);
       window.location.reload(); // Refresh to show updated status
     } catch (error) {
-      logger.error('Error accepting bid:', error', [object Object], { service: 'ui' });
+      logger.error('Error accepting bid:', error, { service: 'ui' });
       alert(
         `Failed to accept bid: ${error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'}\n\n` +
         `If this problem persists, please refresh the page and try again.`

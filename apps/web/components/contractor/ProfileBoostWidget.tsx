@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 import { ProfileBoostMeter } from './ProfileBoostMeter';
 import { DBSCheckModal } from './DBSCheckModal';
 import { PersonalityTestModal } from './PersonalityTestModal';
-import { logger } from '@mintenance/shared';
 
 interface BoostBreakdown {
   baseTrustScore: number;
@@ -55,7 +54,7 @@ export function ProfileBoostWidget() {
       setBoostData(data.boost);
       setMissingVerifications(data.missingVerifications || []);
     } catch (error) {
-      logger.error('Error fetching boost data:', error', [object Object], { service: 'ui' });
+      console.error('Error fetching boost data:', error);
     } finally {
       setLoading(false);
     }

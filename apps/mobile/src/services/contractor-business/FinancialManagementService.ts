@@ -72,7 +72,7 @@ export class FinancialManagementService {
       ServiceErrorHandler.validateRequired(status, 'Status', context);
       ServiceErrorHandler.validateRequired(contractorId, 'Contractor ID', context);
 
-      const updateData: any = {
+      const updateData: unknown = {
         status,
         updated_at: new Date().toISOString(),
       };
@@ -363,13 +363,13 @@ export class FinancialManagementService {
         throw ServiceErrorHandler.handleDatabaseError(outstandingError, context);
       }
 
-      const totalRevenue = paidInvoices?.reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
-      const totalExpenses = expenses?.reduce((sum: number, exp: any) => sum + exp.amount, 0) || 0;
+      const totalRevenue = paidInvoices?.reduce((sum: number, inv: unknown) => sum + inv.total_amount, 0) || 0;
+      const totalExpenses = expenses?.reduce((sum: number, exp: unknown) => sum + exp.amount, 0) || 0;
       const totalProfit = totalRevenue - totalExpenses;
 
-      const outstanding = outstandingInvoices?.reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
-      const overdue = outstandingInvoices?.filter((inv: any) => new Date(inv.due_date) < new Date())
-        .reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
+      const outstanding = outstandingInvoices?.reduce((sum: number, inv: unknown) => sum + inv.total_amount, 0) || 0;
+      const overdue = outstandingInvoices?.filter((inv: unknown) => new Date(inv.due_date) < new Date())
+        .reduce((sum: number, inv: unknown) => sum + inv.total_amount, 0) || 0;
 
       return {
         totalRevenue,
@@ -593,7 +593,7 @@ export class FinancialManagementService {
         taxDeductibleAmount: number;
       }>();
 
-      expenses?.forEach((expense: any) => {
+      expenses?.forEach((expense: unknown) => {
         const existing = categoryMap.get(expense.category) || {
           totalAmount: 0,
           count: 0,
@@ -624,7 +624,7 @@ export class FinancialManagementService {
   /**
    * Private helper methods
    */
-  private static async generateInvoicePDF(invoice: any): Promise<Buffer> {
+  private static async generateInvoicePDF(invoice: unknown): Promise<Buffer> {
     // Mock implementation - would use a PDF library like puppeteer, jsPDF, or PDFKit
     logger.info('Generating invoice PDF', { invoiceId: invoice.id });
 
@@ -632,7 +632,7 @@ export class FinancialManagementService {
     return Buffer.from(`Mock PDF for invoice ${invoice.invoice_number}`);
   }
 
-  private static async sendInvoiceEmail(invoice: any, pdfBuffer: Buffer): Promise<void> {
+  private static async sendInvoiceEmail(invoice: unknown, pdfBuffer: Buffer): Promise<void> {
     // Mock implementation - would integrate with email service like SendGrid, Mailgun, or AWS SES
     logger.info('Sending invoice email', {
       invoiceId: invoice.id,
@@ -663,7 +663,7 @@ export class FinancialManagementService {
         .gte('paid_date', startDate.toISOString())
         .lte('paid_date', endDate.toISOString());
 
-      const monthlyRev = invoices?.reduce((sum: number, inv: any) => sum + (inv.total_amount || 0), 0) || 0;
+      const monthlyRev = invoices?.reduce((sum: number, inv: unknown) => sum + (inv.total_amount || 0), 0) || 0;
       results.push(monthlyRev);
     }
 
@@ -696,10 +696,10 @@ export class FinancialManagementService {
 
     if (error) return { outstandingInvoices: 0, overdueAmount: 0 };
 
-    const outstanding = invoices?.reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
+    const outstanding = invoices?.reduce((sum: number, inv: unknown) => sum + inv.total_amount, 0) || 0;
     const overdue = invoices
-      ?.filter((inv: any) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
-      .reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
+      ?.filter((inv: unknown) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
+      .reduce((sum: number, inv: unknown) => sum + inv.total_amount, 0) || 0;
 
     return { outstandingInvoices: outstanding, overdueAmount: overdue };
   }

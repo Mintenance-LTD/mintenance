@@ -189,7 +189,7 @@ export default function JobEditPage2025() {
 
         setIsLoading(false);
       } catch (error) {
-        logger.error('Error fetching job:', error', [object Object], { service: 'app' });
+        logger.error('Error fetching job:', error, { service: 'app' });
         toast.error('Failed to load job details');
         router.push('/jobs');
       }
@@ -284,7 +284,7 @@ export default function JobEditPage2025() {
 
       toast.success(`${files.length} image(s) uploaded successfully`);
     } catch (error) {
-      logger.error('Error uploading images:', error', [object Object], { service: 'app' });
+      logger.error('Error uploading images:', error, { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to upload images');
     } finally {
       setUploadingImages(false);
@@ -406,7 +406,7 @@ export default function JobEditPage2025() {
       toast.success('Job updated successfully');
       router.push(`/jobs/${jobId}`);
     } catch (error) {
-      logger.error('Error updating job:', error', [object Object], { service: 'app' });
+      logger.error('Error updating job:', error, { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to update job');
     } finally {
       setIsSubmitting(false);
@@ -440,7 +440,7 @@ export default function JobEditPage2025() {
         toast.error(error.error || 'Failed to save job');
       }
     } catch (error) {
-      logger.error('Error saving job:', error', [object Object], { service: 'app' });
+      logger.error('Error saving job:', error, { service: 'app' });
       toast.error('Failed to save job');
     } finally {
       setSavingJob(false);
@@ -496,7 +496,7 @@ export default function JobEditPage2025() {
         setGeocodeData(result.geocode);
       }
     } catch (error) {
-      logger.error('Error running AI analysis:', error', [object Object], { service: 'app' });
+      logger.error('Error running AI analysis:', error, { service: 'app' });
       toast.error('Failed to run AI analysis');
     } finally {
       setIsSubmitting(false);

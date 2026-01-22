@@ -6,7 +6,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -66,7 +65,19 @@ export interface PlatformStats {
 export async function getFeaturedContractors(limit = 12): Promise<ContractorProfile[]> {
   const supabase = createServerClient();
 
+  // #region agent log
   try {
+    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/lib/queries/airbnb-optimized.ts:63', message: 'getFeaturedContractors called', data: { limit, supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'missing', hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
+  } catch {}
+  // #endregion
+
+  try {
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/lib/queries/airbnb-optimized.ts:70', message: 'About to query contractors from users table', data: { limit, queryFields: ['id', 'first_name', 'last_name', 'company_name', 'profile_image_url', 'city', 'country', 'admin_verified', 'created_at', 'rating', 'total_jobs_completed'] }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
+    } catch {}
+    // #endregion
+
     // Get contractors from users table (contractors are users with role='contractor')
     // Note: Removed admin_verified filter to get all contractors, not just verified ones
     const { data: contractors, error: contractorsError } = await supabase
@@ -76,14 +87,26 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       .order('created_at', { ascending: false })
       .limit(limit * 2); // Get more to filter after
 
+    // #region agent log
+    try {
+      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/lib/queries/airbnb-optimized.ts:82', message: 'Contractors query completed', data: { hasError: !!contractorsError, errorType: contractorsError ? typeof contractorsError : 'none', errorConstructor: contractorsError?.constructor?.name, errorKeys: contractorsError ? Object.keys(contractorsError) : [], contractorsCount: contractors?.length || 0, errorMessage: contractorsError?.message, errorCode: contractorsError?.code, errorDetails: contractorsError?.details, errorHint: contractorsError?.hint }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
+    } catch {}
+    // #endregion
+
     if (contractorsError) {
-      logger.error('[getFeaturedContractors] Error fetching contractors:', {
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/lib/queries/airbnb-optimized.ts:88', message: 'Contractors query error - full details', data: { errorString: String(contractorsError), errorJSON: JSON.stringify(contractorsError), errorToString: contractorsError.toString(), errorValueOf: contractorsError.valueOf(), errorMessage: contractorsError.message, errorCode: contractorsError.code, errorDetails: contractorsError.details, errorHint: contractorsError.hint, errorName: contractorsError.name, errorStack: contractorsError.stack, allErrorProps: Object.getOwnPropertyNames(contractorsError) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
+      } catch {}
+      // #endregion
+
+      console.error('[getFeaturedContractors] Error fetching contractors:', {
         message: contractorsError.message,
         details: contractorsError.details,
         hint: contractorsError.hint,
         code: contractorsError.code,
         fullError: contractorsError,
-        errorString: String(contractorsError', [object Object], { service: 'lib' }),
+        errorString: String(contractorsError),
         errorType: typeof contractorsError,
         errorConstructor: contractorsError.constructor?.name
       });
@@ -95,66 +118,41 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
     }
 
     const contractorIds = contractors.map(c => c.id);
-
-    // Get skills for contractors
+    
+    // Get skills for contractors (contractor_skills table uses user_id, not contractor_id)
     const { data: skills, error: skillsError } = await supabase
       .from('contractor_skills')
-      .select('contractor_id, skill_name')
-      .in('contractor_id', contractorIds);
+      .select('user_id, skill_name')
+      .in('user_id', contractorIds);
 
     if (skillsError) {
-      logger.error('Error fetching contractor skills', skillsError, {
-        service: 'getFeaturedContractors',
-        contractorIds,
-      });
+      console.error('[getFeaturedContractors] Error fetching skills:', skillsError);
     }
 
-    // Group skills by contractor
+    // Group skills by contractor (using user_id)
     const skillsMap = new Map<string, string[]>();
     skills?.forEach(skill => {
-      if (!skillsMap.has(skill.contractor_id)) {
-        skillsMap.set(skill.contractor_id, []);
+      if (!skillsMap.has(skill.user_id)) {
+        skillsMap.set(skill.user_id, []);
       }
-      skillsMap.get(skill.contractor_id)!.push(skill.skill_name);
+      skillsMap.get(skill.user_id)!.push(skill.skill_name);
     });
 
-    // Get ratings for contractors (reviews are linked through jobs)
-    interface ReviewWithJob {
-      rating: number;
-      job: {
-        contractor_id: string;
-      } | null;
-    }
-
+    // Get ratings for contractors (reviews use reviewed_id to reference the contractor user)
     const { data: reviews, error: reviewsError } = await supabase
       .from('reviews')
-      .select(`
-        rating,
-        job:job_id (
-          contractor_id
-        )
-      `)
-      .not('job_id', 'is', null) as { data: ReviewWithJob[] | null; error: unknown };
+      .select('reviewed_id, rating')
+      .in('reviewed_id', contractorIds);
 
     if (reviewsError) {
-      logger.error('Error fetching contractor reviews', reviewsError, {
-        service: 'getFeaturedContractors',
-        contractorIds,
-      });
+      console.error('[getFeaturedContractors] Error fetching reviews:', reviewsError);
     }
 
     // Aggregate ratings
     const ratingsMap = new Map<string, { total: number; count: number }>();
     reviews?.forEach(review => {
-      // Skip reviews without job or contractor_id
-      if (!review.job || !review.job.contractor_id) return;
-
-      const contractorId = review.job.contractor_id;
-      // Only process reviews for the contractors we're interested in
-      if (!contractorIds.includes(contractorId)) return;
-
-      const existing = ratingsMap.get(contractorId) || { total: 0, count: 0 };
-      ratingsMap.set(contractorId, {
+      const existing = ratingsMap.get(review.reviewed_id) || { total: 0, count: 0 };
+      ratingsMap.set(review.reviewed_id, {
         total: existing.total + review.rating,
         count: existing.count + 1
       });
@@ -168,7 +166,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       .eq('status', 'completed');
 
     if (jobsError) {
-      logger.error('[getFeaturedContractors] Error fetching jobs:', jobsError', [object Object], { service: 'lib' });
+      console.error('[getFeaturedContractors] Error fetching jobs:', jobsError);
     }
 
     const jobsMap = new Map<string, number>();
@@ -213,7 +211,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
 
     return profiles;
   } catch (error) {
-    logger.error('[getFeaturedContractors] Unexpected error:', error', [object Object], { service: 'lib' });
+    console.error('[getFeaturedContractors] Unexpected error:', error);
     return [];
   }
 }
@@ -250,7 +248,7 @@ export async function searchContractors(params: {
     const { data: contractors, error } = await query.limit(limit * 2);
 
     if (error) {
-      logger.error('[searchContractors] Error:', error', [object Object], { service: 'lib' });
+      console.error('[searchContractors] Error:', error);
       return [];
     }
 
@@ -332,7 +330,7 @@ export async function searchContractors(params: {
 
     return profiles;
   } catch (error) {
-    logger.error('[searchContractors] Unexpected error:', error', [object Object], { service: 'lib' });
+    console.error('[searchContractors] Unexpected error:', error);
     return [];
   }
 }
@@ -354,7 +352,7 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
       .limit(limit);
 
     if (error) {
-      logger.error('[getAvailableJobs] Error:', error', [object Object], { service: 'lib' });
+      console.error('[getAvailableJobs] Error:', error);
       return [];
     }
 
@@ -387,7 +385,7 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
 
     return jobListings;
   } catch (error) {
-    logger.error('[getAvailableJobs] Unexpected error:', error', [object Object], { service: 'lib' });
+    console.error('[getAvailableJobs] Unexpected error:', error);
     return [];
   }
 }
@@ -424,7 +422,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       averageRating: Math.round(averageRating * 10) / 10
     };
   } catch (error) {
-    logger.error('[getPlatformStats] Unexpected error:', error', [object Object], { service: 'lib' });
+    console.error('[getPlatformStats] Unexpected error:', error);
     return {
       totalContractors: 0,
       totalJobs: 0,
@@ -449,7 +447,7 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
       .single();
 
     if (error || !contractor) {
-      logger.error('[getContractorProfile] Error:', error', [object Object], { service: 'lib' });
+      console.error('[getContractorProfile] Error:', error);
       return null;
     }
 
@@ -495,7 +493,7 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
       response_time: '< 1 hour'
     };
   } catch (error) {
-    logger.error('[getContractorProfile] Unexpected error:', error', [object Object], { service: 'lib' });
+    console.error('[getContractorProfile] Unexpected error:', error);
     return null;
   }
 }

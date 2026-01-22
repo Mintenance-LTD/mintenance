@@ -1,11 +1,66 @@
-import { JobService } from '../../services/JobService';
-import { Job, Bid } from '@mintenance/types';
-import { supabase } from '../../config/supabase';
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
 
-// Use global Supabase mock from jest-setup.js
-// Use a chainable manual mock to ensure method chaining works when mutating leaf fns
-const configPath = require.resolve('../../config/supabase');
-jest.mock(configPath, () => require('../../config/__mocks__/supabase'));
+
+jest.mock('../../config/supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      signIn: jest.fn(),
+      signUp: jest.fn(),
+      signOut: jest.fn(),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } }
+      })),
+    },
+    from: jest.fn((table) => ({
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      neq: jest.fn().mockReturnThis(),
+      gt: jest.fn().mockReturnThis(),
+      gte: jest.fn().mockReturnThis(),
+      lt: jest.fn().mockReturnThis(),
+      lte: jest.fn().mockReturnThis(),
+      like: jest.fn().mockReturnThis(),
+      ilike: jest.fn().mockReturnThis(),
+      in: jest.fn().mockReturnThis(),
+      contains: jest.fn().mockReturnThis(),
+      containedBy: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      range: jest.fn().mockReturnThis(),
+      single: jest.fn(() => Promise.resolve({ data: null, error: null })),
+      maybeSingle: jest.fn(() => Promise.resolve({ data: null, error: null })),
+      then: jest.fn((callback) => callback({ data: [], error: null })),
+    })),
+    storage: {
+      from: jest.fn((bucket) => ({
+        upload: jest.fn(() => Promise.resolve({ data: { path: 'test.jpg' }, error: null })),
+        download: jest.fn(() => Promise.resolve({ data: new Blob(), error: null })),
+        remove: jest.fn(() => Promise.resolve({ data: [], error: null })),
+        list: jest.fn(() => Promise.resolve({ data: [], error: null })),
+        getPublicUrl: jest.fn((path) => ({
+          data: { publicUrl: `https://test.supabase.co/storage/v1/object/public/${bucket}/${path}` }
+        })),
+      })),
+    },
+  },
+}));
+import { JobService } from '../../services/JobService';
+import { Job, Bid } from '../../types';
+import { supabase } from '../../config/supabase';
 
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
 
@@ -34,7 +89,7 @@ describe('JobService - Comprehensive Tests', () => {
   });
 
   // Test helper: setup mock responses
-  const setupMockChain = (returnValue: any) => {
+  const setupMockChain = (returnValue: unknown) => {
     const mockChain = {
       select: jest.fn().mockReturnThis(),
       insert: jest.fn().mockReturnThis(),
@@ -159,8 +214,8 @@ describe('JobService - Comprehensive Tests', () => {
         }),
       } as any);
 
-      await expect(JobService.getJobsByHomeowner('user-1')).rejects.toThrow(
-        'Fetch failed'
+      await expect(JobService.getJobsByHomeowner('user-1')).rejects.toMatchObject(
+        { message: 'Fetch failed' }
       );
     });
   });
@@ -495,8 +550,6 @@ describe('JobService - Comprehensive Tests', () => {
     });
   });
 });
-
-
 
 
 

@@ -6,27 +6,27 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 import Stripe from 'stripe';
 
 // Mock dependencies
-jest.mock('stripe');
-jest.mock('@/lib/logger', () => ({
+vi.mock('stripe');
+vi.mock('@/lib/logger', () => ({
   logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
-jest.mock('@/lib/monitoring', () => ({
+vi.mock('@/lib/monitoring', () => ({
   monitoring: {
-    recordMetric: jest.fn(),
-    sendAlert: jest.fn(),
+    recordMetric: vi.fn(),
+    sendAlert: vi.fn(),
   },
 }));
 
-jest.mock('@/lib/redis', () => ({
+vi.mock('@/lib/redis', () => ({
   redis: {
-    set: jest.fn(),
-    get: jest.fn(),
-    del: jest.fn(),
+    set: vi.fn(),
+    get: vi.fn(),
+    del: vi.fn(),
   },
 }));
 
@@ -39,20 +39,20 @@ describe('Payment Security', () => {
   let mockStripe: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock Stripe
     mockStripe = {
       paymentIntents: {
-        create: jest.fn(),
-        retrieve: jest.fn(),
-        cancel: jest.fn(),
+        create: vi.fn(),
+        retrieve: vi.fn(),
+        cancel: vi.fn(),
       },
       charges: {
-        create: jest.fn(),
+        create: vi.fn(),
       },
       refunds: {
-        create: jest.fn(),
+        create: vi.fn(),
       },
     };
 
@@ -264,7 +264,7 @@ describe('Payment Security', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Error sanitization', () => {
@@ -323,7 +323,7 @@ describe('Payment Security', () => {
 
   describe('Distributed locking', () => {
     it('should prevent concurrent payment operations', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
+      vi.mocked(redis.set).mockResolvedValue('OK');
 
       const lock = await paymentService.acquireLock('payment:user-123');
 
@@ -343,7 +343,7 @@ describe('Payment Security', () => {
     });
 
     it('should fail if lock already held', async () => {
-      (redis.set as jest.Mock).mockResolvedValue(null); // Lock already exists
+      vi.mocked(redis.set).mockResolvedValue(null); // Lock already exists
 
       await expect(paymentService.acquireLock('payment:user-456')).rejects.toThrow(
         'Could not acquire lock - operation in progress'
@@ -351,8 +351,8 @@ describe('Payment Security', () => {
     });
 
     it('should release lock after operation', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock).mockResolvedValue('lock_123');
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get).mockResolvedValue('lock_123');
 
       const lock = await paymentService.acquireLock('payment:user-789');
       await lock.release();
@@ -361,8 +361,8 @@ describe('Payment Security', () => {
     });
 
     it('should not release lock if value changed', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock).mockResolvedValue('different_lock_value');
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get).mockResolvedValue('different_lock_value');
 
       const lock = await paymentService.acquireLock('payment:user-999', 30000);
       await lock.release();
@@ -372,7 +372,7 @@ describe('Payment Security', () => {
     });
 
     it('should support custom TTL', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
+      vi.mocked(redis.set).mockResolvedValue('OK');
 
       await paymentService.acquireLock('payment:custom-ttl', 60000);
 
@@ -468,7 +468,7 @@ describe('Payment Security', () => {
         timestamp: Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000,
       }));
 
-      (redis.get as jest.Mock).mockResolvedValue(JSON.stringify(history));
+      vi.mocked(redis.get).mockResolvedValue(JSON.stringify(history));
 
       // Attempt $500 payment (10x normal)
       const result = await paymentService.detectAnomaly('user-123', 50000);
@@ -496,7 +496,7 @@ describe('Payment Security', () => {
         timestamp: Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000,
       }));
 
-      (redis.get as jest.Mock).mockResolvedValue(JSON.stringify(history));
+      vi.mocked(redis.get).mockResolvedValue(JSON.stringify(history));
 
       const result = await paymentService.detectAnomaly('user-456', 5200); // Similar to history
 
@@ -510,7 +510,7 @@ describe('Payment Security', () => {
         timestamp: Date.now() - i * 5 * 60 * 1000, // Every 5 minutes in last hour
       }));
 
-      (redis.get as jest.Mock).mockResolvedValue(JSON.stringify(history));
+      vi.mocked(redis.get).mockResolvedValue(JSON.stringify(history));
 
       const result = await paymentService.detectAnomaly('user-789', 5000);
 
@@ -519,7 +519,7 @@ describe('Payment Security', () => {
     });
 
     it('should handle first payment (no baseline)', async () => {
-      (redis.get as jest.Mock).mockResolvedValue(null);
+      vi.mocked(redis.get).mockResolvedValue(null);
 
       const result = await paymentService.detectAnomaly('user-new', 10000);
 
@@ -534,7 +534,7 @@ describe('Payment Security', () => {
         { amount: 6000, timestamp: Date.now() },
       ];
 
-      (redis.get as jest.Mock).mockResolvedValue(JSON.stringify(history));
+      vi.mocked(redis.get).mockResolvedValue(JSON.stringify(history));
 
       const result = await paymentService.detectAnomaly('user-stats', 20000);
 
@@ -546,8 +546,8 @@ describe('Payment Security', () => {
 
   describe('Payment processing integration', () => {
     it('should process normal payment successfully', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK'); // Lock acquired
-      (redis.get as jest.Mock)
+      vi.mocked(redis.set).mockResolvedValue('OK'); // Lock acquired
+      vi.mocked(redis.get)
         .mockResolvedValueOnce('lock_value') // For lock check
         .mockResolvedValueOnce(null); // No payment history
 
@@ -571,7 +571,7 @@ describe('Payment Security', () => {
     });
 
     it('should require MFA for high-value payments', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
+      vi.mocked(redis.set).mockResolvedValue('OK');
 
       await expect(
         paymentService.processPayment('user-456', 100000, false)
@@ -579,8 +579,8 @@ describe('Payment Security', () => {
     });
 
     it('should allow high-value payment with MFA', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock)
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get)
         .mockResolvedValueOnce('lock_value')
         .mockResolvedValueOnce(null);
 
@@ -595,8 +595,8 @@ describe('Payment Security', () => {
     });
 
     it('should release lock even on failure', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock).mockResolvedValue('lock_value');
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get).mockResolvedValue('lock_value');
 
       mockStripe.paymentIntents.create.mockRejectedValue(
         new Error('Card declined')
@@ -610,8 +610,8 @@ describe('Payment Security', () => {
     it('should sanitize errors in production', async () => {
       process.env.NODE_ENV = 'production';
 
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock)
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get)
         .mockResolvedValueOnce('lock_value')
         .mockResolvedValueOnce(null);
 
@@ -635,8 +635,8 @@ describe('Payment Security', () => {
     });
 
     it('should record payment in history', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock)
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get)
         .mockResolvedValueOnce('lock_value')
         .mockResolvedValueOnce(null);
 
@@ -656,8 +656,8 @@ describe('Payment Security', () => {
     });
 
     it('should encrypt payment ID', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock)
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get)
         .mockResolvedValueOnce('lock_value')
         .mockResolvedValueOnce(null);
 
@@ -680,14 +680,14 @@ describe('Payment Security', () => {
 
   describe('Edge cases and error handling', () => {
     it('should handle Redis connection failures', async () => {
-      (redis.set as jest.Mock).mockRejectedValue(new Error('Redis connection failed'));
+      vi.mocked(redis.set).mockRejectedValue(new Error('Redis connection failed'));
 
       await expect(paymentService.acquireLock('payment:redis-fail')).rejects.toThrow();
     });
 
     it('should handle Stripe API errors', async () => {
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock)
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get)
         .mockResolvedValueOnce('lock_value')
         .mockResolvedValueOnce(null);
 
@@ -699,7 +699,7 @@ describe('Payment Security', () => {
     });
 
     it('should handle lock acquisition failures', async () => {
-      (redis.set as jest.Mock).mockResolvedValue(null); // Lock not acquired
+      vi.mocked(redis.set).mockResolvedValue(null); // Lock not acquired
 
       await expect(paymentService.processPayment('user-lock-fail', 1000)).rejects.toThrow(
         'Could not acquire lock'
@@ -712,11 +712,11 @@ describe('Payment Security', () => {
         timestamp: Date.now() - i * 60000,
       }));
 
-      (redis.get as jest.Mock).mockResolvedValue(JSON.stringify(largeHistory));
+      vi.mocked(redis.get).mockResolvedValue(JSON.stringify(largeHistory));
 
       await paymentService.recordPayment('user-trim', 1000);
 
-      const setCall = (redis.set as jest.Mock).mock.calls.find((call) =>
+      const setCall = vi.mocked(redis.set).mock.calls.find((call) =>
         call[0].includes('payment_history')
       );
 

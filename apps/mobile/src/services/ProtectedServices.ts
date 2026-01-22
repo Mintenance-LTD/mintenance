@@ -29,7 +29,7 @@ export class ProtectedAuthService {
     firstName: string;
     lastName: string;
     role: 'homeowner' | 'contractor';
-  }): Promise<any> {
+  }): Promise<unknown> {
     try {
       return await protectedSupabase.query(
         async () => {
@@ -70,7 +70,7 @@ export class ProtectedAuthService {
   /**
    * Sign in with rate limiting protection
    */
-  static async signIn(email: string, password: string): Promise<any> {
+  static async signIn(email: string, password: string): Promise<unknown> {
     try {
       return await protectedSupabase.query(
         async () => {
@@ -103,7 +103,7 @@ export class ProtectedAuthService {
   /**
    * Password reset with rate limiting
    */
-  static async resetPassword(email: string): Promise<any> {
+  static async resetPassword(email: string): Promise<unknown> {
     try {
       return await protectedSupabase.query(
         async () => {
@@ -260,7 +260,7 @@ export class ProtectedJobService {
     homeowner_id: string;
     userId?: string;
     userTier?: string;
-  }): Promise<any> {
+  }): Promise<unknown> {
     try {
       return await protectedSupabase.query(
         async () => {
@@ -378,7 +378,7 @@ export class ProtectedMessagingService {
     content: string;
     userId?: string;
     userTier?: string;
-  }): Promise<any> {
+  }): Promise<unknown> {
     try {
       return await protectedSupabase.query(
         async () => {
@@ -524,7 +524,7 @@ export class ProtectionStatsService {
    */
   static getStats(): {
     activeRequests: number;
-    protection: any;
+    protection: unknown;
   } {
     return protectedSupabase.getStats();
   }
@@ -545,7 +545,7 @@ export class ProtectionStatsService {
       blockedIPs: stats.protection.blockedIPs || 0,
       blockedUsers: stats.protection.blockedUsers || 0,
       rateLimitHits: Object.values(stats.protection.rateLimiterStats || {})
-        .reduce((total: number, limiter: any) => total + (limiter.limitedKeys || 0), 0),
+        .reduce((total: number, limiter: unknown) => total + (limiter.limitedKeys || 0), 0),
     };
   }
 }

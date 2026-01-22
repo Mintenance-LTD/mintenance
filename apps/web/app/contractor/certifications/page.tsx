@@ -175,7 +175,7 @@ export default function CertificationsPage2025() {
       setCertifications(certifications.filter((c) => c.id !== id));
       toast.success('Certification deleted');
     } catch (error) {
-      logger.error('Error deleting certification:', error', [object Object], { service: 'app' });
+      logger.error('Error deleting certification:', error, { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to delete certification');
     }
   };
@@ -201,10 +201,10 @@ export default function CertificationsPage2025() {
           const data = await response.json();
           setCertifications(data.certifications || []);
         } else {
-          logger.error('Failed to fetch certifications', [object Object], { service: 'app' });
+          logger.error('Failed to fetch certifications', { service: 'app' });
         }
       } catch (error) {
-        logger.error('Error fetching certifications:', error', [object Object], { service: 'app' });
+        logger.error('Error fetching certifications:', error, { service: 'app' });
       } finally {
         setLoadingCertifications(false);
       }
@@ -221,7 +221,7 @@ export default function CertificationsPage2025() {
           setDbsCheckStatus(data);
         }
       } catch (error) {
-        logger.error('Error fetching DBS check status:', error', [object Object], { service: 'app' });
+        logger.error('Error fetching DBS check status:', error, { service: 'app' });
       } finally {
         setLoadingDBS(false);
       }
@@ -259,7 +259,7 @@ export default function CertificationsPage2025() {
         setDbsCheckStatus(statusData);
       }
     } catch (error) {
-      logger.error('Error initiating DBS check:', error', [object Object], { service: 'app' });
+      logger.error('Error initiating DBS check:', error, { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to initiate DBS check');
     } finally {
       setInitiatingDBS(false);

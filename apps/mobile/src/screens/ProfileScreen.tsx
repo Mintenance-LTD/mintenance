@@ -26,7 +26,7 @@ import {
 } from '../components/responsive';
 
 const ProfileScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<unknown>();
   const { user, signOut } = useAuth();
   const { isDesktop, isTablet } = useResponsive();
   const { columns, containerStyle, columnStyle } = useMultiColumnLayout();
@@ -360,7 +360,6 @@ const ProfileScreen: React.FC = () => {
             </View>
             <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
           </TouchableOpacity>
-
 
           {user?.role === 'contractor' && (
             <>

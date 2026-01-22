@@ -98,7 +98,7 @@ export class ApiMiddleware {
   private async checkProtection(context: RequestContext): Promise<{
     allowed: boolean;
     reason?: string;
-    rateLimitInfo?: any;
+    rateLimitInfo?: unknown;
   }> {
     const apiRequest: ApiRequest = {
       endpoint: context.endpoint,
@@ -234,7 +234,7 @@ export class ApiMiddleware {
    */
   private recordRequestMetrics(
     context: RequestContext,
-    result: { success: boolean; error?: any }
+    result: { success: boolean; error?: unknown }
   ): void {
     const duration = Date.now() - context.startTime;
 
@@ -279,7 +279,7 @@ export class ApiMiddleware {
   /**
    * Send metrics to monitoring service
    */
-  private sendMetricsToMonitoring(metrics: any): void {
+  private sendMetricsToMonitoring(metrics: unknown): void {
     // Implementation would depend on monitoring service (DataDog, New Relic, etc.)
     logger.debug('ApiMiddleware', 'Performance metrics recorded', metrics);
   }
@@ -359,7 +359,7 @@ export class ApiProtectionError extends Error {
     public readonly details: {
       endpoint: string;
       reason?: string;
-      rateLimitInfo?: any;
+      rateLimitInfo?: unknown;
     }
   ) {
     super(message);
@@ -373,7 +373,7 @@ export class ApiProtectionError extends Error {
 export class ProtectedSupabaseClient {
   private middleware: ApiMiddleware;
 
-  constructor(private supabaseClient: any, middlewareConfig?: Partial<MiddlewareConfig>) {
+  constructor(private supabaseClient: unknown, middlewareConfig?: Partial<MiddlewareConfig>) {
     this.middleware = new ApiMiddleware(middlewareConfig);
   }
 
@@ -382,7 +382,7 @@ export class ProtectedSupabaseClient {
    */
   async invokeFunction<T>(
     functionName: string,
-    options: any = {},
+    options: Record<string, unknown> = {},
     context: {
       userId?: string;
       userTier?: string;
@@ -426,7 +426,7 @@ export class ProtectedSupabaseClient {
    */
   getStats(): {
     activeRequests: number;
-    protection: any;
+    protection: unknown;
   } {
     return {
       activeRequests: this.middleware.getActiveRequestCount(),

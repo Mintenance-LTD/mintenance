@@ -17,7 +17,7 @@ const LazyAdvancedSearchService = createLazyComponent(
   }
 );
 
-export const AdvancedSearchService = (props: any) => (
+export const AdvancedSearchService = (props: unknown) => (
   <Suspense fallback={<LoadingSpinner />}>
     <LazyAdvancedSearchService {...props} />
   </Suspense>

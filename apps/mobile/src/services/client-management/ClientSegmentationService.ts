@@ -71,7 +71,7 @@ export class ClientSegmentationService {
       criteria?: SegmentCriteria;
     }
   ): Promise<ClientSegment> {
-    const updateData: any = {
+    const updateData: unknown = {
       ...updates,
       updated_at: new Date().toISOString(),
     };

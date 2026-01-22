@@ -32,7 +32,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     >
       <View style={[styles.iconContainer, { backgroundColor: `${action.color}15` }]}>
         <Ionicons
-          name={action.icon as any}
+          name={action.icon as unknown}
           size={24}
           color={action.color}
         />

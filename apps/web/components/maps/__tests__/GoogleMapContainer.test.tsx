@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -10,7 +11,7 @@ beforeEach(() => {
   
   // Mock document.createElement to intercept script creation
   const originalCreateElement = document.createElement.bind(document);
-  jest.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+  vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
     if (tagName === 'script') {
       const script = originalCreateElement('script') as HTMLScriptElement;
       
@@ -18,9 +19,9 @@ beforeEach(() => {
       setTimeout(() => {
         (window as any).google = {
           maps: {
-            Map: jest.fn().mockImplementation((element: HTMLElement, options: google.maps.MapOptions) => ({
-              setCenter: jest.fn(),
-              setZoom: jest.fn(),
+            Map: vi.fn().mockImplementation((element: HTMLElement, options: google.maps.MapOptions) => ({
+              setCenter: vi.fn(),
+              setZoom: vi.fn(),
             })),
             ControlPosition: {},
           },
@@ -39,10 +40,10 @@ beforeEach(() => {
 });
 
 describe('GoogleMapContainer', () => {
-  const mockOnMapLoad = jest.fn();
+  const mockOnMapLoad = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Mock is set up above
   });
 

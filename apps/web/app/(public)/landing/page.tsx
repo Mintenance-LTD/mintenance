@@ -106,7 +106,7 @@ export default async function LandingPage() {
             <SearchBar
               onSearch={(params) => {
                 // Client-side navigation will be handled by the component
-                // logger.info('Search:', params', [object Object], { service: 'app' });
+                // logger.info('Search:', params', { service: 'app' });
               }}
               variant="hero"
             />

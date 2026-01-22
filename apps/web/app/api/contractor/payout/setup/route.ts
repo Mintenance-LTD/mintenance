@@ -85,15 +85,15 @@ export async function POST(request: NextRequest) {
     });
 
     // #region agent log
-    logger.debug('🔵 [DEBUG] Before Edge Function invoke:', { userId: user.id, hasServiceRoleKey: !!serviceRoleKey, functionName: 'setup-contractor-payout' }', [object Object], { service: 'api' });
+    logger.debug('🔵 [DEBUG] Before Edge Function invoke:', { userId: user.id, hasServiceRoleKey: !!serviceRoleKey, functionName: 'setup-contractor-payout' }', { service: 'api' });
     try {
       const logPath = join(process.cwd(), '.cursor', 'debug.log');
       const logDir = join(process.cwd(), '.cursor');
       if (!existsSync(logDir)) mkdirSync(logDir, { recursive: true });
       appendFileSync(logPath, JSON.stringify({location:'route.ts:46',message:'Before Edge Function invoke',data:{userId:user.id,hasServiceRoleKey:!!serviceRoleKey,functionName:'setup-contractor-payout'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D'})+'\n', 'utf8');
-      logger.debug('🔵 [DEBUG] Log written to file', [object Object], { service: 'api' });
+      logger.debug('🔵 [DEBUG] Log written to file', { service: 'api' });
     } catch (e) { 
-      logger.error('🔴 [DEBUG] Failed to write log file:', e', [object Object], { service: 'api' });
+      logger.error('🔴 [DEBUG] Failed to write log file:', e, { service: 'api' });
     }
     // #endregion
 
@@ -123,19 +123,19 @@ export async function POST(request: NextRequest) {
           status: response.status,
           statusText: response.statusText,
           body: responseText,
-        }', [object Object], { service: 'api' });
+        }', { service: 'api' });
         error = new Error(`Edge Function error: ${responseText}`);
       } else {
         try {
           data = JSON.parse(responseText);
         } catch (parseError) {
-          logger.error('🔴 Failed to parse Edge Function response:', parseError', [object Object], { service: 'api' });
+          logger.error('🔴 Failed to parse Edge Function response:', parseError', { service: 'api' });
           error = new Error('Invalid JSON response from Edge Function');
         }
       }
     } catch (invokeError) {
       // Catch any exception during invocation
-      logger.error('🔴 [DEBUG] Exception during Edge Function invoke:', invokeError', [object Object], { service: 'api' });
+      logger.error('🔴 [DEBUG] Exception during Edge Function invoke:', invokeError', { service: 'api' });
       error = invokeError;
     }
 
@@ -158,12 +158,12 @@ export async function POST(request: NextRequest) {
       const logPath = join(process.cwd(), '.cursor', 'debug.log');
       appendFileSync(logPath, JSON.stringify({location:'route.ts:68',message:'After Edge Function invoke',data:{hasData:!!data,hasError:!!error,errorType:error?.constructor?.name,errorName:errorObj?.name,errorMessage:errorObj?.message,errorContext:errorObj?.context,errorStatus:errorObj?.status || errorObj?.statusCode,dataType:typeof data,dataKeys:data && typeof data === 'object' ? Object.keys(data) : null,errorKeys:error && typeof error === 'object' ? Object.keys(error) : null,rawData:data ? JSON.stringify(data).substring(0,1000) : null,rawError:error ? JSON.stringify(error, Object.getOwnPropertyNames(error)).substring(0,1000) : null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})+'\n', 'utf8');
     } catch (e) { 
-      logger.error('🔴 [DEBUG] Failed to write log file:', e', [object Object], { service: 'api' });
+      logger.error('🔴 [DEBUG] Failed to write log file:', e, { service: 'api' });
     }
     // #endregion
 
     // Log the raw response for debugging
-    logger.error('🔍 Edge Function Response:', JSON.stringify({ data, error }, null, 2', [object Object], { service: 'api' }));
+    logger.error('🔍 Edge Function Response:', JSON.stringify({ data, error }, null, 2', { service: 'api' }));
 
     if (error) {
       const errorDetails = getErrorDetails(error);

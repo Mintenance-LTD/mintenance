@@ -1,6 +1,14 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import JobDetailsScreen from '../../screens/JobDetailsScreen';
+import { render, fireEvent, waitFor } from '../test-utils';
+import JobDetailsScreen from '../../screens/job-details/JobDetailsScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { useJob } from '../../hooks/useJobs';
 import { AIAnalysisService } from '../../services/AIAnalysisService';
@@ -18,6 +26,7 @@ jest.mock('../../utils/logger', () => ({
     error: jest.fn(),
     debug: jest.fn(),
     info: jest.fn(),
+    warn: jest.fn(),
   },
 }));
 
@@ -170,7 +179,7 @@ describe('JobDetailsScreen', () => {
 
     // Click AI analysis button
     const aiButton = getByTestId('ai-analysis-button');
-    fireEvent.press(aiButton);
+    act(() => fireEvent.press(aiButton));
 
     await waitFor(() => {
       expect(getByText('medium')).toBeTruthy(); // complexity
@@ -191,7 +200,7 @@ describe('JobDetailsScreen', () => {
     );
 
     const aiButton = getByTestId('ai-analysis-button');
-    fireEvent.press(aiButton);
+    act(() => fireEvent.press(aiButton));
 
     await waitFor(() => {
       expect(getByTestId('ai-loading-indicator')).toBeTruthy();
@@ -206,7 +215,7 @@ describe('JobDetailsScreen', () => {
     );
 
     const aiButton = getByTestId('ai-analysis-button');
-    fireEvent.press(aiButton);
+    act(() => fireEvent.press(aiButton));
 
     await waitFor(() => {
       expect(getByText('Failed to load AI analysis')).toBeTruthy();
@@ -286,7 +295,7 @@ describe('JobDetailsScreen', () => {
     );
 
     const editButton = getByTestId('edit-job-button');
-    fireEvent.press(editButton);
+    act(() => fireEvent.press(editButton));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('EditJob', { jobId: 'job123' });
   });
@@ -314,7 +323,7 @@ describe('JobDetailsScreen', () => {
     );
 
     const bidButton = getByText('Submit Bid');
-    fireEvent.press(bidButton);
+    act(() => fireEvent.press(bidButton));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('BidSubmission', { jobId: 'job123' });
   });
@@ -364,7 +373,7 @@ describe('JobDetailsScreen', () => {
     );
 
     const refreshButton = getByTestId('refresh-button');
-    fireEvent.press(refreshButton);
+    act(() => fireEvent.press(refreshButton));
 
     expect(mockRefetch).toHaveBeenCalled();
   });
@@ -390,7 +399,7 @@ describe('JobDetailsScreen', () => {
     );
 
     const backButton = getByTestId('back-button');
-    fireEvent.press(backButton);
+    act(() => fireEvent.press(backButton));
 
     expect(mockNavigation.goBack).toHaveBeenCalled();
   });

@@ -19,7 +19,7 @@ import {
 } from './components';
 
 interface PaymentMethodsScreenProps {
-  navigation: any;
+  navigation: unknown;
 }
 
 export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navigation }) => {

@@ -85,7 +85,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
       Alert.alert('Success', 'Your bid has been submitted!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
-    } catch (error: any) {
+    } catch (error) {
       Alert.alert('Error', error.message || 'Failed to submit bid');
     } finally {
       setSubmitting(false);

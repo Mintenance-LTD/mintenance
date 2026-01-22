@@ -100,7 +100,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
     >
       <View style={[styles.typeIcon, { backgroundColor: `${option.color}15` }]}>
         <Ionicons
-          name={option.icon as any}
+          name={option.icon as unknown}
           size={24}
           color={option.color}
         />

@@ -6,9 +6,9 @@ export class RecommendationService {
    */
   generateMLEnhancedRecommendations(
     input: JobPricingInput,
-    pricing: any,
+    pricing: unknown,
     factors: PricingFactor[],
-    mlResult: any
+    mlResult: unknown
   ): string[] {
     const recommendations: string[] = [];
 

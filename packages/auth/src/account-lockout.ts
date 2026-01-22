@@ -4,34 +4,29 @@
  * Implements account lockout after failed login attempts
  * to prevent brute force attacks.
  */
-
 export interface LockoutStatus {
   isLocked: boolean;
   remainingAttempts: number;
   lockedUntil?: Date;
   reason?: string;
 }
-
 export interface LockoutConfig {
   maxAttempts: number;
   lockoutDurationMinutes: number;
   attemptWindowMinutes: number;
 }
-
 export interface LoginAttempt {
   userId: string;
   timestamp: Date;
   success: boolean;
   ipAddress?: string;
 }
-
 export class AccountLockoutManager {
   private static readonly DEFAULT_CONFIG: LockoutConfig = {
     maxAttempts: 5,
     lockoutDurationMinutes: 15,
     attemptWindowMinutes: 15
   };
-
   /**
    * Check if account is locked
    */
@@ -41,20 +36,17 @@ export class AccountLockoutManager {
   ): LockoutStatus {
     const conf = { ...this.DEFAULT_CONFIG, ...config };
     const now = new Date();
-
     // Get recent failed attempts within the attempt window
     const windowStart = new Date(now.getTime() - conf.attemptWindowMinutes * 60 * 1000);
     const recentAttempts = attempts.filter(
       a => !a.success && a.timestamp >= windowStart
     );
-
     // Check if locked
     if (recentAttempts.length >= conf.maxAttempts) {
       const lastAttempt = recentAttempts[recentAttempts.length - 1];
       const lockedUntil = new Date(
         lastAttempt.timestamp.getTime() + conf.lockoutDurationMinutes * 60 * 1000
       );
-
       if (now < lockedUntil) {
         return {
           isLocked: true,
@@ -64,7 +56,6 @@ export class AccountLockoutManager {
         };
       }
     }
-
     // Not locked - return remaining attempts
     const remainingAttempts = conf.maxAttempts - recentAttempts.length;
     return {
@@ -72,7 +63,6 @@ export class AccountLockoutManager {
       remainingAttempts: Math.max(0, remainingAttempts)
     };
   }
-
   /**
    * Record login attempt
    */
@@ -88,7 +78,6 @@ export class AccountLockoutManager {
       ipAddress
     };
   }
-
   /**
    * Clear login attempts (on successful login or manual unlock)
    */
@@ -96,7 +85,6 @@ export class AccountLockoutManager {
     // Return only successful attempts or empty array
     return attempts.filter(a => a.success);
   }
-
   /**
    * Calculate lockout expiry time
    */
@@ -107,7 +95,6 @@ export class AccountLockoutManager {
     const conf = { ...this.DEFAULT_CONFIG, ...config };
     return new Date(lastAttempt.getTime() + conf.lockoutDurationMinutes * 60 * 1000);
   }
-
   /**
    * Get human-readable lockout message
    */
@@ -118,15 +105,12 @@ export class AccountLockoutManager {
       }
       return '';
     }
-
     if (status.lockedUntil) {
       const minutes = Math.ceil(
         (status.lockedUntil.getTime() - Date.now()) / (60 * 1000)
       );
       return `Account locked. Please try again in ${minutes} minute(s)`;
     }
-
     return 'Account locked. Please contact support';
   }
 }
-

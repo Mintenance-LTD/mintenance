@@ -127,7 +127,7 @@ export class SessionManager {
     sessionId: string,
     type: 'tap' | 'pinch' | 'pan' | 'rotate' | 'voice' | 'gesture',
     target: string,
-    data: Record<string, any> = {}
+    data: Record<string, unknown> = {}
   ): boolean {
     const session = this.activeSessions.get(sessionId);
     if (!session) {

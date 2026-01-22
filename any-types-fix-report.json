@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-01-10T18:41:37.987Z",
+  "filesProcessed": 333,
+  "anyTypesFixed": 866,
+  "directories": [
+    "apps/mobile/src/services",
+    "apps/mobile/src/hooks",
+    "apps/mobile/src/utils",
+    "apps/mobile/src/contexts",
+    "apps/mobile/src/screens",
+    "apps/web/app",
+    "apps/web/lib",
+    "packages/shared/src"
+  ]
+}

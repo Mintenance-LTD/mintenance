@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Footer2025 } from './components/landing/Footer2025';
-import { logger } from '@mintenance/shared';
 
 /**
  * MINTENANCE LANDING PAGE - PRODUCTION QUALITY
@@ -81,7 +80,7 @@ export default function LandingPage() {
           });
         }
       } catch (error) {
-        logger.error('Failed to fetch platform statistics:', error', [object Object], { service: 'app' });
+        console.error('Failed to fetch platform statistics:', error);
         // Use fallback values on error
         setStats({
           activeContractors: 2847,

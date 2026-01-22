@@ -11,7 +11,7 @@ import { BlockchainConfig, SmartContract } from './types';
 export class BlockchainConfigManager {
   private config: BlockchainConfig;
   private smartContract?: SmartContract;
-  private walletProvider: any;
+  private walletProvider: unknown;
   private isInitialized = false;
 
   constructor(customConfig?: Partial<BlockchainConfig>) {
@@ -67,8 +67,8 @@ export class BlockchainConfigManager {
    * Initialize web blockchain (using MetaMask or other wallet)
    */
   private async initializeWebBlockchain(): Promise<void> {
-    if (typeof window !== 'undefined' && (window as any).ethereum) {
-      this.walletProvider = (window as any).ethereum;
+    if (typeof window !== 'undefined' && (window as unknown).ethereum) {
+      this.walletProvider = (window as unknown).ethereum;
       logger.info('BlockchainConfig', 'Web3 wallet detected');
     } else {
       logger.warn('BlockchainConfig', 'No Web3 wallet detected, using read-only mode');
@@ -105,7 +105,7 @@ export class BlockchainConfigManager {
   /**
    * Get smart contract ABI
    */
-  private getContractABI(): any[] {
+  private getContractABI(): unknown[] {
     return [
       {
         inputs: [
@@ -159,7 +159,7 @@ export class BlockchainConfigManager {
   /**
    * Get wallet provider
    */
-  getWalletProvider(): any {
+  getWalletProvider(): unknown {
     return this.walletProvider;
   }
 

@@ -39,8 +39,8 @@ class SyncManagerService {
   private isInitialized = false;
   private syncInProgress = false;
   private backgroundTimer: NodeJS.Timeout | null = null;
-  private appStateSubscription: any = null;
-  private networkSubscription: any = null;
+  private appStateSubscription: unknown = null;
+  private networkSubscription: unknown = null;
   private syncListeners: ((status: SyncStatus) => void)[] = [];
 
   private readonly DEFAULT_BATCH_SIZE = 50;
@@ -299,7 +299,7 @@ class SyncManagerService {
   /**
    * Upload individual record based on table type
    */
-  private async uploadRecord(table: string, record: any): Promise<void> {
+  private async uploadRecord(table: string, record: unknown): Promise<void> {
     switch (table) {
       case 'users':
         await AuthService.updateUserProfile(record.id, record);
@@ -358,7 +358,7 @@ class SyncManagerService {
     }
   }
 
-  private async processJobAction(type: string, data: any): Promise<void> {
+  private async processJobAction(type: string, data: unknown): Promise<void> {
     switch (type) {
       case 'CREATE':
         await JobService.createJob(data);
@@ -375,7 +375,7 @@ class SyncManagerService {
     }
   }
 
-  private async processMessageAction(type: string, data: any): Promise<void> {
+  private async processMessageAction(type: string, data: unknown): Promise<void> {
     switch (type) {
       case 'CREATE':
         await MessagingService.sendMessage(
@@ -461,7 +461,7 @@ class SyncManagerService {
   private createSyncError(
     entity: string,
     operation: string,
-    error: any
+    error: Error | unknown
   ): SyncError {
     return {
       id: `${entity}_${operation}_${Date.now()}`,

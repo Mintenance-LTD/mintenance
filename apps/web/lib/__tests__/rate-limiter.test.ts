@@ -9,19 +9,19 @@ import { RedisRateLimiter, checkWebhookRateLimit, checkApiRateLimit } from '../r
 
 // Mock Redis
 const mockRedis = {
-  incr: jest.fn(),
-  expire: jest.fn()
+  incr: vi.fn(),
+  expire: vi.fn()
 };
 
-jest.mock('@upstash/redis', () => ({
-  Redis: jest.fn(() => mockRedis)
+vi.mock('@upstash/redis', () => ({
+  Redis: vi.fn(() => mockRedis)
 }));
 
 describe('RedisRateLimiter', () => {
   let rateLimiter: RedisRateLimiter;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     rateLimiter = new RedisRateLimiter();
     
     // Mock environment variables

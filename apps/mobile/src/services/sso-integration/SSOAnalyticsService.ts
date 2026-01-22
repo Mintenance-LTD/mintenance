@@ -165,7 +165,7 @@ export class SSOAnalyticsService {
       page?: number;
       limit?: number;
     }
-  ): Promise<{ events: any[]; total: number }> {
+  ): Promise<{ events: unknown[]; total: number }> {
     let query = supabase
       .from('sso_events')
       .select('*', { count: 'exact' })

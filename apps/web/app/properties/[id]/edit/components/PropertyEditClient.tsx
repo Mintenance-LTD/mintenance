@@ -86,7 +86,7 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
         toast.error(error.message || 'Failed to update property');
       }
     } catch (error) {
-      logger.error('Error updating property:', error', [object Object], { service: 'ui' });
+      logger.error('Error updating property:', error, { service: 'ui' });
       toast.error('Failed to update property');
     } finally {
       setIsSubmitting(false);

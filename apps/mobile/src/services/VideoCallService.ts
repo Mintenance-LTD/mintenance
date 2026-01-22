@@ -547,7 +547,7 @@ export class VideoCallService {
     return this.transformVideoCallData(result.data);
   }
 
-  private static transformVideoCallData(data: any): VideoCall {
+  private static transformVideoCallData(data: unknown): VideoCall {
     return {
       id: data.id,
       jobId: data.job_id,

@@ -114,7 +114,7 @@ export const mockAuthState = (isAuthenticated = true, user = null) => {
 
 // Service mock helpers
 export const createMockService = (methods: Record<string, any>) => {
-  const service: any = {};
+  const service: Record<string, unknown> = {};
   Object.entries(methods).forEach(([method, returnValue]) => {
     if (typeof returnValue === 'function') {
       service[method] = returnValue;
@@ -206,7 +206,7 @@ export const fillForm = async (form: any, data: Record<string, string>) => {
   }
 };
 
-export const submitForm = async (form: any) => {
+export const submitForm = async (form: unknown) => {
   const { fireEvent } = await import('@testing-library/react-native');
   const submitButton = form.getByRole('button') || form.getByTestId('submit');
   fireEvent.press(submitButton);

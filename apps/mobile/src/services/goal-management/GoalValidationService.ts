@@ -180,7 +180,7 @@ export class GoalValidationService {
   /**
    * Validate milestone completion
    */
-  validateMilestoneCompletion(milestone: any): void {
+  validateMilestoneCompletion(milestone: unknown): void {
     const errors: string[] = [];
 
     if (!milestone.id) {
@@ -211,7 +211,7 @@ export class GoalValidationService {
   /**
    * Validate timeframe
    */
-  private validateTimeframe(timeframe: any, errors: string[]): void {
+  private validateTimeframe(timeframe: unknown, errors: string[]): void {
     if (!timeframe.startDate) {
       errors.push('Start date is required');
     }
@@ -250,7 +250,7 @@ export class GoalValidationService {
   /**
    * Validate metrics
    */
-  private validateMetrics(metrics: any, errors: string[]): void {
+  private validateMetrics(metrics: unknown, errors: string[]): void {
     if (metrics.targetValue === undefined || metrics.targetValue === null) {
       errors.push('Target value is required');
     }
@@ -284,7 +284,7 @@ export class GoalValidationService {
   /**
    * Validate recurrence settings
    */
-  private validateRecurrence(recurrence: any, errors: string[]): void {
+  private validateRecurrence(recurrence: unknown, errors: string[]): void {
     if (!recurrence.frequency) {
       errors.push('Recurrence frequency is required');
     }

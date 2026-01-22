@@ -1,8 +1,35 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import HomeScreen from '../../screens/HomeScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/UserService';
+
+const mockNavigation = {
+  navigate: jest.fn(),
+  goBack: jest.fn(),
+  dispatch: jest.fn(),
+  reset: jest.fn(),
+  setParams: jest.fn(),
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+  canGoBack: jest.fn(() => true),
+  isFocused: jest.fn(() => true),
+  setOptions: jest.fn(),
+};
+
+const mockRoute = {
+  params: {},
+  key: 'test-route',
+  name: 'TestScreen',
+};
 // We render directly and mock navigation and auth
 
 // Mock dependencies
@@ -70,6 +97,10 @@ describe('HomeScreen', () => {
       signOut: jest.fn(),
       updateProfile: jest.fn(),
     });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('Homeowner View', () => {

@@ -1,0 +1,56 @@
+﻿
+ RUN  v4.0.16 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean
+
+ ÔØ» packages/api-services/src/bids/__tests__/BidValidator.test.ts (7 tests | 1 failed) 16ms
+       Ô£ô should validate valid bid data 3ms
+       ├ù should throw error for invalid jobId 8ms
+       Ô£ô should throw error for short proposal 0ms
+       Ô£ô should throw error for negative bidAmount 1ms
+       Ô£ô should sanitize HTML from proposalText 0ms
+       Ô£ô should validate itemizedQuote 1ms
+       Ô£ô should allow partial updates 1ms
+node.exe : 
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  packages/api-services/src/bids/__tests__/BidVa
+lidator.test.ts > BidValidator > validateSubmitBid > 
+should throw error for invalid jobId
+AssertionError: expected [Function] to throw error 
+including 'jobId: Invalid uuid' but got 'Validation 
+failed: jobId: Invalid jobÔÇª'
+
+Expected: [32m"jobId: Invalid [7muuid[27m"[39m
+Received: [31m"[7mValidation failed: [27mjobId: 
+Invalid [7mjob ID[27m"[39m
+
+ ÔØ» packages/api-services/src/bids/__tests__/BidVali
+dator.test.ts:29:55
+     27|     it('should throw error for invalid 
+jobId', () => {
+     28|       const data = { ...validBid, jobId: 
+'not-a-uuid' };
+     29|       expect(() => 
+validator.validateSubmitBid(data)).toThrow('jobId: 
+ÔÇª
+       |                                             
+          ^
+     30|     });
+     31| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 passed (7)
+   Start at  14:31:43
+   Duration  496ms (transform 102ms, setup 0ms, import 169ms, tests 16ms, environment 0ms)
+

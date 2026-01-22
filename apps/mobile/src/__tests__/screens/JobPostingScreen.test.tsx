@@ -1,5 +1,14 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { act } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import { QueryClientProvider } from '@tanstack/react-query';
 import JobPostingScreen from '../../screens/JobPostingScreen';
 import { JobService } from '../../services/JobService';
@@ -8,6 +17,25 @@ import { createTestQueryClient } from '../utils/test-utils';
 import { useCreateJob } from '../../hooks/useJobs';
 import { AuthMockFactory } from '../../test-utils/authMockFactory';
 import { NavigationMockFactory } from '../../test-utils/navigationMockFactory';
+
+const mockNavigation = {
+  navigate: jest.fn(),
+  goBack: jest.fn(),
+  dispatch: jest.fn(),
+  reset: jest.fn(),
+  setParams: jest.fn(),
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+  canGoBack: jest.fn(() => true),
+  isFocused: jest.fn(() => true),
+  setOptions: jest.fn(),
+};
+
+const mockRoute = {
+  params: {},
+  key: 'test-route',
+  name: 'TestScreen',
+};
 
 // Mock dependencies
 jest.mock('../../services/JobService');
@@ -48,7 +76,6 @@ describe('JobPostingScreen', () => {
       navigate: mockNavigate,
       goBack: mockGoBack,
     });
-
     mockUseAuth.mockReturnValue(AuthMockFactory.createAuthenticatedHomeowner({
       id: mockUser.id,
       email: mockUser.email,
@@ -80,6 +107,10 @@ describe('JobPostingScreen', () => {
     } as any);
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   // Test wrapper with QueryClient
   const renderJobPostingScreen = () => {
     const queryClient = createTestQueryClient();
@@ -105,7 +136,7 @@ describe('JobPostingScreen', () => {
   it('validates required fields', async () => {
     const { getByText } = renderJobPostingScreen();
 
-    fireEvent.press(getByText('Post Job'));
+    act(() => fireEvent.press(getByText('Post Job')));
 
     await waitFor(() => {
       expect(getByText('Title is required')).toBeTruthy();
@@ -115,14 +146,14 @@ describe('JobPostingScreen', () => {
   it('validates budget is a positive number', async () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(
-      getByTestId('job-description-input'),
+    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
+    act(() => fireEvent.changeText(
+      getByTestId('job-description-input')),
       'Leaky faucet needs repair'
     );
-    fireEvent.changeText(getByTestId('job-location-input'), '123 Main St');
-    fireEvent.changeText(getByTestId('job-budget-input'), '-50');
-    fireEvent.press(getByText('Post Job'));
+    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main St');
+    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '-50');
+    act(() => fireEvent.press(getByText('Post Job')));
 
     await waitFor(() => {
       expect(getByText('Budget must be a positive number')).toBeTruthy();
@@ -132,9 +163,9 @@ describe('JobPostingScreen', () => {
   it('validates description length', async () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(getByTestId('job-description-input'), 'Too short');
-    fireEvent.press(getByText('Post Job'));
+    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
+    act(() => fireEvent.changeText(getByTestId('job-description-input')), 'Too short');
+    act(() => fireEvent.press(getByText('Post Job')));
 
     await waitFor(() => {
       expect(
@@ -147,7 +178,7 @@ describe('JobPostingScreen', () => {
     const { getByTestId } = renderJobPostingScreen();
 
     // Use the hidden category option for testing
-    fireEvent.press(getByTestId('category-option-plumbing'));
+    act(() => fireEvent.press(getByTestId('category-option-plumbing')));
 
     // Verify the category was selected by checking if Plumbing text is visible
     expect(getByTestId('category-option-plumbing')).toBeTruthy();
@@ -156,8 +187,8 @@ describe('JobPostingScreen', () => {
   it('selects job priority correctly', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    fireEvent.press(getByTestId('job-priority-select'));
-    fireEvent.press(getByText('High'));
+    act(() => fireEvent.press(getByTestId('job-priority-select')));
+    act(() => fireEvent.press(getByText('High')));
 
     expect(getByText('High')).toBeTruthy();
   });
@@ -171,7 +202,7 @@ describe('JobPostingScreen', () => {
 
     const { getByTestId } = renderJobPostingScreen();
 
-    fireEvent.press(getByTestId('add-photo-button'));
+    act(() => fireEvent.press(getByTestId('add-photo-button')));
 
     await waitFor(() => {
       expect(mockImagePicker.launchImageLibraryAsync).toHaveBeenCalled();
@@ -188,12 +219,12 @@ describe('JobPostingScreen', () => {
     const { getByTestId } = renderJobPostingScreen();
 
     // Add 3 photos first
-    fireEvent.press(getByTestId('add-photo-button'));
-    fireEvent.press(getByTestId('add-photo-button'));
-    fireEvent.press(getByTestId('add-photo-button'));
+    act(() => fireEvent.press(getByTestId('add-photo-button')));
+    act(() => fireEvent.press(getByTestId('add-photo-button')));
+    act(() => fireEvent.press(getByTestId('add-photo-button')));
     
     // Try to add a 4th photo - should show alert
-    fireEvent.press(getByTestId('add-photo-button'));
+    act(() => fireEvent.press(getByTestId('add-photo-button')));
     
     // Note: Alert.alert is mocked, so we can't test the actual alert text
     // This test will pass if the component doesn't crash when hitting the limit
@@ -210,13 +241,13 @@ describe('JobPostingScreen', () => {
       assets: [{ uri: 'file://photo1.jpg' }],
     });
 
-    fireEvent.press(getByTestId('add-photo-button'));
+    act(() => fireEvent.press(getByTestId('add-photo-button')));
 
     await waitFor(() => {
       expect(getByTestId('photo-0')).toBeTruthy();
     });
 
-    fireEvent.press(getByTestId('delete-photo-0'));
+    act(() => fireEvent.press(getByTestId('delete-photo-0')));
 
     await waitFor(() => {
       expect(() => getByTestId('photo-0')).toThrow();
@@ -239,23 +270,23 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill form
-    fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(
-      getByTestId('job-description-input'),
+    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
+    act(() => fireEvent.changeText(
+      getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    fireEvent.changeText(
-      getByTestId('job-location-input'),
+    act(() => fireEvent.changeText(
+      getByTestId('job-location-input')),
       '123 Main Street, Anytown, USA'
     );
-    fireEvent.changeText(getByTestId('job-budget-input'), '150');
+    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
 
     // Select category and priority
-    fireEvent.press(getByTestId('category-option-plumbing'));
-    fireEvent.press(getByTestId('job-priority-select'));
-    fireEvent.press(getByText('High'));
+    act(() => fireEvent.press(getByTestId('category-option-plumbing')));
+    act(() => fireEvent.press(getByTestId('job-priority-select')));
+    act(() => fireEvent.press(getByText('High')));
 
-    fireEvent.press(getByText('Post Job'));
+    act(() => fireEvent.press(getByText('Post Job')));
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({
@@ -286,20 +317,20 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill minimum required fields
-    fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(
-      getByTestId('job-description-input'),
+    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
+    act(() => fireEvent.changeText(
+      getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    fireEvent.changeText(getByTestId('job-location-input'), '123 Main Street');
-    fireEvent.changeText(getByTestId('job-budget-input'), '150');
+    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main Street');
+    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
 
     // Select category and priority
-    fireEvent.press(getByTestId('category-option-plumbing'));
-    fireEvent.press(getByTestId('job-priority-select'));
-    fireEvent.press(getByText('High'));
+    act(() => fireEvent.press(getByTestId('category-option-plumbing')));
+    act(() => fireEvent.press(getByTestId('job-priority-select')));
+    act(() => fireEvent.press(getByText('High')));
 
-    fireEvent.press(getByText('Post Job'));
+    act(() => fireEvent.press(getByText('Post Job')));
 
     await waitFor(() => {
       expect(getByText('Job posted successfully!')).toBeTruthy();
@@ -325,20 +356,20 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill form
-    fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(
-      getByTestId('job-description-input'),
+    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
+    act(() => fireEvent.changeText(
+      getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    fireEvent.changeText(getByTestId('job-location-input'), '123 Main Street');
-    fireEvent.changeText(getByTestId('job-budget-input'), '150');
+    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main Street');
+    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
 
     // Select category and priority
-    fireEvent.press(getByTestId('category-option-plumbing'));
-    fireEvent.press(getByTestId('job-priority-select'));
-    fireEvent.press(getByText('High'));
+    act(() => fireEvent.press(getByTestId('category-option-plumbing')));
+    act(() => fireEvent.press(getByTestId('job-priority-select')));
+    act(() => fireEvent.press(getByText('High')));
 
-    fireEvent.press(getByText('Post Job'));
+    act(() => fireEvent.press(getByText('Post Job')));
 
     await waitFor(() => {
       expect(getByText('Failed to create job')).toBeTruthy();
@@ -349,13 +380,13 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill form
-    fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(
-      getByTestId('job-description-input'),
+    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
+    act(() => fireEvent.changeText(
+      getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    fireEvent.changeText(getByTestId('job-location-input'), '123 Main Street');
-    fireEvent.changeText(getByTestId('job-budget-input'), '150');
+    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main Street');
+    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
 
     // Mock a slow response
     mockUseCreateJob.mockReturnValue({
@@ -369,7 +400,7 @@ describe('JobPostingScreen', () => {
       reset: jest.fn(),
     } as any);
 
-    fireEvent.press(getByText('Post Job'));
+    act(() => fireEvent.press(getByText('Post Job')));
 
     expect(getByTestId('loading-spinner')).toBeTruthy();
   });
@@ -378,13 +409,13 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill form
-    fireEvent.changeText(getByTestId('job-title-input'), 'Fix Kitchen Faucet');
-    fireEvent.changeText(
-      getByTestId('job-description-input'),
+    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
+    act(() => fireEvent.changeText(
+      getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    fireEvent.changeText(getByTestId('job-location-input'), '123 Main Street');
-    fireEvent.changeText(getByTestId('job-budget-input'), '150');
+    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main Street');
+    act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
 
     // Mock a slow response
     mockUseCreateJob.mockReturnValue({
@@ -398,7 +429,7 @@ describe('JobPostingScreen', () => {
       reset: jest.fn(),
     } as any);
 
-    fireEvent.press(getByText('Post Job'));
+    act(() => fireEvent.press(getByText('Post Job')));
 
     // Check loading spinner appears and button is disabled
     expect(getByTestId('loading-spinner')).toBeTruthy();

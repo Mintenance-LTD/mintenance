@@ -5,7 +5,7 @@
 
 export interface MLMemoryTracker {
   component: string;
-  tensors: any[];
+  tensors: unknown[];
   intervals: NodeJS.Timeout[];
   timeouts: NodeJS.Timeout[];
   eventListeners: Array<{

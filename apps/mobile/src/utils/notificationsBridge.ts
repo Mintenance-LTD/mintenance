@@ -11,9 +11,9 @@ export const notificationsBridge = {
   addNotificationReceivedListener: Notifications.addNotificationReceivedListener,
   addNotificationResponseReceivedListener:
     Notifications.addNotificationResponseReceivedListener,
-  setBadgeCountAsync: (Notifications as any).setBadgeCountAsync,
-  setNotificationChannelAsync: (Notifications as any).setNotificationChannelAsync,
-  AndroidImportance: (Notifications as any).AndroidImportance,
+  setBadgeCountAsync: (Notifications as unknown).setBadgeCountAsync,
+  setNotificationChannelAsync: (Notifications as unknown).setNotificationChannelAsync,
+  AndroidImportance: (Notifications as unknown).AndroidImportance,
 };
 
 export default notificationsBridge;

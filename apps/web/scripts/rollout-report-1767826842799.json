@@ -1,0 +1,29 @@
+{
+  "startTime": "2026-01-07T23:00:37.731Z",
+  "endTime": "2026-01-07T23:00:42.799Z",
+  "metrics": [
+    {
+      "timestamp": "2026-01-07T23:00:37.759Z",
+      "totalRequests": 15435,
+      "newControllerRequests": 797,
+      "errorCount": 2,
+      "avgResponseTime": 121,
+      "p95ResponseTime": 194,
+      "p99ResponseTime": 312,
+      "fallbackCount": 1,
+      "errorRate": 0.0001295756397797214,
+      "successRate": 0.9998704243602203,
+      "fallbackRate": 0.0012547051442910915,
+      "adoptionRate": 0.05163589245221898
+    }
+  ],
+  "issues": [],
+  "decision": "APPROVED",
+  "summary": {
+    "avgErrorRate": 0.0001295756397797214,
+    "avgSuccessRate": 0.9998704243602203,
+    "avgP95": 194,
+    "avgP99": 312,
+    "totalIssues": 0
+  }
+}

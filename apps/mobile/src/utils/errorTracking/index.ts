@@ -29,7 +29,7 @@ export class EnhancedErrorAnalytics {
     byCategory: new Map(),
     bySeverity: new Map()
   };
-  private recentErrors: any[] = [];
+  private recentErrors: unknown[] = [];
 
   private constructor() {
     this.errorCapture = new ErrorCapture();
@@ -115,7 +115,7 @@ export class EnhancedErrorAnalytics {
     message: string,
     category: string,
     level: 'debug' | 'info' | 'warning' | 'error' = 'info',
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ): void {
     this.errorCapture.addBreadcrumb(message, category, level, data);
   }
@@ -234,7 +234,7 @@ export class EnhancedErrorAnalytics {
   /**
    * Legacy compatibility methods
    */
-  getErrorAnalytics(): any {
+  getErrorAnalytics(): unknown {
     return {
       totalErrors: this.errorCounts.total,
       errorsByCategory: Object.fromEntries(this.errorCounts.byCategory),
@@ -243,15 +243,15 @@ export class EnhancedErrorAnalytics {
     };
   }
 
-  recordError(data: any): void {
+  recordError(data: unknown): void {
     logger.info('EnhancedErrorAnalytics', 'Recording error', data);
   }
 
-  recordUserAction(data: any): void {
+  recordUserAction(data: unknown): void {
     logger.info('EnhancedErrorAnalytics', 'Recording user action', data);
   }
 
-  getTrendAnalysis(): any {
+  getTrendAnalysis(): unknown {
     return {
       errorTrend: 'stable',
       performanceTrend: 'improving',
@@ -278,7 +278,7 @@ export const addErrorBreadcrumb = (
   message: string,
   category: string,
   level: 'debug' | 'info' | 'warning' | 'error' = 'info',
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 ): void => {
   enhancedErrorAnalytics.addBreadcrumb(message, category, level, data);
 };

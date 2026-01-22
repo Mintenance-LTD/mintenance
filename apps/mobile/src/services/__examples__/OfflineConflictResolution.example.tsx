@@ -14,7 +14,7 @@ import { logger } from '@mintenance/shared';
 // EXAMPLE 1: Queue Action with Version Tracking
 // =============================================
 
-export const UpdateJobWithVersioning = async (jobId: string, updates: any) => {
+export const UpdateJobWithVersioning = async (jobId: string, updates: unknown) => {
   try {
     // Queue an update action with version tracking
     const actionId = await OfflineManager.queueAction({
@@ -28,9 +28,9 @@ export const UpdateJobWithVersioning = async (jobId: string, updates: any) => {
       strategy: 'merge', // Will attempt intelligent merge on conflict
     });
 
-    logger.info('Job update queued:', actionId', [object Object], { service: 'mobile' });
+    logger.info('Job update queued:', actionId, { service: 'mobile' });
   } catch (error) {
-    logger.error('Failed to queue job update:', error', [object Object], { service: 'mobile' });
+    logger.error('Failed to queue job update:', error, { service: 'mobile' });
   }
 };
 
@@ -39,7 +39,7 @@ export const UpdateJobWithVersioning = async (jobId: string, updates: any) => {
 // =============================================
 
 // Critical data: Server always wins
-export const UpdatePaymentInfo = async (paymentId: string, data: any) => {
+export const UpdatePaymentInfo = async (paymentId: string, data: unknown) => {
   await OfflineManager.queueAction({
     type: 'UPDATE',
     entity: 'payment',
@@ -50,7 +50,7 @@ export const UpdatePaymentInfo = async (paymentId: string, data: any) => {
 };
 
 // User preferences: Client always wins
-export const UpdateUserPreferences = async (userId: string, preferences: any) => {
+export const UpdateUserPreferences = async (userId: string, preferences: unknown) => {
   await OfflineManager.queueAction({
     type: 'UPDATE',
     entity: 'profile',
@@ -61,7 +61,7 @@ export const UpdateUserPreferences = async (userId: string, preferences: any) =>
 };
 
 // Collaborative data: Require manual resolution
-export const UpdateSharedJob = async (jobId: string, updates: any) => {
+export const UpdateSharedJob = async (jobId: string, updates: unknown) => {
   await OfflineManager.queueAction({
     type: 'UPDATE',
     entity: 'job',
@@ -232,8 +232,8 @@ export const SyncStatusIndicator: React.FC = () => {
 
 export const resolveJobConflictWithCustomMerge = async (
   conflictId: string,
-  clientData: any,
-  serverData: any
+  clientData: unknown,
+  serverData: unknown
 ) => {
   // Create custom merge logic for specific use case
   const mergedData = {
@@ -313,5 +313,5 @@ export const simulateConflict = async () => {
 
   // 4. Check for conflicts
   const conflicts = await OfflineManager.getConflicts();
-  logger.info('Detected conflicts:', conflicts.length', [object Object], { service: 'mobile' });
+  logger.info('Detected conflicts:', conflicts.length, { service: 'mobile' });
 };

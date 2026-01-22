@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
+import * as sentry from '../config/sentry';
 
 // Storage keys for notification queue
 const NOTIFICATION_QUEUE_KEY = '@mintenance/notification_queue';
@@ -58,7 +59,7 @@ export interface NotificationData {
   id: string;
   title: string;
   body: string;
-  data?: any;
+  data?: unknown;
   type: 'job_update' | 'bid_received' | 'meeting_scheduled' | 'payment_received' | 'message_received' | 'quote_sent' | 'system';
   priority: 'low' | 'normal' | 'high';
   userId: string;
@@ -90,13 +91,13 @@ export interface QueuedNotification {
 
 export interface DeepLinkParams {
   screen: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 }
 
 // Type for navigation reference (set externally)
 type NavigationRef = {
-  navigate: (screen: string, params?: any) => void;
-  reset: (state: any) => void;
+  navigate: (screen: string, params?: unknown) => void;
+  reset: (state: unknown) => void;
   isReady: () => boolean;
 } | null;
 
@@ -107,14 +108,38 @@ export class NotificationService {
   private static receivedListener: Notifications.Subscription | null = null;
   private static responseListener: Notifications.Subscription | null = null;
   private static isInitialized: boolean = false;
+  private static deviceOverride: boolean | null = null;
+
+  private static addBreadcrumb(
+    message: string,
+    level: 'info' | 'warning' | 'error' | 'debug',
+    data?: Record<string, unknown>
+  ): void {
+    if (data) {
+      sentry.addBreadcrumb(message, 'notification', level, data);
+    } else {
+      sentry.addBreadcrumb(message, 'notification', level);
+    }
+  }
 
   /**
    * Initialize push notifications and request permissions
    */
   static async initialize(): Promise<string | null> {
     try {
-      if (!Device.isDevice) {
+      const isDevice =
+        NotificationService.deviceOverride !== null
+          ? NotificationService.deviceOverride
+          : typeof Device.isDevice === 'function'
+            ? Device.isDevice()
+            : Device.isDevice;
+
+      if (!isDevice) {
         logger.warn('Push notifications only work on physical devices');
+        this.addBreadcrumb(
+          'Push notifications only work on physical devices',
+          'warning'
+        );
         return null;
       }
 
@@ -129,6 +154,10 @@ export class NotificationService {
 
     if (finalStatus !== 'granted') {
       logger.warn('Push notification permission not granted');
+      this.addBreadcrumb(
+        'Push notification permission denied',
+        'warning'
+      );
       return null;
     }
 
@@ -144,6 +173,11 @@ export class NotificationService {
 
       this.expoPushToken = token.data;
       logger.info('Push notification token obtained', { token: token.data });
+      this.addBreadcrumb(
+        'Notification Service initialized',
+        'info',
+        { token: token.data }
+      );
 
     // Configure notification channel for Android
     if (Platform.OS === 'android') {
@@ -180,11 +214,30 @@ export class NotificationService {
             vibrationPattern: [0, 250, 250, 250],
           lightColor: '#F59E0B',
         });
+
+        this.addBreadcrumb(
+          'Android notification channels created',
+          'info',
+          {
+            channels: [
+              'default',
+              'job-updates',
+              'bid-notifications',
+              'meeting-reminders',
+            ],
+          }
+        );
       }
 
       return token.data;
     } catch (error) {
       logger.error('Failed to initialize push notifications', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.addBreadcrumb(
+        'Failed to initialize push notifications',
+        'error',
+        { error: errorMessage }
+      );
       return null;
     }
   }
@@ -205,8 +258,25 @@ export class NotificationService {
 
       if (error) throw error;
       logger.info('Push token saved successfully', { userId });
+      this.addBreadcrumb(
+        'Push token saved',
+        'info',
+        {
+          userId,
+          platform: Platform.OS,
+        }
+      );
     } catch (error) {
       logger.error('Failed to save push token', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.addBreadcrumb(
+        'Failed to save push token',
+        'error',
+        {
+          userId,
+          error: errorMessage,
+        }
+      );
       throw error;
     }
   }
@@ -218,7 +288,7 @@ export class NotificationService {
     userId: string,
     title: string,
     body: string,
-    data?: any,
+    data?: unknown,
     type: NotificationData['type'] = 'system'
   ): Promise<void> {
     try {
@@ -231,6 +301,11 @@ export class NotificationService {
 
       if (tokenError || !tokenData?.push_token) {
         logger.warn('No push token found for user', { userId });
+        this.addBreadcrumb(
+          'No push token found for user',
+          'warning',
+          { userId }
+        );
         return;
       }
 
@@ -238,6 +313,11 @@ export class NotificationService {
       const preferences = await this.getNotificationPreferences(userId);
       if (!this.shouldSendNotification(preferences, type)) {
         logger.info('Notification blocked by user preferences', { userId, type });
+        this.addBreadcrumb(
+          'Notification blocked by user preferences',
+          'info',
+          { userId, type }
+        );
         return;
       }
 
@@ -255,12 +335,11 @@ export class NotificationService {
         channelId: this.getChannelId(type),
       };
 
-      // Add timeout to prevent hanging requests
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
       try {
-        const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        const timeoutMs = 10000;
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+        const fetchPromise = fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
           headers: {
             Accept: 'application/json',
@@ -268,19 +347,37 @@ export class NotificationService {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(message),
-          signal: controller.signal,
+        });
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('Push notification request timed out'));
+          }, timeoutMs);
         });
 
-        clearTimeout(timeoutId);
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
 
         if (!response.ok) {
           throw new Error(`Push notification failed: ${response.status}`);
         }
       } catch (error) {
-        clearTimeout(timeoutId);
-        if (error instanceof Error && error.name === 'AbortError') {
-          throw new Error('Push notification request timed out after 10 seconds');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('Push notification request timed out')) {
+          this.addBreadcrumb(
+            'Push notification timeout',
+            'error',
+            { userId, timeout: 10000 }
+          );
+          throw new Error('Push notification request timed out');
         }
+        this.addBreadcrumb(
+          'Failed to send push notification',
+          'error',
+          { userId, error: errorMessage }
+        );
         throw error;
       }
 
@@ -296,6 +393,11 @@ export class NotificationService {
       });
 
       logger.info('Push notification sent successfully', { userId, type });
+      this.addBreadcrumb(
+        'Push notification sent',
+        'info',
+        { userId, type, title }
+      );
     } catch (error) {
       logger.error('Failed to send push notification', error);
       throw error;
@@ -309,7 +411,7 @@ export class NotificationService {
     userIds: string[],
     title: string,
     body: string,
-    data?: any,
+    data?: unknown,
     type: NotificationData['type'] = 'system'
   ): Promise<void> {
     const promises = userIds.map(userId => 
@@ -326,7 +428,7 @@ export class NotificationService {
     title: string,
     body: string,
     trigger: Notifications.NotificationTriggerInput,
-    data?: any
+    data?: unknown
   ): Promise<string> {
     try {
       const notificationId = await Notifications.scheduleNotificationAsync({
@@ -348,6 +450,48 @@ export class NotificationService {
   }
 
   /**
+   * Schedule a local notification with breadcrumb tracking
+   */
+  static async scheduleLocalNotification(
+    title: string,
+    body: string,
+    trigger: Notifications.NotificationTriggerInput,
+    data?: unknown
+  ): Promise<string> {
+    try {
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data,
+          sound: 'default',
+        },
+        trigger,
+      });
+
+      this.addBreadcrumb(
+        'Local notification scheduled',
+        'info',
+        {
+          id,
+          title,
+          triggerSeconds: (trigger as { seconds?: number }).seconds,
+        }
+      );
+
+      return id;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.addBreadcrumb(
+        'Failed to schedule notification',
+        'error',
+        { error: errorMessage }
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Cancel a scheduled notification
    */
   static async cancelNotification(notificationId: string): Promise<void> {
@@ -358,6 +502,18 @@ export class NotificationService {
       logger.error('Failed to cancel notification', error);
       throw error;
     }
+  }
+
+  /**
+   * Cancel a scheduled notification with breadcrumb tracking
+   */
+  static async cancelScheduledNotification(notificationId: string): Promise<void> {
+    await Notifications.cancelScheduledNotificationAsync(notificationId);
+    this.addBreadcrumb(
+      'Scheduled notification cancelled',
+      'info',
+      { id: notificationId }
+    );
   }
 
   /**
@@ -375,25 +531,43 @@ export class NotificationService {
         throw error;
       }
 
-      // Return default preferences if none exist
+      const defaultPreferences: NotificationPreferences = {
+        jobUpdates: true,
+        bidNotifications: true,
+        meetingReminders: true,
+        paymentAlerts: true,
+        messages: true,
+        quotes: true,
+        systemAnnouncements: true,
+        quietHours: {
+          enabled: false,
+          start: '22:00',
+          end: '08:00',
+        },
+      };
+
       if (!data) {
-        return {
-          jobUpdates: true,
-          bidNotifications: true,
-          meetingReminders: true,
-          paymentAlerts: true,
-          messages: true,
-          quotes: true,
-          systemAnnouncements: true,
-          quietHours: {
-            enabled: false,
-            start: '22:00',
-            end: '08:00',
-          },
-        };
+        this.addBreadcrumb(
+          'Fetched notification preferences',
+          'debug',
+          { userId, preferences: defaultPreferences }
+        );
+        return defaultPreferences;
       }
 
-      return data.preferences as NotificationPreferences;
+      const preferences =
+        (data as { preferences?: NotificationPreferences; notification_settings?: NotificationPreferences })
+          .preferences ||
+        (data as { notification_settings?: NotificationPreferences }).notification_settings ||
+        defaultPreferences;
+
+      this.addBreadcrumb(
+        'Fetched notification preferences',
+        'debug',
+        { userId, preferences }
+      );
+
+      return preferences as NotificationPreferences;
     } catch (error) {
       logger.error('Failed to get notification preferences', error);
       throw error;
@@ -408,16 +582,25 @@ export class NotificationService {
     preferences: Partial<NotificationPreferences>
   ): Promise<void> {
     try {
-      const { error } = await supabase
+      const response = await supabase
         .from('user_notification_preferences')
-        .upsert({
-          user_id: userId,
+        .update({
           preferences,
           updated_at: new Date().toISOString(),
-        });
+        })
+        .eq('user_id', userId);
 
+      const error = (response as { error?: unknown })?.error;
       if (error) throw error;
       logger.info('Notification preferences updated', { userId });
+      this.addBreadcrumb(
+        'Updated notification preferences',
+        'info',
+        {
+          userId,
+          quietHoursEnabled: Boolean(preferences.quietHours?.enabled),
+        }
+      );
     } catch (error) {
       logger.error('Failed to update notification preferences', error);
       throw error;
@@ -534,12 +717,33 @@ export class NotificationService {
     preferences: NotificationPreferences,
     type: NotificationData['type']
   ): boolean {
+    const safePreferences: NotificationPreferences = {
+      jobUpdates: true,
+      bidNotifications: true,
+      meetingReminders: true,
+      paymentAlerts: true,
+      messages: true,
+      quotes: true,
+      systemAnnouncements: true,
+      quietHours: {
+        enabled: false,
+        start: '22:00',
+        end: '08:00',
+      },
+      ...preferences,
+      quietHours: {
+        enabled: preferences?.quietHours?.enabled ?? false,
+        start: preferences?.quietHours?.start || '22:00',
+        end: preferences?.quietHours?.end || '08:00',
+      },
+    };
+
     // Check quiet hours
-    if (preferences.quietHours.enabled) {
+    if (safePreferences.quietHours.enabled) {
       const now = new Date();
       const currentTime = now.getHours() * 60 + now.getMinutes();
-      const startTime = this.parseTime(preferences.quietHours.start);
-      const endTime = this.parseTime(preferences.quietHours.end);
+      const startTime = this.parseTime(safePreferences.quietHours.start);
+      const endTime = this.parseTime(safePreferences.quietHours.end);
 
       if (startTime <= endTime) {
         // Same day quiet hours
@@ -557,19 +761,19 @@ export class NotificationService {
     // Check type-specific preferences
     switch (type) {
       case 'job_update':
-        return preferences.jobUpdates;
+        return safePreferences.jobUpdates;
       case 'bid_received':
-        return preferences.bidNotifications;
+        return safePreferences.bidNotifications;
       case 'meeting_scheduled':
-        return preferences.meetingReminders;
+        return safePreferences.meetingReminders;
       case 'payment_received':
-        return preferences.paymentAlerts;
+        return safePreferences.paymentAlerts;
       case 'message_received':
-        return preferences.messages;
+        return safePreferences.messages;
       case 'quote_sent':
-        return preferences.quotes;
+        return safePreferences.quotes;
       case 'system':
-        return preferences.systemAnnouncements;
+        return safePreferences.systemAnnouncements;
       default:
         return true;
     }
@@ -714,6 +918,15 @@ export class NotificationService {
   }
 
   /**
+   * Public wrapper to register listeners with breadcrumb tracking
+   */
+  static registerListeners(navRef: NavigationRef): void {
+    this.setNavigationRef(navRef);
+    this.setupNotificationListeners();
+    this.addBreadcrumb('Notification listeners registered', 'info');
+  }
+
+  /**
    * Clean up notification listeners
    */
   static cleanup(): void {
@@ -729,6 +942,7 @@ export class NotificationService {
 
     this.isInitialized = false;
     logger.info('Notification listeners cleaned up');
+    this.addBreadcrumb('Notification listeners cleaned up', 'info');
   }
 
   /**
@@ -739,6 +953,7 @@ export class NotificationService {
   ): Promise<void> {
     const data = response.notification.request.content.data;
     const type = data?.type as NotificationData['type'];
+    const actionIdentifier = response.actionIdentifier;
 
     logger.info('Processing notification tap', { type, data });
 
@@ -767,6 +982,15 @@ export class NotificationService {
     try {
       this.navigationRef.navigate(deepLinkParams.screen, deepLinkParams.params);
       logger.info('Navigated to screen', deepLinkParams);
+      this.addBreadcrumb(
+        'Notification response handled',
+        'info',
+        {
+          type,
+          actionIdentifier,
+          navigatedTo: deepLinkParams.screen,
+        }
+      );
     } catch (error) {
       logger.error('Navigation failed', error);
     }
@@ -777,7 +1001,7 @@ export class NotificationService {
    */
   private static getDeepLinkParams(
     type: NotificationData['type'],
-    data: any
+    data: unknown
   ): DeepLinkParams | null {
     switch (type) {
       case 'job_update':
@@ -890,7 +1114,7 @@ export class NotificationService {
   /**
    * Queue notification for later processing
    */
-  private static async queueNotification(
+  static async queueNotification(
     notification: Notifications.Notification
   ): Promise<void> {
     try {
@@ -919,8 +1143,60 @@ export class NotificationService {
         id: queuedNotification.id,
         queueLength: this.notificationQueue.length,
       });
+      this.addBreadcrumb(
+        'Notification queued',
+        'info',
+        {
+          id: queuedNotification.id,
+          type: notification.request.content.data?.type,
+        }
+      );
     } catch (error) {
       logger.error('Failed to queue notification', error);
+    }
+  }
+
+  /**
+   * Process queued notifications from storage
+   */
+  static async processNotificationQueue(): Promise<void> {
+    try {
+      const queueData = await AsyncStorage.getItem(NOTIFICATION_QUEUE_KEY);
+      const queuedNotifications: QueuedNotification[] = queueData
+        ? JSON.parse(queueData)
+        : [];
+      const unprocessed = queuedNotifications.filter(q => !q.processed);
+
+      this.addBreadcrumb(
+        'Processing notification queue',
+        'info',
+        {
+          queueSize: queuedNotifications.length,
+          unprocessedCount: unprocessed.length,
+        }
+      );
+
+      for (const queued of unprocessed) {
+        queued.processed = true;
+      }
+
+      await AsyncStorage.setItem(
+        NOTIFICATION_QUEUE_KEY,
+        JSON.stringify(queuedNotifications)
+      );
+
+      this.addBreadcrumb(
+        'Notification queue processed',
+        'info',
+        { processedCount: unprocessed.length }
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.addBreadcrumb(
+        'Failed to process notification queue',
+        'error',
+        { error: errorMessage }
+      );
     }
   }
 
@@ -1050,6 +1326,26 @@ export class NotificationService {
   }
 
   /**
+   * Set app badge count explicitly
+   */
+  static async setBadgeCount(count: number): Promise<void> {
+    await Notifications.setBadgeCountAsync(count);
+    this.addBreadcrumb(
+      'Badge count updated',
+      'debug',
+      { count }
+    );
+  }
+
+  /**
+   * Clear app badge count
+   */
+  static async clearBadge(): Promise<void> {
+    await Notifications.setBadgeCountAsync(0);
+    this.addBreadcrumb('Badge cleared', 'debug');
+  }
+
+  /**
    * Clear all notifications and reset badge count
    */
   static async clearAllNotifications(): Promise<void> {
@@ -1069,7 +1365,7 @@ export class NotificationService {
   /**
    * Handle notification tap navigation (legacy method for backwards compatibility)
    */
-  private static handleNotificationTap(data: any): void {
+  private static handleNotificationTap(data: unknown): void {
     logger.info('Legacy handleNotificationTap called', { data });
     // This method is kept for backwards compatibility but is superseded by handleNotificationResponse
   }

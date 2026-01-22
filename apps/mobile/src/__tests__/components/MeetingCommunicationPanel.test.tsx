@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import MeetingCommunicationPanel from '../../components/MeetingCommunicationPanel';
 import { MeetingService } from '../../services/MeetingService';
 import { MessagingService } from '../../services/MessagingService';
@@ -67,6 +76,10 @@ describe('MeetingCommunicationPanel', () => {
     (MessagingService.getConversations as jest.Mock).mockResolvedValue([]);
     (MeetingService.getMeetingUpdates as jest.Mock).mockResolvedValue([]);
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   it('renders meeting panel when visible', () => {
     const { queryByTestId } = render(<MeetingCommunicationPanel {...defaultProps} />);
@@ -87,7 +100,7 @@ describe('MeetingCommunicationPanel', () => {
     );
 
     const closeButton = getByTestId('close-button');
-    fireEvent.press(closeButton);
+    act(() => fireEvent.press(closeButton));
 
     expect(onClose).toHaveBeenCalled();
   });
@@ -96,7 +109,7 @@ describe('MeetingCommunicationPanel', () => {
     const { getByText } = render(<MeetingCommunicationPanel {...defaultProps} />);
 
     const scheduleTab = getByText('Schedule');
-    fireEvent.press(scheduleTab);
+    act(() => fireEvent.press(scheduleTab));
 
     expect(getByText('Schedule')).toBeTruthy();
   });
@@ -139,8 +152,8 @@ describe('MeetingCommunicationPanel', () => {
     const input = getByPlaceholderText('Type a message...');
     const sendButton = getByTestId('send-message-button');
 
-    fireEvent.changeText(input, 'Test message');
-    fireEvent.press(sendButton);
+    act(() => fireEvent.changeText(input, 'Test message'));
+    act(() => fireEvent.press(sendButton));
 
     await waitFor(() => {
       expect(MessagingService.sendMessage).toHaveBeenCalled();
@@ -172,7 +185,7 @@ describe('MeetingCommunicationPanel', () => {
     const { getByText } = render(<MeetingCommunicationPanel {...defaultProps} />);
 
     const scheduleTab = getByText('Schedule');
-    fireEvent.press(scheduleTab);
+    act(() => fireEvent.press(scheduleTab));
 
     // Component should handle rescheduling internally
     expect(getByText('Schedule')).toBeTruthy();

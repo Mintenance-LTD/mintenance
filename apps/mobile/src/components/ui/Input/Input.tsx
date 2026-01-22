@@ -96,7 +96,7 @@ export const Input = forwardRef<TextInput, InputProps>(
     // EVENT HANDLERS
     // ========================================================================
 
-    const handleFocus = (e: any) => {
+    const handleFocus = (e: unknown) => {
       setIsFocused(true);
 
       // Animate border and label
@@ -116,7 +116,7 @@ export const Input = forwardRef<TextInput, InputProps>(
       textInputProps.onFocus?.(e);
     };
 
-    const handleBlur = (e: any) => {
+    const handleBlur = (e: unknown) => {
       setIsFocused(false);
 
       // Animate border

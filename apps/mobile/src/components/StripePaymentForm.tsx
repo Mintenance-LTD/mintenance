@@ -40,7 +40,7 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
 
       if (error) throw new Error(error.message);
       if (paymentIntent) await onPaymentSuccess(paymentIntent.id);
-    } catch (error: any) {
+    } catch (error) {
       onPaymentError(error.message || 'Payment failed');
     } finally {
       setLoading(false);

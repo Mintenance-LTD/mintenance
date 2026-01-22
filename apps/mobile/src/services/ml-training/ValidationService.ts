@@ -209,7 +209,7 @@ export class ValidationService {
   private async calculateFairnessMetrics(
     model: tf.LayersModel,
     groupedData: Map<string, TrainingData>
-  ): Promise<Map<string, any>> {
+  ): Promise<Map<string, unknown>> {
     const metrics = new Map();
 
     for (const [group, data] of groupedData) {
@@ -239,7 +239,7 @@ export class ValidationService {
   /**
    * Calculate disparate impact ratio
    */
-  private calculateDisparateImpact(fairnessMetrics: Map<string, any>): number {
+  private calculateDisparateImpact(fairnessMetrics: Map<string, unknown>): number {
     const groups = Array.from(fairnessMetrics.values());
     if (groups.length < 2) return 1.0;
 
@@ -258,7 +258,7 @@ export class ValidationService {
   /**
    * Calculate demographic parity difference
    */
-  private calculateDemographicParity(fairnessMetrics: Map<string, any>): number {
+  private calculateDemographicParity(fairnessMetrics: Map<string, unknown>): number {
     const groups = Array.from(fairnessMetrics.values());
     if (groups.length < 2) return 0.0;
 
@@ -275,21 +275,21 @@ export class ValidationService {
   /**
    * Calculate equal opportunity difference
    */
-  private calculateEqualOpportunity(fairnessMetrics: Map<string, any>): number {
+  private calculateEqualOpportunity(fairnessMetrics: Map<string, unknown>): number {
     return Math.random() * 0.2; // Simplified calculation
   }
 
   /**
    * Calculate calibration score
    */
-  private calculateCalibration(fairnessMetrics: Map<string, any>): number {
+  private calculateCalibration(fairnessMetrics: Map<string, unknown>): number {
     return Math.random() * 0.1 + 0.85; // Simplified calculation
   }
 
   /**
    * Identify groups affected by bias
    */
-  private identifyAffectedGroups(fairnessMetrics: Map<string, any>): string[] {
+  private identifyAffectedGroups(fairnessMetrics: Map<string, unknown>): string[] {
     return Array.from(fairnessMetrics.keys()).filter(
       (group) => Math.random() > 0.8
     );
@@ -299,7 +299,7 @@ export class ValidationService {
    * Generate bias mitigation recommendations
    */
   private generateBiasRecommendations(
-    fairnessMetrics: Map<string, any>,
+    fairnessMetrics: Map<string, unknown>,
     fairnessScore: number
   ): string[] {
     const recommendations = [];

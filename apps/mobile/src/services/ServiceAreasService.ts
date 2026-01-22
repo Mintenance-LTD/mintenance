@@ -14,7 +14,7 @@ export interface ServiceArea {
   center_latitude?: number;
   center_longitude?: number;
   radius_km?: number;
-  boundary_coordinates?: any; // GeoJSON
+  boundary_coordinates?: unknown; // GeoJSON
   postal_codes?: string[];
   cities?: string[];
   base_travel_charge: number;
@@ -84,7 +84,7 @@ export interface ServiceRoute {
   total_distance_km?: number;
   total_travel_cost?: number;
   jobs: string[];
-  waypoints: any[];
+  waypoints: unknown[];
   status: 'planned' | 'active' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
@@ -107,7 +107,7 @@ export class ServiceAreasService {
     center_latitude?: number;
     center_longitude?: number;
     radius_km?: number;
-    boundary_coordinates?: any;
+    boundary_coordinates?: unknown;
     postal_codes?: string[];
     cities?: string[];
     base_travel_charge?: number;
@@ -557,7 +557,7 @@ export class ServiceAreasService {
     };
   }
 
-  static formatServiceArea(data: any): ServiceArea {
+  static formatServiceArea(data: unknown): ServiceArea {
     return {
       id: data.id,
       contractor_id: data.contractor_id,

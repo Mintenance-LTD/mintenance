@@ -22,19 +22,19 @@ interface Region {
 }
 
 // Conditional import for react-native-maps (only on native platforms)
-let MapView: any;
-let Marker: any;
+let MapView: unknown;
+let Marker: unknown;
 
 if (Platform.OS === 'web') {
   // Web fallback components
-  MapView = ({ children, ...props }: any) => (
+  MapView = ({ children, ...props }: unknown) => (
     <View style={{ flex: 1, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
       <Text style={{ color: '#666', fontSize: 16 }}>Map view available on mobile devices</Text>
       <Text style={{ color: '#999', fontSize: 12, marginTop: 8 }}>Download our mobile app to view contractors on map</Text>
       {children}
     </View>
   );
-  Marker = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+  Marker = ({ children, ...props }: unknown) => <View {...props}>{children}</View>;
 } else {
   // Use react-native-maps on native platforms
   const Maps = require('react-native-maps');
@@ -252,7 +252,7 @@ const FindContractorsScreen: React.FC = () => {
     setShowFilters(true);
   };
 
-  const handleApplyFilters = async (filters: any) => {
+  const handleApplyFilters = async (filters: unknown) => {
     await applyFilters(filters);
   };
 

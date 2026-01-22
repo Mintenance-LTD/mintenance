@@ -1,4 +1,14 @@
-import React from 'react';
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 import { PaymentService } from '../../services/PaymentService';
 import { supabase } from '../../config/supabase';
 
@@ -165,6 +175,7 @@ describe('PaymentService', () => {
 
   describe('createPaymentMethod', () => {
     it('creates payment method with card details', async () => {
+      const futureYear = new Date().getFullYear() + 1;
       mockStripe.createPaymentMethod.mockResolvedValue({
         paymentMethod: mockPaymentMethod,
         error: null,
@@ -175,7 +186,7 @@ describe('PaymentService', () => {
         card: {
           number: '4242424242424242',
           expMonth: 12,
-          expYear: 2025,
+          expYear: futureYear,
           cvc: '123',
         },
         billingDetails: {
@@ -189,6 +200,7 @@ describe('PaymentService', () => {
     });
 
     it('handles invalid card errors', async () => {
+      const futureYear = new Date().getFullYear() + 1;
       const error = { message: 'Your card number is invalid' };
       mockStripe.createPaymentMethod.mockResolvedValue({
         paymentMethod: null,
@@ -201,7 +213,7 @@ describe('PaymentService', () => {
           card: {
             number: '1234567890123456',
             expMonth: 12,
-            expYear: 2025,
+            expYear: futureYear,
             cvc: '123',
           },
         })

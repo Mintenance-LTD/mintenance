@@ -10,8 +10,8 @@ export interface DigitalChecklist {
   is_required: boolean;
   pass_fail_scoring: boolean;
   weighted_scoring: boolean;
-  checklist_items: any[];
-  scoring_rules?: any;
+  checklist_items: unknown[];
+  scoring_rules?: unknown;
   usage_count: number;
   created_at: string;
   updated_at: string;
@@ -24,7 +24,7 @@ export interface ChecklistItem {
   item_type: 'check' | 'text' | 'numeric' | 'photo' | 'signature';
   is_required: boolean;
   weight?: number;
-  pass_criteria?: any;
+  pass_criteria?: unknown;
   help_text?: string;
   sort_order: number;
   created_at: string;
@@ -36,7 +36,7 @@ export interface ChecklistCompletion {
   job_sheet_id: string;
   checklist_id: string;
   completed_by: string;
-  completion_data: any;
+  completion_data: unknown;
   score?: number;
   passed: boolean;
   notes?: string;
@@ -219,7 +219,7 @@ export class DigitalChecklistService {
     jobSheetId: string,
     checklistId: string,
     completedBy: string,
-    completionData: any,
+    completionData: unknown,
     notes?: string
   ): Promise<ChecklistCompletion> {
     try {
@@ -292,7 +292,7 @@ export class DigitalChecklistService {
   }
 
   static calculateChecklistScore(
-    completionData: any,
+    completionData: unknown,
     items: ChecklistItem[],
     checklist: DigitalChecklist
   ): { score: number; passed: boolean } {

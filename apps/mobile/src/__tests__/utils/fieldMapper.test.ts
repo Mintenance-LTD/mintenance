@@ -527,7 +527,7 @@ describe('fieldMapper', () => {
         { id: '2', first_name: 'Jane' },
       ];
 
-      const mapper = (item: any) => ({ id: item.id, firstName: item.first_name });
+      const mapper = (item: unknown) => ({ id: item.id, firstName: item.first_name });
       const result = mapDatabaseArrayToApp(dbArray, mapper);
 
       expect(result).toEqual([
@@ -542,7 +542,7 @@ describe('fieldMapper', () => {
         { id: '2', firstName: 'Jane' },
       ];
 
-      const mapper = (item: any) => ({ id: item.id, first_name: item.firstName });
+      const mapper = (item: unknown) => ({ id: item.id, first_name: item.firstName });
       const result = mapAppArrayToDatabase(appArray, mapper);
 
       expect(result).toEqual([

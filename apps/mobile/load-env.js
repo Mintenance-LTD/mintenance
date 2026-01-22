@@ -9,9 +9,9 @@ const path = require('path');
 
 // Simple logger for config file
 const logger = {
-  info: (...args) => logger.info('[INFO]', ...args', [object Object], { service: 'mobile' }),
-  warn: (...args) => logger.warn('[WARN]', ...args', [object Object], { service: 'mobile' }),
-  error: (...args) => logger.error('[ERROR]', ...args', [object Object], { service: 'mobile' }),
+  info: (...args) => logger.info('[INFO]', ...args, { service: 'mobile' }),
+  warn: (...args) => logger.warn('[WARN]', ...args, { service: 'mobile' }),
+  error: (...args) => logger.error('[ERROR]', ...args, { service: 'mobile' }),
 };
 
 // Paths to check for .env files (in order of priority)

@@ -1,3 +1,4 @@
+import type { Job, Bid, Message, Notification, User } from '../types/entities';
 import { z } from 'zod';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
@@ -16,22 +17,22 @@ const RealTimeEventSchema = z.object({
     'user_online',
     'user_offline',
   ]),
-  payload: z.any(),
+  payload: z.unknown(),
   timestamp: z.number(),
   userId: z.string().optional(),
 });
 
 export type RealTimeEvent = z.infer<typeof RealTimeEventSchema>;
 
-export type EventListener<T = any> = (data: T) => void;
+export type EventListener<T = unknown> = (data: T) => void;
 
 export interface RealTimeEventHandlers {
-  onJobCreated?: EventListener<{ job: any }>;
-  onJobUpdated?: EventListener<{ job: any; changes: any }>;
-  onBidReceived?: EventListener<{ bid: any; job: any }>;
-  onMessageReceived?: EventListener<{ message: any; conversation: any }>;
-  onNotificationSent?: EventListener<{ notification: any }>;
-  onUserOnline?: EventListener<{ userId: string; userInfo: any }>;
+  onJobCreated?: EventListener<{ job: Job }>;
+  onJobUpdated?: EventListener<{ job: Job; changes: Partial<Job> }>;
+  onBidReceived?: EventListener<{ bid: Bid; job: Job }>;
+  onMessageReceived?: EventListener<{ message: Message; conversation: { id: string; participants: string[]; [key: string]: unknown } }>;
+  onNotificationSent?: EventListener<{ notification: Notification }>;
+  onUserOnline?: EventListener<{ userId: string; userInfo: User }>;
   onUserOffline?: EventListener<{ userId: string }>;
   onConnectionChange?: EventListener<{ connected: boolean; latency?: number }>;
   onError?: EventListener<{ error: string; code?: string }>;
@@ -45,7 +46,7 @@ export class RealTimeService {
   private eventHandlers: RealTimeEventHandlers = {};
   private isConnected = false;
   private currentUserId: string | null = null;
-  private mockSocket: any = null;
+  private mockSocket: { connected: boolean; emit: (event: string, data: unknown) => void; on: (event: string, handler: Function) => void; disconnect: () => void } | null = null;
 
   async initialize(userId: string, token: string): Promise<void> {
     this.currentUserId = userId;
@@ -54,7 +55,7 @@ export class RealTimeService {
     // Mock WebSocket connection for development
     this.mockSocket = {
       connected: true,
-      emit: (event: string, data: any) => {
+      emit: (event: string, data: unknown) => {
         logger.debug('Emitting real-time event', { event, data });
       },
       on: (event: string, handler: Function) => {
@@ -75,27 +76,27 @@ export class RealTimeService {
   }
 
   // Simulate real-time events for development
-  simulateJobCreated(job: any): void {
+  simulateJobCreated(job: unknown): void {
     logger.debug('Simulating job created event', { jobId: job?.id });
     this.eventHandlers.onJobCreated?.({ job });
   }
 
-  simulateJobUpdated(job: any, changes: any): void {
+  simulateJobUpdated(job: Job, changes: Partial<Job>): void {
     logger.debug('Simulating job updated event', { jobId: job?.id });
     this.eventHandlers.onJobUpdated?.({ job, changes });
   }
 
-  simulateBidReceived(bid: any, job: any): void {
+  simulateBidReceived(bid: Bid, job: Job): void {
     logger.debug('Simulating bid received event', { bidId: bid?.id, jobId: job?.id });
     this.eventHandlers.onBidReceived?.({ bid, job });
   }
 
-  simulateMessageReceived(message: any, conversation: any): void {
+  simulateMessageReceived(message: Message, conversation: { id: string; participants: string[]; [key: string]: unknown }): void {
     logger.debug('Simulating message received event', { messageId: message?.id });
     this.eventHandlers.onMessageReceived?.({ message, conversation });
   }
 
-  simulateNotification(notification: any): void {
+  simulateNotification(notification: unknown): void {
     logger.debug('Simulating notification event', { notificationId: notification?.id });
     this.eventHandlers.onNotificationSent?.({ notification });
   }
@@ -164,11 +165,11 @@ export const getRealTimeService = (): RealTimeService => {
 // Static methods for backward compatibility with tests
 export class RealtimeService {
   // Track active subscriptions for simple tests
-  private static _subscriptions: any[] = [];
+  private static _subscriptions: unknown[] = [];
 
   private static isSimpleMode(): boolean {
     // Simple tests mock only supabase.channel; full tests also mock removeChannel/getChannels
-    const s: any = supabase as any;
+    const s: unknown = supabase as unknown;
     return typeof s.removeChannel !== 'function' || typeof s.getChannels !== 'function';
   }
 
@@ -203,10 +204,10 @@ export class RealtimeService {
     }
   }
 
-  private static attachStatusHandler(channel: any, topic: string) {
+  private static attachStatusHandler(channel: unknown, topic: string) {
     // Subscribe with connection status handler (used by full tests)
     try {
-      channel.subscribe((status: string, reason?: any) => {
+      channel.subscribe((status: string, reason?: unknown) => {
         if (status === 'SUBSCRIBED') {
           logger.debug(`Realtime subscription active for ${topic}`);
         } else if (status === 'CHANNEL_ERROR') {
@@ -223,7 +224,7 @@ export class RealtimeService {
     }
   }
 
-  private static toCamelMessage(row: any) {
+  private static toCamelMessage(row: unknown) {
     if (!row || this.isSimpleMode()) return row; // Pass-through in simple tests
     return {
       id: row.id,
@@ -236,7 +237,7 @@ export class RealtimeService {
     };
   }
 
-  private static toCamelJob(row: any) {
+  private static toCamelJob(row: unknown) {
     if (!row || this.isSimpleMode()) return row;
     return {
       ...row,
@@ -247,7 +248,7 @@ export class RealtimeService {
     };
   }
 
-  private static toCamelBid(row: any) {
+  private static toCamelBid(row: unknown) {
     if (!row || this.isSimpleMode()) return row;
     return {
       id: row.id,
@@ -262,17 +263,17 @@ export class RealtimeService {
 
   static subscribeToMessages(
     jobId: string,
-    callback: (message: any) => void,
-    errorHandler?: (err: any) => void
+    callback: (message: unknown) => void,
+    errorHandler?: (err: unknown) => void
   ): () => void {
     const topic = this.topic('messages', jobId);
-    const channel = (supabase as any).channel(topic);
+    const channel = (supabase as unknown).channel(topic);
 
     // Postgres change feed
     channel.on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
-      (payload: any) => {
+      (payload: unknown) => {
         if (payload && payload.error && errorHandler) {
           errorHandler(payload.error);
           return;
@@ -298,15 +299,15 @@ export class RealtimeService {
 
   static subscribeToJobUpdates(
     jobId: string,
-    callback: (job: any, oldJob?: any) => void
+    callback: (job: Job, oldJob?: unknown) => void
   ): () => void {
     const topic = this.isSimpleMode() ? this.topic('job', jobId) : this.topic('jobs', jobId);
-    const channel = (supabase as any).channel(topic);
+    const channel = (supabase as unknown).channel(topic);
 
     channel.on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `id=eq.${jobId}` },
-      (payload: any) => {
+      (payload: unknown) => {
         const newRow = this.toCamelJob(payload?.new);
         const oldRow = this.toCamelJob(payload?.old);
         try {
@@ -326,15 +327,15 @@ export class RealtimeService {
 
   static subscribeToJobBids(
     jobId: string,
-    callback: (bid: any) => void
+    callback: (bid: unknown) => void
   ): () => void {
     const topic = this.topic('bids', jobId);
-    const channel = (supabase as any).channel(topic);
+    const channel = (supabase as unknown).channel(topic);
 
     channel.on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'bids', filter: `job_id=eq.${jobId}` },
-      (payload: any) => {
+      (payload: unknown) => {
         const bid = this.toCamelBid(payload?.new);
         try {
           callback(bid);
@@ -351,14 +352,14 @@ export class RealtimeService {
     };
   }
 
-  static subscribeToUserUpdates(userId: string, callback: (user: any) => void): () => void {
+  static subscribeToUserUpdates(userId: string, callback: (user: unknown) => void): () => void {
     const topic = this.topic('users', userId);
-    const channel = (supabase as any).channel(topic);
+    const channel = (supabase as unknown).channel(topic);
 
     channel.on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
-      (payload: any) => {
+      (payload: unknown) => {
         const row = payload?.new;
         const user = this.isSimpleMode()
           ? row
@@ -383,71 +384,71 @@ export class RealtimeService {
     };
   }
 
-  static async sendMessage(jobId: string, message: any): Promise<void> {
-    const channel = (supabase as any).channel(this.topic('messages', jobId));
+  static async sendMessage(jobId: string, message: Message): Promise<void> {
+    const channel = (supabase as unknown).channel(this.topic('messages', jobId));
     try {
       await channel.send({ type: 'broadcast', event: 'message', payload: message });
     } catch (err) {
-      logger.error('Error sending realtime message:', err as any);
+      logger.error('Error sending realtime message:', err as unknown);
       throw err;
     }
   }
 
-  static async sendJobUpdate(jobId: string, job: any): Promise<void> {
-    const channel = (supabase as any).channel(this.topic('jobs', jobId));
+  static async sendJobUpdate(jobId: string, job: Job): Promise<void> {
+    const channel = (supabase as unknown).channel(this.topic('jobs', jobId));
     try {
       await channel.send({ type: 'broadcast', event: 'job_update', payload: job });
     } catch (err) {
-      logger.error('Error sending job update:', err as any);
+      logger.error('Error sending job update:', err as unknown);
       throw err;
     }
   }
 
-  static async sendBidUpdate(jobId: string, bid: any): Promise<void> {
-    const channel = (supabase as any).channel(this.topic('bids', jobId));
+  static async sendBidUpdate(jobId: string, bid: Bid): Promise<void> {
+    const channel = (supabase as unknown).channel(this.topic('bids', jobId));
     try {
       await channel.send({ type: 'broadcast', event: 'bid_update', payload: bid });
     } catch (err) {
-      logger.error('Error sending bid update:', err as any);
+      logger.error('Error sending bid update:', err as unknown);
       throw err;
     }
   }
 
   static unsubscribeFromMessages(jobId: string): void {
     try {
-      const channel = (supabase as any).channel(this.topic('messages', jobId));
-      (supabase as any).removeChannel?.(channel);
+      const channel = (supabase as unknown).channel(this.topic('messages', jobId));
+      (supabase as unknown).removeChannel?.(channel);
     } catch {}
   }
 
   static unsubscribeFromJobUpdates(jobId: string): void {
     try {
-      const channel = (supabase as any).channel(this.topic('jobs', jobId));
-      (supabase as any).removeChannel?.(channel);
+      const channel = (supabase as unknown).channel(this.topic('jobs', jobId));
+      (supabase as unknown).removeChannel?.(channel);
     } catch {}
   }
 
   static unsubscribeFromJobBids(jobId: string): void {
     try {
-      const channel = (supabase as any).channel(this.topic('bids', jobId));
-      (supabase as any).removeChannel?.(channel);
+      const channel = (supabase as unknown).channel(this.topic('bids', jobId));
+      (supabase as unknown).removeChannel?.(channel);
     } catch {}
   }
 
   static unsubscribeFromUserUpdates(userId: string): void {
     try {
-      const channel = (supabase as any).channel(this.topic('users', userId));
-      (supabase as any).removeChannel?.(channel);
+      const channel = (supabase as unknown).channel(this.topic('users', userId));
+      (supabase as unknown).removeChannel?.(channel);
     } catch {}
   }
 
-  static getChannelStatus(): { channels: any[]; totalChannels: number; activeChannels: number } {
+  static getChannelStatus(): { channels: unknown[]; totalChannels: number; activeChannels: number } {
     try {
-      const channels: any[] = (supabase as any).getChannels?.() || [];
+      const channels: unknown[] = (supabase as unknown).getChannels?.() || [];
       return {
         channels,
         totalChannels: channels.length,
-        activeChannels: channels.filter((c: any) => c.state === 'joined').length,
+        activeChannels: channels.filter((c: unknown) => c.state === 'joined').length,
       };
     } catch {
       return { channels: [], totalChannels: 0, activeChannels: 0 };
@@ -456,18 +457,18 @@ export class RealtimeService {
 
   static cleanup(): void {
     try {
-      const channels: any[] = (supabase as any).getChannels?.() || [];
+      const channels: unknown[] = (supabase as unknown).getChannels?.() || [];
       for (const ch of channels) {
         try {
           const res = ch.unsubscribe?.();
           if (res && typeof res.then === 'function') {
             // Ensure the warning is observable in tests immediately
-            res.catch((err: any) => logger.warn('Error cleaning up realtime channels:', err));
+            res.catch((err: unknown) => logger.warn('Error cleaning up realtime channels:', err));
             // Also emit a generic warning synchronously to satisfy immediate expectation
             logger.warn('Error cleaning up realtime channels:', new Error('Cleanup error'));
           }
         } catch (err) {
-          logger.warn('Error cleaning up realtime channels:', err as any);
+          logger.warn('Error cleaning up realtime channels:', err as unknown);
         }
       }
     } catch {}

@@ -170,7 +170,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
       setShowPricingSuggestion(true);
       toast.success('AI pricing suggestion generated!');
     } catch (error) {
-      logger.error('Error fetching pricing suggestion:', error', [object Object], { service: 'ui' });
+      logger.error('Error fetching pricing suggestion:', error, { service: 'ui' });
       toast.error('Failed to get pricing suggestion. Please try again.');
     } finally {
       setLoadingSuggestion(false);

@@ -250,7 +250,7 @@ export class MessagingService {
     jobId: string,
     onNewMessage: (message: Message) => void,
     onMessageUpdate: (message: Message) => void = () => {},
-    onError: (error: any) => void = (error) =>
+    onError: (error: unknown) => void = (error) =>
       logger.error('Real-time subscription error:', error)
   ): () => void {
     const channelKey = `messages_${jobId}`;
@@ -278,7 +278,7 @@ export class MessagingService {
             table: 'messages',
             filter: `job_id=eq.${jobId}`,
           },
-          async (payload: any) => {
+          async (payload: unknown) => {
             try {
               // Fetch the complete message with sender info
               const { data, error } = await supabase
@@ -315,7 +315,7 @@ export class MessagingService {
             table: 'messages',
             filter: `job_id=eq.${jobId}`,
           },
-          async (payload: any) => {
+          async (payload: unknown) => {
             try {
               const { data, error } = await supabase
                 .from('messages')
@@ -343,7 +343,7 @@ export class MessagingService {
             }
           }
         )
-        .subscribe((status: any) => {
+        .subscribe((status: unknown) => {
           if (status === 'SUBSCRIBED') {
             logger.info(`Successfully subscribed to messages for job ${jobId}`);
           } else if (status === 'CLOSED') {
@@ -490,7 +490,7 @@ export class MessagingService {
    * Create notification for new message
    */
   private static async createMessageNotification(
-    message: any,
+    message: unknown,
     receiverId: string
   ): Promise<void> {
     try {
@@ -512,7 +512,7 @@ export class MessagingService {
   /**
    * Format message data for consistent interface
    */
-  private static formatMessage(data: any): Message {
+  private static formatMessage(data: unknown): Message {
     const d = data || {};
     return {
       id: d.id || '',

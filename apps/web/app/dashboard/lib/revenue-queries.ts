@@ -85,7 +85,7 @@ export async function getMonthlyRevenue(
       .order('created_at', { ascending: true });
 
     if (error) {
-      logger.error('[getMonthlyRevenue] Error fetching %s:, error.message || error', [object Object], { service: 'lib' });
+      logger.error('[getMonthlyRevenue] Error fetching payments', error, { service: 'lib' });
       // Return empty months instead of failing
       return generateEmptyMonths(months);
     }
@@ -146,7 +146,7 @@ export async function getMonthlyRevenue(
 
     return result;
   } catch (error) {
-    logger.error('[getMonthlyRevenue] Unexpected error:', error', [object Object], { service: 'lib' });
+    logger.error('[getMonthlyRevenue] Unexpected error', error, { service: 'lib' });
     return generateEmptyMonths(months);
   }
 }
@@ -165,8 +165,8 @@ export async function getMonthlyRevenue(
  * @example
  * ```typescript
  * const stats = await getRevenueStats('user-123', 'earnings');
- * // logger.info('Total: £%s', [object Object], { service: 'lib' });
- * // logger.info('Growth: %s%', [object Object], { service: 'lib' });
+ * // logger.info('Total: £%s', { service: 'lib' });
+ * // logger.info('Growth: %s%', { service: 'lib' });
  * ```
  */
 export async function getRevenueStats(

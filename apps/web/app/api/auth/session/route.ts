@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-  // Rate limiting check
+  // Rate limiting check - generous limit for session checks
   const rateLimitResult = await rateLimiter.checkRateLimit({
     identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
     windowMs: 60000,
-    maxRequests: 5
+    maxRequests: 100
   });
 
   if (!rateLimitResult.allowed) {
@@ -20,7 +20,7 @@ export async function GET() {
         status: 429,
         headers: {
           'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(5),
+          'X-RateLimit-Limit': String(100),
           'X-RateLimit-Remaining': String(rateLimitResult.remaining),
           'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
         }

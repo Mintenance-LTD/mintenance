@@ -16,7 +16,7 @@ export default function EditPropertyError({
   const router = useRouter();
 
   useEffect(() => {
-    logger.error('Edit property error:', error', [object Object], { service: 'app' });
+    logger.error('Edit property error:', error, { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

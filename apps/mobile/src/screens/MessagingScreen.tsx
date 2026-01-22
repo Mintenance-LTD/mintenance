@@ -44,7 +44,7 @@ interface MessagingScreenParams {
 
 interface Props {
   route: RouteProp<{ params: MessagingScreenParams }>;
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -91,7 +91,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   useEffect(() => {
     if (user?.id && messages.length > 0) {
       const unreadMessages = messages.some(
-        (msg: any) => !msg.read && msg.receiverId === user.id
+        (msg: unknown) => !msg.read && msg.receiverId === user.id
       );
       if (unreadMessages) {
         markAsReadMutation.mutate({ jobId, userId: user.id });

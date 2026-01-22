@@ -1,4 +1,4 @@
-import { logger } from '@mintenance/shared';
+import { logger } from '../logger';
 /**
  * Conformal Prediction Service
  * Provides mathematically guaranteed confidence intervals for damage predictions
@@ -6,21 +6,18 @@ import { logger } from '@mintenance/shared';
  * Note: This service requires a Supabase client to be injected via setSupabaseClient()
  * before use, as the shared package doesn't have direct database access.
  */
-
 // Supabase client type - injected at runtime
 // Using 'any' for the response types to avoid complex generics
 interface SupabaseClient {
   from(table: string): {
     select(columns?: string, options?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }): any;
-    insert(data: any): any;
-    update(data: any): any;
-    upsert(data: any): any;
+    insert(data: unknown): any;
+    update(data: unknown): any;
+    upsert(data: unknown): any;
   };
-  rpc(fn: string, params?: Record<string, any>): Promise<{ data: any; error: any }>;
+  rpc(fn: string, params?: Record<string, unknown>): Promise<{ data: unknown; error: Error | unknown }>;
 }
-
 let _supabaseClient: SupabaseClient | null = null;
-
 /**
  * Inject the Supabase client for this service
  * Must be called before using any database operations
@@ -28,7 +25,6 @@ let _supabaseClient: SupabaseClient | null = null;
 export function setSupabaseClient(client: SupabaseClient): void {
   _supabaseClient = client;
 }
-
 function getSupabase(): SupabaseClient {
   if (!_supabaseClient) {
     throw new Error(
@@ -38,21 +34,17 @@ function getSupabase(): SupabaseClient {
   }
   return _supabaseClient;
 }
-
 // ============================================================================
 // Types and Interfaces
 // ============================================================================
-
 export type PropertyAgeCategory = 'victorian' | 'post_war' | 'modern' | 'unknown';
 export type SeverityLevel = 'early' | 'midway' | 'full';
 export type DamageType = string; // Various damage types from assessments
-
 export interface PredictionScores {
   early: number;
   midway: number;
   full: number;
 }
-
 export interface CalibrationSet {
   id: string;
   version: number;
@@ -71,12 +63,11 @@ export interface CalibrationSet {
   valid_until: string;
   is_active: boolean;
 }
-
 export interface CalibrationSample {
   id: string;
   calibration_set_id: string;
   assessment_id?: string;
-  features: Record<string, any>;
+  features: Record<string, unknown>;
   property_age_category: PropertyAgeCategory;
   damage_category: string;
   predicted_severity: SeverityLevel;
@@ -87,7 +78,6 @@ export interface CalibrationSample {
   ground_truth_source: 'expert_validation' | 'repair_outcome' | 'contractor_feedback';
   nonconformity_score: number;
 }
-
 export interface ConformalPredictionInterval {
   confidence_level: number;
   prediction_set: SeverityLevel[];
@@ -96,7 +86,6 @@ export interface ConformalPredictionInterval {
   stratum?: string;
   interval_size: number;
 }
-
 export interface CalibrationMetrics {
   total_predictions: number;
   correct_predictions: number;
@@ -105,23 +94,18 @@ export interface CalibrationMetrics {
   avg_confidence: number;
   calibration_error: number;
 }
-
 // ============================================================================
 // Conformal Prediction Service
 // ============================================================================
-
 export class ConformalPredictionService {
   private static instance: ConformalPredictionService;
-
-  private constructor() {}
-
+  private constructor() { }
   public static getInstance(): ConformalPredictionService {
     if (!ConformalPredictionService.instance) {
       ConformalPredictionService.instance = new ConformalPredictionService();
     }
     return ConformalPredictionService.instance;
   }
-
   /**
    * Get conformal prediction interval with guaranteed coverage
    */
@@ -137,16 +121,13 @@ export class ConformalPredictionService {
       p_damage_type: damageType,
       p_confidence_level: confidenceLevel
     });
-
     if (error) {
-      logger.error('Error getting prediction interval:', error', [object Object], { service: 'general' });
+      logger.error('Error getting prediction interval:', error, { service: 'general' });
       // Fallback to simple threshold-based interval
       return this.getFallbackInterval(predictionScores, confidenceLevel);
     }
-
     return data as ConformalPredictionInterval;
   }
-
   /**
    * Calculate nonconformity score for a prediction
    */
@@ -160,15 +141,12 @@ export class ConformalPredictionService {
       true_class: trueClass,
       score_type: scoreType
     });
-
     if (error) {
-      logger.error('Error calculating nonconformity score:', error', [object Object], { service: 'general' });
+      logger.error('Error calculating nonconformity score:', error, { service: 'general' });
       return this.calculateLocalNonconformityScore(predictionScores, trueClass, scoreType);
     }
-
     return data as number;
   }
-
   /**
    * Get active calibration sets
    */
@@ -178,15 +156,12 @@ export class ConformalPredictionService {
       .select('*')
       .eq('is_active', true)
       .order('created_at', { ascending: false });
-
     if (error) {
-      logger.error('Error fetching calibration sets:', error', [object Object], { service: 'general' });
+      logger.error('Error fetching calibration sets:', error, { service: 'general' });
       return [];
     }
-
     return data as CalibrationSet[];
   }
-
   /**
    * Get calibration summary with performance metrics
    */
@@ -195,15 +170,12 @@ export class ConformalPredictionService {
       .from('v_calibration_summary')
       .select('*')
       .order('created_at', { ascending: false });
-
     if (error) {
-      logger.error('Error fetching calibration summary:', error', [object Object], { service: 'general' });
+      logger.error('Error fetching calibration summary:', error, { service: 'general' });
       return [];
     }
-
     return data;
   }
-
   /**
    * Build a new calibration set (admin only)
    */
@@ -221,15 +193,12 @@ export class ConformalPredictionService {
       p_min_samples: minSamples,
       p_validation_split: validationSplit
     });
-
     if (error) {
-      logger.error('Error building calibration set:', error', [object Object], { service: 'general' });
+      logger.error('Error building calibration set:', error, { service: 'general' });
       return null;
     }
-
     return data as string;
   }
-
   /**
    * Trigger recalibration (admin only)
    */
@@ -237,13 +206,11 @@ export class ConformalPredictionService {
     const { error } = await getSupabase().rpc('recalibrate_conformal_models', {
       p_force: force
     });
-
     if (error) {
-      logger.error('Error recalibrating models:', error', [object Object], { service: 'general' });
+      logger.error('Error recalibrating models:', error, { service: 'general' });
       throw error;
     }
   }
-
   /**
    * Get performance metrics for a calibration set
    */
@@ -259,12 +226,10 @@ export class ConformalPredictionService {
       .order('evaluation_end', { ascending: false })
       .limit(1)
       .single();
-
     if (error) {
-      logger.error('Error fetching performance metrics:', error', [object Object], { service: 'general' });
+      logger.error('Error fetching performance metrics:', error, { service: 'general' });
       return null;
     }
-
     return {
       total_predictions: data.predictions_made,
       correct_predictions: data.correct_predictions,
@@ -274,7 +239,6 @@ export class ConformalPredictionService {
       calibration_error: Math.abs(data.empirical_coverage - 0.95)
     };
   }
-
   /**
    * Check if a prediction is within the confidence interval
    */
@@ -284,7 +248,6 @@ export class ConformalPredictionService {
   ): boolean {
     return predictionInterval.prediction_set.includes(actualSeverity);
   }
-
   /**
    * Get adaptive confidence level based on context
    */
@@ -296,7 +259,6 @@ export class ConformalPredictionService {
     if (isCriticalInfrastructure) {
       return 0.99; // 99% confidence for critical infrastructure
     }
-
     switch (urgency) {
       case 'immediate':
         return 0.99;
@@ -311,11 +273,9 @@ export class ConformalPredictionService {
         return 0.80;
     }
   }
-
   // ============================================================================
   // Private Helper Methods
   // ============================================================================
-
   /**
    * Fallback interval calculation when database is unavailable
    */
@@ -325,19 +285,15 @@ export class ConformalPredictionService {
   ): ConformalPredictionInterval {
     const sortedScores = Object.entries(predictionScores)
       .sort(([, a], [, b]) => b - a);
-
     let cumulativeScore = 0;
     const predictionSet: SeverityLevel[] = [];
-
     for (const [severity, score] of sortedScores) {
       predictionSet.push(severity as SeverityLevel);
       cumulativeScore += score;
-
       if (cumulativeScore >= confidenceLevel) {
         break;
       }
     }
-
     return {
       confidence_level: confidenceLevel,
       prediction_set: predictionSet,
@@ -345,7 +301,6 @@ export class ConformalPredictionService {
       interval_size: predictionSet.length
     };
   }
-
   /**
    * Local calculation of nonconformity score
    */
@@ -359,24 +314,20 @@ export class ConformalPredictionService {
     const otherScores = Object.entries(predictionScores)
       .filter(([key]) => key !== trueClass)
       .map(([, value]) => value);
-
     switch (scoreType) {
       case 'hinge': {
         const maxOtherScore = Math.max(...otherScores, 0);
         return Math.max(0, 1 - (trueScore - maxOtherScore));
       }
-
       case 'margin': {
         const maxOtherScore = Math.max(...otherScores, 0);
         return Math.max(0, maxOtherScore - trueScore);
       }
-
       case 'inverse_probability':
       default:
         return Math.max(0, 1 - trueScore);
     }
   }
-
   /**
    * Classify property age based on construction year
    */
@@ -386,7 +337,6 @@ export class ConformalPredictionService {
     if (constructionYear >= 1900 && constructionYear < 1970) return 'post_war';
     return 'modern';
   }
-
   /**
    * Build Mondrian stratum identifier
    */
@@ -396,14 +346,12 @@ export class ConformalPredictionService {
   ): string {
     return `${propertyAgeCategory}_${damageType.toLowerCase().replace(/\s+/g, '_')}`;
   }
-
   /**
    * Calculate interval efficiency (smaller is better)
    */
   calculateIntervalEfficiency(interval: ConformalPredictionInterval): number {
     return interval.interval_size / 3; // Normalized by total classes
   }
-
   /**
    * Check if recalibration is needed
    */
@@ -413,26 +361,20 @@ export class ConformalPredictionService {
       .select('created_at, sample_count, valid_until')
       .eq('id', calibrationSetId)
       .single();
-
     if (error || !data) return true;
-
     // Check if expired
     if (new Date(data.valid_until) < new Date()) {
       return true;
     }
-
     // Check for significant new samples (20% increase)
     const { count } = await getSupabase()
       .from('building_assessment_outcomes')
       .select('*', { count: 'exact', head: true })
       .gte('learned_at', data.created_at);
-
     return (count || 0) > data.sample_count * 0.2;
   }
 }
-
 // ============================================================================
 // Export singleton instance
 // ============================================================================
-
 export const conformalPrediction = ConformalPredictionService.getInstance();

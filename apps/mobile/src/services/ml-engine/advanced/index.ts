@@ -49,33 +49,75 @@ export class AdvancedMLFramework {
   }
 
   // Model Registry methods
-  registerModel = this.modelRegistry.registerModel.bind(this.modelRegistry);
-  getModel = this.modelRegistry.getModel.bind(this.modelRegistry);
-  listModels = this.modelRegistry.listModels.bind(this.modelRegistry);
+  registerModel = (
+    ...args: Parameters<MLModelRegistry['registerModel']>
+  ): ReturnType<MLModelRegistry['registerModel']> => this.modelRegistry.registerModel(...args);
+  getModel = (
+    ...args: Parameters<MLModelRegistry['getModel']>
+  ): ReturnType<MLModelRegistry['getModel']> => this.modelRegistry.getModel(...args);
+  listModels = (
+    ...args: Parameters<MLModelRegistry['listModels']>
+  ): ReturnType<MLModelRegistry['listModels']> => this.modelRegistry.listModels(...args);
 
   // Inference methods
-  predict = this.inferenceEngine.predict.bind(this.inferenceEngine);
-  batchPredict = this.inferenceEngine.batchPredict.bind(this.inferenceEngine);
+  predict = (
+    ...args: Parameters<MLInferenceEngine['predict']>
+  ): ReturnType<MLInferenceEngine['predict']> => this.inferenceEngine.predict(...args);
+  batchPredict = (
+    ...args: Parameters<MLInferenceEngine['batchPredict']>
+  ): ReturnType<MLInferenceEngine['batchPredict']> => this.inferenceEngine.batchPredict(...args);
 
   // Deployment methods
-  deployModel = this.deploymentService.deployModel.bind(this.deploymentService);
-  rollbackDeployment = this.deploymentService.rollbackDeployment.bind(this.deploymentService);
-  getDeployment = this.deploymentService.getDeployment.bind(this.deploymentService);
-  listDeployments = this.deploymentService.listDeployments.bind(this.deploymentService);
+  deployModel = (
+    ...args: Parameters<MLDeploymentService['deployModel']>
+  ): ReturnType<MLDeploymentService['deployModel']> => this.deploymentService.deployModel(...args);
+  rollbackDeployment = (
+    ...args: Parameters<MLDeploymentService['rollbackDeployment']>
+  ): ReturnType<MLDeploymentService['rollbackDeployment']> => this.deploymentService.rollbackDeployment(...args);
+  getDeployment = (
+    ...args: Parameters<MLDeploymentService['getDeployment']>
+  ): ReturnType<MLDeploymentService['getDeployment']> => this.deploymentService.getDeployment(...args);
+  listDeployments = (
+    ...args: Parameters<MLDeploymentService['listDeployments']>
+  ): ReturnType<MLDeploymentService['listDeployments']> => this.deploymentService.listDeployments(...args);
 
   // A/B Testing methods
-  createABTest = this.evaluationService.createABTest.bind(this.evaluationService);
-  getABTestVariant = this.evaluationService.getABTestVariant.bind(this.evaluationService);
-  recordABTestResult = this.evaluationService.recordABTestResult.bind(this.evaluationService);
-  analyzeABTest = this.evaluationService.analyzeABTest.bind(this.evaluationService);
-  getABTest = this.evaluationService.getABTest.bind(this.evaluationService);
-  listABTests = this.evaluationService.listABTests.bind(this.evaluationService);
+  createABTest = (
+    ...args: Parameters<MLEvaluationService['createABTest']>
+  ): ReturnType<MLEvaluationService['createABTest']> => this.evaluationService.createABTest(...args);
+  getABTestVariant = (
+    ...args: Parameters<MLEvaluationService['getABTestVariant']>
+  ): ReturnType<MLEvaluationService['getABTestVariant']> => this.evaluationService.getABTestVariant(...args);
+  recordABTestResult = (
+    ...args: Parameters<MLEvaluationService['recordABTestResult']>
+  ): ReturnType<MLEvaluationService['recordABTestResult']> => this.evaluationService.recordABTestResult(...args);
+  analyzeABTest = (
+    ...args: Parameters<MLEvaluationService['analyzeABTest']>
+  ): ReturnType<MLEvaluationService['analyzeABTest']> => this.evaluationService.analyzeABTest(...args);
+  getABTest = (
+    ...args: Parameters<MLEvaluationService['getABTest']>
+  ): ReturnType<MLEvaluationService['getABTest']> => this.evaluationService.getABTest(...args);
+  listABTests = (
+    ...args: Parameters<MLEvaluationService['listABTests']>
+  ): ReturnType<MLEvaluationService['listABTests']> => this.evaluationService.listABTests(...args);
 
   // Application-specific methods
-  findBestContractors = this.applicationService.findBestContractors.bind(this.applicationService);
-  getJobRecommendations = this.applicationService.getJobRecommendations.bind(this.applicationService);
-  predictJobPrice = this.applicationService.predictJobPrice.bind(this.applicationService);
-  detectFraud = this.applicationService.detectFraud.bind(this.applicationService);
+  findBestContractors = (
+    ...args: Parameters<MLApplicationService['findBestContractors']>
+  ): ReturnType<MLApplicationService['findBestContractors']> =>
+    this.applicationService.findBestContractors(...args);
+  getJobRecommendations = (
+    ...args: Parameters<MLApplicationService['getJobRecommendations']>
+  ): ReturnType<MLApplicationService['getJobRecommendations']> =>
+    this.applicationService.getJobRecommendations(...args);
+  predictJobPrice = (
+    ...args: Parameters<MLApplicationService['predictJobPrice']>
+  ): ReturnType<MLApplicationService['predictJobPrice']> =>
+    this.applicationService.predictJobPrice(...args);
+  detectFraud = (
+    ...args: Parameters<MLApplicationService['detectFraud']>
+  ): ReturnType<MLApplicationService['detectFraud']> =>
+    this.applicationService.detectFraud(...args);
 
   /**
    * Start monitoring model performance

@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * SAM3 Presence Detection Integration Tests
  *
@@ -15,13 +16,13 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 
 // Mock external dependencies
-jest.mock('@/lib/supabase');
-jest.mock('@mintenance/shared', () => ({
+vi.mock('@/lib/supabase');
+vi.mock('@mintenance/shared', () => ({
     logger: {
-        info: jest.fn(),
-        debug: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
     },
 }));
 
@@ -47,7 +48,7 @@ describe('SAM3 Presence Detection Integration', () => {
     });
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         HybridInferenceService.resetYoloSavingsMetrics();
     });
 
@@ -61,8 +62,8 @@ describe('SAM3 Presence Detection Integration', () => {
             ];
 
             // Setup mocks for undamaged detection
-            const mockHealthCheck = jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
-            const mockPresenceCheck = jest.spyOn(SAM3Service, 'checkDamagePresence').mockImplementation(
+            const mockHealthCheck = vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
+            const mockPresenceCheck = vi.spyOn(SAM3Service, 'checkDamagePresence').mockImplementation(
                 async (imageBase64: string, damageTypes?: string[]) => ({
                     success: true,
                     presence_results: {
@@ -99,12 +100,12 @@ describe('SAM3 Presence Detection Integration', () => {
             );
 
             // Mock YOLO (should not be called)
-            const mockYoloDetect = jest.spyOn(RoboflowDetectionService, 'detect');
-            const mockInternalPredict = jest.spyOn(InternalDamageClassifier, 'predictFromImage');
+            const mockYoloDetect = vi.spyOn(RoboflowDetectionService, 'detect');
+            const mockInternalPredict = vi.spyOn(InternalDamageClassifier, 'predictFromImage');
 
             // Mock model readiness
-            jest.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
-            jest.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
+            vi.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
+            vi.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
                 damageType: 'none',
                 severity: 'early',
                 confidence: 0.90,
@@ -152,8 +153,8 @@ describe('SAM3 Presence Detection Integration', () => {
             ];
 
             // Setup mocks for damage detection
-            jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
-            jest.spyOn(SAM3Service, 'checkDamagePresence').mockImplementation(
+            vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
+            vi.spyOn(SAM3Service, 'checkDamagePresence').mockImplementation(
                 async () => ({
                     success: true,
                     presence_results: {
@@ -180,7 +181,7 @@ describe('SAM3 Presence Detection Integration', () => {
             );
 
             // Mock YOLO (should be called)
-            const mockYoloDetect = jest.spyOn(RoboflowDetectionService, 'detect').mockResolvedValue([
+            const mockYoloDetect = vi.spyOn(RoboflowDetectionService, 'detect').mockResolvedValue([
                 {
                     x: 100, y: 100, width: 200, height: 150,
                     confidence: 0.89,
@@ -190,7 +191,7 @@ describe('SAM3 Presence Detection Integration', () => {
                 },
             ]);
 
-            const mockInternalPredict = jest.spyOn(InternalDamageClassifier, 'predictFromImage')
+            const mockInternalPredict = vi.spyOn(InternalDamageClassifier, 'predictFromImage')
                 .mockResolvedValue({
                     damageType: 'water damage',
                     severity: 'midway',
@@ -200,8 +201,8 @@ describe('SAM3 Presence Detection Integration', () => {
                     features: [],
                 });
 
-            jest.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
-            jest.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
+            vi.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
+            vi.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
                 damageType: 'water damage',
                 severity: 'midway',
                 confidence: 0.85,
@@ -248,8 +249,8 @@ describe('SAM3 Presence Detection Integration', () => {
             ];
 
             for (const testCase of borderlineCases) {
-                jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
-                jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
+                vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
+                vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
                     success: true,
                     presence_results: {
                         'water damage': {
@@ -269,7 +270,7 @@ describe('SAM3 Presence Detection Integration', () => {
                 });
 
                 if (testCase.expected) {
-                    jest.spyOn(InternalDamageClassifier, 'predictFromImage').mockResolvedValueOnce({
+                    vi.spyOn(InternalDamageClassifier, 'predictFromImage').mockResolvedValueOnce({
                         damageType: 'water damage',
                         severity: 'early',
                         confidence: 0.65,
@@ -279,8 +280,8 @@ describe('SAM3 Presence Detection Integration', () => {
                     });
                 }
 
-                jest.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
-                jest.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
+                vi.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
+                vi.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
                     damageType: 'water damage',
                     severity: 'early',
                     confidence: 0.85,
@@ -301,8 +302,8 @@ describe('SAM3 Presence Detection Integration', () => {
 
         it('should handle unclear/blurry images gracefully', async () => {
             // Mock unclear image detection (low confidence scores)
-            jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
-            jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValue({
+            vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
+            vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValue({
                 success: true,
                 presence_results: {
                     'water damage': {
@@ -322,8 +323,8 @@ describe('SAM3 Presence Detection Integration', () => {
                 },
             });
 
-            jest.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
-            jest.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
+            vi.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
+            vi.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
                 damageType: 'unknown',
                 severity: 'early',
                 confidence: 0.45, // Low confidence
@@ -348,8 +349,8 @@ describe('SAM3 Presence Detection Integration', () => {
             const startTime = Date.now();
 
             // Mock fast SAM3 response (simulating 300ms)
-            jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
-            jest.spyOn(SAM3Service, 'checkDamagePresence').mockImplementation(
+            vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
+            vi.spyOn(SAM3Service, 'checkDamagePresence').mockImplementation(
                 async () => {
                     await new Promise(resolve => setTimeout(resolve, 300));
                     return {
@@ -367,8 +368,8 @@ describe('SAM3 Presence Detection Integration', () => {
                 }
             );
 
-            jest.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
-            jest.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
+            vi.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
+            vi.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
                 damageType: 'none',
                 severity: 'early',
                 confidence: 0.90,
@@ -405,9 +406,9 @@ describe('SAM3 Presence Detection Integration', () => {
                 { damagePresent: true },  // No skip
             ];
 
-            jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
-            jest.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
-            jest.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
+            vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
+            vi.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
+            vi.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
                 damageType: 'none',
                 severity: 'early',
                 confidence: 0.85,
@@ -417,7 +418,7 @@ describe('SAM3 Presence Detection Integration', () => {
             });
 
             for (const scenario of assessmentScenarios) {
-                jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
+                vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValueOnce({
                     success: true,
                     presence_results: {},
                     damage_detected: scenario.damagePresent ? ['damage'] : [],
@@ -431,7 +432,7 @@ describe('SAM3 Presence Detection Integration', () => {
                 });
 
                 if (scenario.damagePresent) {
-                    jest.spyOn(InternalDamageClassifier, 'predictFromImage').mockResolvedValueOnce({
+                    vi.spyOn(InternalDamageClassifier, 'predictFromImage').mockResolvedValueOnce({
                         damageType: 'water damage',
                         severity: 'midway',
                         confidence: 0.75,
@@ -456,10 +457,10 @@ describe('SAM3 Presence Detection Integration', () => {
 
     describe('Fallback Behavior', () => {
         it('should fallback to YOLO when SAM3 is unavailable', async () => {
-            jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(false);
-            jest.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
+            vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(false);
+            vi.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
 
-            const mockYolo = jest.spyOn(InternalDamageClassifier, 'predictFromImage')
+            const mockYolo = vi.spyOn(InternalDamageClassifier, 'predictFromImage')
                 .mockResolvedValue({
                     damageType: 'crack',
                     severity: 'early',
@@ -469,7 +470,7 @@ describe('SAM3 Presence Detection Integration', () => {
                     features: [],
                 });
 
-            jest.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
+            vi.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
                 damageType: 'crack',
                 severity: 'early',
                 confidence: 0.78,
@@ -490,13 +491,13 @@ describe('SAM3 Presence Detection Integration', () => {
         });
 
         it('should handle SAM3 timeout gracefully', async () => {
-            jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
-            jest.spyOn(SAM3Service, 'checkDamagePresence').mockRejectedValue(
+            vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
+            vi.spyOn(SAM3Service, 'checkDamagePresence').mockRejectedValue(
                 new Error('Request timeout')
             );
 
-            jest.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
-            const mockYolo = jest.spyOn(InternalDamageClassifier, 'predictFromImage')
+            vi.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
+            const mockYolo = vi.spyOn(InternalDamageClassifier, 'predictFromImage')
                 .mockResolvedValue({
                     damageType: 'unknown',
                     severity: 'early',
@@ -506,7 +507,7 @@ describe('SAM3 Presence Detection Integration', () => {
                     features: [],
                 });
 
-            jest.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
+            vi.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
                 damageType: 'unknown',
                 severity: 'early',
                 confidence: 0.70,
@@ -532,21 +533,21 @@ describe('SAM3 Presence Detection Integration', () => {
 
     describe('Database Recording', () => {
         it('should record presence detection results in routing decisions', async () => {
-            const mockSupabaseInsert = jest.fn().mockReturnValue({
-                select: jest.fn().mockReturnValue({
-                    single: jest.fn().mockResolvedValue({
+            const mockSupabaseInsert = vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue({
                         data: { id: 'routing-decision-123' },
                         error: null,
                     }),
                 }),
             });
 
-            (supabase.from as jest.Mock).mockReturnValue({
+            vi.mocked(supabase.from).mockReturnValue({
                 insert: mockSupabaseInsert,
             });
 
-            jest.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
-            jest.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValue({
+            vi.spyOn(SAM3Service, 'healthCheck').mockResolvedValue(true);
+            vi.spyOn(SAM3Service, 'checkDamagePresence').mockResolvedValue({
                 success: true,
                 presence_results: {
                     'water damage': {
@@ -565,8 +566,8 @@ describe('SAM3 Presence Detection Integration', () => {
                 },
             });
 
-            jest.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
-            jest.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
+            vi.spyOn(InternalDamageClassifier, 'isModelReady').mockResolvedValue(true);
+            vi.spyOn(InternalDamageClassifier, 'predict').mockResolvedValue({
                 damageType: 'none',
                 severity: 'early',
                 confidence: 0.90,

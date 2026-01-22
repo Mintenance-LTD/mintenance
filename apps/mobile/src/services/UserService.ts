@@ -81,18 +81,18 @@ export class UserService {
 
       // Calculate statistics
       const activeJobs =
-        jobs?.filter((job: any) =>
+        jobs?.filter((job: unknown) =>
           ['assigned', 'in_progress'].includes(job.status)
         ).length || 0;
       const completedJobs =
-        jobs?.filter((job: any) => job.status === 'completed').length || 0;
+        jobs?.filter((job: unknown) => job.status === 'completed').length || 0;
 
       // Calculate monthly earnings (current month)
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
       const monthlyEarnings =
-        (jobs as any[])
-          ?.filter((job: any) => {
+        (jobs as unknown[])
+          ?.filter((job: unknown) => {
             const jobDate = new Date(job.updated_at);
             return (
               job.status === 'completed' &&
@@ -101,17 +101,17 @@ export class UserService {
             );
           })
           .reduce(
-            (total: number, job: any) => total + Number(job.budget || 0),
+            (total: number, job: unknown) => total + Number(job.budget || 0),
             0
           ) || 0;
 
       // Calculate average rating
       const avgRating =
-        reviews && (reviews as any[]).length > 0
-          ? (reviews as any[]).reduce(
-              (sum: number, review: any) => sum + Number(review.rating || 0),
+        reviews && (reviews as unknown[]).length > 0
+          ? (reviews as unknown[]).reduce(
+              (sum: number, review: unknown) => sum + Number(review.rating || 0),
               0
-            ) / (reviews as any[]).length
+            ) / (reviews as unknown[]).length
           : 0;
 
       // Calculate response time (mock for now - would need message timestamps)
@@ -133,7 +133,7 @@ export class UserService {
             minute: '2-digit',
           }),
           client:
-            `${(nextJob.homeowner as any)?.first_name || ''} ${(nextJob.homeowner as any)?.last_name || ''}`.trim() ||
+            `${(nextJob.homeowner as unknown)?.first_name || ''} ${(nextJob.homeowner as unknown)?.last_name || ''}`.trim() ||
             'Client',
           location: nextJob.location,
           type: nextJob.title,
@@ -213,11 +213,11 @@ export class UserService {
           .limit(10);
 
         if (!reviewError) {
-          reviews = reviewData.map((review: any) => ({
+          reviews = reviewData.map((review: unknown) => ({
             rating: review.rating,
             comment: review.comment,
             reviewer:
-              `${(review.reviewer as any)?.first_name || ''} ${(review.reviewer as any)?.last_name || ''}`.trim(),
+              `${(review.reviewer as unknown)?.first_name || ''} ${(review.reviewer as unknown)?.last_name || ''}`.trim(),
             createdAt: review.created_at,
           }));
         }
@@ -350,7 +350,7 @@ export class UserService {
 
       // Calculate distances and filter by radius
       const nearbyContractors = contractors
-        .filter((contractor: any) => {
+        .filter((contractor: unknown) => {
           const distance = this.calculateDistance(
             userLatitude,
             userLongitude,
@@ -360,7 +360,7 @@ export class UserService {
           return distance <= radiusKm;
         })
         .map(
-          (contractor: any) =>
+          (contractor: unknown) =>
             ({
               id: contractor.id,
               email: contractor.email,
@@ -453,7 +453,7 @@ export class UserService {
       const uniqueContractors = new Map();
 
       for (const job of completedJobs) {
-        const contractor = job.contractor as any;
+        const contractor = job.contractor as unknown;
         if (contractor && !uniqueContractors.has(contractor.id)) {
           // Get reviews for this contractor
           const { data: reviews } = await supabase
@@ -477,11 +477,11 @@ export class UserService {
             created_at: '',
             updated_at: '',
             skills:
-              contractor.contractor_skills?.map((s: any) => ({
+              contractor.contractor_skills?.map((s: unknown) => ({
                 skillName: s.skill_name,
               })) || [],
             reviews:
-              reviews?.map((review: any) => ({
+              reviews?.map((review: unknown) => ({
                 rating: review.rating,
                 comment: review.comment,
                 reviewer: 'You',

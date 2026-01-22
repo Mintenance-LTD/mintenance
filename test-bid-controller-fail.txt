@@ -1,0 +1,73 @@
+﻿
+ RUN  v4.0.16 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean
+
+node.exe : stderr | packages/api-services/src/bids/__
+tests__/BidController.test.ts > BidController > 
+submitBid > should return 201 when bid is submitted 
+successfully
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (stderr  
+   | packag...ed successfully:String) [], RemoteExc  
+  eption
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[ERROR] [2026-01-13T14:38:38.468Z] ERROR Bid API 
+Error:
+[ERROR] Details: TypeError: 
+this.bidService.updateBidScore is not a function
+    at BidController.submitBid (C:/Users/Djodjo.Nkouk
+a.ERICCOLE/Downloads/mintenance-clean/packages/api-se
+rvices/src/bids/BidController.ts:115:29)
+[90m    at processTicksAndRejections 
+(node:internal/process/task_queues:105:5)[39m
+    at C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mint
+enance-clean/packages/api-services/src/bids/__tests__
+/BidController.test.ts:54:24
+    at [90mfile:///C:/Users/Djodjo.Nkouka.ERICCOLE/D
+ownloads/mintenance-clean/[39mnode_modules/[4m@vite
+st[24m/runner/dist/index.js:915:20
+
+ ÔØ» packages/api-services/src/bids/__tests__/BidController.test.ts (5 tests | 1 failed) 19ms
+       ├ù should return 201 when bid is submitted successfully 12ms
+       Ô£ô should return 401 if unauthenticated (hypothetically) 1ms
+       Ô£ô should return bids for contractor 1ms
+       Ô£ô should return 200 when bid is accepted 2ms
+       Ô£ô should return 200 when bid is withdrawn 2ms
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  packages/api-services/src/bids/__tests__/BidCo
+ntroller.test.ts > BidController > submitBid > 
+should return 201 when bid is submitted successfully
+AssertionError: expected 500 to be 201 // Object.is 
+equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 201[39m
+[31m+ 500[39m
+
+ ÔØ» packages/api-services/src/bids/__tests__/BidCont
+roller.test.ts:56:31
+     54|       const response = await 
+controller.submitBid(request);
+     55| 
+     56|       expect(response.status).toBe(201);
+       |                               ^
+     57|       const body = 
+JSON.parse(response.body);
+     58|       expect(body.bidId).toBe('bid-123');
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  14:38:37
+   Duration  702ms (transform 248ms, setup 0ms, import 330ms, tests 19ms, environment 0ms)
+

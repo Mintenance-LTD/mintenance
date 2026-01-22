@@ -2,38 +2,30 @@ import { logger } from '@mintenance/shared';
 /**
  * Shared configuration management
  */
-
 interface RequiredEnvVars {
   JWT_SECRET: string;
   NODE_ENV: string;
 }
-
 interface OptionalEnvVars {
   DATABASE_URL?: string;
   NEXT_PUBLIC_APP_URL?: string;
 }
-
 type EnvVars = RequiredEnvVars & OptionalEnvVars;
-
 export class ConfigManager {
   private static instance: ConfigManager;
   private config: EnvVars;
-
   private constructor() {
     this.config = this.validateAndLoadConfig();
   }
-
   public static getInstance(): ConfigManager {
     if (!ConfigManager.instance) {
       ConfigManager.instance = new ConfigManager();
     }
     return ConfigManager.instance;
   }
-
   private validateAndLoadConfig(): EnvVars {
     const requiredVars: (keyof RequiredEnvVars)[] = ['JWT_SECRET', 'NODE_ENV'];
     const missingVars: string[] = [];
-
     // Check required environment variables
     for (const varName of requiredVars) {
       const value = process.env[varName];
@@ -41,23 +33,18 @@ export class ConfigManager {
         missingVars.push(varName);
       }
     }
-
     // In development, provide defaults instead of throwing
     const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
-    
     if (missingVars.length > 0) {
       const errorMessage = `Missing required environment variables: ${missingVars.join(', ')}`;
-      
       // NEVER use fallbacks in production or CI environments
       if (!isDev || process.env.CI === 'true') {
-        logger.error('[config] Error:', errorMessage', [object Object], { service: 'general' });
+        logger.error('[config] Error:', errorMessage, { service: 'general' });
         throw new Error(errorMessage);
       }
-      
-      logger.error('[config] DEVELOPMENT MODE: Using insecure fallbacks', [object Object], { service: 'general' });
-      logger.error('[config] DO NOT DEPLOY THIS BUILD TO PRODUCTION', [object Object], { service: 'general' });
-      logger.error('[config] Configure .env.local with proper values', [object Object], { service: 'general' });
-      
+      logger.error('[config] DEVELOPMENT MODE: Using insecure fallbacks', { service: 'general' });
+      logger.error('[config] DO NOT DEPLOY THIS BUILD TO PRODUCTION', { service: 'general' });
+      logger.error('[config] Configure .env.local with proper values', { service: 'general' });
       // Return insecure defaults ONLY for development
       return {
         JWT_SECRET: 'dev-insecure-secret-not-for-production',
@@ -66,7 +53,6 @@ export class ConfigManager {
         NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
       };
     }
-
     // Validate JWT_SECRET strength
     const jwtSecret = process.env.JWT_SECRET!;
     if (jwtSecret.length < 32) {
@@ -77,7 +63,7 @@ export class ConfigManager {
     }
     if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret === 'dev-insecure-secret-not-for-production') {
       if (isDev) {
-        if (isDev) logger.warn('[config] Weak/default JWT_SECRET in dev. Using fallback.', [object Object], { service: 'general' });
+        if (isDev) logger.warn('[config] Weak/default JWT_SECRET in dev. Using fallback.', { service: 'general' });
         return {
           JWT_SECRET: 'dev-fallback-secret-min-32-chars-long-for-development-only-do-not-use-in-production',
           NODE_ENV: process.env.NODE_ENV!,
@@ -86,13 +72,11 @@ export class ConfigManager {
         };
       } else {
         const errorMessage = 'JWT_SECRET must be a strong secret (at least 32 characters) and not use the default value';
-        logger.error('[config] Security Error:', errorMessage', [object Object], { service: 'general' });
+        logger.error('[config] Security Error:', errorMessage, { service: 'general' });
         throw new Error(errorMessage);
       }
     }
-
-    if (isDev) console.info('[config] Configuration validated');
-
+    if (isDev) logger.info('[config] Configuration validated');
     return {
       JWT_SECRET: jwtSecret,
       NODE_ENV: process.env.NODE_ENV!,
@@ -100,11 +84,9 @@ export class ConfigManager {
       NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     };
   }
-
   public get(key: keyof EnvVars): string | undefined {
     return this.config[key];
   }
-
   public getRequired(key: keyof RequiredEnvVars): string {
     const value = this.config[key];
     if (!value) {
@@ -112,11 +94,9 @@ export class ConfigManager {
     }
     return value;
   }
-
   public isProduction(): boolean {
     return this.config.NODE_ENV === 'production';
   }
-
   public isDevelopment(): boolean {
     return this.config.NODE_ENV === 'development';
   }

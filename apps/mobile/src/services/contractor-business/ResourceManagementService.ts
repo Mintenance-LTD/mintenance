@@ -114,8 +114,8 @@ interface ResourceAnalytics {
   maintenanceCosts: number;
   mostUsedItems: InventoryItem[];
   underutilizedEquipment: Equipment[];
-  supplierPerformance: any[];
-  costOptimizationOpportunities: any[];
+  supplierPerformance: unknown[];
+  costOptimizationOpportunities: unknown[];
   resourceEfficiency: number;
 }
 
@@ -371,7 +371,7 @@ export class ResourceManagementService {
     );
   }
 
-  static async createPurchaseOrder(contractorId: string, supplierId: string, items: any[]): Promise<string> {
+  static async createPurchaseOrder(contractorId: string, supplierId: string, items: unknown[]): Promise<string> {
     return ServiceErrorHandler.handleServiceCall(
       async () => {
         const { data: supplier, error: supplierError } = await supabase
@@ -702,7 +702,7 @@ export class ResourceManagementService {
     return 85;
   }
 
-  private static mapInventoryItem(data: any): InventoryItem {
+  private static mapInventoryItem(data: unknown): InventoryItem {
     return {
       id: data.id,
       contractorId: data.contractor_id,
@@ -723,7 +723,7 @@ export class ResourceManagementService {
     };
   }
 
-  private static mapEquipment(data: any): Equipment {
+  private static mapEquipment(data: unknown): Equipment {
     return {
       id: data.id,
       contractorId: data.contractor_id,
@@ -747,7 +747,7 @@ export class ResourceManagementService {
     };
   }
 
-  private static mapSupplier(data: any): Supplier {
+  private static mapSupplier(data: unknown): Supplier {
     return {
       id: data.id,
       contractorId: data.contractor_id,
@@ -768,7 +768,7 @@ export class ResourceManagementService {
     };
   }
 
-  private static mapMaintenanceRecord(data: any): MaintenanceRecord {
+  private static mapMaintenanceRecord(data: unknown): MaintenanceRecord {
     return {
       id: data.id,
       equipmentId: data.equipment_id,

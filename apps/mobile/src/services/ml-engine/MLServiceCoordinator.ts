@@ -360,7 +360,7 @@ export class MLServiceCoordinator {
    * Get comprehensive performance report
    */
   public async getPerformanceReport(): Promise<{
-    report: any;
+    report: unknown;
     modelMetrics: ModelPerformanceMetrics[];
     insights: PerformanceInsights;
   }> {

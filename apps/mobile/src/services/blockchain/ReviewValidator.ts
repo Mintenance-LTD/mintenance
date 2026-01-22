@@ -229,7 +229,7 @@ export class ReviewValidator {
     this.checkInappropriateContent(trimmedContent, errors);
   }
 
-  private validateMedia(media: any[], errors: string[] = [], warnings: string[] = []): void {
+  private validateMedia(media: unknown[], errors: string[] = [], warnings: string[] = []): void {
     if (media.length > this.MAX_MEDIA_COUNT) {
       errors.push(`Maximum ${this.MAX_MEDIA_COUNT} media items allowed`);
     }

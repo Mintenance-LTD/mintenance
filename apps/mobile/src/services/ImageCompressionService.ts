@@ -88,7 +88,7 @@ export interface ExifData {
   orientation?: number;
   make?: string;
   model?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

@@ -23,7 +23,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import SearchBar from '../components/SearchBar';
 
 interface CRMDashboardScreenProps {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
@@ -166,7 +166,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
       onPress={() => setSortBy(sort)}
     >
       <Ionicons
-        name={icon as any}
+        name={icon as unknown}
         size={16}
         color={
           sortBy === sort ? theme.colors.primary : theme.colors.textSecondary

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { Component, type ReactNode } from 'react';
-import { logger } from '@mintenance/shared';
 
 interface Props {
   children: ReactNode;
@@ -62,16 +61,18 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const isChunkError = this.state.isChunkError;
 
-    logger.error('[ChunkLoadErrorBoundary] Error caught:', {
+    console.error('[ChunkLoadErrorBoundary] Error caught:', {
       error,
       errorInfo,
       isChunkError,
       retryCount: this.state.retryCount,
-    }', [object Object], { service: 'ui' });
+    });
 
     // If it's a chunk error and we haven't exceeded retry limit
     if (isChunkError && this.state.retryCount < MAX_AUTO_RETRIES) {
-      logger.warn('[ChunkLoadErrorBoundary] Auto-retry %s/%s', [object Object], { service: 'ui' });
+      console.warn(
+        `[ChunkLoadErrorBoundary] Auto-retry ${this.state.retryCount + 1}/${MAX_AUTO_RETRIES}`
+      );
 
       // Clear cache and retry
       this.clearCacheAndRetry();
@@ -92,7 +93,7 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
     try {
       sessionStorage.removeItem('next-build-id');
     } catch (e) {
-      logger.warn('[ChunkLoadErrorBoundary] Failed to clear session storage:', e', [object Object], { service: 'ui' });
+      console.warn('[ChunkLoadErrorBoundary] Failed to clear session storage:', e);
     }
 
     // Increment retry count

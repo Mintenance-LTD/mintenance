@@ -62,12 +62,12 @@ export function toSnakeCase(str: string): string {
 /**
  * Convert object keys from snake_case to camelCase
  */
-export function keysToCamelCase<T extends Record<string, any>>(obj: T): Record<string, any> {
+export function keysToCamelCase<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(keysToCamelCase);
   if (typeof obj !== 'object') return obj;
 
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     const camelKey = toCamelCase(key);
     result[camelKey] = keysToCamelCase(value);
@@ -78,12 +78,12 @@ export function keysToCamelCase<T extends Record<string, any>>(obj: T): Record<s
 /**
  * Convert object keys from camelCase to snake_case
  */
-export function keysToSnakeCase<T extends Record<string, any>>(obj: T): Record<string, any> {
+export function keysToSnakeCase<T extends Record<string, unknown>>(obj: T): Record<string, unknown> {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(keysToSnakeCase);
   if (typeof obj !== 'object') return obj;
 
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     const snakeKey = toSnakeCase(key);
     result[snakeKey] = keysToSnakeCase(value);
@@ -171,13 +171,13 @@ export const DATABASE_FIELDS = {
 /**
  * Map database result to application entity
  */
-export function mapDatabaseToApp<T extends Record<string, any>>(
-  dbData: any,
+export function mapDatabaseToApp<T extends Record<string, unknown>>(
+  dbData: unknown,
   fieldMapping: Record<string, string>
 ): T {
   if (!dbData) return dbData;
   
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
   
   for (const [appField, dbField] of Object.entries(fieldMapping)) {
     if (dbData.hasOwnProperty(dbField)) {
@@ -191,13 +191,13 @@ export function mapDatabaseToApp<T extends Record<string, any>>(
 /**
  * Map application entity to database fields
  */
-export function mapAppToDatabase<T extends Record<string, any>>(
-  appData: any,
+export function mapAppToDatabase<T extends Record<string, unknown>>(
+  appData: unknown,
   fieldMapping: Record<string, string>
 ): T {
   if (!appData) return appData;
   
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
   
   for (const [appField, dbField] of Object.entries(fieldMapping)) {
     if (appData.hasOwnProperty(appField)) {
@@ -215,56 +215,56 @@ export function mapAppToDatabase<T extends Record<string, any>>(
 /**
  * Map database user to application user
  */
-export function mapDatabaseUserToUser(dbUser: any): any {
+export function mapDatabaseUserToUser(dbUser: unknown): unknown {
   return mapDatabaseToApp(dbUser, DATABASE_FIELDS.user);
 }
 
 /**
  * Map application user to database user
  */
-export function mapUserToDatabaseUser(user: any): any {
+export function mapUserToDatabaseUser(user: unknown): unknown {
   return mapAppToDatabase(user, DATABASE_FIELDS.user);
 }
 
 /**
  * Map database job to application job
  */
-export function mapDatabaseJobToJob(dbJob: any): any {
+export function mapDatabaseJobToJob(dbJob: unknown): unknown {
   return mapDatabaseToApp(dbJob, DATABASE_FIELDS.job);
 }
 
 /**
  * Map application job to database job
  */
-export function mapJobToDatabaseJob(job: any): any {
+export function mapJobToDatabaseJob(job: unknown): unknown {
   return mapAppToDatabase(job, DATABASE_FIELDS.job);
 }
 
 /**
  * Map database bid to application bid
  */
-export function mapDatabaseBidToBid(dbBid: any): any {
+export function mapDatabaseBidToBid(dbBid: unknown): unknown {
   return mapDatabaseToApp(dbBid, DATABASE_FIELDS.bid);
 }
 
 /**
  * Map application bid to database bid
  */
-export function mapBidToDatabaseBid(bid: any): any {
+export function mapBidToDatabaseBid(bid: unknown): unknown {
   return mapAppToDatabase(bid, DATABASE_FIELDS.bid);
 }
 
 /**
  * Map database message to application message
  */
-export function mapDatabaseMessageToMessage(dbMessage: any): any {
+export function mapDatabaseMessageToMessage(dbMessage: unknown): unknown {
   return mapDatabaseToApp(dbMessage, DATABASE_FIELDS.message);
 }
 
 /**
  * Map application message to database message
  */
-export function mapMessageToDatabaseMessage(message: any): any {
+export function mapMessageToDatabaseMessage(message: unknown): unknown {
   return mapAppToDatabase(message, DATABASE_FIELDS.message);
 }
 
@@ -276,8 +276,8 @@ export function mapMessageToDatabaseMessage(message: any): any {
  * Map array of database entities to application entities
  */
 export function mapDatabaseArrayToApp<T>(
-  dbArray: any[],
-  mapper: (item: any) => T
+  dbArray: unknown[],
+  mapper: (item: unknown) => T
 ): T[] {
   return dbArray.map(mapper);
 }
@@ -286,8 +286,8 @@ export function mapDatabaseArrayToApp<T>(
  * Map array of application entities to database entities
  */
 export function mapAppArrayToDatabase<T>(
-  appArray: any[],
-  mapper: (item: any) => T
+  appArray: unknown[],
+  mapper: (item: unknown) => T
 ): T[] {
   return appArray.map(mapper);
 }
@@ -299,7 +299,7 @@ export function mapAppArrayToDatabase<T>(
 /**
  * Validate required fields are present
  */
-export function validateRequiredFields<T extends Record<string, any>>(
+export function validateRequiredFields<T extends Record<string, unknown>>(
   obj: T,
   requiredFields: (keyof T)[]
 ): { isValid: boolean; missingFields: (keyof T)[] } {
@@ -320,7 +320,7 @@ export function validateRequiredFields<T extends Record<string, any>>(
 /**
  * Sanitize string field
  */
-export function sanitizeString(value: any): string {
+export function sanitizeString(value: unknown): string {
   if (typeof value === 'string') {
     return value.trim();
   }
@@ -330,7 +330,7 @@ export function sanitizeString(value: any): string {
 /**
  * Sanitize number field
  */
-export function sanitizeNumber(value: any): number {
+export function sanitizeNumber(value: unknown): number {
   const num = Number(value);
   return isNaN(num) ? 0 : num;
 }
@@ -338,7 +338,7 @@ export function sanitizeNumber(value: any): number {
 /**
  * Sanitize boolean field
  */
-export function sanitizeBoolean(value: any): boolean {
+export function sanitizeBoolean(value: unknown): boolean {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') return value.toLowerCase() === 'true';
   return Boolean(value);
@@ -347,7 +347,7 @@ export function sanitizeBoolean(value: any): boolean {
 /**
  * Sanitize date field
  */
-export function sanitizeDate(value: any): string {
+export function sanitizeDate(value: unknown): string {
   if (value instanceof Date && !isNaN(value.getTime())) {
     return value.toISOString();
   }

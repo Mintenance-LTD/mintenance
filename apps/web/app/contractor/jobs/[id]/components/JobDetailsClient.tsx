@@ -48,7 +48,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
         setIsSaved(data.jobIds?.includes(job.id) || false);
       }
     } catch (error) {
-      logger.error('Error checking saved status:', error', [object Object], { service: 'ui' });
+      logger.error('Error checking saved status:', error, { service: 'ui' });
     }
   };
 
@@ -96,7 +96,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
         toast.success('Job saved! You can view it in your saved jobs.');
       }
     } catch (error) {
-      logger.error('Error toggling save:', error', [object Object], { service: 'ui' });
+      logger.error('Error toggling save:', error, { service: 'ui' });
       toast.error(isSaved ? 'Failed to unsave job' : 'Failed to save job');
     } finally {
       setIsSaving(false);

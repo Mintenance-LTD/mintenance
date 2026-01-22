@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../config/supabase';
+import type { Job } from '@/types';
 import { logger } from '../utils/logger';
 import { handleDatabaseOperation, validateRequired } from '../utils/serviceHelper';
 import { measurePerformance } from '../utils/performance';
@@ -23,7 +24,7 @@ import {
 } from '../types/search';
 
 export class AdvancedSearchService {
-  private static searchCache = new Map<string, { data: any; timestamp: number }>();
+  private static searchCache = new Map<string, { data: unknown; timestamp: number }>();
   private static readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   /**
@@ -378,7 +379,7 @@ export class AdvancedSearchService {
 
   // Private helper methods
 
-  private static applyContractorFilters(queryBuilder: any, filters: SearchFilters) {
+  private static applyContractorFilters(queryBuilder: SupabaseQueryBuilder<unknown>, filters: SearchFilters) {
     // Skills filter
     if (filters.skills.length > 0) {
       queryBuilder = queryBuilder.overlaps('skills', filters.skills);
@@ -424,7 +425,7 @@ export class AdvancedSearchService {
     return queryBuilder;
   }
 
-  private static applyContractorSorting(queryBuilder: any, sortBy: string) {
+  private static applyContractorSorting(queryBuilder: SupabaseQueryBuilder<unknown>, sortBy: string) {
     switch (sortBy) {
       case 'rating':
         return queryBuilder.order('rating', { ascending: false });
@@ -439,7 +440,7 @@ export class AdvancedSearchService {
     }
   }
 
-  private static applyJobFilters(queryBuilder: any, filters: SearchFilters) {
+  private static applyJobFilters(queryBuilder: SupabaseQueryBuilder<unknown>, filters: SearchFilters) {
     // Skills filter
     if (filters.skills.length > 0) {
       queryBuilder = queryBuilder.overlaps('skills_required', filters.skills);
@@ -466,7 +467,7 @@ export class AdvancedSearchService {
     return queryBuilder;
   }
 
-  private static applyJobSorting(queryBuilder: any, sortBy: string) {
+  private static applyJobSorting(queryBuilder: SupabaseQueryBuilder<unknown>, sortBy: string) {
     switch (sortBy) {
       case 'price_high':
         return queryBuilder.order('budget_max', { ascending: false });
@@ -478,7 +479,7 @@ export class AdvancedSearchService {
   }
 
   private static transformContractorResults(
-    data: any[],
+    data: unknown[],
     userLocation: { latitude: number; longitude: number } | null
   ): ContractorSearchResult[] {
     return data.map((item) => ({
@@ -510,7 +511,7 @@ export class AdvancedSearchService {
   }
 
   private static transformJobResults(
-    data: any[],
+    data: unknown[],
     userLocation: { latitude: number; longitude: number } | null
   ): JobSearchResult[] {
     return data.map((item) => ({
@@ -665,7 +666,7 @@ export class AdvancedSearchService {
     return Buffer.from(queryString).toString('base64');
   }
 
-  private static getFromCache(key: string): any {
+  private static getFromCache(key: string): unknown {
     const cached = this.searchCache.get(key);
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
       return cached.data;
@@ -676,7 +677,7 @@ export class AdvancedSearchService {
     return null;
   }
 
-  private static setCache(key: string, data: any): void {
+  private static setCache(key: string, data: unknown): void {
     this.searchCache.set(key, {
       data,
       timestamp: Date.now(),

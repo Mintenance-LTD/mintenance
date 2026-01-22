@@ -80,7 +80,7 @@ export class ModelTrainingEngine {
    * Create individual layer based on configuration
    */
   private createLayer(config: LayerConfig, inputShape?: number[]): tf.layers.Layer {
-    const layerOptions: any = {};
+    const layerOptions: Record<string, unknown> = {};
 
     if (inputShape) {
       layerOptions.inputShape = inputShape;

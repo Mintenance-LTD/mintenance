@@ -104,7 +104,7 @@ export default function QuotesPage() {
       setQuotes(data.quotes || []);
       setApiStats(data.stats || apiStats);
     } catch (error) {
-      logger.error('Error loading quotes:', error', [object Object], { service: 'app' });
+      logger.error('Error loading quotes:', error, { service: 'app' });
       toast.error('Failed to load quotes');
     } finally {
       setLoading(false);

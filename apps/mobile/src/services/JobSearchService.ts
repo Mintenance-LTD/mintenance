@@ -33,13 +33,13 @@ export class JobSearchService {
       .eq('homeowner_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) throw new Error((error as any)?.message || String(error));
+    if (error) throw new Error((error as unknown)?.message || String(error));
     if (!data) return [];
     return data.map(JobCRUDService['formatJob']);
   }
 
   static async getAvailableJobs(): Promise<Job[]> {
-    let q: any = supabase
+    let q: unknown = supabase
       .from('jobs')
       .select('*')
       .eq('status', 'posted')
@@ -79,7 +79,7 @@ export class JobSearchService {
   }
 
   static async getJobsByUser(userId: string, role: 'homeowner' | 'contractor'): Promise<Job[]> {
-    let q: any = supabase.from('jobs').select('*');
+    let q: unknown = supabase.from('jobs').select('*');
     if (role === 'homeowner') q = q.eq('homeowner_id', userId);
     else q = q.eq('contractor_id', userId);
     const { data, error } = await q.order('created_at', { ascending: false });
@@ -89,7 +89,7 @@ export class JobSearchService {
   }
 
   // Generic job retrieval with pagination
-  static async getJobs(arg1?: any, arg2?: any): Promise<Job[]> {
+  static async getJobs(arg1?: unknown, arg2?: unknown): Promise<Job[]> {
     // Overloaded signature support:
     // - getJobs(status?: Job['status'], limit?: number)
     // - getJobs(limit?: number, offset?: number)
@@ -108,7 +108,7 @@ export class JobSearchService {
       limit = arg2;
     }
 
-    let query: any = supabase.from('jobs').select('*');
+    let query: unknown = supabase.from('jobs').select('*');
     if (status) {
       query = query.eq('status', status);
     }
@@ -159,7 +159,7 @@ export class JobSearchService {
       return [];
     }
 
-    let q: any = supabase.from('jobs').select('*');
+    let q: unknown = supabase.from('jobs').select('*');
 
     // Prefer textSearch when available (some tests mock this)
     if (typeof q.textSearch === 'function') {

@@ -175,9 +175,9 @@ export class MetricsCollector {
   // ============================================================================
 
   recordMemoryUsage(): void {
-    if (!this.isEnabled || !(global.performance as any)?.memory) return;
+    if (!this.isEnabled || !(global.performance as unknown)?.memory) return;
 
-    const memory = (global.performance as any).memory;
+    const memory = (global.performance as unknown).memory;
 
     this.recordMetric('js_heap_size_used', memory.usedJSHeapSize, 'custom');
     this.recordMetric('js_heap_size_total', memory.totalJSHeapSize, 'custom');

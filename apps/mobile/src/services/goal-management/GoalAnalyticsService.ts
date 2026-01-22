@@ -239,7 +239,7 @@ export class GoalAnalyticsService {
   /**
    * Generate insights
    */
-  private generateInsights(goal: Goal, metrics: any): string[] {
+  private generateInsights(goal: Goal, metrics: unknown): string[] {
     const insights: string[] = [];
 
     if (metrics.completionRate > 80) {
@@ -264,7 +264,7 @@ export class GoalAnalyticsService {
   /**
    * Generate recommendations
    */
-  private generateRecommendations(goal: Goal, metrics: any): string[] {
+  private generateRecommendations(goal: Goal, metrics: unknown): string[] {
     const recommendations: string[] = [];
 
     if (metrics.completionRate < 30) {

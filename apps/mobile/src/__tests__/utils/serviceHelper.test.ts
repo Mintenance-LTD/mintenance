@@ -260,7 +260,7 @@ describe('serviceHelper', () => {
   describe('integration scenarios', () => {
     it('should work together in a typical service flow', async () => {
       // Mock a typical database service method
-      const createRecord = async (data: any) => {
+      const createRecord = async (data: unknown) => {
         // Validate input
         validateRequired(data.name, 'name', mockContext);
 
@@ -298,7 +298,7 @@ describe('serviceHelper', () => {
     });
 
     it('should handle validation failures in service flow', async () => {
-      const createRecord = async (data: any) => {
+      const createRecord = async (data: unknown) => {
         validateRequired(data.name, 'name', mockContext);
         return 'should not reach here';
       };

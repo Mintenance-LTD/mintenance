@@ -84,7 +84,7 @@ export const PostCard: React.FC<PostCardProps> = ({
       accessibilityRole="button"
     >
       <Ionicons
-        name={iconName as any}
+        name={iconName as unknown}
         size={20}
         color={isActive && activeColor ? activeColor : theme.colors.textSecondary}
       />

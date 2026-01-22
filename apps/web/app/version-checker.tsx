@@ -48,7 +48,7 @@ interface VersionCheckProps {
  * <VersionChecker autoRefresh />
  *
  * // Custom callback
- * <VersionChecker onNewVersion={() => logger.info('New version!', [object Object], { service: 'app' })} />
+ * <VersionChecker onNewVersion={() => logger.info('New version!', { service: 'app' })} />
  * ```
  */
 export function VersionChecker({

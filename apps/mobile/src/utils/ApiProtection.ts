@@ -26,7 +26,7 @@ export interface ApiRequest {
 export interface ApiResponse {
   statusCode: number;
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   timestamp: number;
 }
@@ -602,13 +602,13 @@ export class ApiProtectionService {
     blockedIPs: number;
     blockedUsers: number;
     recentViolations: number;
-    rateLimiterStats: Record<string, any>;
+    rateLimiterStats: Record<string, unknown>;
   } {
     const recentViolations = this.securityViolations.filter(
       v => v.timestamp > Date.now() - (24 * 60 * 60 * 1000)
     ).length;
 
-    const rateLimiterStats: Record<string, any> = {};
+    const rateLimiterStats: Record<string, unknown> = {};
     for (const [name, limiter] of this.rateLimiters.entries()) {
       rateLimiterStats[name] = limiter.getStats();
     }

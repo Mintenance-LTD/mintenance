@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Integration tests for A/B test harness
  * Tests edge cases: empty calibration, missing detectors, etc.
@@ -7,9 +8,9 @@ import { ABTestIntegration } from '../ab_test_harness';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 // Mock dependencies
-jest.mock('../BuildingSurveyorService');
-jest.mock('../critic');
-jest.mock('@/lib/api/supabaseServer');
+vi.mock('../BuildingSurveyorService');
+vi.mock('../critic');
+vi.mock('@/lib/api/supabaseServer');
 
 describe('ABTestIntegration', () => {
   const experimentId = 'test-experiment-id';
@@ -17,17 +18,17 @@ describe('ABTestIntegration', () => {
 
   beforeEach(() => {
     abTest = new ABTestIntegration(experimentId);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('edge cases', () => {
     it('should handle empty calibration data gracefully', async () => {
       // Mock empty calibration data
-      (serverSupabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [] }),
+      vi.mocked(serverSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: [] }),
       });
 
       // Should fall back to global stratum
@@ -43,10 +44,10 @@ describe('ABTestIntegration', () => {
 
     it('should escalate when seed safe set is empty', async () => {
       // Mock empty historical validations
-      (serverSupabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        gte: jest.fn().mockResolvedValue({ data: [] }),
+      vi.mocked(serverSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        gte: vi.fn().mockResolvedValue({ data: [] }),
       });
 
       // Should escalate due to empty safe set

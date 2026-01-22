@@ -28,15 +28,15 @@ export interface DataConflict {
   entityId: string;
   clientVersion: number;
   serverVersion: number;
-  clientData: any;
-  serverData: any;
+  clientData: unknown;
+  serverData: unknown;
   clientTimestamp: number;
   serverTimestamp: number;
   detectedAt: number;
   strategy: ConflictResolutionStrategy;
   resolved: boolean;
   resolution?: 'client' | 'server' | 'merged';
-  mergedData?: any;
+  mergedData?: unknown;
 }
 
 /**
@@ -46,7 +46,7 @@ export type OfflineAction = {
   id: string;
   type: 'CREATE' | 'UPDATE' | 'DELETE';
   entity: string;
-  data: any;
+  data: unknown;
   timestamp: number;
   retryCount: number;
   maxRetries: number;
@@ -67,7 +67,7 @@ class OfflineManagerClass {
   private readonly MAX_RETRIES = 3;
   private readonly CHUNK_SIZE = 50; // process actions in manageable chunks
   private syncInProgress = false;
-  private retryTimer: any = null;
+  private retryTimer: unknown = null;
   // CRITICAL FIX: Memory leak prevention
   // syncListeners array must be properly cleaned up to prevent indefinite growth
   // Use the unsubscribe function returned by onSyncStatusChange() to cleanup
@@ -268,7 +268,7 @@ class OfflineManagerClass {
 
             if (action.retryCount < action.maxRetries) {
               // record backoff delay for future scheduling (not enforced here to keep tests fast)
-              (action as any).nextRetryAt = Date.now() + Math.min(30000, 500 * Math.pow(2, action.retryCount - 1));
+              (action as unknown).nextRetryAt = Date.now() + Math.min(30000, 500 * Math.pow(2, action.retryCount - 1));
               failedActions.push(action);
               logger.warn('Action failed, will retry', {
                 actionId: action.id,
@@ -321,7 +321,7 @@ class OfflineManagerClass {
           Math.min(
             30000,
             Math.min(
-              ...failedActions.map((a: any) => Math.max(0, (a.nextRetryAt || now + 500) - now))
+              ...failedActions.map((a: unknown) => Math.max(0, (a.nextRetryAt || now + 500) - now))
             )
           )
         );
@@ -346,7 +346,7 @@ class OfflineManagerClass {
         this.retryTimer = null;
         this.syncQueue();
       }, Math.max(0, delayMs | 0));
-      (this.retryTimer as any)?.unref?.();
+      (this.retryTimer as unknown)?.unref?.();
     } catch {}
   }
 
@@ -385,7 +385,7 @@ class OfflineManagerClass {
 
   private async executeJobAction(
     type: OfflineAction['type'],
-    data: any
+    data: unknown
   ): Promise<void> {
     // Import statically so jest.mock works consistently in tests
     const { JobService } = require('./JobService');
@@ -408,7 +408,7 @@ class OfflineManagerClass {
 
   private async executeBidAction(
     type: OfflineAction['type'],
-    data: any
+    data: unknown
   ): Promise<void> {
     const { JobService } = require('./JobService');
 
@@ -428,7 +428,7 @@ class OfflineManagerClass {
 
   private async executeMessageAction(
     type: OfflineAction['type'],
-    data: any
+    data: unknown
   ): Promise<void> {
     const { MessagingService } = require('./MessagingService');
 
@@ -448,7 +448,7 @@ class OfflineManagerClass {
 
   private async executeProfileAction(
     type: OfflineAction['type'],
-    data: any
+    data: unknown
   ): Promise<void> {
     const { UserService } = require('./UserService');
 
@@ -654,7 +654,7 @@ class OfflineManagerClass {
   /**
    * Fetch current server data for conflict detection
    */
-  private async fetchServerData(entity: string, entityId: string): Promise<any> {
+  private async fetchServerData(entity: string, entityId: string): Promise<unknown> {
     try {
       switch (entity) {
         case 'job': {
@@ -664,7 +664,7 @@ class OfflineManagerClass {
         case 'bid': {
           const { JobService } = require('./JobService');
           const bids = await JobService.getBidsByJob(entityId);
-          return bids.find((b: any) => b.id === entityId);
+          return bids.find((b: unknown) => b.id === entityId);
         }
         case 'profile': {
           const { UserService } = require('./UserService');
@@ -752,7 +752,7 @@ class OfflineManagerClass {
    */
   private async resolveMerge(conflict: DataConflict): Promise<boolean> {
     try {
-      let mergedData: any;
+      let mergedData: unknown;
 
       switch (conflict.entity) {
         case 'job':
@@ -791,7 +791,7 @@ class OfflineManagerClass {
   /**
    * Merge job data intelligently
    */
-  private mergeJobData(clientData: any, serverData: any): any {
+  private mergeJobData(clientData: unknown, serverData: unknown): unknown {
     return {
       ...serverData,
       // Client updates for editable fields
@@ -817,7 +817,7 @@ class OfflineManagerClass {
   /**
    * Merge bid data intelligently
    */
-  private mergeBidData(clientData: any, serverData: any): any {
+  private mergeBidData(clientData: unknown, serverData: unknown): unknown {
     // Bids are mostly immutable - server wins for status changes
     return {
       ...serverData,
@@ -835,7 +835,7 @@ class OfflineManagerClass {
   /**
    * Merge profile data intelligently
    */
-  private mergeProfileData(clientData: any, serverData: any): any {
+  private mergeProfileData(clientData: unknown, serverData: unknown): unknown {
     return {
       ...serverData,
       // Client wins for user preferences
@@ -896,7 +896,7 @@ class OfflineManagerClass {
   async resolveConflictManually(
     conflictId: string,
     resolution: 'client' | 'server' | 'merged',
-    mergedData?: any
+    mergedData?: unknown
   ): Promise<void> {
     try {
       const conflicts = await this.getConflicts();

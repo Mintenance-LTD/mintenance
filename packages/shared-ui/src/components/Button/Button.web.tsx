@@ -3,14 +3,11 @@
  * 
  * Web-specific Button component using design tokens
  */
-
 'use client';
-
 import React, { useState, useEffect } from 'react';
 import { webTokens } from '@mintenance/design-tokens';
 import { cn } from '../../utils/cn';
 import type { WebButtonProps, ButtonSize } from './types';
-
 /**
  * Button Component for Web
  * 
@@ -36,14 +33,11 @@ export function Button({
   const [isFocused, setIsFocused] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
   const [mounted, setMounted] = useState(false);
-
   // Ensure hydration matches by only applying interactive styles after mount
   useEffect(() => {
     setMounted(true);
   }, []);
-
   const isDisabled = disabled || loading;
-
   // Base styles using design tokens
   const baseStyles: React.CSSProperties = {
     display: 'inline-flex',
@@ -59,7 +53,6 @@ export function Button({
     cursor: isDisabled ? 'not-allowed' : 'pointer',
     opacity: isDisabled ? 0.6 : 1,
   };
-
   // Size styles
   const sizeStyles: Record<ButtonSize, React.CSSProperties> = {
     sm: {
@@ -83,14 +76,12 @@ export function Button({
       minHeight: '56px',
     },
   };
-
   // Variant styles
   const getVariantStyles = (): React.CSSProperties => {
     const base = {
       // Only apply transform after mount to prevent hydration mismatch
       transform: mounted && isPressed && !isDisabled ? 'scale(0.98)' : 'scale(1)',
     };
-
     switch (variant) {
       case 'primary':
         return {
@@ -161,7 +152,6 @@ export function Button({
         return base;
     }
   };
-
   // Focus styles
   const focusStyles: React.CSSProperties = mounted && isFocused && !isDisabled
     ? {
@@ -169,12 +159,10 @@ export function Button({
         outlineOffset: '4px',
       }
     : {};
-
   // Determine effective ARIA attributes
   const effectiveAriaLabel = ariaLabel || (typeof children === 'string' ? children : undefined);
   const effectiveAriaBusy = ariaBusy !== undefined ? ariaBusy : loading;
   const effectiveAriaDisabled = ariaDisabled !== undefined ? ariaDisabled : isDisabled;
-
   const buttonStyles: React.CSSProperties = {
     ...baseStyles,
     ...sizeStyles[size],
@@ -182,7 +170,6 @@ export function Button({
     ...focusStyles,
     ...props.style,
   };
-
   return (
     <button
       {...props}
@@ -234,7 +221,6 @@ export function Button({
           {leftIcon}
         </span>
       )}
-
       {/* Loading Spinner */}
       {loading && (
         <span
@@ -264,10 +250,8 @@ export function Button({
           </svg>
         </span>
       )}
-
       {/* Button Text */}
       <span>{children}</span>
-
       {/* Right Icon */}
       {rightIcon && !loading && (
         <span style={{ display: 'inline-flex', alignItems: 'center', marginLeft: webTokens.spacing.sm }} aria-hidden="true">
@@ -277,4 +261,3 @@ export function Button({
     </button>
   );
 }
-

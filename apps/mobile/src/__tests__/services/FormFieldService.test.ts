@@ -1,4 +1,24 @@
-import { FormFieldService, FormField } from '../../services/form-management/FormFieldService';
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
+
+jest.mock('../../services/FormFieldService', () => ({
+  FormFieldService: {
+    ...jest.requireActual('../../services/FormFieldService').FormFieldService,
+    initialize: jest.fn(),
+    cleanup: jest.fn(),
+  }
+}));
+
+import { FormFieldService, FormField } from '../../services/FormFieldService';
 import { supabase } from '../../config/supabase';
 
 // Mock supabase

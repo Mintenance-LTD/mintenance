@@ -39,7 +39,7 @@ const TESTIMONIALS = [
 ];
 
 export default function LandingScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<unknown>();
   const scrollViewRef = useRef<ScrollView>(null);
   const featuresViewRef = useRef<View>(null);
 
@@ -118,7 +118,7 @@ export default function LandingScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
           {CATEGORIES.map(c => (
             <TouchableOpacity key={c.key} style={styles.chip}>
-              <Ionicons name={c.icon as any} size={18} color={theme.colors.primary} />
+              <Ionicons name={c.icon as unknown} size={18} color={theme.colors.primary} />
               <Text style={styles.chipText}>{c.label}</Text>
             </TouchableOpacity>
           ))}
@@ -240,7 +240,7 @@ function SectionHeader({ title, action, onActionPress }: { title: string; action
   );
 }
 
-function Feature({ icon, title, text }: { icon: any; title: string; text: string }) {
+function Feature({ icon, title, text }: { icon: unknown; title: string; text: string }) {
   return (
     <View style={styles.featureCard}>
       <View style={styles.featureIcon}>
@@ -252,7 +252,7 @@ function Feature({ icon, title, text }: { icon: any; title: string; text: string
   );
 }
 
-function TrustPill({ icon, text }: { icon: any; text: string }) {
+function TrustPill({ icon, text }: { icon: unknown; text: string }) {
   return (
     <View style={styles.trustPill}>
       <Ionicons name={icon} size={14} color={theme.colors.white} />
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    ...(Platform.OS === 'web' ? { position: 'sticky' as any, top: 0, zIndex: 50, backgroundColor: theme.colors.background } : {}),
+    ...(Platform.OS === 'web' ? { position: 'sticky' as unknown, top: 0, zIndex: 50, backgroundColor: theme.colors.background } : {}),
   },
   brandRow: { flexDirection: 'row', alignItems: 'center' },
   logoMark: {

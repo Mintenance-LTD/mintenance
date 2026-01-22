@@ -7,6 +7,7 @@ import {
 } from '@mintenance/types';
 import { logger } from '../utils/logger';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
+import { JobContextLocationService, ContractorLocationContext } from './JobContextLocationService';
 
 export class MeetingService {
   static async createMeeting(meetingData: {
@@ -293,8 +294,8 @@ export class MeetingService {
     updateType: MeetingUpdate['updateType'];
     message: string;
     updatedBy: string;
-    oldValue?: any;
-    newValue?: any;
+    oldValue?: unknown;
+    newValue?: unknown;
   }): Promise<MeetingUpdate> {
     try {
       const { data, error } = await supabase
@@ -340,7 +341,7 @@ export class MeetingService {
 
       if (error) throw this.normalizeSupabaseError(error, 'Failed to fetch meeting updates');
 
-      return (data || []).map((update: any) => ({
+      return (data || []).map((update: unknown) => ({
         id: update.id,
         meetingId: update.meeting_id,
         updateType: update.update_type,
@@ -371,7 +372,7 @@ export class MeetingService {
           table: 'contractor_locations',
           filter: `contractor_id=eq.${contractorId}`,
         },
-        (payload: any) => {
+        (payload: unknown) => {
           if (payload.new) {
             callback({
               id: payload.new.id,
@@ -404,7 +405,7 @@ export class MeetingService {
           table: 'contractor_meetings',
           filter: `id=eq.${meetingId}`,
         },
-        async (payload: any) => {
+        async (payload: unknown) => {
           if (payload.new) {
             const meeting = await this.getMeetingById(payload.new.id);
             callback(meeting);
@@ -414,7 +415,165 @@ export class MeetingService {
       .subscribe();
   }
 
-  private static normalizeSupabaseError(error: any, fallbackMessage: string): Error {
+  /**
+   * Start tracking contractor travel to meeting location
+   * Called when contractor taps "Start Traveling" button
+   */
+  static async startTravelTracking(
+    meetingId: string,
+    contractorId: string,
+    onLocationUpdate?: (location: { latitude: number; longitude: number; eta: number }) => void
+  ): Promise<JobContextLocationService> {
+    try {
+      const meeting = await this.getMeetingById(meetingId);
+      if (!meeting) {
+        throw new Error('Meeting not found');
+      }
+
+      if (!meeting.location?.latitude || !meeting.location?.longitude) {
+        throw new Error('Meeting location not set');
+      }
+
+      // Update meeting status to indicate contractor is traveling
+      await this.updateMeetingStatus(
+        meetingId,
+        'in_progress' as ContractorMeeting['status'],
+        contractorId,
+        'Contractor started traveling to meeting location'
+      );
+
+      // Create meeting update
+      await this.createMeetingUpdate({
+        meetingId,
+        updateType: 'contractor_enroute',
+        message: 'Contractor is traveling to the meeting location',
+        updatedBy: contractorId,
+      });
+
+      // Start location tracking service
+      const locationService = new JobContextLocationService();
+      await locationService.startJobTracking(
+        contractorId,
+        meeting.jobId || '',
+        meetingId,
+        {
+          latitude: meeting.location.latitude,
+          longitude: meeting.location.longitude,
+        },
+        async (location, eta) => {
+          // Notify via callback if provided
+          if (onLocationUpdate) {
+            onLocationUpdate({
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              eta,
+            });
+          }
+        }
+      );
+
+      logger.info('Started travel tracking for meeting', {
+        meetingId,
+        contractorId,
+        destination: meeting.location,
+      });
+
+      return locationService;
+    } catch (error) {
+      logger.error('Error starting travel tracking', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark contractor as arrived at meeting location
+   */
+  static async markArrived(
+    meetingId: string,
+    contractorId: string,
+    locationService: JobContextLocationService
+  ): Promise<void> {
+    try {
+      const meeting = await this.getMeetingById(meetingId);
+      if (!meeting) {
+        throw new Error('Meeting not found');
+      }
+
+      // Mark as arrived in location service
+      await locationService.markArrived(
+        meeting.jobId || '',
+        meetingId
+      );
+
+      // Update meeting status
+      await this.updateMeetingStatus(
+        meetingId,
+        'in_progress' as ContractorMeeting['status'],
+        contractorId,
+        'Contractor has arrived at meeting location'
+      );
+
+      // Create meeting update
+      await this.createMeetingUpdate({
+        meetingId,
+        updateType: 'contractor_arrived',
+        message: 'Contractor has arrived at the meeting location',
+        updatedBy: contractorId,
+      });
+
+      logger.info('Contractor marked as arrived', { meetingId, contractorId });
+    } catch (error) {
+      logger.error('Error marking contractor as arrived', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Subscribe to contractor location updates during travel
+   * Enhanced version with ETA and context
+   */
+  static subscribeToContractorTravelLocation(
+    meetingId: string,
+    contractorId: string,
+    callback: (data: {
+      location: ContractorLocation;
+      eta: number;
+      context: ContractorLocationContext;
+    }) => void
+  ) {
+    return supabase
+      .channel(`contractor_travel_${meetingId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contractor_locations',
+          filter: `contractor_id=eq.${contractorId} AND meeting_id=eq.${meetingId} AND is_active=eq.true`,
+        },
+        (payload: unknown) => {
+          if (payload.new) {
+            callback({
+              location: {
+                id: payload.new.id,
+                contractorId: payload.new.contractor_id,
+                latitude: payload.new.latitude,
+                longitude: payload.new.longitude,
+                accuracy: payload.new.accuracy,
+                timestamp: payload.new.timestamp,
+                isActive: payload.new.is_active,
+                meetingId: payload.new.meeting_id,
+              },
+              eta: payload.new.eta_minutes || 0,
+              context: payload.new.context || ContractorLocationContext.TRAVELING_TO_JOB,
+            });
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  private static normalizeSupabaseError(error: Error | unknown, fallbackMessage: string): Error {
     if (!error) {
       return new Error(fallbackMessage);
     }
@@ -433,7 +592,7 @@ export class MeetingService {
     return new Error((messageCandidate as string) || fallbackMessage);
   }
 
-  private static mapDatabaseToMeeting(data: any): ContractorMeeting {
+  private static mapDatabaseToMeeting(data: unknown): ContractorMeeting {
     return {
       id: data.id,
       jobId: data.job_id,

@@ -1,0 +1,219 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Card Components - Snapshots JobCard should match snapshot for completed job 1`] = `
+<TouchableOpacity
+  onPress={[Function]}
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 5,
+      "marginHorizontal": 16,
+      "marginVertical": 8,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+  testID="job-card"
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-start",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8,
+      }
+    }
+  >
+    <Text
+      numberOfLines={2}
+      style={
+        {
+          "color": "#0F172A",
+          "flex": 1,
+          "fontSize": 19,
+          "fontWeight": "600",
+          "marginRight": 8,
+        }
+      }
+    >
+      Electrical Work
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 19,
+          "fontWeight": "700",
+        }
+      }
+    >
+      $NaN
+    </Text>
+  </View>
+  <Text
+    numberOfLines={3}
+    style={
+      {
+        "color": "#475569",
+        "fontSize": 15,
+        "lineHeight": 21,
+        "marginBottom": 12,
+      }
+    }
+  />
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 4,
+            "paddingHorizontal": 8,
+            "paddingVertical": 4,
+          },
+          {
+            "backgroundColor": "#10B981",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontSize": 11,
+            "fontWeight": "600",
+          }
+        }
+      >
+        COMPLETED
+      </Text>
+    </View>
+  </View>
+</TouchableOpacity>
+`;
+
+exports[`Card Components - Snapshots JobCard should match snapshot for pending job 1`] = `
+<TouchableOpacity
+  onPress={[Function]}
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 5,
+      "marginHorizontal": 16,
+      "marginVertical": 8,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+  testID="job-card"
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-start",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8,
+      }
+    }
+  >
+    <Text
+      numberOfLines={2}
+      style={
+        {
+          "color": "#0F172A",
+          "flex": 1,
+          "fontSize": 19,
+          "fontWeight": "600",
+          "marginRight": 8,
+        }
+      }
+    >
+      Plumbing Repair
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 19,
+          "fontWeight": "700",
+        }
+      }
+    >
+      $500
+    </Text>
+  </View>
+  <Text
+    numberOfLines={3}
+    style={
+      {
+        "color": "#475569",
+        "fontSize": 15,
+        "lineHeight": 21,
+        "marginBottom": 12,
+      }
+    }
+  >
+    Fix leaky faucet in bathroom
+  </Text>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 4,
+            "paddingHorizontal": 8,
+            "paddingVertical": 4,
+          },
+          {
+            "backgroundColor": "#3B82F6",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontSize": 11,
+            "fontWeight": "600",
+          }
+        }
+      >
+        POSTED
+      </Text>
+    </View>
+  </View>
+</TouchableOpacity>
+`;

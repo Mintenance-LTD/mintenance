@@ -1,3 +1,4 @@
+import { renderHook, act } from '@testing-library/react-native';
 /**
  * Tests for useAuth Hook - Authentication Service Integration
  *
@@ -6,7 +7,7 @@
  */
 
 import { AuthService } from '../../services/AuthService';
-import { User } from '@mintenance/types';
+import { User } from '../../types';
 
 // Mock AuthService
 jest.mock('../../services/AuthService');

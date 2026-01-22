@@ -117,7 +117,7 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
           toast.error('Failed to delete property');
         }
       } catch (error) {
-        logger.error('Error deleting property:', error', [object Object], { service: 'ui' });
+        logger.error('Error deleting property:', error, { service: 'ui' });
         toast.error('Failed to delete property');
       }
     }

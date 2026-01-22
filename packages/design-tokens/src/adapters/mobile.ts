@@ -5,13 +5,11 @@
  * Note: The normalize function should be called from the mobile app with
  * React Native's PixelRatio and Dimensions.
  */
-
 import { colors } from '../colors';
 import { typography } from '../typography';
 import { spacing } from '../spacing';
 import { shadows } from '../shadows';
 import { borderRadius } from '../borderRadius';
-
 // Normalize function factory - takes screen width and PixelRatio from React Native
 export const createNormalize = (
   screenWidth: number,
@@ -20,7 +18,6 @@ export const createNormalize = (
   maxScale: number = 1.3
 ) => {
   const scale = screenWidth / 375; // Base width for iPhone 11
-  
   return (size: number, customMaxScale?: number): number => {
     const newSize = size * scale;
     const fontScale = getFontScale();
@@ -28,13 +25,11 @@ export const createNormalize = (
     return roundToNearestPixel(scaledSize);
   };
 };
-
 // Base mobile tokens (without normalized font sizes - normalization happens in app)
 export const mobileTokens = {
   colors: {
     ...colors,
   },
-
   typography: {
     ...typography,
     // Raw font sizes - will be normalized in the mobile app
@@ -51,17 +46,13 @@ export const mobileTokens = {
       '5xl': typography.fontSize['5xl'],
     },
   },
-
   spacing: {
     ...spacing,
   },
-
   shadows: shadows.mobile,
-
   borderRadius: {
     ...borderRadius,
   },
-
   // Utility function
   getColor: (colorPath: string) => {
     const keys = colorPath.split('.');
@@ -76,6 +67,4 @@ export const mobileTokens = {
     return typeof value === 'string' ? value : undefined;
   },
 } as const;
-
 export type MobileTokens = typeof mobileTokens;
-

@@ -7,10 +7,8 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { ArrowLeft, Shield } from 'lucide-react';
-import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
-import { logger } from '@mintenance/shared';
 
-type SectionKey = 'profile' | 'account' | 'notifications' | 'payments' | 'privacy' | 'automation';
+type SectionKey = 'profile' | 'account' | 'notifications' | 'payments' | 'privacy';
 
 export default function SettingsPage2025({
   params,
@@ -245,7 +243,6 @@ export default function SettingsPage2025({
     { key: 'account' as SectionKey, label: 'Account & Security' },
     { key: 'notifications' as SectionKey, label: 'Notifications' },
     { key: 'payments' as SectionKey, label: 'Payments' },
-    { key: 'automation' as SectionKey, label: 'AI Agent Automation' },
     { key: 'privacy' as SectionKey, label: 'Privacy' },
   ];
 
@@ -639,7 +636,7 @@ export default function SettingsPage2025({
                                   setVerificationCode('');
 
                                 } catch (error) {
-                                  logger.error('Verification error:', error', [object Object], { service: 'app' });
+                                  console.error('Verification error:', error);
                                   toast.error('Failed to send verification code. Please try again.', { id: 'verify' });
                                 } finally {
                                   setIsSaving(false);
@@ -915,15 +912,6 @@ export default function SettingsPage2025({
               </div>
             )}
 
-            {/* AI Agent Automation Section */}
-            {activeSection === 'automation' && (
-              <div className="space-y-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Agent Automation</h1>
-                <p className="text-gray-600 mb-6">Control how AI agents assist you</p>
-                <AgentAutomationPanel />
-              </div>
-            )}
-
             {/* Privacy Section */}
             {activeSection === 'privacy' && (
               <div className="space-y-6">
@@ -1018,7 +1006,7 @@ export default function SettingsPage2025({
                     refresh();
 
                   } catch (error) {
-                    logger.error('Verification error:', error', [object Object], { service: 'app' });
+                    console.error('Verification error:', error);
                     toast.error('Verification failed. Please try again.', { id: 'verify-code' });
                   } finally {
                     setIsSaving(false);

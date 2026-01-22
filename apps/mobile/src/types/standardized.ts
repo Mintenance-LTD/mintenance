@@ -386,19 +386,19 @@ export interface UpdateUserProfileForm {
 // TYPE GUARDS
 // =============================================
 
-export function isUser(obj: any): obj is User {
+export function isUser(obj: unknown): obj is User {
   return obj && typeof obj.id === 'string' && typeof obj.email === 'string';
 }
 
-export function isJob(obj: any): obj is Job {
+export function isJob(obj: unknown): obj is Job {
   return obj && typeof obj.id === 'string' && typeof obj.title === 'string';
 }
 
-export function isBid(obj: any): obj is Bid {
+export function isBid(obj: unknown): obj is Bid {
   return obj && typeof obj.id === 'string' && typeof obj.jobId === 'string';
 }
 
-export function isMessage(obj: any): obj is Message {
+export function isMessage(obj: unknown): obj is Message {
   return obj && typeof obj.id === 'string' && typeof obj.messageText === 'string';
 }
 

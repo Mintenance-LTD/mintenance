@@ -1,5 +1,13 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '../test-utils';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { AuthProvider, useAuth } from '../../contexts/AuthContext';
@@ -35,7 +43,9 @@ jest.mock('../../services/ContractorService', () => ({
     findNearbyContractors: jest.fn(),
     searchContractors: jest.fn(),
     getContractorProfile: jest.fn(),
+    getContractors: jest.fn(),
     recordContractorMatch: jest.fn(),
+    createMatch: jest.fn(),
     swipeContractor: jest.fn(),
     getMatches: jest.fn(),
     getContractorMatches: jest.fn(),
@@ -47,6 +57,7 @@ jest.mock('../../services/MessagingService', () => ({
     sendMessage: jest.fn(),
     getConversations: jest.fn(),
     createThread: jest.fn(),
+    createConversation: jest.fn(),
   },
 }));
 
@@ -354,7 +365,7 @@ const TestNavigator = ({
   return <MockBiddingDashboard userRole={userRole} />;
 };
 
-const TestWrapper = (props: any) => (
+const TestWrapper = (props: unknown) => (
   <AuthProvider>
     <TestNavigator {...props} />
   </AuthProvider>
@@ -401,13 +412,11 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
         },
       ];
 
-      mockContractorService.getContractors.mockResolvedValue(mockContractors);
-      mockContractorService.createMatch.mockResolvedValue({
-        id: 'match-123',
-        homeownerId: 'homeowner-123',
-        contractorId: 'contractor-1',
-        action: 'like',
-        status: 'pending',
+      mockContractorService.findNearbyContractors.mockResolvedValue(
+        mockContractors
+      );
+      mockContractorService.swipeContractor.mockResolvedValue({
+        success: true,
       });
 
       let matchedContractor: any;
@@ -426,7 +435,11 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
 
       // Should load contractors
       await waitFor(() => {
-        expect(mockContractorService.getContractors).toHaveBeenCalled();
+        expect(mockContractorService.findNearbyContractors).toHaveBeenCalledWith(
+          { latitude: 0, longitude: 0 },
+          50,
+          []
+        );
       });
 
       // Should display first contractor
@@ -447,16 +460,16 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       // Like the contractor
       const likeButton = getByTestId('like-button');
       await act(async () => {
-        fireEvent.press(likeButton);
+        act(() => fireEvent.press(likeButton));
       });
 
       // Verify match creation
       await waitFor(() => {
-        expect(mockContractorService.createMatch).toHaveBeenCalledWith({
-          homeownerId: 'homeowner-123',
-          contractorId: 'contractor-1',
-          action: 'like',
-        });
+        expect(mockContractorService.swipeContractor).toHaveBeenCalledWith(
+          'homeowner-123',
+          'contractor-1',
+          'like'
+        );
       });
 
       // Should trigger onMatch callback
@@ -482,13 +495,11 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
         },
       ];
 
-      mockContractorService.getContractors.mockResolvedValue(mockContractors);
-      mockContractorService.createMatch.mockResolvedValue({
-        id: 'match-123',
-        homeownerId: 'homeowner-123',
-        contractorId: 'contractor-1',
-        action: 'pass',
-        status: 'rejected',
+      mockContractorService.findNearbyContractors.mockResolvedValue(
+        mockContractors
+      );
+      mockContractorService.swipeContractor.mockResolvedValue({
+        success: true,
       });
 
       const { getByTestId } = render(
@@ -502,16 +513,16 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
       // Pass on the contractor
       const passButton = getByTestId('pass-button');
       await act(async () => {
-        fireEvent.press(passButton);
+        act(() => fireEvent.press(passButton));
       });
 
       // Verify match creation with pass action
       await waitFor(() => {
-        expect(mockContractorService.createMatch).toHaveBeenCalledWith({
-          homeownerId: 'homeowner-123',
-          contractorId: 'contractor-1',
-          action: 'pass',
-        });
+        expect(mockContractorService.swipeContractor).toHaveBeenCalledWith(
+          'homeowner-123',
+          'contractor-1',
+          'pass'
+        );
       });
 
       // Should show no more contractors message
@@ -579,7 +590,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
 
       // Start chat
       await act(async () => {
-        fireEvent.press(chatButton);
+        act(() => fireEvent.press(chatButton));
       });
 
       // Verify conversation creation
@@ -671,7 +682,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
 
       // Start job
       await act(async () => {
-        fireEvent.press(startJobButton);
+        act(() => fireEvent.press(startJobButton));
       });
 
       // Verify job start
@@ -681,7 +692,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
 
       // Complete job
       await act(async () => {
-        fireEvent.press(completeJobButton);
+        act(() => fireEvent.press(completeJobButton));
       });
 
       // Verify job completion
@@ -741,7 +752,7 @@ describe('Contractor Matching and Bidding Workflow Integration', () => {
 
       // Accept first bid
       await act(async () => {
-        fireEvent.press(acceptButton1);
+        act(() => fireEvent.press(acceptButton1));
       });
 
       // Verify bid acceptance

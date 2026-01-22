@@ -32,23 +32,23 @@ export interface JobSheet {
   client_name?: string;
   client_email?: string;
   client_phone?: string;
-  client_signature?: any;
-  form_data: any;
-  photos: any[];
-  documents: any[];
-  signatures: any;
+  client_signature?: unknown;
+  form_data: unknown;
+  photos: unknown[];
+  documents: unknown[];
+  signatures: unknown;
   quality_score?: number;
   quality_notes?: string;
   billable_hours?: number;
   materials_cost?: number;
   total_cost?: number;
-  compliance_items: any[];
-  safety_checklist: any[];
+  compliance_items: unknown[];
+  safety_checklist: unknown[];
   revision_number: number;
   revision_notes?: string;
   parent_sheet_id?: string;
   last_synced_at?: string;
-  sync_conflicts: any[];
+  sync_conflicts: unknown[];
   tags?: string[];
   notes?: string;
   internal_notes?: string;
@@ -70,7 +70,7 @@ export interface CreateJobSheetData {
   client_name?: string;
   client_email?: string;
   client_phone?: string;
-  form_data?: any;
+  form_data?: unknown;
   tags?: string[];
   notes?: string;
 }
@@ -250,7 +250,7 @@ export class JobSheetOperationsService {
 
   static async updateJobSheetFormData(
     sheetId: string,
-    formData: any
+    formData: unknown
   ): Promise<JobSheet> {
     try {
       const { data, error } = await supabase

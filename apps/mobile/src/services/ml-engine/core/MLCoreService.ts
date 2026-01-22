@@ -18,9 +18,9 @@ interface MockTensor {
 }
 
 interface MockModel {
-  predict(input: any): MockTensor;
+  predict(input: unknown): MockTensor;
   dispose?(): void;
-  compile?(config: any): void;
+  compile?(config: unknown): void;
 }
 
 // Mock tf for development - TensorFlow.js temporarily disabled for stability
@@ -35,22 +35,22 @@ const tf = {
     dispose: () => {},
   }),
   loadGraphModel: async (path: string): Promise<MockModel> => ({
-    predict: (input: any) => ({
+    predict: (input: unknown) => ({
       data: async () => [Math.random(), Math.random(), Math.random()],
       dispose: () => {},
     }),
     dispose: () => {},
   }),
-  sequential: (config: any): MockModel => ({
-    predict: (input: any) => ({
+  sequential: (config: unknown): MockModel => ({
+    predict: (input: unknown) => ({
       data: async () => [Math.random(), Math.random(), Math.random()],
       dispose: () => {},
     }),
     dispose: () => {},
   }),
   layers: {
-    dense: (config: any) => ({}),
-    dropout: (config: any) => ({}),
+    dense: (config: unknown) => ({}),
+    dropout: (config: unknown) => ({}),
   },
 };
 
@@ -215,7 +215,7 @@ export class MLCoreService {
       loss: 'meanSquaredError',
     });
 
-    this.models.set(modelName, fallbackModel as any);
+    this.models.set(modelName, fallbackModel as unknown);
     logger.info('Fallback model created', { modelName });
   }
 

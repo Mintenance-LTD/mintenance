@@ -121,7 +121,7 @@ export class ClientCommunicationService {
   async sendBulkCommunication(
     segmentId: string,
     templateId: string,
-    customizations?: Record<string, any>
+    customizations?: Record<string, unknown>
   ): Promise<{ sent: number; failed: number }> {
     try {
       // Get segment clients
@@ -225,7 +225,7 @@ export class ClientCommunicationService {
   private personalizeTemplate(
     template: ClientCommunicationTemplate,
     client: Client,
-    customData?: Record<string, any>
+    customData?: Record<string, unknown>
   ): { subject?: string; content: string } {
     let content = template.content;
     let subject = template.subject;

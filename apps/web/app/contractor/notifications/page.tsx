@@ -78,7 +78,7 @@ export default function ContractorNotificationsPage2025() {
 
         setNotifications(transformedNotifications);
       } catch (error) {
-        logger.error('Error fetching notifications:', error', [object Object], { service: 'app' });
+        logger.error('Error fetching notifications:', error, { service: 'app' });
         toast.error(error instanceof Error ? error.message : 'Failed to load notifications');
       } finally {
         setLoadingNotifications(false);
@@ -107,7 +107,7 @@ export default function ContractorNotificationsPage2025() {
         prev.map((n) => (n.id === notificationId ? { ...n, is_read: true } : n))
       );
     } catch (error) {
-      logger.error('Error marking notification as read:', error', [object Object], { service: 'app' });
+      logger.error('Error marking notification as read:', error, { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to mark notification as read');
     }
   };
@@ -130,7 +130,7 @@ export default function ContractorNotificationsPage2025() {
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       toast.success('All notifications marked as read');
     } catch (error) {
-      logger.error('Error marking all as read:', error', [object Object], { service: 'app' });
+      logger.error('Error marking all as read:', error, { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to mark all as read');
     }
   };
@@ -160,7 +160,7 @@ export default function ContractorNotificationsPage2025() {
       // Check if any deletions failed
       const failures = results.filter(r => r.status === 'rejected');
       if (failures.length > 0) {
-        logger.error('Some notifications failed to delete:', failures', [object Object], { service: 'app' });
+        logger.error('Some notifications failed to delete:', failures', { service: 'app' });
         toast.error(`${failures.length} notification(s) failed to delete`);
         // Still remove successfully deleted ones from state
         const successfulIds = results
@@ -172,7 +172,7 @@ export default function ContractorNotificationsPage2025() {
         toast.success('All notifications cleared');
       }
     } catch (error) {
-      logger.error('Error clearing notifications:', error', [object Object], { service: 'app' });
+      logger.error('Error clearing notifications:', error, { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to clear all notifications');
     }
   };
@@ -197,7 +197,7 @@ export default function ContractorNotificationsPage2025() {
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
       toast.success('Notification deleted');
     } catch (error) {
-      logger.error('Error deleting notification:', error', [object Object], { service: 'app' });
+      logger.error('Error deleting notification:', error, { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to delete notification');
     }
   };

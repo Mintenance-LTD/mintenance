@@ -16,7 +16,7 @@ import { NextRequest } from 'next/server';
 // Mock crypto.getRandomValues
 Object.defineProperty(global, 'crypto', {
   value: {
-    getRandomValues: jest.fn((array) => {
+    getRandomValues: vi.fn((array) => {
       for (let i = 0; i < array.length; i++) {
         array[i] = Math.floor(Math.random() * 256);
       }

@@ -9,7 +9,7 @@ export interface FormApproval {
   approval_status: 'approved' | 'rejected' | 'needs_revision';
   approval_level: number;
   approval_notes?: string;
-  required_changes?: any;
+  required_changes?: unknown;
   approval_deadline?: string;
   approved_at: string;
   created_at: string;
@@ -85,7 +85,7 @@ export class FormApprovalService {
     sheetId: string,
     approverId: string,
     rejectionNotes: string,
-    requiredChanges?: any,
+    requiredChanges?: unknown,
     approvalLevel: number = 1
   ): Promise<FormApproval> {
     try {
@@ -127,7 +127,7 @@ export class FormApprovalService {
     sheetId: string,
     approverId: string,
     revisionNotes: string,
-    requiredChanges: any,
+    requiredChanges: unknown,
     approvalLevel: number = 1
   ): Promise<FormApproval> {
     try {

@@ -1,3 +1,14 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 import { UserService, ContractorStats, UserProfile } from '../../services/UserService';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
@@ -598,14 +609,15 @@ describe('UserService', () => {
         },
       ];
 
-      mockSupabase.from.mockReturnValueOnce({
+      const mockQuery = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        not: jest.fn().mockResolvedValue({
-          data: mockContractors,
-          error: null,
-        }),
-      } as any);
+        not: jest.fn().mockReturnThis(),
+        data: mockContractors,
+        error: null,
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockQuery as any);
 
       const result = await UserService.getNearbyContractors(
         userLocation.latitude,
@@ -620,14 +632,15 @@ describe('UserService', () => {
     });
 
     it('should return empty array when no contractors found', async () => {
-      mockSupabase.from.mockReturnValueOnce({
+      const mockQuery = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        not: jest.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      } as any);
+        not: jest.fn().mockReturnThis(),
+        data: [],
+        error: null,
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockQuery as any);
 
       const result = await UserService.getNearbyContractors(
         userLocation.latitude,
@@ -640,14 +653,15 @@ describe('UserService', () => {
     it('should handle database errors gracefully', async () => {
       const dbError = new Error('Database query failed');
 
-      mockSupabase.from.mockReturnValueOnce({
+      const mockQuery = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        not: jest.fn().mockResolvedValue({
-          data: null,
-          error: dbError,
-        }),
-      } as any);
+        not: jest.fn().mockReturnThis(),
+        data: null,
+        error: dbError,
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockQuery as any);
 
       const result = await UserService.getNearbyContractors(
         userLocation.latitude,
@@ -885,14 +899,15 @@ describe('UserService', () => {
         },
       ];
 
-      mockSupabase.from.mockReturnValueOnce({
+      const mockQuery = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        not: jest.fn().mockResolvedValue({
-          data: mockContractors,
-          error: null,
-        }),
-      } as any);
+        not: jest.fn().mockReturnThis(),
+        data: mockContractors,
+        error: null,
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockQuery as any);
 
       const result = await UserService.getNearbyContractors(
         89.999, // Near north pole

@@ -817,7 +817,7 @@ class SustainabilityEngine {
     return data || [];
   }
 
-  private async getContractorJobHistory(contractorId: string): Promise<any> {
+  private async getContractorJobHistory(contractorId: string): Promise<unknown> {
     // Mock data - in real implementation would query actual job history
     return {
       community_projects: 2,
@@ -830,7 +830,7 @@ class SustainabilityEngine {
 
   private async getContractorSustainabilityFeedback(
     contractorId: string
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Mock data - in real implementation would query client feedback
     return {
       transparency_score: 82,
@@ -869,7 +869,7 @@ class SustainabilityEngine {
 
     if (error) return [];
 
-    return (data || []).map((item: any) => ({
+    return (data || []).map((item: unknown) => ({
       original_material: material,
       sustainable_alternative: item.name,
       benefits: item.certification_labels,
@@ -911,7 +911,7 @@ class SustainabilityEngine {
       .limit(10);
 
     if (error) return [];
-    return (data || []).map((item: any) => item.contractor_id);
+    return (data || []).map((item: unknown) => item.contractor_id);
   }
 }
 

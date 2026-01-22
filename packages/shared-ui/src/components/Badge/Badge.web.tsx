@@ -3,14 +3,11 @@
  * 
  * Web-specific Badge component using design tokens
  */
-
 'use client';
-
 import React from 'react';
 import { webTokens } from '@mintenance/design-tokens';
 import { cn } from '../../utils/cn';
 import type { WebBadgeProps, BadgeVariant, BadgeSize } from './types';
-
 /**
  * Badge Component for Web
  * 
@@ -45,7 +42,6 @@ export function Badge({
       minHeight: '28px',
     },
   };
-
   // Variant styles
   const variantStyles: Record<BadgeVariant, React.CSSProperties> = {
     success: {
@@ -74,7 +70,6 @@ export function Badge({
       border: `1px solid ${webTokens.colors.border}`,
     },
   };
-
   const badgeStyles: React.CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
@@ -85,7 +80,6 @@ export function Badge({
     ...variantStyles[variant],
     ...style,
   };
-
   return (
     <span
       {...props}
@@ -103,6 +97,4 @@ export function Badge({
     </span>
   );
 }
-
 export default Badge;
-

@@ -2,7 +2,6 @@
  * Shared AI Types for Mintenance Platform
  * Used by both web and mobile applications
  */
-
 // Building Assessment Types
 export interface BuildingAssessment {
   id: string;
@@ -17,7 +16,6 @@ export interface BuildingAssessment {
   metadata: AssessmentMetadata;
   trainingData?: TrainingDataEntry;
 }
-
 export interface DamageAssessment {
   damageType: string;
   severity: 'minimal' | 'moderate' | 'severe' | 'critical';
@@ -27,7 +25,6 @@ export interface DamageAssessment {
   progression?: 'early' | 'midway' | 'full';
   detectedIssues: DetectedIssue[];
 }
-
 export interface DetectedIssue {
   type: string;
   location: string;
@@ -36,14 +33,12 @@ export interface DetectedIssue {
   confidence: number;
   source: 'gpt4' | 'roboflow' | 'google_vision' | 'sam3' | 'fusion';
 }
-
 export interface BoundingBox {
   x: number;
   y: number;
   width: number;
   height: number;
 }
-
 export interface SafetyHazards {
   hasSafetyHazards: boolean;
   criticalFlags: string[];
@@ -51,7 +46,6 @@ export interface SafetyHazards {
   riskLevel: 'low' | 'medium' | 'high' | 'critical';
   details: string;
 }
-
 export interface InsuranceRisk {
   riskScore: number;
   category: 'low' | 'medium' | 'high' | 'very_high';
@@ -59,14 +53,12 @@ export interface InsuranceRisk {
   recommendedAction: string;
   estimatedPremiumImpact?: number;
 }
-
 export interface ComplianceFlag {
   regulation: string;
   status: 'compliant' | 'non_compliant' | 'requires_review';
   details: string;
   priority: 'low' | 'medium' | 'high';
 }
-
 export interface CostEstimate {
   min: number;
   max: number;
@@ -75,7 +67,6 @@ export interface CostEstimate {
   breakdown?: CostBreakdown[];
   confidence: number;
 }
-
 export interface CostBreakdown {
   item: string;
   quantity: number;
@@ -83,7 +74,6 @@ export interface CostBreakdown {
   totalCost: number;
   category: string;
 }
-
 export interface AssessmentMetadata {
   model: string;
   version: string;
@@ -92,7 +82,6 @@ export interface AssessmentMetadata {
   apiCalls: APICallRecord[];
   costTracking: CostTracking;
 }
-
 export interface APICallRecord {
   service: string;
   timestamp: string;
@@ -100,13 +89,11 @@ export interface APICallRecord {
   success: boolean;
   cost?: number;
 }
-
 export interface CostTracking {
   estimatedCost: number;
   actualCost: number;
   breakdown: { [service: string]: number };
 }
-
 // Training Data Types
 export interface TrainingDataEntry {
   assessmentId: string;
@@ -117,7 +104,6 @@ export interface TrainingDataEntry {
   useForTraining: boolean;
   modelVersion?: string;
 }
-
 export interface UserCorrection {
   field: string;
   originalValue: any;
@@ -126,7 +112,6 @@ export interface UserCorrection {
   timestamp: string;
   confidence: number;
 }
-
 // Pricing Types
 export interface PricingRecommendation {
   jobId: string;
@@ -142,7 +127,6 @@ export interface PricingRecommendation {
   competitiveness: 'too_low' | 'competitive' | 'premium' | 'too_high';
   reasoning: string;
 }
-
 export interface MarketAnalysis {
   averagePrice: number;
   medianPrice: number;
@@ -151,14 +135,12 @@ export interface MarketAnalysis {
   competitorCount: number;
   historicalTrend: 'decreasing' | 'stable' | 'increasing';
 }
-
 export interface PricingFactor {
   name: string;
   impact: number;
   weight: number;
   description: string;
 }
-
 // Agent Types
 export interface AgentDecision {
   agentName: string;
@@ -171,7 +153,6 @@ export interface AgentDecision {
   userId?: string;
   automated: boolean;
 }
-
 export interface AgentContext {
   userId: string;
   jobId?: string;
@@ -179,7 +160,6 @@ export interface AgentContext {
   automationPreferences: AutomationPreferences;
   historicalData?: any;
 }
-
 export interface AutomationPreferences {
   enableAutomation: boolean;
   automationLevel: 'none' | 'minimal' | 'moderate' | 'full';
@@ -190,7 +170,6 @@ export interface AutomationPreferences {
     sms: boolean;
   };
 }
-
 // Search Types
 export interface SemanticSearchQuery {
   query: string;
@@ -199,7 +178,6 @@ export interface SemanticSearchQuery {
   offset?: number;
   includeEmbeddings?: boolean;
 }
-
 export interface SearchFilters {
   category?: string;
   location?: string;
@@ -207,7 +185,6 @@ export interface SearchFilters {
   dateRange?: { start: Date; end: Date };
   status?: string[];
 }
-
 export interface SearchResult {
   id: string;
   type: 'job' | 'contractor' | 'service';
@@ -217,7 +194,6 @@ export interface SearchResult {
   highlights: string[];
   metadata: any;
 }
-
 // Sustainability Types (from mobile)
 export interface ESGScore {
   overall: number;
@@ -228,7 +204,6 @@ export interface ESGScore {
   recommendations: string[];
   certifications: string[];
 }
-
 export interface ESGBreakdown {
   carbonFootprint: number;
   wasteReduction: number;
@@ -238,7 +213,6 @@ export interface ESGBreakdown {
   communityImpact: number;
   ethicalPractices: number;
 }
-
 // Image Analysis Types
 export interface ImageAnalysis {
   labels: DetectedLabel[];
@@ -248,32 +222,27 @@ export interface ImageAnalysis {
   category: string;
   suggestedActions: string[];
 }
-
 export interface DetectedLabel {
   name: string;
   confidence: number;
   topicality: number;
 }
-
 export interface DetectedObject {
   name: string;
   confidence: number;
   boundingBox: BoundingBox;
 }
-
 export interface DetectedText {
   text: string;
   confidence: number;
   boundingBox: BoundingBox;
 }
-
 export interface ImageProperties {
   dominantColors: string[];
   brightness: number;
   contrast: number;
   quality: 'low' | 'medium' | 'high';
 }
-
 // Model Training Types
 export interface ModelTrainingConfig {
   modelType: 'yolo' | 'classification' | 'segmentation';
@@ -284,7 +253,6 @@ export interface ModelTrainingConfig {
   validationSplit: number;
   augmentation: boolean;
 }
-
 export interface TrainingProgress {
   currentEpoch: number;
   totalEpochs: number;
@@ -295,7 +263,6 @@ export interface TrainingProgress {
   timeRemaining: number;
   status: 'preparing' | 'training' | 'validating' | 'completed' | 'failed';
 }
-
 // Cost Control Types
 export interface CostLimit {
   daily: number;
@@ -304,7 +271,6 @@ export interface CostLimit {
   perUser?: number;
   perRequest?: number;
 }
-
 export interface UsageMetrics {
   service: string;
   period: 'daily' | 'weekly' | 'monthly';
@@ -313,7 +279,6 @@ export interface UsageMetrics {
   avgCostPerRequest: number;
   trend: 'increasing' | 'stable' | 'decreasing';
 }
-
 // Shared Response Types
 export interface AIServiceResponse<T> {
   success: boolean;
@@ -321,7 +286,6 @@ export interface AIServiceResponse<T> {
   error?: AIServiceError;
   metadata: ResponseMetadata;
 }
-
 export interface AIServiceError {
   code: string;
   message: string;
@@ -329,7 +293,6 @@ export interface AIServiceError {
   retryable: boolean;
   fallbackUsed?: boolean;
 }
-
 export interface ResponseMetadata {
   requestId: string;
   timestamp: string;
@@ -339,7 +302,6 @@ export interface ResponseMetadata {
   cacheHit: boolean;
   modelVersion: string;
 }
-
 // Configuration Types
 export interface AIServiceConfig {
   apiKeys: {

@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      logger.error('Upload error:', uploadError', [object Object], { service: 'api' });
+      logger.error('Upload error:', uploadError', { service: 'api' });
       return NextResponse.json(
         { error: 'Failed to upload image' },
         { status: 500 }
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
         segmentationData = await processWithSAM3(publicUrl);
       }
     } catch (error) {
-      logger.error('SAM3 processing failed:', error', [object Object], { service: 'api' });
+      logger.error('SAM3 processing failed:', error, { service: 'api' });
       // Continue without segmentation
     }
 
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (labelError) {
-      logger.error('Label save error:', labelError', [object Object], { service: 'api' });
+      logger.error('Label save error:', labelError', { service: 'api' });
       throw labelError;
     }
 
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Training contribution error:', error', [object Object], { service: 'api' });
+    logger.error('Training contribution error:', error, { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to process contribution' },
       { status: 500 }
@@ -255,7 +255,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Get stats error:', error', [object Object], { service: 'api' });
+    logger.error('Get stats error:', error, { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to retrieve statistics' },
       { status: 500 }
@@ -301,7 +301,7 @@ async function processWithSAM3(imageUrl: string): Promise<any> {
     return null;
 
   } catch (error) {
-    logger.error('SAM3 processing error:', error', [object Object], { service: 'api' });
+    logger.error('SAM3 processing error:', error, { service: 'api' });
     return null;
   }
 }
@@ -340,7 +340,7 @@ async function updateContributorStats(contractorId: string): Promise<void> {
     }
 
   } catch (error) {
-    logger.error('Failed to update stats:', error', [object Object], { service: 'api' });
+    logger.error('Failed to update stats:', error, { service: 'api' });
   }
 }
 
@@ -427,6 +427,6 @@ async function grantPremiumSubscription(
     // TODO: Integrate with subscription system
 
   } catch (error) {
-    logger.error('Failed to grant premium:', error', [object Object], { service: 'api' });
+    logger.error('Failed to grant premium:', error, { service: 'api' });
   }
 }

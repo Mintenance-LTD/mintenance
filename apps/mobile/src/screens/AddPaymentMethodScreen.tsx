@@ -20,7 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 
 const AddPaymentMethodScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<unknown>();
   const { user } = useAuth();
   const { createPaymentMethod } = useStripe();
 
@@ -78,7 +78,7 @@ const AddPaymentMethodScreen: React.FC = () => {
             },
           ]
         );
-      } catch (error: any) {
+      } catch (error) {
         logger.error('Failed to add payment method', error);
         Alert.alert(
           'Error',

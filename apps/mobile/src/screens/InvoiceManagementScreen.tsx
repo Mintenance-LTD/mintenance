@@ -20,7 +20,7 @@ import Button from '../components/ui/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface InvoiceManagementScreenProps {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 export const InvoiceManagementScreen: React.FC<

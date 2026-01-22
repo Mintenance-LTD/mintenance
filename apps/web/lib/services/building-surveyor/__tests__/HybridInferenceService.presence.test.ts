@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Tests for HybridInferenceService with SAM3 presence detection integration
  */
@@ -9,21 +10,21 @@ import { AssessmentOrchestrator } from '../orchestration/AssessmentOrchestrator'
 import { logger } from '@mintenance/shared';
 
 // Mock dependencies
-jest.mock('../SAM3Service');
-jest.mock('../InternalDamageClassifier');
-jest.mock('../orchestration/AssessmentOrchestrator');
-jest.mock('@mintenance/shared', () => ({
+vi.mock('../SAM3Service');
+vi.mock('../InternalDamageClassifier');
+vi.mock('../orchestration/AssessmentOrchestrator');
+vi.mock('@mintenance/shared', () => ({
     logger: {
-        info: jest.fn(),
-        debug: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
     },
 }));
 
 describe('HybridInferenceService with Presence Detection', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         HybridInferenceService.resetYoloSavingsMetrics();
     });
 
@@ -34,10 +35,10 @@ describe('HybridInferenceService with Presence Detection', () => {
             const mockContext = { location: 'Kitchen', propertyType: 'residential' as const };
 
             // Mock SAM3 health check
-            (SAM3Service.healthCheck as jest.Mock).mockResolvedValue(true);
+            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
 
             // Mock SAM3 presence detection - no damage found
-            (SAM3Service.checkDamagePresence as jest.Mock).mockResolvedValue({
+            vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValue({
                 success: true,
                 presence_results: {
                     'water damage': {
@@ -62,11 +63,11 @@ describe('HybridInferenceService with Presence Detection', () => {
             });
 
             // Mock model readiness
-            (InternalDamageClassifier.isModelReady as jest.Mock).mockResolvedValue(true);
+            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
 
             // Mock prediction (should not be called)
-            const mockPrediction = jest.fn();
-            (InternalDamageClassifier.predictFromImage as jest.Mock).mockImplementation(mockPrediction);
+            const mockPrediction = vi.fn();
+            vi.mocked(InternalDamageClassifier.predictFromImage).mockImplementation(mockPrediction);
 
             // Execute assessment
             const result = await HybridInferenceService.assessDamage(
@@ -99,10 +100,10 @@ describe('HybridInferenceService with Presence Detection', () => {
             const mockContext = { location: 'Basement', propertyType: 'residential' as const };
 
             // Mock SAM3 health check
-            (SAM3Service.healthCheck as jest.Mock).mockResolvedValue(true);
+            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
 
             // Mock SAM3 presence detection - damage found
-            (SAM3Service.checkDamagePresence as jest.Mock).mockResolvedValue({
+            vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValue({
                 success: true,
                 presence_results: {
                     'water damage': {
@@ -127,10 +128,10 @@ describe('HybridInferenceService with Presence Detection', () => {
             });
 
             // Mock model readiness
-            (InternalDamageClassifier.isModelReady as jest.Mock).mockResolvedValue(true);
+            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
 
             // Mock YOLO prediction
-            (InternalDamageClassifier.predictFromImage as jest.Mock).mockResolvedValue({
+            vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValue({
                 damageType: 'water damage',
                 severity: 'midway',
                 confidence: 0.82,
@@ -139,7 +140,7 @@ describe('HybridInferenceService with Presence Detection', () => {
                 features: [],
             });
 
-            (InternalDamageClassifier.predict as jest.Mock).mockResolvedValue({
+            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
                 damageType: 'water damage',
                 severity: 'midway',
                 confidence: 0.82,
@@ -182,10 +183,10 @@ describe('HybridInferenceService with Presence Detection', () => {
             const mockContext = { location: 'Roof', propertyType: 'residential' as const };
 
             // Mock SAM3 health check
-            (SAM3Service.healthCheck as jest.Mock).mockResolvedValue(true);
+            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
 
             // Mock SAM3 presence detection - no damage
-            (SAM3Service.checkDamagePresence as jest.Mock).mockResolvedValue({
+            vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValue({
                 success: true,
                 presence_results: {},
                 damage_detected: [],
@@ -199,8 +200,8 @@ describe('HybridInferenceService with Presence Detection', () => {
             });
 
             // Mock model readiness for hybrid route selection
-            (InternalDamageClassifier.isModelReady as jest.Mock).mockResolvedValue(true);
-            (InternalDamageClassifier.predict as jest.Mock).mockResolvedValue({
+            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
+            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
                 damageType: 'unknown',
                 severity: 'early',
                 confidence: 0.65, // Medium confidence to trigger hybrid route
@@ -210,10 +211,10 @@ describe('HybridInferenceService with Presence Detection', () => {
             });
 
             // Mock predictions (should not be called)
-            const mockYoloPrediction = jest.fn();
-            const mockGpt4Assessment = jest.fn();
-            (InternalDamageClassifier.predictFromImage as jest.Mock).mockImplementation(mockYoloPrediction);
-            (AssessmentOrchestrator.assessDamage as jest.Mock).mockImplementation(mockGpt4Assessment);
+            const mockYoloPrediction = vi.fn();
+            const mockGpt4Assessment = vi.fn();
+            vi.mocked(InternalDamageClassifier.predictFromImage).mockImplementation(mockYoloPrediction);
+            vi.mocked(AssessmentOrchestrator.assessDamage).mockImplementation(mockGpt4Assessment);
 
             // Execute assessment
             const result = await HybridInferenceService.assessDamage(
@@ -240,10 +241,10 @@ describe('HybridInferenceService with Presence Detection', () => {
             const mockContext = { location: 'Bathroom', propertyType: 'residential' as const };
 
             // Mock SAM3 health check
-            (SAM3Service.healthCheck as jest.Mock).mockResolvedValue(true);
+            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
 
             // Mock SAM3 presence detection - damage found with high confidence
-            (SAM3Service.checkDamagePresence as jest.Mock).mockResolvedValue({
+            vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValue({
                 success: true,
                 presence_results: {
                     'water damage': {
@@ -263,10 +264,10 @@ describe('HybridInferenceService with Presence Detection', () => {
             });
 
             // Mock model readiness
-            (InternalDamageClassifier.isModelReady as jest.Mock).mockResolvedValue(true);
+            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
 
             // Mock initial prediction for route selection (medium confidence for hybrid)
-            (InternalDamageClassifier.predict as jest.Mock).mockResolvedValue({
+            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
                 damageType: 'water damage',
                 severity: 'midway',
                 confidence: 0.70, // Medium confidence
@@ -276,7 +277,7 @@ describe('HybridInferenceService with Presence Detection', () => {
             });
 
             // Mock YOLO prediction
-            (InternalDamageClassifier.predictFromImage as jest.Mock).mockResolvedValue({
+            vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValue({
                 damageType: 'water damage',
                 severity: 'midway',
                 confidence: 0.75,
@@ -286,7 +287,7 @@ describe('HybridInferenceService with Presence Detection', () => {
             });
 
             // Mock GPT-4 assessment
-            (AssessmentOrchestrator.assessDamage as jest.Mock).mockResolvedValue({
+            vi.mocked(AssessmentOrchestrator.assessDamage).mockResolvedValue({
                 damageAssessment: {
                     damageType: 'water damage',
                     severity: 'midway',
@@ -333,9 +334,9 @@ describe('HybridInferenceService with Presence Detection', () => {
     describe('Metrics and Performance Tracking', () => {
         it('should accurately track YOLO savings across multiple assessments', async () => {
             // Mock setup
-            (SAM3Service.healthCheck as jest.Mock).mockResolvedValue(true);
-            (InternalDamageClassifier.isModelReady as jest.Mock).mockResolvedValue(true);
-            (InternalDamageClassifier.predict as jest.Mock).mockResolvedValue({
+            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
+            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
+            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
                 damageType: 'none',
                 severity: 'early',
                 confidence: 0.85,
@@ -354,7 +355,7 @@ describe('HybridInferenceService with Presence Detection', () => {
             ];
 
             for (const assessment of assessments) {
-                (SAM3Service.checkDamagePresence as jest.Mock).mockResolvedValueOnce({
+                vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValueOnce({
                     success: true,
                     damage_detected: assessment.damageDetected ? ['damage'] : [],
                     damage_not_detected: assessment.damageDetected ? [] : ['damage'],
@@ -367,7 +368,7 @@ describe('HybridInferenceService with Presence Detection', () => {
                 });
 
                 if (assessment.damageDetected) {
-                    (InternalDamageClassifier.predictFromImage as jest.Mock).mockResolvedValueOnce({
+                    vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValueOnce({
                         damageType: 'water damage',
                         severity: 'midway',
                         confidence: 0.85,
@@ -422,9 +423,9 @@ describe('HybridInferenceService with Presence Detection', () => {
     describe('Error Handling', () => {
         it('should fallback to YOLO when SAM3 is unavailable', async () => {
             // Mock SAM3 as unavailable
-            (SAM3Service.healthCheck as jest.Mock).mockResolvedValue(false);
-            (InternalDamageClassifier.isModelReady as jest.Mock).mockResolvedValue(true);
-            (InternalDamageClassifier.predict as jest.Mock).mockResolvedValue({
+            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(false);
+            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
+            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
                 damageType: 'crack',
                 severity: 'early',
                 confidence: 0.85,
@@ -432,7 +433,7 @@ describe('HybridInferenceService with Presence Detection', () => {
                 urgency: 'planned',
                 features: [],
             });
-            (InternalDamageClassifier.predictFromImage as jest.Mock).mockResolvedValue({
+            vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValue({
                 damageType: 'crack',
                 severity: 'early',
                 confidence: 0.85,
@@ -455,12 +456,12 @@ describe('HybridInferenceService with Presence Detection', () => {
 
         it('should handle SAM3 presence check failures gracefully', async () => {
             // Mock SAM3 health check passes but presence check fails
-            (SAM3Service.healthCheck as jest.Mock).mockResolvedValue(true);
-            (SAM3Service.checkDamagePresence as jest.Mock).mockRejectedValue(
+            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
+            vi.mocked(SAM3Service.checkDamagePresence).mockRejectedValue(
                 new Error('SAM3 service error')
             );
-            (InternalDamageClassifier.isModelReady as jest.Mock).mockResolvedValue(true);
-            (InternalDamageClassifier.predict as jest.Mock).mockResolvedValue({
+            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
+            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
                 damageType: 'unknown',
                 severity: 'early',
                 confidence: 0.85,
@@ -468,7 +469,7 @@ describe('HybridInferenceService with Presence Detection', () => {
                 urgency: 'monitor',
                 features: [],
             });
-            (InternalDamageClassifier.predictFromImage as jest.Mock).mockResolvedValue({
+            vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValue({
                 damageType: 'unknown',
                 severity: 'early',
                 confidence: 0.85,

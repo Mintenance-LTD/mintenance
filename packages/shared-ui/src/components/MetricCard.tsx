@@ -1,5 +1,4 @@
 import React from 'react';
-
 export interface MetricCardProps {
   label: string;
   value: string;
@@ -11,7 +10,6 @@ export interface MetricCardProps {
     isPositive: boolean;
   };
 }
-
 export const MetricCard: React.FC<MetricCardProps> = ({
   label,
   value,
@@ -67,7 +65,6 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           </div>
         )}
       </div>
-
       <div
         style={{
           fontSize: '32px',
@@ -78,7 +75,6 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       >
         {value}
       </div>
-
       {(subtitle || trend) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {trend && (

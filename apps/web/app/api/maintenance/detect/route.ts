@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Detection error:', error', [object Object], { service: 'api' });
+    logger.error('Detection error:', error, { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to process image' },
       { status: 500 }
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
 async function mockServerSideDetection(imageUrl: string) {
   // In production, this would call an external AI service or
   // return a response telling the client to perform detection
-  // logger.info('Mock detection for:', imageUrl', [object Object], { service: 'api' });
+  // logger.info('Mock detection for:', imageUrl', { service: 'api' });
 
   // Return mock detections for development
   return [

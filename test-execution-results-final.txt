@@ -1,0 +1,1859 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services[39m
+
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/PaymentIntentHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/users/__tests__/UserAvatarController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mÔ£ô[39m src/users/__tests__/UserProfileController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mÔ£ô[39m src/users/__tests__/UserSettingsController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/InvoiceHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/NotificationService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/NotificationController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/SubscriptionHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/index.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/PushNotificationService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/analytics/__tests__/EventTrackingService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/NotificationTemplateService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/AccountHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/analytics/__tests__/MetricsAggregationService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/ChargeHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/__tests__/StripeWebhookHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/CheckoutHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/NotificationQueueService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/InAppNotificationService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+node.exe : 
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+(:String)     [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Failed Suites 
+53 [49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m src/admin/__tests__/DriftDe
+tectionService.test.ts[2m [ 
+src/admin/__tests__/DriftDetectionService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/admin/__tests__/Drift
+DetectionService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/admin/__
+tests__/DriftDetectionService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { DriftDetectionService } from 
+'../DriftDetectionService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/admin/__tests__/Feedbac
+kProcessingService.test.ts[2m [ src/admin/__tests__/
+FeedbackProcessingService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/admin/__tests__/Feedb
+ackProcessingService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/admin/__
+tests__/FeedbackProcessingService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { FeedbackProcessingService } from 
+'../FeedbackProcessingService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/admin/__tests__/MLMonit
+oringController.test.ts[2m [ 
+src/admin/__tests__/MLMonitoringController.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/admin/__tests__/MLMon
+itoringController.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/admin/__
+tests__/MLMonitoringController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { MLMonitoringController } from 
+'../MLMonitoringController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/admin/__tests__/MLMonitoringService.test.ts[2m 
+[ src/admin/__tests__/MLMonitoringService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/admin/__tests__/MLMon
+itoringService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/admin/__
+tests__/MLMonitoringService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { MLMonitoringService } from 
+'../MLMonitoringService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/admin/__tests__/ModelPe
+rformanceService.test.ts[2m [ 
+src/admin/__tests__/ModelPerformanceService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/admin/__tests__/Model
+PerformanceService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/admin/__
+tests__/ModelPerformanceService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { ModelPerformanceService } from 
+'../ModelPerformanceService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/bids/__tests__/BidController.test.ts[2m [ 
+src/bids/__tests__/BidController.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/bids/__tests__/BidCon
+troller.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/bids/__t
+ests__/BidController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { BidController } from 
+'../BidController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/bids/__tests__/BidNotif
+icationService.test.ts[2m [ 
+src/bids/__tests__/BidNotificationService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/bids/__tests__/BidNot
+ificationService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/bids/__t
+ests__/BidNotificationService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { BidNotificationService } from 
+'../BidNotificationService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/bids/__tests__/BidRepository.test.ts[2m [ 
+src/bids/__tests__/BidRepository.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/bids/__tests__/BidRep
+ository.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/bids/__t
+ests__/BidRepository.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { BidRepository } from 
+'../BidRepository';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[8/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/bids/__tests__/BidScoringService.test.ts[2m [ 
+src/bids/__tests__/BidScoringService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/bids/__tests__/BidSco
+ringService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/bids/__t
+ests__/BidScoringService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { BidScoringService } from 
+'../BidScoringService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[9/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/bids/__tests__/BidService.test.ts[2m [ 
+src/bids/__tests__/BidService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/bids/__tests__/BidSer
+vice.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/bids/__t
+ests__/BidService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { BidService } from '../BidService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[10/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/bids/__tests__/BidValidator.test.ts[2m [ 
+src/bids/__tests__/BidValidator.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/bids/__tests__/BidVal
+idator.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/bids/__t
+ests__/BidValidator.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { BidValidator } from 
+'../BidValidator';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[11/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/ai/__tests__/AISearchController.test.ts[2m [ 
+src/ai/__tests__/AISearchController.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/ai/__tests__/AISearch
+Controller.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/ai/__tes
+ts__/AISearchController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { AISearchController } from 
+'../AISearchController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[12/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/ai/__tests__/AISearchService.test.ts[2m [ 
+src/ai/__tests__/AISearchService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/ai/__tests__/AISearch
+Service.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/ai/__tes
+ts__/AISearchService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { AISearchService } from 
+'../AISearchService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[13/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/ai/__tests__/EmbeddingService.test.ts[2m [ 
+src/ai/__tests__/EmbeddingService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/ai/__tests__/Embeddin
+gService.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/ai/__tes
+ts__/EmbeddingService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { EmbeddingService } from 
+'../EmbeddingService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[14/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/ai/__tests__/SearchRankingService.test.ts[2m [ 
+src/ai/__tests__/SearchRankingService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/ai/__tests__/SearchRa
+nkingService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/ai/__tes
+ts__/SearchRankingService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { SearchRankingService } from 
+'../SearchRankingService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[15/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/analytics/__tests__/Ana
+lyticsController.test.ts[2m [ 
+src/analytics/__tests__/AnalyticsController.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/analytics/__tests__/A
+nalyticsController.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/analytic
+s/__tests__/AnalyticsController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { AnalyticsController } from 
+'../AnalyticsController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[16/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/analytics/__tests__/DashboardService.test.ts[2m 
+[ src/analytics/__tests__/DashboardService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/analytics/__tests__/D
+ashboardService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/analytic
+s/__tests__/DashboardService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { DashboardService } from 
+'../DashboardService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[17/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/analytics/__tests__/ExportService.test.ts[2m [ 
+src/analytics/__tests__/ExportService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/analytics/__tests__/E
+xportService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/analytic
+s/__tests__/ExportService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { ExportService } from 
+'../ExportService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[18/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/analytics/__tests__/InsightsService.test.ts[2m 
+[ src/analytics/__tests__/InsightsService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/analytics/__tests__/I
+nsightsService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/analytic
+s/__tests__/InsightsService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { InsightsService } from 
+'../InsightsService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[19/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/analytics/__tests__/ReportingService.test.ts[2m 
+[ src/analytics/__tests__/ReportingService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/analytics/__tests__/R
+eportingService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/analytic
+s/__tests__/ReportingService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { ReportingService } from 
+'../ReportingService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[20/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/messaging/__tests__/Mes
+sageAttachmentService.test.ts[2m [ src/messaging/__t
+ests__/MessageAttachmentService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/messaging/__tests__/M
+essageAttachmentService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/messagin
+g/__tests__/MessageAttachmentService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { MessageAttachmentService } from 
+'../MessageAttachmentService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[21/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/messaging/__tests__/Mes
+sageController.test.ts[2m [ 
+src/messaging/__tests__/MessageController.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/messaging/__tests__/M
+essageController.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/messagin
+g/__tests__/MessageController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { MessageController } from 
+'../MessageController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[22/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/messaging/__tests__/Mes
+sageNotificationService.test.ts[2m [ src/messaging/_
+_tests__/MessageNotificationService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/messaging/__tests__/M
+essageNotificationService.test.ts:1:9: ERROR: 
+Expected identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/messagin
+g/__tests__/MessageNotificationService.test.ts[39m:1
+:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { MessageNotificationService } from 
+'../MessageNotificationService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[23/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/messaging/__tests__/MessageService.test.ts[2m [ 
+src/messaging/__tests__/MessageService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/messaging/__tests__/M
+essageService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/messagin
+g/__tests__/MessageService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { MessageService } from 
+'../MessageService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[24/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/messaging/__tests__/RealtimeService.test.ts[2m 
+[ src/messaging/__tests__/RealtimeService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/messaging/__tests__/R
+ealtimeService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/messagin
+g/__tests__/RealtimeService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { RealtimeService } from 
+'../RealtimeService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[25/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/messaging/__tests__/ThreadService.test.ts[2m [ 
+src/messaging/__tests__/ThreadService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/messaging/__tests__/T
+hreadService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/messagin
+g/__tests__/ThreadService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { ThreadService } from 
+'../ThreadService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[26/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/messaging/__tests__/VideoCallService.test.ts[2m 
+[ src/messaging/__tests__/VideoCallService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/messaging/__tests__/V
+ideoCallService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/messagin
+g/__tests__/VideoCallService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { VideoCallService } from 
+'../VideoCallService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[27/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/contracts/__tests__/Con
+tractController.test.ts[2m [ 
+src/contracts/__tests__/ContractController.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/contracts/__tests__/C
+ontractController.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/contract
+s/__tests__/ContractController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { ContractController } from 
+'../ContractController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[28/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/contracts/__tests__/Con
+tractLifecycleService.test.ts[2m [ src/contracts/__t
+ests__/ContractLifecycleService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/contracts/__tests__/C
+ontractLifecycleService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/contract
+s/__tests__/ContractLifecycleService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { ContractLifecycleService } from 
+'../ContractLifecycleService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[29/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/contracts/__tests__/ContractService.test.ts[2m 
+[ src/contracts/__tests__/ContractService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/contracts/__tests__/C
+ontractService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/contract
+s/__tests__/ContractService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { ContractService } from 
+'../ContractService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[30/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/feature-flags/__tests__
+/FeatureFlagController.test.ts[2m [ src/feature-flag
+s/__tests__/FeatureFlagController.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/feature-flags/__tests
+__/FeatureFlagController.test.ts:1:9: ERROR: 
+Expected identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/feature-
+flags/__tests__/FeatureFlagController.test.ts[39m:1:
+9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { FeatureFlagController } from 
+'../FeatureFlagController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[31/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/feature-flags/__tests__
+/FeatureFlagMetricsService.test.ts[2m [ src/feature-
+flags/__tests__/FeatureFlagMetricsService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/feature-flags/__tests
+__/FeatureFlagMetricsService.test.ts:1:9: ERROR: 
+Expected identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/feature-
+flags/__tests__/FeatureFlagMetricsService.test.ts[39
+m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { FeatureFlagMetricsService } from 
+'../FeatureFlagMetricsService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[32/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/feature-flags/__tests__
+/FeatureFlagService.test.ts[2m [ src/feature-flags/_
+_tests__/FeatureFlagService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/feature-flags/__tests
+__/FeatureFlagService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/feature-
+flags/__tests__/FeatureFlagService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { FeatureFlagService } from 
+'../FeatureFlagService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[33/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/feature-flags/__tests__
+/RollbackService.test.ts[2m [ 
+src/feature-flags/__tests__/RollbackService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/feature-flags/__tests
+__/RollbackService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/feature-
+flags/__tests__/RollbackService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { RollbackService } from 
+'../RollbackService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[34/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/notifications/__tests__/EmailService.test.ts[2m 
+[ src/notifications/__tests__/EmailService.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/notifications/__tests
+__/EmailService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/notifica
+tions/__tests__/EmailService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { EmailService } from 
+'../EmailService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[35/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/notifications/__tests__/SMSService.test.ts[2m [ 
+src/notifications/__tests__/SMSService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/notifications/__tests
+__/SMSService.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/notifica
+tions/__tests__/SMSService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { SMSService } from '../SMSService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[36/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobController.test.ts[2m [ 
+src/jobs/__tests__/JobController.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/jobs/__tests__/JobCon
+troller.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/jobs/__t
+ests__/JobController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { JobController } from 
+'../JobController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[37/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobDetailsController.test.ts[2m 
+[ src/jobs/__tests__/JobDetailsController.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/jobs/__tests__/JobDet
+ailsController.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/jobs/__t
+ests__/JobDetailsController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { JobDetailsController } from 
+'../JobDetailsController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[38/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobDetailsService.test.ts[2m [ 
+src/jobs/__tests__/JobDetailsService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/jobs/__tests__/JobDet
+ailsService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/jobs/__t
+ests__/JobDetailsService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { JobDetailsService } from 
+'../JobDetailsService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobDetailsValidator.test.ts[2m [ 
+src/jobs/__tests__/JobDetailsValidator.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/jobs/__tests__/JobDet
+ailsValidator.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/jobs/__t
+ests__/JobDetailsValidator.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { JobDetailsValidator } from 
+'../JobDetailsValidator';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[40/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobRepository.test.ts[2m [ 
+src/jobs/__tests__/JobRepository.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/jobs/__tests__/JobRep
+ository.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/jobs/__t
+ests__/JobRepository.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { JobRepository } from 
+'../JobRepository';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[41/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobService.test.ts[2m [ 
+src/jobs/__tests__/JobService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/jobs/__tests__/JobSer
+vice.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/jobs/__t
+ests__/JobService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { JobService } from '../JobService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[42/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobStatusService.test.ts[2m [ 
+src/jobs/__tests__/JobStatusService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/jobs/__tests__/JobSta
+tusService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/jobs/__t
+ests__/JobStatusService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { JobStatusService } from 
+'../JobStatusService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[43/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobValidator.test.ts[2m [ 
+src/jobs/__tests__/JobValidator.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/jobs/__tests__/JobVal
+idator.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/jobs/__t
+ests__/JobValidator.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { JobValidator } from 
+'../JobValidator';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[44/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/payments/__tests__/EscrowService.test.ts[2m [ 
+src/payments/__tests__/EscrowService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/payments/__tests__/Es
+crowService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/payments
+/__tests__/EscrowService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { EscrowService } from 
+'../EscrowService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[45/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/payments/__tests__/PaymentController.test.ts[2m 
+[ src/payments/__tests__/PaymentController.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/payments/__tests__/Pa
+ymentController.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/payments
+/__tests__/PaymentController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { PaymentController } from 
+'../PaymentController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[46/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/payments/__tests__/PaymentService.test.ts[2m [ 
+src/payments/__tests__/PaymentService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/payments/__tests__/Pa
+ymentService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/payments
+/__tests__/PaymentService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { PaymentService } from 
+'../PaymentService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[47/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/payments/__tests__/RefundService.test.ts[2m [ 
+src/payments/__tests__/RefundService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/payments/__tests__/Re
+fundService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/payments
+/__tests__/RefundService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { RefundService } from 
+'../RefundService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[48/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/webhooks/__tests__/WebhookController.test.ts[2m 
+[ src/webhooks/__tests__/WebhookController.test.ts 
+][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/webhooks/__tests__/We
+bhookController.test.ts:1:9: ERROR: Expected 
+identifier but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/webhooks
+/__tests__/WebhookController.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { WebhookController } from 
+'../WebhookController';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[49/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/webhooks/__tests__/WebhookService.test.ts[2m [ 
+src/webhooks/__tests__/WebhookService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/webhooks/__tests__/We
+bhookService.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/webhooks
+/__tests__/WebhookService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { WebhookService } from 
+'../WebhookService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[50/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/users/__tests__/index.test.ts[2m [ 
+src/users/__tests__/index.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/users/__tests__/index
+.test.ts:1:9: ERROR: Expected identifier but found 
+","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/users/__
+tests__/index.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import * as index from '../index';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[51/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/users/__tests__/UserRepository.test.ts[2m [ 
+src/users/__tests__/UserRepository.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+[2m Test Files [22m [1m[31m53 failed[39m[22m[2m | [22m[1m[32m19 passed[39m[22m[90m (72)[39m
+[2m      Tests [22m [1m[32m76 passed[39m[22m[90m (76)[39m
+[2m   Start at [22m 09:57:04
+[2m   Duration [22m 3.35s[2m (transform 4.35s, setup 0ms, import 6.86s, tests 130ms, environment 17ms)[22m
+
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/users/__tests__/UserR
+epository.test.ts:1:9: ERROR: Expected identifier 
+but found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/users/__
+tests__/UserRepository.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { UserRepository } from 
+'../UserRepository';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[52/53]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/users/__tests__/UserService.test.ts[2m [ 
+src/users/__tests__/UserService.test.ts ][22m
+[31m[1mError[22m: Transform failed with 1 error:
+C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-
+clean/packages/api-services/src/users/__tests__/UserS
+ervice.test.ts:1:9: ERROR: Expected identifier but 
+found ","[39m
+  Plugin: [35mvite:esbuild[39m
+  File: [36mC:/Users/Djodjo.Nkouka.ERICCOLE/Download
+s/mintenance-clean/packages/api-services/src/users/__
+tests__/UserService.test.ts[39m:1:9
+[33m  
+  [33mExpected identifier but found ","[33m
+  1  |  import { , vi } from 'vitest';
+     |           ^
+  2  |  import { UserService } from '../UserService';
+  3  |  
+  [39m
+[90m [2mÔØ»[22m failureErrorWithLog ../../node_mod
+ules/esbuild/lib/main.js:[2m1467:15[22m[39m
+[90m [2mÔØ»[22m ../../node_modules/esbuild/lib/mai
+n.js:[2m736:50[22m[39m
+[90m [2mÔØ»[22m responseCallbacks.<computed> ../..
+/node_modules/esbuild/lib/main.js:[2m603:9[22m[39m
+[90m [2mÔØ»[22m handleIncomingPacket ../../node_mo
+dules/esbuild/lib/main.js:[2m658:12[22m[39m
+[90m [2mÔØ»[22m Socket.readFromStdout ../../node_m
+odules/esbuild/lib/main.js:[2m581:7[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[53/53]ÔÄ»[22m[39m
+

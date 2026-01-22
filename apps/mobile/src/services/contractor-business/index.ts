@@ -153,7 +153,7 @@ export class ContractorBusinessSuite {
   /**
    * Generate actionable health recommendations
    */
-  private static generateHealthRecommendations(issues: any): string[] {
+  private static generateHealthRecommendations(issues: unknown): string[] {
     const recommendations: string[] = [];
 
     if (issues.atRiskClients.length > 0) {
@@ -184,7 +184,7 @@ export class ContractorBusinessCoordinator {
   static async manageProjectLifecycle(projectData: {
     contractorId: string;
     clientId: string;
-    projectDetails: any;
+    projectDetails: unknown;
     budget: number;
     timeline: { start: string; end: string };
   }) {

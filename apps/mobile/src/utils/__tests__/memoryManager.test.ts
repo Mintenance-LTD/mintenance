@@ -11,16 +11,10 @@ import {
   MemoryUsage,
   ComponentMemoryTracker,
 } from '../memoryManager';
-import React from 'react';
+
 
 // Mock dependencies
 jest.mock('../logger');
-jest.mock('react-native', () => ({
-  AppState: {
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-  },
-}));
 
 describe('MemoryManager', () => {
   let instance: MemoryManager;

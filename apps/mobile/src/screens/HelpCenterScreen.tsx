@@ -171,7 +171,7 @@ const HelpCenterScreen: React.FC = () => {
               >
                 <View style={styles.quickActionIcon}>
                   <Ionicons
-                    name={action.icon as any}
+                    name={action.icon as unknown}
                     size={24}
                     color={theme.colors.primary}
                   />

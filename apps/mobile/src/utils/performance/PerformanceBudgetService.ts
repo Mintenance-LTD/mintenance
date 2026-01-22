@@ -356,7 +356,7 @@ export class PerformanceBudgetService {
   /**
    * React component for performance monitoring dashboard
    */
-  getPerformanceDashboard(): React.ComponentType<any> {
+  getPerformanceDashboard(): React.ComponentType<unknown> {
     return React.memo(() => {
       // This would be a complete React component for monitoring
       // For now, return a placeholder

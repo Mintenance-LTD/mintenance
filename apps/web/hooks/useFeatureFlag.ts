@@ -15,7 +15,6 @@
 
 import { useEffect, useState } from 'react';
 import type { FeatureFlagName } from '@/lib/feature-flags';
-import { logger } from '@mintenance/shared';
 
 export function useFeatureFlag(flagName: FeatureFlagName): boolean {
   const [enabled, setEnabled] = useState(false);
@@ -30,7 +29,7 @@ export function useFeatureFlag(flagName: FeatureFlagName): boolean {
           setEnabled(data.enabled);
         }
       } catch (error) {
-        logger.error('[useFeatureFlag] Error checking %s:, error', [object Object], { service: 'general' });
+        console.error(`[useFeatureFlag] Error checking ${flagName}:`, error);
       } finally {
         setLoading(false);
       }

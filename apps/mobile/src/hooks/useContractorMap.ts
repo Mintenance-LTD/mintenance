@@ -29,12 +29,12 @@ interface ContractorLocation {
 interface UseContractorMapProps {
   contractorId?: string;
   initialRegion?: Region;
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 export const useContractorMap = ({ contractorId, initialRegion, navigation }: UseContractorMapProps) => {
   const { user } = useAuth();
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<unknown>(null);
 
   const [region, setRegion] = useState<Region>(
     initialRegion || {

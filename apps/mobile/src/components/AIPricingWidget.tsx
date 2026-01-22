@@ -120,7 +120,11 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <ActivityIndicator
+            size='large'
+            color={theme.colors.primary}
+            testID='activity-indicator'
+          />
           <Text style={styles.loadingText}>Analyzing job requirements...</Text>
           <Text style={styles.loadingSubtext}>This may take a few seconds</Text>
         </View>

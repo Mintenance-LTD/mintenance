@@ -46,15 +46,15 @@ export class BusinessAnalyticsService {
       }
 
       const totalJobs = jobs?.length || 0;
-      const completedJobs = jobs?.filter((job: any) => job.status === 'completed') || [];
-      const cancelledJobs = jobs?.filter((job: any) => job.status === 'cancelled') || [];
+      const completedJobs = jobs?.filter((job: unknown) => job.status === 'completed') || [];
+      const cancelledJobs = jobs?.filter((job: unknown) => job.status === 'cancelled') || [];
 
-      const totalRevenue = completedJobs.reduce((sum: number, job: any) => sum + (job.budget || 0), 0);
+      const totalRevenue = completedJobs.reduce((sum: number, job: unknown) => sum + (job.budget || 0), 0);
       const averageJobValue = totalJobs > 0 ? totalRevenue / totalJobs : 0;
       const completionRate = totalJobs > 0 ? (completedJobs.length / totalJobs) * 100 : 0;
 
       // Calculate client satisfaction from reviews
-      const allRatings = jobs?.flatMap((job: any) => job.reviews?.map((r: any) => r.rating) || []) || [];
+      const allRatings = jobs?.flatMap((job: unknown) => job.reviews?.map((r: unknown) => r.rating) || []) || [];
       const clientSatisfaction = allRatings.length > 0
         ? allRatings.reduce((sum: number, rating: number) => sum + rating, 0) / allRatings.length
         : 0;
@@ -175,13 +175,13 @@ export class BusinessAnalyticsService {
       thisMonth.setDate(1);
 
       const newClientsThisMonth = clients?.filter(
-        (client: any) => new Date(client.created_at) >= thisMonth
+        (client: unknown) => new Date(client.created_at) >= thisMonth
       ).length || 0;
 
-      const repeatClients = clients?.filter((client: any) => client.total_jobs > 1).length || 0;
+      const repeatClients = clients?.filter((client: unknown) => client.total_jobs > 1).length || 0;
 
       const clientLifetimeValue = clients?.reduce(
-        (sum: number, client: any) => sum + client.total_spent,
+        (sum: number, client: unknown) => sum + client.total_spent,
         0
       ) || 0;
       const avgLifetimeValue = totalClients > 0 ? clientLifetimeValue / totalClients : 0;
@@ -301,7 +301,7 @@ export class BusinessAnalyticsService {
       return Math.floor(Math.random() * 60) + 15; // 15-75 minutes fallback
     }
 
-    const responseTimes = responses.map((bid: any) => {
+    const responseTimes = responses.map((bid: unknown) => {
       const jobTime = new Date(bid.jobs.created_at).getTime();
       const bidTime = new Date(bid.created_at).getTime();
       return (bidTime - jobTime) / (1000 * 60); // Convert to minutes
@@ -327,7 +327,7 @@ export class BusinessAnalyticsService {
     }
 
     const totalBids = bids.length;
-    const acceptedBids = bids.filter((bid: any) => bid.status === 'accepted').length;
+    const acceptedBids = bids.filter((bid: unknown) => bid.status === 'accepted').length;
 
     return totalBids > 0 ? (acceptedBids / totalBids) * 100 : 0;
   }
@@ -348,7 +348,7 @@ export class BusinessAnalyticsService {
       return Math.floor(Math.random() * 30) + 20; // 20-50% fallback
     }
 
-    const clientCounts = jobs.reduce((acc: Record<string, number>, job: any) => {
+    const clientCounts = jobs.reduce((acc: Record<string, number>, job: unknown) => {
       acc[job.homeowner_id] = (acc[job.homeowner_id] || 0) + 1;
       return acc;
     }, {});
@@ -385,8 +385,8 @@ export class BusinessAnalyticsService {
       return Math.floor(Math.random() * 20) + 25; // 25-45% fallback
     }
 
-    const totalRevenue = jobs?.reduce((sum: number, job: any) => sum + (job.budget || 0), 0) || 0;
-    const totalExpenses = expenses?.reduce((sum: number, expense: any) => sum + (expense.amount || 0), 0) || 0;
+    const totalRevenue = jobs?.reduce((sum: number, job: unknown) => sum + (job.budget || 0), 0) || 0;
+    const totalExpenses = expenses?.reduce((sum: number, expense: unknown) => sum + (expense.amount || 0), 0) || 0;
 
     return totalRevenue > 0 ? ((totalRevenue - totalExpenses) / totalRevenue) * 100 : 0;
   }
@@ -411,7 +411,7 @@ export class BusinessAnalyticsService {
         .gte('completed_at', startDate.toISOString())
         .lte('completed_at', endDate.toISOString());
 
-      const monthlyRev = jobs?.reduce((sum: number, job: any) => sum + (job.budget || 0), 0) || 0;
+      const monthlyRev = jobs?.reduce((sum: number, job: unknown) => sum + (job.budget || 0), 0) || 0;
       results.push(monthlyRev);
     }
 
@@ -444,10 +444,10 @@ export class BusinessAnalyticsService {
 
     if (error) return { outstandingInvoices: 0, overdueAmount: 0 };
 
-    const outstanding = invoices?.reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
+    const outstanding = invoices?.reduce((sum: number, inv: unknown) => sum + inv.total_amount, 0) || 0;
     const overdue = invoices
-      ?.filter((inv: any) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
-      .reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
+      ?.filter((inv: unknown) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
+      .reduce((sum: number, inv: unknown) => sum + inv.total_amount, 0) || 0;
 
     return { outstandingInvoices: outstanding, overdueAmount: overdue };
   }

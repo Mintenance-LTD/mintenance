@@ -213,7 +213,7 @@ export class GoalNotificationService {
     type: string;
     title: string;
     message: string;
-    data?: any;
+    data?: unknown;
     priority: 'low' | 'medium' | 'high' | 'critical';
   }): Promise<void> {
     const { error } = await supabase

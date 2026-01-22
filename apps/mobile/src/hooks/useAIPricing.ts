@@ -162,7 +162,7 @@ export const useAIPricing = () => {
 
   // Get pricing recommendations for contractors
   const getContractorRecommendations = useCallback(
-    (analysis: PricingAnalysis, contractorProfile?: any) => {
+    (analysis: PricingAnalysis, contractorProfile?: unknown) => {
       const recommendations = [...analysis.recommendations];
 
       // Add contractor-specific recommendations

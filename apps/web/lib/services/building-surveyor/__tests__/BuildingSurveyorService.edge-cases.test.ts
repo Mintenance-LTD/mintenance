@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Edge Case Unit Tests for BuildingSurveyorService
  * 
@@ -10,14 +11,14 @@ import { ImageAnalysisService } from '@/lib/services/ImageAnalysisService';
 import { memoryManager } from '../../ml-engine/memory/MemoryManager';
 
 // Mock dependencies
-jest.mock('../RoboflowDetectionService');
-jest.mock('@/lib/services/ImageAnalysisService');
-jest.mock('../../ml-engine/memory/MemoryManager');
-jest.mock('@/lib/security/url-validation', () => ({
-  validateURLs: jest.fn(),
+vi.mock('../RoboflowDetectionService');
+vi.mock('@/lib/services/ImageAnalysisService');
+vi.mock('../../ml-engine/memory/MemoryManager');
+vi.mock('@/lib/security/url-validation', () => ({
+  validateURLs: vi.fn(),
 }));
-jest.mock('../config/BuildingSurveyorConfig', () => ({
-  getConfig: jest.fn(() => ({
+vi.mock('../config/BuildingSurveyorConfig', () => ({
+  getConfig: vi.fn(() => ({
     openaiApiKey: 'test-key',
     detectorTimeoutMs: 7000,
     visionTimeoutMs: 9000,
@@ -26,7 +27,7 @@ jest.mock('../config/BuildingSurveyorConfig', () => ({
 
 describe('BuildingSurveyorService - Edge Cases', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('assessDamage - Error Handling', () => {
@@ -82,11 +83,11 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = jest.fn(() =>
+      RoboflowDetectionService.detect = vi.fn(() =>
         new Promise((resolve) => setTimeout(() => resolve([]), 10000))
       );
 
-      ImageAnalysisService.analyzePropertyImages = jest.fn().mockResolvedValue({});
+      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
 
       // Should not throw, but handle timeout gracefully
       await expect(
@@ -101,8 +102,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = jest.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = jest.fn(() =>
+      RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
+      ImageAnalysisService.analyzePropertyImages = vi.fn(() =>
         new Promise((resolve) => setTimeout(() => resolve({}), 10000))
       );
 
@@ -119,10 +120,10 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = jest.fn().mockRejectedValue(
+      RoboflowDetectionService.detect = vi.fn().mockRejectedValue(
         new Error('Roboflow API error')
       );
-      ImageAnalysisService.analyzePropertyImages = jest.fn().mockResolvedValue({});
+      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
 
       // Should handle failure gracefully and continue with vision analysis
       await expect(
@@ -137,8 +138,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = jest.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = jest.fn().mockRejectedValue(
+      RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
+      ImageAnalysisService.analyzePropertyImages = vi.fn().mockRejectedValue(
         new Error('Vision API error')
       );
 
@@ -155,10 +156,10 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = jest.fn().mockRejectedValue(
+      RoboflowDetectionService.detect = vi.fn().mockRejectedValue(
         new Error('Roboflow error')
       );
-      ImageAnalysisService.analyzePropertyImages = jest.fn().mockRejectedValue(
+      ImageAnalysisService.analyzePropertyImages = vi.fn().mockRejectedValue(
         new Error('Vision error')
       );
 
@@ -177,8 +178,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = jest.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = jest.fn().mockResolvedValue({});
+      RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
+      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
 
       await expect(
         BuildingSurveyorService.assessDamage(['https://example.com/image.jpg'])
@@ -193,8 +194,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = jest.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = jest.fn().mockResolvedValue({});
+      RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
+      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
 
       await expect(
         BuildingSurveyorService.assessDamage(manyImages)
@@ -209,8 +210,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = jest.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = jest.fn().mockResolvedValue({});
+      RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
+      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
 
       await expect(
         BuildingSurveyorService.assessDamage([longUrl])
@@ -224,8 +225,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      RoboflowDetectionService.detect = jest.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = jest.fn().mockResolvedValue({});
+      RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
+      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
 
       await expect(
         BuildingSurveyorService.assessDamage(['https://example.com/image.jpg'], undefined)
@@ -241,7 +242,7 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      memoryManager.initialize = jest.fn().mockRejectedValue(
+      memoryManager.initialize = vi.fn().mockRejectedValue(
         new Error('Memory initialization failed')
       );
 
@@ -258,10 +259,10 @@ describe('BuildingSurveyorService - Edge Cases', () => {
         invalid: [],
       });
 
-      memoryManager.queryMemory = jest.fn().mockResolvedValue(null);
+      memoryManager.queryMemory = vi.fn().mockResolvedValue(null);
 
-      RoboflowDetectionService.detect = jest.fn().mockResolvedValue([]);
-      ImageAnalysisService.analyzePropertyImages = jest.fn().mockResolvedValue({});
+      RoboflowDetectionService.detect = vi.fn().mockResolvedValue([]);
+      ImageAnalysisService.analyzePropertyImages = vi.fn().mockResolvedValue({});
 
       // Should handle null memory results gracefully
       await expect(

@@ -232,7 +232,7 @@ AccessibleHeader.displayName = 'AccessibleHeader';
 // ============================================================================
 
 export interface AccessibleListProps {
-  data: any[];
+  data: unknown[];
   renderItem: (item: any, index: number) => React.ReactNode;
   label?: string;
   style?: ViewStyle;

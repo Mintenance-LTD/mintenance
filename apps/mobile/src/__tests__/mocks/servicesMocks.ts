@@ -315,7 +315,7 @@ export class ServicesMockFactory {
           }
         }
       }),
-      emit: jest.fn((event: string, ...args: any[]) => {
+      emit: jest.fn((event: string, ...args: unknown[]) => {
         const eventListeners = listeners.get(event);
         if (eventListeners) {
           eventListeners.forEach((listener) => listener(...args));

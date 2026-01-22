@@ -1,3 +1,13 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
+import React from 'react';
 /**
  * RootNavigator Integration Tests
  *
@@ -9,9 +19,9 @@
  * - Navigation state transitions
  */
 
-import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
-import { RootNavigator } from '../RootNavigator';
+
+import { render, waitFor } from '../test-utils';
+import RootNavigator from '../RootNavigator';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Mock AuthContext
@@ -100,6 +110,10 @@ describe('RootNavigator Integration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   describe('Authentication Flow', () => {
     it('should render AuthNavigator when user is not authenticated', async () => {

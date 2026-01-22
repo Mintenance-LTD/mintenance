@@ -1,7 +1,19 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 /**
  * Comprehensive Payment Flows Test Suite
  * Tests all critical payment workflows end-to-end
  */
+
 
 import { PaymentService } from '../../services/PaymentService';
 import { supabase } from '../../config/supabase';
@@ -31,6 +43,11 @@ const mockStripe = require('@stripe/stripe-react-native');
 describe('Payment Flows - Comprehensive Test Suite', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSupabase.functions.invoke.mockReset();
+    mockSupabase.from.mockReset();
+    mockStripe.createPaymentMethod.mockReset();
+    mockStripe.confirmPayment.mockReset();
+    mockStripe.handleCardAction.mockReset?.();
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
@@ -41,6 +58,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
 
   describe('Complete Payment Workflow', () => {
     it('should handle successful end-to-end payment flow', async () => {
+      const futureYear = new Date().getFullYear() + 1;
       // Mock data for complete workflow
       const jobId = 'job-123';
       const contractorId = 'contractor-456';
@@ -86,7 +104,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
         card: {
           number: '4242424242424242',
           expMonth: 12,
-          expYear: 2025,
+          expYear: futureYear,
           cvc: '123',
         },
         billingDetails: {
@@ -220,7 +238,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       };
 
       // Step 1: Get transaction for release
-      mockSupabase.from.mockReturnValue({
+      mockSupabase.from.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
@@ -236,7 +254,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       });
 
       // Step 3: Update transaction status
-      mockSupabase.from.mockReturnValue({
+      mockSupabase.from.mockReturnValueOnce({
         update: jest.fn().mockReturnThis(),
         eq: jest.fn().mockResolvedValue({ error: null }),
       } as any);
@@ -351,6 +369,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
 
   describe('Error Handling and Edge Cases', () => {
     it('should handle Stripe API errors gracefully', async () => {
+      const futureYear = new Date().getFullYear() + 1;
       // Test various Stripe error scenarios
       const stripeErrors = [
         { type: 'card_error', code: 'card_declined', message: 'Your card was declined.' },
@@ -371,7 +390,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
             card: {
               number: '4000000000000002', // Declined card
               expMonth: 12,
-              expYear: 2025,
+              expYear: futureYear,
               cvc: '123',
             },
           })

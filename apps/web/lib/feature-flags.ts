@@ -14,7 +14,6 @@
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
 
 // ==========================================================
 // FEATURE FLAG DEFINITIONS
@@ -84,7 +83,7 @@ export async function isFeatureEnabled(
   const config = FEATURE_FLAGS[flagName];
   
   if (!config) {
-    logger.warn('[FeatureFlags] Unknown feature flag: %s', [object Object], { service: 'lib' });
+    console.warn(`[FeatureFlags] Unknown feature flag: ${flagName}`);
     return false;
   }
 

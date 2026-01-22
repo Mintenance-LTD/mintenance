@@ -1,9 +1,32 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 /**
  * ML Memory Leak Fixes Tests
  * Comprehensive tests for memory management in ML components
  */
 
 // Import test utilities
+
+jest.mock('../../services/MLMemoryLeakFixes', () => {
+  const actual = jest.requireActual('../../services/MLMemoryLeakFixes');
+  return {
+    ...actual,
+    MLMemoryLeakFixes: {
+      ...actual.MLMemoryLeakFixes,
+      initialize: jest.fn(() => Promise.resolve()),
+      cleanup: jest.fn(() => Promise.resolve()),
+    }
+  };
+});
 import '../../__tests__/setup/testMocks';
 
 // Mock the ML services to avoid TensorFlow dependency

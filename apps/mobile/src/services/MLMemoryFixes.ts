@@ -13,7 +13,7 @@ export interface MLMemoryTracker {
   intervals: NodeJS.Timeout[];
   timeouts: NodeJS.Timeout[];
   eventListeners: Array<{
-    element: any;
+    element: unknown;
     event: string;
     handler: Function;
   }>;
@@ -177,7 +177,7 @@ export class MLMemoryManager {
    */
   trackEventListener(
     componentName: string,
-    element: any,
+    element: unknown,
     event: string,
     handler: Function
   ): void {

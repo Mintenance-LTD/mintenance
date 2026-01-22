@@ -47,7 +47,7 @@ interface ValidationOptions {
   allowEmpty?: boolean;
   sanitize?: boolean;
   fieldName?: string;
-  customValidation?: (value: any) => { isValid: boolean; error?: string };
+  customValidation?: (value: unknown) => { isValid: boolean; error?: string };
 }
 
 interface ValidationResult {

@@ -10,6 +10,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
+import { useJobTravelTracking } from '../hooks/useJobTravelTracking';
 
 // Web-compatible fallback components (react-native-maps removed for web compatibility)
 interface Region {
@@ -19,15 +20,15 @@ interface Region {
   longitudeDelta: number;
 }
 
-const MapView = ({ children, ...props }: any) => (
+const MapView = ({ children, ...props }: unknown) => (
   <View style={{ flex: 1, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
     <Text>Map view available on mobile devices</Text>
     {children}
   </View>
 );
 
-const Marker = ({ children, ...props }: any) => <View {...props}>{children}</View>;
-const Polyline = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+const Marker = ({ children, ...props }: unknown) => <View {...props}>{children}</View>;
+const Polyline = ({ children, ...props }: unknown) => <View {...props}>{children}</View>;
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,7 +48,7 @@ interface Props {
       meetingId: string;
     };
   };
-  navigation: any;
+  navigation: unknown;
 }
 
 const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -62,8 +63,36 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [region, setRegion] = useState<Region | null>(null);
 
   const mapRef = useRef<MapView>(null);
-  const locationSubscription = useRef<any>(null);
-  const meetingSubscription = useRef<any>(null);
+  const locationSubscription = useRef<unknown>(null);
+  const meetingSubscription = useRef<unknown>(null);
+
+  // Travel tracking hook (for contractors)
+  const travelTracking = useJobTravelTracking({
+    meetingId,
+    jobId: meeting?.jobId,
+    destination: meeting?.location
+      ? {
+          latitude: meeting.location.latitude,
+          longitude: meeting.location.longitude,
+        }
+      : { latitude: 0, longitude: 0 },
+    onLocationUpdate: (location) => {
+      // Update contractor location state when tracking
+      setContractorLocation({
+        id: 'tracking',
+        contractorId: meeting?.contractorId || '',
+        latitude: location.latitude,
+        longitude: location.longitude,
+        accuracy: 10,
+        timestamp: location.timestamp,
+        isActive: true,
+        meetingId,
+      });
+    },
+    onArrival: () => {
+      Alert.alert('Arrived', 'You have been marked as arrived at the meeting location');
+    },
+  });
 
   useEffect(() => {
     initializeScreen();
@@ -413,14 +442,65 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   <Text style={styles.distanceText}>
                     {distance.toFixed(1)} km away
                   </Text>
-                  <Text style={styles.estimatedTime}>
-                    ~{Math.round(distance * 2)} mins
-                  </Text>
+                  {travelTracking.eta !== null ? (
+                    <Text style={styles.estimatedTime}>
+                      ETA: {travelTracking.eta} mins
+                    </Text>
+                  ) : (
+                    <Text style={styles.estimatedTime}>
+                      ~{Math.round(distance * 2)} mins
+                    </Text>
+                  )}
                 </View>
               )}
             </View>
           </View>
         </View>
+
+        {/* Travel Tracking (Contractor Only) */}
+        {user?.role === 'contractor' && meeting?.status === 'scheduled' && (
+          <View style={styles.travelTrackingSection}>
+            <Text style={styles.sectionTitle}>Travel Tracking</Text>
+            {!travelTracking.isTracking ? (
+              <TouchableOpacity
+                style={[styles.travelButton, styles.startTravelButton]}
+                onPress={travelTracking.startTracking}
+                disabled={travelTracking.error !== null}
+              >
+                <Ionicons name="navigate" size={24} color={theme.colors.white} />
+                <Text style={styles.travelButtonText}>Start Traveling</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.trackingActiveContainer}>
+                <View style={styles.etaDisplay}>
+                  <Ionicons name="time" size={20} color={theme.colors.info} />
+                  <Text style={styles.etaText}>
+                    ETA: {travelTracking.eta ? `${travelTracking.eta} minutes` : 'Calculating...'}
+                  </Text>
+                </View>
+                <View style={styles.trackingButtons}>
+                  <TouchableOpacity
+                    style={[styles.travelButton, styles.arrivedButton]}
+                    onPress={travelTracking.markArrived}
+                  >
+                    <Ionicons name="checkmark-circle" size={20} color={theme.colors.white} />
+                    <Text style={styles.travelButtonText}>Mark Arrived</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.travelButton, styles.stopTravelButton]}
+                    onPress={travelTracking.stopTracking}
+                  >
+                    <Ionicons name="stop-circle" size={20} color={theme.colors.white} />
+                    <Text style={styles.travelButtonText}>Stop</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            {travelTracking.error && (
+              <Text style={styles.errorText}>{travelTracking.error}</Text>
+            )}
+          </View>
+        )}
 
         {/* Actions */}
         <View style={styles.actionsSection}>
@@ -669,6 +749,66 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.textPrimary,
     marginTop: 4,
+  },
+  travelTrackingSection: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+  },
+  travelButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
+  },
+  startTravelButton: {
+    backgroundColor: theme.colors.info,
+  },
+  arrivedButton: {
+    backgroundColor: theme.colors.success,
+    flex: 1,
+    marginRight: 8,
+  },
+  stopTravelButton: {
+    backgroundColor: theme.colors.error,
+    flex: 1,
+    marginLeft: 8,
+  },
+  travelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.white,
+  },
+  trackingActiveContainer: {
+    gap: 12,
+  },
+  etaDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.surfaceSecondary,
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  etaText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  trackingButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  errorText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: theme.colors.error,
+    textAlign: 'center',
   },
   updatesSection: {
     marginBottom: 20,

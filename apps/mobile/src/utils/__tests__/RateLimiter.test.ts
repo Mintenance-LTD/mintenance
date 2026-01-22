@@ -10,7 +10,7 @@ import {
   rateLimitConfigs,
   userTierLimits,
 } from '../RateLimiter';
-import { logger } from '../logger';
+import logger from '../logger';
 
 // Mock logger
 jest.mock('../logger', () => ({

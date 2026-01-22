@@ -164,7 +164,7 @@ export function ContractorProfileClient2025({
       toast.success('Skills updated successfully');
       router.refresh();
     } catch (error) {
-      logger.error('Error saving skills:', error', [object Object], { service: 'ui' });
+      logger.error('Error saving skills:', error, { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to save skills');
     }
   };
@@ -236,7 +236,7 @@ export function ContractorProfileClient2025({
       // Refresh the page to show updated data
       router.refresh();
     } catch (error) {
-      logger.error('Error saving profile:', error', [object Object], { service: 'ui' });
+      logger.error('Error saving profile:', error, { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to save profile');
     } finally {
       setIsSaving(false);

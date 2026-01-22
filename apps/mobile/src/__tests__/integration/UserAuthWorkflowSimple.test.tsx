@@ -1,5 +1,13 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '../test-utils';
 import { Text, TouchableOpacity, View, TextInput } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 
@@ -331,20 +339,20 @@ describe('User Authentication Workflow Integration', () => {
       const passwordInput = getByTestId('password-input');
 
       await act(async () => {
-        fireEvent.changeText(firstNameInput, 'John');
-        fireEvent.changeText(lastNameInput, 'Doe');
-        fireEvent.changeText(emailInput, 'newuser@example.com');
-        fireEvent.changeText(passwordInput, 'password123');
+        act(() => fireEvent.changeText(firstNameInput, 'John'));
+        act(() => fireEvent.changeText(lastNameInput, 'Doe'));
+        act(() => fireEvent.changeText(emailInput, 'newuser@example.com'));
+        act(() => fireEvent.changeText(passwordInput, 'password123'));
       });
 
       // Select homeowner role
       const homeownerButton = getByTestId('homeowner-role-button');
-      fireEvent.press(homeownerButton);
+      act(() => fireEvent.press(homeownerButton));
 
       // Submit registration
       const createAccountButton = getByTestId('create-account-button');
       await act(async () => {
-        fireEvent.press(createAccountButton);
+        act(() => fireEvent.press(createAccountButton));
       });
 
       // Verify registration was called with correct data
@@ -394,18 +402,18 @@ describe('User Authentication Workflow Integration', () => {
       const passwordInput = getByTestId('password-input');
 
       await act(async () => {
-        fireEvent.changeText(firstNameInput, 'John');
-        fireEvent.changeText(lastNameInput, 'Doe');
-        fireEvent.changeText(emailInput, 'existing@example.com');
-        fireEvent.changeText(passwordInput, 'password123');
+        act(() => fireEvent.changeText(firstNameInput, 'John'));
+        act(() => fireEvent.changeText(lastNameInput, 'Doe'));
+        act(() => fireEvent.changeText(emailInput, 'existing@example.com'));
+        act(() => fireEvent.changeText(passwordInput, 'password123'));
       });
 
       const homeownerButton = getByTestId('homeowner-role-button');
-      fireEvent.press(homeownerButton);
+      act(() => fireEvent.press(homeownerButton));
 
       const createAccountButton = getByTestId('create-account-button');
       await act(async () => {
-        fireEvent.press(createAccountButton);
+        act(() => fireEvent.press(createAccountButton));
       });
 
       // Should remain on registration screen (error handling would show error message)
@@ -453,14 +461,14 @@ describe('User Authentication Workflow Integration', () => {
       const passwordInput = getByTestId('password-input');
 
       await act(async () => {
-        fireEvent.changeText(emailInput, 'user@example.com');
-        fireEvent.changeText(passwordInput, 'password123');
+        act(() => fireEvent.changeText(emailInput, 'user@example.com'));
+        act(() => fireEvent.changeText(passwordInput, 'password123'));
       });
 
       // Submit login
       const signInButton = getByTestId('sign-in-button');
       await act(async () => {
-        fireEvent.press(signInButton);
+        act(() => fireEvent.press(signInButton));
       });
 
       // Verify login was called
@@ -503,13 +511,13 @@ describe('User Authentication Workflow Integration', () => {
       const passwordInput = getByTestId('password-input');
 
       await act(async () => {
-        fireEvent.changeText(emailInput, 'user@example.com');
-        fireEvent.changeText(passwordInput, 'wrongpassword');
+        act(() => fireEvent.changeText(emailInput, 'user@example.com'));
+        act(() => fireEvent.changeText(passwordInput, 'wrongpassword'));
       });
 
       const signInButton = getByTestId('sign-in-button');
       await act(async () => {
-        fireEvent.press(signInButton);
+        act(() => fireEvent.press(signInButton));
       });
 
       // Should remain on login screen (error handling would show error message)
@@ -558,13 +566,13 @@ describe('User Authentication Workflow Integration', () => {
       const passwordInput = getByTestId('password-input');
 
       await act(async () => {
-        fireEvent.changeText(emailInput, 'user@example.com');
-        fireEvent.changeText(passwordInput, 'password123');
+        act(() => fireEvent.changeText(emailInput, 'user@example.com'));
+        act(() => fireEvent.changeText(passwordInput, 'password123'));
       });
 
       const signInButton = getByTestId('sign-in-button');
       await act(async () => {
-        fireEvent.press(signInButton);
+        act(() => fireEvent.press(signInButton));
       });
 
       // Should navigate to home screen
@@ -628,7 +636,7 @@ describe('User Authentication Workflow Integration', () => {
       // Click biometric login button
       const biometricButton = getByTestId('biometric-login-button');
       await act(async () => {
-        fireEvent.press(biometricButton);
+        act(() => fireEvent.press(biometricButton));
       });
 
       // Should authenticate with biometrics
@@ -677,13 +685,13 @@ describe('User Authentication Workflow Integration', () => {
       const emailInput = getByTestId('email-input');
       const passwordInput = getByTestId('password-input');
       await act(async () => {
-        fireEvent.changeText(emailInput, 'biometric@example.com');
-        fireEvent.changeText(passwordInput, 'password123');
+        act(() => fireEvent.changeText(emailInput, 'biometric@example.com'));
+        act(() => fireEvent.changeText(passwordInput, 'password123'));
       });
 
       const signInButton = getByTestId('sign-in-button');
       await act(async () => {
-        fireEvent.press(signInButton);
+        act(() => fireEvent.press(signInButton));
       });
 
       await waitFor(() => {
@@ -695,7 +703,7 @@ describe('User Authentication Workflow Integration', () => {
       mockAuthService.getCurrentUser.mockResolvedValue(null);
       mockAuthService.getCurrentSession.mockResolvedValue(null);
       await act(async () => {
-        fireEvent.press(getByTestId('sign-out-button'));
+        act(() => fireEvent.press(getByTestId('sign-out-button')));
         await Promise.resolve();
       });
 
@@ -731,7 +739,7 @@ describe('User Authentication Workflow Integration', () => {
 
       const biometricButton = getByTestId('biometric-login-button');
       await act(async () => {
-        fireEvent.press(biometricButton);
+        act(() => fireEvent.press(biometricButton));
       });
 
       await waitFor(() => {

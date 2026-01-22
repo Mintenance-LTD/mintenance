@@ -27,9 +27,9 @@ export class MLApplicationService {
       urgency: 'low' | 'medium' | 'high';
       complexity: number;
     },
-    contractors: any[],
+    contractors: unknown[],
     limit: number = 10
-  ): Promise<Array<{ contractor: any; score: number; explanation: string }>> {
+  ): Promise<Array<{ contractor: unknown; score: number; explanation: string }>> {
 
     try {
       const results = [];
@@ -76,10 +76,10 @@ export class MLApplicationService {
    */
   async getJobRecommendations(
     contractorId: string,
-    contractorProfile: any,
-    availableJobs: any[],
+    contractorProfile: unknown,
+    availableJobs: unknown[],
     limit: number = 20
-  ): Promise<Array<{ job: any; score: number; reasons: string[] }>> {
+  ): Promise<Array<{ job: unknown; score: number; reasons: string[] }>> {
 
     try {
       const results = [];
@@ -126,7 +126,7 @@ export class MLApplicationService {
     jobDetails: {
       category: string;
       description: string;
-      location: any;
+      location: unknown;
       complexity: number;
       materials: string[];
       timeEstimate: number;
@@ -194,8 +194,8 @@ export class MLApplicationService {
       userId: string;
       amount: number;
       paymentMethod: string;
-      deviceInfo: any;
-      location: any;
+      deviceInfo: unknown;
+      location: unknown;
       timestamp: number;
     }
   ): Promise<{
@@ -285,7 +285,7 @@ export class MLApplicationService {
     return urgencyWeight * responseScore;
   }
 
-  private calculateComplexityCapability(jobComplexity: number, experience: any): number {
+  private calculateComplexityCapability(jobComplexity: number, experience: unknown): number {
     const experienceLevel = experience?.level || 1;
     const experienceYears = experience?.years || 0;
     const capability = (experienceLevel * 0.6) + (Math.min(experienceYears / 10, 1) * 0.4);
@@ -322,20 +322,20 @@ export class MLApplicationService {
   }
 
   // Placeholder calculation methods
-  private calculateLocationPreference(jobLocation: any, preferredAreas: any[]): number { return Math.random(); }
+  private calculateLocationPreference(jobLocation: unknown, preferredAreas: unknown[]): number { return Math.random(); }
   private calculateBudgetAttractiveness(budget: number, hourlyRate: number): number { return Math.random(); }
-  private calculateComplexityFit(jobComplexity: number, experience: any): number { return Math.random(); }
-  private calculateHistoricalSuccess(jobHistory: any[], category: string): number { return Math.random(); }
-  private calculateTimePreference(schedule: any, availability: any): number { return Math.random(); }
+  private calculateComplexityFit(jobComplexity: number, experience: unknown): number { return Math.random(); }
+  private calculateHistoricalSuccess(jobHistory: unknown[], category: string): number { return Math.random(); }
+  private calculateTimePreference(schedule: unknown, availability: unknown): number { return Math.random(); }
   private estimateMaterialsCost(materials: string[]): number { return Math.random() * 500; }
-  private getLocationPriceFactor(location: any): number { return Math.random() * 0.5 + 0.75; }
+  private getLocationPriceFactor(location: unknown): number { return Math.random() * 0.5 + 0.75; }
   private getSeasonFactor(): number { return Math.random() * 0.3 + 0.85; }
   private getCategoryBaseRate(category: string): number { return Math.random() * 100 + 50; }
   private analyzeDescriptionComplexity(description: string): number { return description.length / 100; }
   private calculateFeatureImpact(feature: MLFeature, price: number): number { return Math.random() * 20 - 10; }
   private calculateUserVelocity(userId: string): number { return Math.random(); }
-  private calculateDeviceRisk(deviceInfo: any): number { return Math.random() * 0.3; }
-  private calculateLocationRisk(location: any, userId: string): number { return Math.random() * 0.4; }
+  private calculateDeviceRisk(deviceInfo: unknown): number { return Math.random() * 0.3; }
+  private calculateLocationRisk(location: unknown, userId: string): number { return Math.random() * 0.4; }
   private calculatePaymentMethodRisk(paymentMethod: string): number { return Math.random() * 0.2; }
   private calculateAmountDeviation(userId: string, amount: number): number { return Math.random() * 0.5; }
 }

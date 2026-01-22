@@ -70,7 +70,7 @@ export default function ContractorJobsPage2025() {
 
         setAllJobsStats({ active, pending, completed, totalValue });
       } catch (error) {
-        logger.error('Failed to fetch stats:', error', [object Object], { service: 'app' });
+        logger.error('Failed to fetch stats:', error, { service: 'app' });
         // Don't show toast for stats failure, just log it
       } finally {
         setLoadingStats(false);
@@ -179,7 +179,7 @@ export default function ContractorJobsPage2025() {
 
         setJobs(transformedJobs);
       } catch (error) {
-        logger.error('Error fetching jobs:', error', [object Object], { service: 'app' });
+        logger.error('Error fetching jobs:', error, { service: 'app' });
         toast.error(error instanceof Error ? error.message : 'Failed to load jobs');
         setJobs([]);
       } finally {

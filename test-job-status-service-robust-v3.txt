@@ -1,0 +1,105 @@
+﻿node.exe : 
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Startup 
+Error [49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+Error: Failed to load custom Reporter from basic
+    at loadCustomReporterModule (file:///C:/Users/Djo
+djo.Nkouka.ERICCOLE/Downloads/mintenance-clean/node_m
+odules/vitest/dist/chunks/cli-api.BKg19Fvw.js:10536:9
+)
+    at file:///C:/Users/Djodjo.Nkouka.ERICCOLE/Downlo
+ads/mintenance-clean/node_modules/vitest/dist/chunks/
+cli-api.BKg19Fvw.js:10552:23
+    ... 3 lines matching cause stack trace ...
+    at _createServer (file:///C:/Users/Djodjo.Nkouka.
+ERICCOLE/Downloads/mintenance-clean/node_modules/vite
+/dist/node/chunks/config.js:25602:86)
+    at createViteServer (file:///C:/Users/Djodjo.Nkou
+ka.ERICCOLE/Downloads/mintenance-clean/node_modules/v
+itest/dist/chunks/cli-api.BKg19Fvw.js:9815:17)
+    at createVitest (file:///C:/Users/Djodjo.Nkouka.E
+RICCOLE/Downloads/mintenance-clean/node_modules/vites
+t/dist/chunks/cli-api.BKg19Fvw.js:13119:17)
+    at prepareVitest (file:///C:/Users/Djodjo.Nkouka.
+ERICCOLE/Downloads/mintenance-clean/node_modules/vite
+st/dist/chunks/cli-api.BKg19Fvw.js:13481:14)
+    at startVitest (file:///C:/Users/Djodjo.Nkouka.ER
+ICCOLE/Downloads/mintenance-clean/node_modules/vitest
+/dist/chunks/cli-api.BKg19Fvw.js:13427:14) {
+  [cause]: Error: Failed to load url basic (resolved 
+id: basic). Does the file exist?
+      at reviveInvokeError (file:///C:/Users/Djodjo.N
+kouka.ERICCOLE/Downloads/mintenance-clean/node_module
+s/vite/dist/node/module-runner.js:475:14)
+      at Object.invoke (file:///C:/Users/Djodjo.Nkouk
+a.ERICCOLE/Downloads/mintenance-clean/node_modules/vi
+te/dist/node/module-runner.js:491:33)
+      at ServerModuleRunner.getModuleInformation (fil
+e:///C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/minten
+ance-clean/node_modules/vite/dist/node/module-runner.
+js:1086:7)
+      at ServerModuleRunner.import (file:///C:/Users/
+Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/nod
+e_modules/vite/dist/node/module-runner.js:1013:23)
+      at loadCustomReporterModule (file:///C:/Users/D
+jodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/node
+_modules/vitest/dist/chunks/cli-api.BKg19Fvw.js:10534
+:26)
+      at file:///C:/Users/Djodjo.Nkouka.ERICCOLE/Down
+loads/mintenance-clean/node_modules/vitest/dist/chunk
+s/cli-api.BKg19Fvw.js:10552:23
+      at async Promise.all (index 0)
+      at Vitest._setServer (file:///C:/Users/Djodjo.N
+kouka.ERICCOLE/Downloads/mintenance-clean/node_module
+s/vitest/dist/chunks/cli-api.BKg19Fvw.js:12188:138)
+      at BasicMinimalPluginContext.handler (file:///C
+:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-c
+lean/node_modules/vitest/dist/chunks/cli-api.BKg19Fvw
+.js:13091:6)
+      at _createServer (file:///C:/Users/Djodjo.Nkouk
+a.ERICCOLE/Downloads/mintenance-clean/node_modules/vi
+te/dist/node/chunks/config.js:25602:86) {
+    code: 'ERR_LOAD_URL',
+    runnerError: Error: RunnerError
+        at reviveInvokeError (file:///C:/Users/Djodjo
+.Nkouka.ERICCOLE/Downloads/mintenance-clean/node_modu
+les/vite/dist/node/module-runner.js:476:64)
+        at Object.invoke (file:///C:/Users/Djodjo.Nko
+uka.ERICCOLE/Downloads/mintenance-clean/node_modules/
+vite/dist/node/module-runner.js:491:33)
+        at ServerModuleRunner.getModuleInformation (f
+ile:///C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mint
+enance-clean/node_modules/vite/dist/node/module-runne
+r.js:1086:7)
+        at ServerModuleRunner.import (file:///C:/User
+s/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/n
+ode_modules/vite/dist/node/module-runner.js:1013:23)
+        at loadCustomReporterModule (file:///C:/Users
+/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/no
+de_modules/vitest/dist/chunks/cli-api.BKg19Fvw.js:105
+34:26)
+        at file:///C:/Users/Djodjo.Nkouka.ERICCOLE/Do
+wnloads/mintenance-clean/node_modules/vitest/dist/chu
+nks/cli-api.BKg19Fvw.js:10552:23
+        at async Promise.all (index 0)
+        at Vitest._setServer (file:///C:/Users/Djodjo
+.Nkouka.ERICCOLE/Downloads/mintenance-clean/node_modu
+les/vitest/dist/chunks/cli-api.BKg19Fvw.js:12188:138)
+        at BasicMinimalPluginContext.handler (file://
+/C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance
+-clean/node_modules/vitest/dist/chunks/cli-api.BKg19F
+vw.js:13091:6)
+        at _createServer (file:///C:/Users/Djodjo.Nko
+uka.ERICCOLE/Downloads/mintenance-clean/node_modules/
+vite/dist/node/chunks/config.js:25602:86)
+  }
+}
+
+
+

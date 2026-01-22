@@ -7,7 +7,7 @@ import { RealAIAnalysisService } from './RealAIAnalysisService';
 import { PaymentService } from './PaymentService';
 import { MessagingService } from './MessagingService';
 import { NotificationService } from './NotificationService';
-import { Job } from '@mintenance/types';
+import type { Job } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
 export class IntegrationTestService {
@@ -22,14 +22,14 @@ export class IntegrationTestService {
   ): Promise<{
     success: boolean;
     results: {
-      aiAnalysis: any;
-      paymentSetup: any;
-      messaging: any;
-      notifications: any;
+      aiAnalysis: unknown;
+      paymentSetup: unknown;
+      messaging: unknown;
+      notifications: unknown;
     };
     errors: string[];
   }> {
-    const results: any = {};
+    const results: Record<string, unknown> = {};
     const errors: string[] = [];
 
     logger.debug('🧪 Starting Integration Test for Job Workflow...');

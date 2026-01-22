@@ -16,12 +16,12 @@ import { trackUserAction, addBreadcrumb } from '../utils/sentryUtils';
 
 export interface BiometricAuthHook {
   biometricAvailable: boolean;
-  signInWithBiometrics: () => Promise<{ user: User; session: any } | undefined>;
+  signInWithBiometrics: () => Promise<{ user: User; session: Session | null } | undefined>;
   isBiometricAvailable: () => Promise<boolean>;
   isBiometricEnabled: () => Promise<boolean>;
-  enableBiometric: (user: User, session: any) => Promise<void>;
+  enableBiometric: (user: User, session: unknown) => Promise<void>;
   disableBiometric: () => Promise<void>;
-  promptEnableBiometric: (user: User, session: any) => void;
+  promptEnableBiometric: (user: User, session: unknown) => void;
   checkBiometricAvailability: () => Promise<void>;
 }
 
@@ -77,7 +77,7 @@ export const useBiometricAuth = (): BiometricAuthHook => {
     return BiometricService.isBiometricEnabled();
   }, []);
 
-  const enableBiometric = useCallback(async (user: User, session: any): Promise<void> => {
+  const enableBiometric = useCallback(async (user: User, session: Session | null): Promise<void> => {
     if (!session?.access_token || !session?.refresh_token) {
       throw new Error('Unable to enable biometric authentication without an active session');
     }
@@ -92,7 +92,7 @@ export const useBiometricAuth = (): BiometricAuthHook => {
     await BiometricService.disableBiometric();
   }, []);
 
-  const promptEnableBiometric = useCallback((user: User, session: any) => {
+  const promptEnableBiometric = useCallback((user: User, session: unknown) => {
     if (!biometricAvailable || !session?.access_token || !session?.refresh_token) {
       return;
     }

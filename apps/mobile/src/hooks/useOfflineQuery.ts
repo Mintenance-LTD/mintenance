@@ -13,7 +13,7 @@ import { logger } from '../utils/logger';
 
 export interface OfflineQueryOptions {
   queryKey: QueryKey;
-  queryFn: () => Promise<any>;
+  queryFn: () => Promise<unknown>;
   staleTime?: number;
   gcTime?: number;
   enabled?: boolean;
@@ -51,7 +51,7 @@ export const useOfflineQuery = <T = any>({
   // Calculate retry configuration
   const retryConfig = React.useMemo(() => {
     return {
-      retry: (failureCount: number, error: any) => {
+      retry: (failureCount: number, error: Error | unknown) => {
         // Don't retry if offline
         if (!isOnline) return false;
 
@@ -257,7 +257,7 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
         return { previousData, queryKey };
       }
     },
-    onError: (error, variables, context: any) => {
+    onError: (error, variables, context: unknown) => {
       // Rollback optimistic update on error
       if (context?.previousData && context?.queryKey) {
         queryClient.setQueryData(context.queryKey, context.previousData);
@@ -285,7 +285,7 @@ export const useOfflineMutation = <TVariables = any, TData = any>({
 };
 
 // Helper functions for local data handling
-const tryLocalQuery = async (queryKey: QueryKey): Promise<any> => {
+const tryLocalQuery = async (queryKey: QueryKey): Promise<unknown> => {
   try {
     await LocalDatabase.init();
 
@@ -310,7 +310,7 @@ const tryLocalQuery = async (queryKey: QueryKey): Promise<any> => {
 const handleJobsQuery = async (
   operation: string,
   params: string[]
-): Promise<any> => {
+): Promise<unknown> => {
   switch (operation) {
     case 'list':
       if (params[0] === 'available') {
@@ -337,7 +337,7 @@ const handleJobsQuery = async (
 const handleUserQuery = async (
   operation: string,
   params: string[]
-): Promise<any> => {
+): Promise<unknown> => {
   switch (operation) {
     case 'profile':
       return await LocalDatabase.getUser(params[0]);
@@ -349,7 +349,7 @@ const handleUserQuery = async (
 const handleMessagesQuery = async (
   operation: string,
   params: string[]
-): Promise<any> => {
+): Promise<unknown> => {
   switch (operation) {
     case 'conversation':
       return await LocalDatabase.getMessagesByJob(params[0]);
@@ -358,7 +358,7 @@ const handleMessagesQuery = async (
   }
 };
 
-const cacheLocalData = async (queryKey: QueryKey, data: any): Promise<void> => {
+const cacheLocalData = async (queryKey: QueryKey, data: unknown): Promise<void> => {
   try {
     await LocalDatabase.init();
 
@@ -383,7 +383,7 @@ const cacheLocalData = async (queryKey: QueryKey, data: any): Promise<void> => {
 const cacheJobsData = async (
   operation: string,
   params: string[],
-  data: any
+  data: unknown
 ): Promise<void> => {
   if (Array.isArray(data)) {
     for (const job of data) {
@@ -397,7 +397,7 @@ const cacheJobsData = async (
 const cacheUserData = async (
   operation: string,
   params: string[],
-  data: any
+  data: unknown
 ): Promise<void> => {
   if (data) {
     await LocalDatabase.saveUser(data, false);
@@ -407,7 +407,7 @@ const cacheUserData = async (
 const cacheMessagesData = async (
   operation: string,
   params: string[],
-  data: any
+  data: unknown
 ): Promise<void> => {
   if (Array.isArray(data)) {
     for (const message of data) {
@@ -420,7 +420,7 @@ const cacheMessagesData = async (
 // Hook to get offline sync status
 export const useOfflineSyncStatus = () => {
   const { isOnline } = useNetworkState();
-  const [syncStatus, setSyncStatus] = React.useState<any>(null);
+  const [syncStatus, setSyncStatus] = React.useState<unknown>(null);
 
   React.useEffect(() => {
     const unsubscribe = SyncManager.onSyncStatusChange(setSyncStatus);

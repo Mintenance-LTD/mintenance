@@ -210,9 +210,9 @@ export class ClientManagementService {
     segmentData: {
       name: string;
       description: string;
-      criteria: any;
+      criteria: unknown;
     }
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       return await this.segmentationService.createClientSegment(contractorId, segmentData);
     } catch (error) {
@@ -310,7 +310,7 @@ export class ClientManagementService {
   async sendBulkCommunication(
     segmentId: string,
     templateId: string,
-    customizations?: Record<string, any>
+    customizations?: Record<string, unknown>
   ): Promise<{ sent: number; failed: number }> {
     try {
       return await this.communicationService.sendBulkCommunication(segmentId, templateId, customizations);

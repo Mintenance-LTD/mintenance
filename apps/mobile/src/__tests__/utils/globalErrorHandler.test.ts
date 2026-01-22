@@ -4,13 +4,6 @@ const mockErrorUtils = { setGlobalHandler: jest.fn() };
 // Override the global ErrorUtils 
 global.ErrorUtils = mockErrorUtils;
 
-jest.mock('react-native', () => ({
-  Platform: { OS: 'ios' },
-}));
-
-const mockLogger = { error: jest.fn(), warn: jest.fn(), debug: jest.fn() };
-jest.mock('../../utils/logger', () => ({ logger: mockLogger }));
-
 const mockSentry = { captureException: jest.fn(), addBreadcrumb: jest.fn() };
 jest.mock('@sentry/react-native', () => mockSentry);
 

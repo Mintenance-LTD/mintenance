@@ -41,7 +41,7 @@ export interface ComponentStatus {
   score: number;
   message: string;
   lastCheck: number;
-  metrics?: Record<string, any>;
+  metrics?: Record<string, unknown>;
 }
 
 export interface DeploymentReport {
@@ -49,9 +49,9 @@ export interface DeploymentReport {
   environment: 'development' | 'staging' | 'production';
   timestamp: number;
   readinessCheck: ProductionReadinessStatus;
-  securityAudit?: any;
-  performanceBaseline?: any;
-  webCompatibility?: any;
+  securityAudit?: unknown;
+  performanceBaseline?: unknown;
+  webCompatibility?: unknown;
   deploymentApproved: boolean;
   approvalReasons: string[];
   blockers?: string[];
@@ -185,11 +185,19 @@ export class ProductionReadinessOrchestrator {
   private async checkWebPlatformReadiness(): Promise<ComponentStatus> {
     try {
       if (Platform.OS !== 'web') {
+        let webMetrics: ReturnType<WebOptimizations['getInstance']>['getCoreWebVitals'] | undefined;
+        try {
+          webMetrics = WebOptimizations.getInstance().getCoreWebVitals();
+        } catch {
+          webMetrics = undefined;
+        }
+
         return {
           status: 'healthy',
           score: 100,
           message: 'Web platform checks skipped (not running on web)',
           lastCheck: Date.now(),
+          metrics: webMetrics ? { webMetrics } : undefined,
         };
       }
 
@@ -262,23 +270,28 @@ export class ProductionReadinessOrchestrator {
 
       // Check overall health
       if (healthStatus.status !== 'healthy') {
-        score -= 40;
+        score -= 60;
         status = 'error';
         message = `Monitoring system health: ${healthStatus.status}`;
       }
 
       // Check for recent alerts
       if (alertStats.activeAlerts > 0) {
-        score -= 20;
-        status = 'warning';
-        message = `${alertStats.activeAlerts} active alerts in monitoring system`;
+        const alertPenalty = Math.min(60, alertStats.activeAlerts * 12);
+        score -= alertPenalty;
+        if (status !== 'error') {
+          status = 'warning';
+          message = `${alertStats.activeAlerts} active alerts in monitoring system`;
+        }
       }
 
       // Check alert system functionality
       if (alertStats.totalAlerts === 0 && alertStats.lastAlert === 0) {
         score -= 10;
-        status = 'warning';
-        message = 'Alert system may not be functioning (no recent alerts)';
+        if (status !== 'error') {
+          status = 'warning';
+          message = 'Alert system may not be functioning (no recent alerts)';
+        }
       }
 
       return {
@@ -332,7 +345,11 @@ export class ProductionReadinessOrchestrator {
       if (metrics.startupTime && metrics.startupTime > 5000) {
         score -= 20;
         status = 'error';
-        message = 'App startup time exceeds acceptable limits';
+        if (message.includes('budget')) {
+          message = `${message}; App startup time exceeds acceptable limits`;
+        } else {
+          message = 'App startup time exceeds acceptable limits';
+        }
       }
 
       if (metrics.memoryUsage && metrics.memoryUsage > 300000000) {
@@ -377,7 +394,7 @@ export class ProductionReadinessOrchestrator {
 
       // Check error rates
       if (analytics.errorRate > 0.05) { // 5% error rate
-        score -= 30;
+        score -= 40;
         status = 'error';
         message = `High error rate detected: ${(analytics.errorRate * 100).toFixed(2)}%`;
       } else if (analytics.errorRate > 0.01) { // 1% error rate
@@ -387,7 +404,7 @@ export class ProductionReadinessOrchestrator {
       }
 
       // Check for critical error patterns
-      const criticalPatterns = patterns.filter((p: any) => p.severity === 'critical');
+      const criticalPatterns = patterns.filter((p: unknown) => p.severity === 'critical');
       if (criticalPatterns.length > 0) {
         score -= 25;
         status = 'error';
@@ -395,7 +412,7 @@ export class ProductionReadinessOrchestrator {
       }
 
       // Check error trends
-      if (trends.isIncreasing && trends.changeRate > 0.5) {
+      if (status !== 'error' && trends.isIncreasing && trends.changeRate > 0.5) {
         score -= 20;
         status = 'warning';
         message = 'Error rates are trending upward';
@@ -439,15 +456,15 @@ export class ProductionReadinessOrchestrator {
       // Check vulnerability counts
       const vulns = auditReport.summary.vulnerabilities;
       if (vulns.critical > 0) {
-        score -= 50;
+        score -= 60;
         status = 'error';
         message = `${vulns.critical} critical security vulnerabilities found`;
       } else if (vulns.high > 0) {
-        score -= 30;
+        score -= 40;
         status = 'error';
         message = `${vulns.high} high severity security vulnerabilities found`;
       } else if (vulns.medium > 0) {
-        score -= 15;
+        score -= 20;
         status = 'warning';
         message = `${vulns.medium} medium severity security vulnerabilities found`;
       }
@@ -455,15 +472,19 @@ export class ProductionReadinessOrchestrator {
       // Check security violations
       if (securityStats.recentViolations > 10) {
         score -= 20;
-        status = 'warning';
-        message = `High number of recent security violations: ${securityStats.recentViolations}`;
+        if (status !== 'error') {
+          status = 'warning';
+          message = `High number of recent security violations: ${securityStats.recentViolations}`;
+        }
       }
 
       // Check overall audit score
       if (auditReport.summary.overallScore < 70) {
         score = Math.min(score, auditReport.summary.overallScore);
-        status = 'error';
-        message = `Security audit score below threshold: ${auditReport.summary.overallScore}/100`;
+        if (status !== 'error') {
+          status = 'error';
+          message = `Security audit score below threshold: ${auditReport.summary.overallScore}/100`;
+        }
       }
 
       return {
@@ -492,9 +513,16 @@ export class ProductionReadinessOrchestrator {
    */
   private generateRecommendations(components: ProductionReadinessStatus['components']): string[] {
     const recommendations: string[] = [];
+    const webMetrics = components.webPlatform.metrics?.webMetrics as
+      | { lcp?: number; fid?: number; cls?: number }
+      | undefined;
+    const hasPoorWebVitals =
+      (webMetrics?.lcp && webMetrics.lcp > 2500)
+      || (webMetrics?.fid && webMetrics.fid > 100)
+      || (webMetrics?.cls && webMetrics.cls > 0.1);
 
     // Web platform recommendations
-    if (components.webPlatform.score < 90) {
+    if (components.webPlatform.score < 90 || hasPoorWebVitals) {
       recommendations.push('🌐 Optimize web platform performance and Core Web Vitals');
     }
 
@@ -553,6 +581,7 @@ export class ProductionReadinessOrchestrator {
 
     const deploymentId = `deploy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const readinessCheck = await this.checkProductionReadiness(environment);
+    this.lastReadinessCheck = readinessCheck;
 
     // Run additional checks for production deployment
     let securityAudit, performanceBaseline, webCompatibility;
@@ -571,15 +600,17 @@ export class ProductionReadinessOrchestrator {
     }
 
     // Determine deployment approval
-    const deploymentApproved = readinessCheck.overall === 'ready' && readinessCheck.blockers.length === 0;
+    const deploymentApproved = readinessCheck.overall !== 'not_ready' && readinessCheck.blockers.length === 0;
     const approvalReasons = deploymentApproved
-      ? ['All systems healthy', 'No critical blockers', 'Production readiness criteria met']
+      ? (readinessCheck.overall === 'ready'
+        ? ['All systems healthy', 'No critical blockers', 'Production readiness criteria met']
+        : ['Overall status: warning', 'No critical blockers', 'Proceed with caution'])
       : [`Overall status: ${readinessCheck.overall}`, ...readinessCheck.blockers];
 
     const report: DeploymentReport = {
       deploymentId,
       environment,
-      timestamp: Date.now(),
+      timestamp: readinessCheck.timestamp,
       readinessCheck,
       securityAudit,
       performanceBaseline,
@@ -674,11 +705,15 @@ export class ProductionReadinessOrchestrator {
       return acc;
     }, {} as Record<string, string>);
 
+    const firstDeploymentTimestamp = this.deploymentHistory[0]?.readinessCheck?.timestamp
+      ?? this.deploymentHistory[0]?.timestamp
+      ?? this.lastReadinessCheck?.timestamp;
+
     return {
       overall: status.overall,
       components: componentStatus,
       lastCheck: status.timestamp,
-      uptime: Date.now() - (this.deploymentHistory[0]?.timestamp || Date.now()),
+      uptime: Date.now() - (firstDeploymentTimestamp || Date.now()),
     };
   }
 

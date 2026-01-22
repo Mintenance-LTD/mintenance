@@ -41,7 +41,7 @@ interface BookingInterfaceProps {
   contractorRating: number;
   services: ServicePackage[];
   timeSlots: TimeSlot[];
-  onBookingComplete: (booking: any) => void;
+  onBookingComplete: (booking: unknown) => void;
   onBack: () => void;
 }
 
@@ -296,7 +296,7 @@ const ServiceSelection: React.FC<{
 
 const JobDetailsForm: React.FC<{
   details: any;
-  onDetailsChange: (details: any) => void;
+  onDetailsChange: (details: unknown) => void;
 }> = ({ details, onDetailsChange }) => {
   const updateDetail = (key: string, value: string) => {
     onDetailsChange({ ...details, [key]: value });

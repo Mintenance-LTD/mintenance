@@ -284,7 +284,7 @@ export class ClientValidationService {
   /**
    * Validate address
    */
-  private validateAddress(address: any, errors: string[]): void {
+  private validateAddress(address: unknown, errors: string[]): void {
     if (!address.street || address.street.trim().length === 0) {
       errors.push('Street address is required');
     }
@@ -330,7 +330,7 @@ export class ClientValidationService {
   /**
    * Validate preferences
    */
-  private validatePreferences(preferences: any, errors: string[]): void {
+  private validatePreferences(preferences: unknown, errors: string[]): void {
     if (preferences.communicationMethod && !['email', 'phone', 'sms', 'app'].includes(preferences.communicationMethod)) {
       errors.push('Invalid communication method');
     }

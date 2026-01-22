@@ -102,7 +102,6 @@ const SafeContractorCardEditorScreen = withScreenErrorBoundary(
   { fallbackRoute: 'ProfileMain' }
 );
 
-
 // ============================================================================
 // PROFILE NAVIGATOR
 // ============================================================================

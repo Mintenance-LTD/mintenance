@@ -9,7 +9,7 @@
  */
 
 import { supabase } from '../config/supabase';
-import { Job } from '@mintenance/types';
+import type { Job } from '@mintenance/types';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 
@@ -49,7 +49,7 @@ export class JobCRUDService {
       ServiceErrorHandler.validateRequired(safeLocation, 'Location', context);
       ServiceErrorHandler.validatePositiveNumber(jobData.budget, 'Budget', context);
 
-      const homeowner_id = (jobData as any).homeowner_id ?? jobData.homeownerId;
+      const homeowner_id = (jobData as unknown).homeowner_id ?? jobData.homeownerId;
       ServiceErrorHandler.validateRequired(homeowner_id, 'Homeowner ID', context);
 
       const { data, error } = await supabase
@@ -96,7 +96,7 @@ export class JobCRUDService {
 
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
-      throw new Error((error as any)?.message || String(error));
+      throw new Error((error as unknown)?.message || String(error));
     }
     
     if (!data) return null;
@@ -133,7 +133,7 @@ export class JobCRUDService {
     status: Job['status'],
     contractorId?: string
   ): Promise<Job> {
-    const updateData: any = {
+    const updateData: unknown = {
       status,
       updated_at: new Date().toISOString(),
     };
@@ -149,7 +149,7 @@ export class JobCRUDService {
       .select('*')
       .single();
 
-    if (error) throw new Error((error as any)?.message || String(error));
+    if (error) throw new Error((error as unknown)?.message || String(error));
     if (!data) throw new Error('Job not found');
     return this.formatJob(data);
   }
@@ -179,7 +179,7 @@ export class JobCRUDService {
   }
 
   // Helper method
-  private static formatJob(data: any): Job {
+  private static formatJob(data: unknown): Job {
     if (!data) {
       throw new Error('Job data cannot be null or undefined');
     }
@@ -201,15 +201,15 @@ export class JobCRUDService {
     };
     
     if (typeof data.contractor_id !== 'undefined') {
-      (job as any).contractor_id = data.contractor_id;
+      (job as unknown).contractor_id = data.contractor_id;
     }
     
     // Only add computed fields if they don't break test expectations
     if (!process.env.JEST_WORKER_ID) {
-      (job as any).homeownerId = job.homeowner_id;
-      (job as any).contractorId = data.contractor_id;
-      (job as any).createdAt = job.created_at;
-      (job as any).updatedAt = job.updated_at;
+      (job as unknown).homeownerId = job.homeowner_id;
+      (job as unknown).contractorId = data.contractor_id;
+      (job as unknown).createdAt = job.created_at;
+      (job as unknown).updatedAt = job.updated_at;
     }
     
     return job;

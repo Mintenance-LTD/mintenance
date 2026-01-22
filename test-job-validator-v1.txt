@@ -1,0 +1,83 @@
+﻿
+ RUN  v4.0.16 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services
+
+ ÔØ» src/jobs/__tests__/JobValidator.test.ts (10 tests | 2 failed) 17ms
+       Ô£ô should validate valid job data 4ms
+       ├ù should throw error if title is missing 7ms
+       ├ù should sanitize HTML from title and description 2ms
+       Ô£ô should validate budget range 0ms
+       Ô£ô should throw error if budget_min > budget_max 1ms
+       Ô£ô should validate coordinates range 0ms
+       Ô£ô should filter out non-HTTPS or non-image URLs 1ms
+       Ô£ô should limit to 20 photos 0ms
+       Ô£ô should allow safe search terms 0ms
+       Ô£ô should throw error for SQL injection patterns 0ms
+node.exe : 
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 2 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/jobs/__tests__/JobValidator.test.ts > 
+JobValidator > validateCreateJobData > should throw 
+error if title is missing
+AssertionError: expected [Function] to throw error 
+including 'title: Title is required' but got 
+'Validation failed: title: Required'
+
+Expected: [32m"[7mtit[27mle: [7mT[27mitle[7m 
+is r[27mequired"[39m
+Received: [31m"[7mValidation fai[27mle[7md[27m: 
+[7mt[27mitle[7m: R[27mequired"[39m
+
+ ÔØ» src/jobs/__tests__/JobValidator.test.ts:29:59
+     27|     it('should throw error if title is 
+missing', () => {
+     28|       const data = { description: 'Missing 
+title' };
+     29|       expect(() => validator.validateCreateJ
+obData(data)).toThrow('titÔÇª
+       |                                             
+              ^
+     30|     });
+     31| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/2]ÔÄ»
+
+ FAIL  src/jobs/__tests__/JobValidator.test.ts > 
+JobValidator > validateCreateJobData > should 
+sanitize HTML from title and description
+AssertionError: expected 'Fix 
+scriptalert(1)/scriptPipe' to be 'Fix alert(1)Pipe' 
+// Object.is equality
+
+Expected: [32m"Fix alert(1)Pipe"[39m
+Received: [31m"Fix 
+[7mscript[27malert(1)[7m/script[27mPipe"[39m
+
+ ÔØ» src/jobs/__tests__/JobValidator.test.ts:40:28
+     38| 
+     39|       const result = 
+validator.validateCreateJobData(data);
+     40|       expect(result.title).toBe('Fix 
+alert(1)Pipe');
+       |                            ^
+     41|       
+expect(result.description).toBe('Leaking');
+     42|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/2]ÔÄ»
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 8 passed (10)
+   Start at  13:23:28
+   Duration  579ms (transform 129ms, setup 0ms, import 202ms, tests 17ms, environment 0ms)
+

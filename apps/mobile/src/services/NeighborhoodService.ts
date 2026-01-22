@@ -583,7 +583,7 @@ class NeighborhoodService {
     return data;
   }
 
-  private async getNeighborhoodStats(neighborhoodId: string): Promise<any> {
+  private async getNeighborhoodStats(neighborhoodId: string): Promise<unknown> {
     // Mock stats for now - in real implementation would query actual data
     return {
       completed_jobs_count: 45,

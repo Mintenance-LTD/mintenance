@@ -56,7 +56,7 @@ export interface ResponseAction {
   type: 'failover' | 'scale_up' | 'notify' | 'backup' | 'isolate' | 'restore';
   priority: number;
   automated: boolean;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
 }
 
 export interface BackupStrategy {
@@ -337,7 +337,7 @@ export class ResourceOrchestrator {
     // Configure observability and tracing
   }
 
-  private async configureCircuitBreaker(instanceId: string, config: any): Promise<void> {
+  private async configureCircuitBreaker(instanceId: string, config: Record<string, unknown>): Promise<void> {
     logger.info(`Configured circuit breaker for instance ${instanceId}`, config);
     // Circuit breaker implementation would go here
   }

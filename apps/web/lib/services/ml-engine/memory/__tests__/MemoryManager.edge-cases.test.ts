@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Edge Case Unit Tests for MemoryManager
  * 
@@ -9,7 +10,7 @@ import { ContinuumMemorySystem } from '../ContinuumMemorySystem';
 import type { ContinuumMemoryConfig, MemoryQueryResult } from '../types';
 
 // Mock ContinuumMemorySystem
-jest.mock('../ContinuumMemorySystem');
+vi.mock('../ContinuumMemorySystem');
 
 describe('MemoryManager - Edge Cases', () => {
   let memoryManager: MemoryManager;
@@ -17,7 +18,7 @@ describe('MemoryManager - Edge Cases', () => {
   beforeEach(() => {
     // Get fresh instance
     memoryManager = MemoryManager.getInstance();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -256,7 +257,7 @@ describe('MemoryManager - Edge Cases', () => {
     it('should handle initialization failure gracefully', async () => {
       // Mock internal failure
       const originalStartScheduler = (memoryManager as any).startUpdateScheduler;
-      (memoryManager as any).startUpdateScheduler = jest.fn(() => {
+      (memoryManager as any).startUpdateScheduler = vi.fn(() => {
         throw new Error('Scheduler start failed');
       });
 

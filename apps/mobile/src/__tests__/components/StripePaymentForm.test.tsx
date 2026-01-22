@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import { StripePaymentForm } from '../../components/StripePaymentForm';
 
 // Mock Stripe React Native
@@ -37,6 +46,10 @@ describe('StripePaymentForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   it('renders payment form correctly', () => {
     const { getByText, getByTestId } = render(
@@ -65,7 +78,7 @@ describe('StripePaymentForm', () => {
     );
 
     // Simulate card completion
-    fireEvent.press(getByTestId('card-field'));
+    act(() => fireEvent.press(getByTestId('card-field')));
 
     await waitFor(() => {
       const payButton = getByTestId('pay-button');
@@ -90,11 +103,11 @@ describe('StripePaymentForm', () => {
     );
 
     // Complete card and submit payment
-    fireEvent.press(getByTestId('card-field'));
+    act(() => fireEvent.press(getByTestId('card-field')));
 
     await waitFor(() => {
       const payButton = getByText('Pay $150.00 Securely');
-      fireEvent.press(payButton);
+      act(() => fireEvent.press(payButton));
     });
 
     await waitFor(() => {
@@ -120,11 +133,11 @@ describe('StripePaymentForm', () => {
     );
 
     // Complete card and submit payment
-    fireEvent.press(getByTestId('card-field'));
+    act(() => fireEvent.press(getByTestId('card-field')));
 
     await waitFor(() => {
       const payButton = getByText('Pay $150.00 Securely');
-      fireEvent.press(payButton);
+      act(() => fireEvent.press(payButton));
     });
 
     await waitFor(() => {
@@ -144,11 +157,11 @@ describe('StripePaymentForm', () => {
     );
 
     // Complete card and submit payment
-    fireEvent.press(getByTestId('card-field'));
+    act(() => fireEvent.press(getByTestId('card-field')));
 
     await waitFor(() => {
       const payButton = getByText('Pay $150.00 Securely');
-      fireEvent.press(payButton);
+      act(() => fireEvent.press(payButton));
     });
 
     // Should show loading indicator
@@ -156,7 +169,7 @@ describe('StripePaymentForm', () => {
   });
 
   it('prevents multiple payment attempts', async () => {
-    let resolvePayment: (value: any) => void;
+    let resolvePayment: (value: unknown) => void;
     mockConfirmPayment.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
@@ -169,15 +182,15 @@ describe('StripePaymentForm', () => {
     );
 
     // Complete card
-    fireEvent.press(getByTestId('card-field'));
+    act(() => fireEvent.press(getByTestId('card-field')));
 
     await waitFor(() => {
       const payButton = getByText('Pay $150.00 Securely');
 
       // Press button multiple times
-      fireEvent.press(payButton);
-      fireEvent.press(payButton);
-      fireEvent.press(payButton);
+      act(() => fireEvent.press(payButton));
+      act(() => fireEvent.press(payButton));
+      act(() => fireEvent.press(payButton));
     });
 
     // Should only call confirmPayment once
@@ -204,7 +217,7 @@ describe('StripePaymentForm', () => {
 
     // Try to pay without completing card
     const payButton = getByText('Pay $150.00 Securely');
-    fireEvent.press(payButton);
+    act(() => fireEvent.press(payButton));
 
     // Should not call confirmPayment
     expect(mockConfirmPayment).not.toHaveBeenCalled();

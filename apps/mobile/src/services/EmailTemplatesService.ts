@@ -42,7 +42,7 @@ export interface EmailTemplate {
   footer_content?: string;
   auto_send_trigger?: string;
   auto_send_delay_hours: number;
-  auto_send_conditions: any;
+  auto_send_conditions: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -78,7 +78,7 @@ export interface EmailHistory {
   job_id?: string;
   invoice_id?: string;
   context_type?: string;
-  context_data: any;
+  context_data: unknown;
   status: 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'failed';
   external_id?: string;
   send_attempts: number;
@@ -90,8 +90,8 @@ export interface EmailHistory {
   bounced_at?: string;
   open_count: number;
   click_count: number;
-  device_info: any;
-  location_info: any;
+  device_info: unknown;
+  location_info: unknown;
   created_at: string;
 }
 
@@ -149,7 +149,7 @@ export class EmailTemplatesService {
     footer_content?: string;
     auto_send_trigger?: string;
     auto_send_delay_hours?: number;
-    auto_send_conditions?: any;
+    auto_send_conditions?: unknown;
   }): Promise<EmailTemplate> {
     try {
       const { data, error } = await supabase
@@ -312,7 +312,7 @@ export class EmailTemplatesService {
 
   static async processTemplate(
     templateId: string,
-    variables: Record<string, any>
+    variables: Record<string, unknown>
   ): Promise<{
     subject_line: string;
     html_content?: string;
@@ -384,7 +384,7 @@ export class EmailTemplatesService {
   // Client-side fallback for template variable replacement
   static replaceVariables(
     content: string,
-    variables: Record<string, any>
+    variables: Record<string, unknown>
   ): string {
     let result = content;
     Object.keys(variables).forEach((key) => {
@@ -413,8 +413,8 @@ export class EmailTemplatesService {
     job_id?: string;
     invoice_id?: string;
     context_type?: string;
-    context_data?: any;
-    variables?: Record<string, any>;
+    context_data?: unknown;
+    variables?: Record<string, unknown>;
   }): Promise<{ success: boolean; email_id: string; error?: string }> {
     try {
       // If template_id is provided, process the template
@@ -570,12 +570,12 @@ export class EmailTemplatesService {
       // Calculate basic metrics
       const totalSent = history?.length || 0;
       const delivered =
-        history?.filter((h: any) => h.status === 'delivered').length || 0;
-      const opened = history?.filter((h: any) => h.open_count > 0).length || 0;
+        history?.filter((h: unknown) => h.status === 'delivered').length || 0;
+      const opened = history?.filter((h: unknown) => h.open_count > 0).length || 0;
       const clicked =
-        history?.filter((h: any) => h.click_count > 0).length || 0;
+        history?.filter((h: unknown) => h.click_count > 0).length || 0;
       const bounced =
-        history?.filter((h: any) => h.status === 'bounced').length || 0;
+        history?.filter((h: unknown) => h.status === 'bounced').length || 0;
 
       const summary: EmailAnalytics = {
         id: '',
@@ -588,10 +588,10 @@ export class EmailTemplatesService {
         emails_failed: 0,
         unique_opens: opened,
         total_opens:
-          history?.reduce((sum: number, h: any) => sum + h.open_count, 0) || 0,
+          history?.reduce((sum: number, h: unknown) => sum + h.open_count, 0) || 0,
         unique_clicks: clicked,
         total_clicks:
-          history?.reduce((sum: number, h: any) => sum + h.click_count, 0) || 0,
+          history?.reduce((sum: number, h: unknown) => sum + h.click_count, 0) || 0,
         unsubscribes: 0,
         complaints: 0,
         delivery_rate: totalSent > 0 ? (delivered / totalSent) * 100 : 0,

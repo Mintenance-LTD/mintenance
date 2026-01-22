@@ -1,0 +1,10 @@
+﻿
+ RUN  v4.0.16 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services
+
+ Ô£ô src/jobs/__tests__/JobRepository.test.ts (5 tests) 10ms
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  11:49:40
+   Duration  579ms (transform 172ms, setup 0ms, import 228ms, tests 10ms, environment 0ms)
+

@@ -85,7 +85,7 @@ export class SSOAuthenticationService {
     userId: string,
     providerId: string,
     externalUserId: string,
-    profileData: any
+    profileData: unknown
   ): Promise<UserSSOAccount> {
     const { data, error } = await supabase
       .from('user_sso_accounts')
@@ -209,7 +209,7 @@ export class SSOAuthenticationService {
     try {
       let success = false;
       let errorMessage: string | undefined;
-      let details: any = {};
+      let details: Record<string, unknown> = {};
 
       switch (testType) {
         case 'connection':
@@ -422,7 +422,7 @@ export class SSOAuthenticationService {
   /**
    * Find or create user account
    */
-  private async findOrCreateUser(provider: SSOProvider, userProfile: SSOUserProfile): Promise<any> {
+  private async findOrCreateUser(provider: SSOProvider, userProfile: SSOUserProfile): Promise<unknown> {
     // Check if user exists
     const { data: existingUser } = await supabase
       .from('users')
@@ -457,7 +457,7 @@ export class SSOAuthenticationService {
   /**
    * Refresh access token
    */
-  private async refreshAccessToken(provider: any, refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
+  private async refreshAccessToken(provider: unknown, refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
     // Simplified implementation
     return {
       access_token: 'new_mock_access_token',

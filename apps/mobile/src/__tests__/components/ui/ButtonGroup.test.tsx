@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent , waitFor} from '../test-utils';
 import { ButtonGroup } from '../../../components/ui/Button/ButtonGroup';
 
 // Mock haptics
@@ -80,7 +89,7 @@ describe('ButtonGroup', () => {
       />
     );
 
-    fireEvent.press(getByText('Option 1'));
+    act(() => fireEvent.press(getByText('Option 1')));
 
     expect(onSelectionChange).toHaveBeenCalledWith(['value1']);
   });
@@ -95,8 +104,8 @@ describe('ButtonGroup', () => {
       />
     );
 
-    fireEvent.press(getByText('Option 1'));
-    fireEvent.press(getByText('Option 2'));
+    act(() => fireEvent.press(getByText('Option 1')));
+    act(() => fireEvent.press(getByText('Option 2')));
 
     expect(onSelectionChange).toHaveBeenCalledWith(['value1']);
     expect(onSelectionChange).toHaveBeenCalledWith(['value1', 'value2']);
@@ -114,7 +123,7 @@ describe('ButtonGroup', () => {
     );
 
     // Press already selected item to deselect
-    fireEvent.press(getByText('Option 1'));
+    act(() => fireEvent.press(getByText('Option 1')));
 
     expect(onSelectionChange).toHaveBeenCalledWith(['value2']);
   });
@@ -166,7 +175,7 @@ describe('ButtonGroup', () => {
       <ButtonGroup buttons={buttonsWithDisabled} onSelectionChange={onSelectionChange} />
     );
 
-    fireEvent.press(getByText('Disabled Option'));
+    act(() => fireEvent.press(getByText('Disabled Option')));
 
     expect(onSelectionChange).not.toHaveBeenCalled();
   });
@@ -279,7 +288,7 @@ describe('ButtonGroup', () => {
       />
     );
 
-    fireEvent.press(getByText('Option 1'));
+    act(() => fireEvent.press(getByText('Option 1')));
 
     rerender(
       <ButtonGroup
@@ -306,9 +315,9 @@ describe('ButtonGroup', () => {
     const button = getByText('Option 1');
 
     // Rapid fire presses
-    fireEvent.press(button);
-    fireEvent.press(button);
-    fireEvent.press(button);
+    act(() => fireEvent.press(button));
+    act(() => fireEvent.press(button));
+    act(() => fireEvent.press(button));
 
     // Should handle debouncing appropriately
     expect(onSelectionChange).toHaveBeenCalled();

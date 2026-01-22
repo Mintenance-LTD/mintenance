@@ -15,7 +15,7 @@ export class SSOSessionService {
     userId: string,
     providerId?: string,
     sessionType: 'web' | 'mobile' | 'api' | 'sso' = 'sso',
-    metadata?: any
+    metadata?: unknown
   ): Promise<SSOSession> {
     const sessionToken = this.generateSessionToken();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours

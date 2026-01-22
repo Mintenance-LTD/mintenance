@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * @jest-environment node
  */
@@ -5,14 +6,14 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 import { createClient } from '@supabase/supabase-js';
 
 // Mock Supabase client
-jest.mock('@supabase/supabase-js');
+vi.mock('@supabase/supabase-js');
 
 // Mock Redis
-jest.mock('@/lib/redis', () => ({
+vi.mock('@/lib/redis', () => ({
   redis: {
-    get: jest.fn(),
-    set: jest.fn(),
-    del: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
   },
 }));
 
@@ -26,18 +27,18 @@ describe('Critic FNR Edge Cases', () => {
   let shouldEscalate: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup mock Supabase client
     mockSupabase = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
-      single: jest.fn(),
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      single: vi.fn(),
     };
 
-    (createClient as jest.Mock).mockReturnValue(mockSupabase);
+    vi.mocked(createClient).mockReturnValue(mockSupabase);
 
     // Mock implementation of getFNR
     getFNR = async (modelName: string, version: string) => {
@@ -141,7 +142,7 @@ describe('Critic FNR Edge Cases', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('getFNR with n=0 (no data)', () => {
@@ -414,7 +415,7 @@ describe('Critic FNR Edge Cases', () => {
         lastUpdated: new Date().toISOString(),
       };
 
-      (redis.get as jest.Mock).mockResolvedValue(JSON.stringify(cachedResult));
+      vi.mocked(redis.get).mockResolvedValue(JSON.stringify(cachedResult));
 
       const result = await getFNR('test-model', 'v1.0');
 
@@ -423,7 +424,7 @@ describe('Critic FNR Edge Cases', () => {
     });
 
     it('should query database if cache miss', async () => {
-      (redis.get as jest.Mock).mockResolvedValue(null);
+      vi.mocked(redis.get).mockResolvedValue(null);
 
       mockSupabase.single.mockResolvedValue({
         data: {

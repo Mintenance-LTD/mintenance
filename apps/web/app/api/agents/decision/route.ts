@@ -280,7 +280,7 @@ export const POST = withErrorHandler(async (req: Request) => {
     );
 
   } catch (error: unknown) {
-    logger.error('Agent decision error:', error', [object Object], { service: 'api' });
+    logger.error('Agent decision error:', error, { service: 'api' });
 
     // Log error
     await AgentLogger.logDecision({

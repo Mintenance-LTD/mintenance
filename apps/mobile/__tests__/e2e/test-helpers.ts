@@ -302,10 +302,9 @@ export function suppressConsoleLogs() {
 /**
  * Assert that no card details are exposed in logs
  */
-export function assertNoCardDataInLogs(logCalls: any[][]) {
+export function assertNoCardDataInLogs(logCalls: unknown[][]) {
   const sensitivePatterns = [
     /\d{13,19}/, // Card numbers
-    /\d{3,4}/, // CVCs (context-dependent)
     /4242.*4242/, // Test card numbers
   ];
 

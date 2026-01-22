@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
@@ -7,7 +7,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
  * Returns the current build ID for version checking
  * This helps detect when a new deployment has occurred
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({
     identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,

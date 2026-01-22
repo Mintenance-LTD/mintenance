@@ -6,17 +6,17 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 import { NextRequest, NextResponse } from 'next/server';
 
 // Mock dependencies
-jest.mock('@/lib/config', () => ({
+vi.mock('@/lib/config', () => ({
   ConfigManager: {
-    getInstance: jest.fn(),
+    getInstance: vi.fn(),
   },
 }));
 
-jest.mock('@/lib/logger', () => ({
+vi.mock('@/lib/logger', () => ({
   logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
@@ -28,18 +28,18 @@ describe('Middleware Configuration', () => {
   let middleware: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock ConfigManager implementation
     mockConfigManager = {
       isInitialized: false,
       config: null,
-      initialize: jest.fn(),
-      getConfig: jest.fn(),
-      validateConfig: jest.fn(),
+      initialize: vi.fn(),
+      getConfig: vi.fn(),
+      validateConfig: vi.fn(),
     };
 
-    (ConfigManager.getInstance as jest.Mock).mockReturnValue(mockConfigManager);
+    vi.mocked(ConfigManager.getInstance).mockReturnValue(mockConfigManager);
 
     // Mock middleware function
     middleware = async (request: NextRequest) => {
@@ -74,7 +74,7 @@ describe('Middleware Configuration', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Middleware initialization success', () => {

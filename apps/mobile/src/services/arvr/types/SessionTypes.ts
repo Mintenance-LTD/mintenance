@@ -15,7 +15,7 @@ export interface ARVRSession {
   duration: number;
   interactions: ARVRInteraction[];
   performance: ARVRPerformanceMetrics;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ARVRInteraction {
@@ -23,7 +23,7 @@ export interface ARVRInteraction {
   type: 'tap' | 'pinch' | 'pan' | 'rotate' | 'voice' | 'gesture';
   target: string;
   timestamp: number;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface ARVRPerformanceMetrics {

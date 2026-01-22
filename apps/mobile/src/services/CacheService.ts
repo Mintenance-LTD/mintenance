@@ -44,7 +44,7 @@ export class CacheService {
   private static instance: CacheService;
 
   // Memory cache (in-memory Map)
-  private memoryCache: Map<string, CacheEntry<any>>;
+  private memoryCache: Map<string, CacheEntry<unknown>>;
 
   // LRU tracking for memory cache
   private lruKeys: string[];
@@ -399,7 +399,7 @@ export class CacheService {
       for (const diskKey of cacheKeys) {
         const json = await AsyncStorage.getItem(diskKey);
         if (json) {
-          const entry: CacheEntry<any> = JSON.parse(json);
+          const entry: CacheEntry<unknown> = JSON.parse(json);
           if (Date.now() - entry.timestamp > entry.ttl) {
             await AsyncStorage.removeItem(diskKey);
             cleaned++;
@@ -420,7 +420,7 @@ export class CacheService {
   // UTILITIES
   // ============================================================================
 
-  private calculateSize(data: any): number {
+  private calculateSize(data: unknown): number {
     try {
       return JSON.stringify(data).length;
     } catch {

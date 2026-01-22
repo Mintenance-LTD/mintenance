@@ -109,7 +109,7 @@ export const ContractorsBrowseAirbnb = React.memo(function ContractorsBrowseAirb
   const handleSearch = useCallback((params: { service?: string; location?: string; date?: string }) => {
     setSearchParams(prev => ({ ...prev, ...params }));
     // In real implementation, this would trigger a server-side search
-    // logger.info('Search:', params', [object Object], { service: 'ui' });
+    // logger.info('Search:', params', { service: 'ui' });
   }, []);
 
   const toggleSkillFilter = useCallback((skill: string) => {

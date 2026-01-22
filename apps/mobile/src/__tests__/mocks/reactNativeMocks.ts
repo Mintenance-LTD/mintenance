@@ -7,7 +7,7 @@ export class ReactNativeMockFactory {
     return {
       OS: 'ios' as 'ios' | 'android' | 'web' | 'windows' | 'macos',
       Version: '16.0',
-      select: jest.fn((obj: any) => obj.ios || obj.default),
+      select: jest.fn((obj: unknown) => obj.ios || obj.default),
       isPad: false,
       isTVOS: false,
       constants: {
@@ -29,7 +29,7 @@ export class ReactNativeMockFactory {
       get: jest.fn((dimension: 'window' | 'screen') => mockDimensions),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
-      set: jest.fn((dims: any) => {
+      set: jest.fn((dims: unknown) => {
         Object.assign(mockDimensions, dims);
       }),
     };

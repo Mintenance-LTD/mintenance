@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import { Button } from '../../components/ui/Button';
 
 // Mock design tokens
@@ -208,7 +217,7 @@ describe('Button Component', () => {
         <Button onPress={mockOnPress} title="Pressable Button" />
       );
 
-      fireEvent.press(getByText('Pressable Button'));
+      act(() => fireEvent.press(getByText('Pressable Button')));
       expect(mockOnPress).toHaveBeenCalledTimes(1);
     });
 
@@ -218,7 +227,7 @@ describe('Button Component', () => {
         <Button onPress={mockOnPress} disabled title="Disabled Button" />
       );
 
-      fireEvent.press(getByText('Disabled Button'));
+      act(() => fireEvent.press(getByText('Disabled Button')));
       expect(mockOnPress).not.toHaveBeenCalled();
     });
 
@@ -228,7 +237,7 @@ describe('Button Component', () => {
         <Button onPress={mockOnPress} loading title="Loading Button" testID="loading-button" />
       );
 
-      fireEvent.press(getByTestId('loading-button'));
+      act(() => fireEvent.press(getByTestId('loading-button')));
       expect(mockOnPress).not.toHaveBeenCalled();
     });
 
@@ -356,7 +365,7 @@ describe('Button Component', () => {
       );
 
       // Should not throw error when pressed
-      fireEvent.press(getByTestId('no-handler-button'));
+      act(() => fireEvent.press(getByTestId('no-handler-button')));
       expect(getByTestId('no-handler-button')).toBeTruthy();
     });
   });
@@ -366,7 +375,7 @@ describe('Button Component', () => {
     it('does not re-render unnecessarily', () => {
       const renderSpy = jest.fn();
 
-      const TestButton = (props: any) => {
+      const TestButton = (props: unknown) => {
         renderSpy();
         return <Button {...props} title="Test Button" />;
       };

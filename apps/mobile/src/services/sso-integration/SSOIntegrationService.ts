@@ -193,7 +193,7 @@ export class SSOIntegrationService {
     userId: string,
     providerId: string,
     externalUserId: string,
-    profileData: any
+    profileData: unknown
   ): Promise<UserSSOAccount> {
     try {
       return await this.authService.linkUserAccount(userId, providerId, externalUserId, profileData);
@@ -343,7 +343,7 @@ export class SSOIntegrationService {
       page?: number;
       limit?: number;
     }
-  ): Promise<{ events: any[]; total: number }> {
+  ): Promise<{ events: unknown[]; total: number }> {
     try {
       return await this.analyticsService.getSSOEvents(contractorId, filters);
     } catch (error) {

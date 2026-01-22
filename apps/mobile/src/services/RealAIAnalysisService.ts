@@ -190,7 +190,7 @@ export class RealAIAnalysisService {
 
       Focus on safety, required tools, and realistic time estimates.`;
 
-      const messages: any[] = [
+      const messages: unknown[] = [
         { role: 'system', content: systemPrompt },
         {
           role: 'user',
@@ -282,7 +282,7 @@ export class RealAIAnalysisService {
    * Validate and format OpenAI JSON response
    */
   private static validateAndFormatOpenAIResponse(
-    response: any,
+    response: unknown,
     job: Job
   ): AIAnalysis {
     return {
@@ -291,7 +291,7 @@ export class RealAIAnalysisService {
         ? response.detectedItems
         : ['AI analysis completed'],
       safetyConcerns: Array.isArray(response.safetyConcerns)
-        ? response.safetyConcerns.map((c: any) => ({
+        ? response.safetyConcerns.map((c: unknown) => ({
             concern: c.concern || 'Safety consideration',
             severity: ['Low', 'Medium', 'High'].includes(c.severity)
               ? c.severity
@@ -323,7 +323,7 @@ export class RealAIAnalysisService {
         : ['Basic tools required'],
       estimatedDuration: response.estimatedDuration || '2-4 hours',
       detectedEquipment: Array.isArray(response.detectedEquipment)
-        ? response.detectedEquipment.map((e: any) => ({
+        ? response.detectedEquipment.map((e: unknown) => ({
             name: e.name || 'Equipment',
             confidence: Math.min(Math.max(e.confidence || 70, 0), 100),
             location: e.location || 'Location not specified',

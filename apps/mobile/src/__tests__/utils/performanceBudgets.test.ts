@@ -21,7 +21,7 @@ import {
   usePerformanceMonitoring,
   reactNativePerformanceEnforcer,
 } from '../../utils/performance';
-import React from 'react';
+
 import { render } from '../setup/testUtils';
 
 // Mock dependencies
@@ -56,10 +56,7 @@ jest.mock('../../utils/codeSplitting', () => ({
 }));
 
 // Mock React Native components
-jest.mock('react-native', () => ({
-  Text: 'Text',
-  View: 'View',
-}));
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 
 describe('PerformanceBudgetManager', () => {
   let budgetManager: PerformanceBudgetManager;
@@ -68,6 +65,10 @@ describe('PerformanceBudgetManager', () => {
     budgetManager = new PerformanceBudgetManager();
     jest.clearAllMocks();
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   describe('Budget Management', () => {
     it('initializes with default budgets', () => {

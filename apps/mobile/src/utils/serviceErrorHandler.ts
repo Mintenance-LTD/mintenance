@@ -19,7 +19,7 @@ export interface ServiceOperationResult<T> {
 export interface ServiceErrorContext extends ErrorContext {
   service: string;
   method: string;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 }
 
 // ============================================================================
@@ -62,7 +62,7 @@ export class ServiceErrorHandler {
    * Handle database/Supabase errors
    */
   static handleDatabaseError(
-    error: any,
+    error: Error | unknown,
     context: ServiceErrorContext,
     showUserAlert = true
   ) {
@@ -116,7 +116,7 @@ export class ServiceErrorHandler {
    * Handle network/API errors
    */
   static handleNetworkError(
-    error: any,
+    error: Error | unknown,
     context: ServiceErrorContext,
     showUserAlert = true
   ) {
@@ -145,7 +145,7 @@ export class ServiceErrorHandler {
   /**
    * Validate required parameters
    */
-  static validateRequired(value: any, fieldName: string, context: ServiceErrorContext) {
+  static validateRequired(value: unknown, fieldName: string, context: ServiceErrorContext) {
     if (value === null || value === undefined || value === '') {
       throw this.handleValidationError(
         `${fieldName} is required`,
@@ -199,7 +199,7 @@ export class ServiceErrorHandler {
   // PRIVATE HELPER METHODS
   // ========================================================================
 
-  private static getDatabaseUserMessage(error: any): string {
+  private static getDatabaseUserMessage(error: unknown): string {
     const errorCode = error?.code || error?.error_code;
 
     switch (errorCode) {
@@ -220,7 +220,7 @@ export class ServiceErrorHandler {
     }
   }
 
-  private static getNetworkUserMessage(error: any): string {
+  private static getNetworkUserMessage(error: unknown): string {
     if (error?.status >= 500) {
       return 'Server is currently unavailable. Please try again later.';
     } else if (error?.status === 401) {

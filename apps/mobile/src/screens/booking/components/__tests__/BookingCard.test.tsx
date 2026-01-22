@@ -1,3 +1,13 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
+import React from 'react';
 /**
  * BookingCard Component Tests
  *
@@ -8,8 +18,8 @@
  * - User interactions (contact, reschedule, cancel, review)
  */
 
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+
+import { render, fireEvent, waitFor } from '../../../../test-utils';
 import { Alert } from 'react-native';
 import { BookingCard } from '../BookingCard';
 import type { Booking } from '../../viewmodels/BookingViewModel';
@@ -73,6 +83,10 @@ describe('BookingCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   describe('Rendering', () => {
     it('should render booking information correctly', () => {
@@ -201,7 +215,7 @@ describe('BookingCard', () => {
         />
       );
 
-      fireEvent.press(getByText('Contact'));
+      act(() => fireEvent.press(getByText('Contact')));
       expect(mockOnContactContractor).toHaveBeenCalledWith(baseBooking);
     });
 
@@ -218,7 +232,7 @@ describe('BookingCard', () => {
         />
       );
 
-      fireEvent.press(getByText('Reschedule'));
+      act(() => fireEvent.press(getByText('Reschedule')));
       expect(mockOnReschedule).toHaveBeenCalledWith(baseBooking);
     });
 
@@ -281,7 +295,7 @@ describe('BookingCard', () => {
         />
       );
 
-      fireEvent.press(getByText('View Receipt'));
+      act(() => fireEvent.press(getByText('View Receipt')));
       expect(mockOnViewReceipt).toHaveBeenCalledWith(completedBooking);
     });
 
@@ -298,7 +312,7 @@ describe('BookingCard', () => {
         />
       );
 
-      fireEvent.press(getByText('Leave Review'));
+      act(() => fireEvent.press(getByText('Leave Review')));
       expect(mockOnLeaveReview).toHaveBeenCalledWith(completedBooking);
     });
 

@@ -1,7 +1,35 @@
-import React from 'react';
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 import { JobService } from '../../services/JobService';
+
+jest.mock('../../services/JobService', () => ({
+  JobService: {
+    getJobs: jest.fn(),
+    getAvailableJobs: jest.fn(),
+    getJobsByHomeowner: jest.fn(),
+    getJobsByStatus: jest.fn(),
+    getJobById: jest.fn(),
+    getBidsByJob: jest.fn(),
+    searchJobs: jest.fn(),
+    createJob: jest.fn(),
+    updateJobStatus: jest.fn(),
+    startJob: jest.fn(),
+    completeJob: jest.fn(),
+    submitBid: jest.fn(),
+    acceptBid: jest.fn(),
+  }
+}));
 import { supabase } from '../../config/supabase';
-import { Job, JobData } from '@mintenance/types';
+import { Job, JobData } from '../../types';
 
 // Mock ServiceErrorHandler
 jest.mock('../../utils/serviceErrorHandler', () => ({

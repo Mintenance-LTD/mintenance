@@ -30,7 +30,7 @@ interface BuildingAssessmentCardProps {
     location: string;
   };
   onAssessmentComplete?: (assessment: BuildingAssessment) => void;
-  onCorrection?: (assessmentId: string, corrections: any[]) => void;
+  onCorrection?: (assessmentId: string, corrections: unknown[]) => void;
 }
 
 export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
@@ -71,7 +71,7 @@ export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
         }
       }
     } catch (error) {
-      logger.error('Assessment failed:', error', [object Object], { service: 'ui' });
+      logger.error('Assessment failed:', error, { service: 'ui' });
       Alert.alert('Assessment Failed', 'Unable to analyze images. Please try again.');
     } finally {
       setLoading(false);

@@ -99,11 +99,11 @@ export function useImageUpload({
           await new Promise(resolve => setTimeout(resolve, 50));
         } else {
           // Fallback to provided token if fetch fails
-          logger.warn('[Upload] Failed to fetch fresh CSRF token, using provided token', [object Object], { service: 'app' });
+          console.warn('[Upload] Failed to fetch fresh CSRF token, using provided token');
         }
       } catch (tokenError) {
         // Fallback to provided token if fetch fails
-        logger.warn('[Upload] Error fetching fresh CSRF token, using provided token:', tokenError', [object Object], { service: 'app' });
+        console.warn('[Upload] Error fetching fresh CSRF token, using provided token:', tokenError);
       }
 
       if (!tokenToUse) {
@@ -119,8 +119,8 @@ export function useImageUpload({
       const headers: Record<string, string> = {
         'x-csrf-token': tokenToUse,
       };
-      logger.info('[Upload] CSRF token present:', tokenToUse.substring(0, 10', [object Object], { service: 'app' }) + '...');
-      logger.info('[Upload] Uploading', imagePreviews.length, 'photos with headers:', Object.keys(headers', [object Object], { service: 'app' }));
+      console.log('[Upload] CSRF token present:', tokenToUse.substring(0, 10) + '...');
+      console.log('[Upload] Uploading', imagePreviews.length, 'photos with headers:', Object.keys(headers));
 
       const response = await fetch('/api/jobs/upload-photos', {
         method: 'POST',

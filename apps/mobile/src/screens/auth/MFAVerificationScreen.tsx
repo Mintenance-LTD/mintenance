@@ -72,7 +72,7 @@ export default function MFAVerificationScreen() {
       const enrolled = await LocalAuthentication.isEnrolledAsync();
       setBiometricAvailable(compatible && enrolled);
     } catch (error) {
-      logger.error('Failed to check biometric availability', error', [object Object], { service: 'mobile' });
+      logger.error('Failed to check biometric availability', error, { service: 'mobile' });
     }
   };
 
@@ -88,7 +88,7 @@ export default function MFAVerificationScreen() {
         setBiometricVerified(true);
       }
     } catch (error) {
-      logger.error('Biometric authentication failed', error', [object Object], { service: 'mobile' });
+      logger.error('Biometric authentication failed', error, { service: 'mobile' });
     }
   };
 
@@ -169,7 +169,7 @@ export default function MFAVerificationScreen() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Verification failed';
       Alert.alert('Verification Failed', message);
-      logger.error('MFA verification error', error', [object Object], { service: 'mobile' });
+      logger.error('MFA verification error', error, { service: 'mobile' });
     } finally {
       setLoading(false);
     }

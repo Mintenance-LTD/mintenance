@@ -3,8 +3,8 @@
  * Provides consistent AI functionality across web and mobile platforms
  * Mobile calls these methods which internally use web API endpoints
  */
-
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+// import type { User } from '@/types';
 import {
   BuildingAssessment,
   PricingRecommendation,
@@ -22,12 +22,10 @@ import {
   ModelTrainingConfig,
   TrainingProgress
 } from '../types';
-
 export class UnifiedAIService {
   private apiClient: AxiosInstance;
   private config: AIServiceConfig;
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
-
   constructor(config: AIServiceConfig) {
     this.config = config;
     this.apiClient = axios.create({
@@ -37,18 +35,16 @@ export class UnifiedAIService {
         'Content-Type': 'application/json',
       }
     });
-
     // Add request interceptor for auth and tracking
     this.apiClient.interceptors.request.use((config) => {
       config.headers['X-Request-ID'] = this.generateRequestId();
       config.headers['X-Platform'] = this.getPlatform();
       return config;
     });
-
     // Add response interceptor for error handling
     this.apiClient.interceptors.response.use(
       (response) => response,
-      async (error) => {
+      async (error: any) => {
         if (error.response?.status === 429) {
           // Rate limited - wait and retry
           await this.handleRateLimit(error);
@@ -57,7 +53,6 @@ export class UnifiedAIService {
       }
     );
   }
-
   /**
    * Building Assessment - Main AI feature
    * Uses GPT-4 Vision, Roboflow, Google Vision, SAM3, and Bayesian Fusion
@@ -72,7 +67,6 @@ export class UnifiedAIService {
     }
   ): Promise<AIServiceResponse<BuildingAssessment>> {
     const cacheKey = this.getCacheKey('assess', images, context);
-
     // Check cache first
     if (this.config.performance.cacheEnabled) {
       const cached = this.getFromCache(cacheKey);
@@ -92,7 +86,6 @@ export class UnifiedAIService {
         };
       }
     }
-
     try {
       const startTime = Date.now();
       const response = await this.apiClient.post<BuildingAssessment>(
@@ -105,19 +98,15 @@ export class UnifiedAIService {
           collectTrainingData: this.config.features.enableTrainingDataCollection
         }
       );
-
       const assessment = response.data;
-
       // Cache the result
       if (this.config.performance.cacheEnabled) {
         this.saveToCache(cacheKey, assessment);
       }
-
       // Collect training data if enabled
       if (this.config.features.enableTrainingDataCollection && assessment.trainingData) {
         await this.submitTrainingData(assessment.trainingData);
       }
-
       return {
         success: true,
         data: assessment,
@@ -131,7 +120,8 @@ export class UnifiedAIService {
           modelVersion: assessment.metadata?.version || 'unknown'
         }
       };
-    } catch (error: any) {
+    } catch (err: any) {
+      const error = err;
       return {
         success: false,
         error: {
@@ -153,7 +143,6 @@ export class UnifiedAIService {
       };
     }
   }
-
   /**
    * Get AI-powered pricing recommendation
    */
@@ -169,17 +158,15 @@ export class UnifiedAIService {
           params: { contractorId, proposedPrice }
         }
       );
-
       return {
         success: true,
         data: response.data,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'Pricing recommendation failed');
     }
   }
-
   /**
    * Request decision from AI agent
    */
@@ -195,17 +182,15 @@ export class UnifiedAIService {
           context
         }
       );
-
       return {
         success: true,
         data: response.data,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'Agent decision failed');
     }
   }
-
   /**
    * Perform semantic search
    */
@@ -215,17 +200,15 @@ export class UnifiedAIService {
         '/api/ai/search',
         query
       );
-
       return {
         success: true,
         data: response.data,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'Search failed');
     }
   }
-
   /**
    * Calculate ESG/Sustainability score
    */
@@ -241,17 +224,15 @@ export class UnifiedAIService {
           data
         }
       );
-
       return {
         success: true,
         data: response.data,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'ESG calculation failed');
     }
   }
-
   /**
    * Analyze images using Google Vision
    */
@@ -261,17 +242,15 @@ export class UnifiedAIService {
         '/api/images/analyze',
         { images }
       );
-
       return {
         success: true,
         data: response.data,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'Image analysis failed');
     }
   }
-
   /**
    * Submit training data for model improvement
    */
@@ -281,17 +260,15 @@ export class UnifiedAIService {
         '/api/training/submit',
         data
       );
-
       return {
         success: true,
         data: true,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'Training data submission failed');
     }
   }
-
   /**
    * Submit user corrections for training
    */
@@ -307,17 +284,15 @@ export class UnifiedAIService {
           corrections
         }
       );
-
       return {
         success: true,
         data: true,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'Correction submission failed');
     }
   }
-
   /**
    * Get AI usage metrics
    */
@@ -329,17 +304,15 @@ export class UnifiedAIService {
         '/api/ai/metrics',
         { params: { period } }
       );
-
       return {
         success: true,
         data: response.data,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'Failed to fetch usage metrics');
     }
   }
-
   /**
    * Start model training (admin only)
    */
@@ -351,17 +324,15 @@ export class UnifiedAIService {
         '/api/training/start',
         config
       );
-
       return {
         success: true,
         data: response.data,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'Failed to start model training');
     }
   }
-
   /**
    * Get training progress
    */
@@ -370,17 +341,15 @@ export class UnifiedAIService {
       const response = await this.apiClient.get<TrainingProgress>(
         `/api/training/${trainingId}/progress`
       );
-
       return {
         success: true,
         data: response.data,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, 'Failed to fetch training progress');
     }
   }
-
   /**
    * Complete agent actions
    */
@@ -398,7 +367,6 @@ export class UnifiedAIService {
       'JobStatusAgent': '/api/agents/job-status',
       'PredictiveAgent': '/api/agents/predictive'
     };
-
     const endpoint = agentEndpoints[agentName];
     if (!endpoint) {
       return {
@@ -412,52 +380,43 @@ export class UnifiedAIService {
         metadata: this.createEmptyMetadata()
       };
     }
-
     try {
       const response = await this.apiClient.post(endpoint, {
         action,
         context
       });
-
       return {
         success: true,
         data: response.data,
         metadata: this.createMetadata(response)
       };
-    } catch (error: any) {
+    } catch (error) {
       return this.handleError(error, `${agentName} action failed`);
     }
   }
-
   // Helper methods
-  private getCacheKey(operation: string, ...params: any[]): string {
+  private getCacheKey(operation: string, ...params: unknown[]): string {
     return `${operation}:${JSON.stringify(params)}`;
   }
-
   private getFromCache(key: string): any | null {
     const cached = this.cache.get(key);
     if (!cached) return null;
-
     const age = Date.now() - cached.timestamp;
     if (age > this.config.performance.cacheTTL * 1000) {
       this.cache.delete(key);
       return null;
     }
-
     return cached.data;
   }
-
   private saveToCache(key: string, data: any): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now()
     });
   }
-
   private generateRequestId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
-
   private getPlatform(): string {
     // Check if running in React Native
     if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
@@ -470,7 +429,6 @@ export class UnifiedAIService {
     // Server-side
     return 'server';
   }
-
   private createMetadata(response: any): any {
     return {
       requestId: response.headers?.['x-request-id'] || this.generateRequestId(),
@@ -482,7 +440,6 @@ export class UnifiedAIService {
       modelVersion: response.headers?.['x-model-version'] || 'unknown'
     };
   }
-
   private createEmptyMetadata(): any {
     return {
       requestId: this.generateRequestId(),
@@ -494,7 +451,6 @@ export class UnifiedAIService {
       modelVersion: 'unknown'
     };
   }
-
   private handleError(error: any, defaultMessage: string): AIServiceResponse<any> {
     return {
       success: false,
@@ -508,20 +464,17 @@ export class UnifiedAIService {
       metadata: this.createEmptyMetadata()
     };
   }
-
   private async handleRateLimit(error: any): Promise<void> {
     const retryAfter = error.response?.headers?.['retry-after'];
     const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
     await new Promise(resolve => setTimeout(resolve, waitTime));
   }
-
   /**
    * Clear cache
    */
   clearCache(): void {
     this.cache.clear();
   }
-
   /**
    * Get cache stats
    */
