@@ -41,13 +41,16 @@ import { NotificationService } from '../../services/NotificationService';
 // Mock fetch
 global.fetch = jest.fn();
 
+// Get mocked Notifications as mockNotifications
+const mockNotifications = Notifications as jest.Mocked<typeof Notifications>;
+
 describe('NotificationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset Device mock to true by default
     jest.mocked(Device).isDevice = true;
-    
+
     // Set up default mocks
     mockNotifications.setNotificationHandler.mockImplementation(() => {});
     mockNotifications.setNotificationChannelAsync.mockResolvedValue();
