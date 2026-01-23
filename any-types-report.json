@@ -1,0 +1,5157 @@
+[
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\users\\components\\UserDetailDialog.tsx",
+    "matches": [
+      {
+        "line": 56,
+        "content": "const [user, setUser] = useState<any>(null);",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\users\\components\\UserDetailModal.tsx",
+    "matches": [
+      {
+        "line": 51,
+        "content": "const [user, setUser] = useState<any>(null);",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\analytics\\page.tsx",
+    "matches": [
+      {
+        "line": 62,
+        "content": "jobs?.forEach((job: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 69,
+        "content": "job.payments?.forEach((payment: any) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\admin\\users\\[userId]\\route.ts",
+    "matches": [
+      {
+        "line": 84,
+        "content": "]) as [any, any[]];",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractor\\invoices\\route.ts",
+    "matches": [
+      {
+        "line": 54,
+        "content": "function calculateTotals(lineItems: any[], taxRate: number) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractor\\posts\\route.ts",
+    "matches": [
+      {
+        "line": 51,
+        "content": "let posts: any[] = [];",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractor\\training-contribution\\route.ts",
+    "matches": [
+      {
+        "line": 269,
+        "content": "async function processWithSAM3(imageUrl: string): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractors\\service-areas-batch\\route.ts",
+    "matches": [
+      {
+        "line": 96,
+        "content": "}, {} as Record<string, any[]>);",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\feature-flags\\route.ts",
+    "matches": [
+      {
+        "line": 509,
+        "content": "function calculateAggregateMetrics(metricsData: any[]) {",
+        "match": ": any"
+      },
+      {
+        "line": 547,
+        "content": "function calculateFalseNegativeRate(metrics: any[]): number {",
+        "match": ": any"
+      },
+      {
+        "line": 568,
+        "content": "function calculateAvgInferenceTime(metrics: any[]): number {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient2025.tsx",
+    "matches": [
+      {
+        "line": 71,
+        "content": "const [pricingSuggestion, setPricingSuggestion] = useState<any>(null);",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardFixed.tsx",
+    "matches": [
+      {
+        "line": 124,
+        "content": "{contractor.company || contractor.email}",
+        "match": "any |"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardProfessional.tsx",
+    "matches": [
+      {
+        "line": 161,
+        "content": "Welcome back, {contractor.company || contractor.name.split(' ')[0]}",
+        "match": "any |"
+      },
+      {
+        "line": 167,
+        "content": "alt={contractor.company || contractor.name}",
+        "match": "any |"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\invoices\\components\\InvoicePaymentClient.tsx",
+    "matches": [
+      {
+        "line": 18,
+        "content": "let stripePromise: Promise<any> | null = null;",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\jobs\\page.tsx",
+    "matches": [
+      {
+        "line": 143,
+        "content": "let jobsData: any[] = [];",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\subscription\\checkout\\components\\SubscriptionCheckoutClient.tsx",
+    "matches": [
+      {
+        "line": 18,
+        "content": "let stripePromise: Promise<any> | null = null;",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\components\\ContractorMapView.tsx",
+    "matches": [
+      {
+        "line": 304,
+        "content": "serviceAreasData.forEach(([contractorId, areas]: [string, any[]]) => {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\dashboard\\maintenance-ai\\page.tsx",
+    "matches": [
+      {
+        "line": 12,
+        "content": "const [assessment, setAssessment] = useState<any>(null);",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\disputes\\[id]\\page.tsx",
+    "matches": [
+      {
+        "line": 22,
+        "content": "const [dispute, setDispute] = useState<any>(null);",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\invoices\\[invoiceId]\\page.tsx",
+    "matches": [
+      {
+        "line": 281,
+        "content": "{invoice.contractor.company || invoice.contractor.name}",
+        "match": "any |"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\quick-create\\page.tsx",
+    "matches": [
+      {
+        "line": 103,
+        "content": "const [primaryProperty, setPrimaryProperty] = useState<any>(null);",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\BuildingAssessmentDisplay.tsx",
+    "matches": [
+      {
+        "line": 16,
+        "content": "onCorrection?: (assessmentId: string, corrections: any[]) => void;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\edit\\page.tsx",
+    "matches": [
+      {
+        "line": 98,
+        "content": "const [aiAnalysis, setAiAnalysis] = useState<any>(null);",
+        "match": "<any>"
+      },
+      {
+        "line": 99,
+        "content": "const [buildingSurvey, setBuildingSurvey] = useState<any>(null);",
+        "match": "<any>"
+      },
+      {
+        "line": 100,
+        "content": "const [geocodeData, setGeocodeData] = useState<any>(null);",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\scheduling\\meetings\\components\\MeetingScheduler.tsx",
+    "matches": [
+      {
+        "line": 61,
+        "content": "const [jobs, setJobs] = useState<any[]>([]);",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\settings\\payment-methods\\components\\AddPaymentMethodForm.tsx",
+    "matches": [
+      {
+        "line": 20,
+        "content": "let stripePromise: Promise<any> | null = null;",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\jobs-create-page.tsx",
+    "matches": [
+      {
+        "line": 119,
+        "content": "const [assessment, setAssessment] = useState<any>(null);",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ErrorBoundary.tsx",
+    "matches": [
+      {
+        "line": 43,
+        "content": "const Sentry: any = null; // Disabled until @sentry/nextjs is installed",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\payments\\EmbeddedCheckout.tsx",
+    "matches": [
+      {
+        "line": 10,
+        "content": "let stripePromise: Promise<any> | null = null;",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\hooks\\useOnboarding.ts",
+    "matches": [
+      {
+        "line": 194,
+        "content": "(userData: any): ProfileCompletionItem[] => {",
+        "match": ": any"
+      },
+      {
+        "line": 295,
+        "content": "(userData: any): number => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\dynamic-imports.tsx",
+    "matches": [
+      {
+        "line": 100,
+        "content": "importFn: () => Promise<{ default: ComponentType<any> }>",
+        "match": "<any>"
+      },
+      {
+        "line": 230,
+        "content": "export function usePrefetch(importFn: () => Promise<any>) {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\formatters.ts",
+    "matches": [
+      {
+        "line": 454,
+        "content": "data: any[],",
+        "match": ": any"
+      },
+      {
+        "line": 461,
+        "content": "): any[] {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\hooks\\queries\\__test-component.tsx",
+    "matches": [
+      {
+        "line": 132,
+        "content": "{data.jobs.slice(0, 3).map((job: any) => (",
+        "match": ": any"
+      },
+      {
+        "line": 174,
+        "content": "{data.contractors.slice(0, 3).map((contractor: any) => (",
+        "match": ": any"
+      },
+      {
+        "line": 234,
+        "content": "function TestResult({ label, value }: { label: string; value: any }) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\onboarding\\examples.tsx",
+    "matches": [
+      {
+        "line": 81,
+        "content": "export function JobsListWithEmptyState({ jobs, user }: { jobs: any[]; user: unknown }) {",
+        "match": ": any"
+      },
+      {
+        "line": 266,
+        "content": "export function MessagesWithEmptyState({ conversations }: { conversations: any[] }) {",
+        "match": ": any"
+      },
+      {
+        "line": 283,
+        "content": "export function PropertiesWithEmptyState({ properties }: { properties: any[] }) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\queries\\scheduling.ts",
+    "matches": [
+      {
+        "line": 212,
+        "content": "export async function fetchMeetingsForUser(userId: string): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\security-monitor.ts",
+    "matches": [
+      {
+        "line": 300,
+        "content": "async getSecurityMetrics(timeframe: '1h' | '24h' | '7d' | '30d' = '24h'): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\AgentAnalytics.ts",
+    "matches": [
+      {
+        "line": 568,
+        "content": "private static calculateAccuracyTrend(decisions: any[]): number[] {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ai\\ModelDriftDetectionService.ts",
+    "matches": [
+      {
+        "line": 240,
+        "content": "private static async calculateMetrics(predictions: any[]): Promise<DriftMetrics> {",
+        "match": ": any"
+      },
+      {
+        "line": 284,
+        "content": "private static async calculateDistributionShift(predictions: any[]): Promise<number> {",
+        "match": ": any"
+      },
+      {
+        "line": 314,
+        "content": "private static getDamageTypeDistribution(predictions: any[]): Record<string, number> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\maintenance\\MaintenanceDetectionService.ts",
+    "matches": [
+      {
+        "line": 252,
+        "content": "private static convertRoboflowToLocal(roboflowDetections: any[]): any[] {",
+        "match": ": any"
+      },
+      {
+        "line": 252,
+        "content": "private static convertRoboflowToLocal(roboflowDetections: any[]): any[] {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\adjust-rollout.ts",
+    "matches": [
+      {
+        "line": 43,
+        "content": "metadata: any;",
+        "match": ": any"
+      },
+      {
+        "line": 59,
+        "content": "private supabase: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\benchmark-presence-detection.ts",
+    "matches": [
+      {
+        "line": 57,
+        "content": "private metadata: any;",
+        "match": ": any"
+      },
+      {
+        "line": 85,
+        "content": "filter: (img: any, idx: number) => idx % 2 === 0 ? img.category === 'damaged' : img.category === 'undamaged',",
+        "match": ": any"
+      },
+      {
+        "line": 89,
+        "content": "filter: (img: any, idx: number) => idx % 5 === 0 ? img.category === 'damaged' : img.category === 'undamaged',",
+        "match": ": any"
+      },
+      {
+        "line": 111,
+        "content": "filter: (img: any, idx?: number) => boolean;",
+        "match": ": any"
+      },
+      {
+        "line": 143,
+        "content": "private async benchmarkWithPresenceDetection(testImages: unknown[]): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 201,
+        "content": "private async benchmarkWithoutPresenceDetection(testImages: unknown[]): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 244,
+        "content": "private async simulateYoloInference(): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 312,
+        "content": "private calculateSummary(): any {",
+        "match": ": any"
+      },
+      {
+        "line": 358,
+        "content": "private calculateMonthlySavings(summary: unknown): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\bootstrap-maintenance-training.ts",
+    "matches": [
+      {
+        "line": 91,
+        "content": "private async getHistoricalJobImages(limit: number): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 166,
+        "content": "private async runSAM3Segmentation(imageUrl: string): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\create-gcp-buckets.ts",
+    "matches": [
+      {
+        "line": 101,
+        "content": "let lastError: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\explore-supabase-database.ts",
+    "matches": [
+      {
+        "line": 100,
+        "content": "const roleCounts = userRoles.reduce((acc: any, user) => {",
+        "match": ": any"
+      },
+      {
+        "line": 118,
+        "content": "const statusCounts = jobStatuses.reduce((acc: any, job) => {",
+        "match": ": any"
+      },
+      {
+        "line": 136,
+        "content": "const damageCounts = damageTypes.reduce((acc: any, assessment) => {",
+        "match": ": any"
+      },
+      {
+        "line": 144,
+        "content": ".sort((a: any, b: any) => b[1] - a[1])",
+        "match": ": any"
+      },
+      {
+        "line": 144,
+        "content": ".sort((a: any, b: any) => b[1] - a[1])",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\fix-any-types.ts",
+    "matches": [
+      {
+        "line": 30,
+        "content": "{ pattern: /<any>/, suggestion: '<unknown>', context: 'generic' }",
+        "match": "<any>"
+      },
+      {
+        "line": 84,
+        "content": "const anyMatches = line.match(/:\\s*any\\b|as\\s+any\\b|<any>/g);",
+        "match": "<any>"
+      },
+      {
+        "line": 103,
+        "content": "if (line.includes('any[]')) {",
+        "match": "any[]"
+      },
+      {
+        "line": 105,
+        "content": "} else if (line.includes('any | null')) {",
+        "match": "any |"
+      },
+      {
+        "line": 107,
+        "content": "} else if (line.includes('any | undefined')) {",
+        "match": "any |"
+      },
+      {
+        "line": 109,
+        "content": "} else if (line.includes('Promise<any>')) {",
+        "match": "<any>"
+      },
+      {
+        "line": 121,
+        "content": ".replace(/<any>/g, `<${suggestedType}>`)",
+        "match": "<any>"
+      },
+      {
+        "line": 216,
+        "content": "console.log('   - any[]         → unknown[]');",
+        "match": "any[]"
+      },
+      {
+        "line": 217,
+        "content": "console.log('   - any | null    → unknown | null');",
+        "match": "any |"
+      },
+      {
+        "line": 218,
+        "content": "console.log('   - Promise<any>  → Promise<unknown>');",
+        "match": "<any>"
+      },
+      {
+        "line": 220,
+        "content": "console.log('   - data: any     → data: unknown');",
+        "match": ": any"
+      },
+      {
+        "line": 222,
+        "content": "console.log('   - config: any   → config: ConfigInterface');",
+        "match": ": any"
+      },
+      {
+        "line": 223,
+        "content": "console.log('   - user: any     → user: User');",
+        "match": ": any"
+      },
+      {
+        "line": 224,
+        "content": "console.log('   - response: any → response: ApiResponse<T>');",
+        "match": ": any"
+      },
+      {
+        "line": 250,
+        "content": "console.log('\\n📄 Detailed suggestions saved to: any-type-suggestions.txt');",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\fix-typescript-errors.ts",
+    "matches": [
+      {
+        "line": 124,
+        "content": "\"import { Job } from '@mintenance/types';\\n\\ntype JobDetail = Job & { bids?: unknown[]; contractor?: any };\\ntype JobSummary = Pick<Job, 'id' | 'title' | 'status' | 'created_at'>;\"",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\load-test-ai-cache.ts",
+    "matches": [
+      {
+        "line": 71,
+        "content": "function generateMockImageAnalysis(id: number): any {",
+        "match": ": any"
+      },
+      {
+        "line": 86,
+        "content": "function generateMockDamageAssessment(id: number): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\monitor-migration-performance.ts",
+    "matches": [
+      {
+        "line": 49,
+        "content": "private supabase: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\performance-monitoring.ts",
+    "matches": [
+      {
+        "line": 322,
+        "content": "target: any,",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\populate-ab-test-calibration-data.ts",
+    "matches": [
+      {
+        "line": 43,
+        "content": "assessment_data: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\populate-ab-test-historical-validations.ts",
+    "matches": [
+      {
+        "line": 42,
+        "content": "assessment_data: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\populate-calibration-data-from-ground-truth.ts",
+    "matches": [
+      {
+        "line": 46,
+        "content": "context_features: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-api-direct.ts",
+    "matches": [
+      {
+        "line": 124,
+        "content": "assessment.detections.forEach((detection: any, idx: number) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-maintenance-api.ts",
+    "matches": [
+      {
+        "line": 113,
+        "content": "assessment.detections?.forEach((detection: any, idx: number) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-migration-staging.ts",
+    "matches": [
+      {
+        "line": 24,
+        "content": "body?: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-payment-flow.ts",
+    "matches": [
+      {
+        "line": 277,
+        "content": "escrow: any | null,",
+        "match": ": any"
+      },
+      {
+        "line": 316,
+        "content": "let escrow: any | null = null;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-upload-image.ts",
+    "matches": [
+      {
+        "line": 91,
+        "content": "assessment.detections.forEach((detection: any, idx: number) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\update-yolo-database-record.ts",
+    "matches": [
+      {
+        "line": 168,
+        "content": "const updateData: any = {",
+        "match": ": any"
+      },
+      {
+        "line": 204,
+        "content": "const insertData: any = {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\verify-database.ts",
+    "matches": [
+      {
+        "line": 203,
+        "content": "const statuses = transactions?.reduce((acc: Record<string, number>, tx: any) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\warm-up-critic.ts",
+    "matches": [
+      {
+        "line": 47,
+        "content": "context_features: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\src\\lib\\feature-flags.ts",
+    "matches": [
+      {
+        "line": 189,
+        "content": "request: any",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\test\\mocks\\ai-services.ts",
+    "matches": [
+      {
+        "line": 110,
+        "content": "const error: any = new Error('Aborted');",
+        "match": ": any"
+      },
+      {
+        "line": 147,
+        "content": "export function mockAIAnalysisResult(overrides?: Partial<any>) {",
+        "match": "<any>"
+      },
+      {
+        "line": 175,
+        "content": "set: vi.fn((key: string, value: any) => cache.set(key, value)),",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\test\\mocks\\dompurify.ts",
+    "matches": [
+      {
+        "line": 5,
+        "content": "const sanitize = vi.fn((input: string, config?: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 62,
+        "content": "export default vi.fn((window?: any) => mockDOMPurify);",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\test\\utils.tsx",
+    "matches": [
+      {
+        "line": 164,
+        "content": "success: (data: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 196,
+        "content": "success: (data: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 218,
+        "content": "eq: (column: string, value: any) => ({",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\ai-core\\src\\services\\UnifiedAIService.ts",
+    "matches": [
+      {
+        "line": 28,
+        "content": "private cache: Map<string, { data: any; timestamp: number }> = new Map();",
+        "match": ": any"
+      },
+      {
+        "line": 47,
+        "content": "async (error: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 123,
+        "content": "} catch (err: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 217,
+        "content": "data?: any",
+        "match": ": any"
+      },
+      {
+        "line": 359,
+        "content": "context: any",
+        "match": ": any"
+      },
+      {
+        "line": 360,
+        "content": "): Promise<AIServiceResponse<any>> {",
+        "match": "<any>"
+      },
+      {
+        "line": 401,
+        "content": "private getFromCache(key: string): any | null {",
+        "match": ": any"
+      },
+      {
+        "line": 411,
+        "content": "private saveToCache(key: string, data: any): void {",
+        "match": ": any"
+      },
+      {
+        "line": 432,
+        "content": "private createMetadata(response: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 432,
+        "content": "private createMetadata(response: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 443,
+        "content": "private createEmptyMetadata(): any {",
+        "match": ": any"
+      },
+      {
+        "line": 454,
+        "content": "private handleError(error: any, defaultMessage: string): AIServiceResponse<any> {",
+        "match": ": any"
+      },
+      {
+        "line": 454,
+        "content": "private handleError(error: any, defaultMessage: string): AIServiceResponse<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 467,
+        "content": "private async handleRateLimit(error: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\ai-core\\src\\types\\index.ts",
+    "matches": [
+      {
+        "line": 101,
+        "content": "labels: any;",
+        "match": ": any"
+      },
+      {
+        "line": 109,
+        "content": "originalValue: any;",
+        "match": ": any"
+      },
+      {
+        "line": 110,
+        "content": "correctedValue: any;",
+        "match": ": any"
+      },
+      {
+        "line": 151,
+        "content": "metadata: any;",
+        "match": ": any"
+      },
+      {
+        "line": 161,
+        "content": "historicalData?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 195,
+        "content": "metadata: any;",
+        "match": ": any"
+      },
+      {
+        "line": 292,
+        "content": "details?: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\admin\\DriftDetectionService.ts",
+    "matches": [
+      {
+        "line": 63,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 69,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 187,
+        "content": "const featureDrifts = features.map((f: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 204,
+        "content": "const driftingFeatures = featureDrifts.filter((f: any) => f.status === 'drifting');",
+        "match": ": any"
+      },
+      {
+        "line": 206,
+        "content": "const avgDriftScore = featureDrifts.reduce((sum: number, f: any) => sum + f.driftScore, 0) / featureDrifts.length;",
+        "match": ": any"
+      },
+      {
+        "line": 242,
+        "content": "const recentAccuracy = metrics.slice(0, 10).reduce((sum: number, m: any) => sum + m.accuracy, 0) / 10;",
+        "match": ": any"
+      },
+      {
+        "line": 243,
+        "content": "const baselineAccuracy = metrics.slice(-10).reduce((sum: number, m: any) => sum + m.accuracy, 0) / 10;",
+        "match": ": any"
+      },
+      {
+        "line": 252,
+        "content": "accuracyTrend: metrics.map((m: any) => m.accuracy),",
+        "match": ": any"
+      },
+      {
+        "line": 315,
+        "content": "private calculateKLDivergence(baseline: any, current: any): number {",
+        "match": ": any"
+      },
+      {
+        "line": 315,
+        "content": "private calculateKLDivergence(baseline: any, current: any): number {",
+        "match": ": any"
+      },
+      {
+        "line": 327,
+        "content": "private calculateJSDivergence(baseline: any, current: any): number {",
+        "match": ": any"
+      },
+      {
+        "line": 327,
+        "content": "private calculateJSDivergence(baseline: any, current: any): number {",
+        "match": ": any"
+      },
+      {
+        "line": 339,
+        "content": "dataDrift: any,",
+        "match": ": any"
+      },
+      {
+        "line": 340,
+        "content": "conceptDrift: any,",
+        "match": ": any"
+      },
+      {
+        "line": 341,
+        "content": "predictionDrift: any",
+        "match": ": any"
+      },
+      {
+        "line": 370,
+        "content": "private getFeatureRecommendation(feature: any): string {",
+        "match": ": any"
+      },
+      {
+        "line": 379,
+        "content": "private generateRecommendations(drift: DriftMetrics, affectedFeatures: any[]): string[] {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\admin\\FeedbackProcessingService.ts",
+    "matches": [
+      {
+        "line": 12,
+        "content": "originalPrediction: any;",
+        "match": ": any"
+      },
+      {
+        "line": 13,
+        "content": "correctedValue: any;",
+        "match": ": any"
+      },
+      {
+        "line": 69,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 70,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 90,
+        "content": "pending: feedback.filter((f: any) => f.status === 'pending').length,",
+        "match": ": any"
+      },
+      {
+        "line": 91,
+        "content": "approved: feedback.filter((f: any) => f.status === 'approved').length,",
+        "match": ": any"
+      },
+      {
+        "line": 92,
+        "content": "rejected: feedback.filter((f: any) => f.status === 'rejected').length,",
+        "match": ": any"
+      },
+      {
+        "line": 93,
+        "content": "incorporated: feedback.filter((f: any) => f.status === 'incorporated').length",
+        "match": ": any"
+      },
+      {
+        "line": 97,
+        "content": "correction: feedback.filter((f: any) => f.feedback_type === 'correction').length,",
+        "match": ": any"
+      },
+      {
+        "line": 98,
+        "content": "validation: feedback.filter((f: any) => f.feedback_type === 'validation').length,",
+        "match": ": any"
+      },
+      {
+        "line": 99,
+        "content": "rejection: feedback.filter((f: any) => f.feedback_type === 'rejection').length",
+        "match": ": any"
+      },
+      {
+        "line": 301,
+        "content": "private async validateFeedback(feedback: any): Promise<boolean> {",
+        "match": ": any"
+      },
+      {
+        "line": 322,
+        "content": "private async queueForIncorporation(feedback: any): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 336,
+        "content": "private calculatePriority(feedback: any): 'low' | 'normal' | 'high' {",
+        "match": ": any"
+      },
+      {
+        "line": 348,
+        "content": "private async addToTrainingData(feedback: any): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 365,
+        "content": "private async calculateModelMetrics(feedback: any[]): Promise<any[]> {",
+        "match": ": any"
+      },
+      {
+        "line": 365,
+        "content": "private async calculateModelMetrics(feedback: any[]): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 380,
+        "content": "const correct = group.items.filter((i: any) => i.feedback_type === 'validation').length;",
+        "match": ": any"
+      },
+      {
+        "line": 391,
+        "content": "private async calculateUserMetrics(feedback: any[]): Promise<any[]> {",
+        "match": ": any"
+      },
+      {
+        "line": 391,
+        "content": "private async calculateUserMetrics(feedback: any[]): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 404,
+        "content": "const approved = group.items.filter((i: any) => i.status === 'approved').length;",
+        "match": ": any"
+      },
+      {
+        "line": 414,
+        "content": "private async calculateTrends(feedback: any[], startDate: Date): Promise<any[]> {",
+        "match": ": any"
+      },
+      {
+        "line": 414,
+        "content": "private async calculateTrends(feedback: any[], startDate: Date): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 428,
+        "content": "const approved = group.items.filter((i: any) => i.status === 'approved').length;",
+        "match": ": any"
+      },
+      {
+        "line": 438,
+        "content": "private calculateQualityMetrics(feedback: any[]): any {",
+        "match": ": any"
+      },
+      {
+        "line": 438,
+        "content": "private calculateQualityMetrics(feedback: any[]): any {",
+        "match": ": any"
+      },
+      {
+        "line": 448,
+        "content": "private mapFeedbackItem(item: any): FeedbackItem {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\admin\\MLMonitoringController.ts",
+    "matches": [
+      {
+        "line": 14,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 17,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 17,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 39,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 42,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 42,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 70,
+        "content": "async getDashboard(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 120,
+        "content": "async listModels(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 153,
+        "content": "async triggerTraining(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 193,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 227,
+        "content": "async approveFeedback(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 268,
+        "content": "async getDriftAnalysis(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 299,
+        "content": "async acknowledgeAlerts(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 334,
+        "content": "async getExperiments(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 371,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 371,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\admin\\MLMonitoringService.ts",
+    "matches": [
+      {
+        "line": 11,
+        "content": "hyperparameters: any;",
+        "match": ": any"
+      },
+      {
+        "line": 17,
+        "content": "metrics?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 76,
+        "content": "details: any;",
+        "match": ": any"
+      },
+      {
+        "line": 88,
+        "content": "parameters: any;",
+        "match": ": any"
+      },
+      {
+        "line": 107,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 108,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 160,
+        "content": "const completedJobs = jobs?.filter((j: any) => j.status === 'completed') || [];",
+        "match": ": any"
+      },
+      {
+        "line": 161,
+        "content": "const failedJobs = jobs?.filter((j: any) => j.status === 'failed') || [];",
+        "match": ": any"
+      },
+      {
+        "line": 163,
+        "content": "const avgDuration = completedJobs.reduce((sum: number, job: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 176,
+        "content": "inProduction: models?.filter((m: any) => m.status === 'production').length || 0,",
+        "match": ": any"
+      },
+      {
+        "line": 177,
+        "content": "inTesting: models?.filter((m: any) => m.status === 'testing').length || 0,",
+        "match": ": any"
+      },
+      {
+        "line": 178,
+        "content": "retired: models?.filter((m: any) => m.status === 'retired').length || 0",
+        "match": ": any"
+      },
+      {
+        "line": 190,
+        "content": "const computeUsage = computeMetrics?.reduce((acc: any, curr: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 190,
+        "content": "const computeUsage = computeMetrics?.reduce((acc: any, curr: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 220,
+        "content": "hyperparameters: any;",
+        "match": ": any"
+      },
+      {
+        "line": 271,
+        "content": "return alerts?.map((alert: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 335,
+        "content": "experiments: experiments?.map((exp: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 462,
+        "content": "private async queueTrainingJob(job: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\admin\\ModelPerformanceService.ts",
+    "matches": [
+      {
+        "line": 57,
+        "content": "config: any;",
+        "match": ": any"
+      },
+      {
+        "line": 58,
+        "content": "metrics?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 72,
+        "content": "input: any;",
+        "match": ": any"
+      },
+      {
+        "line": 79,
+        "content": "worstPerforming: any[];",
+        "match": ": any"
+      },
+      {
+        "line": 80,
+        "content": "bestPerforming: any[];",
+        "match": ": any"
+      },
+      {
+        "line": 89,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 90,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 158,
+        "content": "performanceByClass: classPerf?.map((cp: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 194,
+        "content": "const modelIds = models?.map((m: any) => m.id) || [];",
+        "match": ": any"
+      },
+      {
+        "line": 200,
+        "content": "const metricsMap = new Map(metrics?.map((m: any) => [m.model_id, m]) || []);",
+        "match": ": any"
+      },
+      {
+        "line": 202,
+        "content": "models: models?.map((model: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 289,
+        "content": "predictions: predictions.slice(0, 20).map((p: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 330,
+        "content": "private async getBaselineComparison(modelId: string): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 377,
+        "content": "private async getDriftIndicators(modelId: string): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\ai\\AISearchController.ts",
+    "matches": [
+      {
+        "line": 13,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 16,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 16,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 36,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 44,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 44,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 96,
+        "content": "async search(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 194,
+        "content": "async getSuggestions(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 200,
+        "content": "async suggest(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 244,
+        "content": "async getTrending(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 274,
+        "content": "async findSimilar(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 322,
+        "content": "async recordFeedback(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 377,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 377,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 399,
+        "content": "private async getUserPreferences(userId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 449,
+        "content": "private async logSearchAnalytics(analytics: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\ai\\AISearchService.ts",
+    "matches": [
+      {
+        "line": 25,
+        "content": "filters?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 30,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 31,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 88,
+        "content": "return data?.map((d: any) => d.query) || [];",
+        "match": ": any"
+      },
+      {
+        "line": 105,
+        "content": "return data?.map((d: any) => d.query) || [];",
+        "match": ": any"
+      },
+      {
+        "line": 135,
+        "content": "...(titles.data?.map((t: any) => t.title) || []),",
+        "match": ": any"
+      },
+      {
+        "line": 136,
+        "content": "...(categories.data?.map((c: any) => c.name) || []),",
+        "match": ": any"
+      },
+      {
+        "line": 137,
+        "content": "...(skills.data?.map((s: any) => s.name) || [])",
+        "match": ": any"
+      },
+      {
+        "line": 152,
+        "content": "}): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 205,
+        "content": "return (data || []).map((item: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 256,
+        "content": "return (data || []).map((job: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 282,
+        "content": "return (data || []).map((contractor: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 308,
+        "content": "return (data || []).map((property: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 340,
+        "content": "return (data || []).map((job: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 366,
+        "content": "return (data || []).map((contractor: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 392,
+        "content": "return (data || []).map((property: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 409,
+        "content": "private calculateTextMatchScore(query: string, item: any): number {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\ai\\EmbeddingService.ts",
+    "matches": [
+      {
+        "line": 7,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 10,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 61,
+        "content": "metadata?: any",
+        "match": ": any"
+      },
+      {
+        "line": 86,
+        "content": "metadata?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 129,
+        "content": "): Promise<Array<{ id: string; similarity: number; metadata: any }>> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\ai\\SearchRankingService.ts",
+    "matches": [
+      {
+        "line": 36,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 37,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 98,
+        "content": "async getUserRankingFactors(userId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 212,
+        "content": "const metricsMap = new Map(metrics?.map((m: any) => [m.item_id, m]) || []);",
+        "match": ": any"
+      },
+      {
+        "line": 242,
+        "content": "const ctrMap = new Map(ctrData?.map((d: any) => [d.result_id, d.ctr]) || []);",
+        "match": ": any"
+      },
+      {
+        "line": 336,
+        "content": "private getDefaultRankingFactors(): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\AnalyticsController.ts",
+    "matches": [
+      {
+        "line": 17,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 20,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 20,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 45,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 53,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 53,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 97,
+        "content": "async trackEvent(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 149,
+        "content": "async trackEventsBatch(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 178,
+        "content": "const result: any = await this.eventTracking.trackEventsBatch(processedEvents);",
+        "match": ": any"
+      },
+      {
+        "line": 191,
+        "content": "async getDashboard(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 230,
+        "content": "async getMetrics(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 277,
+        "content": "async generateReport(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 328,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 362,
+        "content": "async exportData(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 410,
+        "content": "async getInsights(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 452,
+        "content": "async getRealTimeMetrics(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 479,
+        "content": "async getFunnelAnalysis(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 524,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 524,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\DashboardService.ts",
+    "matches": [
+      {
+        "line": 14,
+        "content": "data: any;",
+        "match": ": any"
+      },
+      {
+        "line": 47,
+        "content": "data: any[];",
+        "match": ": any"
+      },
+      {
+        "line": 79,
+        "content": "filters?: any",
+        "match": ": any"
+      },
+      {
+        "line": 100,
+        "content": "public async getAdminDashboard(filters?: any): Promise<DashboardData> {",
+        "match": ": any"
+      },
+      {
+        "line": 240,
+        "content": "filters?: any",
+        "match": ": any"
+      },
+      {
+        "line": 372,
+        "content": "filters?: any",
+        "match": ": any"
+      },
+      {
+        "line": 502,
+        "content": "dataFetcher: () => Promise<any>",
+        "match": "<any>"
+      },
+      {
+        "line": 530,
+        "content": "dataFetcher: () => Promise<any>",
+        "match": "<any>"
+      },
+      {
+        "line": 546,
+        "content": "dataFetcher: () => Promise<any>",
+        "match": "<any>"
+      },
+      {
+        "line": 559,
+        "content": "dataFetcher: () => Promise<any>",
+        "match": "<any>"
+      },
+      {
+        "line": 616,
+        "content": "private async getContractorJobStats(contractorId: string): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\EventTrackingService.ts",
+    "matches": [
+      {
+        "line": 33,
+        "content": "private clickhouse?: any; // ClickHouse client for time-series data",
+        "match": ": any"
+      },
+      {
+        "line": 34,
+        "content": "private redis?: any; // Redis for real-time processing",
+        "match": ": any"
+      },
+      {
+        "line": 39,
+        "content": "constructor(supabase: SupabaseClient, clickhouse?: any, redis?: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 39,
+        "content": "constructor(supabase: SupabaseClient, clickhouse?: any, redis?: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 405,
+        "content": "private formatEvent(data: any): AnalyticsEvent {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\ExportService.ts",
+    "matches": [
+      {
+        "line": 41,
+        "content": "private storageService?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 42,
+        "content": "private compressionService?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 46,
+        "content": "storageService?: any,",
+        "match": ": any"
+      },
+      {
+        "line": 47,
+        "content": "compressionService?: any",
+        "match": ": any"
+      },
+      {
+        "line": 75,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 138,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 162,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 171,
+        "content": "data: any[],",
+        "match": ": any"
+      },
+      {
+        "line": 172,
+        "content": "options?: any",
+        "match": ": any"
+      },
+      {
+        "line": 184,
+        "content": "data: any[],",
+        "match": ": any"
+      },
+      {
+        "line": 185,
+        "content": "options?: any",
+        "match": ": any"
+      },
+      {
+        "line": 224,
+        "content": "data: any[],",
+        "match": ": any"
+      },
+      {
+        "line": 225,
+        "content": "options?: any",
+        "match": ": any"
+      },
+      {
+        "line": 239,
+        "content": "data: any[],",
+        "match": ": any"
+      },
+      {
+        "line": 240,
+        "content": "options?: any",
+        "match": ": any"
+      },
+      {
+        "line": 261,
+        "content": "data: any[],",
+        "match": ": any"
+      },
+      {
+        "line": 262,
+        "content": "options?: any",
+        "match": ": any"
+      },
+      {
+        "line": 272,
+        "content": "private async fetchData(config: ExportConfig): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 302,
+        "content": "data: any[],",
+        "match": ": any"
+      },
+      {
+        "line": 304,
+        "content": "): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 335,
+        "content": "private evaluateExpression(expression: string, row: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 335,
+        "content": "private evaluateExpression(expression: string, row: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 460,
+        "content": "private formatExportJob(data: any): ExportJob {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\InsightsService.ts",
+    "matches": [
+      {
+        "line": 23,
+        "content": "data?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 48,
+        "content": "instances: any[];",
+        "match": ": any"
+      },
+      {
+        "line": 53,
+        "content": "private mlService?: any; // ML service for predictions",
+        "match": ": any"
+      },
+      {
+        "line": 54,
+        "content": "private openaiService?: any; // OpenAI for natural language insights",
+        "match": ": any"
+      },
+      {
+        "line": 59,
+        "content": "mlService?: any,",
+        "match": ": any"
+      },
+      {
+        "line": 60,
+        "content": "openaiService?: any",
+        "match": ": any"
+      },
+      {
+        "line": 519,
+        "content": "private async analyzeRevenueTrend(): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 528,
+        "content": "private async predictUserChurn(): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 536,
+        "content": "private async detectAnomalies(): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 540,
+        "content": "private async generatePlatformRecommendations(): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 544,
+        "content": "private async forecastDemand(): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 552,
+        "content": "private async analyzeContractorPerformance(contractorId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 561,
+        "content": "private async optimizeBidStrategy(contractorId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 568,
+        "content": "private async predictJobMatches(contractorId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 576,
+        "content": "private async forecastContractorEarnings(contractorId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 584,
+        "content": "private async recommendSkills(contractorId: string): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 590,
+        "content": "private async predictMaintenanceNeeds(userId: string): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 604,
+        "content": "private async identifyCostSavings(userId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 611,
+        "content": "private async getSeasonalRecommendations(): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 624,
+        "content": "private async recommendContractors(userId: string): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 628,
+        "content": "private async analyzePriceTrends(userId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 693,
+        "content": "async getFunnelAnalysis(params: any): Promise<any> {",
+        "match": ": any"
+      },
+      {
+        "line": 693,
+        "content": "async getFunnelAnalysis(params: any): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\MetricsAggregationService.ts",
+    "matches": [
+      {
+        "line": 41,
+        "content": "private redis?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 44,
+        "content": "constructor(supabase: SupabaseClient, redis?: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 268,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 457,
+        "content": "async getRealTimeMetrics(): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\ReportingService.ts",
+    "matches": [
+      {
+        "line": 69,
+        "content": "data?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 81,
+        "content": "private pdfGenerator?: any; // PDF generation library (e.g., Puppeteer)",
+        "match": ": any"
+      },
+      {
+        "line": 82,
+        "content": "private excelGenerator?: any; // Excel generation library (e.g., ExcelJS)",
+        "match": ": any"
+      },
+      {
+        "line": 83,
+        "content": "private storageService?: any; // File storage service",
+        "match": ": any"
+      },
+      {
+        "line": 84,
+        "content": "private emailService?: any; // Email service for delivery",
+        "match": ": any"
+      },
+      {
+        "line": 88,
+        "content": "pdfGenerator?: any,",
+        "match": ": any"
+      },
+      {
+        "line": 89,
+        "content": "excelGenerator?: any,",
+        "match": ": any"
+      },
+      {
+        "line": 90,
+        "content": "storageService?: any,",
+        "match": ": any"
+      },
+      {
+        "line": 91,
+        "content": "emailService?: any",
+        "match": ": any"
+      },
+      {
+        "line": 326,
+        "content": "private async processScheduledReport(schedule: any): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 352,
+        "content": "private async gatherReportData(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 402,
+        "content": "private async generateCSV(data: any): Promise<string> {",
+        "match": ": any"
+      },
+      {
+        "line": 426,
+        "content": "private async generateExcel(sections: ReportSection[], data: any): Promise<string> {",
+        "match": ": any"
+      },
+      {
+        "line": 443,
+        "content": "private async generateJSON(data: any): Promise<string> {",
+        "match": ": any"
+      },
+      {
+        "line": 477,
+        "content": "const update: any = { status };",
+        "match": ": any"
+      },
+      {
+        "line": 552,
+        "content": "data: any,",
+        "match": ": any"
+      },
+      {
+        "line": 564,
+        "content": "private async gatherPerformanceMetrics(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 567,
+        "content": "private async gatherPerformanceTrends(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 570,
+        "content": "private async gatherRevenueData(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 573,
+        "content": "private async gatherExpenseData(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 576,
+        "content": "private async gatherTransactionData(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 579,
+        "content": "private async gatherContractorPerformance(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 582,
+        "content": "private async gatherContractorJobs(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 585,
+        "content": "private async gatherContractorRatings(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 588,
+        "content": "private async gatherJobSummary(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 591,
+        "content": "private async gatherJobDetails(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 594,
+        "content": "private async gatherJobTimeline(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 597,
+        "content": "private async gatherUserActivity(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 600,
+        "content": "private async gatherUserEngagement(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 603,
+        "content": "private async gatherPlatformOverview(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 606,
+        "content": "private async gatherPlatformKPIs(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 609,
+        "content": "private async gatherCustomData(config: ReportConfig): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 612,
+        "content": "private formatReportJob(data: any): ReportJob {",
+        "match": ": any"
+      },
+      {
+        "line": 628,
+        "content": "private formatScheduledReport(data: any): ScheduledReport {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\bids\\BidController.ts",
+    "matches": [
+      {
+        "line": 13,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 16,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 16,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 36,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 42,
+        "content": "async function storeIdempotencyResult(key: string, result: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 45,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 45,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 71,
+        "content": "async submitBid(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 134,
+        "content": "async listBids(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 197,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 235,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 282,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 330,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 382,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 430,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 430,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\bids\\BidNotificationService.ts",
+    "matches": [
+      {
+        "line": 2,
+        "content": "constructor(config: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 4,
+        "content": "async notifyBidSubmission(bid: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 5,
+        "content": "async notifyBidAcceptance(bid: any, contract: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 5,
+        "content": "async notifyBidAcceptance(bid: any, contract: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 6,
+        "content": "async notifyBidRejection(bid: any, reason?: string) {}",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\bids\\BidRepository.ts",
+    "matches": [
+      {
+        "line": 40,
+        "content": "async createBid(data: any): Promise<BidRecord> {",
+        "match": ": any"
+      },
+      {
+        "line": 62,
+        "content": "async updateBid(bidId: string, data: any): Promise<BidRecord> {",
+        "match": ": any"
+      },
+      {
+        "line": 147,
+        "content": "async createItemizedQuote(bidId: string, items: any[]) {",
+        "match": ": any"
+      },
+      {
+        "line": 222,
+        "content": "async updateItemizedQuote(bidId: string, items: any[]) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\bids\\BidScoringService.ts",
+    "matches": [
+      {
+        "line": 2,
+        "content": "constructor(config: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 4,
+        "content": "async calculateBidScore(bid: any) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\bids\\BidService.ts",
+    "matches": [
+      {
+        "line": 24,
+        "content": "[key: string]: any;",
+        "match": ": any"
+      },
+      {
+        "line": 121,
+        "content": "async getContractorBids(contractorId: string, params: BidListParams): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 138,
+        "content": "async getJobBids(jobId: string, homeownerId: string, params: BidListParams): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 276,
+        "content": "const updateData: any = { ...validatedData };",
+        "match": ": any"
+      },
+      {
+        "line": 319,
+        "content": "private async validateContractorQualifications(contractorId: string, job: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\bids\\BidValidator.ts",
+    "matches": [
+      {
+        "line": 59,
+        "content": "validateSubmitBid(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 63,
+        "content": "(e: any) => `${e.path.join('.')}: ${e.message}`",
+        "match": ": any"
+      },
+      {
+        "line": 73,
+        "content": "validateUpdateBid(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 77,
+        "content": "(e: any) => `${e.path.join('.')}: ${e.message}`",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\bids\\types.ts",
+    "matches": [
+      {
+        "line": 22,
+        "content": "score_details?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 34,
+        "content": "itemizedQuote?: any[];",
+        "match": ": any"
+      },
+      {
+        "line": 35,
+        "content": "attachments?: any[];",
+        "match": ": any"
+      },
+      {
+        "line": 36,
+        "content": "job?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 46,
+        "content": "itemizedQuote?: any[];",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\contracts\\ContractController.ts",
+    "matches": [
+      {
+        "line": 12,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 15,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 15,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 35,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 38,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 38,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 62,
+        "content": "async listContracts(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 102,
+        "content": "async createContract(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 149,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 190,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 234,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 280,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 321,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 367,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 413,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 461,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 500,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 500,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\contracts\\ContractLifecycleService.ts",
+    "matches": [
+      {
+        "line": 2,
+        "content": "constructor(config: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 4,
+        "content": "async signContract(contractId: string, user: any, signature: string, ipAddress: string) {",
+        "match": ": any"
+      },
+      {
+        "line": 8,
+        "content": "async activateContract(contractId: string, user: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 12,
+        "content": "async completeContract(contractId: string, user: any, notes?: string, rating?: number) {",
+        "match": ": any"
+      },
+      {
+        "line": 16,
+        "content": "async cancelContract(contractId: string, user: any, reason: string, refundAmount?: number) {",
+        "match": ": any"
+      },
+      {
+        "line": 20,
+        "content": "async createDispute(contractId: string, user: any, data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 20,
+        "content": "async createDispute(contractId: string, user: any, data: any) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\contracts\\ContractService.ts",
+    "matches": [
+      {
+        "line": 6,
+        "content": "async listContracts(user: any, params: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 6,
+        "content": "async listContracts(user: any, params: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 10,
+        "content": "async createContract(data: any, user: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 10,
+        "content": "async createContract(data: any, user: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 14,
+        "content": "async getContractById(contractId: string, user: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 18,
+        "content": "async updateContract(contractId: string, data: any, user: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 18,
+        "content": "async updateContract(contractId: string, data: any, user: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 22,
+        "content": "async getContractMilestones(contractId: string, user: any) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\feature-flags\\FeatureFlagController.ts",
+    "matches": [
+      {
+        "line": 13,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 16,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 16,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 38,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 46,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 46,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 82,
+        "content": "async getFlags(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 112,
+        "content": "let response: any = { flag };",
+        "match": ": any"
+      },
+      {
+        "line": 124,
+        "content": "let response: any = { flags };",
+        "match": ": any"
+      },
+      {
+        "line": 140,
+        "content": "async createOrUpdateFlag(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 200,
+        "content": "async recordMetrics(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 244,
+        "content": "async rollbackFlag(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 294,
+        "content": "async getTargetingRules(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 326,
+        "content": "async evaluateFlags(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 369,
+        "content": "async getExperiments(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 403,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 403,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 419,
+        "content": "metrics: any",
+        "match": ": any"
+      },
+      {
+        "line": 452,
+        "content": "private async triggerAutoRollback(flag: string, metrics: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\feature-flags\\FeatureFlagMetricsService.ts",
+    "matches": [
+      {
+        "line": 6,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 7,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 13,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 23,
+        "content": "async getOverallMetrics(options: { timeRange: string }): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 36,
+        "content": "metrics: any;",
+        "match": ": any"
+      },
+      {
+        "line": 37,
+        "content": "metadata?: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\feature-flags\\FeatureFlagService.ts",
+    "matches": [
+      {
+        "line": 22,
+        "content": "value: any;",
+        "match": ": any"
+      },
+      {
+        "line": 34,
+        "content": "config: any;",
+        "match": ": any"
+      },
+      {
+        "line": 43,
+        "content": "results?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 46,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 47,
+        "content": "private cache: Map<string, { value: any; expires: number }> = new Map();",
+        "match": ": any"
+      },
+      {
+        "line": 48,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 216,
+        "content": "changes: any",
+        "match": ": any"
+      },
+      {
+        "line": 250,
+        "content": "return (data || []).map((exp: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 281,
+        "content": "async getRollbackThresholds(flagName: FeatureFlag): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 399,
+        "content": "private assignVariant(userId: string, experiment: Experiment): any {",
+        "match": ": any"
+      },
+      {
+        "line": 420,
+        "content": "private getFromCache(key: string): any {",
+        "match": ": any"
+      },
+      {
+        "line": 428,
+        "content": "private setCache(key: string, value: any, ttl: number): void {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\feature-flags\\RollbackService.ts",
+    "matches": [
+      {
+        "line": 7,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 8,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 15,
+        "content": "metrics?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 25,
+        "content": "rollbackResult: any",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobController.ts",
+    "matches": [
+      {
+        "line": 14,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 17,
+        "content": "json(data: any, init?: ResponseInit): NextResponse;",
+        "match": ": any"
+      },
+      {
+        "line": 21,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 21,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 48,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 52,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 52,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 74,
+        "content": "async listJobs(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 110,
+        "content": "async createJob(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 145,
+        "content": "async getJob(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 175,
+        "content": "async updateJob(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 212,
+        "content": "async deleteJob(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 260,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 260,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobDetailsController.ts",
+    "matches": [
+      {
+        "line": 18,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 22,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 22,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 43,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 46,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 46,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 78,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 117,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 165,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 221,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 265,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 265,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobDetailsService.ts",
+    "matches": [
+      {
+        "line": 21,
+        "content": "homeowner?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 22,
+        "content": "contractor?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 23,
+        "content": "property?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 24,
+        "content": "bids?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 25,
+        "content": "attachments?: any[];",
+        "match": ": any"
+      },
+      {
+        "line": 26,
+        "content": "[key: string]: any;",
+        "match": ": any"
+      },
+      {
+        "line": 34,
+        "content": "async predictOptimalPrice(jobData: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 57,
+        "content": "async analyzeJob(jobData: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 203,
+        "content": "const updatePayload: any = {",
+        "match": ": any"
+      },
+      {
+        "line": 277,
+        "content": "if (bids.some((bid: any) => bid.status === 'accepted')) {",
+        "match": ": any"
+      },
+      {
+        "line": 292,
+        "content": "async runAIAnalysis(jobId: string, images: string[], runBuildingSurvey: boolean): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 333,
+        "content": "private canViewJob(job: any, user: User): boolean {",
+        "match": ": any"
+      },
+      {
+        "line": 344,
+        "content": "private canEditJob(job: any, user: User): boolean {",
+        "match": ": any"
+      },
+      {
+        "line": 351,
+        "content": "private canDeleteJob(job: any, user: User): boolean {",
+        "match": ": any"
+      },
+      {
+        "line": 358,
+        "content": "private canChangeStatus(job: any, user: User): boolean {",
+        "match": ": any"
+      },
+      {
+        "line": 369,
+        "content": "private sanitizeUserData(user: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 369,
+        "content": "private sanitizeUserData(user: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 390,
+        "content": "private async getAIAnalysisFromCache(jobId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 394,
+        "content": "private async getPredictions(jobId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 408,
+        "content": "private async notifyDeletion(jobId: string, job: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobDetailsValidator.ts",
+    "matches": [
+      {
+        "line": 161,
+        "content": "validateFullUpdate(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 165,
+        "content": "(e: any) => `${e.path.join('.')}: ${e.message}`",
+        "match": ": any"
+      },
+      {
+        "line": 174,
+        "content": "validatePartialUpdate(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 178,
+        "content": "(e: any) => `${e.path.join('.')}: ${e.message}`",
+        "match": ": any"
+      },
+      {
+        "line": 187,
+        "content": "validateStatusUpdate(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 191,
+        "content": "(e: any) => `${e.path.join('.')}: ${e.message}`",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobRepository.ts",
+    "matches": [
+      {
+        "line": 73,
+        "content": "filterByStatus(query: any, status: string[]) {",
+        "match": ": any"
+      },
+      {
+        "line": 79,
+        "content": "applyCursor(query: any, cursor: string) {",
+        "match": ": any"
+      },
+      {
+        "line": 85,
+        "content": "async executeQuery(query: any, limit: number): Promise<{",
+        "match": ": any"
+      },
+      {
+        "line": 269,
+        "content": "return (data || []).map((c: any) => c.id);",
+        "match": ": any"
+      },
+      {
+        "line": 305,
+        "content": "(data || []).forEach((att: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 313,
+        "content": "async getUser(userId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 319,
+        "content": "async getProperty(propertyId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 325,
+        "content": "async getBidsForJob(jobId: string): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 331,
+        "content": "async getAttachmentsForJob(jobId: string): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 372,
+        "content": "async storeAIAnalysis(jobId: string, analysis: any): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 383,
+        "content": "async getAcceptedBidForJob(jobId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 405,
+        "content": "async updateContractorStats(contractorId: string, stats: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobService.ts",
+    "matches": [
+      {
+        "line": 272,
+        "content": "private async enrichJobData(jobs: any[]): Promise<JobSummary[]> {",
+        "match": ": any"
+      },
+      {
+        "line": 312,
+        "content": "private mapToJobSummary(row: any): JobSummary {",
+        "match": ": any"
+      },
+      {
+        "line": 331,
+        "content": "private mapToJobDetail(row: any): JobDetail {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobStatusService.ts",
+    "matches": [
+      {
+        "line": 87,
+        "content": "const updateData: any = {",
+        "match": ": any"
+      },
+      {
+        "line": 153,
+        "content": "const notifications: Array<{ userId: string; type: string; data: any }> = [];",
+        "match": ": any"
+      },
+      {
+        "line": 228,
+        "content": "getAvailableTransitions(job: any, user: User): JobStatus[] {",
+        "match": ": any"
+      },
+      {
+        "line": 253,
+        "content": "job: any",
+        "match": ": any"
+      },
+      {
+        "line": 279,
+        "content": "job: any,",
+        "match": ": any"
+      },
+      {
+        "line": 325,
+        "content": "job: any,",
+        "match": ": any"
+      },
+      {
+        "line": 343,
+        "content": "job: any,",
+        "match": ": any"
+      },
+      {
+        "line": 388,
+        "content": "private async sendNotifications(notifications: Array<{ userId: string; type: string; data: any }>): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobValidator.ts",
+    "matches": [
+      {
+        "line": 143,
+        "content": "validateListParams(params: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 153,
+        "content": "validateCreateJobData(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 156,
+        "content": "const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);",
+        "match": ": any"
+      },
+      {
+        "line": 164,
+        "content": "validateUpdateJobData(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 167,
+        "content": "const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);",
+        "match": ": any"
+      },
+      {
+        "line": 175,
+        "content": "validateStatusUpdate(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 185,
+        "content": "validateContractorAssignment(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 255,
+        "content": "validateFilters(filters: any) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\stubs.ts",
+    "matches": [
+      {
+        "line": 8,
+        "content": "async notifyContractors(job: any, contractorIds: string[]) {",
+        "match": ": any"
+      },
+      {
+        "line": 11,
+        "content": "async notifyNearbyContractors(job: any, radiusMiles: number = 50) {",
+        "match": ": any"
+      },
+      {
+        "line": 26,
+        "content": "async assessJob(data: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 38,
+        "content": "async createAttachments(jobId: string, attachments: any[]) {",
+        "match": ": any"
+      },
+      {
+        "line": 41,
+        "content": "async updateAttachments(jobId: string, attachments: any[]) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\types.ts",
+    "matches": [
+      {
+        "line": 32,
+        "content": "homeowner?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 33,
+        "content": "contractor?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 34,
+        "content": "bids?: any[];",
+        "match": ": any"
+      },
+      {
+        "line": 43,
+        "content": "[key: string]: any;",
+        "match": ": any"
+      },
+      {
+        "line": 48,
+        "content": "homeowner?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 49,
+        "content": "contractor?: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\messaging\\MessageAttachmentService.ts",
+    "matches": [
+      {
+        "line": 8,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 9,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 12,
+        "content": "async processAttachments(attachments: any[]): Promise<MessageAttachment[]> {",
+        "match": ": any"
+      },
+      {
+        "line": 16,
+        "content": "async uploadFile(file: any): Promise<{ url: string; filename: string; size: number }> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\messaging\\MessageController.ts",
+    "matches": [
+      {
+        "line": 17,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 20,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 20,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 44,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 52,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 52,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 88,
+        "content": "async getThreads(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 139,
+        "content": "async createThread(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 196,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 250,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 332,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 385,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 429,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 482,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 520,
+        "content": "async sendTypingIndicator(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 562,
+        "content": "async startVideoCall(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 624,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 624,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\messaging\\MessageNotificationService.ts",
+    "matches": [
+      {
+        "line": 9,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 10,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 23,
+        "content": "call: any;",
+        "match": ": any"
+      },
+      {
+        "line": 24,
+        "content": "initiator: any;",
+        "match": ": any"
+      },
+      {
+        "line": 32,
+        "content": "sender: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\messaging\\MessageService.ts",
+    "matches": [
+      {
+        "line": 36,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 37,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 126,
+        "content": "return (data || []).reverse().map((msg: any) => this.formatMessage(msg));",
+        "match": ": any"
+      },
+      {
+        "line": 287,
+        "content": "counts[threadId] = (data || []).filter((m: any) => m.thread_id === threadId).length;",
+        "match": ": any"
+      },
+      {
+        "line": 341,
+        "content": "const threadIds = (threads || []).map((t: any) => t.id);",
+        "match": ": any"
+      },
+      {
+        "line": 346,
+        "content": "return (data || []).map((msg: any) => this.formatMessage(msg));",
+        "match": ": any"
+      },
+      {
+        "line": 353,
+        "content": "private formatMessage(raw: any): Message {",
+        "match": ": any"
+      },
+      {
+        "line": 367,
+        "content": "reactions: raw.reactions?.map((r: any) => ({",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\messaging\\RealtimeService.ts",
+    "matches": [
+      {
+        "line": 8,
+        "content": "private pusher: any;",
+        "match": ": any"
+      },
+      {
+        "line": 9,
+        "content": "constructor(config: { pusher?: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 22,
+        "content": "message: any;",
+        "match": ": any"
+      },
+      {
+        "line": 51,
+        "content": "reaction: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\messaging\\ThreadService.ts",
+    "matches": [
+      {
+        "line": 19,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 20,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 162,
+        "content": "threads.map(async (thread: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 351,
+        "content": "return (users || []).map((user: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 373,
+        "content": "metadata?: any",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\messaging\\VideoCallService.ts",
+    "matches": [
+      {
+        "line": 8,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 9,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\notifications\\EmailService.ts",
+    "matches": [
+      {
+        "line": 45,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 46,
+        "content": "private sgMail: any; // SendGrid client",
+        "match": ": any"
+      },
+      {
+        "line": 47,
+        "content": "constructor(config: { supabase: any; sendgridConfig: EmailConfig }) {",
+        "match": ": any"
+      },
+      {
+        "line": 53,
+        "content": "send: async (msg: any) => ({ messageId: 'mock-id' })",
+        "match": ": any"
+      },
+      {
+        "line": 106,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 124,
+        "content": "const msg: any = {",
+        "match": ": any"
+      },
+      {
+        "line": 185,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 237,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 277,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 298,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 303,
+        "content": "private buildPersonalizations(params: SendEmailParams): any[] {",
+        "match": ": any"
+      },
+      {
+        "line": 384,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\notifications\\InAppNotificationService.ts",
+    "matches": [
+      {
+        "line": 6,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 7,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\notifications\\NotificationController.ts",
+    "matches": [
+      {
+        "line": 18,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 21,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 21,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 48,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 56,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 56,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 100,
+        "content": "async getNotifications(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 142,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 149,
+        "content": "async sendNotification(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 228,
+        "content": "} catch (channelError: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 252,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 259,
+        "content": "async markAsRead(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 291,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 298,
+        "content": "async markAllAsRead(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 325,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 332,
+        "content": "async deleteNotification(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 364,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 371,
+        "content": "async getUnreadCount(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 394,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 401,
+        "content": "async updatePreferences(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 435,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 442,
+        "content": "async sendBulkNotifications(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 487,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 498,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 498,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 512,
+        "content": "private isChannelEnabled(channel: string, preferences: any): boolean {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\notifications\\NotificationQueueService.ts",
+    "matches": [
+      {
+        "line": 5,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 6,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 9,
+        "content": "async queueNotification(params: any): Promise<{ id: string }> {",
+        "match": ": any"
+      },
+      {
+        "line": 13,
+        "content": "async queueBulkNotifications(params: any): Promise<{ queued: number; failed: number }> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\notifications\\NotificationService.ts",
+    "matches": [
+      {
+        "line": 8,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 9,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 155,
+        "content": "async getUserNotificationStats(userId: string, days: number = 30): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 166,
+        "content": "const stats: any = {",
+        "match": ": any"
+      },
+      {
+        "line": 206,
+        "content": "return data?.map((d: any) => d.token) || [];",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\notifications\\NotificationTemplateService.ts",
+    "matches": [
+      {
+        "line": 5,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 6,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      },
+      {
+        "line": 9,
+        "content": "async getTemplate(id: string): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\notifications\\PushNotificationService.ts",
+    "matches": [
+      {
+        "line": 5,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 6,
+        "content": "constructor(config: { supabase: any }) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\notifications\\SMSService.ts",
+    "matches": [
+      {
+        "line": 29,
+        "content": "private supabase: any;",
+        "match": ": any"
+      },
+      {
+        "line": 30,
+        "content": "private twilioClient: any; // Twilio client",
+        "match": ": any"
+      },
+      {
+        "line": 31,
+        "content": "constructor(config: { supabase: any; twilioConfig: TwilioConfig }) {",
+        "match": ": any"
+      },
+      {
+        "line": 37,
+        "content": "create: async (params: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 89,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 112,
+        "content": "const messageParams: any = {",
+        "match": ": any"
+      },
+      {
+        "line": 152,
+        "content": "} catch (recipientError: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 171,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 218,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 263,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 287,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 302,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 354,
+        "content": "} catch (error: any) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\payments\\EscrowService.ts",
+    "matches": [
+      {
+        "line": 9,
+        "content": "capture(id: string): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 12,
+        "content": "create(params: any): Promise<any>;",
+        "match": ": any"
+      },
+      {
+        "line": 12,
+        "content": "create(params: any): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 82,
+        "content": "async releaseEscrow(params: ReleaseEscrowParams): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\payments\\PaymentController.ts",
+    "matches": [
+      {
+        "line": 14,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 17,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 17,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 38,
+        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
+        "match": ": any"
+      },
+      {
+        "line": 41,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 41,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 70,
+        "content": "async createPaymentIntent(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 123,
+        "content": "async confirmPaymentIntent(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 164,
+        "content": "async releaseEscrow(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 227,
+        "content": "async processRefund(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 285,
+        "content": "async getPaymentHistory(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 328,
+        "content": "async createEmbeddedCheckout(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 373,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 373,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\payments\\PaymentService.ts",
+    "matches": [
+      {
+        "line": 10,
+        "content": "create(params: any): Promise<any>;",
+        "match": ": any"
+      },
+      {
+        "line": 10,
+        "content": "create(params: any): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 11,
+        "content": "retrieve(id: string): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 12,
+        "content": "confirm(id: string, params: any): Promise<any>;",
+        "match": ": any"
+      },
+      {
+        "line": 12,
+        "content": "confirm(id: string, params: any): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 13,
+        "content": "update(id: string, params: any): Promise<any>;",
+        "match": ": any"
+      },
+      {
+        "line": 13,
+        "content": "update(id: string, params: any): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 16,
+        "content": "create(params: any): Promise<any>;",
+        "match": ": any"
+      },
+      {
+        "line": 16,
+        "content": "create(params: any): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 17,
+        "content": "retrieve(id: string): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 21,
+        "content": "create(params: any): Promise<any>;",
+        "match": ": any"
+      },
+      {
+        "line": 21,
+        "content": "create(params: any): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 22,
+        "content": "retrieve(id: string): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 134,
+        "content": "async confirmPayment(params: ConfirmPaymentParams): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 172,
+        "content": "async getPaymentHistory(params: PaymentHistoryParams): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 198,
+        "content": "async createCheckoutSession(params: any): Promise<any> {",
+        "match": ": any"
+      },
+      {
+        "line": 198,
+        "content": "async createCheckoutSession(params: any): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 282,
+        "content": "private async validateJobPayment(jobId: string, userId: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 299,
+        "content": "private async getOrCreateCustomer(userId: string, email: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 323,
+        "content": "private async storePaymentIntent(data: any): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 340,
+        "content": "private async createEscrowRecord(data: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\payments\\RefundService.ts",
+    "matches": [
+      {
+        "line": 9,
+        "content": "create(params: any): Promise<any>;",
+        "match": ": any"
+      },
+      {
+        "line": 9,
+        "content": "create(params: any): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 12,
+        "content": "retrieve(id: string): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 107,
+        "content": "async processRefund(params: ProcessRefundParams): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 177,
+        "content": "async getRefundHistory(userId: string, limit = 50, offset = 0): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 217,
+        "content": "private async createRefundNotification(payment: any, amount: number, reason: string): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\users\\UserRepository.ts",
+    "matches": [
+      {
+        "line": 71,
+        "content": "async create(userData: any): Promise<User> {",
+        "match": ": any"
+      },
+      {
+        "line": 105,
+        "content": "async update(id: string, updates: any): Promise<User> {",
+        "match": ": any"
+      },
+      {
+        "line": 183,
+        "content": "async search(query: string, filters?: any): Promise<User[]> {",
+        "match": ": any"
+      },
+      {
+        "line": 314,
+        "content": "private mapToUser(data: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 314,
+        "content": "private mapToUser(data: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\users\\UserService.ts",
+    "matches": [
+      {
+        "line": 114,
+        "content": "async uploadProfileImage(userId: string, file: any): Promise<string> {",
+        "match": ": any"
+      },
+      {
+        "line": 123,
+        "content": "async get(key: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 126,
+        "content": "async set(key: string, value: any, ttl?: number): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 255,
+        "content": "async uploadAvatar(userId: string, file: any): Promise<string> {",
+        "match": ": any"
+      },
+      {
+        "line": 370,
+        "content": "async searchUsers(query: string, filters?: any): Promise<User[]> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\handlers\\stripe\\AccountHandler.ts",
+    "matches": [
+      {
+        "line": 2,
+        "content": "constructor(config: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 3,
+        "content": "async handleUpdated(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 4,
+        "content": "async handleDeauthorized(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 5,
+        "content": "async handleCapabilityUpdated(event: any) { return { processed: true }; }",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\handlers\\stripe\\ChargeHandler.ts",
+    "matches": [
+      {
+        "line": 2,
+        "content": "constructor(config: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 3,
+        "content": "async handleSucceeded(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 4,
+        "content": "async handleFailed(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 5,
+        "content": "async handleRefunded(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 6,
+        "content": "async handleDisputeCreated(event: any) { return { processed: true }; }",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\handlers\\stripe\\CheckoutHandler.ts",
+    "matches": [
+      {
+        "line": 2,
+        "content": "constructor(config: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 3,
+        "content": "async handleCompleted(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 4,
+        "content": "async handleExpired(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 5,
+        "content": "async handleAsyncPaymentSucceeded(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 6,
+        "content": "async handleAsyncPaymentFailed(event: any) { return { processed: true }; }",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\handlers\\stripe\\InvoiceHandler.ts",
+    "matches": [
+      {
+        "line": 2,
+        "content": "constructor(config: any) {}",
+        "match": ": any"
+      },
+      {
+        "line": 3,
+        "content": "async handleCreated(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 4,
+        "content": "async handleFinalized(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 5,
+        "content": "async handlePaymentSucceeded(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 6,
+        "content": "async handlePaymentFailed(event: any) { return { processed: true }; }",
+        "match": ": any"
+      },
+      {
+        "line": 7,
+        "content": "async handlePaymentActionRequired(event: any) { return { processed: true }; }",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\handlers\\stripe\\PaymentIntentHandler.ts",
+    "matches": [
+      {
+        "line": 11,
+        "content": "object: any;",
+        "match": ": any"
+      },
+      {
+        "line": 12,
+        "content": "previous_attributes?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 16,
+        "content": "stripe: any;",
+        "match": ": any"
+      },
+      {
+        "line": 28,
+        "content": "async handleSucceeded(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 71,
+        "content": "async handleFailed(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 110,
+        "content": "async handleCanceled(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 140,
+        "content": "async handleProcessing(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 162,
+        "content": "async handleRequiresAction(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 193,
+        "content": "paymentIntent: any",
+        "match": ": any"
+      },
+      {
+        "line": 238,
+        "content": "private async handleSubscriptionPaymentSuccess(paymentIntent: any): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 250,
+        "content": "private async handleEscrowPaymentSuccess(jobId: string, paymentIntent: any): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 261,
+        "content": "private async handleJobPaymentFailure(jobId: string, paymentIntent: any): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 282,
+        "content": "private async sendPaymentSuccessNotification(userId: string, paymentIntent: any): Promise<void> {",
+        "match": ": any"
+      },
+      {
+        "line": 298,
+        "content": "paymentIntent: any,",
+        "match": ": any"
+      },
+      {
+        "line": 299,
+        "content": "error: any",
+        "match": ": any"
+      },
+      {
+        "line": 315,
+        "content": "private async sendActionRequiredNotification(userId: string, paymentIntent: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\handlers\\stripe\\SubscriptionHandler.ts",
+    "matches": [
+      {
+        "line": 11,
+        "content": "object: any;",
+        "match": ": any"
+      },
+      {
+        "line": 12,
+        "content": "previous_attributes?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 16,
+        "content": "stripe: any;",
+        "match": ": any"
+      },
+      {
+        "line": 25,
+        "content": "async handleCreated(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 45,
+        "content": "async handleUpdated(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 64,
+        "content": "async handleDeleted(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 80,
+        "content": "async handleTrialWillEnd(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\handlers\\StripeWebhookHandler.ts",
+    "matches": [
+      {
+        "line": 15,
+        "content": "constructEvent(body: string, signature: string, secret: string): any;",
+        "match": ": any"
+      },
+      {
+        "line": 23,
+        "content": "object: any;",
+        "match": ": any"
+      },
+      {
+        "line": 24,
+        "content": "previous_attributes?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 91,
+        "content": "async handleEvent(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 193,
+        "content": "private async handleTransferCreated(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 212,
+        "content": "private async handleTransferUpdated(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 223,
+        "content": "private async handleTransferFailed(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 241,
+        "content": "private async handlePayoutCreated(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 255,
+        "content": "private async handlePayoutUpdated(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 266,
+        "content": "private async handlePayoutFailed(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 283,
+        "content": "private async handleCustomerCreated(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 295,
+        "content": "private async handleCustomerUpdated(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 307,
+        "content": "private async handleCustomerDeleted(event: StripeEvent): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\WebhookController.ts",
+    "matches": [
+      {
+        "line": 14,
+        "content": "json(): Promise<any>;",
+        "match": "<any>"
+      },
+      {
+        "line": 17,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 17,
+        "content": "json(data: any, init?: ResponseInit): any {",
+        "match": ": any"
+      },
+      {
+        "line": 30,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 30,
+        "content": "function handleAPIError(error: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 58,
+        "content": "async handleStripeWebhook(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 128,
+        "content": "async handleGithubWebhook(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 170,
+        "content": "async handleSlackWebhook(request: NextRequest): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 180,
+        "content": "let body: any;",
+        "match": ": any"
+      },
+      {
+        "line": 216,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 254,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      },
+      {
+        "line": 254,
+        "content": "private rateLimitResponse(rateLimitResult: any): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\WebhookService.ts",
+    "matches": [
+      {
+        "line": 15,
+        "content": "payload: any;",
+        "match": ": any"
+      },
+      {
+        "line": 18,
+        "content": "result?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 32,
+        "content": "event: any",
+        "match": ": any"
+      },
+      {
+        "line": 100,
+        "content": "async getWebhookEvent(eventId: string, source: string): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 119,
+        "content": "result?: any,",
+        "match": ": any"
+      },
+      {
+        "line": 122,
+        "content": "const updateData: any = {",
+        "match": ": any"
+      },
+      {
+        "line": 155,
+        "content": "): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 204,
+        "content": "async getFailedEvents(source?: string, limit = 10): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 224,
+        "content": "async getWebhookStats(source?: string, days = 7): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 240,
+        "content": "const stats: any = {",
+        "match": ": any"
+      },
+      {
+        "line": 246,
+        "content": "(data || []).forEach((event: any) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\auth\\src\\jwt.ts",
+    "matches": [
+      {
+        "line": 8,
+        "content": "let crypto: any = null;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\auth\\src\\validation.ts",
+    "matches": [
+      {
+        "line": 2,
+        "content": "let bcrypt: any = null;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\auth-unified\\src\\core\\UnifiedAuthService.ts",
+    "matches": [
+      {
+        "line": 413,
+        "content": "private async validateRefreshToken(token: string): Promise<any> {",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\auth-unified\\src\\hooks\\useAuth.tsx",
+    "matches": [
+      {
+        "line": 9,
+        "content": "user: any | null;",
+        "match": ": any"
+      },
+      {
+        "line": 26,
+        "content": "onAuthStateChange?: (user: any | null) => void;",
+        "match": ": any"
+      },
+      {
+        "line": 32,
+        "content": "const [user, setUser] = useState<any | null>(null);",
+        "match": "any |"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\auth-unified\\src\\index.ts",
+    "matches": [
+      {
+        "line": 39,
+        "content": "static forWeb(config: any): WebAuthAdapter {",
+        "match": ": any"
+      },
+      {
+        "line": 45,
+        "content": "static forMobile(config: any): MobileAuthAdapter {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\auth-unified\\src\\middleware\\AuthMiddleware.ts",
+    "matches": [
+      {
+        "line": 143,
+        "content": "private async setNewTokenCookies(response: NextResponse, tokens: any): Promise<void> {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\auth-unified\\src\\platform\\MobileAuthAdapter.ts",
+    "matches": [
+      {
+        "line": 19,
+        "content": "user: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\design-tokens\\src\\adapters\\mobile.ts",
+    "matches": [
+      {
+        "line": 59,
+        "content": "let value: any = colors;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\security\\src\\core\\BaseSanitizer.ts",
+    "matches": [
+      {
+        "line": 139,
+        "content": "input: any,",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\security\\src\\index.ts",
+    "matches": [
+      {
+        "line": 89,
+        "content": "input: any,",
+        "match": ": any"
+      },
+      {
+        "line": 323,
+        "content": "details: any,",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\security\\src\\specialized\\ContentSanitizers.ts",
+    "matches": [
+      {
+        "line": 147,
+        "content": "const sanitizeJsonValue = (value: unknown): any => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\services\\src\\base\\BaseService.ts",
+    "matches": [
+      {
+        "line": 11,
+        "content": "details?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 38,
+        "content": "let lastError: any;",
+        "match": ": any"
+      },
+      {
+        "line": 55,
+        "content": "protected toDatabase<T>(obj: T): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\shared\\src\\enhanced-logger.ts",
+    "matches": [
+      {
+        "line": 257,
+        "content": "const sanitized: any = Array.isArray(data) ? [] : {};",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\shared\\src\\lib\\logger-config.ts",
+    "matches": [
+      {
+        "line": 321,
+        "content": "return (req: any, res: any, next: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 321,
+        "content": "return (req: any, res: any, next: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 321,
+        "content": "return (req: any, res: any, next: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 366,
+        "content": "return (err: any, req: any, res: any, next: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 366,
+        "content": "return (err: any, req: any, res: any, next: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 366,
+        "content": "return (err: any, req: any, res: any, next: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 366,
+        "content": "return (err: any, req: any, res: any, next: any) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\shared\\src\\services\\conformal-prediction.ts",
+    "matches": [
+      {
+        "line": 13,
+        "content": "select(columns?: string, options?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }): any;",
+        "match": ": any"
+      },
+      {
+        "line": 14,
+        "content": "insert(data: unknown): any;",
+        "match": ": any"
+      },
+      {
+        "line": 15,
+        "content": "update(data: unknown): any;",
+        "match": ": any"
+      },
+      {
+        "line": 16,
+        "content": "upsert(data: unknown): any;",
+        "match": ": any"
+      },
+      {
+        "line": 168,
+        "content": "async getCalibrationSummary(): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\shared-ui\\src\\components\\Input\\Input.web.tsx",
+    "matches": [
+      {
+        "line": 137,
+        "content": "const finalCleanedProps: any = { ...cleanedProps };",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\types\\src\\index.ts",
+    "matches": [
+      {
+        "line": 730,
+        "content": "oldValue?: any;",
+        "match": ": any"
+      },
+      {
+        "line": 731,
+        "content": "newValue?: any;",
+        "match": ": any"
+      }
+    ]
+  }
+]
