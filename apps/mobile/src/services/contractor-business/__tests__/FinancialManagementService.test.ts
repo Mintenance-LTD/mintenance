@@ -34,7 +34,7 @@ jest.mock('@/utils/logger', () => ({
 
 import { FinancialManagementService } from '../FinancialManagementService';
 import { ServiceErrorHandler } from '@/utils/serviceErrorHandler';
-import { __setMockData, __resetSupabaseMock } from '@/config/__mocks__/supabase';
+import { __setMockData, __resetSupabaseMock, __queueMockData } from '@/config/__mocks__/supabase';
 
 describe('FinancialManagementService', () => {
   beforeEach(() => {
@@ -246,44 +246,66 @@ describe('FinancialManagementService', () => {
   describe('Phase 2: Financial Calculations', () => {
     describe('calculateFinancialTotals', () => {
       it('should calculate revenue, expenses, and profit correctly', async () => {
-        const mockFinancialData = {
-          revenue: 5000,
-          expenses: 1200,
-          profit: 3800,
-          outstanding: 0,
-          overdue: 0,
-        };
+        // calculateFinancialTotals makes 3 sequential database queries:
+        // 1. Get paid invoices for revenue
+        // 2. Get expenses
+        // 3. Get outstanding invoices
+        __queueMockData([
+          // Query 1: Paid invoices (revenue calculation)
+          [
+            { total_amount: 2000 },
+            { total_amount: 3000 },
+          ],
+          // Query 2: Expenses
+          [
+            { amount: 500 },
+            { amount: 700 },
+          ],
+          // Query 3: Outstanding invoices
+          [],
+        ]);
 
-        __setMockData(mockFinancialData);
-
-        await FinancialManagementService.calculateFinancialTotals(
+        const result = await FinancialManagementService.calculateFinancialTotals(
           'contractor-123',
           '2026-01-01',
           '2026-01-31'
         );
 
-        // Just verify it doesn't throw
-        expect(ServiceErrorHandler.executeOperation).toHaveBeenCalled();
+        expect(result.totalRevenue).toBe(5000); // 2000 + 3000
+        expect(result.totalExpenses).toBe(1200); // 500 + 700
+        expect(result.totalProfit).toBe(3800); // 5000 - 1200
+        expect(result.outstandingInvoices).toBe(0); // Empty array
+        expect(result.overdueAmount).toBe(0); // No overdue
       });
 
       it('should calculate outstanding and overdue amounts', async () => {
-        const mockFinancialData = {
-          revenue: 0,
-          expenses: 0,
-          profit: 0,
-          outstanding: 2500,
-          overdue: 500,
-        };
+        const today = new Date().toISOString();
+        const yesterday = new Date(Date.now() - 86400000).toISOString(); // 1 day ago
 
-        __setMockData(mockFinancialData);
+        __queueMockData([
+          // Query 1: Paid invoices (empty for this test)
+          [],
+          // Query 2: Expenses (empty for this test)
+          [],
+          // Query 3: Outstanding invoices (2 outstanding, 1 overdue)
+          [
+            { total_amount: 1000, due_date: '2026-12-31', status: 'sent' }, // Future - not overdue
+            { total_amount: 1500, due_date: '2026-12-31', status: 'sent' }, // Future - not overdue
+            { total_amount: 500, due_date: yesterday, status: 'overdue' }, // Overdue
+          ],
+        ]);
 
-        await FinancialManagementService.calculateFinancialTotals(
+        const result = await FinancialManagementService.calculateFinancialTotals(
           'contractor-123',
           '2026-01-01',
           '2026-01-31'
         );
 
-        expect(ServiceErrorHandler.executeOperation).toHaveBeenCalled();
+        expect(result.totalRevenue).toBe(0);
+        expect(result.totalExpenses).toBe(0);
+        expect(result.totalProfit).toBe(0);
+        expect(result.outstandingInvoices).toBe(3000); // 1000 + 1500 + 500
+        expect(result.overdueAmount).toBe(500); // Only the overdue one
       });
     });
 

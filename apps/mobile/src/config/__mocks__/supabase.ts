@@ -1,6 +1,7 @@
 // Simple working mock for MeetingService tests
 const mockState = {
   data: null as any,
+  dataQueue: [] as any[], // Queue for sequential responses
 };
 
 const createMockChain = () => {
@@ -8,6 +9,9 @@ const createMockChain = () => {
     insert: jest.fn(() => chain),
     select: jest.fn(() => chain),
     eq: jest.fn(() => chain),
+    gte: jest.fn(() => chain),
+    lte: jest.fn(() => chain),
+    in: jest.fn(() => chain),
     single: jest.fn(() => {
       const currentData = mockState.data;
       // Return proper response structure for single operations
@@ -23,7 +27,12 @@ const createMockChain = () => {
     throwOnError: jest.fn(() => chain),
     // Handle promise resolution for non-single operations (arrays)
     then: jest.fn((resolve) => {
-      const currentData = mockState.data;
+      // Check queue first for sequential responses
+      let currentData = mockState.data;
+      if (mockState.dataQueue.length > 0) {
+        currentData = mockState.dataQueue.shift();
+      }
+
       if (currentData === null) {
         const result = { data: [], error: null }; // Empty array for failed list operations
         return Promise.resolve(result).then(resolve);
@@ -57,9 +66,14 @@ export const __setMockData = (data: unknown) => {
   mockState.data = data;
 };
 
+export const __queueMockData = (dataArray: unknown[]) => {
+  mockState.dataQueue = [...dataArray];
+};
+
 export const __resetSupabaseMock = () => {
   jest.clearAllMocks();
   mockState.data = null;
+  mockState.dataQueue = [];
 };
 
 export const __getMockData = () => mockState.data;
