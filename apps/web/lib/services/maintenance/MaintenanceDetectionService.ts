@@ -249,7 +249,7 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
   /**
    * Convert Roboflow format to local format
    */
-  private static convertRoboflowToLocal(roboflowDetections: any[]): any[] {
+  private static convertRoboflowToLocal(roboflowDetections: unknown[]): unknown[] {
     return roboflowDetections.map(d => ({
       class_id: this.getClassIdFromName(d.class),
       confidence: d.confidence,

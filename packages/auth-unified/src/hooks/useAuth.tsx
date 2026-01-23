@@ -6,14 +6,14 @@ import { useState, useEffect, useContext, createContext, ReactNode } from 'react
 import { logger } from '@mintenance/shared';
 import { UnifiedAuthService, AuthTokens, SignUpData, AuthCredentials } from '../core/UnifiedAuthService';
 export interface AuthContextValue {
-  user: any | null;
+  user: unknown | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   signIn: (credentials: AuthCredentials) => Promise<void>;
   signUp: (data: SignUpData) => Promise<void>;
   signOut: () => Promise<void>;
   refreshToken: () => Promise<void>;
-  updateUser: (data: unknown) => Promise<void>;
+  updateUser: (data: Record<string, unknown>) => Promise<void>;
   // Mobile-specific
   signInWithBiometric?: () => Promise<void>;
   enableBiometric?: () => Promise<void>;
@@ -23,7 +23,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export interface AuthProviderProps {
   children: ReactNode;
   auth: UnifiedAuthService;
-  onAuthStateChange?: (user: any | null) => void;
+  onAuthStateChange?: (user: unknown | null) => void;
 }
 /**
  * Authentication Provider Component
@@ -143,7 +143,7 @@ export function AuthProvider({ children, auth, onAuthStateChange }: AuthProvider
   /**
    * Update user profile
    */
-  async function updateUser(data: unknown) {
+  async function updateUser(data: Record<string, unknown>) {
     try {
       setIsLoading(true);
       // Implementation depends on backend API

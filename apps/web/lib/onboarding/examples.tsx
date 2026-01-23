@@ -78,7 +78,7 @@ export function DashboardWithOnboarding({ user }: { user: unknown }) {
 /**
  * Example 2: Jobs List with Empty State
  */
-export function JobsListWithEmptyState({ jobs, user }: { jobs: any[]; user: unknown }) {
+export function JobsListWithEmptyState({ jobs, user }: { jobs: unknown[]; user: unknown }) {
   if (jobs.length === 0) {
     return (
       <FirstUseEmptyState
@@ -263,7 +263,7 @@ export function ContractorProfileWithCompletion({ contractor }: { contractor: un
 /**
  * Example 7: Messages with Empty State
  */
-export function MessagesWithEmptyState({ conversations }: { conversations: any[] }) {
+export function MessagesWithEmptyState({ conversations }: { conversations: unknown[] }) {
   if (conversations.length === 0) {
     return <FirstUseEmptyState type="no-messages" />;
   }
@@ -280,7 +280,7 @@ export function MessagesWithEmptyState({ conversations }: { conversations: any[]
 /**
  * Example 8: Properties with Empty State
  */
-export function PropertiesWithEmptyState({ properties }: { properties: any[] }) {
+export function PropertiesWithEmptyState({ properties }: { properties: unknown[] }) {
   if (properties.length === 0) {
     return <FirstUseEmptyState type="no-properties" />;
   }

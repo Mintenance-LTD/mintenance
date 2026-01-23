@@ -506,7 +506,7 @@ function parseTimeRange(timeRange: string): number {
     return parseInt(value) * units[unit];
 }
 
-function calculateAggregateMetrics(metricsData: any[]) {
+function calculateAggregateMetrics(metricsData: unknown[]) {
     if (!metricsData || metricsData.length === 0) {
         return {
             count: 0,
@@ -544,7 +544,7 @@ function calculateAggregateMetrics(metricsData: any[]) {
     };
 }
 
-function calculateFalseNegativeRate(metrics: any[]): number {
+function calculateFalseNegativeRate(metrics: unknown[]): number {
     if (!metrics || metrics.length === 0) return 0;
 
     let falseNegatives = 0;
@@ -565,7 +565,7 @@ function calculateFalseNegativeRate(metrics: any[]): number {
     return total > 0 ? (falseNegatives / total) * 100 : 0;
 }
 
-function calculateAvgInferenceTime(metrics: any[]): number {
+function calculateAvgInferenceTime(metrics: unknown[]): number {
     if (!metrics || metrics.length === 0) return 0;
 
     const times = metrics

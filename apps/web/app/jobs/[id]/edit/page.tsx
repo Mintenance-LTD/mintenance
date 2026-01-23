@@ -95,9 +95,9 @@ export default function JobEditPage2025() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
-  const [buildingSurvey, setBuildingSurvey] = useState<any>(null);
-  const [geocodeData, setGeocodeData] = useState<any>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<unknown>(null);
+  const [buildingSurvey, setBuildingSurvey] = useState<unknown>(null);
+  const [geocodeData, setGeocodeData] = useState<unknown>(null);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [runBuildingSurvey, setRunBuildingSurvey] = useState(false);
   const [analyzeWithAI, setAnalyzeWithAI] = useState(true);

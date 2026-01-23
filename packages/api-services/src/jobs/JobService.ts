@@ -269,7 +269,7 @@ export class JobService {
   /**
    * Enrich jobs with additional data
    */
-  private async enrichJobData(jobs: any[]): Promise<JobSummary[]> {
+  private async enrichJobData(jobs: unknown[]): Promise<JobSummary[]> {
     if (!jobs.length) return [];
     const jobIds = jobs.map(j => j.id);
     // Fetch all additional data in parallel
@@ -309,7 +309,7 @@ export class JobService {
   /**
    * Map database row to JobSummary
    */
-  private mapToJobSummary(row: any): JobSummary {
+  private mapToJobSummary(row: unknown): JobSummary {
     return {
       id: row.id,
       title: row.title,
@@ -328,7 +328,7 @@ export class JobService {
   /**
    * Map database row to JobDetail
    */
-  private mapToJobDetail(row: any): JobDetail {
+  private mapToJobDetail(row: unknown): JobDetail {
     return {
       id: row.id,
       title: row.title,

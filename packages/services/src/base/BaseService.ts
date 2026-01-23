@@ -8,7 +8,7 @@ export interface ServiceConfig {
 export interface ServiceError {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
   timestamp: string;
 }
 export abstract class BaseService {
@@ -35,7 +35,7 @@ export abstract class BaseService {
     maxRetries: number = 3,
     delay: number = 1000
   ): Promise<T> {
-    let lastError: any;
+    let lastError: unknown;
     for (let i = 0; i < maxRetries; i++) {
       try {
         return await operation();
@@ -52,7 +52,7 @@ export abstract class BaseService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
   // Field mapping utilities (handles snake_case to camelCase)
-  protected toDatabase<T>(obj: T): any {
+  protected toDatabase<T>(obj: T): unknown {
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj as any)) {
       const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);

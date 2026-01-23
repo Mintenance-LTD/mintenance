@@ -59,14 +59,14 @@ export default function AnalyticsPage2025() {
         let completedJobs = 0;
         let activeJobs = 0;
 
-        jobs?.forEach((job: any) => {
+        jobs?.forEach((job: unknown) => {
           const date = new Date(job.created_at);
           const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
 
           if (job.status === 'completed') completedJobs++;
           if (job.status === 'in_progress' || job.status === 'posted') activeJobs++;
 
-          job.payments?.forEach((payment: any) => {
+          job.payments?.forEach((payment: unknown) => {
             const amount = payment.amount || 0;
             totalSpent += amount;
 

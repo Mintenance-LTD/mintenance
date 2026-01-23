@@ -97,7 +97,7 @@ export function dynamicImport<P = {}>(
  * Preload a dynamic component
  */
 export function preloadComponent(
-  importFn: () => Promise<{ default: ComponentType<any> }>
+  importFn: () => Promise<{ default: ComponentType<unknown> }>
 ) {
   // Trigger the import to start loading
   importFn();
@@ -227,7 +227,7 @@ export function useLazyLoad(
 /**
  * Prefetch dynamic imports on hover/focus
  */
-export function usePrefetch(importFn: () => Promise<any>) {
+export function usePrefetch(importFn: () => Promise<unknown>) {
   const prefetch = () => {
     if ('requestIdleCallback' in window) {
       requestIdleCallback(() => importFn());
