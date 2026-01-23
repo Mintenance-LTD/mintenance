@@ -3,8 +3,8 @@
  */
 import { NotificationType,  } from './types';
 export class InAppNotificationService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   async createNotification(params: {
@@ -13,7 +13,7 @@ export class InAppNotificationService {
     title: string;
     message: string;
     actionUrl?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }): Promise<{ id: string; success: boolean }> {
     // Implementation stub
     return { id: 'notif-123', success: true };

@@ -727,8 +727,8 @@ export interface MeetingUpdate {
   message: string;
   updatedBy: string;
   timestamp: string;
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
 }
 // Notification types
 export interface Notification {

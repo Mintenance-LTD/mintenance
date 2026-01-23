@@ -10,7 +10,7 @@ export type ExportFormat = 'json' | 'csv' | 'excel' | 'xml' | 'parquet';
 interface ExportConfig {
   format: ExportFormat;
   dataSource: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   fields?: string[]; // Specific fields to export
   transform?: {
     rename?: Record<string, string>; // Field renaming
@@ -168,7 +168,7 @@ export class ExportService {
    * Export to JSON
    */
   private async exportToJSON(
-    data: unknown[],
+    data: Record<string, unknown>[],
     options?: Record<string, unknown>
   ): Promise<string> {
     const filePath = `/tmp/export_${Date.now()}.json`;
@@ -181,7 +181,7 @@ export class ExportService {
    * Export to CSV
    */
   private async exportToCSV(
-    data: unknown[],
+    data: Record<string, unknown>[],
     options?: Record<string, unknown>
   ): Promise<string> {
     const delimiter = options?.delimiter || ',';
@@ -221,7 +221,7 @@ export class ExportService {
    * Export to Excel
    */
   private async exportToExcel(
-    data: unknown[],
+    data: Record<string, unknown>[],
     options?: Record<string, unknown>
   ): Promise<string> {
     // Excel export would require a library like ExcelJS
@@ -236,7 +236,7 @@ export class ExportService {
    * Export to XML
    */
   private async exportToXML(
-    data: unknown[],
+    data: Record<string, unknown>[],
     options?: Record<string, unknown>
   ): Promise<string> {
     const filePath = `/tmp/export_${Date.now()}.xml`;
@@ -258,7 +258,7 @@ export class ExportService {
    * Export to Parquet (columnar format for big data)
    */
   private async exportToParquet(
-    data: unknown[],
+    data: Record<string, unknown>[],
     options?: Record<string, unknown>
   ): Promise<string> {
     // Parquet export would require a library like parquetjs
@@ -299,7 +299,7 @@ export class ExportService {
    * Transform data
    */
   private async transformData(
-    data: unknown[],
+    data: Record<string, unknown>[],
     transform: NonNullable<ExportConfig['transform']>
   ): Promise<any[]> {
     return data.map(row => {
@@ -429,7 +429,7 @@ export class ExportService {
   ): Promise<void> {
     const job = this.exportJobs.get(jobId);
     if (job) {
-      if (status) job.status = status as any;
+      if (status) job.status = status as unknown;
       if (progress !== undefined) job.progress = progress;
       if (updates) Object.assign(job, updates);
       if (status === 'completed' || status === 'failed') {

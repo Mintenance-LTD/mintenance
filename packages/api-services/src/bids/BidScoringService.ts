@@ -1,7 +1,7 @@
 export class BidScoringService {
-  constructor(config: any) {}
+  constructor(config: unknown) {}
 
-  async calculateBidScore(bid: any) {
+  async calculateBidScore(bid: unknown) {
     return {
       totalScore: 85,
       priceScore: 30,

@@ -86,7 +86,7 @@ export const sanitize = {
    * Numeric input sanitization
    */
   numeric: (
-    input: any,
+    input: unknown,
     options?: { min?: number; max?: number; decimals?: number }
   ): number | null => {
     return BaseSanitizer.sanitizeNumeric(input, options);
@@ -215,7 +215,7 @@ if (isMobile) {
     /**
      * Object sanitization (recursive)
      */
-    object: <T extends Record<string, any>>(
+    object: <T extends Record<string, unknown>>(
       obj: T,
       fieldSanitizers?: Partial<Record<keyof T, (value: unknown) => any>>
     ): T => {
@@ -270,7 +270,7 @@ export const utils = {
   /**
    * Validate and sanitize multiple fields at once
    */
-  sanitizeFields: <T extends Record<string, any>>(
+  sanitizeFields: <T extends Record<string, unknown>>(
     data: T,
     schema: Partial<Record<keyof T, 'text' | 'email' | 'phone' | 'url' | 'number'>>
   ): T => {
@@ -280,19 +280,19 @@ export const utils = {
       if (value === undefined || value === null) continue;
       switch (type) {
         case 'text':
-          result[key] = sanitize.text(value) as any;
+          result[key] = sanitize.text(value) as unknown;
           break;
         case 'email':
-          result[key] = sanitize.email(value) as any;
+          result[key] = sanitize.email(value) as unknown;
           break;
         case 'phone':
-          result[key] = sanitize.phone(value) as any;
+          result[key] = sanitize.phone(value) as unknown;
           break;
         case 'url':
-          result[key] = sanitize.url(value) as any;
+          result[key] = sanitize.url(value) as unknown;
           break;
         case 'number':
-          result[key] = sanitize.numeric(value) as any;
+          result[key] = sanitize.numeric(value) as unknown;
           break;
       }
     }
@@ -320,7 +320,7 @@ export const utils = {
    */
   logSecurityThreat: (
     type: 'xss' | 'sql_injection' | 'rate_limit',
-    details: any,
+    details: unknown,
     context?: { userId?: string; ip?: string; endpoint?: string }
   ): void => {
     const logData = {
@@ -334,8 +334,8 @@ export const utils = {
       logger.warn('[Security Threat]', logData);
     }
     // In production, send to monitoring service
-    if (typeof global !== 'undefined' && (global as any).securityLogger) {
-      (global as any).securityLogger.warn('Security threat detected', logData);
+    if (typeof global !== 'undefined' && (global as unknown).securityLogger) {
+      (global as unknown).securityLogger.warn('Security threat detected', logData);
     }
   },
 };

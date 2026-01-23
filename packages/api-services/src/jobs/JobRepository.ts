@@ -371,7 +371,7 @@ export class JobRepository {
 
   async storeAIAnalysis(jobId: string, analysis: unknown): Promise<void> {
     // Storing as JSON string in a generic field for now or dedicated table if it existed
-    // await this.updateJob(jobId, { ai_assessment_id: JSON.stringify(analysis) } as any);
+    // await this.updateJob(jobId, { ai_assessment_id: JSON.stringify(analysis) } as unknown);
     logger.info('Storing AI analysis', { jobId, analysis });
   }
 

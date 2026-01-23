@@ -36,13 +36,13 @@ export class UnifiedAuth {
   /**
    * Create auth instance for web platform
    */
-  static forWeb(config: any): WebAuthAdapter {
+  static forWeb(config: unknown): WebAuthAdapter {
     return new WebAuthAdapter(config);
   }
   /**
    * Create auth instance for mobile platform
    */
-  static forMobile(config: any): MobileAuthAdapter {
+  static forMobile(config: unknown): MobileAuthAdapter {
     return new MobileAuthAdapter(config);
   }
   /**
@@ -54,9 +54,9 @@ export class UnifiedAuth {
     const isMobile = typeof window !== 'undefined' && !isWeb;
     const isServer = typeof window === 'undefined';
     if (isServer || isWeb) {
-      return new WebAuthAdapter(config as any);
+      return new WebAuthAdapter(config as unknown);
     } else {
-      return new MobileAuthAdapter(config as any);
+      return new MobileAuthAdapter(config as unknown);
     }
   }
 }

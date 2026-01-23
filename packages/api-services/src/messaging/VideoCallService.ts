@@ -5,8 +5,8 @@ import { Message } from './types';
  * Video Call Service - Manage video calls and conferencing
  */
 export class VideoCallService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   async startCall(params: {
@@ -23,7 +23,7 @@ export class VideoCallService {
   }
   async endCall(callId: string, duration: number): Promise<void> {
     // Implementation stub
-    logger.info('Ending call', { callId, duration } as any);
+    logger.info('Ending call', { callId, duration } as unknown);
   }
   async getCallHistory(threadId: string): Promise<Message[]> {
     // Implementation stub

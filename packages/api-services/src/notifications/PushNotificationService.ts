@@ -2,15 +2,15 @@
  * Push Notification Service - Send push notifications to mobile devices
  */
 export class PushNotificationService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   async sendPushNotification(params: {
     recipientId: string;
     title: string;
     body: string;
-    data?: Record<string, any>;
+    data?: Record<string, unknown>;
     badge?: number;
     sound?: string;
     icon?: string;
@@ -22,7 +22,7 @@ export class PushNotificationService {
     token: string,
     title: string,
     body: string,
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ): Promise<{ success: boolean }> {
     // Implementation stub
     return { success: true };
@@ -31,7 +31,7 @@ export class PushNotificationService {
     topic: string,
     title: string,
     body: string,
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ): Promise<{ success: boolean }> {
     // Implementation stub
     return { success: true };

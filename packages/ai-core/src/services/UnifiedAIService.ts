@@ -357,7 +357,7 @@ export class UnifiedAIService {
     agentName: string,
     action: string,
     context: unknown
-  ): Promise<AIServiceResponse<any>> {
+  ): Promise<AIServiceResponse<unknown>> {
     const agentEndpoints: { [key: string]: string } = {
       'BidAcceptanceAgent': '/api/agents/bid-acceptance',
       'SchedulingAgent': '/api/agents/scheduling',
@@ -451,7 +451,7 @@ export class UnifiedAIService {
       modelVersion: 'unknown'
     };
   }
-  private handleError(error: unknown, defaultMessage: string): AIServiceResponse<any> {
+  private handleError(error: unknown, defaultMessage: string): AIServiceResponse<unknown> {
     return {
       success: false,
       error: {
