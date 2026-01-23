@@ -222,7 +222,7 @@ describe('ContractorService - Simple Tests', () => {
 
       const mockChain = {
         select: jest.fn().mockReturnThis(),
-        ilike: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(), // FIXED: Added .or() method for string search
         order: jest.fn().mockReturnThis(),
         limit: jest.fn().mockResolvedValue({ data: mockContractors, error: null }),
       };
