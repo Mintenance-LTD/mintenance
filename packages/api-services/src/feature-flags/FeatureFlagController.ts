@@ -10,10 +10,10 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<Response>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: unknown, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -35,7 +35,7 @@ async function requireAdmin(user: User | null): Promise<void> {
     throw new Error('Admin access required');
   }
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: unknown) {
   return {
     allowed: true,
     remaining: 30,
@@ -43,7 +43,7 @@ async function checkRateLimit(request: NextRequest, options: any) {
     retryAfter: 60
   };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('Feature Flag Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Internal server error';
@@ -79,7 +79,7 @@ export class FeatureFlagController {
   /**
    * GET /api/feature-flags - Get feature flags and metrics
    */
-  async getFlags(request: NextRequest): Promise<any> {
+  async getFlags(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -109,7 +109,7 @@ export class FeatureFlagController {
             { status: 404 }
           );
         }
-        let response: any = { flag };
+        let response: Record<string, unknown> = { flag };
         if (includeMetrics) {
           const metrics = await this.metricsService.getFlagMetrics(
             flagName as FeatureFlag,
@@ -121,7 +121,7 @@ export class FeatureFlagController {
       }
       // Get all flags for user
       const flags = await this.flagService.getAllFlags(user?.id || userId);
-      let response: any = { flags };
+      let response: Record<string, unknown> = { flags };
       if (includeMetrics) {
         const metrics = await this.metricsService.getOverallMetrics({
           timeRange: '7d'
@@ -137,7 +137,7 @@ export class FeatureFlagController {
   /**
    * POST /api/feature-flags - Create or update a feature flag
    */
-  async createOrUpdateFlag(request: NextRequest): Promise<any> {
+  async createOrUpdateFlag(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -197,7 +197,7 @@ export class FeatureFlagController {
   /**
    * POST /api/feature-flags/metrics - Record feature flag metrics
    */
-  async recordMetrics(request: NextRequest): Promise<any> {
+  async recordMetrics(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting - more lenient for metrics
       const rateLimitResult = await checkRateLimit(request, {
@@ -241,7 +241,7 @@ export class FeatureFlagController {
   /**
    * POST /api/feature-flags/rollback - Trigger feature flag rollback
    */
-  async rollbackFlag(request: NextRequest): Promise<any> {
+  async rollbackFlag(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -291,7 +291,7 @@ export class FeatureFlagController {
   /**
    * GET /api/feature-flags/targeting-rules - Get targeting rules for a flag
    */
-  async getTargetingRules(request: NextRequest): Promise<any> {
+  async getTargetingRules(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -323,7 +323,7 @@ export class FeatureFlagController {
   /**
    * POST /api/feature-flags/evaluate - Evaluate feature flags for a user
    */
-  async evaluateFlags(request: NextRequest): Promise<any> {
+  async evaluateFlags(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -366,7 +366,7 @@ export class FeatureFlagController {
   /**
    * GET /api/feature-flags/experiments - Get A/B test experiments
    */
-  async getExperiments(request: NextRequest): Promise<any> {
+  async getExperiments(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -400,7 +400,7 @@ export class FeatureFlagController {
     const ip = forwarded?.split(',')[0] || realIp || 'anonymous';
     return `feature-flags:${ip}`;
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {
@@ -416,7 +416,7 @@ export class FeatureFlagController {
   }
   private async shouldTriggerAutoRollback(
     flag: string,
-    metrics: any
+    metrics: unknown
   ): Promise<boolean> {
     // Check if auto-rollback is enabled
     const autoRollbackEnabled = await this.flagService.isAutoRollbackEnabled(
@@ -449,7 +449,7 @@ export class FeatureFlagController {
     }
     return false;
   }
-  private async triggerAutoRollback(flag: string, metrics: any): Promise<void> {
+  private async triggerAutoRollback(flag: string, metrics: unknown): Promise<void> {
     logger.warn(`Auto-rollback triggered for flag ${flag}`, metrics);
     await this.rollbackService.rollback({
       flagName: flag as FeatureFlag,

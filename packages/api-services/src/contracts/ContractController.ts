@@ -9,10 +9,10 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<Response>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: unknown, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -32,10 +32,10 @@ async function getCurrentUserFromCookies(): Promise<User | null> {
 async function requireCSRF(request: NextRequest): Promise<void> {
   // TODO: Implement CSRF check
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: unknown) {
   return { allowed: true };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('Contract API Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Internal server error';
@@ -59,7 +59,7 @@ export class ContractController {
   /**
    * GET /api/contracts - List contracts
    */
-  async listContracts(request: NextRequest): Promise<any> {
+  async listContracts(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -99,7 +99,7 @@ export class ContractController {
   /**
    * POST /api/contracts - Create a new contract
    */
-  async createContract(request: NextRequest): Promise<any> {
+  async createContract(request: NextRequest): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -146,7 +146,7 @@ export class ContractController {
   async getContract(
     request: NextRequest,
     { params }: { params: { contractId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -187,7 +187,7 @@ export class ContractController {
   async updateContract(
     request: NextRequest,
     { params }: { params: { contractId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -231,7 +231,7 @@ export class ContractController {
   async signContract(
     request: NextRequest,
     { params }: { params: { contractId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -277,7 +277,7 @@ export class ContractController {
   async activateContract(
     request: NextRequest,
     { params }: { params: { contractId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -318,7 +318,7 @@ export class ContractController {
   async completeContract(
     request: NextRequest,
     { params }: { params: { contractId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -364,7 +364,7 @@ export class ContractController {
   async cancelContract(
     request: NextRequest,
     { params }: { params: { contractId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -410,7 +410,7 @@ export class ContractController {
   async createDispute(
     request: NextRequest,
     { params }: { params: { contractId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -458,7 +458,7 @@ export class ContractController {
   async getContractMilestones(
     request: NextRequest,
     { params }: { params: { contractId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -497,7 +497,7 @@ export class ContractController {
     const ip = forwarded?.split(',')[0] || realIp || 'anonymous';
     return `${ip}:${request.url}`;
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {

@@ -14,10 +14,10 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<Response>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: unknown, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -41,7 +41,7 @@ async function getCurrentUserFromCookies(): Promise<User | null> {
 async function requireCSRF(request: NextRequest): Promise<void> {
   // CSRF validation
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: unknown) {
   return {
     allowed: true,
     remaining: 30,
@@ -49,7 +49,7 @@ async function checkRateLimit(request: NextRequest, options: any) {
     retryAfter: 60
   };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('Message Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Internal server error';
@@ -85,7 +85,7 @@ export class MessageController {
   /**
    * GET /api/messages/threads - Get user's message threads
    */
-  async getThreads(request: NextRequest): Promise<any> {
+  async getThreads(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -136,7 +136,7 @@ export class MessageController {
   /**
    * POST /api/messages/threads - Create a new thread
    */
-  async createThread(request: NextRequest): Promise<any> {
+  async createThread(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -193,7 +193,7 @@ export class MessageController {
   async getMessages(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -247,7 +247,7 @@ export class MessageController {
   async sendMessage(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -329,7 +329,7 @@ export class MessageController {
   async editMessage(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -382,7 +382,7 @@ export class MessageController {
   async deleteMessage(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -426,7 +426,7 @@ export class MessageController {
   async addReaction(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -479,7 +479,7 @@ export class MessageController {
   async markThreadAsRead(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -517,7 +517,7 @@ export class MessageController {
   /**
    * POST /api/messages/typing - Send typing indicator
    */
-  async sendTypingIndicator(request: NextRequest): Promise<any> {
+  async sendTypingIndicator(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting - more lenient for typing
       const rateLimitResult = await checkRateLimit(request, {
@@ -559,7 +559,7 @@ export class MessageController {
   /**
    * POST /api/messages/video-call/start - Start a video call
    */
-  async startVideoCall(request: NextRequest): Promise<any> {
+  async startVideoCall(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -621,7 +621,7 @@ export class MessageController {
     const ip = forwarded?.split(',')[0] || realIp || 'anonymous';
     return `messages:${ip}`;
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {

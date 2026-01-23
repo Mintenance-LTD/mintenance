@@ -14,10 +14,10 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<Response>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: unknown, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -42,7 +42,7 @@ async function requireAdmin(user: User | null): Promise<void> {
 async function requireCSRF(request: NextRequest): Promise<void> {
   // CSRF validation
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: unknown) {
   return {
     allowed: true,
     remaining: 30,
@@ -50,7 +50,7 @@ async function checkRateLimit(request: NextRequest, options: any) {
     retryAfter: 60
   };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('Analytics Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Internal server error';
@@ -94,7 +94,7 @@ export class AnalyticsController {
   /**
    * POST /api/analytics/events - Track an event
    */
-  async trackEvent(request: NextRequest): Promise<any> {
+  async trackEvent(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -146,7 +146,7 @@ export class AnalyticsController {
   /**
    * POST /api/analytics/events/batch - Track multiple events
    */
-  async trackEventsBatch(request: NextRequest): Promise<any> {
+  async trackEventsBatch(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -175,7 +175,7 @@ export class AnalyticsController {
         timestamp: e.timestamp || new Date().toISOString()
       }));
       // Track batch
-      const result: any = await this.eventTracking.trackEventsBatch(processedEvents);
+      const result: unknown = await this.eventTracking.trackEventsBatch(processedEvents);
       return NextResponse.json({
         success: true,
         tracked: result.tracked,
@@ -188,7 +188,7 @@ export class AnalyticsController {
   /**
    * GET /api/analytics/dashboard - Get dashboard data
    */
-  async getDashboard(request: NextRequest): Promise<any> {
+  async getDashboard(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -227,7 +227,7 @@ export class AnalyticsController {
   /**
    * GET /api/analytics/metrics - Get aggregated metrics
    */
-  async getMetrics(request: NextRequest): Promise<any> {
+  async getMetrics(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -274,7 +274,7 @@ export class AnalyticsController {
   /**
    * POST /api/analytics/reports - Generate a report
    */
-  async generateReport(request: NextRequest): Promise<any> {
+  async generateReport(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -325,7 +325,7 @@ export class AnalyticsController {
   async getReportStatus(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -359,7 +359,7 @@ export class AnalyticsController {
   /**
    * POST /api/analytics/export - Export data
    */
-  async exportData(request: NextRequest): Promise<any> {
+  async exportData(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -407,7 +407,7 @@ export class AnalyticsController {
   /**
    * GET /api/analytics/insights - Get AI-powered insights
    */
-  async getInsights(request: NextRequest): Promise<any> {
+  async getInsights(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -449,7 +449,7 @@ export class AnalyticsController {
   /**
    * GET /api/analytics/realtime - Get real-time metrics
    */
-  async getRealTimeMetrics(request: NextRequest): Promise<any> {
+  async getRealTimeMetrics(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -476,7 +476,7 @@ export class AnalyticsController {
   /**
    * GET /api/analytics/funnel - Get funnel analysis
    */
-  async getFunnelAnalysis(request: NextRequest): Promise<any> {
+  async getFunnelAnalysis(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -521,7 +521,7 @@ export class AnalyticsController {
     const realIp = request.headers.get('x-real-ip');
     return forwarded?.split(',')[0] || realIp || '';
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {

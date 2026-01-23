@@ -18,12 +18,12 @@ interface JobDetail {
   title: string;
   description?: string;
   status: string;
-  homeowner?: any;
-  contractor?: any;
-  property?: any;
-  bids?: any;
-  attachments?: any[];
-  [key: string]: any;
+  homeowner?: unknown;
+  contractor?: unknown;
+  property?: unknown;
+  bids?: unknown;
+  attachments?: unknown[];
+  [key: string]: unknown;
 }
 
 // Placeholder services
@@ -31,7 +31,7 @@ class PredictiveAgent {
   async predictJobCompletion(jobId: string) {
     return { predictedCompletionDate: new Date(), confidence: 0.85 };
   }
-  async predictOptimalPrice(jobData: any) {
+  async predictOptimalPrice(jobData: unknown) {
     return { suggestedPrice: 1500, confidence: 0.75 };
   }
   async predictContractorMatch(jobId: string) {
@@ -54,7 +54,7 @@ class BuildingSurveyorService {
   }
 }
 class JobAnalysisService {
-  async analyzeJob(jobData: any) {
+  async analyzeJob(jobData: unknown) {
     return {
       complexity: 'medium',
       estimatedDuration: 7,
@@ -64,7 +64,7 @@ class JobAnalysisService {
   }
 }
 // Cache for AI analysis results
-const aiAnalysisCache = new Map<string, { timestamp: number; data: unknown }>();
+const aiAnalysisCache = new Map<string, { timestamp: number; data: Record<string, unknown> }>();
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 function getCacheKey(jobId: string, imageUrls: string[]): string {
   const hash = crypto.createHash('sha256');
@@ -200,7 +200,7 @@ export class JobDetailsService {
     // Validate update data
     const validatedData = this.validator.validateFullUpdate(data);
     // Prepare update payload
-    const updatePayload: any = {
+    const updatePayload: unknown = {
       ...validatedData,
       updated_at: new Date().toISOString()
     };
@@ -274,7 +274,7 @@ export class JobDetailsService {
     }
     // Check for active bids
     const bids = await this.repository.getBidsForJob(jobId);
-    if (bids.some((bid: any) => bid.status === 'accepted')) {
+    if (bids.some((bid: unknown) => bid.status === 'accepted')) {
       throw new Error('Cannot delete job with accepted bids');
     }
     // Perform soft delete
@@ -289,7 +289,7 @@ export class JobDetailsService {
   /**
    * Run AI analysis on job
    */
-  async runAIAnalysis(jobId: string, images: string[], runBuildingSurvey: boolean): Promise<any> {
+  async runAIAnalysis(jobId: string, images: string[], runBuildingSurvey: boolean): Promise<unknown> {
     // Check cache first
     const cacheKey = getCacheKey(jobId, images);
     const cached = aiAnalysisCache.get(cacheKey);
@@ -330,7 +330,7 @@ export class JobDetailsService {
     return analysisResults;
   }
   // ============= Private Helper Methods =============
-  private canViewJob(job: any, user: User): boolean {
+  private canViewJob(job: unknown, user: User): boolean {
     // Homeowner can always view their own job
     if (job.homeowner_id === user.id) return true;
     // Assigned contractor can view
@@ -341,21 +341,21 @@ export class JobDetailsService {
     if (user.role === 'contractor' && job.status === 'posted') return true;
     return false;
   }
-  private canEditJob(job: any, user: User): boolean {
+  private canEditJob(job: unknown, user: User): boolean {
     // Only homeowner can edit their job
     if (job.homeowner_id === user.id) return true;
     // Admin can edit
     if (user.role === 'admin') return true;
     return false;
   }
-  private canDeleteJob(job: any, user: User): boolean {
+  private canDeleteJob(job: unknown, user: User): boolean {
     // Only homeowner can delete their job
     if (job.homeowner_id === user.id) return true;
     // Admin can delete
     if (user.role === 'admin') return true;
     return false;
   }
-  private canChangeStatus(job: any, user: User): boolean {
+  private canChangeStatus(job: unknown, user: User): boolean {
     // Homeowner can change status
     if (job.homeowner_id === user.id) return true;
     // Assigned contractor can change certain statuses
@@ -366,7 +366,7 @@ export class JobDetailsService {
     if (user.role === 'admin') return true;
     return false;
   }
-  private sanitizeUserData(user: any): any {
+  private sanitizeUserData(user: unknown): unknown {
     // Remove sensitive data from user object
     const { password, ...safeUser } = user;
     return safeUser;
@@ -387,11 +387,11 @@ export class JobDetailsService {
     // TODO: Implement actual geocoding
     return null;
   }
-  private async getAIAnalysisFromCache(jobId: string): Promise<any> {
+  private async getAIAnalysisFromCache(jobId: string): Promise<unknown> {
     // TODO: Get from cache or database
     return null;
   }
-  private async getPredictions(jobId: string): Promise<any> {
+  private async getPredictions(jobId: string): Promise<unknown> {
     // Get predictive insights
     try {
       const [completion, price, contractors] = await Promise.all([
@@ -405,7 +405,7 @@ export class JobDetailsService {
       return null;
     }
   }
-  private async notifyDeletion(jobId: string, job: any): Promise<void> {
+  private async notifyDeletion(jobId: string, job: unknown): Promise<void> {
     // TODO: Send notifications about job deletion
     logger.info('Job deleted', { jobId, title: job.title });
   }

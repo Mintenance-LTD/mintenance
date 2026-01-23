@@ -60,13 +60,13 @@ interface DriftAnalysis {
   estimatedPerformanceImpact: number;
 }
 export class DriftDetectionService {
-  private supabase: any;
+  private supabase: unknown;
   private driftThresholds = {
     data: { low: 0.1, medium: 0.3, high: 0.5 },
     concept: { low: 0.05, medium: 0.1, high: 0.15 },
     prediction: { low: 0.15, medium: 0.25, high: 0.4 }
   };
-  constructor(config: { supabase: any }) {
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -184,7 +184,7 @@ export class DriftDetectionService {
         };
       }
       // Calculate drift for each feature
-      const featureDrifts = features.map((f: any) => {
+      const featureDrifts = features.map((f: unknown) => {
         const driftScore = this.calculateKLDivergence(
           f.baseline_distribution,
           f.current_distribution
@@ -201,9 +201,9 @@ export class DriftDetectionService {
         };
       });
       // Determine overall data drift
-      const driftingFeatures = featureDrifts.filter((f: any) => f.status === 'drifting');
+      const driftingFeatures = featureDrifts.filter((f: unknown) => f.status === 'drifting');
       const detected = driftingFeatures.length > 0;
-      const avgDriftScore = featureDrifts.reduce((sum: number, f: any) => sum + f.driftScore, 0) / featureDrifts.length;
+      const avgDriftScore = featureDrifts.reduce((sum: number, f: unknown) => sum + f.driftScore, 0) / featureDrifts.length;
       const severity = avgDriftScore > this.driftThresholds.data.high ? 'high' :
                       avgDriftScore > this.driftThresholds.data.medium ? 'medium' : 'low';
       return {
@@ -239,8 +239,8 @@ export class DriftDetectionService {
         };
       }
       // Calculate performance change
-      const recentAccuracy = metrics.slice(0, 10).reduce((sum: number, m: any) => sum + m.accuracy, 0) / 10;
-      const baselineAccuracy = metrics.slice(-10).reduce((sum: number, m: any) => sum + m.accuracy, 0) / 10;
+      const recentAccuracy = metrics.slice(0, 10).reduce((sum: number, m: unknown) => sum + m.accuracy, 0) / 10;
+      const baselineAccuracy = metrics.slice(-10).reduce((sum: number, m: unknown) => sum + m.accuracy, 0) / 10;
       const performanceChange = baselineAccuracy - recentAccuracy;
       const detected = performanceChange > this.driftThresholds.concept.medium;
       const severity = performanceChange > this.driftThresholds.concept.high ? 'high' :
@@ -249,7 +249,7 @@ export class DriftDetectionService {
         detected,
         severity: severity as 'low' | 'medium' | 'high',
         performanceChange,
-        accuracyTrend: metrics.map((m: any) => m.accuracy),
+        accuracyTrend: metrics.map((m: unknown) => m.accuracy),
         alertThreshold: this.driftThresholds.concept.medium
       };
     } catch (error) {
@@ -312,7 +312,7 @@ export class DriftDetectionService {
       };
     }
   }
-  private calculateKLDivergence(baseline: any, current: any): number {
+  private calculateKLDivergence(baseline: unknown, current: unknown): number {
     // Simplified KL divergence calculation
     if (!baseline || !current) return 0;
     let klDiv = 0;
@@ -324,7 +324,7 @@ export class DriftDetectionService {
     }
     return klDiv;
   }
-  private calculateJSDivergence(baseline: any, current: any): number {
+  private calculateJSDivergence(baseline: unknown, current: unknown): number {
     // Jensen-Shannon divergence (symmetric version of KL divergence)
     if (!baseline || !current) return 0;
     const m: Record<string, unknown> = {};
@@ -336,9 +336,9 @@ export class DriftDetectionService {
     return (klBaseline + klCurrent) / 2;
   }
   private calculateOverallDriftScore(
-    dataDrift: any,
-    conceptDrift: any,
-    predictionDrift: any
+    dataDrift: unknown,
+    conceptDrift: unknown,
+    predictionDrift: unknown
   ): number {
     // Weighted average of different drift types
     const weights = {
@@ -367,7 +367,7 @@ export class DriftDetectionService {
     if (driftScore > this.driftThresholds.data.medium) return 'medium';
     return 'low';
   }
-  private getFeatureRecommendation(feature: any): string {
+  private getFeatureRecommendation(feature: unknown): string {
     if (feature.driftScore > this.driftThresholds.data.high) {
       return `Critical drift detected. Consider removing or re-engineering feature "${feature.name}"`;
     }
@@ -376,7 +376,7 @@ export class DriftDetectionService {
     }
     return `Minor drift detected in feature "${feature.name}"`;
   }
-  private generateRecommendations(drift: DriftMetrics, affectedFeatures: any[]): string[] {
+  private generateRecommendations(drift: DriftMetrics, affectedFeatures: unknown[]): string[] {
     const recommendations: string[] = [];
     if (drift.conceptDrift.detected) {
       if (drift.conceptDrift.severity === 'high') {

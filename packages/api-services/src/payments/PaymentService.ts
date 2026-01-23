@@ -7,19 +7,19 @@ import { logger } from '@mintenance/shared';
 // Mock Stripe types
 interface Stripe {
   paymentIntents: {
-    create(params: any): Promise<any>;
-    retrieve(id: string): Promise<any>;
-    confirm(id: string, params: any): Promise<any>;
-    update(id: string, params: any): Promise<any>;
+    create(params: Record<string, unknown>): Promise<unknown>;
+    retrieve(id: string): Promise<unknown>;
+    confirm(id: string, params: Record<string, unknown>): Promise<unknown>;
+    update(id: string, params: Record<string, unknown>): Promise<unknown>;
   };
   customers: {
-    create(params: any): Promise<any>;
-    retrieve(id: string): Promise<any>;
+    create(params: Record<string, unknown>): Promise<unknown>;
+    retrieve(id: string): Promise<unknown>;
   };
   checkout: {
     sessions: {
-      create(params: any): Promise<any>;
-      retrieve(id: string): Promise<any>;
+      create(params: Record<string, unknown>): Promise<unknown>;
+      retrieve(id: string): Promise<unknown>;
     };
   };
 }
@@ -131,7 +131,7 @@ export class PaymentService {
   /**
    * Confirm a payment intent
    */
-  async confirmPayment(params: ConfirmPaymentParams): Promise<any> {
+  async confirmPayment(params: ConfirmPaymentParams): Promise<unknown> {
     const { paymentIntentId, paymentMethodId, userId } = params;
     // Retrieve payment intent
     const paymentIntent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
@@ -169,7 +169,7 @@ export class PaymentService {
   /**
    * Get payment history for a user
    */
-  async getPaymentHistory(params: PaymentHistoryParams): Promise<any> {
+  async getPaymentHistory(params: PaymentHistoryParams): Promise<unknown> {
     const { userId, jobId, limit, offset } = params;
     // Build query
     let query = this.supabase
@@ -195,7 +195,7 @@ export class PaymentService {
   /**
    * Create a Stripe Checkout session
    */
-  async createCheckoutSession(params: any): Promise<any> {
+  async createCheckoutSession(params: Record<string, unknown>): Promise<unknown> {
     const {
       jobId,
       amount,
@@ -279,7 +279,7 @@ export class PaymentService {
     return job.budget || ((job.budget_min + job.budget_max) / 2);
   }
   // ============= Private Helper Methods =============
-  private async validateJobPayment(jobId: string, userId: string): Promise<any> {
+  private async validateJobPayment(jobId: string, userId: string): Promise<unknown> {
     const { data: job } = await this.supabase
       .from('jobs')
       .select('*')
@@ -296,7 +296,7 @@ export class PaymentService {
     }
     return job;
   }
-  private async getOrCreateCustomer(userId: string, email: string): Promise<any> {
+  private async getOrCreateCustomer(userId: string, email: string): Promise<unknown> {
     // Check if user has Stripe customer ID
     const { data: user } = await this.supabase
       .from('users')
@@ -320,7 +320,7 @@ export class PaymentService {
       .eq('id', userId);
     return customer;
   }
-  private async storePaymentIntent(data: any): Promise<void> {
+  private async storePaymentIntent(data: Record<string, unknown>): Promise<void> {
     const { error } = await this.supabase
       .from('payment_intents')
       .insert(data);
@@ -337,7 +337,7 @@ export class PaymentService {
       logger.error('Failed to update payment status', { error });
     }
   }
-  private async createEscrowRecord(data: any): Promise<void> {
+  private async createEscrowRecord(data: Record<string, unknown>): Promise<void> {
     const { error } = await this.supabase
       .from('escrow_transactions')
       .insert(data);

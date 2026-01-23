@@ -11,10 +11,10 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<Response>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: unknown, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -36,10 +36,10 @@ async function requireAdmin(user: User | null): Promise<void> {
     throw new Error('Admin access required');
   }
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: unknown) {
   return { allowed: true };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('ML Monitoring Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Internal server error';
@@ -67,7 +67,7 @@ export class MLMonitoringController {
   /**
    * GET /api/admin/ml-monitoring - Get ML monitoring dashboard data
    */
-  async getDashboard(request: NextRequest): Promise<any> {
+  async getDashboard(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -117,7 +117,7 @@ export class MLMonitoringController {
   /**
    * GET /api/admin/ml-monitoring/models - List all ML models
    */
-  async listModels(request: NextRequest): Promise<any> {
+  async listModels(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -150,7 +150,7 @@ export class MLMonitoringController {
   /**
    * POST /api/admin/ml-monitoring/models/train - Trigger model training
    */
-  async triggerTraining(request: NextRequest): Promise<any> {
+  async triggerTraining(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting - more restrictive for expensive operations
       const rateLimitResult = await checkRateLimit(request, {
@@ -190,7 +190,7 @@ export class MLMonitoringController {
   async getModelPerformance(
     request: NextRequest,
     { params }: { params: { modelId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -224,7 +224,7 @@ export class MLMonitoringController {
   /**
    * POST /api/admin/ml-monitoring/feedback/approve - Approve feedback corrections
    */
-  async approveFeedback(request: NextRequest): Promise<any> {
+  async approveFeedback(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -265,7 +265,7 @@ export class MLMonitoringController {
   /**
    * GET /api/admin/ml-monitoring/drift - Get drift detection details
    */
-  async getDriftAnalysis(request: NextRequest): Promise<any> {
+  async getDriftAnalysis(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -296,7 +296,7 @@ export class MLMonitoringController {
   /**
    * POST /api/admin/ml-monitoring/alerts/acknowledge - Acknowledge alerts
    */
-  async acknowledgeAlerts(request: NextRequest): Promise<any> {
+  async acknowledgeAlerts(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -331,7 +331,7 @@ export class MLMonitoringController {
   /**
    * GET /api/admin/ml-monitoring/experiments - Get experiment tracking data
    */
-  async getExperiments(request: NextRequest): Promise<any> {
+  async getExperiments(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -368,7 +368,7 @@ export class MLMonitoringController {
     const ip = forwarded?.split(',')[0] || realIp || 'anonymous';
     return `${ip}:${request.url}`;
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {

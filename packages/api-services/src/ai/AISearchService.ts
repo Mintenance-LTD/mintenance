@@ -22,13 +22,13 @@ interface SearchResult {
 interface SearchParams {
   query: string;
   embedding?: number[];
-  filters?: any;
+  filters?: unknown;
   limit: number;
   userId?: string;
 }
 export class AISearchService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -85,7 +85,7 @@ export class AISearchService {
         .ilike('query', `${query}%`)
         .order('count', { ascending: false })
         .limit(limit);
-      return data?.map((d: any) => d.query) || [];
+      return data?.map((d: unknown) => d.query) || [];
     } catch (error) {
       logger.error('Error getting popular searches:', error);
       return [];
@@ -102,7 +102,7 @@ export class AISearchService {
         .ilike('query', `${query}%`)
         .order('created_at', { ascending: false })
         .limit(limit);
-      return data?.map((d: any) => d.query) || [];
+      return data?.map((d: unknown) => d.query) || [];
     } catch (error) {
       logger.error('Error getting recent searches:', error);
       return [];
@@ -132,9 +132,9 @@ export class AISearchService {
           .limit(limit / 3)
       ]);
       const suggestions = [
-        ...(titles.data?.map((t: any) => t.title) || []),
-        ...(categories.data?.map((c: any) => c.name) || []),
-        ...(skills.data?.map((s: any) => s.name) || [])
+        ...(titles.data?.map((t: unknown) => t.title) || []),
+        ...(categories.data?.map((c: unknown) => c.name) || []),
+        ...(skills.data?.map((s: unknown) => s.name) || [])
       ];
       return [...new Set(suggestions)].slice(0, limit);
     } catch (error) {
@@ -202,7 +202,7 @@ export class AISearchService {
         item_type: itemType,
         exclude_id: options.excludeId
       });
-      return (data || []).map((item: any) => ({
+      return (data || []).map((item: unknown) => ({
         id: item.id,
         type: itemType as any,
         title: item.title,
@@ -253,7 +253,7 @@ export class AISearchService {
         match_count: params.limit,
         filters: params.filters
       });
-      return (data || []).map((job: any) => ({
+      return (data || []).map((job: unknown) => ({
         id: job.id,
         type: 'job' as const,
         title: job.title,
@@ -279,7 +279,7 @@ export class AISearchService {
         match_count: params.limit,
         filters: params.filters
       });
-      return (data || []).map((contractor: any) => ({
+      return (data || []).map((contractor: unknown) => ({
         id: contractor.id,
         type: 'contractor' as const,
         title: contractor.business_name || contractor.name,
@@ -305,7 +305,7 @@ export class AISearchService {
         match_count: params.limit,
         filters: params.filters
       });
-      return (data || []).map((property: any) => ({
+      return (data || []).map((property: unknown) => ({
         id: property.id,
         type: 'property' as const,
         title: property.address || property.name,
@@ -337,7 +337,7 @@ export class AISearchService {
         query = query.ilike('location', `%${params.filters.location}%`);
       }
       const { data } = await query;
-      return (data || []).map((job: any) => ({
+      return (data || []).map((job: unknown) => ({
         id: job.id,
         type: 'job' as const,
         title: job.title,
@@ -363,7 +363,7 @@ export class AISearchService {
         .or(`business_name.ilike.%${params.query}%,bio.ilike.%${params.query}%,skills.cs.{${params.query}}`)
         .limit(params.limit);
       const { data } = await query;
-      return (data || []).map((contractor: any) => ({
+      return (data || []).map((contractor: unknown) => ({
         id: contractor.id,
         type: 'contractor' as const,
         title: contractor.business_name || contractor.name,
@@ -389,7 +389,7 @@ export class AISearchService {
         .or(`address.ilike.%${params.query}%,description.ilike.%${params.query}%`)
         .limit(params.limit);
       const { data } = await query;
-      return (data || []).map((property: any) => ({
+      return (data || []).map((property: unknown) => ({
         id: property.id,
         type: 'property' as const,
         title: property.address || property.name,
@@ -406,7 +406,7 @@ export class AISearchService {
       return [];
     }
   }
-  private calculateTextMatchScore(query: string, item: any): number {
+  private calculateTextMatchScore(query: string, item: unknown): number {
     const queryLower = query.toLowerCase();
     const titleLower = (item.title || item.business_name || item.address || '').toLowerCase();
     const descLower = (item.description || item.bio || '').toLowerCase();

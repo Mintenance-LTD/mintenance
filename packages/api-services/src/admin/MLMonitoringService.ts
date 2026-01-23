@@ -8,13 +8,13 @@ interface ModelTrainingJob {
   id: string;
   status: 'queued' | 'training' | 'completed' | 'failed';
   datasetId: string;
-  hyperparameters: any;
+  hyperparameters: Record<string, unknown>;
   priority: 'low' | 'normal' | 'high';
   triggeredBy: string;
   estimatedCompletionTime: string;
   startedAt?: string;
   completedAt?: string;
-  metrics?: any;
+  metrics?: Record<string, unknown>;
   error?: string;
 }
 interface PipelineHealth {
@@ -73,7 +73,7 @@ interface Alert {
   type: 'performance_degradation' | 'drift_detected' | 'training_failed' | 'data_quality' | 'system_error';
   severity: 'low' | 'medium' | 'high' | 'critical';
   message: string;
-  details: any;
+  details: Record<string, unknown>;
   timestamp: string;
   acknowledged: boolean;
   acknowledgedBy?: string;
@@ -85,7 +85,7 @@ interface Experiment {
   name: string;
   status: 'running' | 'completed' | 'failed' | 'cancelled';
   modelVersion: string;
-  parameters: any;
+  parameters: Record<string, unknown>;
   metrics: {
     accuracy?: number;
     precision?: number;
@@ -104,8 +104,8 @@ interface Experiment {
   };
 }
 export class MLMonitoringService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -157,10 +157,10 @@ export class MLMonitoringService {
         .from('ml_training_jobs')
         .select('*')
         .gte('created_at', startDate.toISOString());
-      const completedJobs = jobs?.filter((j: any) => j.status === 'completed') || [];
-      const failedJobs = jobs?.filter((j: any) => j.status === 'failed') || [];
+      const completedJobs = jobs?.filter((j: Record<string, unknown>) => j.status === 'completed') || [];
+      const failedJobs = jobs?.filter((j: Record<string, unknown>) => j.status === 'failed') || [];
       // Calculate average duration
-      const avgDuration = completedJobs.reduce((sum: number, job: any) => {
+      const avgDuration = completedJobs.reduce((sum: number, job: Record<string, unknown>) => {
         if (job.started_at && job.completed_at) {
           const duration = new Date(job.completed_at).getTime() - new Date(job.started_at).getTime();
           return sum + duration;
@@ -173,9 +173,9 @@ export class MLMonitoringService {
         .select('*');
       const modelCounts = {
         total: models?.length || 0,
-        inProduction: models?.filter((m: any) => m.status === 'production').length || 0,
-        inTesting: models?.filter((m: any) => m.status === 'testing').length || 0,
-        retired: models?.filter((m: any) => m.status === 'retired').length || 0
+        inProduction: models?.filter((m: Record<string, unknown>) => m.status === 'production').length || 0,
+        inTesting: models?.filter((m: Record<string, unknown>) => m.status === 'testing').length || 0,
+        retired: models?.filter((m: Record<string, unknown>) => m.status === 'retired').length || 0
       };
       // Get data usage metrics
       const { data: dataMetrics } = await this.supabase
@@ -187,7 +187,7 @@ export class MLMonitoringService {
         .from('ml_compute_usage')
         .select('gpu_hours, cpu_hours, cost')
         .gte('created_at', startDate.toISOString());
-      const computeUsage = computeMetrics?.reduce((acc: any, curr: any) => ({
+      const computeUsage = computeMetrics?.reduce((acc: Record<string, unknown>, curr: Record<string, unknown>) => ({
         gpuHours: acc.gpuHours + (curr.gpu_hours || 0),
         cpuHours: acc.cpuHours + (curr.cpu_hours || 0),
         cost: acc.cost + (curr.cost || 0)
@@ -217,7 +217,7 @@ export class MLMonitoringService {
    */
   async triggerTraining(params: {
     datasetId: string;
-    hyperparameters: any;
+    hyperparameters: Record<string, unknown>;
     priority: 'low' | 'normal' | 'high';
     triggeredBy: string;
   }): Promise<ModelTrainingJob> {
@@ -268,7 +268,7 @@ export class MLMonitoringService {
         .order('severity', { ascending: false })
         .order('timestamp', { ascending: false })
         .limit(50);
-      return alerts?.map((alert: any) => ({
+      return alerts?.map((alert: Record<string, unknown>) => ({
         id: alert.id,
         type: alert.type,
         severity: alert.severity,
@@ -332,7 +332,7 @@ export class MLMonitoringService {
         .range(params.offset, params.offset + params.limit - 1);
       const { data: experiments, count } = await query;
       return {
-        experiments: experiments?.map((exp: any) => ({
+        experiments: experiments?.map((exp: Record<string, unknown>) => ({
           id: exp.id,
           name: exp.name,
           status: exp.status,
@@ -459,7 +459,7 @@ export class MLMonitoringService {
         return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
   }
-  private async queueTrainingJob(job: any): Promise<void> {
+  private async queueTrainingJob(job: Record<string, unknown>): Promise<void> {
     // Would integrate with actual ML pipeline (e.g., AWS SageMaker, Azure ML, etc.)
     logger.info('Queuing training job:', job.id);
   }
