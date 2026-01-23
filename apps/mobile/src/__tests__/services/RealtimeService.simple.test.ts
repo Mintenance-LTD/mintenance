@@ -10,13 +10,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 
-jest.mock('../../services/RealtimeService', () => ({
-  RealtimeService: {
-    ...jest.requireActual('../../services/RealtimeService').RealtimeService,
-    initialize: jest.fn(),
-    cleanup: jest.fn(),
-  }
-}));
+// FIXED: Removed service mock antipattern - testing real service with mocked dependencies
 
 import { RealtimeService } from '../../services/RealtimeService';
 
