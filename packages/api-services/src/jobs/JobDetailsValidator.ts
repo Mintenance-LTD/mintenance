@@ -158,11 +158,11 @@ export class JobDetailsValidator {
   /**
    * Validate full update data
    */
-  validateFullUpdate(data: any) {
+  validateFullUpdate(data: Record<string, unknown>) {
     const result = fullUpdateSchema.safeParse(data);
     if (!result.success) {
       const errors = result.error.issues.map(
-        (e: any) => `${e.path.join('.')}: ${e.message}`
+        (e: unknown) => `${e.path.join('.')}: ${e.message}`
       );
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
@@ -171,11 +171,11 @@ export class JobDetailsValidator {
   /**
    * Validate partial update data
    */
-  validatePartialUpdate(data: any) {
+  validatePartialUpdate(data: Record<string, unknown>) {
     const result = partialUpdateSchema.safeParse(data);
     if (!result.success) {
       const errors = result.error.issues.map(
-        (e: any) => `${e.path.join('.')}: ${e.message}`
+        (e: unknown) => `${e.path.join('.')}: ${e.message}`
       );
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
@@ -184,11 +184,11 @@ export class JobDetailsValidator {
   /**
    * Validate status update
    */
-  validateStatusUpdate(data: any) {
+  validateStatusUpdate(data: Record<string, unknown>) {
     const result = statusUpdateSchema.safeParse(data);
     if (!result.success) {
       const errors = result.error.issues.map(
-        (e: any) => `${e.path.join('.')}: ${e.message}`
+        (e: unknown) => `${e.path.join('.')}: ${e.message}`
       );
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }

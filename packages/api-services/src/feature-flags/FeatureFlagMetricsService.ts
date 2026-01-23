@@ -3,14 +3,14 @@
  */
 import { FeatureFlag } from './FeatureFlagController';
 export class FeatureFlagMetricsService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   async getFlagMetrics(
     flagName: FeatureFlag,
     options: { timeRange: string }
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Implementation stub
     return {
       flagName,
@@ -20,7 +20,7 @@ export class FeatureFlagMetricsService {
       avgLatency: 250
     };
   }
-  async getOverallMetrics(options: { timeRange: string }): Promise<any> {
+  async getOverallMetrics(options: { timeRange: string }): Promise<unknown> {
     // Implementation stub
     return {
       totalFlags: 10,
@@ -33,14 +33,14 @@ export class FeatureFlagMetricsService {
     flagName: FeatureFlag;
     userId?: string;
     sessionId?: string;
-    metrics: any;
-    metadata?: any;
+    metrics: unknown;
+    metadata?: unknown;
     timestamp: string;
   }): Promise<{ id: string }> {
     // Implementation stub
     return { id: 'metric-123' };
   }
-  async trackEvaluations(userId: string, evaluations: Record<string, any>): Promise<void> {
+  async trackEvaluations(userId: string, evaluations: Record<string, unknown>): Promise<void> {
     // Implementation stub
   }
 }

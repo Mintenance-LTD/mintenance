@@ -33,8 +33,8 @@ interface RankingOptions {
   personalizeResults?: boolean;
 }
 export class SearchRankingService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -95,7 +95,7 @@ export class SearchRankingService {
   /**
    * Get personalized ranking factors for a user
    */
-  async getUserRankingFactors(userId: string): Promise<any> {
+  async getUserRankingFactors(userId: string): Promise<unknown> {
     try {
       const { data } = await this.supabase
         .from('user_ranking_preferences')
@@ -209,7 +209,7 @@ export class SearchRankingService {
         .from('item_popularity_metrics')
         .select('item_id, view_count, click_count, conversion_rate')
         .in('item_id', ids);
-      const metricsMap = new Map(metrics?.map((m: any) => [m.item_id, m]) || []);
+      const metricsMap = new Map(metrics?.map((m: unknown) => [m.item_id, m]) || []);
       return results.map(result => {
         const popularity = metricsMap.get(result.id) as any;
         if (!popularity) return result;
@@ -239,7 +239,7 @@ export class SearchRankingService {
         .select('result_id, ctr')
         .eq('query', query.toLowerCase())
         .in('result_id', results.map(r => r.id));
-      const ctrMap = new Map(ctrData?.map((d: any) => [d.result_id, d.ctr]) || []);
+      const ctrMap = new Map(ctrData?.map((d: unknown) => [d.result_id, d.ctr]) || []);
       return results.map(result => {
         const ctr = (ctrMap.get(result.id) as number) || 0;
         const ctrBoost = ctr * 0.2; // Max 20% boost for 100% CTR
@@ -333,7 +333,7 @@ export class SearchRankingService {
       logger.error('Error updating global relevance score:', error);
     }
   }
-  private getDefaultRankingFactors(): any {
+  private getDefaultRankingFactors(): unknown {
     return {
       relevanceWeight: 0.4,
       recencyWeight: 0.2,

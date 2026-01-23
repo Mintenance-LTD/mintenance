@@ -6,10 +6,10 @@ import { logger } from '@mintenance/shared';
 
 interface Stripe {
   refunds: {
-    create(params: any): Promise<any>;
+    create(params: Record<string, unknown>): Promise<unknown>;
   };
   paymentIntents: {
-    retrieve(id: string): Promise<any>;
+    retrieve(id: string): Promise<unknown>;
   };
 }
 export interface RefundServiceConfig {
@@ -104,7 +104,7 @@ export class RefundService {
   /**
    * Process a refund
    */
-  async processRefund(params: ProcessRefundParams): Promise<any> {
+  async processRefund(params: ProcessRefundParams): Promise<unknown> {
     const { paymentId, amount, reason, requestedBy, fullRefund } = params;
     // Get payment details
     const { data: payment } = await this.supabase
@@ -174,7 +174,7 @@ export class RefundService {
   /**
    * Get refund history
    */
-  async getRefundHistory(userId: string, limit = 50, offset = 0): Promise<any> {
+  async getRefundHistory(userId: string, limit = 50, offset = 0): Promise<unknown> {
     const { data, count } = await this.supabase
       .from('refunds')
       .select('*, payment:payments(*, job:jobs(title))', { count: 'exact' })
@@ -214,7 +214,7 @@ export class RefundService {
     };
     return reasonMap[reason.toLowerCase()] || 'requested_by_customer';
   }
-  private async createRefundNotification(payment: any, amount: number, reason: string): Promise<void> {
+  private async createRefundNotification(payment: unknown, amount: number, reason: string): Promise<void> {
     const { data: job } = await this.supabase
       .from('jobs')
       .select('title, homeowner_id, contractor_id')

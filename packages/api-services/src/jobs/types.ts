@@ -29,9 +29,9 @@ export interface JobRecord {
     updated_at: string;
     cancellation_reason?: string;
     // Relations
-    homeowner?: any;
-    contractor?: any;
-    bids?: any[];
+    homeowner?: unknown;
+    contractor?: unknown;
+    bids?: unknown[];
     bid_count?: number;
 }
 
@@ -40,13 +40,13 @@ export interface JobSummary {
     title: string;
     status: JobStatus;
     created_at: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface JobDetail extends JobSummary {
     description?: string;
-    homeowner?: any;
-    contractor?: any;
+    homeowner?: unknown;
+    contractor?: unknown;
 }
 
 export interface CreateJobData {

@@ -3,23 +3,23 @@ import { SupabaseClient } from '@supabase/supabase-js';
 export class ContractService {
   constructor(config: { supabase: SupabaseClient }) {}
 
-  async listContracts(user: any, params: any) {
+  async listContracts(user: unknown, params: Record<string, unknown>) {
     return { contracts: [], total: 0, hasMore: false };
   }
 
-  async createContract(data: any, user: any) {
+  async createContract(data: Record<string, unknown>, user: unknown) {
     return { id: 'contract-123', ...data };
   }
 
-  async getContractById(contractId: string, user: any) {
+  async getContractById(contractId: string, user: unknown) {
     return { id: contractId, status: 'draft' };
   }
 
-  async updateContract(contractId: string, data: any, user: any) {
+  async updateContract(contractId: string, data: Record<string, unknown>, user: unknown) {
     return { id: contractId, ...data };
   }
 
-  async getContractMilestones(contractId: string, user: any) {
+  async getContractMilestones(contractId: string, user: unknown) {
     return [];
   }
 }

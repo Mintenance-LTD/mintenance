@@ -4,10 +4,10 @@ import { logger } from '@mintenance/shared';
  * Embedding Service - Generate and manage embeddings for semantic search
  */
 export class EmbeddingService {
-  private supabase: any;
+  private supabase: unknown;
   private apiKey?: string;
   private apiUrl?: string;
-  constructor(config: { supabase: any }) {
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
     this.apiKey = process.env.OPENAI_API_KEY;
     this.apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
@@ -58,7 +58,7 @@ export class EmbeddingService {
     itemId: string,
     itemType: string,
     embedding: number[],
-    metadata?: any
+    metadata?: unknown
   ): Promise<void> {
     try {
       const table = `${itemType}_embeddings`;
@@ -83,7 +83,7 @@ export class EmbeddingService {
       id: string;
       type: string;
       text: string;
-      metadata?: any;
+      metadata?: unknown;
     }>
   ): Promise<{ updated: number; failed: number }> {
     let updated = 0;
@@ -126,7 +126,7 @@ export class EmbeddingService {
     table: string,
     k: number = 10,
     threshold: number = 0.5
-  ): Promise<Array<{ id: string; similarity: number; metadata: any }>> {
+  ): Promise<Array<{ id: string; similarity: number; metadata: Record<string, unknown> }>> {
     try {
       // Use pgvector for efficient similarity search
       const { data } = await this.supabase.rpc('find_nearest_neighbors', {

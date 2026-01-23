@@ -25,7 +25,7 @@ import {
 export class UnifiedAIService {
   private apiClient: AxiosInstance;
   private config: AIServiceConfig;
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cache: Map<string, { data: Record<string, unknown>; timestamp: number }> = new Map();
   constructor(config: AIServiceConfig) {
     this.config = config;
     this.apiClient = axios.create({
@@ -44,7 +44,7 @@ export class UnifiedAIService {
     // Add response interceptor for error handling
     this.apiClient.interceptors.response.use(
       (response) => response,
-      async (error: any) => {
+      async (error: unknown) => {
         if (error.response?.status === 429) {
           // Rate limited - wait and retry
           await this.handleRateLimit(error);
@@ -120,7 +120,7 @@ export class UnifiedAIService {
           modelVersion: assessment.metadata?.version || 'unknown'
         }
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       const error = err;
       return {
         success: false,
@@ -214,7 +214,7 @@ export class UnifiedAIService {
    */
   async calculateESGScore(
     contractorId: string,
-    data?: any
+    data?: unknown
   ): Promise<AIServiceResponse<ESGScore>> {
     try {
       const response = await this.apiClient.post<ESGScore>(
@@ -356,7 +356,7 @@ export class UnifiedAIService {
   async completeAgentAction(
     agentName: string,
     action: string,
-    context: any
+    context: unknown
   ): Promise<AIServiceResponse<any>> {
     const agentEndpoints: { [key: string]: string } = {
       'BidAcceptanceAgent': '/api/agents/bid-acceptance',
@@ -395,10 +395,10 @@ export class UnifiedAIService {
     }
   }
   // Helper methods
-  private getCacheKey(operation: string, ...params: unknown[]): string {
+  private getCacheKey(operation: string, ...params: Record<string, unknown>[]): string {
     return `${operation}:${JSON.stringify(params)}`;
   }
-  private getFromCache(key: string): any | null {
+  private getFromCache(key: string): unknown | null {
     const cached = this.cache.get(key);
     if (!cached) return null;
     const age = Date.now() - cached.timestamp;
@@ -408,7 +408,7 @@ export class UnifiedAIService {
     }
     return cached.data;
   }
-  private saveToCache(key: string, data: any): void {
+  private saveToCache(key: string, data: Record<string, unknown>): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now()
@@ -429,7 +429,7 @@ export class UnifiedAIService {
     // Server-side
     return 'server';
   }
-  private createMetadata(response: any): any {
+  private createMetadata(response: unknown): unknown {
     return {
       requestId: response.headers?.['x-request-id'] || this.generateRequestId(),
       timestamp: new Date().toISOString(),
@@ -440,7 +440,7 @@ export class UnifiedAIService {
       modelVersion: response.headers?.['x-model-version'] || 'unknown'
     };
   }
-  private createEmptyMetadata(): any {
+  private createEmptyMetadata(): unknown {
     return {
       requestId: this.generateRequestId(),
       timestamp: new Date().toISOString(),
@@ -451,7 +451,7 @@ export class UnifiedAIService {
       modelVersion: 'unknown'
     };
   }
-  private handleError(error: any, defaultMessage: string): AIServiceResponse<any> {
+  private handleError(error: unknown, defaultMessage: string): AIServiceResponse<any> {
     return {
       success: false,
       error: {
@@ -464,7 +464,7 @@ export class UnifiedAIService {
       metadata: this.createEmptyMetadata()
     };
   }
-  private async handleRateLimit(error: any): Promise<void> {
+  private async handleRateLimit(error: unknown): Promise<void> {
     const retryAfter = error.response?.headers?.['retry-after'];
     const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
     await new Promise(resolve => setTimeout(resolve, waitTime));

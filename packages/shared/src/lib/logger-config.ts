@@ -318,7 +318,7 @@ export function getLogger(context: 'web' | 'mobile' | 'api' | 'jobs' | 'payments
 export function requestLoggingMiddleware(logger?: EnhancedLogger) {
   const log = logger || loggers.api;
 
-  return (req: any, res: any, next: any) => {
+  return (req: unknown, res: unknown, next: unknown) => {
     const startTime = Date.now();
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
@@ -363,7 +363,7 @@ export function requestLoggingMiddleware(logger?: EnhancedLogger) {
 export function errorLoggingMiddleware(logger?: EnhancedLogger) {
   const log = logger || loggers.api;
 
-  return (err: any, req: any, res: any, next: any) => {
+  return (err: unknown, req: unknown, res: unknown, next: unknown) => {
     const requestId = req.headers['x-request-id'] || 'unknown';
 
     log.error('Request error', err, {

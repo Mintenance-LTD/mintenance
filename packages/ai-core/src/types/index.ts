@@ -98,7 +98,7 @@ export interface CostTracking {
 export interface TrainingDataEntry {
   assessmentId: string;
   images: string[];
-  labels: any;
+  labels: unknown;
   corrections?: UserCorrection[];
   confidence: number;
   useForTraining: boolean;
@@ -106,8 +106,8 @@ export interface TrainingDataEntry {
 }
 export interface UserCorrection {
   field: string;
-  originalValue: any;
-  correctedValue: any;
+  originalValue: unknown;
+  correctedValue: unknown;
   userId: string;
   timestamp: string;
   confidence: number;
@@ -148,7 +148,7 @@ export interface AgentDecision {
   actionTaken: string;
   confidence: number;
   reasoning: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   timestamp: string;
   userId?: string;
   automated: boolean;
@@ -158,7 +158,7 @@ export interface AgentContext {
   jobId?: string;
   contractorId?: string;
   automationPreferences: AutomationPreferences;
-  historicalData?: any;
+  historicalData?: unknown;
 }
 export interface AutomationPreferences {
   enableAutomation: boolean;
@@ -192,7 +192,7 @@ export interface SearchResult {
   description: string;
   relevanceScore: number;
   highlights: string[];
-  metadata: any;
+  metadata: Record<string, unknown>;
 }
 // Sustainability Types (from mobile)
 export interface ESGScore {
@@ -289,7 +289,7 @@ export interface AIServiceResponse<T> {
 export interface AIServiceError {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
   retryable: boolean;
   fallbackUsed?: boolean;
 }
