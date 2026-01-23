@@ -4,15 +4,15 @@
 import { FeatureFlag } from './FeatureFlagController';
 import { logger } from '@mintenance/shared';
 export class RollbackService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   async rollback(params: {
     flagName: FeatureFlag;
     reason: string;
     automatic: boolean;
-    metrics?: any;
+    metrics?: unknown;
     triggeredBy: string;
     timestamp: string;
   }): Promise<{ id: string; success: boolean }> {
@@ -22,7 +22,7 @@ export class RollbackService {
   async sendNotifications(
     flagName: FeatureFlag,
     reason: string,
-    rollbackResult: any
+    rollbackResult: unknown
   ): Promise<void> {
     // Implementation stub
     logger.info(`Rollback notification for ${flagName}: ${reason}`);

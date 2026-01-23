@@ -38,10 +38,10 @@ interface PerformanceMetrics {
 }
 export class MetricsAggregationService {
   private supabase: SupabaseClient;
-  private redis?: any;
+  private redis?: unknown;
   private aggregationCache: Map<string, any> = new Map();
   private readonly CACHE_TTL_MS = 300000; // 5 minutes
-  constructor(supabase: SupabaseClient, redis?: any) {
+  constructor(supabase: SupabaseClient, redis?: unknown) {
     this.supabase = supabase;
     this.redis = redis;
   }
@@ -164,7 +164,7 @@ export class MetricsAggregationService {
   async processRealTimeEvent(event: {
     type: EventType;
     userId?: string;
-    properties?: Record<string, any>;
+    properties?: Record<string, unknown>;
   }): Promise<void> {
     if (!this.redis) return;
     try {
@@ -265,7 +265,7 @@ export class MetricsAggregationService {
     cohortType: 'signup' | 'first_purchase' | 'first_job',
     metric: 'retention' | 'revenue' | 'engagement',
     filters: MetricsFilters
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       const { data, error } = await this.supabase.rpc('get_cohort_metrics', {
         cohort_type: cohortType,
@@ -454,7 +454,7 @@ export class MetricsAggregationService {
   /**
    * Get real-time metrics
    */
-  async getRealTimeMetrics(): Promise<any> {
+  async getRealTimeMetrics(): Promise<unknown> {
     if (!this.redis) return {};
     const date = new Date().toISOString().split('T')[0];
     // Fetch some basic keys

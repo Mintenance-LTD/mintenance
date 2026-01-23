@@ -10,12 +10,12 @@ import { logger } from '../logger';
 // Using 'any' for the response types to avoid complex generics
 interface SupabaseClient {
   from(table: string): {
-    select(columns?: string, options?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }): any;
-    insert(data: unknown): any;
-    update(data: unknown): any;
-    upsert(data: unknown): any;
+    select(columns?: string, options?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }): unknown;
+    insert(data: Record<string, unknown>): unknown;
+    update(data: Record<string, unknown>): unknown;
+    upsert(data: Record<string, unknown>): unknown;
   };
-  rpc(fn: string, params?: Record<string, unknown>): Promise<{ data: unknown; error: Error | unknown }>;
+  rpc(fn: string, params?: Record<string, unknown>): Promise<{ data: Record<string, unknown>; error: Error | unknown }>;
 }
 let _supabaseClient: SupabaseClient | null = null;
 /**

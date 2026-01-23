@@ -1,6 +1,6 @@
 export class AccountHandler {
-  constructor(config: any) {}
-  async handleUpdated(event: any) { return { processed: true }; }
-  async handleDeauthorized(event: any) { return { processed: true }; }
-  async handleCapabilityUpdated(event: any) { return { processed: true }; }
+  constructor(config: unknown) {}
+  async handleUpdated(event: Record<string, unknown>) { return { processed: true }; }
+  async handleDeauthorized(event: Record<string, unknown>) { return { processed: true }; }
+  async handleCapabilityUpdated(event: Record<string, unknown>) { return { processed: true }; }
 }

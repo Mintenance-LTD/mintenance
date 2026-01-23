@@ -56,11 +56,11 @@ export class BidValidator {
   /**
    * Validate bid submission data
    */
-  validateSubmitBid(data: any) {
+  validateSubmitBid(data: Record<string, unknown>) {
     const result = submitBidSchema.safeParse(data);
     if (!result.success) {
       const errors = result.error.issues.map(
-        (e: any) => `${e.path.join('.')}: ${e.message}`
+        (e: unknown) => `${e.path.join('.')}: ${e.message}`
       );
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
@@ -70,11 +70,11 @@ export class BidValidator {
   /**
    * Validate bid update data
    */
-  validateUpdateBid(data: any) {
+  validateUpdateBid(data: Record<string, unknown>) {
     const result = updateBidSchema.safeParse(data);
     if (!result.success) {
       const errors = result.error.issues.map(
-        (e: any) => `${e.path.join('.')}: ${e.message}`
+        (e: unknown) => `${e.path.join('.')}: ${e.message}`
       );
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }

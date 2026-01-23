@@ -5,15 +5,15 @@ import { MessageAttachment } from './types';
  * Message Attachment Service - Handle file uploads and attachments
  */
 export class MessageAttachmentService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
-  async processAttachments(attachments: any[]): Promise<MessageAttachment[]> {
+  async processAttachments(attachments: unknown[]): Promise<MessageAttachment[]> {
     // Implementation stub - would process and store attachments
     return attachments;
   }
-  async uploadFile(file: any): Promise<{ url: string; filename: string; size: number }> {
+  async uploadFile(file: unknown): Promise<{ url: string; filename: string; size: number }> {
     // Implementation stub
     return {
       url: 'https://example.com/file.pdf',

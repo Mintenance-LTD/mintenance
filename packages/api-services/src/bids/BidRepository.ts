@@ -37,7 +37,7 @@ export class BidRepository {
     return data as BidRecord;
   }
 
-  async createBid(data: any): Promise<BidRecord> {
+  async createBid(data: Record<string, unknown>): Promise<BidRecord> {
     const { data: bid, error } = await this.supabase
       .from('bids')
       .insert(data)
@@ -59,7 +59,7 @@ export class BidRepository {
     return data as BidRecord;
   }
 
-  async updateBid(bidId: string, data: any): Promise<BidRecord> {
+  async updateBid(bidId: string, data: Record<string, unknown>): Promise<BidRecord> {
     const { data: bid, error } = await this.supabase
       .from('bids')
       .update({ ...data, updated_at: new Date().toISOString() })
@@ -144,7 +144,7 @@ export class BidRepository {
     return true;
   }
 
-  async createItemizedQuote(bidId: string, items: any[]) {
+  async createItemizedQuote(bidId: string, items: unknown[]) {
     const { error } = await this.supabase
       .from('bid_itemized_quotes')
       .insert(items.map(item => ({ ...item, bid_id: bidId })));
@@ -219,7 +219,7 @@ export class BidRepository {
     if (error) throw error;
   }
 
-  async updateItemizedQuote(bidId: string, items: any[]) {
+  async updateItemizedQuote(bidId: string, items: unknown[]) {
     // Simple approach: delete and re-insert
     await this.supabase.from('bid_itemized_quotes').delete().eq('bid_id', bidId);
     await this.createItemizedQuote(bidId, items);

@@ -5,8 +5,8 @@ import { Message, MessageReaction } from './types';
  * Realtime Service - WebSocket and real-time messaging updates
  */
 export class RealtimeService {
-  private pusher: any;
-  constructor(config: { pusher?: any }) {
+  private pusher: unknown;
+  constructor(config: { pusher?: unknown }) {
     this.pusher = config.pusher;
   }
   async broadcastMessage(params: {
@@ -19,7 +19,7 @@ export class RealtimeService {
   }
   async broadcastMessageEdit(params: {
     threadId: string;
-    message: any;
+    message: unknown;
   }): Promise<void> {
     // Implementation stub
     logger.info('Broadcasting message edit:', params);
@@ -48,7 +48,7 @@ export class RealtimeService {
   }
   async broadcastReaction(params: {
     messageId: string;
-    reaction: any;
+    reaction: unknown;
   }): Promise<void> {
     // Implementation stub
     logger.info('Broadcasting reaction:', params);

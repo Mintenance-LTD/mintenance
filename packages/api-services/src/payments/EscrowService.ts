@@ -6,10 +6,10 @@ import { logger } from '@mintenance/shared';
 
 interface Stripe {
   paymentIntents: {
-    capture(id: string): Promise<any>;
+    capture(id: string): Promise<unknown>;
   };
   transfers: {
-    create(params: any): Promise<any>;
+    create(params: Record<string, unknown>): Promise<unknown>;
   };
 }
 export interface EscrowServiceConfig {
@@ -79,7 +79,7 @@ export class EscrowService {
   /**
    * Release escrow funds to contractor
    */
-  async releaseEscrow(params: ReleaseEscrowParams): Promise<any> {
+  async releaseEscrow(params: ReleaseEscrowParams): Promise<unknown> {
     const { jobId, amount, reason, releasedBy } = params;
     // Get job and contractor details
     const { data: job } = await this.supabase
