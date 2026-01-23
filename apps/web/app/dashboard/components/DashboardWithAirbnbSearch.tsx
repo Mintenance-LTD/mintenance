@@ -24,6 +24,7 @@ import {
   Heart
 } from 'lucide-react';
 import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
+import { logger } from '@/lib/logger';
 
 // Category-based fallback images
 const categoryImages: Record<string, string> = {
@@ -99,7 +100,9 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
           setProperties(data.properties);
         }
       })
-      .catch(console.error)
+      .catch((error) => {
+        logger.error('Failed to fetch properties', { error });
+      })
       .finally(() => setLoadingProperties(false));
   }, []);
 
