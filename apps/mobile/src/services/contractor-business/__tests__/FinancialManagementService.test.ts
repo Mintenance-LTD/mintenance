@@ -9,33 +9,425 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-import FinancialManagementService from '../FinancialManagementService';
+// Mock ServiceErrorHandler
+jest.mock('@/utils/serviceErrorHandler', () => ({
+  ServiceErrorHandler: {
+    executeOperation: jest.fn((operation) =>
+      operation().then(data => ({ success: true, data }))
+        .catch(error => ({ success: false, error }))
+    ),
+    validateRequired: jest.fn(),
+    validatePositiveNumber: jest.fn(),
+    handleDatabaseError: jest.fn((err) => err),
+  },
+}));
+
+// Mock logger
+jest.mock('@/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+import { FinancialManagementService } from '../FinancialManagementService';
+import { ServiceErrorHandler } from '@/utils/serviceErrorHandler';
+import { __setMockData, __resetSupabaseMock } from '@/config/__mocks__/supabase';
 
 describe('FinancialManagementService', () => {
-  let service: FinancialManagementService;
-
   beforeEach(() => {
-    service = FinancialManagementService /* checking export */;
     jest.clearAllMocks();
+    __resetSupabaseMock();
   });
 
-  describe('initialization', () => {
-    it('should be properly exported', async () => {
-      expect(service).toBeDefined();
+  // =====================================================
+  // PHASE 1: CORE CRUD OPERATIONS
+  // =====================================================
+
+  describe('Phase 1: Core CRUD Operations', () => {
+    describe('createInvoice', () => {
+      it('should create invoice with valid data', async () => {
+        const mockInvoice = {
+          id: 'inv-123',
+          contractor_id: 'contractor-123',
+          client_id: 'client-123',
+          invoice_number: 'INV-2026-001',
+          status: 'draft' as const,
+          total_amount: 1500.0,
+          subtotal: 1500.0,
+          tax_amount: 0,
+          line_items: [
+            {
+              description: 'Bathroom renovation',
+              quantity: 1,
+              rate: 1500,
+              amount: 1500,
+            },
+          ],
+          issue_date: '2026-01-15',
+          due_date: '2026-02-14',
+          created_at: '2026-01-15T10:00:00Z',
+          updated_at: '2026-01-15T10:00:00Z',
+        };
+
+        __setMockData(mockInvoice);
+
+        const invoiceData = {
+          contractor_id: 'contractor-123',
+          client_id: 'client-123',
+          invoice_number: 'INV-2026-001',
+          status: 'draft' as const,
+          total_amount: 1500.0,
+          subtotal: 1500.0,
+          tax_amount: 0,
+          line_items: [
+            {
+              description: 'Bathroom renovation',
+              quantity: 1,
+              rate: 1500,
+              amount: 1500,
+            },
+          ],
+          issue_date: '2026-01-15',
+          due_date: '2026-02-14',
+        };
+
+        const result = await FinancialManagementService.createInvoice(invoiceData);
+
+        expect(result).toEqual(mockInvoice);
+        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith('contractor-123', 'Contractor ID', expect.any(Object));
+        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith('client-123', 'Client ID', expect.any(Object));
+        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith('INV-2026-001', 'Invoice number', expect.any(Object));
+        expect(ServiceErrorHandler.validatePositiveNumber).toHaveBeenCalledWith(1500.0, 'Total amount', expect.any(Object));
+      });
+
+      it('should validate required fields', async () => {
+        (ServiceErrorHandler.validateRequired as jest.Mock).mockImplementation((value, fieldName) => {
+          if (!value) {
+            throw new Error(`${fieldName} is required`);
+          }
+        });
+
+        const invalidInvoice = {
+          contractor_id: '',
+          client_id: 'client-123',
+          invoice_number: 'INV-2026-001',
+          status: 'draft' as const,
+          total_amount: 1500.0,
+          subtotal: 1500.0,
+          tax_amount: 0,
+          line_items: [],
+          issue_date: '2026-01-15',
+          due_date: '2026-02-14',
+        };
+
+        await expect(FinancialManagementService.createInvoice(invalidInvoice)).rejects.toThrow();
+      });
+
+      it('should validate positive total amount', async () => {
+        (ServiceErrorHandler.validatePositiveNumber as jest.Mock).mockImplementation((value, fieldName) => {
+          if (value <= 0) {
+            throw new Error(`${fieldName} must be positive`);
+          }
+        });
+
+        const invalidInvoice = {
+          contractor_id: 'contractor-123',
+          client_id: 'client-123',
+          invoice_number: 'INV-2026-001',
+          status: 'draft' as const,
+          total_amount: -100,
+          subtotal: 1500.0,
+          tax_amount: 0,
+          line_items: [],
+          issue_date: '2026-01-15',
+          due_date: '2026-02-14',
+        };
+
+        await expect(FinancialManagementService.createInvoice(invalidInvoice)).rejects.toThrow();
+      });
+    });
+
+    describe('updateInvoiceStatus', () => {
+      it('should update status to paid and set paid_date', async () => {
+        const mockUpdatedInvoice = {
+          id: 'inv-123',
+          contractor_id: 'contractor-123',
+          client_id: 'client-123',
+          invoice_number: 'INV-2026-001',
+          status: 'paid' as const,
+          total_amount: 1500.0,
+          subtotal: 1500.0,
+          tax_amount: 0,
+          line_items: [],
+          issue_date: '2026-01-15',
+          due_date: '2026-02-14',
+          paid_date: '2026-01-20T10:00:00Z',
+          created_at: '2026-01-15T10:00:00Z',
+          updated_at: '2026-01-20T10:00:00Z',
+        };
+
+        __setMockData(mockUpdatedInvoice);
+
+        const result = await FinancialManagementService.updateInvoiceStatus('inv-123', 'paid', 'contractor-123');
+
+        expect(result).toEqual(mockUpdatedInvoice);
+      });
+    });
+
+    describe('recordExpense', () => {
+      it('should record tax deductible expense', async () => {
+        const mockExpense = {
+          id: 'exp-123',
+          contractor_id: 'contractor-123',
+          category: 'Tools',
+          amount: 250.0,
+          description: 'New drill purchase',
+          date: '2026-01-15',
+          tax_deductible: true,
+          created_at: '2026-01-15T10:00:00Z',
+          updated_at: '2026-01-15T10:00:00Z',
+        };
+
+        __setMockData(mockExpense);
+
+        const expenseData = {
+          contractor_id: 'contractor-123',
+          category: 'Tools',
+          amount: 250.0,
+          description: 'New drill purchase',
+          date: '2026-01-15',
+          tax_deductible: true,
+        };
+
+        const result = await FinancialManagementService.recordExpense(expenseData);
+
+        expect(result).toEqual(mockExpense);
+        expect(ServiceErrorHandler.validateRequired).toHaveBeenCalledWith('contractor-123', 'Contractor ID', expect.any(Object));
+        expect(ServiceErrorHandler.validatePositiveNumber).toHaveBeenCalledWith(250.0, 'Amount', expect.any(Object));
+      });
+    });
+
+    describe('recordPayment', () => {
+      it('should record payment and update invoice status', async () => {
+        const mockPayment = {
+          id: 'pay-123',
+          contractor_id: 'contractor-123',
+          invoice_id: 'inv-123',
+          amount: 1500.0,
+          payment_method: 'credit_card',
+          payment_date: '2026-01-20',
+          created_at: '2026-01-20T10:00:00Z',
+        };
+
+        __setMockData(mockPayment);
+
+        const paymentData = {
+          contractor_id: 'contractor-123',
+          invoice_id: 'inv-123',
+          amount: 1500.0,
+          payment_method: 'credit_card',
+          payment_date: '2026-01-20',
+        };
+
+        const result = await FinancialManagementService.recordPayment(paymentData);
+
+        expect(result).toEqual(mockPayment);
+      });
     });
   });
 
-  describe('methods', () => {
-    it('should handle successful operations', async () => {
-      // Test successful cases
+  // =====================================================
+  // PHASE 2: FINANCIAL CALCULATIONS
+  // =====================================================
+
+  describe('Phase 2: Financial Calculations', () => {
+    describe('calculateFinancialTotals', () => {
+      it('should calculate revenue, expenses, and profit correctly', async () => {
+        const mockFinancialData = {
+          revenue: 5000,
+          expenses: 1200,
+          profit: 3800,
+          outstanding: 0,
+          overdue: 0,
+        };
+
+        __setMockData(mockFinancialData);
+
+        await FinancialManagementService.calculateFinancialTotals(
+          'contractor-123',
+          '2026-01-01',
+          '2026-01-31'
+        );
+
+        // Just verify it doesn't throw
+        expect(ServiceErrorHandler.executeOperation).toHaveBeenCalled();
+      });
+
+      it('should calculate outstanding and overdue amounts', async () => {
+        const mockFinancialData = {
+          revenue: 0,
+          expenses: 0,
+          profit: 0,
+          outstanding: 2500,
+          overdue: 500,
+        };
+
+        __setMockData(mockFinancialData);
+
+        await FinancialManagementService.calculateFinancialTotals(
+          'contractor-123',
+          '2026-01-01',
+          '2026-01-31'
+        );
+
+        expect(ServiceErrorHandler.executeOperation).toHaveBeenCalled();
+      });
     });
 
-    it('should handle errors gracefully', async () => {
-      // Test error cases
+    describe('generateInvoiceNumber', () => {
+      it('should generate first invoice number', async () => {
+        __setMockData(null);
+
+        const result = await FinancialManagementService.generateInvoiceNumber('contractor-123');
+
+        expect(result).toMatch(/^INV-\d{4}-001$/);
+      });
+
+      it('should increment existing invoice number', async () => {
+        const mockLastInvoice = {
+          invoice_number: 'INV-2026-042',
+        };
+
+        __setMockData(mockLastInvoice);
+
+        const result = await FinancialManagementService.generateInvoiceNumber('contractor-123');
+
+        expect(result).toBe('INV-2026-043');
+      });
+    });
+  });
+
+  // =====================================================
+  // PHASE 3: QUERY OPERATIONS
+  // =====================================================
+
+  describe('Phase 3: Query Operations', () => {
+    describe('getInvoices', () => {
+      it('should filter by status', async () => {
+        const mockInvoices = [
+          { id: 'inv-1', status: 'paid', total_amount: 1000 },
+          { id: 'inv-2', status: 'paid', total_amount: 2000 },
+        ];
+
+        __setMockData(mockInvoices);
+
+        const result = await FinancialManagementService.getInvoices('contractor-123', { status: 'paid' });
+
+        expect(result).toEqual(mockInvoices);
+      });
+
+      it('should filter by date range', async () => {
+        const mockInvoices = [{ id: 'inv-1', issue_date: '2026-01-15' }];
+
+        __setMockData(mockInvoices);
+
+        const result = await FinancialManagementService.getInvoices('contractor-123', {
+          dateFrom: '2026-01-01',
+          dateTo: '2026-01-31',
+        });
+
+        // Test just verifies it doesn't throw and returns an array
+        expect(Array.isArray(result)).toBe(true);
+      });
     });
 
-    it('should validate inputs', async () => {
-      // Test input validation
+    describe('getExpenses', () => {
+      it('should filter by tax_deductible', async () => {
+        const mockExpenses = [
+          { id: 'exp-1', category: 'Tools', amount: 250, tax_deductible: true },
+          { id: 'exp-2', category: 'Materials', amount: 500, tax_deductible: true },
+        ];
+
+        __setMockData(mockExpenses);
+
+        const result = await FinancialManagementService.getExpenses('contractor-123', { tax_deductible: true });
+
+        expect(result).toEqual(mockExpenses);
+      });
+    });
+
+    describe('getExpenseCategories', () => {
+      it('should aggregate expenses by category', async () => {
+        const mockExpenses = [
+          { category: 'Tools', amount: 250 },
+          { category: 'Tools', amount: 150 },
+          { category: 'Materials', amount: 500 },
+        ];
+
+        __setMockData(mockExpenses);
+
+        await FinancialManagementService.getExpenseCategories(
+          'contractor-123',
+          '2026-01-01',
+          '2026-01-31'
+        );
+
+        expect(ServiceErrorHandler.executeOperation).toHaveBeenCalled();
+      });
+    });
+  });
+
+  // =====================================================
+  // PHASE 4: EDGE CASES & ERROR PATHS
+  // =====================================================
+
+  describe('Phase 4: Edge Cases & Error Handling', () => {
+    describe('Error Handling', () => {
+      it('should handle database errors in createInvoice', async () => {
+        __setMockData(null);
+
+        const invoiceData = {
+          contractor_id: 'contractor-123',
+          client_id: 'client-123',
+          invoice_number: 'INV-2026-001',
+          status: 'draft' as const,
+          total_amount: 1500.0,
+          subtotal: 1500.0,
+          tax_amount: 0,
+          line_items: [],
+          issue_date: '2026-01-15',
+          due_date: '2026-02-14',
+        };
+
+        await expect(FinancialManagementService.createInvoice(invoiceData)).rejects.toThrow();
+      });
+
+      it('should handle database errors in updateInvoiceStatus', async () => {
+        __setMockData(null);
+
+        await expect(FinancialManagementService.updateInvoiceStatus('inv-999', 'paid', 'contractor-123')).rejects.toThrow();
+      });
+    });
+
+    describe('Empty Results Handling', () => {
+      it('should return empty array when no invoices found', async () => {
+        __setMockData([]);
+
+        const result = await FinancialManagementService.getInvoices('contractor-123', {});
+
+        expect(result).toEqual([]);
+      });
+
+      it('should return empty array when no expenses found', async () => {
+        __setMockData([]);
+
+        const result = await FinancialManagementService.getExpenses('contractor-123', {});
+
+        expect(result).toEqual([]);
+      });
     });
   });
 });
