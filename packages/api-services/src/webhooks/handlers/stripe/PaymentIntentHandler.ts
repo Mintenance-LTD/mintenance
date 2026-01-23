@@ -8,12 +8,12 @@ interface StripeEvent {
   id: string;
   type: string;
   data: {
-    object: any;
-    previous_attributes?: any;
+    object: unknown;
+    previous_attributes?: unknown;
   };
 }
 export interface PaymentIntentHandlerConfig {
-  stripe: any;
+  stripe: unknown;
   supabase: SupabaseClient;
   webhookSecret: string;
 }
@@ -25,7 +25,7 @@ export class PaymentIntentHandler {
   /**
    * Handle payment_intent.succeeded event
    */
-  async handleSucceeded(event: StripeEvent): Promise<any> {
+  async handleSucceeded(event: StripeEvent): Promise<unknown> {
     const paymentIntent = event.data.object;
     logger.info('Payment intent succeeded', {
       paymentIntentId: paymentIntent.id,
@@ -68,7 +68,7 @@ export class PaymentIntentHandler {
   /**
    * Handle payment_intent.payment_failed event
    */
-  async handleFailed(event: StripeEvent): Promise<any> {
+  async handleFailed(event: StripeEvent): Promise<unknown> {
     const paymentIntent = event.data.object;
     logger.error('Payment intent failed', {
       paymentIntentId: paymentIntent.id,
@@ -107,7 +107,7 @@ export class PaymentIntentHandler {
   /**
    * Handle payment_intent.canceled event
    */
-  async handleCanceled(event: StripeEvent): Promise<any> {
+  async handleCanceled(event: StripeEvent): Promise<unknown> {
     const paymentIntent = event.data.object;
     logger.info('Payment intent canceled', {
       paymentIntentId: paymentIntent.id,
@@ -137,7 +137,7 @@ export class PaymentIntentHandler {
   /**
    * Handle payment_intent.processing event
    */
-  async handleProcessing(event: StripeEvent): Promise<any> {
+  async handleProcessing(event: StripeEvent): Promise<unknown> {
     const paymentIntent = event.data.object;
     logger.info('Payment intent processing', {
       paymentIntentId: paymentIntent.id
@@ -159,7 +159,7 @@ export class PaymentIntentHandler {
   /**
    * Handle payment_intent.requires_action event
    */
-  async handleRequiresAction(event: StripeEvent): Promise<any> {
+  async handleRequiresAction(event: StripeEvent): Promise<unknown> {
     const paymentIntent = event.data.object;
     logger.info('Payment intent requires action', {
       paymentIntentId: paymentIntent.id,
@@ -190,7 +190,7 @@ export class PaymentIntentHandler {
   private async handleJobPaymentSuccess(
     jobId: string,
     bidId: string | undefined,
-    paymentIntent: any
+    paymentIntent: unknown
   ): Promise<void> {
     // Update job payment status
     await this.supabase
@@ -235,7 +235,7 @@ export class PaymentIntentHandler {
         });
     }
   }
-  private async handleSubscriptionPaymentSuccess(paymentIntent: any): Promise<void> {
+  private async handleSubscriptionPaymentSuccess(paymentIntent: unknown): Promise<void> {
     const { subscriptionId, userId } = paymentIntent.metadata || {};
     if (subscriptionId) {
       await this.supabase
@@ -247,7 +247,7 @@ export class PaymentIntentHandler {
         .eq('stripe_subscription_id', subscriptionId);
     }
   }
-  private async handleEscrowPaymentSuccess(jobId: string, paymentIntent: any): Promise<void> {
+  private async handleEscrowPaymentSuccess(jobId: string, paymentIntent: unknown): Promise<void> {
     await this.supabase
       .from('escrow_transactions')
       .insert({
@@ -258,7 +258,7 @@ export class PaymentIntentHandler {
         created_at: new Date().toISOString(),
       });
   }
-  private async handleJobPaymentFailure(jobId: string, paymentIntent: any): Promise<void> {
+  private async handleJobPaymentFailure(jobId: string, paymentIntent: unknown): Promise<void> {
     await this.supabase
       .from('jobs')
       .update({
@@ -279,7 +279,7 @@ export class PaymentIntentHandler {
       .eq('job_id', jobId)
       .eq('payment_intent_id', paymentIntentId);
   }
-  private async sendPaymentSuccessNotification(userId: string, paymentIntent: any): Promise<void> {
+  private async sendPaymentSuccessNotification(userId: string, paymentIntent: unknown): Promise<void> {
     await this.supabase
       .from('notifications')
       .insert({
@@ -295,8 +295,8 @@ export class PaymentIntentHandler {
   }
   private async sendPaymentFailureNotification(
     userId: string,
-    paymentIntent: any,
-    error: any
+    paymentIntent: unknown,
+    error: unknown
   ): Promise<void> {
     await this.supabase
       .from('notifications')
@@ -312,7 +312,7 @@ export class PaymentIntentHandler {
         created_at: new Date().toISOString(),
       });
   }
-  private async sendActionRequiredNotification(userId: string, paymentIntent: any): Promise<void> {
+  private async sendActionRequiredNotification(userId: string, paymentIntent: unknown): Promise<void> {
     await this.supabase
       .from('notifications')
       .insert({

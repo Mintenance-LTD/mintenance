@@ -11,14 +11,14 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<Response>;
 }
 interface NextResponse {
-  json(data: any, init?: ResponseInit): NextResponse;
+  json(data: Record<string, unknown>, init?: ResponseInit): NextResponse;
 }
 // Mock NextResponse implementation
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: Record<string, unknown>, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -45,11 +45,11 @@ async function requireCSRF(request: NextRequest): Promise<void> {
   // TODO: Implement CSRF check
 }
 // Mock rate limit
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: Record<string, unknown>) {
   return { allowed: true };
 }
 // Mock error handler
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('API Error:', error);
   return NextResponse.json(
     { error: error.message || 'Internal server error' },
@@ -71,7 +71,7 @@ export class JobController {
   /**
    * GET /api/jobs - List jobs
    */
-  async listJobs(request: NextRequest): Promise<any> {
+  async listJobs(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -107,7 +107,7 @@ export class JobController {
   /**
    * POST /api/jobs - Create job
    */
-  async createJob(request: NextRequest): Promise<any> {
+  async createJob(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -142,7 +142,7 @@ export class JobController {
   /**
    * GET /api/jobs/[id] - Get single job
    */
-  async getJob(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {
+  async getJob(request: NextRequest, { params }: { params: { id: string } }): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -172,7 +172,7 @@ export class JobController {
   /**
    * PUT /api/jobs/[id] - Update job
    */
-  async updateJob(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {
+  async updateJob(request: NextRequest, { params }: { params: { id: string } }): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -209,7 +209,7 @@ export class JobController {
   /**
    * DELETE /api/jobs/[id] - Delete job
    */
-  async deleteJob(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {
+  async deleteJob(request: NextRequest, { params }: { params: { id: string } }): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -257,7 +257,7 @@ export class JobController {
   /**
    * Create rate limit response
    */
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {

@@ -54,8 +54,8 @@ interface Model {
   author: string;
   description?: string;
   tags: string[];
-  config: any;
-  metrics?: any;
+  config: Record<string, unknown>;
+  metrics?: unknown;
 }
 interface DetailedPerformance {
   model: Model;
@@ -69,15 +69,15 @@ interface DetailedPerformance {
   examples?: {
     predictions: {
       id: string;
-      input: any;
+      input: unknown;
       predicted: string | number;
       actual: string | number;
       confidence: number;
       correct: boolean;
       timestamp: string;
     }[];
-    worstPerforming: any[];
-    bestPerforming: any[];
+    worstPerforming: unknown[];
+    bestPerforming: unknown[];
   };
   driftIndicators?: {
     featureDrift: { feature: string; driftScore: number; threshold: number }[];
@@ -86,8 +86,8 @@ interface DetailedPerformance {
   };
 }
 export class ModelPerformanceService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -155,7 +155,7 @@ export class ModelPerformanceService {
         confusionMatrix: metrics?.confusion_matrix,
         classLabels: metrics?.class_labels,
         featureImportance: features || [],
-        performanceByClass: classPerf?.map((cp: any) => ({
+        performanceByClass: classPerf?.map((cp: unknown) => ({
           className: cp.class_name,
           precision: cp.precision,
           recall: cp.recall,
@@ -191,15 +191,15 @@ export class ModelPerformanceService {
         .range(params.offset, params.offset + params.limit - 1);
       const { data: models, count } = await query;
       // Get latest metrics for each model
-      const modelIds = models?.map((m: any) => m.id) || [];
+      const modelIds = models?.map((m: unknown) => m.id) || [];
       const { data: metrics } = await this.supabase
         .from('ml_model_metrics')
         .select('model_id, accuracy, precision, recall, f1_score')
         .in('model_id', modelIds);
       // Map metrics to models
-      const metricsMap = new Map(metrics?.map((m: any) => [m.model_id, m]) || []);
+      const metricsMap = new Map(metrics?.map((m: unknown) => [m.model_id, m]) || []);
       return {
-        models: models?.map((model: any) => ({
+        models: models?.map((model: unknown) => ({
           id: model.id,
           name: model.name,
           version: model.version,
@@ -286,7 +286,7 @@ export class ModelPerformanceService {
           // Sort by confidence to get best and worst
           const sorted = [...predictions].sort((a, b) => b.confidence - a.confidence);
           result.examples = {
-            predictions: predictions.slice(0, 20).map((p: any) => ({
+            predictions: predictions.slice(0, 20).map((p: unknown) => ({
               id: p.id,
               input: p.input_data,
               predicted: p.predicted_value,
@@ -374,7 +374,7 @@ export class ModelPerformanceService {
       return [];
     }
   }
-  private async getDriftIndicators(modelId: string): Promise<any> {
+  private async getDriftIndicators(modelId: string): Promise<unknown> {
     try {
       const { data: drift } = await this.supabase
         .from('ml_drift_metrics')

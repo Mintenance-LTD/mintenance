@@ -26,15 +26,15 @@ interface SendSMSParams {
 }
 export class SMSService {
   private config: TwilioConfig;
-  private supabase: any;
-  private twilioClient: any; // Twilio client
-  constructor(config: { supabase: any; twilioConfig: TwilioConfig }) {
+  private supabase: unknown;
+  private twilioClient: unknown; // Twilio client
+  constructor(config: { supabase: unknown; twilioConfig: TwilioConfig }) {
     this.config = config.twilioConfig;
     this.supabase = config.supabase;
     // Initialize Twilio client (mocked for now)
     this.twilioClient = {
       messages: {
-        create: async (params: any) => ({
+        create: async (params: Record<string, unknown>) => ({
           sid: 'mock-sid',
           status: 'sent',
           to: params.to,
@@ -86,7 +86,7 @@ export class SMSService {
         error: result.error
       });
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error sending notification SMS:', error);
       return {
         success: false,
@@ -109,7 +109,7 @@ export class SMSService {
       for (const recipient of recipients) {
         try {
           // Prepare message parameters
-          const messageParams: any = {
+          const messageParams: unknown = {
             to: recipient,
             body: params.message
           };
@@ -149,7 +149,7 @@ export class SMSService {
             messageId: message.sid,
             status: message.status
           });
-        } catch (recipientError: any) {
+        } catch (recipientError: unknown) {
           logger.error(`Error sending SMS to ${recipient}:`, recipientError);
           results.push({
             success: false,
@@ -168,7 +168,7 @@ export class SMSService {
         error: successCount === 0 ? 'All messages failed' : undefined,
         status: `${successCount}/${recipients.length} sent`
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Twilio error:', error);
       return {
         success: false,
@@ -215,7 +215,7 @@ export class SMSService {
               error: result.error || 'Unknown error'
             });
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           results.failed++;
           results.errors.push({
             phoneNumber: recipient.phoneNumber,
@@ -260,7 +260,7 @@ export class SMSService {
       return {
         status: 'delivered'
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error checking delivery status:', error);
       return {
         status: 'unknown',
@@ -284,7 +284,7 @@ export class SMSService {
         userId,
         name: `${data.first_name || ''} ${data.last_name || ''}`.trim()
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting recipient phone:', error);
       throw error;
     }
@@ -299,7 +299,7 @@ export class SMSService {
       // Check both explicit opt-in and notification preferences
       return data?.sms_opt_in === true ||
              data?.notification_preferences?.sms === true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error checking SMS opt-in:', error);
       return false;
     }
@@ -351,7 +351,7 @@ export class SMSService {
           error_message: params.error,
           sent_at: new Date().toISOString()
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error logging SMS:', error);
     }
   }

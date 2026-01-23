@@ -12,7 +12,7 @@ import { AccountHandler } from './stripe/AccountHandler';
 // Mock Stripe types
 interface Stripe {
   webhooks: {
-    constructEvent(body: string, signature: string, secret: string): any;
+    constructEvent(body: string, signature: string, secret: string): unknown;
   };
 }
 interface StripeEvent {
@@ -20,8 +20,8 @@ interface StripeEvent {
   type: string;
   created: number;
   data: {
-    object: any;
-    previous_attributes?: any;
+    object: unknown;
+    previous_attributes?: unknown;
   };
 }
 
@@ -88,7 +88,7 @@ export class StripeWebhookHandler {
   /**
    * Handle Stripe webhook event
    */
-  async handleEvent(event: StripeEvent): Promise<any> {
+  async handleEvent(event: StripeEvent): Promise<unknown> {
     logger.info('Processing Stripe webhook event', {
       eventId: event.id,
       eventType: event.type
@@ -190,7 +190,7 @@ export class StripeWebhookHandler {
     }
   }
   // ============= Transfer Event Handlers =============
-  private async handleTransferCreated(event: StripeEvent): Promise<any> {
+  private async handleTransferCreated(event: StripeEvent): Promise<unknown> {
     const transfer = event.data.object;
     await this.supabase
       .from('transfers')
@@ -209,7 +209,7 @@ export class StripeWebhookHandler {
     });
     return { processed: true, transferId: transfer.id };
   }
-  private async handleTransferUpdated(event: StripeEvent): Promise<any> {
+  private async handleTransferUpdated(event: StripeEvent): Promise<unknown> {
     const transfer = event.data.object;
     await this.supabase
       .from('transfers')
@@ -220,7 +220,7 @@ export class StripeWebhookHandler {
       .eq('stripe_transfer_id', transfer.id);
     return { processed: true, transferId: transfer.id };
   }
-  private async handleTransferFailed(event: StripeEvent): Promise<any> {
+  private async handleTransferFailed(event: StripeEvent): Promise<unknown> {
     const transfer = event.data.object;
     await this.supabase
       .from('transfers')
@@ -238,7 +238,7 @@ export class StripeWebhookHandler {
     return { processed: true, transferId: transfer.id, status: 'failed' };
   }
   // ============= Payout Event Handlers =============
-  private async handlePayoutCreated(event: StripeEvent): Promise<any> {
+  private async handlePayoutCreated(event: StripeEvent): Promise<unknown> {
     const payout = event.data.object;
     await this.supabase
       .from('payouts')
@@ -252,7 +252,7 @@ export class StripeWebhookHandler {
       });
     return { processed: true, payoutId: payout.id };
   }
-  private async handlePayoutUpdated(event: StripeEvent): Promise<any> {
+  private async handlePayoutUpdated(event: StripeEvent): Promise<unknown> {
     const payout = event.data.object;
     await this.supabase
       .from('payouts')
@@ -263,7 +263,7 @@ export class StripeWebhookHandler {
       .eq('stripe_payout_id', payout.id);
     return { processed: true, payoutId: payout.id };
   }
-  private async handlePayoutFailed(event: StripeEvent): Promise<any> {
+  private async handlePayoutFailed(event: StripeEvent): Promise<unknown> {
     const payout = event.data.object;
     await this.supabase
       .from('payouts')
@@ -280,7 +280,7 @@ export class StripeWebhookHandler {
     return { processed: true, payoutId: payout.id, status: 'failed' };
   }
   // ============= Customer Event Handlers =============
-  private async handleCustomerCreated(event: StripeEvent): Promise<any> {
+  private async handleCustomerCreated(event: StripeEvent): Promise<unknown> {
     const customer = event.data.object;
     // Update user with Stripe customer ID
     await this.supabase
@@ -292,7 +292,7 @@ export class StripeWebhookHandler {
       .eq('email', customer.email);
     return { processed: true, customerId: customer.id };
   }
-  private async handleCustomerUpdated(event: StripeEvent): Promise<any> {
+  private async handleCustomerUpdated(event: StripeEvent): Promise<unknown> {
     const customer = event.data.object;
     // Update customer information
     await this.supabase
@@ -304,7 +304,7 @@ export class StripeWebhookHandler {
       .eq('stripe_customer_id', customer.id);
     return { processed: true, customerId: customer.id };
   }
-  private async handleCustomerDeleted(event: StripeEvent): Promise<any> {
+  private async handleCustomerDeleted(event: StripeEvent): Promise<unknown> {
     const customer = event.data.object;
     // Remove Stripe customer ID from user
     await this.supabase

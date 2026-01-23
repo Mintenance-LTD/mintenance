@@ -11,10 +11,10 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<Response>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: Record<string, unknown>, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -35,10 +35,10 @@ async function getCurrentUserFromCookies(): Promise<User | null> {
 async function requireCSRF(request: NextRequest): Promise<void> {
   // TODO: Implement CSRF check
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: Record<string, unknown>) {
   return { allowed: true };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('Payment API Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Payment processing error';
@@ -67,7 +67,7 @@ export class PaymentController {
   /**
    * POST /api/payments/create-intent - Create a payment intent
    */
-  async createPaymentIntent(request: NextRequest): Promise<any> {
+  async createPaymentIntent(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting - stricter for payment operations
       const rateLimitResult = await checkRateLimit(request, {
@@ -120,7 +120,7 @@ export class PaymentController {
   /**
    * POST /api/payments/confirm-intent - Confirm a payment intent
    */
-  async confirmPaymentIntent(request: NextRequest): Promise<any> {
+  async confirmPaymentIntent(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -161,7 +161,7 @@ export class PaymentController {
   /**
    * POST /api/payments/release-escrow - Release escrow funds
    */
-  async releaseEscrow(request: NextRequest): Promise<any> {
+  async releaseEscrow(request: NextRequest): Promise<Response> {
     try {
       // Very strict rate limiting for escrow release
       const rateLimitResult = await checkRateLimit(request, {
@@ -224,7 +224,7 @@ export class PaymentController {
   /**
    * POST /api/payments/refund - Process a refund
    */
-  async processRefund(request: NextRequest): Promise<any> {
+  async processRefund(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting for refunds
       const rateLimitResult = await checkRateLimit(request, {
@@ -282,7 +282,7 @@ export class PaymentController {
   /**
    * GET /api/payments/history - Get payment history
    */
-  async getPaymentHistory(request: NextRequest): Promise<any> {
+  async getPaymentHistory(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -325,7 +325,7 @@ export class PaymentController {
   /**
    * POST /api/payments/embedded-checkout - Create embedded checkout session
    */
-  async createEmbeddedCheckout(request: NextRequest): Promise<any> {
+  async createEmbeddedCheckout(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -370,7 +370,7 @@ export class PaymentController {
     const ip = forwarded?.split(',')[0] || realIp || 'anonymous';
     return `${ip}:${request.url}`;
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       {
         error: 'Too many payment requests. Please try again later.',

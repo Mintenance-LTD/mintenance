@@ -10,10 +10,10 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<Response>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: Record<string, unknown>, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -33,7 +33,7 @@ async function getCurrentUserFromCookies(): Promise<User | null> {
 async function requireCSRF(request: NextRequest): Promise<void> {
   // CSRF validation
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: Record<string, unknown>) {
   return {
     allowed: true,
     remaining: 10,
@@ -41,7 +41,7 @@ async function checkRateLimit(request: NextRequest, options: any) {
     retryAfter: 60
   };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('AI Search Error:', error as any);
   const status = error.statusCode || 500;
   const message = error.message || 'Internal server error';
@@ -93,7 +93,7 @@ export class AISearchController {
   /**
    * POST /api/ai/search - Semantic search with fallback
    */
-  async search(request: NextRequest): Promise<any> {
+  async search(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting for expensive AI operations
       const rateLimitResult = await checkRateLimit(request, {
@@ -191,13 +191,13 @@ export class AISearchController {
    * GET /api/ai/search-suggestions - Get AI-powered search suggestions
    * Alias for suggest() to match route naming convention
    */
-  async getSuggestions(request: NextRequest): Promise<any> {
+  async getSuggestions(request: NextRequest): Promise<Response> {
     return this.suggest(request);
   }
   /**
    * POST /api/ai/search/suggest - Get search suggestions
    */
-  async suggest(request: NextRequest): Promise<any> {
+  async suggest(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -241,7 +241,7 @@ export class AISearchController {
   /**
    * GET /api/ai/search/trending - Get trending searches
    */
-  async getTrending(request: NextRequest): Promise<any> {
+  async getTrending(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -271,7 +271,7 @@ export class AISearchController {
   /**
    * POST /api/ai/search/similar - Find similar items
    */
-  async findSimilar(request: NextRequest): Promise<any> {
+  async findSimilar(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -319,7 +319,7 @@ export class AISearchController {
   /**
    * POST /api/ai/search/feedback - Record search feedback
    */
-  async recordFeedback(request: NextRequest): Promise<any> {
+  async recordFeedback(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -374,7 +374,7 @@ export class AISearchController {
     const ip = forwarded?.split(',')[0] || realIp || 'anonymous';
     return `ai-search:${ip}`;
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {
@@ -396,7 +396,7 @@ export class AISearchController {
       .replace(/\s+/g, ' ') // Normalize whitespace
       .substring(0, 500); // Limit length
   }
-  private async getUserPreferences(userId: string): Promise<any> {
+  private async getUserPreferences(userId: string): Promise<Response> {
     // Would fetch user search preferences from database
     return {
       preferredCategories: [],
@@ -446,7 +446,7 @@ export class AISearchController {
       .sort((a, b) => b[1] - a[1])
       .map(([suggestion]) => suggestion);
   }
-  private async logSearchAnalytics(analytics: any): Promise<void> {
+  private async logSearchAnalytics(analytics: unknown): Promise<void> {
     // Would log to analytics service
     logger.info('Search analytics:', analytics);
   }

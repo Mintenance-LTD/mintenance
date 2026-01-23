@@ -10,10 +10,10 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<Response>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: Record<string, unknown>, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -33,16 +33,16 @@ async function getCurrentUserFromCookies(): Promise<User | null> {
 async function requireCSRF(request: NextRequest): Promise<void> {
   // TODO: Implement CSRF check
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: Record<string, unknown>) {
   return { allowed: true };
 }
 async function checkIdempotency(key: string, type: string) {
   return { isDuplicate: false };
 }
-async function storeIdempotencyResult(key: string, result: any) {
+async function storeIdempotencyResult(key: string, result: unknown) {
   // Store result for idempotency
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('Bid API Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Internal server error';
@@ -68,7 +68,7 @@ export class BidController {
   /**
    * POST /api/contractor/submit-bid - Submit a new bid
    */
-  async submitBid(request: NextRequest): Promise<any> {
+  async submitBid(request: NextRequest): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -131,7 +131,7 @@ export class BidController {
   /**
    * GET /api/bids - List bids (for contractors or homeowners)
    */
-  async listBids(request: NextRequest): Promise<any> {
+  async listBids(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -194,7 +194,7 @@ export class BidController {
   async getBid(
     request: NextRequest,
     { params }: { params: { bidId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -232,7 +232,7 @@ export class BidController {
   async acceptBid(
     request: NextRequest,
     { params }: { params: { bidId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -279,7 +279,7 @@ export class BidController {
   async rejectBid(
     request: NextRequest,
     { params }: { params: { bidId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -327,7 +327,7 @@ export class BidController {
   async updateBid(
     request: NextRequest,
     { params }: { params: { bidId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -379,7 +379,7 @@ export class BidController {
   async withdrawBid(
     request: NextRequest,
     { params }: { params: { bidId: string } }
-  ): Promise<any> {
+  ): Promise<Response> {
     try {
       // CSRF protection
       await requireCSRF(request);
@@ -427,7 +427,7 @@ export class BidController {
   private generateIdempotencyKey(userId: string, jobId: string): string {
     return `bid:${userId}:${jobId}`;
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {
