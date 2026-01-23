@@ -20,7 +20,7 @@ interface Insight {
   priority: InsightPriority;
   title: string;
   description: string;
-  data?: any;
+  data?: unknown;
   metrics?: {
     impact: number; // 0-100
     confidence: number; // 0-100
@@ -45,19 +45,19 @@ interface PredictionModel {
 interface PatternDetectionResult {
   pattern: string;
   confidence: number;
-  instances: any[];
+  instances: unknown[];
   recommendation?: string;
 }
 export class InsightsService {
   private supabase: SupabaseClient;
-  private mlService?: any; // ML service for predictions
-  private openaiService?: any; // OpenAI for natural language insights
+  private mlService?: unknown; // ML service for predictions
+  private openaiService?: unknown; // OpenAI for natural language insights
   private insightsCache: Map<string, Insight[]> = new Map();
   private readonly CACHE_TTL_MS = 3600000; // 1 hour
   constructor(
     supabase: SupabaseClient,
-    mlService?: any,
-    openaiService?: any
+    mlService?: unknown,
+    openaiService?: unknown
   ) {
     this.supabase = supabase;
     this.mlService = mlService;
@@ -516,7 +516,7 @@ export class InsightsService {
     return insights;
   }
   // Analytical methods (stubs for actual implementation)
-  private async analyzeRevenueTrend(): Promise<any> {
+  private async analyzeRevenueTrend(): Promise<unknown> {
     // Implement revenue trend analysis
     return {
       isPositive: true,
@@ -525,7 +525,7 @@ export class InsightsService {
       previousRevenue: 108000
     };
   }
-  private async predictUserChurn(): Promise<any> {
+  private async predictUserChurn(): Promise<unknown> {
     // Implement churn prediction
     return {
       atRiskUsers: 42,
@@ -541,7 +541,7 @@ export class InsightsService {
     // Implement platform recommendations
     return [];
   }
-  private async forecastDemand(): Promise<any> {
+  private async forecastDemand(): Promise<unknown> {
     // Implement demand forecasting
     return {
       percentChange: 12,
@@ -549,7 +549,7 @@ export class InsightsService {
       categories: ['plumbing', 'electrical']
     };
   }
-  private async analyzeContractorPerformance(contractorId: string): Promise<any> {
+  private async analyzeContractorPerformance(contractorId: string): Promise<unknown> {
     // Implement contractor performance analysis
     return {
       trend: 'up',
@@ -558,14 +558,14 @@ export class InsightsService {
       previousRating: 4.2
     };
   }
-  private async optimizeBidStrategy(contractorId: string): Promise<any> {
+  private async optimizeBidStrategy(contractorId: string): Promise<unknown> {
     // Implement bid optimization
     return {
       suggestions: ['Lower bids by 5% for plumbing jobs'],
       expectedImprovement: 15
     };
   }
-  private async predictJobMatches(contractorId: string): Promise<any> {
+  private async predictJobMatches(contractorId: string): Promise<unknown> {
     // Implement job matching
     return {
       highMatchJobs: 8,
@@ -573,7 +573,7 @@ export class InsightsService {
       categories: ['electrical', 'hvac']
     };
   }
-  private async forecastContractorEarnings(contractorId: string): Promise<any> {
+  private async forecastContractorEarnings(contractorId: string): Promise<unknown> {
     // Implement earnings forecast
     return {
       projected: 8500,
@@ -601,7 +601,7 @@ export class InsightsService {
       }
     ];
   }
-  private async identifyCostSavings(userId: string): Promise<any> {
+  private async identifyCostSavings(userId: string): Promise<unknown> {
     // Implement cost savings identification
     return {
       totalSavings: 1200,
@@ -625,7 +625,7 @@ export class InsightsService {
     // Implement contractor recommendations
     return [];
   }
-  private async analyzePriceTrends(userId: string): Promise<any> {
+  private async analyzePriceTrends(userId: string): Promise<unknown> {
     // Implement price trend analysis
     return {
       significantChange: true,
@@ -690,7 +690,7 @@ export class InsightsService {
     return this.getInsights('homeowner', userId, { limit: 10 });
   }
 
-  async getFunnelAnalysis(params: any): Promise<any> {
+  async getFunnelAnalysis(params: Record<string, unknown>): Promise<unknown> {
     return { 
       steps: ['view', 'click', 'convert'], 
       conversionRate: 0.05, 

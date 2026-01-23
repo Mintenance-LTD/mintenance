@@ -15,10 +15,10 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<unknown>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: unknown, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -45,7 +45,7 @@ async function getCurrentUserFromCookies(): Promise<User | null> {
 async function requireCSRF(request: NextRequest): Promise<void> {
   // CSRF validation
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: unknown) {
   return {
     allowed: true,
     remaining: 30,
@@ -53,7 +53,7 @@ async function checkRateLimit(request: NextRequest, options: any) {
     retryAfter: 60
   };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('Notification Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Internal server error';
@@ -97,7 +97,7 @@ export class NotificationController {
   /**
    * GET /api/notifications - Get user notifications
    */
-  async getNotifications(request: NextRequest): Promise<any> {
+  async getNotifications(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -139,14 +139,14 @@ export class NotificationController {
         limit,
         offset
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return handleAPIError(error);
     }
   }
   /**
    * POST /api/notifications - Send a notification
    */
-  async sendNotification(request: NextRequest): Promise<any> {
+  async sendNotification(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -225,7 +225,7 @@ export class NotificationController {
               });
               break;
           }
-        } catch (channelError: any) {
+        } catch (channelError: unknown) {
           logger.error(`Failed to send ${channel} notification:`, channelError);
           results[channel] = { error: true, message: channelError.message };
         }
@@ -249,14 +249,14 @@ export class NotificationController {
         results,
         notificationId: results.in_app?.id
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return handleAPIError(error);
     }
   }
   /**
    * POST /api/notifications/[id]/read - Mark notification as read
    */
-  async markAsRead(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {
+  async markAsRead(request: NextRequest, { params }: { params: { id: string } }): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -288,14 +288,14 @@ export class NotificationController {
         success: true,
         message: 'Notification marked as read'
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return handleAPIError(error);
     }
   }
   /**
    * POST /api/notifications/mark-all-read - Mark all notifications as read
    */
-  async markAllAsRead(request: NextRequest): Promise<any> {
+  async markAllAsRead(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -322,14 +322,14 @@ export class NotificationController {
         count,
         message: `Marked ${count} notifications as read`
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return handleAPIError(error);
     }
   }
   /**
    * DELETE /api/notifications/[id] - Delete a notification
    */
-  async deleteNotification(request: NextRequest, { params }: { params: { id: string } }): Promise<any> {
+  async deleteNotification(request: NextRequest, { params }: { params: { id: string } }): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -361,14 +361,14 @@ export class NotificationController {
         success: true,
         message: 'Notification deleted'
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return handleAPIError(error);
     }
   }
   /**
    * GET /api/notifications/unread-count - Get unread notification count
    */
-  async getUnreadCount(request: NextRequest): Promise<any> {
+  async getUnreadCount(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting - more lenient for count checks
       const rateLimitResult = await checkRateLimit(request, {
@@ -391,14 +391,14 @@ export class NotificationController {
         count,
         timestamp: new Date().toISOString()
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return handleAPIError(error);
     }
   }
   /**
    * POST /api/notifications/preferences - Update notification preferences
    */
-  async updatePreferences(request: NextRequest): Promise<any> {
+  async updatePreferences(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -432,14 +432,14 @@ export class NotificationController {
         preferences,
         message: 'Preferences updated successfully'
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return handleAPIError(error);
     }
   }
   /**
    * POST /api/notifications/bulk - Send bulk notifications
    */
-  async sendBulkNotifications(request: NextRequest): Promise<any> {
+  async sendBulkNotifications(request: NextRequest): Promise<Response> {
     try {
       // Rate limiting - strict for bulk operations
       const rateLimitResult = await checkRateLimit(request, {
@@ -484,7 +484,7 @@ export class NotificationController {
         failed: results.failed,
         message: `Queued ${results.queued} notifications`
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       return handleAPIError(error);
     }
   }
@@ -495,7 +495,7 @@ export class NotificationController {
     const ip = forwarded?.split(',')[0] || realIp || 'anonymous';
     return `notifications:${ip}`;
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {
@@ -509,7 +509,7 @@ export class NotificationController {
       }
     );
   }
-  private isChannelEnabled(channel: string, preferences: any): boolean {
+  private isChannelEnabled(channel: string, preferences: unknown): boolean {
     if (!preferences) return channel === 'in_app'; // Default to in-app only
     switch (channel) {
       case 'email':

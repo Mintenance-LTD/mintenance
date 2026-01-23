@@ -9,8 +9,8 @@ interface FeedbackItem {
   predictionId: string;
   modelId: string;
   modelVersion: string;
-  originalPrediction: any;
-  correctedValue: any;
+  originalPrediction: unknown;
+  correctedValue: unknown;
   confidence: number;
   feedbackType: 'correction' | 'validation' | 'rejection';
   userId: string;
@@ -66,8 +66,8 @@ interface FeedbackApprovalResult {
   errors?: string[];
 }
 export class FeedbackProcessingService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -87,16 +87,16 @@ export class FeedbackProcessingService {
       // Calculate metrics by status
       const statusCounts = {
         total: feedback.length,
-        pending: feedback.filter((f: any) => f.status === 'pending').length,
-        approved: feedback.filter((f: any) => f.status === 'approved').length,
-        rejected: feedback.filter((f: any) => f.status === 'rejected').length,
-        incorporated: feedback.filter((f: any) => f.status === 'incorporated').length
+        pending: feedback.filter((f: FeedbackItem) => f.status === 'pending').length,
+        approved: feedback.filter((f: FeedbackItem) => f.status === 'approved').length,
+        rejected: feedback.filter((f: FeedbackItem) => f.status === 'rejected').length,
+        incorporated: feedback.filter((f: FeedbackItem) => f.status === 'incorporated').length
       };
       // Calculate metrics by type
       const typeCounts = {
-        correction: feedback.filter((f: any) => f.feedback_type === 'correction').length,
-        validation: feedback.filter((f: any) => f.feedback_type === 'validation').length,
-        rejection: feedback.filter((f: any) => f.feedback_type === 'rejection').length
+        correction: feedback.filter((f: FeedbackItem) => f.feedback_type === 'correction').length,
+        validation: feedback.filter((f: FeedbackItem) => f.feedback_type === 'validation').length,
+        rejection: feedback.filter((f: FeedbackItem) => f.feedback_type === 'rejection').length
       };
       // Calculate metrics by model
       const modelMetrics = await this.calculateModelMetrics(feedback);
@@ -298,7 +298,7 @@ export class FeedbackProcessingService {
     }
   }
   // ============= Private Helper Methods =============
-  private async validateFeedback(feedback: any): Promise<boolean> {
+  private async validateFeedback(feedback: FeedbackItem): Promise<boolean> {
     // Validate that the correction makes sense
     // This would include domain-specific validation
     try {
@@ -319,7 +319,7 @@ export class FeedbackProcessingService {
       return false;
     }
   }
-  private async queueForIncorporation(feedback: any): Promise<void> {
+  private async queueForIncorporation(feedback: FeedbackItem): Promise<void> {
     try {
       await this.supabase
         .from('ml_training_queue')
@@ -333,7 +333,7 @@ export class FeedbackProcessingService {
       logger.error('Error queuing feedback for incorporation:', error);
     }
   }
-  private calculatePriority(feedback: any): 'low' | 'normal' | 'high' {
+  private calculatePriority(feedback: FeedbackItem): 'low' | 'normal' | 'high' {
     // High priority for low confidence predictions that were corrected
     if (feedback.confidence < 0.5 && feedback.feedback_type === 'correction') {
       return 'high';
@@ -345,7 +345,7 @@ export class FeedbackProcessingService {
     // Low priority for validations
     return 'low';
   }
-  private async addToTrainingData(feedback: any): Promise<void> {
+  private async addToTrainingData(feedback: FeedbackItem): Promise<void> {
     // Add the corrected example to the training dataset
     await this.supabase
       .from('ml_training_data')
@@ -362,7 +362,7 @@ export class FeedbackProcessingService {
     logger.info('Triggering incremental training with accumulated feedback');
     // This would integrate with the ML pipeline
   }
-  private async calculateModelMetrics(feedback: any[]): Promise<any[]> {
+  private async calculateModelMetrics(feedback: FeedbackItem[]): Promise<unknown[]> {
     const modelGroups = new Map();
     for (const item of feedback) {
       const key = `${item.model_id}_${item.model_version}`;
@@ -377,7 +377,7 @@ export class FeedbackProcessingService {
     }
     const metrics = [];
     for (const [, group] of modelGroups) {
-      const correct = group.items.filter((i: any) => i.feedback_type === 'validation').length;
+      const correct = group.items.filter((i: FeedbackItem) => i.feedback_type === 'validation').length;
       const total = group.items.length;
       metrics.push({
         modelId: group.modelId,
@@ -388,7 +388,7 @@ export class FeedbackProcessingService {
     }
     return metrics.sort((a, b) => b.count - a.count);
   }
-  private async calculateUserMetrics(feedback: any[]): Promise<any[]> {
+  private async calculateUserMetrics(feedback: FeedbackItem[]): Promise<unknown[]> {
     const userGroups = new Map();
     for (const item of feedback) {
       if (!userGroups.has(item.user_id)) {
@@ -401,7 +401,7 @@ export class FeedbackProcessingService {
     }
     const metrics = [];
     for (const [, group] of userGroups) {
-      const approved = group.items.filter((i: any) => i.status === 'approved').length;
+      const approved = group.items.filter((i: FeedbackItem) => i.status === 'approved').length;
       const total = group.items.length;
       metrics.push({
         userId: group.userId,
@@ -411,7 +411,7 @@ export class FeedbackProcessingService {
     }
     return metrics.sort((a, b) => b.count - a.count).slice(0, 10);
   }
-  private async calculateTrends(feedback: any[], startDate: Date): Promise<any[]> {
+  private async calculateTrends(feedback: FeedbackItem[], startDate: Date): Promise<unknown[]> {
     const dailyGroups = new Map();
     for (const item of feedback) {
       const date = new Date(item.timestamp).toISOString().split('T')[0];
@@ -425,7 +425,7 @@ export class FeedbackProcessingService {
     }
     const trends = [];
     for (const [, group] of dailyGroups) {
-      const approved = group.items.filter((i: any) => i.status === 'approved').length;
+      const approved = group.items.filter((i: FeedbackItem) => i.status === 'approved').length;
       const total = group.items.length;
       trends.push({
         date: group.date,
@@ -435,7 +435,7 @@ export class FeedbackProcessingService {
     }
     return trends.sort((a, b) => a.date.localeCompare(b.date));
   }
-  private calculateQualityMetrics(feedback: any[]): any {
+  private calculateQualityMetrics(feedback: FeedbackItem[]): unknown {
     const totalConfidence = feedback.reduce((sum, f) => sum + (f.confidence || 0), 0);
     const approved = feedback.filter(f => f.status === 'approved').length;
     const incorporated = feedback.filter(f => f.status === 'incorporated').length;
@@ -445,7 +445,7 @@ export class FeedbackProcessingService {
       incorporationRate: approved > 0 ? (incorporated / approved) * 100 : 0
     };
   }
-  private mapFeedbackItem(item: any): FeedbackItem {
+  private mapFeedbackItem(item: Record<string, unknown>): FeedbackItem {
     return {
       id: item.id,
       predictionId: item.prediction_id,

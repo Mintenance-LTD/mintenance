@@ -20,7 +20,7 @@ export type ReportFrequency = 'once' | 'daily' | 'weekly' | 'monthly' | 'quarter
 interface ReportConfig {
   type: ReportType;
   format: ReportFormat;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   filters?: {
     dateRange?: { start: Date; end: Date };
     userId?: string;
@@ -54,7 +54,7 @@ interface ReportJob {
   completedAt?: Date;
   fileUrl?: string;
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 interface ReportTemplate {
   id: string;
@@ -66,8 +66,8 @@ interface ReportTemplate {
 interface ReportSection {
   title: string;
   type: 'text' | 'table' | 'chart' | 'metric' | 'list';
-  data?: any;
-  config?: Record<string, any>;
+  data?: unknown;
+  config?: Record<string, unknown>;
 }
 interface ReportStyling {
   logo?: string;
@@ -78,17 +78,17 @@ interface ReportStyling {
 }
 export class ReportingService {
   private supabase: SupabaseClient;
-  private pdfGenerator?: any; // PDF generation library (e.g., Puppeteer)
-  private excelGenerator?: any; // Excel generation library (e.g., ExcelJS)
-  private storageService?: any; // File storage service
-  private emailService?: any; // Email service for delivery
+  private pdfGenerator?: unknown; // PDF generation library (e.g., Puppeteer)
+  private excelGenerator?: unknown; // Excel generation library (e.g., ExcelJS)
+  private storageService?: unknown; // File storage service
+  private emailService?: unknown; // Email service for delivery
   private jobQueue: Map<string, ReportJob> = new Map();
   constructor(
     supabase: SupabaseClient,
-    pdfGenerator?: any,
-    excelGenerator?: any,
-    storageService?: any,
-    emailService?: any
+    pdfGenerator?: unknown,
+    excelGenerator?: unknown,
+    storageService?: unknown,
+    emailService?: unknown
   ) {
     this.supabase = supabase;
     this.pdfGenerator = pdfGenerator;
@@ -323,7 +323,7 @@ export class ReportingService {
       logger.error('Error processing scheduled reports:', error);
     }
   }
-  private async processScheduledReport(schedule: any): Promise<void> {
+  private async processScheduledReport(schedule: ScheduledReport): Promise<void> {
     try {
       // Generate report
       const { jobId } = await this.generateReport(schedule.user_id, schedule.config);
@@ -349,7 +349,7 @@ export class ReportingService {
     }
   }
   // Data gathering methods
-  private async gatherReportData(config: ReportConfig): Promise<any> {
+  private async gatherReportData(config: ReportConfig): Promise<unknown> {
     const data: Record<string, unknown> = {};
     switch (config.type) {
       case 'performance':
@@ -399,7 +399,7 @@ export class ReportingService {
     });
     return pdfPath;
   }
-  private async generateCSV(data: any): Promise<string> {
+  private async generateCSV(data: unknown): Promise<string> {
     const csvRows: string[] = [];
     // Extract headers
     const headers = Object.keys(data[Object.keys(data)[0]][0] || {});
@@ -423,7 +423,7 @@ export class ReportingService {
     // Write file logic here
     return csvPath;
   }
-  private async generateExcel(sections: ReportSection[], data: any): Promise<string> {
+  private async generateExcel(sections: ReportSection[], data: unknown): Promise<string> {
     if (!this.excelGenerator) {
       throw new Error('Excel generator not configured');
     }
@@ -440,7 +440,7 @@ export class ReportingService {
     await workbook.writeFile(excelPath);
     return excelPath;
   }
-  private async generateJSON(data: any): Promise<string> {
+  private async generateJSON(data: unknown): Promise<string> {
     const jsonPath = `/tmp/report_${Date.now()}.json`;
     // Write JSON file
     return jsonPath;
@@ -474,7 +474,7 @@ export class ReportingService {
     fileUrl?: string,
     error?: string
   ): Promise<void> {
-    const update: any = { status };
+    const update: Record<string, unknown> = { status };
     if (progress !== undefined) update.progress = progress;
     if (fileUrl) update.file_url = fileUrl;
     if (error) update.error = error;
@@ -549,7 +549,7 @@ export class ReportingService {
     return data;
   }
   private async generateReportSections(
-    data: any,
+    data: unknown,
     template: ReportTemplate,
     config: ReportConfig
   ): Promise<ReportSection[]> {
@@ -561,80 +561,80 @@ export class ReportingService {
     return '<html><body>Report Content</body></html>';
   }
   // Data gathering helper methods (stubs)
-  private async gatherPerformanceMetrics(config: ReportConfig): Promise<any> {
+  private async gatherPerformanceMetrics(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherPerformanceTrends(config: ReportConfig): Promise<any> {
+  private async gatherPerformanceTrends(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherRevenueData(config: ReportConfig): Promise<any> {
+  private async gatherRevenueData(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherExpenseData(config: ReportConfig): Promise<any> {
+  private async gatherExpenseData(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherTransactionData(config: ReportConfig): Promise<any> {
+  private async gatherTransactionData(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherContractorPerformance(config: ReportConfig): Promise<any> {
+  private async gatherContractorPerformance(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherContractorJobs(config: ReportConfig): Promise<any> {
+  private async gatherContractorJobs(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherContractorRatings(config: ReportConfig): Promise<any> {
+  private async gatherContractorRatings(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherJobSummary(config: ReportConfig): Promise<any> {
+  private async gatherJobSummary(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherJobDetails(config: ReportConfig): Promise<any> {
+  private async gatherJobDetails(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherJobTimeline(config: ReportConfig): Promise<any> {
+  private async gatherJobTimeline(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherUserActivity(config: ReportConfig): Promise<any> {
+  private async gatherUserActivity(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherUserEngagement(config: ReportConfig): Promise<any> {
+  private async gatherUserEngagement(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherPlatformOverview(config: ReportConfig): Promise<any> {
+  private async gatherPlatformOverview(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherPlatformKPIs(config: ReportConfig): Promise<any> {
+  private async gatherPlatformKPIs(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private async gatherCustomData(config: ReportConfig): Promise<any> {
+  private async gatherCustomData(config: ReportConfig): Promise<unknown> {
     return {};
   }
-  private formatReportJob(data: any): ReportJob {
+  private formatReportJob(data: Record<string, unknown>): ReportJob {
     return {
-      id: data.id,
-      userId: data.user_id,
-      type: data.type,
-      format: data.format,
-      status: data.status,
-      progress: data.progress,
-      config: data.config,
-      startedAt: new Date(data.started_at),
-      completedAt: data.completed_at ? new Date(data.completed_at) : undefined,
-      fileUrl: data.file_url,
-      error: data.error,
-      metadata: data.metadata
+      id: data.id as string,
+      userId: data.user_id as string,
+      type: data.type as ReportType,
+      format: data.format as ReportFormat,
+      status: data.status as ReportStatus,
+      progress: data.progress as number,
+      config: data.config as ReportConfig,
+      startedAt: new Date(data.started_at as string),
+      completedAt: data.completed_at ? new Date(data.completed_at as string) : undefined,
+      fileUrl: data.file_url as string | undefined,
+      error: data.error as string | undefined,
+      metadata: data.metadata as Record<string, unknown> | undefined
     };
   }
-  private formatScheduledReport(data: any): ScheduledReport {
+  private formatScheduledReport(data: Record<string, unknown>): ScheduledReport {
     return {
-      id: data.id,
-      userId: data.user_id,
-      config: data.config,
-      frequency: data.frequency,
-      nextRunAt: new Date(data.next_run_at),
-      lastRunAt: data.last_run_at ? new Date(data.last_run_at) : undefined,
-      recipients: data.recipients,
-      enabled: data.enabled
+      id: data.id as string,
+      userId: data.user_id as string,
+      config: data.config as ReportConfig,
+      frequency: data.frequency as ReportFrequency,
+      nextRunAt: new Date(data.next_run_at as string),
+      lastRunAt: data.last_run_at ? new Date(data.last_run_at as string) : undefined,
+      recipients: data.recipients as string[],
+      enabled: data.enabled as boolean
     };
   }
 }

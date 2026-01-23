@@ -38,13 +38,13 @@ interface ExportJob {
 }
 export class ExportService {
   private supabase: SupabaseClient;
-  private storageService?: any;
-  private compressionService?: any;
+  private storageService?: unknown;
+  private compressionService?: unknown;
   private exportJobs: Map<string, ExportJob> = new Map();
   constructor(
     supabase: SupabaseClient,
-    storageService?: any,
-    compressionService?: any
+    storageService?: unknown,
+    compressionService?: unknown
   ) {
     this.supabase = supabase;
     this.storageService = storageService;
@@ -72,7 +72,7 @@ export class ExportService {
       // Process export asynchronously
       this.processExport(job, userId, config);
       return { jobId, status: 'pending' };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error starting export:', error);
       throw new Error('Failed to start export');
     }
@@ -135,7 +135,7 @@ export class ExportService {
       });
       // Clean up temp file
       await this.cleanupTempFile(exportFile);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error processing export:', error);
       await this.updateJobStatus(job.id, 'failed', undefined, {
         error: error.message
@@ -159,7 +159,7 @@ export class ExportService {
         .single();
       if (error) throw error;
       return this.formatExportJob(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting export status:', error);
       return null;
     }
@@ -168,8 +168,8 @@ export class ExportService {
    * Export to JSON
    */
   private async exportToJSON(
-    data: any[],
-    options?: any
+    data: unknown[],
+    options?: Record<string, unknown>
   ): Promise<string> {
     const filePath = `/tmp/export_${Date.now()}.json`;
     const jsonContent = JSON.stringify(data, null, 2);
@@ -181,8 +181,8 @@ export class ExportService {
    * Export to CSV
    */
   private async exportToCSV(
-    data: any[],
-    options?: any
+    data: unknown[],
+    options?: Record<string, unknown>
   ): Promise<string> {
     const delimiter = options?.delimiter || ',';
     const includeHeaders = options?.includeHeaders !== false;
@@ -221,8 +221,8 @@ export class ExportService {
    * Export to Excel
    */
   private async exportToExcel(
-    data: any[],
-    options?: any
+    data: unknown[],
+    options?: Record<string, unknown>
   ): Promise<string> {
     // Excel export would require a library like ExcelJS
     const filePath = `/tmp/export_${Date.now()}.xlsx`;
@@ -236,8 +236,8 @@ export class ExportService {
    * Export to XML
    */
   private async exportToXML(
-    data: any[],
-    options?: any
+    data: unknown[],
+    options?: Record<string, unknown>
   ): Promise<string> {
     const filePath = `/tmp/export_${Date.now()}.xml`;
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -258,8 +258,8 @@ export class ExportService {
    * Export to Parquet (columnar format for big data)
    */
   private async exportToParquet(
-    data: any[],
-    options?: any
+    data: unknown[],
+    options?: Record<string, unknown>
   ): Promise<string> {
     // Parquet export would require a library like parquetjs
     const filePath = `/tmp/export_${Date.now()}.parquet`;
@@ -299,7 +299,7 @@ export class ExportService {
    * Transform data
    */
   private async transformData(
-    data: any[],
+    data: unknown[],
     transform: NonNullable<ExportConfig['transform']>
   ): Promise<any[]> {
     return data.map(row => {
@@ -332,7 +332,7 @@ export class ExportService {
   /**
    * Evaluate computed field expression
    */
-  private evaluateExpression(expression: string, row: any): any {
+  private evaluateExpression(expression: string, row: Record<string, unknown>): unknown {
     // Simple implementation - would need proper expression parser
     try {
       // Replace field references with values
@@ -457,7 +457,7 @@ export class ExportService {
   private generateJobId(): string {
     return `export_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
-  private formatExportJob(data: any): ExportJob {
+  private formatExportJob(data: Record<string, unknown>): ExportJob {
     return {
       id: data.id,
       status: data.status,
