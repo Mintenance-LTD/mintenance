@@ -204,7 +204,7 @@ export class AISearchService {
       });
       return (data || []).map((item: unknown) => ({
         id: item.id,
-        type: itemType as any,
+        type: itemType as unknown,
         title: item.title,
         description: item.description,
         relevanceScore: item.similarity,

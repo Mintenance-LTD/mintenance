@@ -136,7 +136,7 @@ export abstract class BaseSanitizer {
    * Validate numeric input with constraints
    */
   static sanitizeNumeric(
-    input: any,
+    input: unknown,
     options?: { min?: number; max?: number; decimals?: number }
   ): number | null {
     const num = Number(input);

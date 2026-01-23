@@ -155,7 +155,7 @@ export async function logControllerUsage(
   module: string,
   isNew: boolean,
   userId?: string | null,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<void> {
   try {
     const supabase = await createClient();
@@ -186,7 +186,7 @@ export async function withFeatureFlag(
   flagName: string,
   newHandler: Function,
   oldHandler: Function,
-  request: any
+  request: unknown
 ) {
   // Emergency kill switch
   if (isEmergencyKillSwitchActive()) {

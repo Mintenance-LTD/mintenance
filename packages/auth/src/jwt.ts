@@ -5,7 +5,7 @@ interface JosePayload extends JoseJWTPayload {
   role: string;
 }
 // Conditional import for crypto (Node.js only, not Edge Runtime compatible)
-let crypto: any = null;
+let crypto: unknown = null;
 try {
   // Check if we're in a Node.js environment
   if (typeof window === 'undefined' && typeof process !== 'undefined') {

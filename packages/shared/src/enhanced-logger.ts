@@ -230,7 +230,7 @@ export class EnhancedLogger {
   /**
    * Sanitize sensitive data from context
    */
-  private sanitizeContext(data: unknown): unknown {
+  private sanitizeContext(data: Record<string, unknown>): unknown {
     if (!data) return data;
     if (typeof data !== 'object') return data;
 
@@ -254,7 +254,7 @@ export class EnhancedLogger {
       /supabase[_-]?key/i,
     ];
 
-    const sanitized: any = Array.isArray(data) ? [] : {};
+    const sanitized: unknown = Array.isArray(data) ? [] : {};
 
     for (const [key, value] of Object.entries(data)) {
       const keyStr = String(key);
@@ -339,7 +339,7 @@ export class EnhancedLogger {
       try {
         // Transports can implement batch sending
         if ('sendBatch' in transport && typeof transport.sendBatch === 'function') {
-          (transport as any).sendBatch(entries);
+          (transport as unknown).sendBatch(entries);
         } else {
           entries.forEach(entry => transport.send(entry));
         }
@@ -411,7 +411,7 @@ export class EnhancedLogger {
 
       // Try to extract useful info
       if (typeof error === 'object' && error !== null) {
-        const err = error as any;
+        const err = error as unknown;
         if (err.message) errorMetadata.message = err.message;
         if (err.code) errorMetadata.code = err.code;
         if (err.status) errorMetadata.status = err.status;
@@ -543,17 +543,17 @@ export class SentryTransport implements LogTransport {
   async send(entry: EnhancedLogEntry): Promise<void> {
     if (!this.sentryClient) {
       // Try to get Sentry from global scope
-      if (typeof window !== 'undefined' && (window as any).Sentry) {
-        this.sentryClient = (window as any).Sentry;
-      } else if (typeof global !== 'undefined' && (global as any).Sentry) {
-        this.sentryClient = (global as any).Sentry;
+      if (typeof window !== 'undefined' && (window as unknown).Sentry) {
+        this.sentryClient = (window as unknown).Sentry;
+      } else if (typeof global !== 'undefined' && (global as unknown).Sentry) {
+        this.sentryClient = (global as unknown).Sentry;
       }
     }
 
     if (!this.sentryClient) return;
 
     // Send appropriate level to Sentry
-    const client = this.sentryClient as any;
+    const client = this.sentryClient as unknown;
     switch (entry.level) {
       case 'error':
         if (entry.error) {

@@ -144,7 +144,7 @@ export class ContentSanitizers {
       // Parse and re-stringify to ensure valid JSON
       const parsed = JSON.parse(input);
       // Recursively sanitize string values in the JSON
-      const sanitizeJsonValue = (value: unknown): any => {
+      const sanitizeJsonValue = (value: unknown): unknown => {
         if (typeof value === 'string') {
           return BaseSanitizer.sanitizeText(value);
         } else if (Array.isArray(value)) {

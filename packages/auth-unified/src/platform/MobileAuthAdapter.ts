@@ -16,7 +16,7 @@ export interface MobileAuthConfig extends AuthConfig {
 export interface StoredSession {
   accessToken: string;
   refreshToken: string;
-  user: any;
+  user: unknown;
   expiresAt: number;
   createdAt: number;
   biometricEnabled?: boolean;

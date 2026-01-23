@@ -56,7 +56,7 @@ export const mobileTokens = {
   // Utility function
   getColor: (colorPath: string) => {
     const keys = colorPath.split('.');
-    let value: any = colors;
+    let value: unknown = colors;
     for (const key of keys) {
       if (value && typeof value === 'object' && key in value) {
         value = value[key];

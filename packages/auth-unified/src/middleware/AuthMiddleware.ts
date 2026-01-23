@@ -140,7 +140,7 @@ export class AuthMiddleware {
   /**
    * Set new token cookies on response
    */
-  private async setNewTokenCookies(response: NextResponse, tokens: any): Promise<void> {
+  private async setNewTokenCookies(response: NextResponse, tokens: unknown): Promise<void> {
     const isProduction = process.env.NODE_ENV === 'production';
     // Access token
     const accessCookieName = isProduction ? '__Host-access-token' : 'access-token';

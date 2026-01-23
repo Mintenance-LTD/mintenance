@@ -12,7 +12,7 @@ export interface WebhookEvent {
   eventId: string;
   eventType: string;
   idempotencyKey: string;
-  payload: unknown;
+  payload: Record<string, unknown>;
   processedAt: string;
   status: 'received' | 'processing' | 'processed' | 'failed';
   result?: unknown;
@@ -29,7 +29,7 @@ export class WebhookService {
   async checkIdempotency(
     idempotencyKey: string,
     source: string,
-    event: unknown
+    event: Record<string, unknown>
   ): Promise<boolean> {
     try {
       // Check if event already exists
@@ -243,7 +243,7 @@ export class WebhookService {
       byType: {},
       bySource: {}
     };
-    (data || []).forEach((event: unknown) => {
+    (data || []).forEach((event: Record<string, unknown>) => {
       // Count by status
       stats.byStatus[event.status] = (stats.byStatus[event.status] || 0) + 1;
       // Count by type

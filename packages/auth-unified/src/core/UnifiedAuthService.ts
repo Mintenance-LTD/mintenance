@@ -331,7 +331,7 @@ export class UnifiedAuthService {
     };
     // Generate access token with additional claims for tracking
     const jti = crypto.randomUUID();
-    const accessToken = await new SignJWT({ ...payload, jti } as any)
+    const accessToken = await new SignJWT({ ...payload, jti } as unknown)
       .setProtectedHeader({ alg: 'HS256' })
       .setExpirationTime(this.config.accessTokenExpiry!)
       .setIssuedAt()
@@ -410,7 +410,7 @@ export class UnifiedAuthService {
   /**
    * Validate refresh token (stub)
    */
-  private async validateRefreshToken(token: string): Promise<any> {
+  private async validateRefreshToken(token: string): Promise<unknown> {
     // Platform-specific implementation
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     // Validate against stored tokens

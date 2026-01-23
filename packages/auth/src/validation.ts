@@ -1,5 +1,5 @@
 // Conditional import for bcryptjs (Node.js only, not Edge Runtime compatible)
-let bcrypt: any = null;
+let bcrypt: unknown = null;
 try {
   // Check if we're in a Node.js environment
   if (typeof window === 'undefined' && typeof process !== 'undefined') {
