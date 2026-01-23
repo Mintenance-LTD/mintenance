@@ -19,7 +19,7 @@ interface TargetingRule {
   type: 'user' | 'segment' | 'attribute' | 'percentage';
   operator: 'equals' | 'contains' | 'greater_than' | 'less_than' | 'in' | 'not_in';
   attribute?: string;
-  value: any;
+  value: unknown;
   enabled: boolean;
 }
 interface Experiment {
@@ -31,7 +31,7 @@ interface Experiment {
     id: string;
     name: string;
     percentage: number;
-    config: any;
+    config: Record<string, unknown>;
   }>;
   metrics: Array<{
     name: string;
@@ -40,12 +40,12 @@ interface Experiment {
   }>;
   startDate?: string;
   endDate?: string;
-  results?: any;
+  results?: unknown;
 }
 export class FeatureFlagService {
-  private supabase: any;
-  private cache: Map<string, { value: any; expires: number }> = new Map();
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  private cache: Map<string, { value: unknown; expires: number }> = new Map();
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -213,7 +213,7 @@ export class FeatureFlagService {
     flagName: FeatureFlag,
     action: string,
     userId: string,
-    changes: any
+    changes: unknown
   ): Promise<void> {
     try {
       await this.supabase
@@ -247,7 +247,7 @@ export class FeatureFlagService {
         query = query.eq('status', params.status);
       }
       const { data } = await query.order('created_at', { ascending: false });
-      return (data || []).map((exp: any) => ({
+      return (data || []).map((exp: unknown) => ({
         id: exp.id,
         flagName: exp.flag_name,
         name: exp.name,
@@ -278,7 +278,7 @@ export class FeatureFlagService {
   /**
    * Get rollback thresholds for a flag
    */
-  async getRollbackThresholds(flagName: FeatureFlag): Promise<any> {
+  async getRollbackThresholds(flagName: FeatureFlag): Promise<unknown> {
     try {
       const flag = await this.getFlag(flagName);
       return flag?.metadata?.rollbackThresholds || {
@@ -396,7 +396,7 @@ export class FeatureFlagService {
       return null;
     }
   }
-  private assignVariant(userId: string, experiment: Experiment): any {
+  private assignVariant(userId: string, experiment: Experiment): unknown {
     const hash = this.hashUserId(userId + experiment.id);
     const bucket = hash % 100;
     let accumulated = 0;
@@ -417,7 +417,7 @@ export class FeatureFlagService {
     }
     return Math.abs(hash);
   }
-  private getFromCache(key: string): any {
+  private getFromCache(key: string): unknown {
     const cached = this.cache.get(key);
     if (cached && cached.expires > Date.now()) {
       return cached.value;
@@ -425,7 +425,7 @@ export class FeatureFlagService {
     this.cache.delete(key);
     return null;
   }
-  private setCache(key: string, value: any, ttl: number): void {
+  private setCache(key: string, value: unknown, ttl: number): void {
     this.cache.set(key, {
       value,
       expires: Date.now() + ttl

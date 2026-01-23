@@ -42,15 +42,15 @@ interface SendEmailParams {
 }
 export class EmailService {
   private config: EmailConfig;
-  private supabase: any;
-  private sgMail: any; // SendGrid client
-  constructor(config: { supabase: any; sendgridConfig: EmailConfig }) {
+  private supabase: unknown;
+  private sgMail: unknown; // SendGrid client
+  constructor(config: { supabase: unknown; sendgridConfig: EmailConfig }) {
     this.config = config.sendgridConfig;
     this.supabase = config.supabase;
     // Initialize SendGrid client (mocked for now)
     this.sgMail = {
       setApiKey: (key: string) => {},
-      send: async (msg: any) => ({ messageId: 'mock-id' })
+      send: async (msg: unknown) => ({ messageId: 'mock-id' })
     };
     if (this.config.apiKey) {
       this.sgMail.setApiKey(this.config.apiKey);
@@ -103,7 +103,7 @@ export class EmailService {
         error: result.error
       });
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error sending notification email:', error);
       return {
         success: false,
@@ -121,7 +121,7 @@ export class EmailService {
   }> {
     try {
       // Prepare SendGrid message
-      const msg: any = {
+      const msg: unknown = {
         from: {
           email: this.config.fromEmail,
           name: this.config.fromName || 'Mintenance'
@@ -182,7 +182,7 @@ export class EmailService {
         success: true,
         messageId: response.messageId || response[0]?.messageId
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('SendGrid error:', error);
       return {
         success: false,
@@ -234,7 +234,7 @@ export class EmailService {
             });
           });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`Error sending batch ${i}:`, error);
         results.failed += batch.length;
         batch.forEach(r => {
@@ -274,7 +274,7 @@ export class EmailService {
         textContent: data.text_content,
         variables: data.variables
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting email template:', error);
       return this.getDefaultTemplate(type);
     }
@@ -295,12 +295,12 @@ export class EmailService {
         name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
         userId
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error getting recipient details:', error);
       throw error;
     }
   }
-  private buildPersonalizations(params: SendEmailParams): any[] {
+  private buildPersonalizations(params: SendEmailParams): unknown[] {
     const recipients = Array.isArray(params.to) ? params.to : [params.to];
     return [{
       to: recipients.map(r => ({
@@ -381,7 +381,7 @@ export class EmailService {
           error_message: params.error,
           sent_at: new Date().toISOString()
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Error logging email:', error);
     }
   }

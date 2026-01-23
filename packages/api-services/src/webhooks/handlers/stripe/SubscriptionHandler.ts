@@ -8,12 +8,12 @@ interface StripeEvent {
   id: string;
   type: string;
   data: {
-    object: any;
-    previous_attributes?: any;
+    object: unknown;
+    previous_attributes?: unknown;
   };
 }
 export interface SubscriptionHandlerConfig {
-  stripe: any;
+  stripe: unknown;
   supabase: SupabaseClient;
   webhookSecret: string;
 }
@@ -22,7 +22,7 @@ export class SubscriptionHandler {
   constructor(config: SubscriptionHandlerConfig) {
     this.supabase = config.supabase;
   }
-  async handleCreated(event: StripeEvent): Promise<any> {
+  async handleCreated(event: StripeEvent): Promise<unknown> {
     const subscription = event.data.object;
     logger.info('Subscription created', {
       subscriptionId: subscription.id,
@@ -42,7 +42,7 @@ export class SubscriptionHandler {
       });
     return { processed: true, subscriptionId: subscription.id };
   }
-  async handleUpdated(event: StripeEvent): Promise<any> {
+  async handleUpdated(event: StripeEvent): Promise<unknown> {
     const subscription = event.data.object;
     logger.info('Subscription updated', {
       subscriptionId: subscription.id,
@@ -61,7 +61,7 @@ export class SubscriptionHandler {
       .eq('stripe_subscription_id', subscription.id);
     return { processed: true, subscriptionId: subscription.id };
   }
-  async handleDeleted(event: StripeEvent): Promise<any> {
+  async handleDeleted(event: StripeEvent): Promise<unknown> {
     const subscription = event.data.object;
     logger.info('Subscription deleted', {
       subscriptionId: subscription.id,
@@ -77,7 +77,7 @@ export class SubscriptionHandler {
       .eq('stripe_subscription_id', subscription.id);
     return { processed: true, subscriptionId: subscription.id, deleted: true };
   }
-  async handleTrialWillEnd(event: StripeEvent): Promise<any> {
+  async handleTrialWillEnd(event: StripeEvent): Promise<unknown> {
     const subscription = event.data.object;
     logger.info('Subscription trial will end', {
       subscriptionId: subscription.id,

@@ -84,7 +84,7 @@ export class JobStatusService {
     await this.checkBusinessRules(job, newStatus, user);
 
     // Prepare update data
-    const updateData: any = {
+    const updateData: unknown = {
       status: newStatus,
       updated_at: new Date().toISOString(),
     };
@@ -150,7 +150,7 @@ export class JobStatusService {
     }
 
     // Determine who to notify based on status change
-    const notifications: Array<{ userId: string; type: string; data: any }> = [];
+    const notifications: Array<{ userId: string; type: string; data: Record<string, unknown> }> = [];
 
     switch (newStatus) {
       case 'posted':
@@ -225,7 +225,7 @@ export class JobStatusService {
   /**
    * Get available status transitions for a job
    */
-  getAvailableTransitions(job: any, user: User): JobStatus[] {
+  getAvailableTransitions(job: unknown, user: User): JobStatus[] {
     const currentStatus = job.status as JobStatus;
     const userRole = user.role;
 
@@ -250,7 +250,7 @@ export class JobStatusService {
     from: JobStatus,
     to: JobStatus,
     user: User,
-    job: any
+    job: unknown
   ): void {
     // Check if transition is valid
     if (!this.isValidTransition(from, to)) {
@@ -276,7 +276,7 @@ export class JobStatusService {
   }
 
   private async checkBusinessRules(
-    job: any,
+    job: unknown,
     newStatus: JobStatus,
     user: User
   ): Promise<void> {
@@ -322,7 +322,7 @@ export class JobStatusService {
   }
 
   private filterByBusinessRules(
-    job: any,
+    job: unknown,
     transitions: JobStatus[],
     user: User
   ): JobStatus[] {
@@ -340,7 +340,7 @@ export class JobStatusService {
   }
 
   private async handleStatusChangeSideEffects(
-    job: any,
+    job: unknown,
     newStatus: JobStatus,
     user: User
   ): Promise<void> {
@@ -385,7 +385,7 @@ export class JobStatusService {
     });
   }
 
-  private async sendNotifications(notifications: Array<{ userId: string; type: string; data: any }>): Promise<void> {
+  private async sendNotifications(notifications: Array<{ userId: string; type: string; data: Record<string, unknown> }>): Promise<void> {
     // TODO: Implement actual notification sending
     for (const notification of notifications) {
       logger.info('Would send notification', notification);

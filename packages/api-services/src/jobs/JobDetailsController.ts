@@ -15,11 +15,11 @@ interface NextRequest {
   url: string;
   method: string;
   headers: Headers;
-  json(): Promise<any>;
+  json(): Promise<unknown>;
 }
 // Mock NextResponse
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: Record<string, unknown>, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -40,10 +40,10 @@ async function getCurrentUserFromCookies(): Promise<User | null> {
 async function requireCSRF(request: NextRequest): Promise<void> {
   // TODO: Implement CSRF check
 }
-async function checkRateLimit(request: NextRequest, options: any) {
+async function checkRateLimit(request: NextRequest, options: Record<string, unknown>) {
   return { allowed: true };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('API Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Internal server error';
@@ -75,7 +75,7 @@ export class JobDetailsController {
   async getJob(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -114,7 +114,7 @@ export class JobDetailsController {
   async updateJob(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -162,7 +162,7 @@ export class JobDetailsController {
   async patchJob(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -218,7 +218,7 @@ export class JobDetailsController {
   async deleteJob(
     request: NextRequest,
     { params }: { params: { id: string } }
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       // Rate limiting
       const rateLimitResult = await checkRateLimit(request, {
@@ -262,7 +262,7 @@ export class JobDetailsController {
   /**
    * Create rate limit response
    */
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {

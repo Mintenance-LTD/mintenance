@@ -70,19 +70,19 @@ export class JobRepository {
   /**
    * Filter query by status
    */
-  filterByStatus(query: any, status: string[]) {
+  filterByStatus(query: unknown, status: string[]) {
     return query.in('status', status);
   }
   /**
    * Apply cursor for pagination
    */
-  applyCursor(query: any, cursor: string) {
+  applyCursor(query: unknown, cursor: string) {
     return query.lt('created_at', cursor);
   }
   /**
    * Execute query with pagination
    */
-  async executeQuery(query: any, limit: number): Promise<{
+  async executeQuery(query: unknown, limit: number): Promise<{
     data: JobRecord[];
     hasMore: boolean;
     nextCursor?: string;
@@ -266,7 +266,7 @@ export class JobRepository {
       logger.warn('Failed to fetch nearby contractors', { error });
       return [];
     }
-    return (data || []).map((c: any) => c.id);
+    return (data || []).map((c: unknown) => c.id);
   }
   /**
    * Batch create job attachments
@@ -302,7 +302,7 @@ export class JobRepository {
     }
     // Group by job_id
     const attachmentsByJob = new Map<string, Array<{ file_url: string; file_type: string }>>();
-    (data || []).forEach((att: any) => {
+    (data || []).forEach((att: unknown) => {
       const existing = attachmentsByJob.get(att.job_id) || [];
       existing.push({ file_url: att.file_url, file_type: att.file_type });
       attachmentsByJob.set(att.job_id, existing);
@@ -310,13 +310,13 @@ export class JobRepository {
     return attachmentsByJob;
   }
 
-  async getUser(userId: string): Promise<any> {
+  async getUser(userId: string): Promise<unknown> {
     const { data, error } = await this.supabase.from('users').select('*').eq('id', userId).single();
     if (error) { logger.error('Error fetching user', error); return null; }
     return data;
   }
 
-  async getProperty(propertyId: string): Promise<any> {
+  async getProperty(propertyId: string): Promise<unknown> {
     const { data, error } = await this.supabase.from('properties').select('*').eq('id', propertyId).single();
     if (error) { logger.error('Error fetching property', error); return null; }
     return data;
@@ -369,7 +369,7 @@ export class JobRepository {
     await this.supabase.from('bids').update({ status: 'cancelled' }).eq('job_id', jobId);
   }
 
-  async storeAIAnalysis(jobId: string, analysis: any): Promise<void> {
+  async storeAIAnalysis(jobId: string, analysis: unknown): Promise<void> {
     // Storing as JSON string in a generic field for now or dedicated table if it existed
     // await this.updateJob(jobId, { ai_assessment_id: JSON.stringify(analysis) } as any);
     logger.info('Storing AI analysis', { jobId, analysis });
@@ -380,7 +380,7 @@ export class JobRepository {
     return bids.map(b => b.contractor_id || '');
   }
 
-  async getAcceptedBidForJob(jobId: string): Promise<any> {
+  async getAcceptedBidForJob(jobId: string): Promise<unknown> {
     const { data } = await this.supabase.from('bids').select('*').eq('job_id', jobId).eq('status', 'accepted').single();
     return data;
   }
@@ -402,7 +402,7 @@ export class JobRepository {
     logger.info('Initiating payment release', { jobId });
   }
 
-  async updateContractorStats(contractorId: string, stats: any): Promise<void> {
+  async updateContractorStats(contractorId: string, stats: unknown): Promise<void> {
     logger.info('Updating contractor stats', { contractorId, stats });
   }
 

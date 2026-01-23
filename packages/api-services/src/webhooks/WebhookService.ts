@@ -12,10 +12,10 @@ export interface WebhookEvent {
   eventId: string;
   eventType: string;
   idempotencyKey: string;
-  payload: any;
+  payload: unknown;
   processedAt: string;
   status: 'received' | 'processing' | 'processed' | 'failed';
-  result?: any;
+  result?: unknown;
   error?: string;
 }
 export class WebhookService {
@@ -29,7 +29,7 @@ export class WebhookService {
   async checkIdempotency(
     idempotencyKey: string,
     source: string,
-    event: any
+    event: unknown
   ): Promise<boolean> {
     try {
       // Check if event already exists
@@ -97,7 +97,7 @@ export class WebhookService {
   /**
    * Get webhook event by ID
    */
-  async getWebhookEvent(eventId: string, source: string): Promise<any> {
+  async getWebhookEvent(eventId: string, source: string): Promise<unknown> {
     const { data, error } = await this.supabase
       .from('webhook_events')
       .select('*')
@@ -116,10 +116,10 @@ export class WebhookService {
   async updateWebhookStatus(
     idempotencyKey: string,
     status: WebhookEvent['status'],
-    result?: any,
+    result?: unknown,
     error?: string
   ): Promise<void> {
-    const updateData: any = {
+    const updateData: unknown = {
       status,
       updated_at: new Date().toISOString()
     };
@@ -152,7 +152,7 @@ export class WebhookService {
     eventType?: string,
     limit = 100,
     offset = 0
-  ): Promise<any> {
+  ): Promise<unknown> {
     let query = this.supabase
       .from('webhook_events')
       .select('*', { count: 'exact' })
@@ -221,7 +221,7 @@ export class WebhookService {
   /**
    * Get webhook statistics
    */
-  async getWebhookStats(source?: string, days = 7): Promise<any> {
+  async getWebhookStats(source?: string, days = 7): Promise<unknown> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     let query = this.supabase
@@ -237,13 +237,13 @@ export class WebhookService {
       return {};
     }
     // Calculate statistics
-    const stats: any = {
+    const stats: unknown = {
       total: data?.length || 0,
       byStatus: {},
       byType: {},
       bySource: {}
     };
-    (data || []).forEach((event: any) => {
+    (data || []).forEach((event: unknown) => {
       // Count by status
       stats.byStatus[event.status] = (stats.byStatus[event.status] || 0) + 1;
       // Count by type

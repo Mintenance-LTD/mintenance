@@ -33,8 +33,8 @@ interface AddReactionParams {
   emoji: string;
 }
 export class MessageService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -123,7 +123,7 @@ export class MessageService {
       const { data, error } = await query;
       if (error) throw error;
       // Reverse to get chronological order
-      return (data || []).reverse().map((msg: any) => this.formatMessage(msg));
+      return (data || []).reverse().map((msg: unknown) => this.formatMessage(msg));
     } catch (error) {
       logger.error('Error getting thread messages:', error);
       return [];
@@ -284,7 +284,7 @@ export class MessageService {
         .eq('read', false);
       const counts: Record<string, number> = {};
       for (const threadId of threadIds) {
-        counts[threadId] = (data || []).filter((m: any) => m.thread_id === threadId).length;
+        counts[threadId] = (data || []).filter((m: unknown) => m.thread_id === threadId).length;
       }
       return counts;
     } catch (error) {
@@ -338,19 +338,19 @@ export class MessageService {
           .from('message_threads')
           .select('id')
           .or(`participant_ids.cs.{${params.userId}}`);
-        const threadIds = (threads || []).map((t: any) => t.id);
+        const threadIds = (threads || []).map((t: unknown) => t.id);
         searchQuery = searchQuery.in('thread_id', threadIds);
       }
       const { data } = await searchQuery
         .order('created_at', { ascending: false });
-      return (data || []).map((msg: any) => this.formatMessage(msg));
+      return (data || []).map((msg: unknown) => this.formatMessage(msg));
     } catch (error) {
       logger.error('Error searching messages:', error);
       return [];
     }
   }
   // ============= Private Helper Methods =============
-  private formatMessage(raw: any): Message {
+  private formatMessage(raw: unknown): Message {
     return {
       id: raw.id,
       threadId: raw.thread_id,
@@ -364,7 +364,7 @@ export class MessageService {
       edited: Boolean(raw.edited),
       editedAt: raw.edited_at,
       createdAt: raw.created_at,
-      reactions: raw.reactions?.map((r: any) => ({
+      reactions: raw.reactions?.map((r: unknown) => ({
         emoji: r.emoji,
         userId: r.user_id,
         createdAt: r.created_at

@@ -11,10 +11,10 @@ interface NextRequest {
   method: string;
   headers: Headers;
   text(): Promise<string>;
-  json(): Promise<any>;
+  json(): Promise<unknown>;
 }
 const NextResponse = {
-  json(data: any, init?: ResponseInit): any {
+  json(data: Record<string, unknown>, init?: ResponseInit): unknown {
     return {
       body: JSON.stringify(data),
       status: init?.status || 200,
@@ -27,7 +27,7 @@ const NextResponse = {
 async function checkWebhookRateLimit(identifier: string) {
   return { allowed: true, remaining: 20 };
 }
-function handleAPIError(error: any): any {
+function handleAPIError(error: unknown): unknown {
   logger.error('Webhook Error:', error);
   const status = error.statusCode || 500;
   const message = error.message || 'Webhook processing error';
@@ -55,7 +55,7 @@ export class WebhookController {
   /**
    * POST /api/webhooks/stripe - Handle Stripe webhooks
    */
-  async handleStripeWebhook(request: NextRequest): Promise<any> {
+  async handleStripeWebhook(request: NextRequest): Promise<unknown> {
     try {
       // Rate limiting
       const clientIp = this.getClientIp(request);
@@ -125,7 +125,7 @@ export class WebhookController {
   /**
    * POST /api/webhooks/github - Handle GitHub webhooks
    */
-  async handleGithubWebhook(request: NextRequest): Promise<any> {
+  async handleGithubWebhook(request: NextRequest): Promise<unknown> {
     try {
       // Rate limiting
       const clientIp = this.getClientIp(request);
@@ -167,7 +167,7 @@ export class WebhookController {
   /**
    * POST /api/webhooks/slack - Handle Slack webhooks
    */
-  async handleSlackWebhook(request: NextRequest): Promise<any> {
+  async handleSlackWebhook(request: NextRequest): Promise<unknown> {
     try {
       // Rate limiting
       const clientIp = this.getClientIp(request);
@@ -177,7 +177,7 @@ export class WebhookController {
       }
       // Slack sends different types of requests
       const contentType = request.headers.get('content-type');
-      let body: any;
+      let body: unknown;
       if (contentType?.includes('application/x-www-form-urlencoded')) {
         // URL verification or slash commands
         const text = await request.text();
@@ -213,7 +213,7 @@ export class WebhookController {
   async handleGenericWebhook(
     request: NextRequest,
     source: string
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       // Rate limiting
       const clientIp = this.getClientIp(request);
@@ -251,7 +251,7 @@ export class WebhookController {
       .update(`${eventId}-${eventType}`)
       .digest('hex');
   }
-  private rateLimitResponse(rateLimitResult: any): any {
+  private rateLimitResponse(rateLimitResult: unknown): unknown {
     return NextResponse.json(
       { error: 'Too many webhook requests. Please try again later.' },
       {

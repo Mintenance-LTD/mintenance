@@ -11,7 +11,7 @@ interface DashboardWidget {
   id: string;
   title: string;
   type: 'metric' | 'chart' | 'table' | 'list' | 'map';
-  data: any;
+  data: Record<string, unknown>;
   config?: {
     refreshInterval?: number;
     color?: string;
@@ -44,7 +44,7 @@ interface ChartWidget {
   type: 'line' | 'bar' | 'pie' | 'area' | 'scatter';
   datasets: {
     label: string;
-    data: any[];
+    data: Record<string, unknown>[];
     color?: string;
   }[];
   labels?: string[];
@@ -76,7 +76,7 @@ export class DashboardService {
   async getDashboard(
     type: DashboardType,
     userId: string,
-    filters?: any
+    filters?: unknown
   ): Promise<DashboardData> {
     try {
       switch (type) {
@@ -97,7 +97,7 @@ export class DashboardService {
   /**
    * Get admin dashboard
    */
-  public async getAdminDashboard(filters?: any): Promise<DashboardData> {
+  public async getAdminDashboard(filters?: unknown): Promise<DashboardData> {
     const widgets: DashboardWidget[] = [];
     // Key metrics
     widgets.push(await this.createMetricWidget('total-users', 'Total Users', async () => {
@@ -237,7 +237,7 @@ export class DashboardService {
    */
   public async getContractorDashboard(
     contractorId: string,
-    filters?: any
+    filters?: unknown
   ): Promise<DashboardData> {
     const widgets: DashboardWidget[] = [];
     // Contractor metrics
@@ -369,7 +369,7 @@ export class DashboardService {
    */
   public async getHomeownerDashboard(
     userId: string,
-    filters?: any
+    filters?: unknown
   ): Promise<DashboardData> {
     const widgets: DashboardWidget[] = [];
     // Homeowner metrics
@@ -499,7 +499,7 @@ export class DashboardService {
   private async createMetricWidget(
     id: string,
     title: string,
-    dataFetcher: () => Promise<any>
+    dataFetcher: () => Promise<unknown>
   ): Promise<DashboardWidget> {
     const cacheKey = `metric:${id}`;
     // Check cache
@@ -527,7 +527,7 @@ export class DashboardService {
     id: string,
     title: string,
     chartType: string,
-    dataFetcher: () => Promise<any>
+    dataFetcher: () => Promise<unknown>
   ): Promise<DashboardWidget> {
     const data = await dataFetcher();
     return {
@@ -543,7 +543,7 @@ export class DashboardService {
   private async createTableWidget(
     id: string,
     title: string,
-    dataFetcher: () => Promise<any>
+    dataFetcher: () => Promise<unknown>
   ): Promise<DashboardWidget> {
     const data = await dataFetcher();
     return {
@@ -556,7 +556,7 @@ export class DashboardService {
   private async createListWidget(
     id: string,
     title: string,
-    dataFetcher: () => Promise<any>
+    dataFetcher: () => Promise<unknown>
   ): Promise<DashboardWidget> {
     const data = await dataFetcher();
     return {
@@ -613,7 +613,7 @@ export class DashboardService {
     }
     return result;
   }
-  private async getContractorJobStats(contractorId: string): Promise<any> {
+  private async getContractorJobStats(contractorId: string): Promise<unknown> {
     const { data } = await this.supabase
       .from('jobs')
       .select('status')

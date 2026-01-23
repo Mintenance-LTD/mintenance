@@ -140,7 +140,7 @@ export class JobValidator {
   /**
    * Validate list parameters
    */
-  validateListParams(params: any) {
+  validateListParams(params: Record<string, unknown>) {
     const result = listJobsSchema.safeParse(params);
     if (!result.success) {
       throw new Error(`Validation failed: ${result.error.message}`);
@@ -150,10 +150,10 @@ export class JobValidator {
   /**
    * Validate job creation data
    */
-  validateCreateJobData(data: any) {
+  validateCreateJobData(data: Record<string, unknown>) {
     const result = createJobSchema.safeParse(data);
     if (!result.success) {
-      const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);
+      const errors = result.error.issues.map((e: unknown) => `${e.path.join('.')}: ${e.message}`);
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
     return result.data;
@@ -161,10 +161,10 @@ export class JobValidator {
   /**
    * Validate job update data
    */
-  validateUpdateJobData(data: any) {
+  validateUpdateJobData(data: Record<string, unknown>) {
     const result = updateJobSchema.safeParse(data);
     if (!result.success) {
-      const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);
+      const errors = result.error.issues.map((e: unknown) => `${e.path.join('.')}: ${e.message}`);
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
     return result.data;
@@ -172,7 +172,7 @@ export class JobValidator {
   /**
    * Validate status update
    */
-  validateStatusUpdate(data: any) {
+  validateStatusUpdate(data: Record<string, unknown>) {
     const result = updateJobStatusSchema.safeParse(data);
     if (!result.success) {
       throw new Error(`Validation failed: ${result.error.message}`);
@@ -182,7 +182,7 @@ export class JobValidator {
   /**
    * Validate contractor assignment
    */
-  validateContractorAssignment(data: any) {
+  validateContractorAssignment(data: Record<string, unknown>) {
     const result = assignContractorSchema.safeParse(data);
     if (!result.success) {
       throw new Error(`Validation failed: ${result.error.message}`);
@@ -252,7 +252,7 @@ export class JobValidator {
   /**
    * Validate job filters
    */
-  validateFilters(filters: any) {
+  validateFilters(filters: unknown) {
     const schema = z.object({
       status: z.array(z.enum(['draft', 'posted', 'in_progress', 'completed', 'cancelled'])).optional(),
       category: z.array(z.string()).optional(),

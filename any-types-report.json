@@ -1230,66 +1230,6 @@
     ]
   },
   {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\DashboardService.ts",
-    "matches": [
-      {
-        "line": 14,
-        "content": "data: any;",
-        "match": ": any"
-      },
-      {
-        "line": 47,
-        "content": "data: any[];",
-        "match": ": any"
-      },
-      {
-        "line": 79,
-        "content": "filters?: any",
-        "match": ": any"
-      },
-      {
-        "line": 100,
-        "content": "public async getAdminDashboard(filters?: any): Promise<DashboardData> {",
-        "match": ": any"
-      },
-      {
-        "line": 240,
-        "content": "filters?: any",
-        "match": ": any"
-      },
-      {
-        "line": 372,
-        "content": "filters?: any",
-        "match": ": any"
-      },
-      {
-        "line": 502,
-        "content": "dataFetcher: () => Promise<any>",
-        "match": "<any>"
-      },
-      {
-        "line": 530,
-        "content": "dataFetcher: () => Promise<any>",
-        "match": "<any>"
-      },
-      {
-        "line": 546,
-        "content": "dataFetcher: () => Promise<any>",
-        "match": "<any>"
-      },
-      {
-        "line": 559,
-        "content": "dataFetcher: () => Promise<any>",
-        "match": "<any>"
-      },
-      {
-        "line": 616,
-        "content": "private async getContractorJobStats(contractorId: string): Promise<any> {",
-        "match": "<any>"
-      }
-    ]
-  },
-  {
     "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\EventTrackingService.ts",
     "matches": [
       {
@@ -1635,46 +1575,6 @@
     ]
   },
   {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\contracts\\ContractLifecycleService.ts",
-    "matches": [
-      {
-        "line": 2,
-        "content": "constructor(config: any) {}",
-        "match": ": any"
-      },
-      {
-        "line": 4,
-        "content": "async signContract(contractId: string, user: any, signature: string, ipAddress: string) {",
-        "match": ": any"
-      },
-      {
-        "line": 8,
-        "content": "async activateContract(contractId: string, user: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 12,
-        "content": "async completeContract(contractId: string, user: any, notes?: string, rating?: number) {",
-        "match": ": any"
-      },
-      {
-        "line": 16,
-        "content": "async cancelContract(contractId: string, user: any, reason: string, refundAmount?: number) {",
-        "match": ": any"
-      },
-      {
-        "line": 20,
-        "content": "async createDispute(contractId: string, user: any, data: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 20,
-        "content": "async createDispute(contractId: string, user: any, data: any) {",
-        "match": ": any"
-      }
-    ]
-  },
-  {
     "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\contracts\\ContractService.ts",
     "matches": [
       {
@@ -1750,71 +1650,6 @@
       {
         "line": 37,
         "content": "metadata?: any;",
-        "match": ": any"
-      }
-    ]
-  },
-  {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\feature-flags\\FeatureFlagService.ts",
-    "matches": [
-      {
-        "line": 22,
-        "content": "value: any;",
-        "match": ": any"
-      },
-      {
-        "line": 34,
-        "content": "config: any;",
-        "match": ": any"
-      },
-      {
-        "line": 43,
-        "content": "results?: any;",
-        "match": ": any"
-      },
-      {
-        "line": 46,
-        "content": "private supabase: any;",
-        "match": ": any"
-      },
-      {
-        "line": 47,
-        "content": "private cache: Map<string, { value: any; expires: number }> = new Map();",
-        "match": ": any"
-      },
-      {
-        "line": 48,
-        "content": "constructor(config: { supabase: any }) {",
-        "match": ": any"
-      },
-      {
-        "line": 216,
-        "content": "changes: any",
-        "match": ": any"
-      },
-      {
-        "line": 250,
-        "content": "return (data || []).map((exp: any) => ({",
-        "match": ": any"
-      },
-      {
-        "line": 281,
-        "content": "async getRollbackThresholds(flagName: FeatureFlag): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 399,
-        "content": "private assignVariant(userId: string, experiment: Experiment): any {",
-        "match": ": any"
-      },
-      {
-        "line": 420,
-        "content": "private getFromCache(key: string): any {",
-        "match": ": any"
-      },
-      {
-        "line": 428,
-        "content": "private setCache(key: string, value: any, ttl: number): void {",
         "match": ": any"
       }
     ]
@@ -1920,71 +1755,6 @@
     ]
   },
   {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobDetailsController.ts",
-    "matches": [
-      {
-        "line": 18,
-        "content": "json(): Promise<any>;",
-        "match": "<any>"
-      },
-      {
-        "line": 22,
-        "content": "json(data: any, init?: ResponseInit): any {",
-        "match": ": any"
-      },
-      {
-        "line": 22,
-        "content": "json(data: any, init?: ResponseInit): any {",
-        "match": ": any"
-      },
-      {
-        "line": 43,
-        "content": "async function checkRateLimit(request: NextRequest, options: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 46,
-        "content": "function handleAPIError(error: any): any {",
-        "match": ": any"
-      },
-      {
-        "line": 46,
-        "content": "function handleAPIError(error: any): any {",
-        "match": ": any"
-      },
-      {
-        "line": 78,
-        "content": "): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 117,
-        "content": "): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 165,
-        "content": "): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 221,
-        "content": "): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 265,
-        "content": "private rateLimitResponse(rateLimitResult: any): any {",
-        "match": ": any"
-      },
-      {
-        "line": 265,
-        "content": "private rateLimitResponse(rateLimitResult: any): any {",
-        "match": ": any"
-      }
-    ]
-  },
-  {
     "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobDetailsValidator.ts",
     "matches": [
       {
@@ -2023,41 +1793,6 @@
     "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobRepository.ts",
     "matches": [
       {
-        "line": 73,
-        "content": "filterByStatus(query: any, status: string[]) {",
-        "match": ": any"
-      },
-      {
-        "line": 79,
-        "content": "applyCursor(query: any, cursor: string) {",
-        "match": ": any"
-      },
-      {
-        "line": 85,
-        "content": "async executeQuery(query: any, limit: number): Promise<{",
-        "match": ": any"
-      },
-      {
-        "line": 269,
-        "content": "return (data || []).map((c: any) => c.id);",
-        "match": ": any"
-      },
-      {
-        "line": 305,
-        "content": "(data || []).forEach((att: any) => {",
-        "match": ": any"
-      },
-      {
-        "line": 313,
-        "content": "async getUser(userId: string): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 319,
-        "content": "async getProperty(propertyId: string): Promise<any> {",
-        "match": "<any>"
-      },
-      {
         "line": 325,
         "content": "async getBidsForJob(jobId: string): Promise<any[]> {",
         "match": "any[]"
@@ -2066,21 +1801,6 @@
         "line": 331,
         "content": "async getAttachmentsForJob(jobId: string): Promise<any[]> {",
         "match": "any[]"
-      },
-      {
-        "line": 372,
-        "content": "async storeAIAnalysis(jobId: string, analysis: any): Promise<void> {",
-        "match": ": any"
-      },
-      {
-        "line": 383,
-        "content": "async getAcceptedBidForJob(jobId: string): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 405,
-        "content": "async updateContractorStats(contractorId: string, stats: any): Promise<void> {",
-        "match": ": any"
       }
     ]
   },
@@ -2100,96 +1820,6 @@
       {
         "line": 331,
         "content": "private mapToJobDetail(row: any): JobDetail {",
-        "match": ": any"
-      }
-    ]
-  },
-  {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobStatusService.ts",
-    "matches": [
-      {
-        "line": 87,
-        "content": "const updateData: any = {",
-        "match": ": any"
-      },
-      {
-        "line": 153,
-        "content": "const notifications: Array<{ userId: string; type: string; data: any }> = [];",
-        "match": ": any"
-      },
-      {
-        "line": 228,
-        "content": "getAvailableTransitions(job: any, user: User): JobStatus[] {",
-        "match": ": any"
-      },
-      {
-        "line": 253,
-        "content": "job: any",
-        "match": ": any"
-      },
-      {
-        "line": 279,
-        "content": "job: any,",
-        "match": ": any"
-      },
-      {
-        "line": 325,
-        "content": "job: any,",
-        "match": ": any"
-      },
-      {
-        "line": 343,
-        "content": "job: any,",
-        "match": ": any"
-      },
-      {
-        "line": 388,
-        "content": "private async sendNotifications(notifications: Array<{ userId: string; type: string; data: any }>): Promise<void> {",
-        "match": ": any"
-      }
-    ]
-  },
-  {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobValidator.ts",
-    "matches": [
-      {
-        "line": 143,
-        "content": "validateListParams(params: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 153,
-        "content": "validateCreateJobData(data: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 156,
-        "content": "const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);",
-        "match": ": any"
-      },
-      {
-        "line": 164,
-        "content": "validateUpdateJobData(data: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 167,
-        "content": "const errors = result.error.issues.map((e: any) => `${e.path.join('.')}: ${e.message}`);",
-        "match": ": any"
-      },
-      {
-        "line": 175,
-        "content": "validateStatusUpdate(data: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 185,
-        "content": "validateContractorAssignment(data: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 255,
-        "content": "validateFilters(filters: any) {",
         "match": ": any"
       }
     ]
@@ -2315,51 +1945,6 @@
     ]
   },
   {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\messaging\\MessageService.ts",
-    "matches": [
-      {
-        "line": 36,
-        "content": "private supabase: any;",
-        "match": ": any"
-      },
-      {
-        "line": 37,
-        "content": "constructor(config: { supabase: any }) {",
-        "match": ": any"
-      },
-      {
-        "line": 126,
-        "content": "return (data || []).reverse().map((msg: any) => this.formatMessage(msg));",
-        "match": ": any"
-      },
-      {
-        "line": 287,
-        "content": "counts[threadId] = (data || []).filter((m: any) => m.thread_id === threadId).length;",
-        "match": ": any"
-      },
-      {
-        "line": 341,
-        "content": "const threadIds = (threads || []).map((t: any) => t.id);",
-        "match": ": any"
-      },
-      {
-        "line": 346,
-        "content": "return (data || []).map((msg: any) => this.formatMessage(msg));",
-        "match": ": any"
-      },
-      {
-        "line": 353,
-        "content": "private formatMessage(raw: any): Message {",
-        "match": ": any"
-      },
-      {
-        "line": 367,
-        "content": "reactions: raw.reactions?.map((r: any) => ({",
-        "match": ": any"
-      }
-    ]
-  },
-  {
     "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\messaging\\RealtimeService.ts",
     "matches": [
       {
@@ -2425,71 +2010,6 @@
       {
         "line": 9,
         "content": "constructor(config: { supabase: any }) {",
-        "match": ": any"
-      }
-    ]
-  },
-  {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\notifications\\EmailService.ts",
-    "matches": [
-      {
-        "line": 45,
-        "content": "private supabase: any;",
-        "match": ": any"
-      },
-      {
-        "line": 46,
-        "content": "private sgMail: any; // SendGrid client",
-        "match": ": any"
-      },
-      {
-        "line": 47,
-        "content": "constructor(config: { supabase: any; sendgridConfig: EmailConfig }) {",
-        "match": ": any"
-      },
-      {
-        "line": 53,
-        "content": "send: async (msg: any) => ({ messageId: 'mock-id' })",
-        "match": ": any"
-      },
-      {
-        "line": 106,
-        "content": "} catch (error: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 124,
-        "content": "const msg: any = {",
-        "match": ": any"
-      },
-      {
-        "line": 185,
-        "content": "} catch (error: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 237,
-        "content": "} catch (error: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 277,
-        "content": "} catch (error: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 298,
-        "content": "} catch (error: any) {",
-        "match": ": any"
-      },
-      {
-        "line": 303,
-        "content": "private buildPersonalizations(params: SendEmailParams): any[] {",
-        "match": ": any"
-      },
-      {
-        "line": 384,
-        "content": "} catch (error: any) {",
         "match": ": any"
       }
     ]
@@ -3070,46 +2590,6 @@
     ]
   },
   {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\handlers\\stripe\\SubscriptionHandler.ts",
-    "matches": [
-      {
-        "line": 11,
-        "content": "object: any;",
-        "match": ": any"
-      },
-      {
-        "line": 12,
-        "content": "previous_attributes?: any;",
-        "match": ": any"
-      },
-      {
-        "line": 16,
-        "content": "stripe: any;",
-        "match": ": any"
-      },
-      {
-        "line": 25,
-        "content": "async handleCreated(event: StripeEvent): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 45,
-        "content": "async handleUpdated(event: StripeEvent): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 64,
-        "content": "async handleDeleted(event: StripeEvent): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 80,
-        "content": "async handleTrialWillEnd(event: StripeEvent): Promise<any> {",
-        "match": "<any>"
-      }
-    ]
-  },
-  {
     "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\handlers\\StripeWebhookHandler.ts",
     "matches": [
       {
@@ -3180,127 +2660,12 @@
     ]
   },
   {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\WebhookController.ts",
-    "matches": [
-      {
-        "line": 14,
-        "content": "json(): Promise<any>;",
-        "match": "<any>"
-      },
-      {
-        "line": 17,
-        "content": "json(data: any, init?: ResponseInit): any {",
-        "match": ": any"
-      },
-      {
-        "line": 17,
-        "content": "json(data: any, init?: ResponseInit): any {",
-        "match": ": any"
-      },
-      {
-        "line": 30,
-        "content": "function handleAPIError(error: any): any {",
-        "match": ": any"
-      },
-      {
-        "line": 30,
-        "content": "function handleAPIError(error: any): any {",
-        "match": ": any"
-      },
-      {
-        "line": 58,
-        "content": "async handleStripeWebhook(request: NextRequest): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 128,
-        "content": "async handleGithubWebhook(request: NextRequest): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 170,
-        "content": "async handleSlackWebhook(request: NextRequest): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 180,
-        "content": "let body: any;",
-        "match": ": any"
-      },
-      {
-        "line": 216,
-        "content": "): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 254,
-        "content": "private rateLimitResponse(rateLimitResult: any): any {",
-        "match": ": any"
-      },
-      {
-        "line": 254,
-        "content": "private rateLimitResponse(rateLimitResult: any): any {",
-        "match": ": any"
-      }
-    ]
-  },
-  {
     "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\WebhookService.ts",
     "matches": [
-      {
-        "line": 15,
-        "content": "payload: any;",
-        "match": ": any"
-      },
-      {
-        "line": 18,
-        "content": "result?: any;",
-        "match": ": any"
-      },
-      {
-        "line": 32,
-        "content": "event: any",
-        "match": ": any"
-      },
-      {
-        "line": 100,
-        "content": "async getWebhookEvent(eventId: string, source: string): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 119,
-        "content": "result?: any,",
-        "match": ": any"
-      },
-      {
-        "line": 122,
-        "content": "const updateData: any = {",
-        "match": ": any"
-      },
-      {
-        "line": 155,
-        "content": "): Promise<any> {",
-        "match": "<any>"
-      },
       {
         "line": 204,
         "content": "async getFailedEvents(source?: string, limit = 10): Promise<any[]> {",
         "match": "any[]"
-      },
-      {
-        "line": 224,
-        "content": "async getWebhookStats(source?: string, days = 7): Promise<any> {",
-        "match": "<any>"
-      },
-      {
-        "line": 240,
-        "content": "const stats: any = {",
-        "match": ": any"
-      },
-      {
-        "line": 246,
-        "content": "(data || []).forEach((event: any) => {",
-        "match": ": any"
       }
     ]
   },
