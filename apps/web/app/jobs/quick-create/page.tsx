@@ -100,7 +100,7 @@ export default function QuickJobPage() {
   const { csrfToken } = useCSRF();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [primaryProperty, setPrimaryProperty] = useState<any>(null);
+  const [primaryProperty, setPrimaryProperty] = useState<unknown>(null);
 
   const [formData, setFormData] = useState({
     title: '',

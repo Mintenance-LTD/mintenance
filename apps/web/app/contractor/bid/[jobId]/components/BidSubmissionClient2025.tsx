@@ -68,7 +68,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
 
   // Pricing suggestion state
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
-  const [pricingSuggestion, setPricingSuggestion] = useState<any>(null);
+  const [pricingSuggestion, setPricingSuggestion] = useState<unknown>(null);
   const [showPricingSuggestion, setShowPricingSuggestion] = useState(false);
 
   const homeownerName = job.homeowner?.first_name && job.homeowner?.last_name

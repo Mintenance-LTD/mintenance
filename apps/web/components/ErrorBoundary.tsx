@@ -40,7 +40,7 @@ const focusRing = {
 };
 
 // Sentry is optional - will be undefined if not installed
-const Sentry: any = null; // Disabled until @sentry/nextjs is installed
+const Sentry: unknown = null; // Disabled until @sentry/nextjs is installed
 
 interface ErrorBoundaryProps {
   children: ReactNode;

@@ -266,7 +266,7 @@ export async function GET(request: NextRequest) {
 /**
  * Process image with SAM3 for segmentation
  */
-async function processWithSAM3(imageUrl: string): Promise<any> {
+async function processWithSAM3(imageUrl: string): Promise<unknown> {
   try {
     const response = await fetch(`${process.env.SAM3_SERVICE_URL}/segment_maintenance`, {
       method: 'POST',

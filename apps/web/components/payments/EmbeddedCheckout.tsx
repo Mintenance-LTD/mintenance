@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 // Initialize Stripe promise
-let stripePromise: Promise<any> | null = null;
+let stripePromise: Promise<unknown> | null = null;
 
 const getStripe = () => {
   if (!stripePromise) {

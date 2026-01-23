@@ -13,7 +13,7 @@ import { formatMoney } from '@/lib/utils/currency';
 interface BuildingAssessmentDisplayProps {
   assessment: BuildingAssessment | null;
   loading?: boolean;
-  onCorrection?: (assessmentId: string, corrections: any[]) => void;
+  onCorrection?: (assessmentId: string, corrections: unknown[]) => void;
 }
 
 export function BuildingAssessmentDisplay({

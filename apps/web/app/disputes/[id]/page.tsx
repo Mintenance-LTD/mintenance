@@ -19,7 +19,7 @@ export default function DisputeDetailPage() {
   const router = useRouter();
   const disputeId = params.id as string;
   const { user, loading } = useCurrentUser();
-  const [dispute, setDispute] = useState<any>(null);
+  const [dispute, setDispute] = useState<unknown>(null);
   const [timeline, setTimeline] = useState<DisputeTimeline[]>([]);
   const [loadingDispute, setLoadingDispute] = useState(true);
 

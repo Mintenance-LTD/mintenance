@@ -73,7 +73,7 @@ export class SecurityMonitor {
     request: NextRequest,
     reason: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     await this.logEvent({
       event_type: 'auth_failure',
@@ -124,8 +124,8 @@ export class SecurityMonitor {
       user_agent: request.headers.get('user-agent') || 'unknown',
       endpoint: request.nextUrl.pathname,
       method: request.method,
-      payload: JSON.stringify(payload).substring(0, 1000) as any, // Truncate for storage
-      details: 'Potential XSS attack detected in input' as any,
+      payload: JSON.stringify(payload).substring(0, 1000) as unknown, // Truncate for storage
+      details: 'Potential XSS attack detected in input' as unknown,
     });
   }
 
@@ -146,8 +146,8 @@ export class SecurityMonitor {
       user_agent: request.headers.get('user-agent') || 'unknown',
       endpoint: request.nextUrl.pathname,
       method: request.method,
-      payload: JSON.stringify(payload).substring(0, 1000) as any,
-      details: `Potential ${injectionType} injection detected` as any,
+      payload: JSON.stringify(payload).substring(0, 1000) as unknown,
+      details: `Potential ${injectionType} injection detected` as unknown,
     });
   }
 
@@ -158,7 +158,7 @@ export class SecurityMonitor {
     request: NextRequest,
     reason: string,
     userId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     await this.logEvent({
       event_type: 'suspicious_activity',
@@ -220,7 +220,7 @@ export class SecurityMonitor {
     action: string,
     adminUserId: string,
     targetUserId?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     await this.logEvent({
       event_type: 'admin_action',
@@ -297,7 +297,7 @@ export class SecurityMonitor {
   /**
    * Get security metrics
    */
-  async getSecurityMetrics(timeframe: '1h' | '24h' | '7d' | '30d' = '24h'): Promise<any> {
+  async getSecurityMetrics(timeframe: '1h' | '24h' | '7d' | '30d' = '24h'): Promise<unknown> {
     const timeframes = {
       '1h': '1 hour',
       '24h': '24 hours',

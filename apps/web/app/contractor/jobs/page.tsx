@@ -140,7 +140,7 @@ export default function ContractorJobsPage2025() {
         }
 
         // Transform API data based on endpoint type
-        let jobsData: any[] = [];
+        let jobsData: unknown[] = [];
 
         if (filter === 'viewed' && data.views) {
           jobsData = data.views.map((view: unknown) => view.job).filter(Boolean);
@@ -280,7 +280,7 @@ export default function ContractorJobsPage2025() {
                   ].map((tab) => (
                     <button
                       key={tab.value}
-                      onClick={() => setFilter(tab.value as any)}
+                      onClick={() => setFilter(tab.value as unknown)}
                       className={`px-6 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
                         filter === tab.value
                           ? 'bg-teal-600 text-white shadow-sm'
