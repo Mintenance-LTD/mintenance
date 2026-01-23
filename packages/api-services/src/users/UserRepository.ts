@@ -68,7 +68,7 @@ export class UserRepository {
   /**
    * Create new user
    */
-  async create(userData: any): Promise<User> {
+  async create(userData: unknown): Promise<User> {
     try {
       const { data, error } = await this.supabase
         .from('users')
@@ -102,7 +102,7 @@ export class UserRepository {
   /**
    * Update user
    */
-  async update(id: string, updates: any): Promise<User> {
+  async update(id: string, updates: unknown): Promise<User> {
     try {
       // Remove undefined values and system fields
       const cleanedUpdates = Object.entries(updates)
@@ -180,7 +180,7 @@ export class UserRepository {
   /**
    * Search users
    */
-  async search(query: string, filters?: any): Promise<User[]> {
+  async search(query: string, filters?: unknown): Promise<User[]> {
     try {
       let queryBuilder = this.supabase
         .from('users')
@@ -311,7 +311,7 @@ export class UserRepository {
   /**
    * Map database record to User type
    */
-  private mapToUser(data: any): any {
+  private mapToUser(data: Record<string, unknown>): unknown {
     return {
       id: data.id,
       email: data.email,

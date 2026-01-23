@@ -5,10 +5,10 @@ import { logger } from '@mintenance/shared';
  */
 
 export class NotificationServiceStub {
-    async notifyContractors(job: any, contractorIds: string[]) {
+    async notifyContractors(job: unknown, contractorIds: string[]) {
         logger.info('Would notify contractors', { jobId: job.id, count: contractorIds.length });
     }
-    async notifyNearbyContractors(job: any, radiusMiles: number = 50) {
+    async notifyNearbyContractors(job: unknown, radiusMiles: number = 50) {
         logger.info('Would notify nearby contractors', { jobId: job.id, radius: radiusMiles });
     }
 }
@@ -23,7 +23,7 @@ export class AIAssessmentServiceStub {
     async createAssessment(jobId: string, photoUrls: string[], description?: string) {
         return { id: null, status: 'pending' };
     }
-    async assessJob(data: any) {
+    async assessJob(data: Record<string, unknown>) {
         return { id: null, confidence_score: 0, urgency: 'normal' };
     }
     async getAssessmentsForJobs(jobIds: string[]) {
@@ -35,10 +35,10 @@ export class AttachmentServiceStub {
     async processAttachments(jobId: string, urls: string[]) {
         return urls;
     }
-    async createAttachments(jobId: string, attachments: any[]) {
+    async createAttachments(jobId: string, attachments: unknown[]) {
         return attachments;
     }
-    async updateAttachments(jobId: string, attachments: any[]) {
+    async updateAttachments(jobId: string, attachments: unknown[]) {
         return attachments;
     }
     async deleteAttachments(jobId: string) {

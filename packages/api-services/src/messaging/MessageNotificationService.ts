@@ -6,8 +6,8 @@ import { User } from '../users';
  * Message Notification Service - Handle notifications for messages
  */
 export class MessageNotificationService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   async notifyNewMessage(params: {
@@ -20,8 +20,8 @@ export class MessageNotificationService {
     logger.info('Notifying new message:', params);
   }
   async notifyVideoCallInvitation(params: {
-    call: any;
-    initiator: any;
+    call: unknown;
+    initiator: unknown;
   }): Promise<void> {
     // Implementation stub
     logger.info('Notifying video call:', params);
@@ -29,7 +29,7 @@ export class MessageNotificationService {
   async notifyMention(params: {
     messageId: string;
     mentionedUserId: string;
-    sender: any;
+    sender: unknown;
   }): Promise<void> {
     // Implementation stub
     logger.info('Notifying mention:', params);

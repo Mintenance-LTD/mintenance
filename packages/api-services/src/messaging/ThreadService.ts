@@ -7,7 +7,7 @@ interface CreateThreadParams {
   jobId?: string;
   creatorId: string;
   participantIds?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 interface GetThreadsParams {
   userId: string;
@@ -16,8 +16,8 @@ interface GetThreadsParams {
   archived?: boolean;
 }
 export class ThreadService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -159,7 +159,7 @@ export class ThreadService {
       if (!threads) return [];
       // Format threads with participant details
       const formattedThreads = await Promise.all(
-        threads.map(async (thread: any) => {
+        threads.map(async (thread: unknown) => {
           const participants = await this.getParticipantDetails(thread.participant_ids || []);
           return {
             id: thread.id,
@@ -348,7 +348,7 @@ export class ThreadService {
         .from('users')
         .select('id, first_name, last_name, role, profile_image_url, last_seen')
         .in('id', userIds);
-      return (users || []).map((user: any) => ({
+      return (users || []).map((user: unknown) => ({
         userId: user.id,
         name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Unknown',
         role: user.role,
@@ -370,7 +370,7 @@ export class ThreadService {
     threadId: string,
     eventType: string,
     userId: string,
-    metadata?: any
+    metadata?: unknown
   ): Promise<void> {
     try {
       await this.supabase

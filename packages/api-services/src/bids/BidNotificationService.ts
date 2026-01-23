@@ -1,7 +1,7 @@
 export class BidNotificationService {
-  constructor(config: any) {}
+  constructor(config: unknown) {}
 
-  async notifyBidSubmission(bid: any) {}
-  async notifyBidAcceptance(bid: any, contract: any) {}
-  async notifyBidRejection(bid: any, reason?: string) {}
+  async notifyBidSubmission(bid: unknown) {}
+  async notifyBidAcceptance(bid: unknown, contract: unknown) {}
+  async notifyBidRejection(bid: unknown, reason?: string) {}
 }

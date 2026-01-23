@@ -5,8 +5,8 @@ import { NotificationType, NotificationPreferences, NotificationSettings } from 
 import { logger } from '@mintenance/shared';
 // Types are now imported from ./types to avoid circular dependencies
 export class NotificationService {
-  private supabase: any;
-  constructor(config: { supabase: any }) {
+  private supabase: unknown;
+  constructor(config: { supabase: unknown }) {
     this.supabase = config.supabase;
   }
   /**
@@ -152,7 +152,7 @@ export class NotificationService {
   /**
    * Get notification statistics for a user
    */
-  async getUserNotificationStats(userId: string, days: number = 30): Promise<any> {
+  async getUserNotificationStats(userId: string, days: number = 30): Promise<unknown> {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
@@ -163,7 +163,7 @@ export class NotificationService {
         .gte('sent_at', startDate.toISOString());
       if (!data) return {};
       // Calculate statistics
-      const stats: any = {
+      const stats: unknown = {
         total: data.length,
         byChannel: {},
         byType: {},
@@ -203,7 +203,7 @@ export class NotificationService {
         .select('token')
         .eq('user_id', userId)
         .eq('active', true);
-      return data?.map((d: any) => d.token) || [];
+      return data?.map((d: unknown) => d.token) || [];
     } catch (error) {
       logger.error('Error getting device tokens:', error);
       return [];

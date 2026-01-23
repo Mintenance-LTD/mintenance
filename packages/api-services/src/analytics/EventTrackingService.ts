@@ -30,13 +30,13 @@ const eventSchema = z.object({
 // Types are now imported from ./types to avoid circular dependencies
 export class EventTrackingService {
   private supabase: SupabaseClient;
-  private clickhouse?: any; // ClickHouse client for time-series data
-  private redis?: any; // Redis for real-time processing
+  private clickhouse?: unknown; // ClickHouse client for time-series data
+  private redis?: unknown; // Redis for real-time processing
   private batchQueue: AnalyticsEvent[] = [];
   private batchTimer: NodeJS.Timeout | null = null;
   private readonly BATCH_SIZE = 100;
   private readonly BATCH_DELAY_MS = 5000;
-  constructor(supabase: SupabaseClient, clickhouse?: any, redis?: any) {
+  constructor(supabase: SupabaseClient, clickhouse?: unknown, redis?: unknown) {
     this.supabase = supabase;
     this.clickhouse = clickhouse;
     this.redis = redis;
@@ -402,7 +402,7 @@ export class EventTrackingService {
     // ClickHouse implementation would go here
     return [];
   }
-  private formatEvent(data: any): AnalyticsEvent {
+  private formatEvent(data: Record<string, unknown>): AnalyticsEvent {
     return {
       type: data.type,
       userId: data.user_id,

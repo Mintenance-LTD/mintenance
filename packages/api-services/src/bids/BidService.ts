@@ -21,7 +21,7 @@ interface Contract {
   homeowner_id: string;
   amount: number;
   status: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface BidServiceConfig {
@@ -118,7 +118,7 @@ export class BidService {
   /**
    * Get bids for a contractor
    */
-  async getContractorBids(contractorId: string, params: BidListParams): Promise<any> {
+  async getContractorBids(contractorId: string, params: BidListParams): Promise<unknown> {
     const query = this.repository.buildBidsQuery({
       contractorId,
       ...params
@@ -135,7 +135,7 @@ export class BidService {
   /**
    * Get bids for a job (homeowner view)
    */
-  async getJobBids(jobId: string, homeownerId: string, params: BidListParams): Promise<any> {
+  async getJobBids(jobId: string, homeownerId: string, params: BidListParams): Promise<unknown> {
     // Verify homeowner owns the job
     const job = await this.repository.getJob(jobId);
     if (!job || job.homeowner_id !== homeownerId) {
@@ -273,7 +273,7 @@ export class BidService {
     }
 
     const validatedData = this.validator.validateUpdateBid(data);
-    const updateData: any = { ...validatedData };
+    const updateData: unknown = { ...validatedData };
 
     if (validatedData.estimatedDuration && validatedData.estimatedDurationUnit) {
       updateData.estimated_duration = this.convertDurationToHours(
@@ -316,7 +316,7 @@ export class BidService {
 
   // ============= Private Helper Methods =============
 
-  private async validateContractorQualifications(contractorId: string, job: any): Promise<void> {
+  private async validateContractorQualifications(contractorId: string, job: unknown): Promise<void> {
     const contractor = await this.repository.getContractor(contractorId);
     if (!contractor.is_verified) {
       throw new Error('Only verified contractors can submit bids');

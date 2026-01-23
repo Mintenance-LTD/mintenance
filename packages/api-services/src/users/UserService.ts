@@ -111,7 +111,7 @@ const UpdateSettingsSchema = z.object({
 
 // Placeholder services
 class FileUploadService {
-  async uploadProfileImage(userId: string, file: any): Promise<string> {
+  async uploadProfileImage(userId: string, file: unknown): Promise<string> {
     logger.info('Would upload profile image', { userId });
     return `https://storage.example.com/profiles/${userId}/avatar.jpg`;
   }
@@ -120,10 +120,10 @@ class FileUploadService {
   }
 }
 class CacheService {
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<unknown> {
     return null;
   }
-  async set(key: string, value: any, ttl?: number): Promise<void> {
+  async set(key: string, value: unknown, ttl?: number): Promise<void> {
     logger.info('Would cache', { key, ttl });
   }
   async delete(key: string): Promise<void> {
@@ -252,7 +252,7 @@ export class UserService {
   /**
    * Upload user avatar
    */
-  async uploadAvatar(userId: string, file: any): Promise<string> {
+  async uploadAvatar(userId: string, file: unknown): Promise<string> {
     try {
       logger.info('Uploading user avatar', { userId });
       // Validate file
@@ -367,7 +367,7 @@ export class UserService {
   /**
    * Search users (admin only)
    */
-  async searchUsers(query: string, filters?: any): Promise<User[]> {
+  async searchUsers(query: string, filters?: unknown): Promise<User[]> {
     try {
       logger.info('Searching users', { query, filters });
       return await this.repository.search(query, filters);

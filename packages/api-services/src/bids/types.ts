@@ -19,7 +19,7 @@ export interface BidRecord {
     labor_cost?: number;
     availability?: string;
     score?: number;
-    score_details?: any;
+    score_details?: unknown;
     created_at: string;
     updated_at: string;
 }
@@ -31,9 +31,9 @@ export interface BidSummary extends BidRecord {
 }
 
 export interface BidDetail extends BidSummary {
-    itemizedQuote?: any[];
-    attachments?: any[];
-    job?: any;
+    itemizedQuote?: unknown[];
+    attachments?: unknown[];
+    job?: unknown;
 }
 
 export interface SubmitBidData {
@@ -43,7 +43,7 @@ export interface SubmitBidData {
     estimatedDuration: number;
     estimatedDurationUnit: 'hours' | 'days' | 'weeks' | 'months';
     proposedStartDate?: string;
-    itemizedQuote?: any[];
+    itemizedQuote?: unknown[];
     attachments?: string[];
     availability?: string;
     materialsCost?: number;
