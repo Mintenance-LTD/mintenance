@@ -9,25 +9,9 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-import { JobService } from '../../services/JobService';
+// FIXED: Removed JobService mock antipattern - now testing real service with mocked dependencies
 
-jest.mock('../../services/JobService', () => ({
-  JobService: {
-    getJobs: jest.fn(),
-    getAvailableJobs: jest.fn(),
-    getJobsByHomeowner: jest.fn(),
-    getJobsByStatus: jest.fn(),
-    getJobById: jest.fn(),
-    getBidsByJob: jest.fn(),
-    searchJobs: jest.fn(),
-    createJob: jest.fn(),
-    updateJobStatus: jest.fn(),
-    startJob: jest.fn(),
-    completeJob: jest.fn(),
-    submitBid: jest.fn(),
-    acceptBid: jest.fn(),
-  }
-}));
+import { JobService } from '../../services/JobService';
 
 // Mock only external dependencies
 jest.mock('../../config/supabase', () => ({
