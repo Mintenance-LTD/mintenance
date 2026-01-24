@@ -9,7 +9,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-import SSOProviderRepository from '../SSOProviderRepository';
+import { SSOProviderRepository } from '../SSOProviderRepository';
 
 describe('SSOProviderRepository', () => {
   let service: SSOProviderRepository;

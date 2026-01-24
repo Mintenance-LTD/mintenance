@@ -9,7 +9,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-import ClientRepository from '../ClientRepository';
+import { ClientRepository } from '../ClientRepository';
 
 describe('ClientRepository', () => {
   let service: ClientRepository;
