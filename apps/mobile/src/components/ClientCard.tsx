@@ -137,7 +137,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
           </Text>
           <Text style={styles.metricLabel}>Pay Score</Text>
         </View>
-        {client.satisfaction_score && (
+        {client.satisfaction_score !== undefined && (
           <View style={styles.metric}>
             <View style={styles.rating}>
               <Text style={styles.metricValue}>
