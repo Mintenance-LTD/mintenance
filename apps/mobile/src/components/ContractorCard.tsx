@@ -121,7 +121,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
                 </View>
                 <Text style={styles.ratingText}>
                   {(contractor.rating || 0).toFixed(1)} (
-                  {contractor.totalJobsCompleted} jobs)
+                  {contractor.totalJobsCompleted || contractor.total_jobs_completed || 0} jobs)
                 </Text>
               </View>
 
@@ -291,7 +291,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
   return (
     <View style={styles.container}>
-      <Swiper
+      <SwipeableCardWrapper
         cards={cards}
         cardIndex={0}
         backgroundColor='transparent'
