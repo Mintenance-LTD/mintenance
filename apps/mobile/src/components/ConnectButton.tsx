@@ -218,6 +218,7 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
 
   return (
     <TouchableOpacity
+      testID="connect-button"
       style={[
         styles.button,
         {
@@ -233,7 +234,7 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
       accessibilityLabel={`${config.text} with ${targetUserName}`}
     >
       {loading || initialLoading ? (
-        <ActivityIndicator size="small" color={config.textColor} />
+        <ActivityIndicator testID="activity-indicator" size="small" color={config.textColor} />
       ) : (
         <>
           {config.icon && (
