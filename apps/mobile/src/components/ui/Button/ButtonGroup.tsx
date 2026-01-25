@@ -100,35 +100,35 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
   // New mode: render buttons with selection
   if (buttons) {
     return (
-      <View 
-        style={[
+      <View
+        style={StyleSheet.flatten([
           styles.container,
           orientation === 'vertical' && styles.verticalContainer,
           { gap: designTokens.spacing[spacing] },
           style,
-        ]}
+        ])}
         testID="button-group"
       >
         {buttons.map((button) => {
           const isSelected = currentSelectedValues.includes(button.value);
-          
+
           return (
             <TouchableOpacity
               key={button.id}
-              style={[
+              style={StyleSheet.flatten([
                 styles.button,
                 isSelected && styles.selectedButton,
                 button.disabled && styles.disabledButton,
-              ]}
+              ])}
               onPress={() => handleButtonPress(button.value, button.disabled)}
               disabled={button.disabled}
               testID={`button-${button.id}`}
             >
-              <Text style={[
+              <Text style={StyleSheet.flatten([
                 styles.buttonText,
                 isSelected && styles.selectedButtonText,
                 button.disabled && styles.disabledButtonText,
-              ]}>
+              ])}>
                 {button.title}
               </Text>
             </TouchableOpacity>
