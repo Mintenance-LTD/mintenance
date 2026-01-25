@@ -59,9 +59,15 @@ export const Button: React.FC<ButtonProps> = ({
   const color = v?.color ?? theme.colors.textInverse;
   const isTertiary = variant === 'tertiary';
 
+  const handlePress = () => {
+    if (!disabled && !loading && onPress) {
+      onPress();
+    }
+  };
+
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || loading}
       accessibilityRole='button'
       accessibilityLabel={accessibilityLabel || title}
@@ -76,8 +82,7 @@ export const Button: React.FC<ButtonProps> = ({
           borderColor,
           width: fullWidth ? ('100%' as const) : undefined,
         },
-        disabled && styles.disabledShadow,
-        backgroundColor === 'transparent' && styles.noShadow,
+        !disabled && !loading && backgroundColor !== 'transparent' && theme.shadows.lg,
         style,
       ]}
     >
@@ -114,7 +119,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    ...theme.shadows.lg,
   },
   md: {
     minHeight: theme.layout.buttonHeightLarge,
@@ -140,14 +144,6 @@ const styles = StyleSheet.create({
   linkText: {
     textDecorationLine: 'underline',
     fontWeight: theme.typography.fontWeight.medium,
-  },
-  disabledShadow: {
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  noShadow: {
-    shadowOpacity: 0,
-    elevation: 0,
   },
   contentRow: {
     flexDirection: 'row',

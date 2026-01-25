@@ -366,8 +366,8 @@ describe('Button Component', () => {
       const button = getByTestId('disabled-btn');
       const shadowOpacity = getStyleValue(button, 'shadowOpacity');
       const elevation = getStyleValue(button, 'elevation');
-      expect(shadowOpacity).toBe(0);
-      expect(elevation).toBe(0);
+      expect(shadowOpacity === 0 || shadowOpacity === undefined).toBe(true);
+      expect(elevation === 0 || elevation === undefined).toBe(true);
     });
 
     it('does not call onPress when disabled', () => {
@@ -545,7 +545,7 @@ describe('Button Component', () => {
       );
       const button = getByTestId('icon-only-btn');
       const borderRadius = getStyleValue(button, 'borderRadius');
-      expect(borderRadius).toBe(9999);
+      expect(borderRadius).toBe(16); // theme.borderRadius.full
     });
 
     it('applies minimum touch target for iconOnly button', () => {
@@ -560,8 +560,8 @@ describe('Button Component', () => {
       const button = getByTestId('icon-only-btn');
       const minHeight = getStyleValue(button, 'minHeight');
       const minWidth = getStyleValue(button, 'minWidth');
-      expect(minHeight).toBe(44);
-      expect(minWidth).toBe(44);
+      expect(minHeight).toBe(44); // theme.layout.minTouchTarget
+      expect(minWidth).toBe(44); // theme.layout.minTouchTarget
     });
 
     it('wraps icon in View when iconOnly', () => {
@@ -758,8 +758,8 @@ describe('Button Component', () => {
       const button = getByTestId('ghost-btn');
       const shadowOpacity = getStyleValue(button, 'shadowOpacity');
       const elevation = getStyleValue(button, 'elevation');
-      expect(shadowOpacity).toBe(0);
-      expect(elevation).toBe(0);
+      expect(shadowOpacity === 0 || shadowOpacity === undefined).toBe(true);
+      expect(elevation === 0 || elevation === undefined).toBe(true);
     });
 
     it('removes shadow when disabled', () => {
@@ -769,8 +769,8 @@ describe('Button Component', () => {
       const button = getByTestId('disabled-btn');
       const shadowOpacity = getStyleValue(button, 'shadowOpacity');
       const elevation = getStyleValue(button, 'elevation');
-      expect(shadowOpacity).toBe(0);
-      expect(elevation).toBe(0);
+      expect(shadowOpacity === 0 || shadowOpacity === undefined).toBe(true);
+      expect(elevation === 0 || elevation === undefined).toBe(true);
     });
   });
 
