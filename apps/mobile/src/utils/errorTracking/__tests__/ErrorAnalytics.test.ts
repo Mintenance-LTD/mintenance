@@ -2,7 +2,7 @@
  * Tests for Error Analytics Module
  */
 
-import ErrorAnalytics from '../ErrorAnalytics';
+import { ErrorAnalytics } from '../ErrorAnalytics';
 import {
   ErrorCategory,
   ErrorSeverity,
