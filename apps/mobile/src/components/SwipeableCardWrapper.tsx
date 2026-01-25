@@ -112,7 +112,7 @@ const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperPr
         scaleAnim.setValue(1);
       });
     };
-    const panResponderRef = React.useRef<ReturnType<typeof PanResponder.create>>();
+    const panResponderRef = React.useRef<ReturnType<typeof PanResponder.create> | undefined>(undefined);
     if (!panResponderRef.current) {
       const created = PanResponder.create({
         onStartShouldSetPanResponder: () => true,
