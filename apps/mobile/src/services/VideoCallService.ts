@@ -15,9 +15,50 @@
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { handleDatabaseOperation, validateRequired } from '../utils/serviceHelper';
-import { measurePerformance } from '../utils/performance';
+import { performanceMonitor } from '../utils/performance';
 import { NotificationService } from './NotificationService';
 import { MessagingService } from './MessagingService';
+
+// Database row interface for video_calls table (snake_case)
+interface DatabaseVideoCallRow {
+  id: string;
+  job_id: string;
+  participants: string[];
+  initiator_id: string;
+  status: 'scheduled' | 'active' | 'completed' | 'cancelled' | 'failed';
+  start_time?: string | null;
+  end_time?: string | null;
+  scheduled_time?: string | null;
+  duration?: number | null;
+  recording_url?: string | null;
+  recording_enabled: boolean;
+  screen_sharing_enabled: boolean;
+  call_quality?: 'excellent' | 'good' | 'fair' | 'poor' | null;
+  metadata?: {
+    callPurpose?: 'consultation' | 'progress_update' | 'problem_discussion' | 'final_walkthrough';
+    notes?: string;
+    issues?: string[];
+    resolution?: string;
+    followUpRequired?: boolean;
+    recordingStartedBy?: string;
+    recordingStartedAt?: string;
+    cancelledBy?: string;
+    cancellationReason?: string;
+    cancelledAt?: string;
+    endedBy?: string;
+    [key: string]: unknown;
+  } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Notification data interface
+interface VideoCallNotificationData {
+  type: 'system';
+  action: string;
+  callId: string;
+  jobId: string;
+}
 
 export interface VideoCall {
   id: string;
@@ -105,7 +146,7 @@ export class VideoCallService {
     purpose: string,
     recordingEnabled: boolean = false
   ): Promise<VideoCall> {
-    return measurePerformance('schedule_video_call', async () => {
+    return performanceMonitor.measureAsync('schedule_video_call', async () => {
       const context = {
         service: 'VideoCallService',
         method: 'scheduleCall',
@@ -122,7 +163,7 @@ export class VideoCallService {
           job_id: jobId,
           initiator_id: initiatorId,
           participants: participants,
-          status: 'scheduled',
+          status: 'scheduled' as const,
           scheduled_time: scheduledTime,
           recording_enabled: recordingEnabled,
           screen_sharing_enabled: false,
@@ -144,7 +185,7 @@ export class VideoCallService {
           throw new Error(`Failed to schedule call: ${result.error.message}`);
         }
 
-        const videoCall = this.transformVideoCallData(result.data);
+        const videoCall = this.transformVideoCallData(result.data as DatabaseVideoCallRow);
 
         // Send notifications to participants
         await this.notifyParticipants(videoCall, 'scheduled');
@@ -158,7 +199,7 @@ export class VideoCallService {
 
         return { data: videoCall, error: null };
       }, context);
-    });
+    }, 'network');
   }
 
   /**
@@ -170,7 +211,7 @@ export class VideoCallService {
     participants: string[],
     purpose: string = 'consultation'
   ): Promise<VideoCall> {
-    return measurePerformance('start_instant_call', async () => {
+    return performanceMonitor.measureAsync('start_instant_call', async () => {
       const context = {
         service: 'VideoCallService',
         method: 'startInstantCall',
@@ -186,7 +227,7 @@ export class VideoCallService {
           job_id: jobId,
           initiator_id: initiatorId,
           participants: participants,
-          status: 'active',
+          status: 'active' as const,
           start_time: new Date().toISOString(),
           recording_enabled: false,
           screen_sharing_enabled: false,
@@ -208,7 +249,7 @@ export class VideoCallService {
           throw new Error(`Failed to start call: ${result.error.message}`);
         }
 
-        const videoCall = this.transformVideoCallData(result.data);
+        const videoCall = this.transformVideoCallData(result.data as DatabaseVideoCallRow);
         this.activeCall = videoCall;
 
         // Send instant notifications to participants
@@ -222,14 +263,14 @@ export class VideoCallService {
 
         return { data: videoCall, error: null };
       }, context);
-    });
+    }, 'network');
   }
 
   /**
    * Join a video call
    */
   static async joinCall(callId: string, userId: string): Promise<CallSession> {
-    return measurePerformance('join_video_call', async () => {
+    return performanceMonitor.measureAsync('join_video_call', async () => {
       const context = {
         service: 'VideoCallService',
         method: 'joinCall',
@@ -251,7 +292,7 @@ export class VideoCallService {
           throw new Error('Call not found');
         }
 
-        const call = this.transformVideoCallData(callResult.data);
+        const call = this.transformVideoCallData(callResult.data as DatabaseVideoCallRow);
 
         // Verify user is a participant
         if (!call.participants.includes(userId)) {
@@ -263,7 +304,7 @@ export class VideoCallService {
           await supabase
             .from('video_calls')
             .update({
-              status: 'active',
+              status: 'active' as const,
               start_time: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
@@ -300,7 +341,7 @@ export class VideoCallService {
 
         return { data: session, error: null };
       }, context);
-    });
+    }, 'network');
   }
 
   /**
@@ -312,7 +353,7 @@ export class VideoCallService {
     callNotes?: string,
     followUpRequired: boolean = false
   ): Promise<void> {
-    return measurePerformance('end_video_call', async () => {
+    return performanceMonitor.measureAsync('end_video_call', async () => {
       const context = {
         service: 'VideoCallService',
         method: 'endCall',
@@ -336,12 +377,13 @@ export class VideoCallService {
           throw new Error('Call not found');
         }
 
-        const startTime = new Date(callResult.data.start_time);
+        const dbRow = callResult.data as Pick<DatabaseVideoCallRow, 'start_time' | 'metadata'>;
+        const startTime = new Date(dbRow.start_time || new Date());
         const duration = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
 
         // Update call metadata
         const updatedMetadata = {
-          ...callResult.data.metadata,
+          ...(dbRow.metadata || {}),
           notes: callNotes,
           followUpRequired,
           endedBy: endedById
@@ -350,7 +392,7 @@ export class VideoCallService {
         const result = await supabase
           .from('video_calls')
           .update({
-            status: 'completed',
+            status: 'completed' as const,
             end_time: endTime,
             duration,
             metadata: updatedMetadata,
@@ -388,14 +430,14 @@ export class VideoCallService {
 
         return { data: null, error: null };
       }, context);
-    });
+    }, 'network');
   }
 
   /**
    * Get call history for a job
    */
   static async getCallHistory(jobId: string): Promise<VideoCall[]> {
-    return measurePerformance('get_call_history', async () => {
+    return performanceMonitor.measureAsync('get_call_history', async () => {
       const context = {
         service: 'VideoCallService',
         method: 'getCallHistory',
@@ -415,18 +457,20 @@ export class VideoCallService {
           throw new Error(`Failed to get call history: ${result.error.message}`);
         }
 
-        const calls = result.data?.map(call => this.transformVideoCallData(call)) || [];
+        const calls = (result.data || []).map(call =>
+          this.transformVideoCallData(call as DatabaseVideoCallRow)
+        );
 
         return { data: calls, error: null };
       }, context);
-    });
+    }, 'network');
   }
 
   /**
    * Cancel a scheduled call
    */
   static async cancelCall(callId: string, cancelledById: string, reason?: string): Promise<void> {
-    return measurePerformance('cancel_video_call', async () => {
+    return performanceMonitor.measureAsync('cancel_video_call', async () => {
       const context = {
         service: 'VideoCallService',
         method: 'cancelCall',
@@ -437,7 +481,7 @@ export class VideoCallService {
         const result = await supabase
           .from('video_calls')
           .update({
-            status: 'cancelled',
+            status: 'cancelled' as const,
             metadata: {
               cancelledBy: cancelledById,
               cancellationReason: reason,
@@ -453,7 +497,7 @@ export class VideoCallService {
           throw new Error(`Failed to cancel call: ${result.error.message}`);
         }
 
-        const call = this.transformVideoCallData(result.data);
+        const call = this.transformVideoCallData(result.data as DatabaseVideoCallRow);
         await this.notifyParticipants(call, 'cancelled');
 
         logger.info('Video call cancelled', {
@@ -464,14 +508,14 @@ export class VideoCallService {
 
         return { data: null, error: null };
       }, context);
-    });
+    }, 'network');
   }
 
   /**
    * Start call recording
    */
   static async startRecording(callId: string, userId: string): Promise<void> {
-    return measurePerformance('start_call_recording', async () => {
+    return performanceMonitor.measureAsync('start_call_recording', async () => {
       const context = {
         service: 'VideoCallService',
         method: 'startRecording',
@@ -499,14 +543,14 @@ export class VideoCallService {
 
         return { data: null, error: null };
       }, context);
-    });
+    }, 'network');
   }
 
   /**
    * Get call statistics
    */
   static async getCallStatistics(callId: string): Promise<CallStatistics> {
-    return measurePerformance('get_call_statistics', async () => {
+    return performanceMonitor.measureAsync('get_call_statistics', async () => {
       const context = {
         service: 'VideoCallService',
         method: 'getCallStatistics',
@@ -528,7 +572,7 @@ export class VideoCallService {
 
         return { data: stats, error: null };
       }, context);
-    });
+    }, 'network');
   }
 
   // Private helper methods
@@ -544,25 +588,31 @@ export class VideoCallService {
       return null;
     }
 
-    return this.transformVideoCallData(result.data);
+    return this.transformVideoCallData(result.data as DatabaseVideoCallRow);
   }
 
-  private static transformVideoCallData(data: unknown): VideoCall {
+  private static transformVideoCallData(data: DatabaseVideoCallRow): VideoCall {
     return {
       id: data.id,
       jobId: data.job_id,
       participants: data.participants || [],
       initiatorId: data.initiator_id,
       status: data.status,
-      startTime: data.start_time,
-      endTime: data.end_time,
-      scheduledTime: data.scheduled_time,
-      duration: data.duration,
-      recordingUrl: data.recording_url,
+      startTime: data.start_time || undefined,
+      endTime: data.end_time || undefined,
+      scheduledTime: data.scheduled_time || undefined,
+      duration: data.duration || undefined,
+      recordingUrl: data.recording_url || undefined,
       recordingEnabled: data.recording_enabled || false,
       screenSharingEnabled: data.screen_sharing_enabled || false,
-      callQuality: data.call_quality,
-      metadata: data.metadata || {},
+      callQuality: data.call_quality || undefined,
+      metadata: data.metadata ? {
+        callPurpose: data.metadata.callPurpose,
+        notes: data.metadata.notes,
+        issues: data.metadata.issues,
+        resolution: data.metadata.resolution,
+        followUpRequired: data.metadata.followUpRequired
+      } : undefined,
       created_at: data.created_at,
       updated_at: data.updated_at
     };
@@ -573,16 +623,20 @@ export class VideoCallService {
       for (const participantId of call.participants) {
         if (participantId !== call.initiatorId) {
           // Send push notification
-          await NotificationService.sendNotificationToUser(participantId, {
-            title: this.getNotificationTitle(action),
-            body: this.getNotificationBody(action, call),
-            data: {
-              type: 'video_call',
-              action,
-              callId: call.id,
-              jobId: call.jobId
-            }
-          });
+          const notificationData: VideoCallNotificationData = {
+            type: 'system',
+            action,
+            callId: call.id,
+            jobId: call.jobId
+          };
+
+          await NotificationService.sendPushNotification(
+            participantId,
+            this.getNotificationTitle(action),
+            this.getNotificationBody(action, call),
+            notificationData,
+            'system'
+          );
 
           // Send message in the job conversation
           await this.sendVideoCallMessage(call, action, call.initiatorId, participantId);
