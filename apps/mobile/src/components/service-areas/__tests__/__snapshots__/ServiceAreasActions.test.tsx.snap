@@ -1,0 +1,131 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ServiceAreasActions Component Rendering should render consistent snapshot 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 5,
+      "marginBottom": 32,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#0F172A",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "marginBottom": 16,
+      }
+    }
+  >
+    Quick Actions
+  </Text>
+  <TouchableOpacity
+    onPress={[Function]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F8FAFC",
+        "borderRadius": 8,
+        "flexDirection": "row",
+        "marginBottom": 8,
+        "paddingHorizontal": 16,
+        "paddingVertical": 12,
+      }
+    }
+  >
+    <Ionicons
+      color="#0F172A"
+      name="analytics"
+      size={24}
+    />
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 14,
+          "fontWeight": "500",
+          "marginLeft": 12,
+        }
+      }
+    >
+      View Analytics
+    </Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    onPress={[Function]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F8FAFC",
+        "borderRadius": 8,
+        "flexDirection": "row",
+        "marginBottom": 8,
+        "paddingHorizontal": 16,
+        "paddingVertical": 12,
+      }
+    }
+  >
+    <Ionicons
+      color="#0F172A"
+      name="map"
+      size={24}
+    />
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 14,
+          "fontWeight": "500",
+          "marginLeft": 12,
+        }
+      }
+    >
+      Route Planning
+    </Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    onPress={[Function]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F8FAFC",
+        "borderRadius": 8,
+        "flexDirection": "row",
+        "marginBottom": 8,
+        "paddingHorizontal": 16,
+        "paddingVertical": 12,
+      }
+    }
+  >
+    <Ionicons
+      color="#0F172A"
+      name="location"
+      size={24}
+    />
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 14,
+          "fontWeight": "500",
+          "marginLeft": 12,
+        }
+      }
+    >
+      Coverage Map
+    </Text>
+  </TouchableOpacity>
+</View>
+`;

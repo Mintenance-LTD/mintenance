@@ -12,7 +12,7 @@ import { theme } from '../../theme';
 import { ResponsiveGrid } from '../../components/responsive';
 import { useHaptics } from '../../utils/haptics';
 
-interface QuickServicesProps {
+export interface QuickServicesProps {
   onServicePress: (params: Record<string, unknown>) => void;
   onBrowseAllPress: () => void;
 }

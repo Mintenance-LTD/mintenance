@@ -1,0 +1,474 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AIAnalysisCard Component Structure should match snapshot for complete analysis 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 1,
+      "marginBottom": 24,
+      "padding": 24,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 1,
+        "width": 0,
+      },
+      "shadowOpacity": 0.05,
+      "shadowRadius": 2,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 8,
+        "marginBottom": 16,
+      }
+    }
+  >
+    <Ionicons
+      color="#F59E0B"
+      name="sparkles"
+      size={20}
+    />
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "flex": 1,
+          "fontSize": 19,
+          "fontWeight": "600",
+        }
+      }
+    >
+      AI Analysis
+    </Text>
+    <View
+      style={
+        {
+          "backgroundColor": "#F59E0B",
+          "borderRadius": 4,
+          "paddingHorizontal": 8,
+          "paddingVertical": 4,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontSize": 11,
+            "fontWeight": "600",
+          }
+        }
+      >
+        85
+        % confidence
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "gap": 16,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 0.5,
+          "textTransform": "uppercase",
+        }
+      }
+    >
+      Job Category
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 16,
+          "fontWeight": "500",
+        }
+      }
+    >
+      Plumbing
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 0.5,
+          "textTransform": "uppercase",
+        }
+      }
+    >
+      Estimated Complexity
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 16,
+          "fontWeight": "500",
+        }
+      }
+    >
+      Medium
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 0.5,
+          "textTransform": "uppercase",
+        }
+      }
+    >
+      Estimated Duration
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 16,
+          "fontWeight": "500",
+        }
+      }
+    >
+      2-4 hours
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 0.5,
+          "textTransform": "uppercase",
+        }
+      }
+    >
+      Recommended Tools
+    </Text>
+    <View
+      style={
+        {
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 4,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "backgroundColor": "#F1F5F9",
+            "borderRadius": 4,
+            "paddingHorizontal": 8,
+            "paddingVertical": 4,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#0F172A",
+              "fontSize": 13,
+            }
+          }
+        >
+          Pipe wrench
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#F1F5F9",
+            "borderRadius": 4,
+            "paddingHorizontal": 8,
+            "paddingVertical": 4,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#0F172A",
+              "fontSize": 13,
+            }
+          }
+        >
+          Plumber's tape
+        </Text>
+      </View>
+    </View>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 0.5,
+          "textTransform": "uppercase",
+        }
+      }
+    >
+      Additional Notes
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 16,
+          "lineHeight": 20,
+        }
+      }
+    >
+      Check for water damage
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`AIAnalysisCard Component Structure should match snapshot for loading state 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 1,
+      "marginBottom": 24,
+      "padding": 24,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 1,
+        "width": 0,
+      },
+      "shadowOpacity": 0.05,
+      "shadowRadius": 2,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 8,
+        "marginBottom": 16,
+      }
+    }
+  >
+    <Ionicons
+      color="#F59E0B"
+      name="sparkles"
+      size={20}
+    />
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "flex": 1,
+          "fontSize": 19,
+          "fontWeight": "600",
+        }
+      }
+    >
+      AI Analysis
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 8,
+        "justifyContent": "center",
+        "paddingVertical": 24,
+      }
+    }
+  >
+    <ActivityIndicator
+      color="#0F172A"
+      size="small"
+    />
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 16,
+        }
+      }
+    >
+      Analyzing job photos...
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`AIAnalysisCard Component Structure should match snapshot for minimal analysis 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 1,
+      "marginBottom": 24,
+      "padding": 24,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 1,
+        "width": 0,
+      },
+      "shadowOpacity": 0.05,
+      "shadowRadius": 2,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 8,
+        "marginBottom": 16,
+      }
+    }
+  >
+    <Ionicons
+      color="#F59E0B"
+      name="sparkles"
+      size={20}
+    />
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "flex": 1,
+          "fontSize": 19,
+          "fontWeight": "600",
+        }
+      }
+    >
+      AI Analysis
+    </Text>
+    <View
+      style={
+        {
+          "backgroundColor": "#F59E0B",
+          "borderRadius": 4,
+          "paddingHorizontal": 8,
+          "paddingVertical": 4,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontSize": 11,
+            "fontWeight": "600",
+          }
+        }
+      >
+        85
+        % confidence
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "gap": 16,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 0.5,
+          "textTransform": "uppercase",
+        }
+      }
+    >
+      Job Category
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 16,
+          "fontWeight": "500",
+        }
+      }
+    >
+      Plumbing
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 0.5,
+          "textTransform": "uppercase",
+        }
+      }
+    >
+      Estimated Complexity
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 16,
+          "fontWeight": "500",
+        }
+      }
+    >
+      Medium
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "fontSize": 13,
+          "fontWeight": "600",
+          "letterSpacing": 0.5,
+          "textTransform": "uppercase",
+        }
+      }
+    >
+      Estimated Duration
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 16,
+          "fontWeight": "500",
+        }
+      }
+    >
+      2-4 hours
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`AIAnalysisCard Component Structure should match snapshot for null state 1`] = `null`;

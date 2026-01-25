@@ -1,0 +1,6512 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ListSkeleton Snapshot Tests should match snapshot with all custom props 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 8,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 8,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 8,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`ListSkeleton Snapshot Tests should match snapshot with count=1 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 24,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`ListSkeleton Snapshot Tests should match snapshot with count=3 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 24,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 24,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 24,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`ListSkeleton Snapshot Tests should match snapshot with default props 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 24,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 24,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 24,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 24,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 24,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`ListSkeleton Snapshot Tests should match snapshot with imageVariant=square 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 8,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 8,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 8,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 8,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 8,
+            "height": 48,
+            "overflow": "hidden",
+            "width": 48,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`ListSkeleton Snapshot Tests should match snapshot with showImage=false 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "borderBottomColor": "#F3F4F6",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+          "minWidth": 0,
+        }
+      }
+    >
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 16,
+              "overflow": "hidden",
+              "width": "70%",
+            },
+            {
+              "marginBottom": 8,
+            },
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+      <View
+        accessibilityLabel="Loading"
+        accessibilityRole="progressbar"
+        accessible={true}
+        style={
+          [
+            {
+              "position": "relative",
+            },
+            {
+              "backgroundColor": "#E5E7EB",
+              "borderRadius": 6,
+              "height": 14,
+              "overflow": "hidden",
+              "width": "50%",
+            },
+            undefined,
+          ]
+        }
+      >
+        <Animated.View
+          style={
+            [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "transform": [
+                  {
+                    "translateX": {
+                      "getValue": [MockFunction],
+                    },
+                  },
+                ],
+              },
+            ]
+          }
+        >
+          <View
+            colors={
+              [
+                "transparent",
+                "#F3F4F6",
+                "transparent",
+              ]
+            }
+            end={
+              {
+                "x": 1,
+                "y": 0,
+              }
+            }
+            start={
+              {
+                "x": 0,
+                "y": 0,
+              }
+            }
+            style={
+              {
+                "height": "100%",
+                "width": 200,
+              }
+            }
+          />
+        </Animated.View>
+      </View>
+    </View>
+    <View
+      accessibilityLabel="Loading"
+      accessibilityRole="progressbar"
+      accessible={true}
+      style={
+        [
+          {
+            "position": "relative",
+          },
+          {
+            "backgroundColor": "#E5E7EB",
+            "borderRadius": 12,
+            "height": 24,
+            "overflow": "hidden",
+            "width": 24,
+          },
+          undefined,
+        ]
+      }
+    >
+      <Animated.View
+        style={
+          [
+            {
+              "bottom": 0,
+              "left": 0,
+              "position": "absolute",
+              "right": 0,
+              "top": 0,
+            },
+            {
+              "transform": [
+                {
+                  "translateX": {
+                    "getValue": [MockFunction],
+                  },
+                },
+              ],
+            },
+          ]
+        }
+      >
+        <View
+          colors={
+            [
+              "transparent",
+              "#F3F4F6",
+              "transparent",
+            ]
+          }
+          end={
+            {
+              "x": 1,
+              "y": 0,
+            }
+          }
+          start={
+            {
+              "x": 0,
+              "y": 0,
+            }
+          }
+          style={
+            {
+              "height": "100%",
+              "width": 200,
+            }
+          }
+        />
+      </Animated.View>
+    </View>
+  </View>
+</View>
+`;

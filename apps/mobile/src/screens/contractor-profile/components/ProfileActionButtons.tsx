@@ -27,22 +27,22 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.actionButton} onPress={onMessage}>
+      <TouchableOpacity style={styles.actionButton} onPress={onMessage} testID="message-button">
         <Ionicons name="chatbubble-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Message</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionButton} onPress={onCall}>
+      <TouchableOpacity style={styles.actionButton} onPress={onCall} testID="call-button">
         <Ionicons name="call-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Call</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionButton} onPress={onVideo}>
+      <TouchableOpacity style={styles.actionButton} onPress={onVideo} testID="video-button">
         <Ionicons name="videocam-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Video</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionButton} onPress={onShare}>
+      <TouchableOpacity style={styles.actionButton} onPress={onShare} testID="share-button">
         <Ionicons name="share-social-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Share</Text>
       </TouchableOpacity>

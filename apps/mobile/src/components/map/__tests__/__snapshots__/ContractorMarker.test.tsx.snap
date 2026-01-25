@@ -1,0 +1,257 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ContractorMarker Snapshot should match snapshot when not selected and not verified 1`] = `
+<View
+  onTouchEnd={[MockFunction]}
+  style={
+    [
+      {
+        "alignItems": "center",
+      },
+      false,
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#0F172A",
+        "borderRadius": 20,
+        "borderWidth": 2,
+        "elevation": 5,
+        "height": 40,
+        "justifyContent": "center",
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+        "width": 40,
+      }
+    }
+  >
+    <Text
+      testID="icon-person"
+    >
+      person
+      -
+      20
+      -
+      #0F172A
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`ContractorMarker Snapshot should match snapshot when not selected and verified 1`] = `
+<View
+  onTouchEnd={[MockFunction]}
+  style={
+    [
+      {
+        "alignItems": "center",
+      },
+      false,
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#0F172A",
+        "borderRadius": 20,
+        "borderWidth": 2,
+        "elevation": 5,
+        "height": 40,
+        "justifyContent": "center",
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+        "width": 40,
+      }
+    }
+  >
+    <Text
+      testID="icon-person"
+    >
+      person
+      -
+      20
+      -
+      #0F172A
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#10B981",
+        "borderColor": "#FFFFFF",
+        "borderRadius": 8,
+        "borderWidth": 2,
+        "height": 16,
+        "justifyContent": "center",
+        "position": "absolute",
+        "right": -2,
+        "top": -2,
+        "width": 16,
+      }
+    }
+  >
+    <Text
+      testID="icon-checkmark"
+    >
+      checkmark
+      -
+      8
+      -
+      #FFFFFF
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`ContractorMarker Snapshot should match snapshot when selected and not verified 1`] = `
+<View
+  onTouchEnd={[MockFunction]}
+  style={
+    [
+      {
+        "alignItems": "center",
+      },
+      {
+        "backgroundColor": "#0F172A",
+        "transform": [
+          {
+            "scale": 1.2,
+          },
+        ],
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#0F172A",
+        "borderRadius": 20,
+        "borderWidth": 2,
+        "elevation": 5,
+        "height": 40,
+        "justifyContent": "center",
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+        "width": 40,
+      }
+    }
+  >
+    <Text
+      testID="icon-person"
+    >
+      person
+      -
+      20
+      -
+      #FFFFFF
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`ContractorMarker Snapshot should match snapshot when selected and verified 1`] = `
+<View
+  onTouchEnd={[MockFunction]}
+  style={
+    [
+      {
+        "alignItems": "center",
+      },
+      {
+        "backgroundColor": "#0F172A",
+        "transform": [
+          {
+            "scale": 1.2,
+          },
+        ],
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#0F172A",
+        "borderRadius": 20,
+        "borderWidth": 2,
+        "elevation": 5,
+        "height": 40,
+        "justifyContent": "center",
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+        "width": 40,
+      }
+    }
+  >
+    <Text
+      testID="icon-person"
+    >
+      person
+      -
+      20
+      -
+      #FFFFFF
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#10B981",
+        "borderColor": "#FFFFFF",
+        "borderRadius": 8,
+        "borderWidth": 2,
+        "height": 16,
+        "justifyContent": "center",
+        "position": "absolute",
+        "right": -2,
+        "top": -2,
+        "width": 16,
+      }
+    }
+  >
+    <Text
+      testID="icon-checkmark"
+    >
+      checkmark
+      -
+      8
+      -
+      #FFFFFF
+    </Text>
+  </View>
+</View>
+`;

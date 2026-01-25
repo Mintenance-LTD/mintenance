@@ -1,0 +1,84 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`FindContractorsButton Snapshots should match snapshot when not visible 1`] = `null`;
+
+exports[`FindContractorsButton Snapshots should match snapshot when visible 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "bottom": 20,
+      "flexDirection": "row",
+      "gap": 12,
+      "left": 20,
+      "position": "absolute",
+      "right": 20,
+    }
+  }
+>
+  <TouchableOpacity
+    accessibilityLabel="Find contractors"
+    accessibilityRole="button"
+    onPress={[Function]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#0F172A",
+        "borderRadius": 16,
+        "flex": 1,
+        "flexDirection": "row",
+        "gap": 8,
+        "justifyContent": "center",
+        "paddingHorizontal": 20,
+        "paddingVertical": 16,
+      }
+    }
+  >
+    <Ionicons
+      color="#FFFFFF"
+      name="search"
+      size={20}
+    />
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontSize": 16,
+          "fontWeight": "600",
+        }
+      }
+    >
+      Find Contractors
+    </Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    accessibilityLabel="Dismiss"
+    accessibilityRole="button"
+    onPress={[Function]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 20,
+        "elevation": 5,
+        "height": 40,
+        "justifyContent": "center",
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+        "width": 40,
+      }
+    }
+  >
+    <Ionicons
+      color="#475569"
+      name="close"
+      size={16}
+    />
+  </TouchableOpacity>
+</View>
+`;

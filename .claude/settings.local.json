@@ -81,7 +81,18 @@
       "Bash(rm:*)",
       "Bash(wc:*)",
       "Bash(npx vitest list:*)",
-      "Bash(npx jest:*)"
+      "Bash(npx jest:*)",
+      "Bash(do echo \"=== $hook ===\")",
+      "Bash(ls:*)",
+      "Bash(do find . -name \"$file.tsx\" -not -path \"*/__tests__/*\")",
+      "Bash(npx eslint:*)",
+      "Bash(tee:*)",
+      "Bash(while read f)",
+      "Bash(do if [ ! -f \"__tests__/$f%.tsx.test.tsx\" ])",
+      "Bash([ ! -f \"__tests__/$f%.ts.test.ts\" ])",
+      "Bash(then echo \"$f\")",
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && head -30 \"\"\"\"{}\"\"\"\"')",
+      "Bash(Select-Object -Last 100)"
     ],
     "deny": [],
     "ask": []

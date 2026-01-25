@@ -1,0 +1,316 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ContractorCard Snapshot Consistency maintains consistent structure 1`] = `
+<TouchableOpacity
+  onPress={[MockFunction]}
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 5,
+      "flexDirection": "row",
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "backgroundColor": "#F1F5F9",
+        "borderRadius": 8,
+        "height": 80,
+        "marginRight": 16,
+        "width": 80,
+      }
+    }
+  />
+  <View
+    style={
+      {
+        "flex": 1,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 17,
+          "fontWeight": "600",
+          "marginBottom": 4,
+        }
+      }
+    >
+      Elite Plumbing
+    </Text>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "marginBottom": 4,
+        }
+      }
+    >
+      <Text
+        color="#F59E0B"
+        name="star"
+        size={14}
+      >
+        star
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 15,
+            "fontWeight": "600",
+            "marginLeft": 4,
+          }
+        }
+      >
+        4.8
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#64748B",
+            "fontSize": 13,
+            "marginLeft": 4,
+          }
+        }
+      >
+        (
+        234
+         reviews)
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 4,
+          "marginBottom": 4,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "backgroundColor": "#F1F5F9",
+            "borderRadius": 4,
+            "paddingHorizontal": 8,
+            "paddingVertical": 2,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#475569",
+              "fontSize": 11,
+            }
+          }
+        >
+          Plumbing
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "backgroundColor": "#F1F5F9",
+            "borderRadius": 4,
+            "paddingHorizontal": 8,
+            "paddingVertical": 2,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#475569",
+              "fontSize": 11,
+            }
+          }
+        >
+          Emergency
+        </Text>
+      </View>
+    </View>
+    <Text
+      style={
+        {
+          "color": "#64748B",
+          "fontSize": 13,
+        }
+      }
+    >
+      2.5 km
+       away
+    </Text>
+  </View>
+  <Text
+    color="#64748B"
+    name="chevron-forward"
+    size={20}
+  >
+    chevron-forward
+  </Text>
+</TouchableOpacity>
+`;
+
+exports[`ContractorCard Snapshot Consistency maintains consistent structure with different data 1`] = `
+<TouchableOpacity
+  onPress={[MockFunction]}
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 5,
+      "flexDirection": "row",
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "backgroundColor": "#F1F5F9",
+        "borderRadius": 8,
+        "height": 80,
+        "marginRight": 16,
+        "width": 80,
+      }
+    }
+  />
+  <View
+    style={
+      {
+        "flex": 1,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#0F172A",
+          "fontSize": 17,
+          "fontWeight": "600",
+          "marginBottom": 4,
+        }
+      }
+    >
+      Pro Electricians
+    </Text>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "marginBottom": 4,
+        }
+      }
+    >
+      <Text
+        color="#F59E0B"
+        name="star"
+        size={14}
+      >
+        star
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 15,
+            "fontWeight": "600",
+            "marginLeft": 4,
+          }
+        }
+      >
+        4.9
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#64748B",
+            "fontSize": 13,
+            "marginLeft": 4,
+          }
+        }
+      >
+        (
+        189
+         reviews)
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 4,
+          "marginBottom": 4,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "backgroundColor": "#F1F5F9",
+            "borderRadius": 4,
+            "paddingHorizontal": 8,
+            "paddingVertical": 2,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#475569",
+              "fontSize": 11,
+            }
+          }
+        >
+          Electrical
+        </Text>
+      </View>
+    </View>
+    <Text
+      style={
+        {
+          "color": "#64748B",
+          "fontSize": 13,
+        }
+      }
+    >
+      3.1 km
+       away
+    </Text>
+  </View>
+  <Text
+    color="#64748B"
+    name="chevron-forward"
+    size={20}
+  >
+    chevron-forward
+  </Text>
+</TouchableOpacity>
+`;

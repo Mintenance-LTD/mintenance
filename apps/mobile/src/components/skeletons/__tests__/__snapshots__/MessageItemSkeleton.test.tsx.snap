@@ -1,0 +1,3766 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MessageItemSkeleton Component Rendering should render with default props 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F9FAFB",
+        "borderBottomColor": "#E5E7EB",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "borderRadius": 6,
+          "height": 20,
+          "width": 100,
+        }
+      }
+      testID="skeleton-mock"
+    />
+    <View
+      style={
+        {
+          "borderRadius": 12,
+          "height": 36,
+          "width": 80,
+        }
+      }
+      testID="skeleton-mock"
+    />
+  </View>
+  <View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "borderRadius": 4,
+            "height": 8,
+            "marginTop": 4,
+            "width": 8,
+          }
+        }
+        testID="skeleton-mock"
+      />
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "borderRadius": 4,
+            "height": 8,
+            "marginTop": 4,
+            "width": 8,
+          }
+        }
+        testID="skeleton-mock"
+      />
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageItemSkeleton Snapshot Tests should match snapshot with count=0 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F9FAFB",
+        "borderBottomColor": "#E5E7EB",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "borderRadius": 6,
+          "height": 20,
+          "width": 100,
+        }
+      }
+      testID="skeleton-mock"
+    />
+    <View
+      style={
+        {
+          "borderRadius": 12,
+          "height": 36,
+          "width": 80,
+        }
+      }
+      testID="skeleton-mock"
+    />
+  </View>
+  <View />
+</View>
+`;
+
+exports[`MessageItemSkeleton Snapshot Tests should match snapshot with count=1 and showUnread=false 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F9FAFB",
+        "borderBottomColor": "#E5E7EB",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "borderRadius": 6,
+          "height": 20,
+          "width": 100,
+        }
+      }
+      testID="skeleton-mock"
+    />
+    <View
+      style={
+        {
+          "borderRadius": 12,
+          "height": 36,
+          "width": 80,
+        }
+      }
+      testID="skeleton-mock"
+    />
+  </View>
+  <View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageItemSkeleton Snapshot Tests should match snapshot with count=3 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F9FAFB",
+        "borderBottomColor": "#E5E7EB",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "borderRadius": 6,
+          "height": 20,
+          "width": 100,
+        }
+      }
+      testID="skeleton-mock"
+    />
+    <View
+      style={
+        {
+          "borderRadius": 12,
+          "height": 36,
+          "width": 80,
+        }
+      }
+      testID="skeleton-mock"
+    />
+  </View>
+  <View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "borderRadius": 4,
+            "height": 8,
+            "marginTop": 4,
+            "width": 8,
+          }
+        }
+        testID="skeleton-mock"
+      />
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageItemSkeleton Snapshot Tests should match snapshot with count=8 and showUnread=true 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F9FAFB",
+        "borderBottomColor": "#E5E7EB",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "borderRadius": 6,
+          "height": 20,
+          "width": 100,
+        }
+      }
+      testID="skeleton-mock"
+    />
+    <View
+      style={
+        {
+          "borderRadius": 12,
+          "height": 36,
+          "width": 80,
+        }
+      }
+      testID="skeleton-mock"
+    />
+  </View>
+  <View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "borderRadius": 4,
+            "height": 8,
+            "marginTop": 4,
+            "width": 8,
+          }
+        }
+        testID="skeleton-mock"
+      />
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "borderRadius": 4,
+            "height": 8,
+            "marginTop": 4,
+            "width": 8,
+          }
+        }
+        testID="skeleton-mock"
+      />
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "borderRadius": 4,
+            "height": 8,
+            "marginTop": 4,
+            "width": 8,
+          }
+        }
+        testID="skeleton-mock"
+      />
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageItemSkeleton Snapshot Tests should match snapshot with default props 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F9FAFB",
+        "borderBottomColor": "#E5E7EB",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "borderRadius": 6,
+          "height": 20,
+          "width": 100,
+        }
+      }
+      testID="skeleton-mock"
+    />
+    <View
+      style={
+        {
+          "borderRadius": 12,
+          "height": 36,
+          "width": 80,
+        }
+      }
+      testID="skeleton-mock"
+    />
+  </View>
+  <View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "borderRadius": 4,
+            "height": 8,
+            "marginTop": 4,
+            "width": 8,
+          }
+        }
+        testID="skeleton-mock"
+      />
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+      <View
+        style={
+          {
+            "borderRadius": 4,
+            "height": 8,
+            "marginTop": 4,
+            "width": 8,
+          }
+        }
+        testID="skeleton-mock"
+      />
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageItemSkeleton Snapshot Tests should match snapshot with showUnread=false 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 16,
+      "borderWidth": 1,
+      "overflow": "hidden",
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F9FAFB",
+        "borderBottomColor": "#E5E7EB",
+        "borderBottomWidth": 1,
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "padding": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "borderRadius": 6,
+          "height": 20,
+          "width": 100,
+        }
+      }
+      testID="skeleton-mock"
+    />
+    <View
+      style={
+        {
+          "borderRadius": 12,
+          "height": 36,
+          "width": 80,
+        }
+      }
+      testID="skeleton-mock"
+    />
+  </View>
+  <View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+          "borderBottomColor": "#F3F4F6",
+          "borderBottomWidth": 1,
+          "flexDirection": "row",
+          "gap": 12,
+          "padding": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "borderRadius": 24,
+            "height": 48,
+            "width": 48,
+          }
+        }
+        testID="skeleton-avatar-mock"
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+            "minWidth": 0,
+          }
+        }
+      >
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginBottom": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 16,
+                "width": 120,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 50,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "gap": 6,
+              "marginBottom": 8,
+            }
+          }
+          testID="skeleton-group-mock"
+        >
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "100%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 14,
+                "width": "70%",
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+        <View
+          style={
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 8,
+            }
+          }
+        >
+          <View
+            style={
+              {
+                "borderRadius": 9,
+                "height": 18,
+                "width": 60,
+              }
+            }
+            testID="skeleton-mock"
+          />
+          <View
+            style={
+              {
+                "borderRadius": 6,
+                "height": 12,
+                "width": 70,
+              }
+            }
+            testID="skeleton-mock"
+          />
+        </View>
+      </View>
+    </View>
+  </View>
+</View>
+`;

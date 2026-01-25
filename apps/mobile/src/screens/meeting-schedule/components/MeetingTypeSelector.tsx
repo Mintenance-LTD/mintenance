@@ -31,13 +31,14 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
   const durationOptions = [30, 60, 90, 120, 180, 240];
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="meeting-type-container">
       <Text style={styles.sectionTitle}>Meeting Type</Text>
       
       <View style={styles.typeGrid}>
         {meetingTypes.map((type) => (
           <TouchableOpacity
             key={type.id}
+            testID={`meeting-type-${type.id}`}
             style={[
               styles.typeCard,
               selectedType === type.id && styles.typeCardSelected,
@@ -76,6 +77,7 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
           {durationOptions.map((option) => (
             <TouchableOpacity
               key={option}
+              testID={`duration-${option}`}
               style={[
                 styles.durationButton,
                 duration === option && styles.durationButtonSelected,
