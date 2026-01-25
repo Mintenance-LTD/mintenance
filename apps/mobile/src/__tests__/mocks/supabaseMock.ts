@@ -67,8 +67,8 @@ export class SupabaseMockFactory {
     });
 
     // Terminal methods return promises
-    chain.single.mockResolvedValue({ data: null, error: null });
-    chain.maybeSingle.mockResolvedValue({ data: null, error: null });
+    chain.single.mockResolvedValue({ data: null, error: null } as MockSupabaseResponse);
+    chain.maybeSingle.mockResolvedValue({ data: null, error: null } as MockSupabaseResponse);
 
     return chain;
   }

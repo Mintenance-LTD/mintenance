@@ -32,7 +32,12 @@ export class ServicesMockFactory {
       setTag: jest.fn(),
       setLevel: jest.fn(),
       setFingerprint: jest.fn(),
-      withScope: jest.fn((callback) =>
+      withScope: jest.fn((callback: (scope: {
+        setTag: jest.MockedFunction<(key: string, value: unknown) => void>;
+        setLevel: jest.MockedFunction<(level: string) => void>;
+        setContext: jest.MockedFunction<(name: string, context: unknown) => void>;
+        setFingerprint: jest.MockedFunction<(fingerprint: string[]) => void>;
+      }) => void) =>
         callback({
           setTag: jest.fn(),
           setLevel: jest.fn(),

@@ -53,10 +53,12 @@ export const Button: React.FC<ButtonProps> = ({
   iconOnly = false,
   testID,
 }) => {
-  const v = theme.components.button[variant] as any;
-  const backgroundColor = disabled ? theme.colors.textTertiary : (v?.backgroundColor ?? theme.colors.primary);
-  const borderColor = v?.borderColor ?? 'transparent';
-  const color = v?.color ?? theme.colors.textInverse;
+  const variantStyles = variant === 'tertiary'
+    ? { backgroundColor: 'transparent', color: theme.colors.info, borderColor: 'transparent' }
+    : theme.components.button[variant as Exclude<ButtonVariant, 'tertiary'>];
+  const backgroundColor = disabled ? theme.colors.textTertiary : (variantStyles?.backgroundColor ?? theme.colors.primary);
+  const borderColor = variantStyles?.borderColor ?? 'transparent';
+  const color = variantStyles?.color ?? theme.colors.textInverse;
   const isTertiary = variant === 'tertiary';
 
   const handlePress = () => {

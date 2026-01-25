@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MutualConnectionsService } from '../services/MutualConnectionsService';
@@ -19,7 +20,7 @@ interface ConnectButtonProps {
   targetUserName: string;
   targetUserRole: 'contractor' | 'homeowner';
   size?: 'small' | 'medium' | 'large';
-  style?: any;
+  style?: ViewStyle;
   onConnectionChange?: (status: ConnectionStatus | null) => void;
 }
 

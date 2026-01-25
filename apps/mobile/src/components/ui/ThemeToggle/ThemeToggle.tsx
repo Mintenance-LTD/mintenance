@@ -200,7 +200,7 @@ const getIconSize = (size: 'sm' | 'md' | 'lg'): number => {
   }
 };
 
-const getButtonStyles = (theme: any, variant: string, size: string) => {
+const getButtonStyles = (theme: typeof import('../../../theme').theme, variant: string, size: string) => {
   const baseSize = size === 'sm' ? 36 : size === 'lg' ? 48 : 42;
 
   const baseStyle = {
@@ -243,7 +243,7 @@ const getButtonStyles = (theme: any, variant: string, size: string) => {
   }
 };
 
-const getTextStyles = (theme: any, size: string) => ({
+const getTextStyles = (theme: typeof import('../../../theme').theme, size: string) => ({
   fontSize: size === 'sm' ? 12 : size === 'lg' ? 16 : 14,
   fontWeight: '500' as const,
   color: theme.colors.text.primary,
@@ -256,7 +256,7 @@ const getSwitchStyles = (theme: unknown) => ({
   borderColor: theme.colors.border.primary,
 });
 
-const getSwitchThumbStyles = (theme: any, colorScheme: string) => ({
+const getSwitchThumbStyles = (theme: typeof import('../../../theme').theme, colorScheme: string) => ({
   position: 'absolute' as const,
   left: colorScheme === 'light' ? 4 : 44,
   backgroundColor: theme.colors.background.primary,

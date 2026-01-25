@@ -294,11 +294,20 @@ const ServiceSelection: React.FC<{
   );
 };
 
+interface JobDetails {
+  title: string;
+  description: string;
+  location: string;
+  preferredDate: string;
+  urgency: string;
+  [key: string]: string;
+}
+
 const JobDetailsForm: React.FC<{
-  details: any;
-  onDetailsChange: (details: unknown) => void;
+  details: JobDetails;
+  onDetailsChange: (details: JobDetails) => void;
 }> = ({ details, onDetailsChange }) => {
-  const updateDetail = (key: string, value: string) => {
+  const updateDetail = (key: keyof JobDetails, value: string) => {
     onDetailsChange({ ...details, [key]: value });
   };
 
@@ -423,7 +432,7 @@ const TimeSlotSelection: React.FC<{
 const BookingConfirmation: React.FC<{
   service: ServicePackage | undefined;
   timeSlot: TimeSlot | undefined;
-  details: any;
+  details: JobDetails;
   contractor: string;
 }> = ({ service, timeSlot, details, contractor }) => {
   return (

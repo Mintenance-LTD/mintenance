@@ -14,7 +14,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 // Temporary mock for Slider until @react-native-community/slider is installed
-const Slider = ({ value, onValueChange, minimumValue, maximumValue, style, ...props }: any) => (
+interface SliderProps {
+  value?: number;
+  onValueChange?: (value: number) => void;
+  minimumValue?: number;
+  maximumValue?: number;
+  style?: import('react-native').ViewStyle;
+}
+
+const Slider: React.FC<SliderProps> = ({ value, onValueChange, minimumValue, maximumValue, style, ...props }) => (
   <View style={[{ height: 40, backgroundColor: '#ccc', borderRadius: 4 }, style]} {...props}>
     <Text style={{ fontSize: 12, textAlign: 'center', paddingTop: 10 }}>
       {value ? Math.round(value) : minimumValue || 0}
@@ -95,7 +103,7 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
     { value: 'reviews', label: 'Most Reviews' },
   ] as const;
 
-  const updateFilter = useCallback((key: keyof SearchFilters, value: any) => {
+  const updateFilter = useCallback((key: keyof SearchFilters, value: SearchFilters[typeof key]) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,

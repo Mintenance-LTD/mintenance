@@ -12,9 +12,9 @@ import {
   ViewStyle,
 } from 'react-native';
 const { width: screenWidth } = Dimensions.get('window');
-interface SwipeableCardWrapperProps {
-  cards: any[];
-  renderCard: (item: any, index: number) => React.ReactNode;
+interface SwipeableCardWrapperProps<T = unknown> {
+  cards: T[];
+  renderCard: (item: T, index: number) => React.ReactNode;
   onSwipedLeft?: (cardIndex: number) => void;
   onSwipedRight?: (cardIndex: number) => void;
   onSwipedAll?: () => void;
@@ -39,7 +39,7 @@ export interface SwipeableCardRef {
   swipeLeft: () => void;
   swipeRight: () => void;
 }
-const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperProps>(
+const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperProps<unknown>>(
   (
     {
       cards,
@@ -118,9 +118,11 @@ const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperPr
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderGrant: () => {
+          const xValue = pan.x as unknown as { _value: number };
+          const yValue = pan.y as unknown as { _value: number };
           pan.setOffset({
-            x: (pan.x as any)._value,
-            y: (pan.y as any)._value,
+            x: xValue._value,
+            y: yValue._value,
           });
         },
         onPanResponderMove: (_, gestureState) => {

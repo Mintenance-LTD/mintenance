@@ -192,7 +192,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
     formatDateTime,
   ]);
 
-  const onDateChange = useCallback((event: any, date?: Date) => {
+  const onDateChange = useCallback((event: unknown, date?: Date) => {
     setShowDatePicker(Platform.OS === 'ios');
     setShowTimePicker(Platform.OS === 'ios');
 

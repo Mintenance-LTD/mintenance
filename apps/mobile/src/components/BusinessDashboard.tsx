@@ -19,7 +19,7 @@ import {
 
 interface BusinessDashboardProps {
   contractorId: string;
-  onNavigate?: (screen: string, params?: any) => void;
+  onNavigate?: (screen: string, params?: Record<string, unknown>) => void;
 }
 
 export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
@@ -118,7 +118,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     </TouchableOpacity>
   );
 
-  const renderInsightCard = (insight: any, index: number) => (
+  const renderInsightCard = (insight: { type: string; icon: string; title: string; message: string }, index: number) => (
     <View
       key={index}
       style={[
@@ -141,7 +141,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     </View>
   );
 
-  const renderActionItem = (item: any, index: number) => (
+  const renderActionItem = (item: { type: string; title: string; dueDate?: string; priority?: string }, index: number) => (
     <TouchableOpacity
       key={index}
       style={[

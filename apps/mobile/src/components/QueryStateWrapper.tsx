@@ -1,6 +1,6 @@
 import React from 'react';
 import { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
-import { View, RefreshControl, ScrollView } from 'react-native';
+import { View, RefreshControl, ScrollView, ViewStyle } from 'react-native';
 import {
   LoadingState,
   EmptyState,
@@ -38,8 +38,8 @@ export interface QueryStateWrapperProps<TData = any> {
   refreshTitle?: string;
 
   // Container props
-  containerStyle?: any;
-  contentContainerStyle?: any;
+  containerStyle?: ViewStyle;
+  contentContainerStyle?: ViewStyle;
   scrollable?: boolean;
 
   // Network awareness

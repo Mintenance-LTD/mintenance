@@ -19,11 +19,9 @@ Sentry.init({
 
   // Enhanced integrations
   integrations: [
-    new Sentry.reactNativeTracingIntegration({
-      // Track component rendering performance
-      tracingOrigins: ['localhost', /^\//],
+    Sentry.reactNativeTracingIntegration({
       // Enable automatic instrumentation
-      routingInstrumentation: new Sentry.reactNavigationIntegration(),
+      routingInstrumentation: Sentry.reactNavigationIntegration(),
     }),
   ],
 

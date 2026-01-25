@@ -1,15 +1,23 @@
-import React from 'react';
-import { View, Text } from 'react-native';
+import React, { ReactNode } from 'react';
+import { View, Text, ViewProps } from 'react-native';
 
 // Web-compatible fallback components (react-native-maps removed for web compatibility)
-export const MapView = ({ children, ...props }: any) => (
-  <View style={{ flex: 1, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
+interface MapViewProps extends ViewProps {
+  children?: ReactNode;
+}
+
+export const MapView: React.FC<MapViewProps> = ({ children, ...props }) => (
+  <View style={{ flex: 1, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }} {...props}>
     <Text>Map view available on mobile devices</Text>
     {children}
   </View>
 );
 
-export const Marker = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+interface MarkerProps extends ViewProps {
+  children?: ReactNode;
+}
+
+export const Marker: React.FC<MarkerProps> = ({ children, ...props }) => <View {...props}>{children}</View>;
 
 export const PROVIDER_GOOGLE = 'google';
 

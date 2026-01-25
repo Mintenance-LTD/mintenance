@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -17,7 +17,7 @@ export const QueryErrorBoundary: React.FC<QueryErrorBoundaryProps> = ({
   queryName,
   onRetry,
 }) => {
-  const handleQueryError = (error: Error, errorInfo: any) => {
+  const handleQueryError = (error: Error, errorInfo: ErrorInfo) => {
     logger.error(`Query error in ${queryName}:`, error, {
       queryName,
       componentStack: errorInfo.componentStack?.substring(0, 500),

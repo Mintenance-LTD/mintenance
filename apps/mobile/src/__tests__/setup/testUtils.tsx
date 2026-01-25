@@ -206,9 +206,14 @@ export const fillForm = async (form: any, data: Record<string, string>) => {
   }
 };
 
-export const submitForm = async (form: unknown) => {
+interface FormTestHelper {
+  getByRole?: (role: string) => any;
+  getByTestId: (id: string) => any;
+}
+
+export const submitForm = async (form: FormTestHelper) => {
   const { fireEvent } = await import('@testing-library/react-native');
-  const submitButton = form.getByRole('button') || form.getByTestId('submit');
+  const submitButton = (form.getByRole && form.getByRole('button')) || form.getByTestId('submit');
   fireEvent.press(submitButton);
   return flushPromises();
 };

@@ -122,7 +122,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
   const currentConfig = STATUS_CONFIG[job.status];
   const workflow = JOB_WORKFLOW.find((w) => w.status === job.status);
 
-  const handleStatusChange = (newStatus: any, requiresContractor?: boolean) => {
+  const handleStatusChange = (newStatus: string, requiresContractor?: boolean) => {
     const action = workflow?.nextActions.find((a) => a.status === newStatus);
 
     if (action?.requiredRole && user?.role !== action.requiredRole) {

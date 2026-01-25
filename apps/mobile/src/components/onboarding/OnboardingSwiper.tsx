@@ -12,6 +12,7 @@ import {
   Animated,
   TouchableOpacity,
   Platform,
+  ImageSourcePropType,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Swiper from 'react-native-swiper';
@@ -22,7 +23,7 @@ interface OnboardingSlide {
   id: string;
   title: string;
   description: string;
-  image?: any; // Image source
+  image?: ImageSourcePropType;
   icon?: string; // Emoji or icon name
   backgroundColor?: string;
 }

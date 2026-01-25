@@ -50,13 +50,19 @@ export class NavigationMockFactory {
       })),
 
       // Focus effect hook
-      useFocusEffect: jest.fn((callback) => {
+      useFocusEffect: jest.fn((callback: () => void | (() => void)) => {
         // Execute callback immediately in tests
         callback();
       }),
 
       // Navigation state hook
-      useNavigationState: jest.fn((selector) =>
+      useNavigationState: jest.fn(<T>(selector: (state: {
+        key: string;
+        index: number;
+        routeNames: string[];
+        routes: Array<{ key: string; name: string }>;
+        type: string;
+      }) => T) =>
         selector({
           key: 'stack-test',
           index: 0,
