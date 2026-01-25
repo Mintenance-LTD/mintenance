@@ -87,8 +87,8 @@ export class ClientAnalyticsService {
     const lifecycle = this.calculateLifecycleDistribution(clients);
     const trends = await this.calculateTrends(contractorId, clients);
     const topPerformers = this.getTopPerformers(clients);
-    const atRiskClients = this.getAtRiskClients(clients);
-    const opportunities = this.getClientOpportunities(clients);
+    const atRiskClients = this.getAtRiskClientsFromList(clients);
+    const opportunities = this.getClientOpportunitiesFromList(clients);
 
     return {
       contractorId,

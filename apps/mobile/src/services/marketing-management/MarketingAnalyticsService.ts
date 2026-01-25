@@ -1,11 +1,106 @@
 /**
  * MarketingAnalyticsService
- * 
+ *
  * Handles analytics calculations and performance metrics for marketing campaigns.
  */
 
 import { supabase } from '../../config/supabase';
-import { MarketingCampaign, MarketingAnalytics, CompetitorAnalysis, MarketingRecommendation } from './types';
+import {
+  MarketingCampaign,
+  MarketingAnalytics,
+  CompetitorAnalysis,
+  MarketingRecommendation,
+  CampaignContent,
+} from './types';
+
+// =====================================================
+// DATABASE ROW INTERFACES (snake_case)
+// =====================================================
+
+interface DatabaseMarketingCampaignRow {
+  id: string;
+  contractor_id: string;
+  name: string;
+  type: string;
+  status: string;
+  budget: number;
+  spent: number;
+  start_date: string;
+  end_date?: string;
+  target_audience: unknown;
+  objectives: unknown;
+  channels: unknown;
+  metrics: unknown;
+  content: unknown;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DatabaseCompetitorAnalysisRow {
+  id: string;
+  contractor_id: string;
+  competitor_name: string;
+  website?: string;
+  social_media: unknown;
+  services: unknown;
+  pricing?: unknown;
+  strengths: unknown;
+  weaknesses: unknown;
+  opportunities: unknown;
+  threats: unknown;
+  last_analyzed: string;
+  created_at: string;
+}
+
+interface DatabaseMarketingRecommendationRow {
+  id: string;
+  contractor_id: string;
+  type: string;
+  title: string;
+  description: string;
+  priority: string;
+  impact: string;
+  effort: string;
+  estimated_roi: number;
+  action_items: unknown;
+  is_implemented: boolean;
+  implemented_at?: string;
+  implementation_notes?: string;
+  created_at: string;
+}
+
+interface CreateCompetitorAnalysisInput {
+  competitorName: string;
+  website?: string;
+  socialMedia: CompetitorAnalysis['socialMedia'];
+  services: string[];
+  pricing?: CompetitorAnalysis['pricing'];
+  strengths: string[];
+  weaknesses: string[];
+  opportunities: string[];
+  threats: string[];
+}
+
+interface ChannelPerformanceCalculation {
+  platform: string;
+  spent: number;
+  leads: number;
+  conversions: number;
+  roi: number;
+  cac: number;
+}
+
+interface CampaignPerformanceResult {
+  campaign: MarketingCampaign;
+  performance: MarketingCampaign['metrics'];
+  trends: CampaignTrends;
+}
+
+interface CampaignTrends {
+  impressions: number[];
+  clicks: number[];
+  conversions: number[];
+}
 
 export class MarketingAnalyticsService {
   async initializeCampaignAnalytics(campaignId: string): Promise<void> {
@@ -93,7 +188,10 @@ export class MarketingAnalyticsService {
     if (error) throw error;
   }
 
-  async createCompetitorAnalysis(contractorId: string, competitorData: unknown): Promise<CompetitorAnalysis> {
+  async createCompetitorAnalysis(
+    contractorId: string,
+    competitorData: CreateCompetitorAnalysisInput
+  ): Promise<CompetitorAnalysis> {
     const { data, error } = await supabase
       .from('competitor_analyses')
       .insert({
@@ -114,7 +212,7 @@ export class MarketingAnalyticsService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as CompetitorAnalysis;
   }
 
   async getCompetitorAnalyses(contractorId: string): Promise<CompetitorAnalysis[]> {
@@ -125,7 +223,7 @@ export class MarketingAnalyticsService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as CompetitorAnalysis[];
   }
 
   async getMarketingRecommendations(contractorId: string): Promise<MarketingRecommendation[]> {
@@ -137,7 +235,7 @@ export class MarketingAnalyticsService {
       .order('priority', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as MarketingRecommendation[];
   }
 
   async implementRecommendation(recommendationId: string, implementationNotes: string): Promise<MarketingRecommendation> {
@@ -153,10 +251,10 @@ export class MarketingAnalyticsService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as MarketingRecommendation;
   }
 
-  async getCampaignPerformance(campaignId: string): Promise<unknown> {
+  async getCampaignPerformance(campaignId: string): Promise<CampaignPerformanceResult> {
     const campaign = await this.getCampaignById(campaignId);
     return {
       campaign,
@@ -220,8 +318,8 @@ export class MarketingAnalyticsService {
     };
   }
 
-  private calculateChannelPerformance(campaigns: MarketingCampaign[]) {
-    const channelMap = new Map<string, unknown>();
+  private calculateChannelPerformance(campaigns: MarketingCampaign[]): ChannelPerformanceCalculation[] {
+    const channelMap = new Map<string, ChannelPerformanceCalculation>();
 
     campaigns.forEach(campaign => {
       campaign.channels.forEach(channel => {
@@ -237,7 +335,7 @@ export class MarketingAnalyticsService {
         existing.spent += channel.spent;
         existing.leads += channel.performance.conversions; // Simplified
         existing.conversions += channel.performance.conversions;
-        
+
         channelMap.set(channel.platform, existing);
       });
     });
@@ -266,14 +364,14 @@ export class MarketingAnalyticsService {
       .slice(0, 5);
   }
 
-  private getTopPerformingContent(campaigns: MarketingCampaign[]): unknown[] {
+  private getTopPerformingContent(campaigns: MarketingCampaign[]): CampaignContent[] {
     const allContent = campaigns.flatMap(c => c.content);
     return allContent
       .sort((a, b) => b.performance.engagement - a.performance.engagement)
       .slice(0, 5);
   }
 
-  private async getCampaignTrends(campaignId: string): Promise<unknown> {
+  private async getCampaignTrends(campaignId: string): Promise<CampaignTrends> {
     // This would typically query historical performance data
     return {
       impressions: [0],
@@ -290,7 +388,7 @@ export class MarketingAnalyticsService {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as MarketingCampaign;
   }
 
   private async getCampaignsForContractor(contractorId: string): Promise<MarketingCampaign[]> {
@@ -300,6 +398,6 @@ export class MarketingAnalyticsService {
       .eq('contractor_id', contractorId);
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as MarketingCampaign[];
   }
 }

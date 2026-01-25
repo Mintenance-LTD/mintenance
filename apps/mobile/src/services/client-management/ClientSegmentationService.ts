@@ -71,7 +71,14 @@ export class ClientSegmentationService {
       criteria?: SegmentCriteria;
     }
   ): Promise<ClientSegment> {
-    const updateData: unknown = {
+    const updateData: {
+      name?: string;
+      description?: string;
+      criteria?: SegmentCriteria;
+      updated_at: string;
+      client_count?: number;
+      avg_value?: number;
+    } = {
       ...updates,
       updated_at: new Date().toISOString(),
     };
@@ -79,8 +86,8 @@ export class ClientSegmentationService {
     // Recalculate metrics if criteria changed
     if (updates.criteria) {
       const segment = await this.getSegmentById(segmentId);
-      updateData.client_count = await this.calculateSegmentSize(segment.contractor_id, updates.criteria);
-      updateData.avg_value = await this.calculateAverageValue(segment.contractor_id, updates.criteria);
+      updateData.client_count = await this.calculateSegmentSize(segment.contractorId, updates.criteria);
+      updateData.avg_value = await this.calculateAverageValue(segment.contractorId, updates.criteria);
     }
 
     const { data, error } = await supabase
@@ -111,7 +118,7 @@ export class ClientSegmentationService {
    */
   async getClientsInSegment(segmentId: string): Promise<Client[]> {
     const segment = await this.getSegmentById(segmentId);
-    return await this.getClientsMatchingCriteria(segment.contractor_id, segment.criteria);
+    return await this.getClientsMatchingCriteria(segment.contractorId, segment.criteria);
   }
 
   /**
@@ -119,9 +126,9 @@ export class ClientSegmentationService {
    */
   async updateSegmentMetrics(segmentId: string): Promise<void> {
     const segment = await this.getSegmentById(segmentId);
-    
-    const clientCount = await this.calculateSegmentSize(segment.contractor_id, segment.criteria);
-    const avgValue = await this.calculateAverageValue(segment.contractor_id, segment.criteria);
+
+    const clientCount = await this.calculateSegmentSize(segment.contractorId, segment.criteria);
+    const avgValue = await this.calculateAverageValue(segment.contractorId, segment.criteria);
 
     const { error } = await supabase
       .from('client_segments')
@@ -138,10 +145,10 @@ export class ClientSegmentationService {
   /**
    * Get suggested segments based on client data
    */
-  async getSuggestedSegments(contractorId: string): Promise<SegmentCriteria[]> {
+  async getSuggestedSegments(contractorId: string): Promise<Array<{ name: string; description: string; criteria: SegmentCriteria }>> {
     const clients = await this.getClientsForContractor(contractorId);
-    
-    const suggestions: SegmentCriteria[] = [];
+
+    const suggestions: Array<{ name: string; description: string; criteria: SegmentCriteria }> = [];
 
     // High-value clients
     const highValueClients = clients.filter(c => c.financials.totalSpent > 5000);
@@ -149,7 +156,9 @@ export class ClientSegmentationService {
       suggestions.push({
         name: 'High-Value Clients',
         description: 'Clients with total spending over $5,000',
-        totalSpentRange: [5000, Infinity],
+        criteria: {
+          totalSpentRange: [5000, Infinity],
+        },
       });
     }
 
@@ -160,7 +169,9 @@ export class ClientSegmentationService {
       suggestions.push({
         name: 'Recent Clients',
         description: 'Clients acquired in the last 30 days',
-        lastJobDateRange: [thirtyDaysAgo.toISOString(), new Date().toISOString()],
+        criteria: {
+          lastJobDateRange: [thirtyDaysAgo.toISOString(), new Date().toISOString()],
+        },
       });
     }
 
@@ -170,7 +181,9 @@ export class ClientSegmentationService {
       suggestions.push({
         name: 'At-Risk Clients',
         description: 'Clients with high retention risk',
-        lifecycleStage: ['customer', 'repeat_customer'],
+        criteria: {
+          lifecycleStage: ['customer', 'repeat_customer'],
+        },
       });
     }
 
@@ -180,7 +193,9 @@ export class ClientSegmentationService {
       suggestions.push({
         name: 'VIP Clients',
         description: 'Clients marked as VIP priority',
-        priority: ['vip'],
+        criteria: {
+          priority: ['vip'],
+        },
       });
     }
 

@@ -160,14 +160,15 @@ export class ClientCommunicationService {
 
       return { sent, failed };
     } catch (error) {
-      throw new Error(`Failed to send bulk communication: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to send bulk communication: ${errorMessage}`);
     }
   }
 
   /**
    * Get communication history for client
    */
-  async getClientCommunicationHistory(clientId: string): Promise<any[]> {
+  async getClientCommunicationHistory(clientId: string): Promise<Array<Record<string, unknown>>> {
     const { data, error } = await supabase
       .from('client_communications')
       .select('*')
