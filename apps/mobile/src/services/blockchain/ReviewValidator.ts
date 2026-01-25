@@ -4,11 +4,12 @@
  */
 
 import { logger } from '../../utils/logger';
-import { 
-  BlockchainReview, 
-  ReviewValidationResult, 
+import {
+  BlockchainReview,
+  ReviewValidationResult,
   ReviewCategories,
-  ReviewMetadata 
+  ReviewMetadata,
+  BlockchainReviewMedia
 } from './types';
 
 export class ReviewValidator {
@@ -37,7 +38,9 @@ export class ReviewValidator {
 
     // Validate categories
     if (review.categories) {
-      this.validateCategories(review.categories, errors, warnings);
+      const categoryResult = this.validateCategories(review.categories);
+      errors.push(...categoryResult.errors);
+      warnings.push(...categoryResult.warnings);
     }
 
     // Validate media
@@ -86,15 +89,15 @@ export class ReviewValidator {
       
       if (typeof value !== 'number' || isNaN(value)) {
         errors.push(`${field} rating must be a valid number`);
-      } else if (value < this.MIN_RATING || value > this.MAX_RATING) {
-        errors.push(`${field} rating must be between ${this.MIN_RATING} and ${this.MAX_RATING}`);
+      } else if (value < ReviewValidator.MIN_RATING || value > ReviewValidator.MAX_RATING) {
+        errors.push(`${field} rating must be between ${ReviewValidator.MIN_RATING} and ${ReviewValidator.MAX_RATING}`);
       }
     }
 
     // Check for suspicious patterns
     const values = Object.values(categories);
     const allSame = values.every(v => v === values[0]);
-    if (allSame && values[0] === this.MAX_RATING) {
+    if (allSame && values[0] === ReviewValidator.MAX_RATING) {
       warnings.push('All category ratings are identical and maximum - this may be suspicious');
     }
 
@@ -106,88 +109,7 @@ export class ReviewValidator {
     };
   }
 
-  /**
-   * Validate review content for quality and appropriateness
-   */
-  public validateContent(content?: string): ReviewValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
 
-    if (!content || typeof content !== 'string') {
-      errors.push('Review content is required');
-      return { isValid: false, errors, warnings, verificationLevel: 'basic' };
-    }
-
-    const trimmedContent = content.trim();
-
-    // Length validation
-    if (trimmedContent.length < this.MIN_CONTENT_LENGTH) {
-      errors.push(`Review content must be at least ${this.MIN_CONTENT_LENGTH} characters`);
-    }
-
-    if (trimmedContent.length > this.MAX_CONTENT_LENGTH) {
-      errors.push(`Review content must not exceed ${this.MAX_CONTENT_LENGTH} characters`);
-    }
-
-    // Content quality checks
-    this.checkContentQuality(trimmedContent, warnings);
-
-    // Profanity and inappropriate content
-    this.checkInappropriateContent(trimmedContent, errors);
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      verificationLevel: 'basic'
-    };
-  }
-
-  /**
-   * Validate review metadata
-   */
-  public validateMetadata(metadata: ReviewMetadata): ReviewValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-
-    // Validate job category
-    if (!metadata.jobCategory || typeof metadata.jobCategory !== 'string') {
-      errors.push('Job category is required');
-    }
-
-    // Validate job value
-    if (typeof metadata.jobValue !== 'number' || metadata.jobValue < 0) {
-      errors.push('Job value must be a positive number');
-    }
-
-    // Validate completion date
-    if (!metadata.completionDate || typeof metadata.completionDate !== 'number') {
-      errors.push('Completion date is required');
-    } else {
-      const completionDate = new Date(metadata.completionDate);
-      const now = new Date();
-      
-      if (completionDate > now) {
-        errors.push('Completion date cannot be in the future');
-      }
-      
-      if (completionDate < new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000)) {
-        warnings.push('Completion date is more than 1 year old');
-      }
-    }
-
-    // Validate verification level
-    if (!['basic', 'enhanced', 'premium'].includes(metadata.verificationLevel)) {
-      errors.push('Invalid verification level');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-      verificationLevel: metadata.verificationLevel
-    };
-  }
 
   // Private validation methods
 
@@ -204,8 +126,8 @@ export class ReviewValidator {
   private validateRating(rating?: number, errors: string[] = []): void {
     if (typeof rating !== 'number' || isNaN(rating)) {
       errors.push('Rating must be a valid number');
-    } else if (rating < this.MIN_RATING || rating > this.MAX_RATING) {
-      errors.push(`Rating must be between ${this.MIN_RATING} and ${this.MAX_RATING}`);
+    } else if (rating < ReviewValidator.MIN_RATING || rating > ReviewValidator.MAX_RATING) {
+      errors.push(`Rating must be between ${ReviewValidator.MIN_RATING} and ${ReviewValidator.MAX_RATING}`);
     }
   }
 
@@ -217,26 +139,26 @@ export class ReviewValidator {
 
     const trimmedContent = content.trim();
 
-    if (trimmedContent.length < this.MIN_CONTENT_LENGTH) {
-      errors.push(`Content must be at least ${this.MIN_CONTENT_LENGTH} characters`);
+    if (trimmedContent.length < ReviewValidator.MIN_CONTENT_LENGTH) {
+      errors.push(`Content must be at least ${ReviewValidator.MIN_CONTENT_LENGTH} characters`);
     }
 
-    if (trimmedContent.length > this.MAX_CONTENT_LENGTH) {
-      errors.push(`Content must not exceed ${this.MAX_CONTENT_LENGTH} characters`);
+    if (trimmedContent.length > ReviewValidator.MAX_CONTENT_LENGTH) {
+      errors.push(`Content must not exceed ${ReviewValidator.MAX_CONTENT_LENGTH} characters`);
     }
 
     this.checkContentQuality(trimmedContent, warnings);
     this.checkInappropriateContent(trimmedContent, errors);
   }
 
-  private validateMedia(media: unknown[], errors: string[] = [], warnings: string[] = []): void {
-    if (media.length > this.MAX_MEDIA_COUNT) {
-      errors.push(`Maximum ${this.MAX_MEDIA_COUNT} media items allowed`);
+  private validateMedia(media: BlockchainReviewMedia[], errors: string[] = [], warnings: string[] = []): void {
+    if (media.length > ReviewValidator.MAX_MEDIA_COUNT) {
+      errors.push(`Maximum ${ReviewValidator.MAX_MEDIA_COUNT} media items allowed`);
     }
 
     for (let i = 0; i < media.length; i++) {
       const item = media[i];
-      
+
       if (!item.id || !item.type || !item.hash) {
         errors.push(`Media item ${i + 1} is missing required fields`);
       }
@@ -305,7 +227,7 @@ export class ReviewValidator {
     }
 
     // Check for excessive repetition
-    for (const [word, count] of wordCounts.entries()) {
+    for (const [word, count] of Array.from(wordCounts.entries())) {
       if (count > words.length * 0.1) { // More than 10% of words
         warnings.push(`Excessive repetition of word "${word}"`);
         break;
