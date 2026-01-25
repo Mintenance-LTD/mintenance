@@ -68,6 +68,14 @@ export interface JobRequirements {
   };
 }
 
+interface MatchCompatibility {
+  skillMatch: number;
+  locationProximity: number;
+  budgetAlignment: number;
+  availabilityMatch: number;
+  ratingCompatibility: number;
+}
+
 /**
  * Contractor Matching ML Service
  *
@@ -97,7 +105,10 @@ export class ContractorMatchingMLService {
   ): Promise<ContractorMatchResult[]> {
     await mlCoreService.initialize();
 
-    const circuitBreaker = circuitBreakerManager.getCircuitBreaker('contractor_matching');
+    const circuitBreaker = circuitBreakerManager.get('contractor_matching');
+    if (!circuitBreaker) {
+      throw new Error('Circuit breaker not initialized for contractor_matching');
+    }
 
     return circuitBreaker.execute(async () => {
       // Filter contractors by basic criteria
@@ -133,7 +144,10 @@ export class ContractorMatchingMLService {
   ): Promise<ContractorMatchResult> {
     await mlCoreService.initialize();
 
-    const circuitBreaker = circuitBreakerManager.getCircuitBreaker('compatibility_analysis');
+    const circuitBreaker = circuitBreakerManager.get('compatibility_analysis');
+    if (!circuitBreaker) {
+      throw new Error('Circuit breaker not initialized for compatibility_analysis');
+    }
 
     return circuitBreaker.execute(async () => {
       return this._calculateContractorMatch(contractor, jobRequirements);
@@ -160,7 +174,10 @@ export class ContractorMatchingMLService {
     currentJob: JobRequirements,
     availableContractors: ContractorProfile[]
   ): Promise<ContractorMatchResult[]> {
-    const circuitBreaker = circuitBreakerManager.getCircuitBreaker('personalized_recommendations');
+    const circuitBreaker = circuitBreakerManager.get('personalized_recommendations');
+    if (!circuitBreaker) {
+      throw new Error('Circuit breaker not initialized for personalized_recommendations');
+    }
 
     return circuitBreaker.execute(async () => {
       // Prepare ML input features including client history
@@ -213,7 +230,10 @@ export class ContractorMatchingMLService {
     riskFactors: string[];
     successProbability: number; // 0-1 scale
   }> {
-    const circuitBreaker = circuitBreakerManager.getCircuitBreaker('performance_prediction');
+    const circuitBreaker = circuitBreakerManager.get('performance_prediction');
+    if (!circuitBreaker) {
+      throw new Error('Circuit breaker not initialized for performance_prediction');
+    }
 
     return circuitBreaker.execute(async () => {
       // Prepare features for performance prediction
@@ -462,7 +482,7 @@ export class ContractorMatchingMLService {
   private _extractMatchingFeatures(
     contractor: ContractorProfile,
     jobRequirements: JobRequirements,
-    compatibility: unknown
+    compatibility: MatchCompatibility
   ): number[] {
     const features: number[] = [];
 
@@ -532,7 +552,7 @@ export class ContractorMatchingMLService {
   private _generateMatchRecommendations(
     contractor: ContractorProfile,
     jobRequirements: JobRequirements,
-    compatibility: unknown
+    compatibility: MatchCompatibility
   ): string[] {
     const recommendations: string[] = [];
 
@@ -562,7 +582,7 @@ export class ContractorMatchingMLService {
   /**
    * Calculate confidence level
    */
-  private _calculateConfidenceLevel(compatibility: unknown): 'low' | 'medium' | 'high' {
+  private _calculateConfidenceLevel(compatibility: MatchCompatibility): 'low' | 'medium' | 'high' {
     const scores = Object.values(compatibility) as number[];
     const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
     const variance = scores.reduce((sum, score) => sum + Math.pow(score - averageScore, 2), 0) / scores.length;
@@ -645,7 +665,12 @@ export class ContractorMatchingMLService {
     results: number[],
     contractor: ContractorProfile,
     jobRequirements: JobRequirements
-  ): unknown {
+  ): {
+    estimatedQuality: number;
+    estimatedCompletionTime: number;
+    riskFactors: string[];
+    successProbability: number;
+  } {
     const [quality, timeMultiplier, successProb] = results;
 
     return {

@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
-import type { User, Database } from '@mintenance/types';
+import type { User } from '@mintenance/types';
+import { Session } from '@supabase/supabase-js';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { NetworkDiagnosticsService } from '../utils/networkDiagnostics';
 import { logger } from '../utils/logger';
@@ -10,6 +11,21 @@ export interface SignUpData {
   firstName: string;
   lastName: string;
   role: 'homeowner' | 'contractor';
+}
+
+interface TokenValidationResult {
+  valid: boolean;
+  userId?: string;
+  error?: string;
+  errorType?: 'expired' | 'invalid' | 'missing' | 'unknown';
+  expiresAt?: number;
+}
+
+interface JWTPayload {
+  exp?: number;
+  iss?: string;
+  sub?: string;
+  [key: string]: unknown;
 }
 
 export class AuthService {
@@ -269,7 +285,7 @@ export class AuthService {
   }
 
   // Validate JWT token with proper signature verification
-  static async validateToken(token: string): Promise<{ valid: boolean; userId?: string; error?: string }> {
+  static async validateToken(token: string): Promise<TokenValidationResult> {
     try {
       if (!token) {
         return { valid: false, error: 'No token provided' };
@@ -315,7 +331,7 @@ export class AuthService {
   }
 
   // Helper method to safely decode JWT payload without signature verification (for additional checks)
-  private static decodeJWTPayload(token: string): unknown {
+  private static decodeJWTPayload(token: string): JWTPayload | null {
     try {
       const parts = token.split('.');
       if (parts.length !== 3) return null;
@@ -324,7 +340,10 @@ export class AuthService {
       const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/');
       let decoded = '';
 
-      const g: unknown = globalThis as unknown;
+      interface GlobalWithAtob {
+        atob?: (data: string) => string;
+      }
+      const g = globalThis as GlobalWithAtob;
       if (typeof g.atob === 'function') {
         decoded = g.atob(base64Url);
       } else if (typeof Buffer !== 'undefined') {
@@ -333,7 +352,7 @@ export class AuthService {
         return null;
       }
 
-      return JSON.parse(decoded);
+      return JSON.parse(decoded) as JWTPayload;
     } catch {
       return null;
     }
@@ -410,7 +429,7 @@ export class AuthService {
 
   // Check if user is authenticated
   static async isAuthenticated(): Promise<boolean> {
-    const session = await this.getCurrentSession();
+    const session = (await this.getCurrentSession()) as Session | null;
     return !!session?.access_token;
   }
 }
