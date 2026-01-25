@@ -218,5 +218,8 @@ export async function runRedisValidation(): Promise<void> {
 
 // Run validation if called directly
 if (require.main === module) {
-  runRedisValidation().catch(console.error);
+  runRedisValidation().catch((error) => {
+    logger.error('Redis validation failed:', error, { service: 'validation' });
+    process.exit(1);
+  });
 }
