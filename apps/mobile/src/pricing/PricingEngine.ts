@@ -17,6 +17,7 @@ import {
   MarketRateCalculator,
   type MarketAnalysisResult,
 } from './market/MarketRateCalculator';
+import type { ComplexityResult, MLPrediction } from '../types/pricing.types';
 
 export interface JobPricingInput {
   title: string;
@@ -78,7 +79,12 @@ export class PricingEngine {
   };
   private recommendationsEngine: {
     initialize(): Promise<void>;
-    generate(a: any, b: any, c: MarketContext, d: any): Promise<string[]>;
+    generate(
+      analysis: Omit<PricingAnalysis, 'recommendations'>,
+      complexity: ComplexityResult | null,
+      marketContext: MarketContext,
+      mlPrediction: MLPrediction | null
+    ): Promise<string[]>;
   };
   private initialized = false;
 
@@ -184,7 +190,7 @@ export class PricingEngine {
 
           // Step 3: Generate recommendations
           const recommendations = await this.recommendationsEngine.generate(
-            combinedAnalysis as any,
+            combinedAnalysis,
             complexity,
             (marketData ||
               this.getDefaultMarketData(input.category)) as MarketContext,
@@ -235,9 +241,9 @@ export class PricingEngine {
    * Combine results from all analysis modules
    */
   private combineAnalyses(
-    complexity: any,
-    marketData: any,
-    mlPrediction: any,
+    complexity: ComplexityResult | null,
+    marketData: MarketContext | null,
+    mlPrediction: MLPrediction | null,
     input: JobPricingInput
   ): Omit<PricingAnalysis, 'recommendations'> {
     // Use ML prediction as primary if available, otherwise combine other methods
@@ -304,9 +310,9 @@ export class PricingEngine {
    * Combine pricing factors from all sources
    */
   private combinePricingFactors(
-    complexity: any,
-    marketData: any,
-    mlPrediction: any
+    complexity: ComplexityResult | null,
+    marketData: MarketContext | null,
+    mlPrediction: MLPrediction | null
   ): PricingFactor[] {
     const factors: PricingFactor[] = [];
 
@@ -365,8 +371,8 @@ export class PricingEngine {
    * Determine overall job complexity
    */
   private determineComplexity(
-    complexity: any,
-    mlPrediction: any
+    complexity: ComplexityResult | null,
+    mlPrediction: MLPrediction | null
   ): 'simple' | 'moderate' | 'complex' | 'specialist' {
     if (mlPrediction?.complexity) {
       return mlPrediction.complexity;
