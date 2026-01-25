@@ -212,6 +212,117 @@ global.fetch = vi.fn(() =>
   } as Response)
 );
 
+// Mock Stripe.js to prevent script loading errors
+vi.mock('@stripe/stripe-js', () => ({
+  loadStripe: vi.fn().mockResolvedValue({
+    confirmCardPayment: vi.fn().mockResolvedValue({ paymentIntent: { id: 'pi_test' }, error: null }),
+    createPaymentMethod: vi.fn().mockResolvedValue({ paymentMethod: { id: 'pm_test' }, error: null }),
+    confirmPayment: vi.fn().mockResolvedValue({ paymentIntent: { id: 'pi_test' }, error: null }),
+    elements: vi.fn().mockReturnValue({
+      create: vi.fn().mockReturnValue({
+        mount: vi.fn(),
+        unmount: vi.fn(),
+        destroy: vi.fn(),
+        on: vi.fn(),
+        off: vi.fn(),
+      }),
+    }),
+  }),
+}));
+
+// Mock Stripe React components
+vi.mock('@stripe/react-stripe-js', () => ({
+  Elements: ({ children }: { children: React.ReactNode }) => children,
+  useStripe: () => ({
+    confirmCardPayment: vi.fn().mockResolvedValue({ paymentIntent: { id: 'pi_test' }, error: null }),
+    createPaymentMethod: vi.fn().mockResolvedValue({ paymentMethod: { id: 'pm_test' }, error: null }),
+  }),
+  useElements: () => ({
+    getElement: vi.fn().mockReturnValue({}),
+  }),
+  CardElement: () => null,
+  PaymentElement: () => null,
+}));
+
+// Mock Upstash Redis to prevent connection errors
+vi.mock('@upstash/redis', () => ({
+  Redis: vi.fn().mockImplementation(() => ({
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+    setex: vi.fn().mockResolvedValue('OK'),
+    del: vi.fn().mockResolvedValue(1),
+    expire: vi.fn().mockResolvedValue(1),
+    incr: vi.fn().mockResolvedValue(1),
+    decr: vi.fn().mockResolvedValue(0),
+    exists: vi.fn().mockResolvedValue(0),
+    ttl: vi.fn().mockResolvedValue(-1),
+    keys: vi.fn().mockResolvedValue([]),
+    scan: vi.fn().mockResolvedValue([0, []]),
+  })),
+}));
+
+// Mock Supabase to prevent multiple client instances
+let supabaseClient: any = null;
+
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn(() => {
+    if (supabaseClient) return supabaseClient;
+
+    supabaseClient = {
+      auth: {
+        signIn: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+        signOut: vi.fn().mockResolvedValue({ error: null }),
+        signUp: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+        getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+        onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      },
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        neq: vi.fn().mockReturnThis(),
+        gt: vi.fn().mockReturnThis(),
+        lt: vi.fn().mockReturnThis(),
+        gte: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
+        like: vi.fn().mockReturnThis(),
+        ilike: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        contains: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        range: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        then: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }),
+      storage: {
+        from: vi.fn().mockReturnValue({
+          upload: vi.fn().mockResolvedValue({ data: { path: 'test.jpg' }, error: null }),
+          download: vi.fn().mockResolvedValue({ data: new Blob(), error: null }),
+          remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+          list: vi.fn().mockResolvedValue({ data: [], error: null }),
+          getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/test.jpg' } }),
+        }),
+      },
+      functions: {
+        invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
+      },
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    };
+
+    return supabaseClient;
+  }),
+}));
+
+// Reset Supabase singleton after each test
+afterEach(() => {
+  supabaseClient = null;
+});
+
 // Suppress console errors in tests (unless debugging)
 const originalError = console.error;
 console.error = (...args: unknown[]) => {
@@ -221,7 +332,9 @@ console.error = (...args: unknown[]) => {
     (args[0].includes('Warning: ReactDOM.render') ||
       args[0].includes('Warning: useLayoutEffect') ||
       args[0].includes('Warning: An update to') ||
-      args[0].includes('Not implemented: HTMLFormElement.prototype.submit'))
+      args[0].includes('Not implemented: HTMLFormElement.prototype.submit') ||
+      args[0].includes('Multiple GoTrueClient instances') ||
+      args[0].includes('Failed to load script'))
   ) {
     return;
   }
