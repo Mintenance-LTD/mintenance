@@ -5,6 +5,7 @@ import {
   confirmPayment as stripeConfirmPayment,
   createPaymentMethod as stripeCreatePaymentMethod,
 } from '@stripe/stripe-react-native';
+import type { PaymentTables } from '../types/database/payments';
 
 interface PaymentMethod {
   id: string;
@@ -345,7 +346,7 @@ export class PaymentService {
    * Get escrow transactions for a specific job
    */
   static async getJobEscrowTransactions(jobId: string): Promise<
-    Array<{ jobId: string; status: string }>
+    Array<PaymentTables['escrow_transactions']['Row'] & { jobId: string }>
   > {
     const { data, error } = await supabase
       .from('escrow_transactions')
@@ -358,7 +359,7 @@ export class PaymentService {
       return [];
     }
 
-    return (data || []).map((transaction: any) => ({
+    return (data || []).map((transaction: PaymentTables['escrow_transactions']['Row']) => ({
       ...transaction,
       jobId: transaction.job_id,
     }));

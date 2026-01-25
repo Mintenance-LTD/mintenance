@@ -204,7 +204,7 @@ const TabNavigator: React.FC = () => {
             />
           ),
         }}
-        listeners={({ navigation }: { navigation: any }) => ({
+        listeners={({ navigation }: { navigation: BottomTabNavigationProp<RootTabParamList> }) => ({
           tabPress: (e: unknown) => {
             e.preventDefault();
             const tabNavigation =

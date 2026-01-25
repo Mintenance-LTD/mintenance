@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '@mintenance/shared';
@@ -81,7 +82,7 @@ const TabNavigator: React.FC = () => {
   const { user } = useAuth();
   const haptics = useHaptics();
 
-  const handleTabPress = (navigation: any, route: string) => {
+  const handleTabPress = (navigation: BottomTabNavigationProp<RootTabParamList>, route: string) => {
     haptics.tabSwitch();
 
     // Enhanced navigation logic with proper flow handling
@@ -95,7 +96,7 @@ const TabNavigator: React.FC = () => {
   };
 
   // Enhanced navigation helper for consistent deep linking
-  const navigateWithRoleCheck = (navigation: any, destination: string, params?: any) => {
+  const navigateWithRoleCheck = (navigation: BottomTabNavigationProp<RootTabParamList>, destination: string, params?: unknown) => {
     try {
       // Ensure navigation state is clean before navigating
       if (user?.role === 'homeowner' && destination.includes('Contractor')) {

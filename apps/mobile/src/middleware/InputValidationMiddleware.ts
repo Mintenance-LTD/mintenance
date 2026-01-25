@@ -50,9 +50,9 @@ interface ValidationOptions {
   customValidation?: (value: unknown) => { isValid: boolean; error?: string };
 }
 
-interface ValidationResult {
+interface ValidationResult<T = unknown> {
   isValid: boolean;
-  sanitized?: any;
+  sanitized?: T;
   errors: string[];
   warnings: string[];
 }
@@ -64,7 +64,7 @@ export class InputValidationMiddleware {
   static validateText(
     input: string,
     options: ValidationOptions = {}
-  ): ValidationResult {
+  ): ValidationResult<string> {
     const {
       maxLength = 1000,
       minLength = 0,
@@ -162,7 +162,7 @@ export class InputValidationMiddleware {
   /**
    * Validate email address
    */
-  static validateEmail(email: string): ValidationResult {
+  static validateEmail(email: string): ValidationResult<string> {
     const result = this.validateText(email, {
       pattern: VALIDATION_PATTERNS.email,
       maxLength: 254,
@@ -191,7 +191,7 @@ export class InputValidationMiddleware {
   /**
    * Validate phone number
    */
-  static validatePhone(phone: string): ValidationResult {
+  static validatePhone(phone: string): ValidationResult<string> {
     return this.validateText(phone, {
       pattern: VALIDATION_PATTERNS.phone,
       maxLength: 20,
@@ -203,7 +203,7 @@ export class InputValidationMiddleware {
   /**
    * Validate UUID
    */
-  static validateUUID(uuid: string): ValidationResult {
+  static validateUUID(uuid: string): ValidationResult<string> {
     return this.validateText(uuid, {
       pattern: VALIDATION_PATTERNS.uuid,
       maxLength: 36,
@@ -216,7 +216,7 @@ export class InputValidationMiddleware {
   /**
    * Validate and sanitize job title
    */
-  static validateJobTitle(title: string): ValidationResult {
+  static validateJobTitle(title: string): ValidationResult<string> {
     return this.validateText(title, {
       maxLength: 100,
       minLength: 3,
@@ -229,7 +229,7 @@ export class InputValidationMiddleware {
   /**
    * Validate and sanitize job description
    */
-  static validateJobDescription(description: string): ValidationResult {
+  static validateJobDescription(description: string): ValidationResult<string> {
     return this.validateText(description, {
       maxLength: 2000,
       minLength: 10,
@@ -241,7 +241,7 @@ export class InputValidationMiddleware {
   /**
    * Validate monetary amount
    */
-  static validateAmount(amount: number | string): ValidationResult {
+  static validateAmount(amount: number | string): ValidationResult<number> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -285,7 +285,7 @@ export class InputValidationMiddleware {
       allowedTypes?: string[];
       maxNameLength?: number;
     } = {}
-  ): ValidationResult {
+  ): ValidationResult<{ name: string; size: number; type: string }> {
     const {
       maxSize = 10 * 1024 * 1024, // 10MB default
       allowedTypes = ['image/jpeg', 'image/png', 'image/webp'],
@@ -339,10 +339,10 @@ export class InputValidationMiddleware {
    * Validate object with multiple fields
    */
   static validateObject(
-    obj: Record<string, any>,
+    obj: Record<string, unknown>,
     schema: Record<string, ValidationOptions>
-  ): { isValid: boolean; sanitized: Record<string, any>; errors: Record<string, string[]> } {
-    const sanitized: Record<string, any> = {};
+  ): { isValid: boolean; sanitized: Record<string, unknown>; errors: Record<string, string[]> } {
+    const sanitized: Record<string, unknown> = {};
     const errors: Record<string, string[]> = {};
     let isValid = true;
 
@@ -350,7 +350,7 @@ export class InputValidationMiddleware {
       const value = obj[fieldName];
 
       // Use appropriate validator based on field type
-      let result: ValidationResult;
+      let result: ValidationResult<unknown>;
 
       if (fieldName.includes('email')) {
         result = this.validateEmail(value || '');
