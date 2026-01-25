@@ -16,7 +16,7 @@ const top5 = data.filter(f =>
 console.log('Top 5 Files - Pattern Analysis:\n');
 
 top5.forEach(f => {
-  const filename = f.file.split('\').pop();
+  const filename = f.file.split('\\').pop();
   console.log(`${filename} (${f.matches.length} any types):`);
   
   // Show first 5 samples

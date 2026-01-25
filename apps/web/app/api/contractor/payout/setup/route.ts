@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     // #endregion
 
     // Log the raw response for debugging
-    logger.error('🔍 Edge Function Response:', JSON.stringify({ data, error }, null, 2', { service: 'api' }));
+    logger.error('🔍 Edge Function Response:', JSON.stringify({ data, error }, null, 2), { service: 'api' });
 
     if (error) {
       const errorDetails = getErrorDetails(error);

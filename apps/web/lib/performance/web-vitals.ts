@@ -39,37 +39,37 @@ export function reportWebVitals(metric: { name: string; value: number; delta?: n
     case 'FCP':
       // First Contentful Paint
       if (metric.value > 1800) {
-        :', metric.value);
+        logger.warn('Poor FCP detected', { value: metric.value }, { service: 'web-vitals' });
       }
       break;
     case 'LCP':
       // Largest Contentful Paint
       if (metric.value > 2500) {
-        :', metric.value);
+        logger.warn('Poor LCP detected', { value: metric.value }, { service: 'web-vitals' });
       }
       break;
     case 'CLS':
       // Cumulative Layout Shift
       if (metric.value > 0.1) {
-        :', metric.value);
+        logger.warn('Poor CLS detected', { value: metric.value }, { service: 'web-vitals' });
       }
       break;
     case 'FID':
       // First Input Delay
       if (metric.value > 100) {
-        :', metric.value);
+        logger.warn('Poor FID detected', { value: metric.value }, { service: 'web-vitals' });
       }
       break;
     case 'TTFB':
       // Time to First Byte
       if (metric.value > 600) {
-        :', metric.value);
+        logger.warn('Poor TTFB detected', { value: metric.value }, { service: 'web-vitals' });
       }
       break;
     case 'INP':
       // Interaction to Next Paint
       if (metric.value > 200) {
-        :', metric.value);
+        logger.warn('Poor INP detected', { value: metric.value }, { service: 'web-vitals' });
       }
       break;
   }

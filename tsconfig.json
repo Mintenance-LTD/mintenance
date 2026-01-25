@@ -43,9 +43,18 @@
     "src/__tests__/**",
     "**/*.test.ts",
     "**/*.test.tsx",
+    "**/*.test.js",
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "src/services/PaymentGateway.ts",
-    "src/services/MLTrainingPipeline.ts"
+    "src/services/MLTrainingPipeline.ts",
+    "apps/mobile/scripts/**/*.js",
+    "apps/web/scripts/**/*.js",
+    "apps/web/public/**/*.js",
+    "apps/web/__tests__/**/*.js",
+    "scripts/**/*.js",
+    "*.config.js",
+    "*.setup.js",
+    "*.js"
   ]
 }

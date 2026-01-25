@@ -17,19 +17,19 @@ data.forEach(f => {
   const path = f.file;
   const count = f.matches.length;
   
-  if (path.includes('/scripts/') || path.includes('\scripts\')) {
+  if (path.includes('/scripts/') || path.includes('\\scripts\\')) {
     categories.scripts += count;
-    scriptFiles.push({ file: path.split('\').pop(), count });
+    scriptFiles.push({ file: path.split('\\').pop(), count });
   } else if (path.includes('logger.ts') || path.includes('ErrorHandler')) {
     categories.logger += count;
   } else if (path.includes('.catch(console')) {
     categories.errorHandlers += count;
-  } else if (path.includes('/components/') || path.includes('\components\')) {
+  } else if (path.includes('/components/') || path.includes('\\components\\')) {
     categories.components += count;
-    componentFiles.push({ file: path.split('\').pop(), count });
-  } else if (path.includes('/services/') || path.includes('\services\') || path.includes('Service.ts')) {
+    componentFiles.push({ file: path.split('\\').pop(), count });
+  } else if (path.includes('/services/') || path.includes('\\services\\') || path.includes('Service.ts')) {
     categories.services += count;
-    serviceFiles.push({ file: path.split('\').pop(), count });
+    serviceFiles.push({ file: path.split('\\').pop(), count });
   } else {
     categories.other += count;
   }

@@ -192,3 +192,6 @@ colab_upload_v3/
 best_model_*.pt
 best_model_*.onnx
 yolo11n.pt
+
+# Exclude markdown files from git
+*.md
