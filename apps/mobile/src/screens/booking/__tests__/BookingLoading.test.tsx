@@ -3,7 +3,6 @@
  * Target: 100% coverage with 20-40 tests
  */
 
-jest.mock('react-native', () => require('../../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: any) => children,
   SafeAreaView: ({ children }: any) => children,
@@ -21,8 +20,8 @@ import { theme } from '../../../theme';
 describe('BookingLoading Component', () => {
   describe('Rendering', () => {
     it('should render without crashing', () => {
-      const { container } = render(<BookingLoading />);
-      expect(container).toBeDefined();
+      const { root } = render(<BookingLoading />);
+      expect(root).toBeDefined();
     });
 
     it('should render the container with correct testID', () => {
@@ -83,7 +82,7 @@ describe('BookingLoading Component', () => {
     it('should apply correct container styles', () => {
       const { getByTestId } = render(<BookingLoading />);
       const container = getByTestId('booking-loading-container');
-      expect(container.props.style).toContainEqual({
+      expect(container.props.style).toMatchObject({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
@@ -94,7 +93,7 @@ describe('BookingLoading Component', () => {
     it('should apply correct text styles', () => {
       const { getByTestId } = render(<BookingLoading />);
       const text = getByTestId('booking-loading-text');
-      expect(text.props.style).toContainEqual({
+      expect(text.props.style).toMatchObject({
         fontSize: 16,
         color: theme.colors.textSecondary,
         marginTop: 16,
@@ -104,57 +103,43 @@ describe('BookingLoading Component', () => {
     it('should use flex: 1 for full screen coverage', () => {
       const { getByTestId } = render(<BookingLoading />);
       const container = getByTestId('booking-loading-container');
-      expect(container.props.style).toContainEqual(
-        expect.objectContaining({ flex: 1 })
-      );
+      expect(container.props.style).toMatchObject({ flex: 1 });
     });
 
     it('should center content vertically', () => {
       const { getByTestId } = render(<BookingLoading />);
       const container = getByTestId('booking-loading-container');
-      expect(container.props.style).toContainEqual(
-        expect.objectContaining({ justifyContent: 'center' })
-      );
+      expect(container.props.style).toMatchObject({ justifyContent: 'center' });
     });
 
     it('should center content horizontally', () => {
       const { getByTestId } = render(<BookingLoading />);
       const container = getByTestId('booking-loading-container');
-      expect(container.props.style).toContainEqual(
-        expect.objectContaining({ alignItems: 'center' })
-      );
+      expect(container.props.style).toMatchObject({ alignItems: 'center' });
     });
 
     it('should use theme background color', () => {
       const { getByTestId } = render(<BookingLoading />);
       const container = getByTestId('booking-loading-container');
-      expect(container.props.style).toContainEqual(
-        expect.objectContaining({ backgroundColor: theme.colors.background })
-      );
+      expect(container.props.style).toMatchObject({ backgroundColor: theme.colors.background });
     });
 
     it('should use theme textSecondary color for text', () => {
       const { getByTestId } = render(<BookingLoading />);
       const text = getByTestId('booking-loading-text');
-      expect(text.props.style).toContainEqual(
-        expect.objectContaining({ color: theme.colors.textSecondary })
-      );
+      expect(text.props.style).toMatchObject({ color: theme.colors.textSecondary });
     });
 
     it('should have 16px margin top for text', () => {
       const { getByTestId } = render(<BookingLoading />);
       const text = getByTestId('booking-loading-text');
-      expect(text.props.style).toContainEqual(
-        expect.objectContaining({ marginTop: 16 })
-      );
+      expect(text.props.style).toMatchObject({ marginTop: 16 });
     });
 
     it('should have 16px font size for text', () => {
       const { getByTestId } = render(<BookingLoading />);
       const text = getByTestId('booking-loading-text');
-      expect(text.props.style).toContainEqual(
-        expect.objectContaining({ fontSize: 16 })
-      );
+      expect(text.props.style).toMatchObject({ fontSize: 16 });
     });
   });
 
@@ -195,17 +180,13 @@ describe('BookingLoading Component', () => {
     it('should use theme background color', () => {
       const { getByTestId } = render(<BookingLoading />);
       const container = getByTestId('booking-loading-container');
-      expect(container.props.style).toContainEqual(
-        expect.objectContaining({ backgroundColor: theme.colors.background })
-      );
+      expect(container.props.style).toMatchObject({ backgroundColor: theme.colors.background });
     });
 
     it('should use theme textSecondary for text color', () => {
       const { getByTestId } = render(<BookingLoading />);
       const text = getByTestId('booking-loading-text');
-      expect(text.props.style).toContainEqual(
-        expect.objectContaining({ color: theme.colors.textSecondary })
-      );
+      expect(text.props.style).toMatchObject({ color: theme.colors.textSecondary });
     });
 
     it('should be consistent with design system', () => {
@@ -213,9 +194,7 @@ describe('BookingLoading Component', () => {
       const spinner = getByTestId('booking-loading-spinner');
       const text = getByTestId('booking-loading-text');
       expect(spinner.props.color).toBe(theme.colors.primary);
-      expect(text.props.style).toContainEqual(
-        expect.objectContaining({ color: theme.colors.textSecondary })
-      );
+      expect(text.props.style).toMatchObject({ color: theme.colors.textSecondary });
     });
   });
 
