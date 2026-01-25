@@ -13,7 +13,7 @@ jest.mock('react-native', () => {
 jest.mock('@stripe/stripe-react-native');
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { StripePaymentForm } from '../StripePaymentForm';
 import { useConfirmPayment, CardField } from '@stripe/stripe-react-native';
@@ -148,7 +148,9 @@ describe('StripePaymentForm Component', () => {
       const cardField = UNSAFE_getByType(CardField as any);
 
       // Simulate card being completed
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       expect(button.props.disabled).toBe(false);
@@ -159,12 +161,16 @@ describe('StripePaymentForm Component', () => {
       const cardField = UNSAFE_getByType(CardField as any);
 
       // Complete the card
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
       let button = screen.getByTestId('pay-button');
       expect(button.props.disabled).toBe(false);
 
       // Make card incomplete
+      act(() => {
       cardField.props.onCardChange({ complete: false });
+      });
       button = screen.getByTestId('pay-button');
       expect(button.props.disabled).toBe(true);
     });
@@ -174,7 +180,9 @@ describe('StripePaymentForm Component', () => {
       const cardField = UNSAFE_getByType(CardField as any);
 
       expect(() => {
+        act(() => {
         cardField.props.onCardChange(null);
+        });
       }).not.toThrow();
 
       const button = screen.getByTestId('pay-button');
@@ -186,7 +194,9 @@ describe('StripePaymentForm Component', () => {
       const cardField = UNSAFE_getByType(CardField as any);
 
       expect(() => {
+        act(() => {
         cardField.props.onCardChange(undefined);
+        });
       }).not.toThrow();
 
       const button = screen.getByTestId('pay-button');
@@ -197,7 +207,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: false });
+      });
 
       const button = screen.getByTestId('pay-button');
       expect(button.props.disabled).toBe(true);
@@ -224,7 +236,9 @@ describe('StripePaymentForm Component', () => {
       const cardField = UNSAFE_getByType(CardField as any);
 
       // Complete the card
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -257,7 +271,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -279,7 +295,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -302,7 +320,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -324,7 +344,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -341,7 +363,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -355,7 +379,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -380,7 +406,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -396,7 +424,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -412,7 +442,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -428,7 +460,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -447,7 +481,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -477,7 +513,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       expect(button.props.accessibilityState).toEqual({ disabled: false });
@@ -493,7 +531,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -517,7 +557,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
 
@@ -541,7 +583,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -561,7 +605,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -600,7 +646,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
 
@@ -637,7 +685,9 @@ describe('StripePaymentForm Component', () => {
       );
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       rerender(<StripePaymentForm {...defaultProps} clientSecret="secret_2" />);
 
@@ -672,7 +722,9 @@ describe('StripePaymentForm Component', () => {
       });
 
       const cardField = UNSAFE_getByType(CardField as any);
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);
@@ -700,7 +752,9 @@ describe('StripePaymentForm Component', () => {
       const { UNSAFE_getByType, unmount } = render(<StripePaymentForm {...defaultProps} />);
       const cardField = UNSAFE_getByType(CardField as any);
 
+      act(() => {
       cardField.props.onCardChange({ complete: true });
+      });
 
       const button = screen.getByTestId('pay-button');
       fireEvent.press(button);

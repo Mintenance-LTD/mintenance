@@ -27,8 +27,10 @@ export const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
   const { confirmPayment } = useConfirmPayment();
 
   const handlePayment = async () => {
-    if (!cardComplete || !clientSecret) {
-      Alert.alert('Error', 'Please complete your card information');
+    if (loading || !cardComplete || !clientSecret) {
+      if (!cardComplete || !clientSecret) {
+        Alert.alert('Error', 'Please complete your card information');
+      }
       return;
     }
 
