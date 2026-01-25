@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 

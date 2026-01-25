@@ -64,7 +64,7 @@ export interface BouncyPressProps {
 // FADE IN ANIMATION
 // ============================================================================
 
-export const FadeIn = memo<FadeInProps>(({
+const FadeIn = memo<FadeInProps>(({
   children,
   duration = 500,
   delay = 0,
@@ -102,7 +102,7 @@ FadeIn.displayName = 'FadeIn';
 // SLIDE IN ANIMATION
 // ============================================================================
 
-export const SlideIn = memo<SlideInProps>(({
+const SlideIn = memo<SlideInProps>(({
   children,
   direction = 'up',
   distance = 50,
@@ -178,7 +178,7 @@ SlideIn.displayName = 'SlideIn';
 // SCALE IN ANIMATION
 // ============================================================================
 
-export const ScaleIn = memo<ScaleInProps>(({
+const ScaleIn = memo<ScaleInProps>(({
   children,
   fromScale = 0.3,
   toScale = 1,
@@ -233,7 +233,7 @@ ScaleIn.displayName = 'ScaleIn';
 // PULSE ANIMATION
 // ============================================================================
 
-export const Pulse = memo<PulseProps>(({
+const Pulse = memo<PulseProps>(({
   children,
   minScale = 0.95,
   maxScale = 1.05,
@@ -289,7 +289,7 @@ Pulse.displayName = 'Pulse';
 // BOUNCY PRESS ANIMATION
 // ============================================================================
 
-export const BouncyPress = memo<BouncyPressProps>(({
+const BouncyPress = memo<BouncyPressProps>(({
   children,
   onPress,
   bounceScale = 0.95,
@@ -348,7 +348,7 @@ BouncyPress.displayName = 'BouncyPress';
 // LAYOUT ANIMATIONS
 // ============================================================================
 
-export const LayoutAnimations = {
+const LayoutAnimations = {
   easeInEaseOut: () => {
     if (Platform.OS === 'ios') {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -400,7 +400,7 @@ export interface SequentialAnimationProps {
   testID?: string;
 }
 
-export const SequentialAnimation = memo<SequentialAnimationProps>(({
+const SequentialAnimation = memo<SequentialAnimationProps>(({
   children,
   staggerDelay = 100,
   animationType = 'fade',
@@ -455,7 +455,7 @@ export interface InteractionAwareAnimationProps {
   testID?: string;
 }
 
-export const InteractionAwareAnimation = memo<InteractionAwareAnimationProps>(({
+const InteractionAwareAnimation = memo<InteractionAwareAnimationProps>(({
   children,
   fallback,
   animationType = 'fade',
