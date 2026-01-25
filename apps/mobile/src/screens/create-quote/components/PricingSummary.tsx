@@ -35,26 +35,26 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Pricing Summary</Text>
-      
+
       <View style={styles.pricingRow}>
         <Text style={styles.pricingLabel}>Subtotal</Text>
-        <Text style={styles.pricingValue}>${subtotal.toFixed(2)}</Text>
+        <Text style={styles.pricingValue} testID="subtotal-value">${subtotal.toFixed(2)}</Text>
       </View>
 
       <View style={styles.pricingRow}>
         <Text style={styles.pricingLabel}>Markup ({markupPercentage}%)</Text>
-        <Text style={styles.pricingValue}>${(subtotalWithMarkup - subtotal).toFixed(2)}</Text>
+        <Text style={styles.pricingValue} testID="markup-value">${(subtotalWithMarkup - subtotal).toFixed(2)}</Text>
       </View>
 
       <View style={styles.pricingRow}>
         <Text style={styles.pricingLabel}>After Markup</Text>
-        <Text style={styles.pricingValue}>${subtotalWithMarkup.toFixed(2)}</Text>
+        <Text style={styles.pricingValue} testID="after-markup-value">${subtotalWithMarkup.toFixed(2)}</Text>
       </View>
 
       {parseFloat(discountPercentage) > 0 && (
         <View style={styles.pricingRow}>
           <Text style={styles.pricingLabel}>Discount ({discountPercentage}%)</Text>
-          <Text style={[styles.pricingValue, styles.discountValue]}>
+          <Text style={[styles.pricingValue, styles.discountValue]} testID="discount-value">
             -${discountAmount.toFixed(2)}
           </Text>
         </View>
@@ -62,12 +62,12 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
 
       <View style={styles.pricingRow}>
         <Text style={styles.pricingLabel}>Tax ({taxRate}%)</Text>
-        <Text style={styles.pricingValue}>${taxAmount.toFixed(2)}</Text>
+        <Text style={styles.pricingValue} testID="tax-value">${taxAmount.toFixed(2)}</Text>
       </View>
 
       <View style={[styles.pricingRow, styles.totalRow]}>
         <Text style={styles.totalLabel}>Total</Text>
-        <Text style={styles.totalValue}>${totalAmount.toFixed(2)}</Text>
+        <Text style={styles.totalValue} testID="total-value">${totalAmount.toFixed(2)}</Text>
       </View>
     </View>
   );
