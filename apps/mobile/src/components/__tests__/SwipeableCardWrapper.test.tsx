@@ -122,7 +122,7 @@ describe('SwipeableCardWrapper', () => {
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks(); // Changed from resetAllMocks to preserve mock implementations
   });
 
   describe('Component Rendering', () => {
