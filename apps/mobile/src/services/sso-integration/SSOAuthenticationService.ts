@@ -87,19 +87,22 @@ export class SSOAuthenticationService {
     externalUserId: string,
     profileData: unknown
   ): Promise<UserSSOAccount> {
+    // Type guard for profile data
+    const profile = profileData as SSOUserProfile;
+
     const { data, error } = await supabase
       .from('user_sso_accounts')
       .insert({
         user_id: userId,
         provider_id: providerId,
         external_user_id: externalUserId,
-        external_email: profileData.email,
-        external_display_name: profileData.name,
+        external_email: profile.email,
+        external_display_name: profile.name,
         linking_status: 'linked',
         linked_at: new Date().toISOString(),
         profile_data: profileData,
-        permissions: profileData.permissions || [],
-        groups: profileData.groups || [],
+        permissions: profile.roles || [],
+        groups: profile.groups || [],
         login_count: 1,
         last_login_at: new Date().toISOString(),
         metadata: {},
@@ -422,7 +425,10 @@ export class SSOAuthenticationService {
   /**
    * Find or create user account
    */
-  private async findOrCreateUser(provider: SSOProvider, userProfile: SSOUserProfile): Promise<unknown> {
+  private async findOrCreateUser(
+    provider: SSOProvider,
+    userProfile: SSOUserProfile
+  ): Promise<{ id: string; [key: string]: unknown } | null> {
     // Check if user exists
     const { data: existingUser } = await supabase
       .from('users')
@@ -431,7 +437,7 @@ export class SSOAuthenticationService {
       .single();
 
     if (existingUser) {
-      return existingUser;
+      return existingUser as { id: string; [key: string]: unknown };
     }
 
     // Create new user if auto_create_users is enabled
@@ -448,7 +454,7 @@ export class SSOAuthenticationService {
         .select()
         .single();
 
-      return newUser;
+      return newUser as { id: string; [key: string]: unknown };
     }
 
     return null;
@@ -457,7 +463,10 @@ export class SSOAuthenticationService {
   /**
    * Refresh access token
    */
-  private async refreshAccessToken(provider: unknown, refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
+  private async refreshAccessToken(
+    provider: { token_lifetime?: number; [key: string]: unknown },
+    refreshToken: string
+  ): Promise<{ access_token: string; expires_in: number }> {
     // Simplified implementation
     return {
       access_token: 'new_mock_access_token',

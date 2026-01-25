@@ -4,6 +4,32 @@ import { logger } from '../utils/logger';
 import { aiConfig, isAIConfigured, getConfiguredAIService } from '../config/ai.config';
 
 /**
+ * OpenAI API Response Types
+ */
+interface OpenAISafetyConcern {
+  concern: string;
+  severity: 'Low' | 'Medium' | 'High';
+  description: string;
+}
+
+interface OpenAIDetectedEquipment {
+  name: string;
+  confidence: number;
+  location: string;
+}
+
+interface OpenAIAnalysisResponse {
+  confidence: number;
+  detectedItems: string[];
+  safetyConcerns: OpenAISafetyConcern[];
+  recommendedActions: string[];
+  estimatedComplexity: 'Low' | 'Medium' | 'High';
+  suggestedTools: string[];
+  estimatedDuration: string;
+  detectedEquipment: OpenAIDetectedEquipment[];
+}
+
+/**
  * Production-ready AI Analysis Service
  * Integrates with real AI services (OpenAI, AWS, Google Cloud)
  *
@@ -279,25 +305,66 @@ export class RealAIAnalysisService {
   }
 
   /**
+   * Type guard to check if object is a safety concern
+   */
+  private static isValidSafetyConcern(obj: unknown): obj is OpenAISafetyConcern {
+    if (!obj || typeof obj !== 'object') return false;
+    const concern = obj as Record<string, unknown>;
+    return (
+      typeof concern.concern === 'string' &&
+      typeof concern.severity === 'string' &&
+      typeof concern.description === 'string'
+    );
+  }
+
+  /**
+   * Type guard to check if object is detected equipment
+   */
+  private static isValidDetectedEquipment(obj: unknown): obj is OpenAIDetectedEquipment {
+    if (!obj || typeof obj !== 'object') return false;
+    const equipment = obj as Record<string, unknown>;
+    return (
+      typeof equipment.name === 'string' &&
+      typeof equipment.confidence === 'number' &&
+      typeof equipment.location === 'string'
+    );
+  }
+
+  /**
    * Validate and format OpenAI JSON response
    */
   private static validateAndFormatOpenAIResponse(
     response: unknown,
     job: Job
   ): AIAnalysis {
+    // Type guard for response object
+    if (!response || typeof response !== 'object') {
+      throw new Error('Invalid response format: expected object');
+    }
+
+    const parsedResponse = response as Partial<OpenAIAnalysisResponse>;
+
     return {
-      confidence: Math.min(Math.max(response.confidence || 75, 0), 100),
-      detectedItems: Array.isArray(response.detectedItems)
-        ? response.detectedItems
+      confidence: Math.min(
+        Math.max(
+          typeof parsedResponse.confidence === 'number' ? parsedResponse.confidence : 75,
+          0
+        ),
+        100
+      ),
+      detectedItems: Array.isArray(parsedResponse.detectedItems)
+        ? parsedResponse.detectedItems.filter((item): item is string => typeof item === 'string')
         : ['AI analysis completed'],
-      safetyConcerns: Array.isArray(response.safetyConcerns)
-        ? response.safetyConcerns.map((c: unknown) => ({
-            concern: c.concern || 'Safety consideration',
-            severity: ['Low', 'Medium', 'High'].includes(c.severity)
-              ? c.severity
-              : 'Medium',
-            description: c.description || 'Follow standard safety protocols',
-          }))
+      safetyConcerns: Array.isArray(parsedResponse.safetyConcerns)
+        ? parsedResponse.safetyConcerns
+            .filter(this.isValidSafetyConcern)
+            .map((c) => ({
+              concern: c.concern,
+              severity: ['Low', 'Medium', 'High'].includes(c.severity)
+                ? (c.severity as 'Low' | 'Medium' | 'High')
+                : 'Medium',
+              description: c.description,
+            }))
         : [
             {
               concern: 'Standard safety precautions',
@@ -306,28 +373,33 @@ export class RealAIAnalysisService {
                 'Follow appropriate safety protocols for this type of work',
             },
           ],
-      recommendedActions: Array.isArray(response.recommendedActions)
-        ? response.recommendedActions
+      recommendedActions: Array.isArray(parsedResponse.recommendedActions)
+        ? parsedResponse.recommendedActions.filter((item): item is string => typeof item === 'string')
         : [
             'Assess the situation thoroughly',
             'Gather necessary tools and materials',
             'Follow safety protocols',
           ],
-      estimatedComplexity: ['Low', 'Medium', 'High'].includes(
-        response.estimatedComplexity
-      )
-        ? (response.estimatedComplexity as 'Low' | 'Medium' | 'High')
-        : 'Medium',
-      suggestedTools: Array.isArray(response.suggestedTools)
-        ? response.suggestedTools
+      estimatedComplexity:
+        parsedResponse.estimatedComplexity &&
+        ['Low', 'Medium', 'High'].includes(parsedResponse.estimatedComplexity)
+          ? parsedResponse.estimatedComplexity
+          : 'Medium',
+      suggestedTools: Array.isArray(parsedResponse.suggestedTools)
+        ? parsedResponse.suggestedTools.filter((item): item is string => typeof item === 'string')
         : ['Basic tools required'],
-      estimatedDuration: response.estimatedDuration || '2-4 hours',
-      detectedEquipment: Array.isArray(response.detectedEquipment)
-        ? response.detectedEquipment.map((e: unknown) => ({
-            name: e.name || 'Equipment',
-            confidence: Math.min(Math.max(e.confidence || 70, 0), 100),
-            location: e.location || 'Location not specified',
-          }))
+      estimatedDuration:
+        typeof parsedResponse.estimatedDuration === 'string'
+          ? parsedResponse.estimatedDuration
+          : '2-4 hours',
+      detectedEquipment: Array.isArray(parsedResponse.detectedEquipment)
+        ? parsedResponse.detectedEquipment
+            .filter(this.isValidDetectedEquipment)
+            .map((e) => ({
+              name: e.name,
+              confidence: Math.min(Math.max(e.confidence, 0), 100),
+              location: e.location,
+            }))
         : [],
     };
   }

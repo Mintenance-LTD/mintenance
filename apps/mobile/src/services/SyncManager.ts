@@ -6,7 +6,7 @@ import { JobService } from './JobService';
 import { MessagingService } from './MessagingService';
 import { queryClient } from '../lib/queryClient';
 import { logger } from '../utils/logger';
-import { User, Job } from '@mintenance/types';
+import { User, Job, Message } from '@mintenance/types';
 
 export type SyncStrategy = 'immediate' | 'background' | 'manual';
 export type SyncDirection = 'upload' | 'download' | 'bidirectional';
@@ -35,12 +35,94 @@ export interface SyncError {
   retryCount: number;
 }
 
+// Database row interfaces (SQLite schema with snake_case)
+interface DatabaseUserRow {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: string;
+  phone: string | null;
+  profile_image_url: string | null;
+  bio: string | null;
+  rating: number | null;
+  total_jobs_completed: number | null;
+  is_available: number;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+  created_at: string;
+  updated_at: string;
+  synced_at: string | null;
+  is_dirty: number;
+}
+
+interface DatabaseMessageRow {
+  id: string;
+  job_id: string;
+  sender_id: string;
+  receiver_id: string;
+  message_text: string;
+  message_type: string;
+  attachment_url: string | null;
+  read: number;
+  created_at: string;
+  synced_at: string | null;
+  is_dirty: number;
+}
+
+interface DatabaseOfflineActionRow {
+  id: string;
+  type: string;
+  entity: string;
+  data: string;
+  retry_count: number;
+  max_retries: number;
+  query_key: string | null;
+  created_at: number;
+  synced_at: number | null;
+}
+
+// Typed data structures for actions
+interface JobActionData {
+  jobId?: string;
+  status?: string;
+  contractorId?: string;
+  title?: string;
+  description?: string;
+  budget?: number;
+  priority?: string;
+  homeownerId?: string;
+  photos?: string[];
+}
+
+interface MessageActionData {
+  jobId: string;
+  receiverId: string;
+  messageText: string;
+  senderId: string;
+  messageType?: string;
+  attachmentUrl?: string;
+}
+
+interface ProfileActionData {
+  userId: string;
+  updates?: Record<string, unknown>;
+}
+
+// Subscription types
+interface AppStateSubscription {
+  remove: () => void;
+}
+
+type NetworkUnsubscribe = () => void;
+
 class SyncManagerService {
   private isInitialized = false;
   private syncInProgress = false;
   private backgroundTimer: NodeJS.Timeout | null = null;
-  private appStateSubscription: unknown = null;
-  private networkSubscription: unknown = null;
+  private appStateSubscription: AppStateSubscription | null = null;
+  private networkSubscription: NetworkUnsubscribe | null = null;
   private syncListeners: ((status: SyncStatus) => void)[] = [];
 
   private readonly DEFAULT_BATCH_SIZE = 50;
@@ -249,9 +331,10 @@ class SyncManagerService {
           );
 
           for (const message of messages) {
-            // Remove computed fields before saving
-            const { senderName, senderRole, ...messageData } = message;
-            await LocalDatabase.saveMessage(messageData, false);
+            // Remove computed fields before saving - Message type has these optional fields
+            const typedMessage = message as Message & { senderName?: string; senderRole?: string };
+            const { senderName, senderRole, ...messageData } = typedMessage;
+            await LocalDatabase.saveMessage(messageData as Message, false);
           }
         } catch (error) {
           logger.warn('Failed to download messages for job', {
@@ -286,10 +369,11 @@ class SyncManagerService {
     )) {
       try {
         await this.uploadRecord(table, record);
-        await LocalDatabase.markRecordSynced(table, record.id);
+        const recordWithId = record as { id: string };
+        await LocalDatabase.markRecordSynced(table, recordWithId.id);
       } catch (error) {
         logger.error(`Failed to upload ${table} record`, error as unknown, {
-          id: record.id,
+          id: (record as { id: string }).id,
         });
         // Don't mark as synced, will retry next time
       }
@@ -301,23 +385,27 @@ class SyncManagerService {
    */
   private async uploadRecord(table: string, record: unknown): Promise<void> {
     switch (table) {
-      case 'users':
-        await AuthService.updateUserProfile(record.id, record);
+      case 'users': {
+        const userRow = record as DatabaseUserRow;
+        await AuthService.updateUserProfile(userRow.id, record);
         break;
+      }
       case 'jobs':
         // Would need to implement job update API
         logger.warn('Job updates not implemented yet');
         break;
-      case 'messages':
+      case 'messages': {
+        const messageRow = record as DatabaseMessageRow;
         await MessagingService.sendMessage(
-          record.job_id,
-          record.receiver_id,
-          record.message_text,
-          record.sender_id,
-          record.message_type,
-          record.attachment_url
+          messageRow.job_id,
+          messageRow.receiver_id,
+          messageRow.message_text,
+          messageRow.sender_id,
+          messageRow.message_type,
+          messageRow.attachment_url || undefined
         );
         break;
+      }
       default:
         throw new Error(`Unknown table: ${table}`);
     }
@@ -334,24 +422,25 @@ class SyncManagerService {
 
     for (const action of actions) {
       try {
-        const data = JSON.parse(action.data);
+        const actionRow = action as DatabaseOfflineActionRow;
+        const data = JSON.parse(actionRow.data) as unknown;
 
-        switch (action.entity) {
+        switch (actionRow.entity) {
           case 'job':
-            await this.processJobAction(action.type, data);
+            await this.processJobAction(actionRow.type, data);
             break;
           case 'message':
-            await this.processMessageAction(action.type, data);
+            await this.processMessageAction(actionRow.type, data);
             break;
           default:
-            logger.warn('Unknown action entity:', action.entity);
+            logger.warn('Unknown action entity:', actionRow.entity);
         }
 
-        await LocalDatabase.removeOfflineAction(action.id);
-        logger.debug('Processed offline action:', action.id);
+        await LocalDatabase.removeOfflineAction(actionRow.id);
+        logger.debug('Processed offline action:', actionRow.id);
       } catch (error) {
         logger.error('Failed to process offline action', error as unknown, {
-          id: action.id,
+          id: (action as DatabaseOfflineActionRow).id,
         });
         // Keep action in queue for retry
       }
@@ -359,15 +448,20 @@ class SyncManagerService {
   }
 
   private async processJobAction(type: string, data: unknown): Promise<void> {
+    const jobData = data as JobActionData;
+
     switch (type) {
       case 'CREATE':
         await JobService.createJob(data);
         break;
       case 'UPDATE':
+        if (!jobData.jobId || !jobData.status) {
+          throw new Error('Missing required fields for job update');
+        }
         await JobService.updateJobStatus(
-          data.jobId,
-          data.status,
-          data.contractorId
+          jobData.jobId,
+          jobData.status,
+          jobData.contractorId
         );
         break;
       default:
@@ -376,15 +470,17 @@ class SyncManagerService {
   }
 
   private async processMessageAction(type: string, data: unknown): Promise<void> {
+    const messageData = data as MessageActionData;
+
     switch (type) {
       case 'CREATE':
         await MessagingService.sendMessage(
-          data.jobId,
-          data.receiverId,
-          data.messageText,
-          data.senderId,
-          data.messageType,
-          data.attachmentUrl
+          messageData.jobId,
+          messageData.receiverId,
+          messageData.messageText,
+          messageData.senderId,
+          messageData.messageType,
+          messageData.attachmentUrl
         );
         break;
       default:
@@ -463,11 +559,13 @@ class SyncManagerService {
     operation: string,
     error: Error | unknown
   ): SyncError {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     return {
       id: `${entity}_${operation}_${Date.now()}`,
       entity,
       operation,
-      error: error.message || 'Unknown error',
+      error: errorMessage,
       timestamp: new Date(),
       retryCount: 0,
     };
@@ -523,10 +621,12 @@ class SyncManagerService {
 
     if (this.appStateSubscription) {
       this.appStateSubscription.remove();
+      this.appStateSubscription = null;
     }
 
     if (this.networkSubscription) {
       this.networkSubscription();
+      this.networkSubscription = null;
     }
 
     await LocalDatabase.close();

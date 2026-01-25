@@ -6,6 +6,7 @@
 
 export interface SSOProvider {
   id: string;
+  contractor_id: string;
   provider_name: string;
   provider_type:
     | 'google'
@@ -192,6 +193,8 @@ export interface SSOProviderConfig {
   jwks_url?: string;
   issuer?: string;
   requested_scopes?: string[];
+  user_attributes?: Record<string, string>;
+  group_attributes?: Record<string, string>;
   custom_endpoints?: Record<string, string>;
   saml_config?: {
     entity_id: string;
