@@ -356,7 +356,7 @@ describe('Button Component', () => {
       );
       const button = getByTestId('disabled-btn');
       const bgColor = getStyleValue(button, 'backgroundColor');
-      expect(bgColor).toBe('#9CA3AF');
+      expect(bgColor).toBe('#9CA3AF'); // Disabled gray color
     });
 
     it('removes shadow when disabled', () => {

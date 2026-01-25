@@ -54,7 +54,7 @@ export const Button: React.FC<ButtonProps> = ({
   testID,
 }) => {
   const v = theme.components.button[variant] as any;
-  const backgroundColor = v?.backgroundColor ?? theme.colors.primary;
+  const backgroundColor = disabled ? theme.colors.textTertiary : (v?.backgroundColor ?? theme.colors.primary);
   const borderColor = v?.borderColor ?? 'transparent';
   const color = v?.color ?? theme.colors.textInverse;
   const isTertiary = variant === 'tertiary';
@@ -76,7 +76,7 @@ export const Button: React.FC<ButtonProps> = ({
           borderColor,
           width: fullWidth ? ('100%' as const) : undefined,
         },
-        disabled ? styles.disabled : null,
+        disabled && styles.disabledShadow,
         backgroundColor === 'transparent' && styles.noShadow,
         style,
       ]}
@@ -141,8 +141,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontWeight: theme.typography.fontWeight.medium,
   },
-  disabled: {
-    backgroundColor: theme.colors.textTertiary,
+  disabledShadow: {
     shadowOpacity: 0,
     elevation: 0,
   },
