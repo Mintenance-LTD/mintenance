@@ -6,97 +6,44 @@
  * Target: 100% coverage with deterministic tests
  */
 
+// Note: SwipeableCardWrapper requires Animated.ValueXY with getTranslateTransform
+// This is handled in __mocks__/react-native.js
+
 import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
-import { Text, View } from 'react-native';
-import SwipeableCardWrapper, { SwipeableCardRef } from '../SwipeableCardWrapper';
 
-// Import mocks from react-native
-const { Animated, PanResponder, Dimensions } = require('react-native');
+// Import react-native using require to allow runtime modification
+const RN = require('react-native');
+const { Animated, Dimensions, Text, View } = RN;
 
 // Store panResponder configs for testing
 let lastPanResponderConfig: any = null;
 
-// Override PanResponder.create to capture config while still using the mock
-const originalPanResponderCreate = PanResponder.create;
-PanResponder.create = jest.fn((config) => {
-  lastPanResponderConfig = config;
-  return originalPanResponderCreate(config);
+// Wrap PanResponder.create to capture config - use mockImplementation to survive jest.resetAllMocks()
+const originalCreateImpl = () => ({
+  panHandlers: {
+    onStartShouldSetPanResponder: jest.fn(),
+    onStartShouldSetPanResponderCapture: jest.fn(),
+    onMoveShouldSetPanResponder: jest.fn(),
+    onMoveShouldSetPanResponderCapture: jest.fn(),
+    onPanResponderGrant: jest.fn(),
+    onPanResponderMove: jest.fn(),
+    onPanResponderRelease: jest.fn(),
+    onPanResponderTerminate: jest.fn(),
+    onPanResponderTerminationRequest: jest.fn(),
+    onShouldBlockNativeResponder: jest.fn(),
+  },
 });
 
-// Create a more complete mock for Animated.ValueXY
-Animated.ValueXY = jest.fn(function (this: any, value?: any) {
-  const x = {
-    _value: 0,
-    setValue: jest.fn(function (this: any, v: any) { this._value = v; }),
-    setOffset: jest.fn(),
-    flattenOffset: jest.fn(),
-    extractOffset: jest.fn(),
-    interpolate: jest.fn(function (this: any) { return this; }),
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    removeAllListeners: jest.fn(),
-    stopAnimation: jest.fn(),
-    resetAnimation: jest.fn(),
-  };
+RN.PanResponder.create.mockImplementation((config: any) => {
+  lastPanResponderConfig = config;
+  return originalCreateImpl();
+});
 
-  const y = {
-    _value: 0,
-    setValue: jest.fn(function (this: any, v: any) { this._value = v; }),
-    setOffset: jest.fn(),
-    flattenOffset: jest.fn(),
-    extractOffset: jest.fn(),
-    interpolate: jest.fn(function (this: any) { return this; }),
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    removeAllListeners: jest.fn(),
-    stopAnimation: jest.fn(),
-    resetAnimation: jest.fn(),
-  };
+// Re-export for consistency
+const PanResponder = RN.PanResponder;
 
-  this.x = x;
-  this.y = y;
-  this._value = { x: 0, y: 0 };
-
-  this.setValue = jest.fn((val: any) => {
-    if (val.x !== undefined) this.x.setValue(val.x);
-    if (val.y !== undefined) this.y.setValue(val.y);
-    this._value = val;
-  });
-
-  this.setOffset = jest.fn((offset: any) => {
-    if (offset.x !== undefined) this.x.setOffset(offset.x);
-    if (offset.y !== undefined) this.y.setOffset(offset.y);
-  });
-
-  this.flattenOffset = jest.fn(() => {
-    this.x.flattenOffset();
-    this.y.flattenOffset();
-  });
-
-  this.extractOffset = jest.fn(() => {
-    this.x.extractOffset();
-    this.y.extractOffset();
-  });
-
-  this.getLayout = jest.fn(() => ({
-    left: this.x,
-    top: this.y,
-  }));
-
-  this.getTranslateTransform = jest.fn(() => [
-    { translateX: this.x },
-    { translateY: this.y },
-  ]);
-
-  this.addListener = jest.fn();
-  this.removeListener = jest.fn();
-  this.removeAllListeners = jest.fn();
-  this.stopAnimation = jest.fn();
-  this.resetAnimation = jest.fn();
-
-  return this;
-} as any);
+// Note: Animated.ValueXY mock is now in global __mocks__/react-native.js
 
 // Make animations execute immediately
 const createMockAnimation = (valueSetter?: (value: any, config: any) => void) => {
@@ -139,6 +86,10 @@ Animated.parallel = jest.fn((animations: any[]) => ({
   stop: jest.fn(),
 }));
 
+// Import component AFTER setting up mocks (using require to avoid hoisting)
+const SwipeableCardWrapper = require('../SwipeableCardWrapper').default;
+const { SwipeableCardRef } = require('../SwipeableCardWrapper');
+
 describe('SwipeableCardWrapper', () => {
   // Mock card data
   const mockCards = [
@@ -163,6 +114,11 @@ describe('SwipeableCardWrapper', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Reapply mockImplementation after jest.resetAllMocks() in previous afterEach
+    RN.PanResponder.create.mockImplementation((config: any) => {
+      lastPanResponderConfig = config;
+      return originalCreateImpl();
+    });
   });
 
   afterEach(() => {

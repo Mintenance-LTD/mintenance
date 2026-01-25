@@ -112,35 +112,40 @@ const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperPr
         scaleAnim.setValue(1);
       });
     };
-    const panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        pan.setOffset({
-          x: (pan.x as any)._value,
-          y: (pan.y as any)._value,
-        });
-      },
-      onPanResponderMove: (_, gestureState) => {
-        if (horizontalSwipe) {
-          pan.x.setValue(gestureState.dx);
-        }
-        if (verticalSwipe) {
-          pan.y.setValue(gestureState.dy);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        pan.flattenOffset();
-        const swipeThreshold = screenWidth * 0.25;
-        if (gestureState.dx > swipeThreshold && horizontalSwipe) {
-          swipeCard('right');
-        } else if (gestureState.dx < -swipeThreshold && horizontalSwipe) {
-          swipeCard('left');
-        } else {
-          resetPosition();
-        }
-      },
-    });
+    const panResponderRef = React.useRef<ReturnType<typeof PanResponder.create>>();
+    if (!panResponderRef.current) {
+      const created = PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => {
+          pan.setOffset({
+            x: (pan.x as any)._value,
+            y: (pan.y as any)._value,
+          });
+        },
+        onPanResponderMove: (_, gestureState) => {
+          if (horizontalSwipe) {
+            pan.x.setValue(gestureState.dx);
+          }
+          if (verticalSwipe) {
+            pan.y.setValue(gestureState.dy);
+          }
+        },
+        onPanResponderRelease: (_, gestureState) => {
+          pan.flattenOffset();
+          const swipeThreshold = screenWidth * 0.25;
+          if (gestureState.dx > swipeThreshold && horizontalSwipe) {
+            swipeCard('right');
+          } else if (gestureState.dx < -swipeThreshold && horizontalSwipe) {
+            swipeCard('left');
+          } else {
+            resetPosition();
+          }
+        },
+      });
+      panResponderRef.current = created;
+    }
+    const panResponder = panResponderRef.current;
     useImperativeHandle(ref, () => ({
       swipeLeft: () => swipeCard('left'),
       swipeRight: () => swipeCard('right'),
@@ -161,7 +166,8 @@ const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperPr
         const animatedStyle = isTopCard
           ? {
               transform: [
-                ...pan.getTranslateTransform(),
+                { translateX: pan.x },
+                { translateY: pan.y },
                 { scale: scaleAnim },
               ],
               opacity: fadeAnim,

@@ -48,19 +48,64 @@ module.exports = {
       interpolate: jest.fn(() => ({ getValue: jest.fn(() => 0) })),
       animate: jest.fn(),
     })),
-    ValueXY: jest.fn(() => ({
-      setValue: jest.fn(),
-      setOffset: jest.fn(),
-      flattenOffset: jest.fn(),
-      extractOffset: jest.fn(),
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      removeAllListeners: jest.fn(),
-      stopAnimation: jest.fn(),
-      resetAnimation: jest.fn(),
-      getLayout: jest.fn(),
-      getTranslateTransform: jest.fn(),
-    })),
+    ValueXY: jest.fn(function(value) {
+      const xValue = value?.x ?? 0;
+      const yValue = value?.y ?? 0;
+
+      this.x = {
+        _value: xValue,
+        setValue: jest.fn(function(v) { this._value = v; }),
+        setOffset: jest.fn(),
+        flattenOffset: jest.fn(),
+        extractOffset: jest.fn(),
+        interpolate: jest.fn(function() { return this; }),
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        removeAllListeners: jest.fn(),
+        stopAnimation: jest.fn(),
+        resetAnimation: jest.fn()
+      };
+
+      this.y = {
+        _value: yValue,
+        setValue: jest.fn(function(v) { this._value = v; }),
+        setOffset: jest.fn(),
+        flattenOffset: jest.fn(),
+        extractOffset: jest.fn(),
+        interpolate: jest.fn(function() { return this; }),
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        removeAllListeners: jest.fn(),
+        stopAnimation: jest.fn(),
+        resetAnimation: jest.fn()
+      };
+
+      this._value = { x: xValue, y: yValue };
+      this.setValue = jest.fn((val) => {
+        if (val?.x !== undefined) { this.x.setValue(val.x); this._value.x = val.x; }
+        if (val?.y !== undefined) { this.y.setValue(val.y); this._value.y = val.y; }
+      });
+      this.setOffset = jest.fn((offset) => {
+        if (offset?.x !== undefined) this.x.setOffset(offset.x);
+        if (offset?.y !== undefined) this.y.setOffset(offset.y);
+      });
+      this.flattenOffset = jest.fn(() => {
+        this.x.flattenOffset();
+        this.y.flattenOffset();
+      });
+      this.extractOffset = jest.fn(() => {
+        this.x.extractOffset();
+        this.y.extractOffset();
+      });
+      this.addListener = jest.fn();
+      this.removeListener = jest.fn();
+      this.removeAllListeners = jest.fn();
+      this.stopAnimation = jest.fn();
+      this.resetAnimation = jest.fn();
+      this.getLayout = jest.fn(() => ({ left: this.x, top: this.y }));
+      this.getTranslateTransform = jest.fn(() => [{ translateX: this.x }, { translateY: this.y }]);
+      return this;
+    }),
     timing: jest.fn(() => ({ start: jest.fn((cb) => cb && cb({ finished: true })), stop: jest.fn() })),
     spring: jest.fn(() => ({ start: jest.fn((cb) => cb && cb({ finished: true })), stop: jest.fn() })),
     decay: jest.fn(() => ({ start: jest.fn((cb) => cb && cb({ finished: true })), stop: jest.fn() })),
