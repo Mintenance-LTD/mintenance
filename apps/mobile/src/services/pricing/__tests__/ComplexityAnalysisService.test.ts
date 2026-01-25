@@ -9,19 +9,20 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-import ComplexityAnalysisService from '../ComplexityAnalysisService';
+import { ComplexityAnalysisService } from '../ComplexityAnalysisService';
 
 describe('ComplexityAnalysisService', () => {
   let service: ComplexityAnalysisService;
 
   beforeEach(() => {
-    service = ComplexityAnalysisService /* checking export */;
+    service = new ComplexityAnalysisService();
     jest.clearAllMocks();
   });
 
   describe('initialization', () => {
     it('should be properly exported', async () => {
       expect(service).toBeDefined();
+      expect(service).toBeInstanceOf(ComplexityAnalysisService);
     });
   });
 
