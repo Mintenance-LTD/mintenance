@@ -20,7 +20,7 @@ import React from 'react';
  */
 
 
-import { render, waitFor } from '../test-utils';
+import { render, waitFor } from '@testing-library/react-native';
 import RootNavigator from '../RootNavigator';
 import { useAuth } from '../../contexts/AuthContext';
 
