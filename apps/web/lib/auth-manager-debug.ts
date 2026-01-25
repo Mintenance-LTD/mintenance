@@ -26,16 +26,16 @@ export async function debugLogin(email: string, password: string) {
   console.timeEnd('⏱️  Step 2: Supabase Auth');
 
   if (authError) {
-    logger.error('❌ Supabase Auth Error:', authError.message', { service: 'lib' });
-    logger.error('   Error Code:', authError.code', { service: 'lib' });
-    logger.error('   Full Error:', JSON.stringify(authError, null, 2', { service: 'lib' }));
+    logger.error('❌ Supabase Auth Error:', authError.message, { service: 'lib' });
+    logger.error('   Error Code:', authError.code, { service: 'lib' });
+    logger.error('   Full Error:', JSON.stringify(authError, null, 2), { service: 'lib' });
     return;
   }
 
   // logger.info('✅ Supabase Auth Success', { service: 'lib' });
-  // logger.info('   User ID:', authData.user?.id', { service: 'lib' });
-  // logger.info('   Email:', authData.user?.email', { service: 'lib' });
-  // logger.info('   Email Confirmed:', !!authData.user?.email_confirmed_at', { service: 'lib' });
+  // logger.info('   User ID:', authData.user?.id, { service: 'lib' });
+  // logger.info('   Email:', authData.user?.email, { service: 'lib' });
+  // logger.info('   Email Confirmed:', !!authData.user?.email_confirmed_at, { service: 'lib' });
 
   // Step 3: Get User Profile
   console.time('⏱️  Step 3: Get User Profile');
@@ -47,10 +47,10 @@ export async function debugLogin(email: string, password: string) {
   console.timeEnd('⏱️  Step 3: Get User Profile');
 
   if (profileError) {
-    logger.error('❌ Profile Error:', profileError.message', { service: 'lib' });
+    logger.error('❌ Profile Error:', profileError.message, { service: 'lib' });
   } else {
     // logger.info('✅ Profile Retrieved', { service: 'lib' });
-    // logger.info('   Role:', userProfile?.role', { service: 'lib' });
+    // logger.info('   Role:', userProfile?.role, { service: 'lib' });
   }
 
   // Step 4: Create Tokens

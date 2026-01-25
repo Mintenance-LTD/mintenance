@@ -220,9 +220,7 @@ export function JobDetailsProfessional({
                     logger.info('Training data corrections submitted:', {
                       assessmentId,
                       correctionsCount: corrections.length
-                    }', {
-        service: 'ui'
-      });
+                    }, { service: 'ui' });
                   }}
                 />
               </div>

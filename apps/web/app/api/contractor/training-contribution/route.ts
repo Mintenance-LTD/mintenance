@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      logger.error('Upload error:', uploadError', { service: 'api' });
+      logger.error('Upload error:', uploadError, { service: 'api' });
       return NextResponse.json(
         { error: 'Failed to upload image' },
         { status: 500 }
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (labelError) {
-      logger.error('Label save error:', labelError', { service: 'api' });
+      logger.error('Label save error:', labelError, { service: 'api' });
       throw labelError;
     }
 

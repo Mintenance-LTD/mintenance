@@ -160,7 +160,7 @@ export default function ContractorNotificationsPage2025() {
       // Check if any deletions failed
       const failures = results.filter(r => r.status === 'rejected');
       if (failures.length > 0) {
-        logger.error('Some notifications failed to delete:', failures', { service: 'app' });
+        logger.error('Some notifications failed to delete:', failures, { service: 'app' });
         toast.error(`${failures.length} notification(s) failed to delete`);
         // Still remove successfully deleted ones from state
         const successfulIds = results

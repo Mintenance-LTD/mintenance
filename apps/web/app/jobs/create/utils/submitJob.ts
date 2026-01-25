@@ -35,7 +35,7 @@ async function geocodeAddress(address: string): Promise<{ latitude: number; long
       };
     }
 
-    logger.warn('Geocoding failed:', data.status, data.error_message', { service: 'app' });
+    logger.warn(`Geocoding failed: ${data.status} ${data.error_message || ''}`, { service: 'app' });
     return null;
   } catch (error) {
     logger.error('Error geocoding address:', error, { service: 'app' });
@@ -101,7 +101,7 @@ export async function submitJob({
       logger.warn('[Submit] Failed to fetch fresh CSRF token, using provided token', { service: 'app' });
     }
   } catch (tokenError) {
-    logger.warn('[Submit] Error fetching fresh CSRF token, using provided token:', tokenError', { service: 'app' });
+    logger.warn(`[Submit] Error fetching fresh CSRF token, using provided token: ${tokenError}`, { service: 'app' });
   }
 
   if (!tokenToUse) {
@@ -180,13 +180,13 @@ export async function submitJob({
         const textError = await response.text().catch(() => 'Unknown error');
         errorData = { error: textError || `Failed to create job (${response.status})` };
       }
-      
+
       logger.error('Job submission failed:', {
         status: response.status,
         statusText: response.statusText,
         contentType,
         error: errorData
-      }', { service: 'app' });
+      }, { service: 'app' });
       
       const errorMessage = errorData.error || errorData.message || errorData.details || `Failed to create job (${response.status})`;
       return {
@@ -196,20 +196,20 @@ export async function submitJob({
     }
 
     const data = await response.json();
-    // logger.info('Job creation API response:', data', { service: 'app' });
+    // logger.info('Job creation API response:', data, { service: 'app' });
 
     // The API returns { job: { id, ... } }
     const jobId = data.job?.id || data.jobId || data.id;
 
     if (!jobId) {
-      logger.error('No job ID in response. Full response data:', JSON.stringify(data, null, 2', { service: 'app' }));
+      logger.error('No job ID in response. Full response data:', JSON.stringify(data, null, 2), { service: 'app' });
       return {
         success: false,
         error: 'Job created but no ID returned',
       };
     }
 
-    // logger.info('Job created successfully with ID:', jobId', { service: 'app' });
+    // logger.info('Job created successfully with ID:', jobId, { service: 'app' });
 
     // Trigger AI assessment if photos were uploaded (non-blocking)
     if (photoUrls && photoUrls.length > 0 && jobId) {
@@ -230,7 +230,7 @@ export async function submitJob({
         }),
       }).catch(error => {
         // Don't fail job creation if assessment fails
-        logger.warn('Failed to trigger AI assessment:', error, { service: 'app' });
+        logger.warn(`Failed to trigger AI assessment: ${error}`, { service: 'app' });
       });
     }
 

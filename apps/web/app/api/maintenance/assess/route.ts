@@ -60,9 +60,7 @@ export async function POST(request: NextRequest) {
     //   jobId,
     //   useSAM3,
     //   useGPTFallback
-    // }', {
-        service: 'api'
-      });
+    // }, { service: 'api' });
 
     // Run assessment
     const assessment = await MaintenanceAssessmentService.assessMaintenanceIssue(

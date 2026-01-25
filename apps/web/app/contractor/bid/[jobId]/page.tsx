@@ -13,10 +13,10 @@ export default async function BidSubmissionPage2025({ params }: { params: Promis
   }
 
   // Debug params structure
-  // logger.info('BidSubmissionPage - Raw params:', resolvedParams', { service: 'app' });
-  // logger.info('BidSubmissionPage - Job ID:', resolvedParams.jobId', { service: 'app' });
-  // logger.info('BidSubmissionPage - Job ID type:', typeof resolvedParams.jobId', { service: 'app' });
-  // logger.info('BidSubmissionPage - User:', user.id', { service: 'app' });
+  // logger.info('BidSubmissionPage - Raw params:', resolvedParams, { service: 'app' });
+  // logger.info('BidSubmissionPage - Job ID:', resolvedParams.jobId, { service: 'app' });
+  // logger.info('BidSubmissionPage - Job ID type:', typeof resolvedParams.jobId, { service: 'app' });
+  // logger.info('BidSubmissionPage - User:', user.id, { service: 'app' });
 
   // Fetch job details
   const { data: job, error } = await serverSupabase
@@ -39,9 +39,7 @@ export default async function BidSubmissionPage2025({ params }: { params: Promis
   //   error: error?.message,
   //   errorCode: error?.code,
   //   errorDetails: error?.details
-  // }', {
-        service: 'app'
-      });
+  // }, { service: 'app' });
 
   if (error || !job) {
     logger.error('BidSubmissionPage - Job not found or error:', {
@@ -49,7 +47,7 @@ export default async function BidSubmissionPage2025({ params }: { params: Promis
       jobId: resolvedParams.jobId,
       errorMessage: error?.message,
       errorCode: error?.code
-    }', { service: 'app' });
+    }, { service: 'app' });
 
     // Instead of redirecting, show an error message
     return (
