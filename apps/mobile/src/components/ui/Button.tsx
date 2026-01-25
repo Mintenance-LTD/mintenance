@@ -75,8 +75,7 @@ export const Button: React.FC<ButtonProps> = ({
       testID={testID}
       style={[
         styles.base,
-        size === 'sm' ? styles.sm : styles.md,
-        iconOnly && styles.iconOnly,
+        iconOnly ? styles.iconOnly : (size === 'sm' ? styles.sm : styles.md),
         {
           backgroundColor,
           borderColor,
@@ -97,9 +96,11 @@ export const Button: React.FC<ButtonProps> = ({
           ) : null}
           <Text
             style={[
-              styles.text,
-              { color },
-              isTertiary && styles.linkText,
+              isTertiary ? styles.linkText : styles.text,
+              {
+                color,
+                ...(isTertiary && { fontSize: theme.typography.fontSize.lg })
+              },
               textStyle,
             ]}
           >
