@@ -80,6 +80,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           onPress={showBackIcon ? handleBackPress : handleMenuPress}
           accessibilityRole="button"
           accessibilityLabel={showBackIcon ? 'Go back' : 'Open menu'}
+          testID={showBackIcon ? 'back-icon-button' : 'menu-icon-button'}
         >
           <Ionicons
             name={showBackIcon ? 'arrow-back' : 'menu'}
@@ -106,6 +107,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             style={styles.iconButton}
             onPress={rightIcon.onPress}
             accessibilityRole="button"
+            testID="right-icon-button"
           >
             <Ionicons
               name={rightIcon.name}

@@ -159,8 +159,8 @@ describe('NavigationHeader', () => {
       const { queryByText } = render(
         <NavigationHeader title="Home" showMenuIcon={false} showBackIcon={false} />
       );
-      // When both are false, back icon takes precedence (since it's checked first in conditional)
-      expect(queryByText('arrow-back')).toBeTruthy();
+      // When both are false, menu icon still shows (showMenuIcon prop doesn't hide the left icon, just determines behavior)
+      expect(queryByText('menu')).toBeTruthy();
     });
 
     it('has proper accessibility label for menu icon', () => {
@@ -333,13 +333,13 @@ describe('NavigationHeader', () => {
 
     it('has proper accessibility role for right icon button', () => {
       const onRightPress = jest.fn();
-      const { getByText } = render(
+      const { getByTestId } = render(
         <NavigationHeader
           title="Home"
           rightIcon={{ name: 'settings', onPress: onRightPress }}
         />
       );
-      const button = getByText('settings').parent;
+      const button = getByTestId('right-icon-button');
       expect(button.props.accessibilityRole).toBe('button');
     });
 
@@ -819,7 +819,7 @@ describe('NavigationHeader', () => {
   // ========== ACCESSIBILITY TESTS ==========
   describe('Accessibility', () => {
     it('all buttons have accessibility role', () => {
-      const { getByLabelText, getByText } = render(
+      const { getByLabelText, getByTestId } = render(
         <NavigationHeader
           title="Test"
           rightIcon={{ name: 'settings', onPress: jest.fn() }}
@@ -827,7 +827,7 @@ describe('NavigationHeader', () => {
       );
 
       const menuButton = getByLabelText('Open menu');
-      const rightButton = getByText('settings').parent;
+      const rightButton = getByTestId('right-icon-button');
 
       expect(menuButton.props.accessibilityRole).toBe('button');
       expect(rightButton.props.accessibilityRole).toBe('button');
