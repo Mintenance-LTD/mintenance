@@ -4,6 +4,55 @@ import { logger } from '../../utils/logger';
 import { BusinessMetrics, FinancialSummary, ClientAnalytics, MarketingInsights } from './types';
 
 // =====================================================
+// DATABASE ROW INTERFACES (snake_case)
+// =====================================================
+
+interface DatabaseJobRow {
+  id: string;
+  status: string;
+  budget: number | null;
+  created_at: string;
+  completed_at: string | null;
+  homeowner_id: string;
+  contractor_id: string;
+  reviews?: Array<{ rating: number }>;
+}
+
+interface DatabaseBidRow {
+  id: string;
+  status: string;
+  created_at: string;
+  contractor_id: string;
+  job_id: string;
+  jobs?: {
+    created_at: string;
+  };
+}
+
+interface DatabaseClientRow {
+  id: string;
+  contractor_id: string;
+  created_at: string;
+  total_jobs: number;
+  total_spent: number;
+}
+
+interface DatabaseExpenseRow {
+  id: string;
+  contractor_id: string;
+  amount: number;
+  expense_date: string;
+}
+
+interface DatabaseInvoiceRow {
+  id: string;
+  contractor_id: string;
+  total_amount: number;
+  due_date: string;
+  status: string;
+}
+
+// =====================================================
 // BUSINESS ANALYTICS SERVICE
 // Handles business performance metrics and analytics
 // =====================================================
@@ -45,16 +94,17 @@ export class BusinessAnalyticsService {
         throw ServiceErrorHandler.handleDatabaseError(error, context);
       }
 
-      const totalJobs = jobs?.length || 0;
-      const completedJobs = jobs?.filter((job: unknown) => job.status === 'completed') || [];
-      const cancelledJobs = jobs?.filter((job: unknown) => job.status === 'cancelled') || [];
+      const typedJobs = (jobs || []) as DatabaseJobRow[];
+      const totalJobs = typedJobs.length;
+      const completedJobs = typedJobs.filter((job) => job.status === 'completed');
+      const cancelledJobs = typedJobs.filter((job) => job.status === 'cancelled');
 
-      const totalRevenue = completedJobs.reduce((sum: number, job: unknown) => sum + (job.budget || 0), 0);
+      const totalRevenue = completedJobs.reduce((sum: number, job) => sum + (job.budget || 0), 0);
       const averageJobValue = totalJobs > 0 ? totalRevenue / totalJobs : 0;
       const completionRate = totalJobs > 0 ? (completedJobs.length / totalJobs) * 100 : 0;
 
       // Calculate client satisfaction from reviews
-      const allRatings = jobs?.flatMap((job: unknown) => job.reviews?.map((r: unknown) => r.rating) || []) || [];
+      const allRatings = typedJobs.flatMap((job) => job.reviews?.map((r) => r.rating) || []);
       const clientSatisfaction = allRatings.length > 0
         ? allRatings.reduce((sum: number, rating: number) => sum + rating, 0) / allRatings.length
         : 0;
@@ -170,20 +220,21 @@ export class BusinessAnalyticsService {
 
       if (error) throw ServiceErrorHandler.handleDatabaseError(error, context);
 
-      const totalClients = clients?.length || 0;
+      const typedClients = (clients || []) as DatabaseClientRow[];
+      const totalClients = typedClients.length;
       const thisMonth = new Date();
       thisMonth.setDate(1);
 
-      const newClientsThisMonth = clients?.filter(
-        (client: unknown) => new Date(client.created_at) >= thisMonth
-      ).length || 0;
+      const newClientsThisMonth = typedClients.filter(
+        (client) => new Date(client.created_at) >= thisMonth
+      ).length;
 
-      const repeatClients = clients?.filter((client: unknown) => client.total_jobs > 1).length || 0;
+      const repeatClients = typedClients.filter((client) => client.total_jobs > 1).length;
 
-      const clientLifetimeValue = clients?.reduce(
-        (sum: number, client: unknown) => sum + client.total_spent,
+      const clientLifetimeValue = typedClients.reduce(
+        (sum: number, client) => sum + client.total_spent,
         0
-      ) || 0;
+      );
       const avgLifetimeValue = totalClients > 0 ? clientLifetimeValue / totalClients : 0;
 
       // Calculate churn rate
@@ -301,8 +352,9 @@ export class BusinessAnalyticsService {
       return Math.floor(Math.random() * 60) + 15; // 15-75 minutes fallback
     }
 
-    const responseTimes = responses.map((bid: unknown) => {
-      const jobTime = new Date(bid.jobs.created_at).getTime();
+    const typedResponses = responses as DatabaseBidRow[];
+    const responseTimes = typedResponses.map((bid) => {
+      const jobTime = bid.jobs ? new Date(bid.jobs.created_at).getTime() : new Date(bid.created_at).getTime();
       const bidTime = new Date(bid.created_at).getTime();
       return (bidTime - jobTime) / (1000 * 60); // Convert to minutes
     });
@@ -326,8 +378,9 @@ export class BusinessAnalyticsService {
       return Math.floor(Math.random() * 40) + 30; // 30-70% fallback
     }
 
-    const totalBids = bids.length;
-    const acceptedBids = bids.filter((bid: unknown) => bid.status === 'accepted').length;
+    const typedBids = bids as DatabaseBidRow[];
+    const totalBids = typedBids.length;
+    const acceptedBids = typedBids.filter((bid) => bid.status === 'accepted').length;
 
     return totalBids > 0 ? (acceptedBids / totalBids) * 100 : 0;
   }
@@ -348,13 +401,14 @@ export class BusinessAnalyticsService {
       return Math.floor(Math.random() * 30) + 20; // 20-50% fallback
     }
 
-    const clientCounts = jobs.reduce((acc: Record<string, number>, job: unknown) => {
+    const typedJobs = jobs as Pick<DatabaseJobRow, 'homeowner_id'>[];
+    const clientCounts = typedJobs.reduce((acc: Record<string, number>, job) => {
       acc[job.homeowner_id] = (acc[job.homeowner_id] || 0) + 1;
       return acc;
     }, {});
 
     const totalClients = Object.keys(clientCounts).length;
-    const repeatClients = Object.values(clientCounts).filter(count => count > 1).length;
+    const repeatClients = Object.values(clientCounts).filter((count) => count > 1).length;
 
     return totalClients > 0 ? (repeatClients / totalClients) * 100 : 0;
   }
@@ -385,8 +439,10 @@ export class BusinessAnalyticsService {
       return Math.floor(Math.random() * 20) + 25; // 25-45% fallback
     }
 
-    const totalRevenue = jobs?.reduce((sum: number, job: unknown) => sum + (job.budget || 0), 0) || 0;
-    const totalExpenses = expenses?.reduce((sum: number, expense: unknown) => sum + (expense.amount || 0), 0) || 0;
+    const typedJobs = (jobs || []) as Pick<DatabaseJobRow, 'budget'>[];
+    const typedExpenses = (expenses || []) as DatabaseExpenseRow[];
+    const totalRevenue = typedJobs.reduce((sum: number, job) => sum + (job.budget || 0), 0);
+    const totalExpenses = typedExpenses.reduce((sum: number, expense) => sum + expense.amount, 0);
 
     return totalRevenue > 0 ? ((totalRevenue - totalExpenses) / totalRevenue) * 100 : 0;
   }
@@ -411,7 +467,8 @@ export class BusinessAnalyticsService {
         .gte('completed_at', startDate.toISOString())
         .lte('completed_at', endDate.toISOString());
 
-      const monthlyRev = jobs?.reduce((sum: number, job: unknown) => sum + (job.budget || 0), 0) || 0;
+      const typedJobs = (jobs || []) as Pick<DatabaseJobRow, 'budget'>[];
+      const monthlyRev = typedJobs.reduce((sum: number, job) => sum + (job.budget || 0), 0);
       results.push(monthlyRev);
     }
 
@@ -444,10 +501,11 @@ export class BusinessAnalyticsService {
 
     if (error) return { outstandingInvoices: 0, overdueAmount: 0 };
 
-    const outstanding = invoices?.reduce((sum: number, inv: unknown) => sum + inv.total_amount, 0) || 0;
-    const overdue = invoices
-      ?.filter((inv: unknown) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
-      .reduce((sum: number, inv: unknown) => sum + inv.total_amount, 0) || 0;
+    const typedInvoices = (invoices || []) as DatabaseInvoiceRow[];
+    const outstanding = typedInvoices.reduce((sum: number, inv) => sum + inv.total_amount, 0);
+    const overdue = typedInvoices
+      .filter((inv) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
+      .reduce((sum: number, inv) => sum + inv.total_amount, 0);
 
     return { outstandingInvoices: outstanding, overdueAmount: overdue };
   }

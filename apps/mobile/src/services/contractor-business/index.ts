@@ -30,6 +30,38 @@ export { MarketingManagementService } from '../marketing-management';
 export { ClientManagementService } from '../client-management';
 export { GoalManagementService } from '../goal-management';
 
+// Create singleton instances for instance-based services
+const marketingService = new MarketingManagementService();
+const clientService = new ClientManagementService();
+const goalService = new GoalManagementService();
+
+// Import types from their respective modules
+import type { Client } from '../client-management/types';
+import type { Invoice, ContractorSchedule } from './types';
+
+// InventoryItem type (matches ResourceManagementService internal type)
+interface InventoryItem {
+  id: string;
+  contractorId: string;
+  name: string;
+  category: string;
+  quantity: number;
+  minThreshold: number;
+  status: 'in_stock' | 'low_stock' | 'out_of_stock' | 'ordered';
+  unitCost: number;
+  location?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Type definitions for business health issues
+interface BusinessHealthIssues {
+  atRiskClients: Client[];
+  overdueInvoices: Invoice[];
+  lowStock: InventoryItem[];
+  conflicts: ContractorSchedule[];
+}
+
 /**
  * Unified Contractor Business Suite Interface
  *
@@ -50,13 +82,13 @@ export class ContractorBusinessSuite {
   static resources = ResourceManagementService;
 
   // Marketing & Lead Management
-  static marketing = MarketingManagementService;
+  static marketing = marketingService;
 
   // Client Relationship Management
-  static clients = ClientManagementService;
+  static clients = clientService;
 
   // Goal Setting & Progress Tracking
-  static goals = GoalManagementService;
+  static goals = goalService;
 
   /**
    * Get comprehensive business dashboard data
@@ -73,11 +105,11 @@ export class ContractorBusinessSuite {
       goalProgress,
       marketingMetrics,
     ] = await Promise.all([
-      this.analytics.getBusinessMetrics(contractorId, startDate, endDate),
-      this.finance.getFinancialSummary(contractorId, startDate, endDate),
-      this.clients.getClientAnalytics(contractorId, startDate, endDate),
+      this.analytics.calculateBusinessMetrics(contractorId, startDate, endDate),
+      this.finance.getFinancialSummary(contractorId),
+      this.clients.getClientAnalytics(contractorId),
       this.goals.getGoalDashboard(contractorId),
-      this.marketing.getMarketingAnalytics(contractorId, startDate, endDate),
+      this.marketing.getMarketingAnalytics(contractorId),
     ]);
 
     return {
@@ -95,26 +127,49 @@ export class ContractorBusinessSuite {
    */
   static async getBusinessHealth(contractorId: string) {
     const [
-      atRiskClients,
-      overdueInvoices,
+      clientsData,
+      invoices,
       upcomingMilestones,
       lowStockItems,
-      schedulingConflicts,
+      schedule,
     ] = await Promise.all([
-      this.clients.identifyAtRiskClients(contractorId),
-      this.finance.getOverdueInvoices(contractorId),
-      this.goals.getGoals(contractorId, { timeframe: 'this_week' }),
+      this.clients.getClients(contractorId),
+      this.finance.getInvoices(contractorId),
+      this.goals.getGoals(contractorId, { filters: { status: ['active', 'overdue'] } }),
       this.resources.getInventoryItems(contractorId),
-      this.schedule.getScheduleConflicts(contractorId, new Date().toISOString()),
+      this.schedule.getSchedule(contractorId, new Date().toISOString(), new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()),
     ]);
 
-    const lowStock = lowStockItems.filter(item => item.status === 'low_stock' || item.status === 'out_of_stock');
+    // Filter at-risk clients (simplified - clients with last job more than 30 days ago)
+    const atRiskClients = clientsData.clients.filter((client) =>
+      client.lifecycle?.lastJobDate &&
+      new Date(client.lifecycle.lastJobDate).getTime() < Date.now() - 30 * 24 * 60 * 60 * 1000
+    );
+
+    // Filter overdue invoices
+    const overdueInvoices = invoices.filter((inv) =>
+      inv.status !== 'paid' && new Date(inv.due_date).getTime() < Date.now()
+    );
+
+    // Filter low stock items - need to check quantity against minimum threshold
+    const lowStock = lowStockItems.filter((item) =>
+      item.quantity <= item.minThreshold
+    );
+
+    // Check for scheduling conflicts (simplified)
+    const schedulingConflicts = schedule.filter((entry, index, arr) =>
+      arr.some((other, otherIndex) =>
+        otherIndex !== index &&
+        new Date(entry.start_time).getTime() < new Date(other.end_time).getTime() &&
+        new Date(entry.end_time).getTime() > new Date(other.start_time).getTime()
+      )
+    );
 
     return {
       alerts: {
         atRiskClients: atRiskClients.length,
         overdueInvoices: overdueInvoices.length,
-        upcomingGoals: upcomingMilestones.length,
+        upcomingGoals: upcomingMilestones.goals.length,
         lowStockItems: lowStock.length,
         scheduleConflicts: schedulingConflicts.length,
       },
@@ -153,7 +208,7 @@ export class ContractorBusinessSuite {
   /**
    * Generate actionable health recommendations
    */
-  private static generateHealthRecommendations(issues: unknown): string[] {
+  private static generateHealthRecommendations(issues: BusinessHealthIssues): string[] {
     const recommendations: string[] = [];
 
     if (issues.atRiskClients.length > 0) {
@@ -176,6 +231,13 @@ export class ContractorBusinessSuite {
   }
 }
 
+// Type for project details
+interface ProjectDetails {
+  id: string;
+  title: string;
+  description: string;
+}
+
 // Service Coordinator for advanced workflows
 export class ContractorBusinessCoordinator {
   /**
@@ -184,7 +246,7 @@ export class ContractorBusinessCoordinator {
   static async manageProjectLifecycle(projectData: {
     contractorId: string;
     clientId: string;
-    projectDetails: unknown;
+    projectDetails: ProjectDetails;
     budget: number;
     timeline: { start: string; end: string };
   }) {
@@ -192,26 +254,35 @@ export class ContractorBusinessCoordinator {
     await ContractorBusinessSuite.schedule.bookJob(
       projectData.contractorId,
       projectData.projectDetails.id,
+      projectData.projectDetails.title,
       projectData.timeline.start,
       projectData.timeline.end
     );
 
     // 2. Create invoice
-    const invoice = await ContractorBusinessSuite.finance.generateInvoice({
-      contractorId: projectData.contractorId,
-      clientId: projectData.clientId,
-      items: [{
+    const invoice = await ContractorBusinessSuite.finance.createInvoice({
+      contractor_id: projectData.contractorId,
+      client_id: projectData.clientId,
+      invoice_number: `INV-${Date.now()}`,
+      status: 'draft',
+      subtotal: projectData.budget,
+      tax_amount: projectData.budget * 0.2, // 20% tax
+      total_amount: projectData.budget * 1.2,
+      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      issue_date: new Date().toISOString(),
+      line_items: [{
         description: projectData.projectDetails.description,
         quantity: 1,
-        unitPrice: projectData.budget,
+        rate: projectData.budget,
+        amount: projectData.budget,
       }],
-      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     });
 
     // 3. Update client lifecycle
     await ContractorBusinessSuite.clients.updateClientLifecycle(
       projectData.clientId,
-      projectData.budget
+      'customer',
+      `Project started: ${projectData.projectDetails.title}`
     );
 
     // 4. Track resources if needed

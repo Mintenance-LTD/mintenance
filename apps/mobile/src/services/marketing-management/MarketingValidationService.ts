@@ -8,6 +8,9 @@ import {
   CreateCampaignRequest,
   UpdateCampaignRequest,
   ContentCreationRequest,
+  TargetAudience,
+  CampaignObjective,
+  MarketingChannel,
 } from './types';
 
 export class MarketingValidationService {
@@ -230,7 +233,7 @@ export class MarketingValidationService {
     }
   }
 
-  private validateTargetAudience(audience: unknown, errors: string[]): void {
+  private validateTargetAudience(audience: TargetAudience, errors: string[]): void {
     if (!audience.demographics) {
       errors.push('Demographics are required');
     } else {
@@ -261,7 +264,7 @@ export class MarketingValidationService {
     }
   }
 
-  private validateCampaignObjective(objective: unknown, index: number, errors: string[]): void {
+  private validateCampaignObjective(objective: CampaignObjective, index: number, errors: string[]): void {
     if (!objective.type) {
       errors.push(`Objective ${index + 1}: Type is required`);
     }
@@ -279,7 +282,7 @@ export class MarketingValidationService {
     }
   }
 
-  private validateMarketingChannel(channel: unknown, index: number, errors: string[]): void {
+  private validateMarketingChannel(channel: Omit<MarketingChannel, 'performance'>, index: number, errors: string[]): void {
     if (!channel.platform) {
       errors.push(`Channel ${index + 1}: Platform is required`);
     }
