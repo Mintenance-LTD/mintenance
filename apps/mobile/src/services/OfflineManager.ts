@@ -5,6 +5,81 @@ import NetInfo from '@react-native-community/netinfo';
 // OFFLINE QUEUE CONSOLIDATION FIX: LocalDatabase removed - using only AsyncStorage for consistency
 
 // =============================================
+// TYPE DEFINITIONS
+// =============================================
+
+/**
+ * Job data structure
+ */
+interface JobData {
+  jobId?: string;
+  status?: string;
+  contractorId?: string;
+  title?: string;
+  description?: string;
+  budget?: number;
+  priority?: string;
+  homeownerId?: string;
+  photos?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Bid data structure
+ */
+interface BidData {
+  bidId?: string;
+  status?: string;
+  amount?: number;
+  description?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Message data structure
+ */
+interface MessageData {
+  jobId: string;
+  receiverId: string;
+  message: string;
+  senderId: string;
+}
+
+/**
+ * Profile data structure
+ */
+interface ProfileData {
+  userId: string;
+  updates?: Record<string, unknown>;
+  name?: string;
+  phone?: string;
+  bio?: string;
+  skills?: string[];
+  isVerified?: boolean;
+  rating?: number;
+  completedJobs?: number;
+}
+
+/**
+ * Server entity data with version tracking
+ */
+interface ServerEntityData {
+  id?: string;
+  version?: number;
+  updatedAt?: string;
+  updated_at?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Offline action with retry scheduling
+ */
+interface OfflineActionWithRetry extends OfflineAction {
+  nextRetryAt?: number;
+}
+
+// =============================================
 // CONFLICT RESOLUTION TYPES
 // =============================================
 
@@ -67,7 +142,7 @@ class OfflineManagerClass {
   private readonly MAX_RETRIES = 3;
   private readonly CHUNK_SIZE = 50; // process actions in manageable chunks
   private syncInProgress = false;
-  private retryTimer: unknown = null;
+  private retryTimer: NodeJS.Timeout | null = null;
   // CRITICAL FIX: Memory leak prevention
   // syncListeners array must be properly cleaned up to prevent indefinite growth
   // Use the unsubscribe function returned by onSyncStatusChange() to cleanup
@@ -268,7 +343,8 @@ class OfflineManagerClass {
 
             if (action.retryCount < action.maxRetries) {
               // record backoff delay for future scheduling (not enforced here to keep tests fast)
-              (action as unknown).nextRetryAt = Date.now() + Math.min(30000, 500 * Math.pow(2, action.retryCount - 1));
+              const actionWithRetry = action as OfflineActionWithRetry;
+              actionWithRetry.nextRetryAt = Date.now() + Math.min(30000, 500 * Math.pow(2, action.retryCount - 1));
               failedActions.push(action);
               logger.warn('Action failed, will retry', {
                 actionId: action.id,
@@ -321,7 +397,10 @@ class OfflineManagerClass {
           Math.min(
             30000,
             Math.min(
-              ...failedActions.map((a: unknown) => Math.max(0, (a.nextRetryAt || now + 500) - now))
+              ...failedActions.map((a) => {
+                const actionWithRetry = a as OfflineActionWithRetry;
+                return Math.max(0, (actionWithRetry.nextRetryAt || now + 500) - now);
+              })
             )
           )
         );
@@ -346,7 +425,10 @@ class OfflineManagerClass {
         this.retryTimer = null;
         this.syncQueue();
       }, Math.max(0, delayMs | 0));
-      (this.retryTimer as unknown)?.unref?.();
+      // unref is Node.js specific and may not exist in React Native environment
+      if (this.retryTimer && typeof (this.retryTimer as NodeJS.Timeout).unref === 'function') {
+        (this.retryTimer as NodeJS.Timeout).unref();
+      }
     } catch {}
   }
 
@@ -389,6 +471,7 @@ class OfflineManagerClass {
   ): Promise<void> {
     // Import statically so jest.mock works consistently in tests
     const { JobService } = require('./JobService');
+    const jobData = data as JobData;
 
     switch (type) {
       case 'CREATE':
@@ -396,9 +479,9 @@ class OfflineManagerClass {
         break;
       case 'UPDATE':
         await JobService.updateJobStatus(
-          data.jobId,
-          data.status,
-          data.contractorId
+          jobData.jobId,
+          jobData.status,
+          jobData.contractorId
         );
         break;
       default:
@@ -411,14 +494,15 @@ class OfflineManagerClass {
     data: unknown
   ): Promise<void> {
     const { JobService } = require('./JobService');
+    const bidData = data as BidData;
 
     switch (type) {
       case 'CREATE':
         await JobService.submitBid(data);
         break;
       case 'UPDATE':
-        if (data.status === 'accepted') {
-          await JobService.acceptBid(data.bidId);
+        if (bidData.status === 'accepted') {
+          await JobService.acceptBid(bidData.bidId);
         }
         break;
       default:
@@ -431,14 +515,15 @@ class OfflineManagerClass {
     data: unknown
   ): Promise<void> {
     const { MessagingService } = require('./MessagingService');
+    const messageData = data as MessageData;
 
     switch (type) {
       case 'CREATE':
         await MessagingService.sendMessage(
-          data.jobId,
-          data.receiverId,
-          data.message,
-          data.senderId
+          messageData.jobId,
+          messageData.receiverId,
+          messageData.message,
+          messageData.senderId
         );
         break;
       default:
@@ -451,10 +536,11 @@ class OfflineManagerClass {
     data: unknown
   ): Promise<void> {
     const { UserService } = require('./UserService');
+    const profileData = data as ProfileData;
 
     switch (type) {
       case 'UPDATE':
-        await UserService.updateUserProfile(data.userId, data.updates);
+        await UserService.updateUserProfile(profileData.userId, profileData.updates);
         break;
       default:
         throw new Error(`Unsupported profile action: ${type}`);
@@ -611,23 +697,25 @@ class OfflineManagerClass {
         return null; // Entity doesn't exist on server
       }
 
+      const serverEntity = serverData as ServerEntityData;
+
       // Check if versions match
       const currentVersion = await this.getEntityVersion(action.entity, action.entityId);
       const baseVersion = action.baseVersion || 0;
 
       // If server has been updated since we created this action, there's a conflict
-      if (serverData.version && serverData.version > baseVersion) {
+      if (serverEntity.version && serverEntity.version > baseVersion) {
         const conflict: DataConflict = {
           id: `conflict_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           actionId: action.id,
           entity: action.entity,
           entityId: action.entityId,
           clientVersion: action.version || currentVersion,
-          serverVersion: serverData.version,
+          serverVersion: serverEntity.version,
           clientData: action.data,
           serverData: serverData,
           clientTimestamp: action.timestamp,
-          serverTimestamp: new Date(serverData.updatedAt || serverData.updated_at).getTime(),
+          serverTimestamp: new Date(serverEntity.updatedAt || serverEntity.updated_at || Date.now()).getTime(),
           detectedAt: Date.now(),
           strategy: action.strategy || this.getDefaultStrategy(action.entity, action.type),
           resolved: false,
@@ -664,7 +752,7 @@ class OfflineManagerClass {
         case 'bid': {
           const { JobService } = require('./JobService');
           const bids = await JobService.getBidsByJob(entityId);
-          return bids.find((b: unknown) => b.id === entityId);
+          return bids.find((b: ServerEntityData) => b.id === entityId);
         }
         case 'profile': {
           const { UserService } = require('./UserService');
@@ -792,25 +880,28 @@ class OfflineManagerClass {
    * Merge job data intelligently
    */
   private mergeJobData(clientData: unknown, serverData: unknown): unknown {
+    const client = clientData as JobData;
+    const server = serverData as JobData;
+
     return {
-      ...serverData,
+      ...server,
       // Client updates for editable fields
-      title: clientData.title || serverData.title,
-      description: clientData.description || serverData.description,
-      budget: clientData.budget !== undefined ? clientData.budget : serverData.budget,
-      priority: clientData.priority || serverData.priority,
+      title: client.title || server.title,
+      description: client.description || server.description,
+      budget: client.budget !== undefined ? client.budget : server.budget,
+      priority: client.priority || server.priority,
       // Server wins for status and critical fields
-      status: serverData.status,
-      contractorId: serverData.contractorId,
-      homeownerId: serverData.homeownerId,
+      status: server.status,
+      contractorId: server.contractorId,
+      homeownerId: server.homeownerId,
       // Merge photos (union of both sets)
       photos: Array.from(new Set([
-        ...(serverData.photos || []),
-        ...(clientData.photos || []),
+        ...(server.photos || []),
+        ...(client.photos || []),
       ])),
       // Keep server timestamps
-      createdAt: serverData.createdAt,
-      updatedAt: serverData.updatedAt,
+      createdAt: server.createdAt,
+      updatedAt: server.updatedAt,
     };
   }
 
@@ -818,17 +909,20 @@ class OfflineManagerClass {
    * Merge bid data intelligently
    */
   private mergeBidData(clientData: unknown, serverData: unknown): unknown {
+    const client = clientData as BidData;
+    const server = serverData as BidData;
+
     // Bids are mostly immutable - server wins for status changes
     return {
-      ...serverData,
+      ...server,
       // Client can update description before acceptance
-      description: serverData.status === 'pending'
-        ? (clientData.description || serverData.description)
-        : serverData.description,
+      description: server.status === 'pending'
+        ? (client.description || server.description)
+        : server.description,
       // Server wins for status and amount
-      status: serverData.status,
-      amount: serverData.amount,
-      updatedAt: serverData.updatedAt,
+      status: server.status,
+      amount: server.amount,
+      updatedAt: server.updatedAt,
     };
   }
 
@@ -836,21 +930,24 @@ class OfflineManagerClass {
    * Merge profile data intelligently
    */
   private mergeProfileData(clientData: unknown, serverData: unknown): unknown {
+    const client = clientData as ProfileData;
+    const server = serverData as ProfileData;
+
     return {
-      ...serverData,
+      ...server,
       // Client wins for user preferences
-      name: clientData.name || serverData.name,
-      phone: clientData.phone || serverData.phone,
-      bio: clientData.bio || serverData.bio,
+      name: client.name || server.name,
+      phone: client.phone || server.phone,
+      bio: client.bio || server.bio,
       // Merge skills (union of both sets)
       skills: Array.from(new Set([
-        ...(serverData.skills || []),
-        ...(clientData.skills || []),
+        ...(server.skills || []),
+        ...(client.skills || []),
       ])),
       // Server wins for verification status
-      isVerified: serverData.isVerified,
-      rating: serverData.rating,
-      completedJobs: serverData.completedJobs,
+      isVerified: server.isVerified,
+      rating: server.rating,
+      completedJobs: server.completedJobs,
     };
   }
 

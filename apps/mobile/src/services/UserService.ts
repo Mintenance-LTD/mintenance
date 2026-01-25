@@ -2,6 +2,71 @@ import { supabase } from '../config/supabase';
 import { User } from '@mintenance/types';
 import { logger } from '../utils/logger';
 
+// Database row interfaces for type safety
+interface DatabaseJobRow {
+  id: string;
+  status: string;
+  budget: number;
+  created_at: string;
+  updated_at: string;
+  homeowner_id: string;
+  contractor_id?: string;
+  title?: string;
+  location?: string;
+}
+
+interface DatabaseReviewRow {
+  rating: number;
+  comment: string;
+  created_at: string;
+  reviewer?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
+interface DatabaseUserRow {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: 'homeowner' | 'contractor' | 'admin';
+  phone?: string;
+  bio?: string;
+  profile_image_url?: string;
+  created_at: string;
+  updated_at: string;
+  latitude?: number;
+  longitude?: number;
+  rating?: number;
+  contractor_skills?: DatabaseSkillRow[];
+}
+
+interface DatabaseSkillRow {
+  skill_name: string;
+}
+
+interface DatabaseTodaysJobRow {
+  id: string;
+  title: string;
+  location: string;
+  created_at: string;
+  homeowner?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
+interface DatabaseContractorRow {
+  id: string;
+  first_name: string;
+  last_name: string;
+  bio?: string;
+  profile_image_url?: string;
+  phone?: string;
+  contractor_skills?: DatabaseSkillRow[];
+}
+
 export interface ContractorStats {
   activeJobs: number;
   monthlyEarnings: number;
@@ -48,6 +113,8 @@ export class UserService {
 
       if (jobsError) throw jobsError;
 
+      const typedJobs = (jobs || []) as DatabaseJobRow[];
+
       // Get contractor's ratings
       const { data: reviews, error: reviewsError } = await supabase
         .from('reviews')
@@ -55,6 +122,8 @@ export class UserService {
         .eq('reviewed_id', contractorId);
 
       if (reviewsError) throw reviewsError;
+
+      const typedReviews = (reviews || []) as DatabaseReviewRow[];
 
       // Get today's appointments (jobs starting today)
       const today = new Date();
@@ -79,39 +148,36 @@ export class UserService {
 
       if (todaysError) throw todaysError;
 
+      const typedTodaysJobs = (todaysJobs || []) as DatabaseTodaysJobRow[];
+
       // Calculate statistics
-      const activeJobs =
-        jobs?.filter((job: unknown) =>
-          ['assigned', 'in_progress'].includes(job.status)
-        ).length || 0;
-      const completedJobs =
-        jobs?.filter((job: unknown) => job.status === 'completed').length || 0;
+      const activeJobs = typedJobs.filter((job) =>
+        ['assigned', 'in_progress'].includes(job.status)
+      ).length;
+
+      const completedJobs = typedJobs.filter(
+        (job) => job.status === 'completed'
+      ).length;
 
       // Calculate monthly earnings (current month)
       const currentMonth = new Date().getMonth();
       const currentYear = new Date().getFullYear();
-      const monthlyEarnings =
-        (jobs as unknown[])
-          ?.filter((job: unknown) => {
-            const jobDate = new Date(job.updated_at);
-            return (
-              job.status === 'completed' &&
-              jobDate.getMonth() === currentMonth &&
-              jobDate.getFullYear() === currentYear
-            );
-          })
-          .reduce(
-            (total: number, job: unknown) => total + Number(job.budget || 0),
-            0
-          ) || 0;
+      const monthlyEarnings = typedJobs
+        .filter((job) => {
+          const jobDate = new Date(job.updated_at);
+          return (
+            job.status === 'completed' &&
+            jobDate.getMonth() === currentMonth &&
+            jobDate.getFullYear() === currentYear
+          );
+        })
+        .reduce((total, job) => total + Number(job.budget || 0), 0);
 
       // Calculate average rating
       const avgRating =
-        reviews && (reviews as unknown[]).length > 0
-          ? (reviews as unknown[]).reduce(
-              (sum: number, review: unknown) => sum + Number(review.rating || 0),
-              0
-            ) / (reviews as unknown[]).length
+        typedReviews.length > 0
+          ? typedReviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) /
+            typedReviews.length
           : 0;
 
       // Calculate response time (mock for now - would need message timestamps)
@@ -119,21 +185,21 @@ export class UserService {
         avgRating >= 4.5 ? '< 1h' : avgRating >= 4.0 ? '< 2h' : '< 4h';
 
       // Success rate calculation
-      const totalJobs = jobs?.length || 0;
+      const totalJobs = typedJobs.length;
       const successRate =
         totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
 
       // Get next appointment
       let nextAppointment;
-      if (todaysJobs && todaysJobs.length > 0) {
-        const nextJob = todaysJobs[0];
+      if (typedTodaysJobs.length > 0) {
+        const nextJob = typedTodaysJobs[0];
         nextAppointment = {
           time: new Date(nextJob.created_at).toLocaleTimeString('en-US', {
             hour: 'numeric',
             minute: '2-digit',
           }),
           client:
-            `${(nextJob.homeowner as unknown)?.first_name || ''} ${(nextJob.homeowner as unknown)?.last_name || ''}`.trim() ||
+            `${nextJob.homeowner?.first_name || ''} ${nextJob.homeowner?.last_name || ''}`.trim() ||
             'Client',
           location: nextJob.location,
           type: nextJob.title,
@@ -146,11 +212,11 @@ export class UserService {
         monthlyEarnings: Math.round(monthlyEarnings),
         rating: Math.round(avgRating * 10) / 10,
         completedJobs,
-        totalJobs: (jobs || []).length,
+        totalJobs: typedJobs.length,
         totalJobsCompleted: completedJobs,
         responseTime,
         successRate,
-        todaysAppointments: todaysJobs?.length || 0,
+        todaysAppointments: typedTodaysJobs.length,
         nextAppointment,
       };
     } catch (error) {
@@ -192,9 +258,11 @@ export class UserService {
 
       if (error) throw error;
 
+      const typedUser = user as DatabaseUserRow;
+
       // Get reviews for this user if they're a contractor
       let reviews;
-      if (user.role === 'contractor') {
+      if (typedUser.role === 'contractor') {
         const { data: reviewData, error: reviewError } = await supabase
           .from('reviews')
           .select(
@@ -213,28 +281,32 @@ export class UserService {
           .limit(10);
 
         if (!reviewError) {
-          reviews = reviewData.map((review: unknown) => ({
+          const typedReviewData = (reviewData || []) as DatabaseReviewRow[];
+          reviews = typedReviewData.map((review) => ({
             rating: review.rating,
             comment: review.comment,
             reviewer:
-              `${(review.reviewer as unknown)?.first_name || ''} ${(review.reviewer as unknown)?.last_name || ''}`.trim(),
+              `${review.reviewer?.first_name || ''} ${review.reviewer?.last_name || ''}`.trim(),
             createdAt: review.created_at,
           }));
         }
       }
 
       return {
-        id: user.id,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        role: user.role,
-        phone: user.phone,
-        address: user.address,
-        bio: user.bio,
-        profileImageUrl: user.profile_image_url,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
+        id: typedUser.id,
+        email: typedUser.email,
+        first_name: typedUser.first_name,
+        last_name: typedUser.last_name,
+        role: typedUser.role,
+        phone: typedUser.phone,
+        bio: typedUser.bio,
+        profile_image_url: typedUser.profile_image_url,
+        created_at: typedUser.created_at,
+        updated_at: typedUser.updated_at,
+        skills: typedUser.contractor_skills?.map((s) => ({
+          skillName: s.skill_name,
+        })),
+        reviews,
       };
     } catch (error) {
       const errorInstance =
@@ -297,15 +369,12 @@ export class UserService {
       const { error } = await supabase
         .from('users')
         .update({
-          first_name: updates.firstName,
-          last_name: updates.lastName,
+          first_name: updates.first_name || updates.firstName,
+          last_name: updates.last_name || updates.lastName,
           phone: updates.phone,
           bio: updates.bio,
-          profile_image_url: updates.profileImageUrl,
-          latitude: updates.latitude,
-          longitude: updates.longitude,
-          address: updates.address,
-          is_available: updates.isAvailable,
+          profile_image_url: updates.profile_image_url,
+          location: updates.location,
           updated_at: new Date().toISOString(),
         })
         .eq('id', userId);
@@ -340,7 +409,6 @@ export class UserService {
         `
         )
         .eq('role', 'contractor')
-        .eq('is_available', true)
         .not('latitude', 'is', null)
         .not('longitude', 'is', null);
 
@@ -348,32 +416,41 @@ export class UserService {
 
       if (error) throw error;
 
+      const typedContractors = (contractors || []) as DatabaseUserRow[];
+
       // Calculate distances and filter by radius
-      const nearbyContractors = contractors
-        .filter((contractor: unknown) => {
+      const nearbyContractors = typedContractors
+        .filter((contractor) => {
           const distance = this.calculateDistance(
             userLatitude,
             userLongitude,
-            contractor.latitude,
-            contractor.longitude
+            contractor.latitude!,
+            contractor.longitude!
           );
           return distance <= radiusKm;
         })
         .map(
-          (contractor: unknown) =>
-            ({
-              id: contractor.id,
-              email: contractor.email,
-              first_name: contractor.first_name,
-              last_name: contractor.last_name,
-              role: contractor.role,
-              phone: contractor.phone,
-              address: contractor.address,
-              bio: contractor.bio,
-              profileImageUrl: contractor.profile_image_url,
-              created_at: contractor.created_at,
-              updated_at: contractor.updated_at,
-            }) as UserProfile
+          (contractor): UserProfile => ({
+            id: contractor.id,
+            email: contractor.email,
+            first_name: contractor.first_name,
+            last_name: contractor.last_name,
+            role: contractor.role,
+            phone: contractor.phone,
+            bio: contractor.bio,
+            profile_image_url: contractor.profile_image_url,
+            created_at: contractor.created_at,
+            updated_at: contractor.updated_at,
+            skills: contractor.contractor_skills?.map((s) => ({
+              skillName: s.skill_name,
+            })),
+            distance: this.calculateDistance(
+              userLatitude,
+              userLongitude,
+              contractor.latitude!,
+              contractor.longitude!
+            ),
+          })
         );
 
       return nearbyContractors;
@@ -431,7 +508,6 @@ export class UserService {
             bio,
             profile_image_url,
             phone,
-            address,
             contractor_skills (
               skill_name
             )
@@ -449,11 +525,18 @@ export class UserService {
         return [];
       }
 
-      // Get unique contractors (avoid duplicates if they worked multiple jobs)
-      const uniqueContractors = new Map();
+      interface JobWithContractor {
+        contractor_id: string;
+        contractor: DatabaseContractorRow;
+      }
 
-      for (const job of completedJobs) {
-        const contractor = job.contractor as unknown;
+      const typedJobs = completedJobs as JobWithContractor[];
+
+      // Get unique contractors (avoid duplicates if they worked multiple jobs)
+      const uniqueContractors = new Map<string, UserProfile>();
+
+      for (const job of typedJobs) {
+        const contractor = job.contractor;
         if (contractor && !uniqueContractors.has(contractor.id)) {
           // Get reviews for this contractor
           const { data: reviews } = await supabase
@@ -464,6 +547,8 @@ export class UserService {
             .order('created_at', { ascending: false })
             .limit(1);
 
+          const typedReviews = (reviews || []) as DatabaseReviewRow[];
+
           const contractorProfile: UserProfile = {
             id: contractor.id,
             email: '', // Not needed for display
@@ -471,17 +556,16 @@ export class UserService {
             last_name: contractor.last_name,
             role: 'contractor',
             phone: contractor.phone,
-            address: contractor.address,
             bio: contractor.bio,
-            profileImageUrl: contractor.profile_image_url,
+            profile_image_url: contractor.profile_image_url,
             created_at: '',
             updated_at: '',
             skills:
-              contractor.contractor_skills?.map((s: unknown) => ({
+              contractor.contractor_skills?.map((s) => ({
                 skillName: s.skill_name,
               })) || [],
             reviews:
-              reviews?.map((review: unknown) => ({
+              typedReviews.map((review) => ({
                 rating: review.rating,
                 comment: review.comment,
                 reviewer: 'You',

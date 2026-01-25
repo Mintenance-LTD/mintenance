@@ -1,6 +1,53 @@
 import { supabase } from '../config/supabase';
-import { ContractorPost, ContractorPostComment } from '@mintenance/types';
+import type { ContractorPost, ContractorPostComment } from '../types/standardized';
 import { logger } from '../utils/logger';
+
+// Database row interface for Supabase queries
+interface DatabasePostRow {
+  id: string;
+  contractor_id: string;
+  post_type: string;
+  title?: string;
+  content: string;
+  images?: string[];
+  skills_used?: string[];
+  materials_used?: string[];
+  project_duration?: string;
+  project_cost?: number;
+  help_category?: string;
+  location_needed?: string;
+  urgency_level?: string;
+  budget_range?: string;
+  item_name?: string;
+  item_condition?: string;
+  rental_price?: number;
+  available_from?: string;
+  available_until?: string;
+  likes_count: number;
+  comments_count: number;
+  shares_count: number;
+  views_count: number;
+  is_active: boolean;
+  is_flagged: boolean;
+  flagged_reason?: string;
+  latitude?: number;
+  longitude?: number;
+  location_radius?: number;
+  created_at: string;
+  updated_at: string;
+  contractor?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+}
+
+// Database stats row interface
+interface DatabaseStatsRow {
+  is_active: boolean;
+  is_flagged: boolean;
+}
 
 export class ModerationService {
   // Flag content for review
@@ -84,7 +131,7 @@ export class ModerationService {
       if (error) throw error;
 
       return (
-        posts?.map((post: unknown) => ({
+        posts?.map((post: DatabasePostRow) => ({
           id: post.id,
           contractorId: post.contractor_id,
           postType: post.post_type,
@@ -240,11 +287,11 @@ export class ModerationService {
   }
 
   // Auto-moderate content on creation
-  static async autoModeratePost(post: Partial<ContractorPost>): Promise<{
+  static async autoModeratePost(post: Partial<ContractorPost> & { title?: string }): Promise<{
     approved: boolean;
     reason?: string;
   }> {
-    const fullContent = `${(post as unknown).title || ''} ${post.content || ''}`;
+    const fullContent = `${post.title || ''} ${post.content || ''}`;
     const check = await this.checkContentForViolations(fullContent);
 
     if (check.isViolation) {
@@ -343,7 +390,7 @@ export class ModerationService {
             flaggedPosts: number;
             removedPosts: number;
           },
-          post: unknown
+          post: DatabaseStatsRow
         ) => {
           acc.totalPosts++;
           if (post.is_active) acc.activePosts++;

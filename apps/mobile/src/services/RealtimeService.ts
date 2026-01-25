@@ -2,6 +2,72 @@ import type { Job, Bid, Message, Notification, User } from '../types/entities';
 import { z } from 'zod';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
+import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
+// ============================================================================
+// DATABASE ROW INTERFACES (snake_case from database)
+// ============================================================================
+
+interface DatabaseMessageRow {
+  id: string;
+  job_id: string;
+  sender_id: string;
+  receiver_id: string;
+  created_at: string;
+  is_read: boolean;
+  content?: string;
+  message_text?: string;
+  [key: string]: unknown;
+}
+
+interface DatabaseJobRow {
+  id: string;
+  homeowner_id: string;
+  contractor_id?: string;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown;
+}
+
+interface DatabaseBidRow {
+  id: string;
+  job_id: string;
+  contractor_id: string;
+  amount: number;
+  description: string;
+  status: string;
+  created_at: string;
+  [key: string]: unknown;
+}
+
+interface DatabaseUserRow {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  is_available?: boolean;
+  [key: string]: unknown;
+}
+
+interface RealtimePayload<T = Record<string, unknown>> {
+  new?: T;
+  old?: T;
+  error?: unknown;
+  [key: string]: unknown;
+}
+
+interface SupabaseClient {
+  channel: (topic: string) => RealtimeChannel;
+  removeChannel?: (channel: RealtimeChannel) => void;
+  getChannels?: () => RealtimeChannel[];
+}
+
+interface ChannelState {
+  state?: string;
+  unsubscribe?: () => Promise<'ok' | 'error' | 'timed out'> | void;
+  subscribe?: (callback?: (status: string, reason?: unknown) => void) => void;
+  on?: (event: string, filter: Record<string, unknown>, callback: (payload: unknown) => void) => RealtimeChannel;
+  send?: (payload: Record<string, unknown>) => Promise<void>;
+}
 
 // ============================================================================
 // REAL-TIME EVENT SCHEMAS
@@ -76,8 +142,8 @@ export class RealTimeService {
   }
 
   // Simulate real-time events for development
-  simulateJobCreated(job: unknown): void {
-    logger.debug('Simulating job created event', { jobId: job?.id });
+  simulateJobCreated(job: Job): void {
+    logger.debug('Simulating job created event', { jobId: job.id });
     this.eventHandlers.onJobCreated?.({ job });
   }
 
@@ -96,8 +162,8 @@ export class RealTimeService {
     this.eventHandlers.onMessageReceived?.({ message, conversation });
   }
 
-  simulateNotification(notification: unknown): void {
-    logger.debug('Simulating notification event', { notificationId: notification?.id });
+  simulateNotification(notification: Notification): void {
+    logger.debug('Simulating notification event', { notificationId: notification.id });
     this.eventHandlers.onNotificationSent?.({ notification });
   }
 
@@ -169,7 +235,7 @@ export class RealtimeService {
 
   private static isSimpleMode(): boolean {
     // Simple tests mock only supabase.channel; full tests also mock removeChannel/getChannels
-    const s: unknown = supabase as unknown;
+    const s = supabase as unknown as SupabaseClient;
     return typeof s.removeChannel !== 'function' || typeof s.getChannels !== 'function';
   }
 
@@ -204,7 +270,7 @@ export class RealtimeService {
     }
   }
 
-  private static attachStatusHandler(channel: unknown, topic: string) {
+  private static attachStatusHandler(channel: RealtimeChannel & ChannelState, topic: string) {
     // Subscribe with connection status handler (used by full tests)
     try {
       channel.subscribe((status: string, reason?: unknown) => {
@@ -224,40 +290,43 @@ export class RealtimeService {
     }
   }
 
-  private static toCamelMessage(row: unknown) {
+  private static toCamelMessage(row: unknown): unknown {
     if (!row || this.isSimpleMode()) return row; // Pass-through in simple tests
+    const dbRow = row as DatabaseMessageRow;
     return {
-      id: row.id,
-      jobId: row.job_id,
-      senderId: row.sender_id,
-      receiverId: row.receiver_id,
-      createdAt: row.created_at,
-      isRead: row.is_read,
-      content: row.content ?? row.message_text,
+      id: dbRow.id,
+      jobId: dbRow.job_id,
+      senderId: dbRow.sender_id,
+      receiverId: dbRow.receiver_id,
+      createdAt: dbRow.created_at,
+      isRead: dbRow.is_read,
+      content: dbRow.content ?? dbRow.message_text,
     };
   }
 
-  private static toCamelJob(row: unknown) {
+  private static toCamelJob(row: unknown): unknown {
     if (!row || this.isSimpleMode()) return row;
+    const dbRow = row as DatabaseJobRow;
     return {
-      ...row,
-      homeownerId: row.homeowner_id,
-      contractorId: row.contractor_id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      ...dbRow,
+      homeownerId: dbRow.homeowner_id,
+      contractorId: dbRow.contractor_id,
+      createdAt: dbRow.created_at,
+      updatedAt: dbRow.updated_at,
     };
   }
 
-  private static toCamelBid(row: unknown) {
+  private static toCamelBid(row: unknown): unknown {
     if (!row || this.isSimpleMode()) return row;
+    const dbRow = row as DatabaseBidRow;
     return {
-      id: row.id,
-      jobId: row.job_id,
-      contractorId: row.contractor_id,
-      amount: row.amount,
-      description: row.description,
-      status: row.status,
-      createdAt: row.created_at,
+      id: dbRow.id,
+      jobId: dbRow.job_id,
+      contractorId: dbRow.contractor_id,
+      amount: dbRow.amount,
+      description: dbRow.description,
+      status: dbRow.status,
+      createdAt: dbRow.created_at,
     };
   }
 
@@ -267,18 +336,20 @@ export class RealtimeService {
     errorHandler?: (err: unknown) => void
   ): () => void {
     const topic = this.topic('messages', jobId);
-    const channel = (supabase as unknown).channel(topic);
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(topic) as RealtimeChannel & ChannelState;
 
     // Postgres change feed
-    channel.on(
+    channel.on?.(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages', filter: `job_id=eq.${jobId}` },
       (payload: unknown) => {
-        if (payload && payload.error && errorHandler) {
-          errorHandler(payload.error);
+        const realtimePayload = payload as RealtimePayload<DatabaseMessageRow>;
+        if (realtimePayload && realtimePayload.error && errorHandler) {
+          errorHandler(realtimePayload.error);
           return;
         }
-        const data = this.toCamelMessage(payload?.new);
+        const data = this.toCamelMessage(realtimePayload.new);
         try {
           callback(data);
         } catch {}
@@ -302,14 +373,16 @@ export class RealtimeService {
     callback: (job: Job, oldJob?: unknown) => void
   ): () => void {
     const topic = this.isSimpleMode() ? this.topic('job', jobId) : this.topic('jobs', jobId);
-    const channel = (supabase as unknown).channel(topic);
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(topic) as RealtimeChannel & ChannelState;
 
-    channel.on(
+    channel.on?.(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `id=eq.${jobId}` },
       (payload: unknown) => {
-        const newRow = this.toCamelJob(payload?.new);
-        const oldRow = this.toCamelJob(payload?.old);
+        const realtimePayload = payload as RealtimePayload<DatabaseJobRow>;
+        const newRow = this.toCamelJob(realtimePayload.new) as Job;
+        const oldRow = this.toCamelJob(realtimePayload.old);
         try {
           callback(newRow, oldRow);
         } catch {}
@@ -330,13 +403,15 @@ export class RealtimeService {
     callback: (bid: unknown) => void
   ): () => void {
     const topic = this.topic('bids', jobId);
-    const channel = (supabase as unknown).channel(topic);
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(topic) as RealtimeChannel & ChannelState;
 
-    channel.on(
+    channel.on?.(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'bids', filter: `job_id=eq.${jobId}` },
       (payload: unknown) => {
-        const bid = this.toCamelBid(payload?.new);
+        const realtimePayload = payload as RealtimePayload<DatabaseBidRow>;
+        const bid = this.toCamelBid(realtimePayload.new);
         try {
           callback(bid);
         } catch {}
@@ -354,20 +429,22 @@ export class RealtimeService {
 
   static subscribeToUserUpdates(userId: string, callback: (user: unknown) => void): () => void {
     const topic = this.topic('users', userId);
-    const channel = (supabase as unknown).channel(topic);
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(topic) as RealtimeChannel & ChannelState;
 
-    channel.on(
+    channel.on?.(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${userId}` },
       (payload: unknown) => {
-        const row = payload?.new;
+        const realtimePayload = payload as RealtimePayload<DatabaseUserRow>;
+        const row = realtimePayload.new;
         const user = this.isSimpleMode()
           ? row
           : {
-              ...row,
-              firstName: row?.first_name,
-              lastName: row?.last_name,
-              isAvailable: row?.is_available,
+              ...(row as DatabaseUserRow),
+              firstName: (row as DatabaseUserRow)?.first_name,
+              lastName: (row as DatabaseUserRow)?.last_name,
+              isAvailable: (row as DatabaseUserRow)?.is_available,
             };
         try {
           callback(user);
@@ -385,9 +462,10 @@ export class RealtimeService {
   }
 
   static async sendMessage(jobId: string, message: Message): Promise<void> {
-    const channel = (supabase as unknown).channel(this.topic('messages', jobId));
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(this.topic('messages', jobId)) as RealtimeChannel & ChannelState;
     try {
-      await channel.send({ type: 'broadcast', event: 'message', payload: message });
+      await channel.send?.({ type: 'broadcast', event: 'message', payload: message });
     } catch (err) {
       logger.error('Error sending realtime message:', err as unknown);
       throw err;
@@ -395,9 +473,10 @@ export class RealtimeService {
   }
 
   static async sendJobUpdate(jobId: string, job: Job): Promise<void> {
-    const channel = (supabase as unknown).channel(this.topic('jobs', jobId));
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(this.topic('jobs', jobId)) as RealtimeChannel & ChannelState;
     try {
-      await channel.send({ type: 'broadcast', event: 'job_update', payload: job });
+      await channel.send?.({ type: 'broadcast', event: 'job_update', payload: job });
     } catch (err) {
       logger.error('Error sending job update:', err as unknown);
       throw err;
@@ -405,9 +484,10 @@ export class RealtimeService {
   }
 
   static async sendBidUpdate(jobId: string, bid: Bid): Promise<void> {
-    const channel = (supabase as unknown).channel(this.topic('bids', jobId));
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(this.topic('bids', jobId)) as RealtimeChannel & ChannelState;
     try {
-      await channel.send({ type: 'broadcast', event: 'bid_update', payload: bid });
+      await channel.send?.({ type: 'broadcast', event: 'bid_update', payload: bid });
     } catch (err) {
       logger.error('Error sending bid update:', err as unknown);
       throw err;
@@ -416,39 +496,44 @@ export class RealtimeService {
 
   static unsubscribeFromMessages(jobId: string): void {
     try {
-      const channel = (supabase as unknown).channel(this.topic('messages', jobId));
-      (supabase as unknown).removeChannel?.(channel);
+      const client = supabase as unknown as SupabaseClient;
+      const channel = client.channel(this.topic('messages', jobId));
+      client.removeChannel?.(channel);
     } catch {}
   }
 
   static unsubscribeFromJobUpdates(jobId: string): void {
     try {
-      const channel = (supabase as unknown).channel(this.topic('jobs', jobId));
-      (supabase as unknown).removeChannel?.(channel);
+      const client = supabase as unknown as SupabaseClient;
+      const channel = client.channel(this.topic('jobs', jobId));
+      client.removeChannel?.(channel);
     } catch {}
   }
 
   static unsubscribeFromJobBids(jobId: string): void {
     try {
-      const channel = (supabase as unknown).channel(this.topic('bids', jobId));
-      (supabase as unknown).removeChannel?.(channel);
+      const client = supabase as unknown as SupabaseClient;
+      const channel = client.channel(this.topic('bids', jobId));
+      client.removeChannel?.(channel);
     } catch {}
   }
 
   static unsubscribeFromUserUpdates(userId: string): void {
     try {
-      const channel = (supabase as unknown).channel(this.topic('users', userId));
-      (supabase as unknown).removeChannel?.(channel);
+      const client = supabase as unknown as SupabaseClient;
+      const channel = client.channel(this.topic('users', userId));
+      client.removeChannel?.(channel);
     } catch {}
   }
 
-  static getChannelStatus(): { channels: unknown[]; totalChannels: number; activeChannels: number } {
+  static getChannelStatus(): { channels: RealtimeChannel[]; totalChannels: number; activeChannels: number } {
     try {
-      const channels: unknown[] = (supabase as unknown).getChannels?.() || [];
+      const client = supabase as unknown as SupabaseClient;
+      const channels: RealtimeChannel[] = client.getChannels?.() || [];
       return {
         channels,
         totalChannels: channels.length,
-        activeChannels: channels.filter((c: unknown) => c.state === 'joined').length,
+        activeChannels: channels.filter((c) => (c as unknown as ChannelState).state === 'joined').length,
       };
     } catch {
       return { channels: [], totalChannels: 0, activeChannels: 0 };
@@ -457,10 +542,12 @@ export class RealtimeService {
 
   static cleanup(): void {
     try {
-      const channels: unknown[] = (supabase as unknown).getChannels?.() || [];
+      const client = supabase as unknown as SupabaseClient;
+      const channels: RealtimeChannel[] = client.getChannels?.() || [];
       for (const ch of channels) {
         try {
-          const res = ch.unsubscribe?.();
+          const channelWithState = ch as RealtimeChannel & ChannelState;
+          const res = channelWithState.unsubscribe?.();
           if (res && typeof res.then === 'function') {
             // Ensure the warning is observable in tests immediately
             res.catch((err: unknown) => logger.warn('Error cleaning up realtime channels:', err));
@@ -478,7 +565,10 @@ export class RealtimeService {
   static unsubscribeAll(): void {
     try {
       this._subscriptions.forEach((ch) => {
-        try { ch.unsubscribe?.(); } catch {}
+        try {
+          const channel = ch as RealtimeChannel & ChannelState;
+          channel.unsubscribe?.();
+        } catch {}
       });
     } finally {
       this._subscriptions = [];

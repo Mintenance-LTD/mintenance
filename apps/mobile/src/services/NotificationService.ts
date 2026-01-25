@@ -13,32 +13,43 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
 import * as sentry from '../config/sentry';
+import type { Tables } from '../types/database';
 
 // Storage keys for notification queue
 const NOTIFICATION_QUEUE_KEY = '@mintenance/notification_queue';
 const LAST_NOTIFICATION_ID_KEY = '@mintenance/last_notification_id';
 
+// Database row types (snake_case)
+type DatabaseNotificationRow = Tables['notifications']['Row'];
+type DatabaseUserPushTokenRow = Tables['user_push_tokens']['Row'];
+type DatabaseNotificationPreferencesRow = Tables['user_notification_preferences']['Row'];
+
+// Type for notification data in deep links
+interface NotificationDeepLinkData {
+  type?: NotificationData['type'];
+  jobId?: string;
+  conversationId?: string;
+  jobTitle?: string;
+  senderId?: string;
+  senderName?: string;
+  meetingId?: string;
+  quoteId?: string;
+  notificationId?: string;
+  [key: string]: unknown;
+}
+
 // Configure notification behavior for foreground, background, and killed states
 Notifications.setNotificationHandler({
-  handleNotification: async (notification) => {
+  handleNotification: async (notification): Promise<Notifications.NotificationBehavior> => {
     const data = notification.request.content.data;
     const type = data?.type as NotificationData['type'] | undefined;
     const priority = data?.priority || 'normal';
 
     // Determine notification behavior based on type and priority
-    let shouldShowAlert = true;
-    let shouldPlaySound = true;
-    let shouldSetBadge = true;
-
-    // Quiet notifications for low priority items
-    if (priority === 'low') {
-      shouldPlaySound = false;
-    }
-
-    // Always update badge count
-    shouldSetBadge = true;
+    const shouldShowAlert = true;
+    const shouldPlaySound = priority !== 'low';
+    const shouldSetBadge = true;
 
     logger.info('Handling notification in foreground', {
       type,
@@ -51,6 +62,8 @@ Notifications.setNotificationHandler({
       shouldShowAlert,
       shouldPlaySound,
       shouldSetBadge,
+      shouldShowBanner: true,
+      shouldShowList: true,
     };
   },
 });
@@ -115,11 +128,9 @@ export class NotificationService {
     level: 'info' | 'warning' | 'error' | 'debug',
     data?: Record<string, unknown>
   ): void {
-    if (data) {
-      sentry.addBreadcrumb(message, 'notification', level, data);
-    } else {
-      sentry.addBreadcrumb(message, 'notification', level);
-    }
+    // Include level in data since sentry.addBreadcrumb doesn't accept it as a separate param
+    const breadcrumbData = data ? { ...data, level } : { level };
+    sentry.addBreadcrumb(message, 'notification', breadcrumbData);
   }
 
   /**
@@ -130,9 +141,7 @@ export class NotificationService {
       const isDevice =
         NotificationService.deviceOverride !== null
           ? NotificationService.deviceOverride
-          : typeof Device.isDevice === 'function'
-            ? Device.isDevice()
-            : Device.isDevice;
+          : Device.isDevice as boolean;
 
       if (!isDevice) {
         logger.warn('Push notifications only work on physical devices');
@@ -322,16 +331,16 @@ export class NotificationService {
       }
 
       // Send notification via Expo
+      const messageData = data && typeof data === 'object' && !Array.isArray(data)
+        ? { ...(data as Record<string, unknown>), type, userId }
+        : { type, userId };
+
       const message = {
         to: tokenData.push_token,
-        sound: 'default',
+        sound: 'default' as const,
         title,
         body,
-        data: {
-          ...data,
-          type,
-          userId,
-        },
+        data: messageData,
         channelId: this.getChannelId(type),
       };
 
@@ -435,7 +444,7 @@ export class NotificationService {
         content: {
           title,
           body,
-          data,
+          data: data as Record<string, unknown> | undefined,
           sound: 'default',
         },
         trigger,
@@ -463,19 +472,20 @@ export class NotificationService {
         content: {
           title,
           body,
-          data,
+          data: data as Record<string, unknown> | undefined,
           sound: 'default',
         },
         trigger,
       });
 
+      const triggerSeconds = (trigger as { seconds?: number }).seconds;
       this.addBreadcrumb(
         'Local notification scheduled',
         'info',
         {
           id,
           title,
-          triggerSeconds: (trigger as { seconds?: number }).seconds,
+          ...(triggerSeconds !== undefined && { triggerSeconds }),
         }
       );
 
@@ -582,7 +592,7 @@ export class NotificationService {
     preferences: Partial<NotificationPreferences>
   ): Promise<void> {
     try {
-      const response = await supabase
+      const { error } = await supabase
         .from('user_notification_preferences')
         .update({
           preferences,
@@ -590,7 +600,6 @@ export class NotificationService {
         })
         .eq('user_id', userId);
 
-      const error = (response as { error?: unknown })?.error;
       if (error) throw error;
       logger.info('Notification preferences updated', { userId });
       this.addBreadcrumb(
@@ -624,7 +633,19 @@ export class NotificationService {
         .range(offset, offset + limit - 1);
 
       if (error) throw error;
-      return data || [];
+
+      // Transform database rows to NotificationData
+      return (data || []).map((row: DatabaseNotificationRow) => ({
+        id: row.id,
+        title: row.title,
+        body: row.body,
+        data: row.data,
+        type: row.type,
+        priority: row.priority,
+        userId: row.user_id,
+        createdAt: row.created_at,
+        read: row.read,
+      }));
     } catch (error) {
       logger.error('Failed to get user notifications', error);
       throw error;
@@ -718,19 +739,13 @@ export class NotificationService {
     type: NotificationData['type']
   ): boolean {
     const safePreferences: NotificationPreferences = {
-      jobUpdates: true,
-      bidNotifications: true,
-      meetingReminders: true,
-      paymentAlerts: true,
-      messages: true,
-      quotes: true,
-      systemAnnouncements: true,
-      quietHours: {
-        enabled: false,
-        start: '22:00',
-        end: '08:00',
-      },
-      ...preferences,
+      jobUpdates: preferences?.jobUpdates ?? true,
+      bidNotifications: preferences?.bidNotifications ?? true,
+      meetingReminders: preferences?.meetingReminders ?? true,
+      paymentAlerts: preferences?.paymentAlerts ?? true,
+      messages: preferences?.messages ?? true,
+      quotes: preferences?.quotes ?? true,
+      systemAnnouncements: preferences?.systemAnnouncements ?? true,
       quietHours: {
         enabled: preferences?.quietHours?.enabled ?? false,
         start: preferences?.quietHours?.start || '22:00',
@@ -817,6 +832,23 @@ export class NotificationService {
   }
 
   /**
+   * Get queued notifications from storage
+   */
+  private static async getQueuedNotifications(): Promise<QueuedNotification[]> {
+    try {
+      const queueData = await AsyncStorage.getItem(NOTIFICATION_QUEUE_KEY);
+      if (!queueData) {
+        return [];
+      }
+      const parsed = JSON.parse(queueData) as QueuedNotification[];
+      return parsed.filter(q => !q.processed);
+    } catch (error) {
+      logger.error('Failed to get queued notifications', error);
+      return [];
+    }
+  }
+
+  /**
    * Process queued notifications
    */
   private static async processQueuedNotifications(): Promise<void> {
@@ -832,8 +864,8 @@ export class NotificationService {
       for (const notification of queuedNotifications) {
         try {
           // Create a response object compatible with handleNotificationResponse
-          const response = {
-            notification,
+          const response: Notifications.NotificationResponse = {
+            notification: notification.notification,
             actionIdentifier: Notifications.DEFAULT_ACTION_IDENTIFIER,
           };
 
@@ -844,7 +876,7 @@ export class NotificationService {
       }
 
       // Clear the queue after processing
-      await AsyncStorage.removeItem(this.NOTIFICATION_QUEUE_KEY);
+      await AsyncStorage.removeItem(NOTIFICATION_QUEUE_KEY);
     } catch (error) {
       logger.error('Failed to process notification queue', error);
     }
@@ -885,7 +917,7 @@ export class NotificationService {
     this.responseListener = Notifications.addNotificationResponseReceivedListener(
       async (response) => {
         const notification = response.notification;
-        const data = notification.request.content.data;
+        const data = notification.request.content.data as NotificationDeepLinkData | undefined;
 
         logger.info('Notification response received', {
           actionIdentifier: response.actionIdentifier,
@@ -951,8 +983,8 @@ export class NotificationService {
   private static async handleNotificationResponse(
     response: Notifications.NotificationResponse
   ): Promise<void> {
-    const data = response.notification.request.content.data;
-    const type = data?.type as NotificationData['type'];
+    const data = response.notification.request.content.data as NotificationDeepLinkData | undefined;
+    const type = data?.type;
     const actionIdentifier = response.actionIdentifier;
 
     logger.info('Processing notification tap', { type, data });
@@ -968,6 +1000,12 @@ export class NotificationService {
       logger.warn('Navigation not ready, waiting...');
       // Wait up to 3 seconds for navigation to be ready
       await this.waitForNavigation(3000);
+    }
+
+    // Ensure we have a valid type
+    if (!type) {
+      logger.warn('No notification type found in data');
+      return;
     }
 
     // Get deep link params based on notification type
@@ -1003,16 +1041,19 @@ export class NotificationService {
     type: NotificationData['type'],
     data: unknown
   ): DeepLinkParams | null {
+    // Type guard to safely access data properties
+    const deepLinkData = data as NotificationDeepLinkData | undefined;
+
     switch (type) {
       case 'job_update':
-        if (data?.jobId) {
+        if (deepLinkData?.jobId) {
           return {
             screen: 'Main',
             params: {
               screen: 'JobsTab',
               params: {
                 screen: 'JobDetails',
-                params: { jobId: data.jobId },
+                params: { jobId: deepLinkData.jobId },
               },
             },
           };
@@ -1020,14 +1061,14 @@ export class NotificationService {
         break;
 
       case 'bid_received':
-        if (data?.jobId) {
+        if (deepLinkData?.jobId) {
           return {
             screen: 'Main',
             params: {
               screen: 'JobsTab',
               params: {
                 screen: 'JobDetails',
-                params: { jobId: data.jobId },
+                params: { jobId: deepLinkData.jobId },
               },
             },
           };
@@ -1035,7 +1076,7 @@ export class NotificationService {
         break;
 
       case 'message_received':
-        if (data?.conversationId) {
+        if (deepLinkData?.conversationId) {
           return {
             screen: 'Main',
             params: {
@@ -1043,10 +1084,10 @@ export class NotificationService {
               params: {
                 screen: 'Messaging',
                 params: {
-                  conversationId: data.conversationId,
-                  jobTitle: data.jobTitle,
-                  recipientId: data.senderId,
-                  recipientName: data.senderName,
+                  conversationId: deepLinkData.conversationId,
+                  jobTitle: deepLinkData.jobTitle,
+                  recipientId: deepLinkData.senderId,
+                  recipientName: deepLinkData.senderName,
                 },
               },
             },
@@ -1055,26 +1096,26 @@ export class NotificationService {
         break;
 
       case 'meeting_scheduled':
-        if (data?.meetingId) {
+        if (deepLinkData?.meetingId) {
           return {
             screen: 'Modal',
             params: {
               screen: 'MeetingDetails',
-              params: { meetingId: data.meetingId },
+              params: { meetingId: deepLinkData.meetingId },
             },
           };
         }
         break;
 
       case 'payment_received':
-        if (data?.jobId) {
+        if (deepLinkData?.jobId) {
           return {
             screen: 'Main',
             params: {
               screen: 'JobsTab',
               params: {
                 screen: 'JobDetails',
-                params: { jobId: data.jobId },
+                params: { jobId: deepLinkData.jobId },
               },
             },
           };
@@ -1082,14 +1123,14 @@ export class NotificationService {
         break;
 
       case 'quote_sent':
-        if (data?.quoteId || data?.jobId) {
+        if (deepLinkData?.quoteId || deepLinkData?.jobId) {
           return {
             screen: 'Main',
             params: {
               screen: 'JobsTab',
               params: {
                 screen: 'JobDetails',
-                params: { jobId: data.jobId },
+                params: { jobId: deepLinkData.jobId },
               },
             },
           };

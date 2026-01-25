@@ -14,6 +14,90 @@ export interface SyncMetadata {
   isDirty: boolean;
 }
 
+// Database row interfaces (SQLite schema with snake_case)
+interface DatabaseUserRow {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: string;
+  phone: string | null;
+  profile_image_url: string | null;
+  bio: string | null;
+  rating: number | null;
+  total_jobs_completed: number | null;
+  is_available: number;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+  created_at: string;
+  updated_at: string;
+  synced_at: string | null;
+  is_dirty: number;
+}
+
+interface DatabaseJobRow {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  homeowner_id: string;
+  contractor_id: string | null;
+  status: string;
+  budget: number;
+  category: string | null;
+  subcategory: string | null;
+  priority: string | null;
+  photos: string | null;
+  created_at: string;
+  updated_at: string;
+  synced_at: string | null;
+  is_dirty: number;
+}
+
+interface DatabaseMessageRow {
+  id: string;
+  job_id: string;
+  sender_id: string;
+  receiver_id: string;
+  message_text: string;
+  message_type: string;
+  attachment_url: string | null;
+  read: number;
+  created_at: string;
+  synced_at: string | null;
+  is_dirty: number;
+  // Joined fields from users table
+  first_name?: string | null;
+  last_name?: string | null;
+  role?: string;
+}
+
+interface DatabaseSyncMetadataRow {
+  table_name: string;
+  last_sync_timestamp: number;
+  record_count: number;
+  is_dirty: number;
+}
+
+interface DatabaseStorageInfoRow {
+  total?: number;
+  dirty?: number;
+  actions?: number;
+}
+
+interface DatabaseOfflineActionRow {
+  id: string;
+  type: string;
+  entity: string;
+  data: string;
+  retry_count: number;
+  max_retries: number;
+  query_key: string | null;
+  created_at: number;
+  synced_at: number | null;
+}
+
 class LocalDatabaseService {
   private db: SQLite.SQLiteDatabase | null = null;
   private readonly DB_NAME = 'mintenance_local.db';
@@ -179,9 +263,9 @@ class LocalDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = `
-      INSERT OR REPLACE INTO users 
-      (id, email, first_name, last_name, role, phone, profile_image_url, bio, rating, 
-       total_jobs_completed, is_available, latitude, longitude, address, created_at, 
+      INSERT OR REPLACE INTO users
+      (id, email, first_name, last_name, role, phone, profile_image_url, bio, rating,
+       total_jobs_completed, is_available, latitude, longitude, address, created_at,
        updated_at, synced_at, is_dirty)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
@@ -193,14 +277,14 @@ class LocalDatabaseService {
       user.last_name,
       user.role,
       user.phone || null,
-      user.profileImageUrl || null,
+      user.profile_image_url || null,
       user.bio || null,
       user.rating || 0,
-      user.totalJobsCompleted || 0,
-      user.isAvailable ? 1 : 0,
-      user.latitude || null,
-      user.longitude || null,
-      user.address || null,
+      user.jobs_count || 0,
+      1, // is_available - not in User type, default to true
+      null, // latitude - not in User type
+      null, // longitude - not in User type
+      user.location || null, // address field uses location from User type
       user.created_at,
       user.updated_at,
       markDirty ? null : new Date().toISOString(),
@@ -218,41 +302,38 @@ class LocalDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = 'SELECT * FROM users WHERE id = ?';
-    const result = await this.db.getFirstAsync(query, [userId]);
+    const result = await this.db.getFirstAsync<DatabaseUserRow>(query, [userId]);
 
-    return result ? this.mapRowToUser(result as unknown) : null;
+    return result ? this.mapRowToUser(result) : null;
   }
 
   async getAllUsers(): Promise<User[]> {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = 'SELECT * FROM users ORDER BY created_at DESC';
-    const rows = await this.db.getAllAsync(query);
+    const rows = await this.db.getAllAsync<DatabaseUserRow>(query);
 
-    return rows.map(this.mapRowToUser);
+    return rows.map((row) => this.mapRowToUser(row));
   }
 
-  private mapRowToUser(row: unknown): User {
+  private mapRowToUser(row: DatabaseUserRow): User {
     return {
       id: row.id,
       email: row.email,
-      first_name: row.first_name,
-      last_name: row.last_name,
-      role: row.role,
-      phone: row.phone,
-      profileImageUrl: row.profile_image_url,
-      bio: row.bio,
-      rating: row.rating,
-      totalJobsCompleted: row.total_jobs_completed,
-      isAvailable: Boolean(row.is_available),
-      latitude: row.latitude,
-      longitude: row.longitude,
-      address: row.address,
+      first_name: row.first_name ?? '',
+      last_name: row.last_name ?? '',
+      role: row.role as 'homeowner' | 'contractor' | 'admin',
+      phone: row.phone ?? undefined,
+      profile_image_url: row.profile_image_url ?? undefined,
+      bio: row.bio ?? undefined,
+      rating: row.rating ?? undefined,
+      jobs_count: row.total_jobs_completed ?? undefined,
+      location: row.address ?? undefined,
       created_at: row.created_at,
       updated_at: row.updated_at,
       // Computed fields for backward compatibility
-      firstName: row.first_name,
-      lastName: row.last_name,
+      firstName: row.first_name ?? undefined,
+      lastName: row.last_name ?? undefined,
       createdAt: row.created_at,
     };
   }
@@ -298,9 +379,9 @@ class LocalDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = 'SELECT * FROM jobs WHERE id = ?';
-    const result = await this.db.getFirstAsync(query, [jobId]);
+    const result = await this.db.getFirstAsync<DatabaseJobRow>(query, [jobId]);
 
-    return result ? this.mapRowToJob(result as unknown) : null;
+    return result ? this.mapRowToJob(result) : null;
   }
 
   async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
@@ -308,9 +389,9 @@ class LocalDatabaseService {
 
     const query =
       'SELECT * FROM jobs WHERE homeowner_id = ? ORDER BY created_at DESC';
-    const rows = await this.db.getAllAsync(query, [homeownerId]);
+    const rows = await this.db.getAllAsync<DatabaseJobRow>(query, [homeownerId]);
 
-    return rows.map(this.mapRowToJob);
+    return rows.map((row) => this.mapRowToJob(row));
   }
 
   async getJobsByStatus(status: string, userId?: string): Promise<Job[]> {
@@ -325,30 +406,30 @@ class LocalDatabaseService {
     }
 
     query += ' ORDER BY created_at DESC';
-    const rows = await this.db.getAllAsync(query, params);
+    const rows = await this.db.getAllAsync<DatabaseJobRow>(query, params);
 
-    return rows.map(this.mapRowToJob);
+    return rows.map((row) => this.mapRowToJob(row));
   }
 
-  private mapRowToJob(row: unknown): Job {
+  private mapRowToJob(row: DatabaseJobRow): Job {
     return {
       id: row.id,
       title: row.title,
       description: row.description,
       location: row.location,
       homeowner_id: row.homeowner_id,
-      contractor_id: row.contractor_id,
-      status: row.status,
+      contractor_id: row.contractor_id ?? undefined,
+      status: row.status as 'posted' | 'assigned' | 'in_progress' | 'completed',
       budget: row.budget,
-      category: row.category,
-      subcategory: row.subcategory,
-      priority: row.priority,
+      category: row.category ?? undefined,
+      subcategory: row.subcategory ?? undefined,
+      priority: row.priority as 'low' | 'medium' | 'high' | undefined,
       photos: row.photos ? JSON.parse(row.photos) : undefined,
       created_at: row.created_at,
       updated_at: row.updated_at,
       // Computed fields for backward compatibility
       homeownerId: row.homeowner_id,
-      contractorId: row.contractor_id,
+      contractorId: row.contractor_id ?? undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -373,12 +454,12 @@ class LocalDatabaseService {
 
     const values = [
       message.id,
-      message.jobId,
+      message.jobId ?? null,
       message.senderId,
       message.receiverId,
-      message.messageText,
-      message.messageType,
-      message.attachmentUrl || null,
+      message.messageText ?? null,
+      message.messageType ?? null,
+      message.attachmentUrl ?? null,
       message.read ? 1 : 0,
       message.createdAt,
       markDirty ? null : new Date().toISOString(),
@@ -399,27 +480,27 @@ class LocalDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = `
-      SELECT m.*, u.first_name, u.last_name, u.role 
+      SELECT m.*, u.first_name, u.last_name, u.role
       FROM messages m
       LEFT JOIN users u ON m.sender_id = u.id
-      WHERE m.job_id = ? 
-      ORDER BY m.created_at DESC 
+      WHERE m.job_id = ?
+      ORDER BY m.created_at DESC
       LIMIT ?
     `;
 
-    const rows = await this.db.getAllAsync(query, [jobId, limit]);
-    return rows.map(this.mapRowToMessage).reverse(); // Chronological order
+    const rows = await this.db.getAllAsync<DatabaseMessageRow>(query, [jobId, limit]);
+    return rows.map((row) => this.mapRowToMessage(row)).reverse(); // Chronological order
   }
 
-  private mapRowToMessage(row: unknown): Message {
+  private mapRowToMessage(row: DatabaseMessageRow): Message {
     return {
       id: row.id,
       jobId: row.job_id,
       senderId: row.sender_id,
       receiverId: row.receiver_id,
       messageText: row.message_text,
-      messageType: row.message_type,
-      attachmentUrl: row.attachment_url,
+      messageType: row.message_type as 'text' | 'image' | 'file' | 'video_call_invitation' | 'video_call_started' | 'video_call_ended' | 'video_call_missed' | 'contract_submitted' | undefined,
+      attachmentUrl: row.attachment_url ?? undefined,
       read: Boolean(row.read),
       createdAt: row.created_at,
       senderName:
@@ -434,11 +515,11 @@ class LocalDatabaseService {
   // SYNC OPERATIONS
   // ============================================================================
 
-  async getDirtyRecords(table: string): Promise<any[]> {
+  async getDirtyRecords(table: string): Promise<Array<DatabaseUserRow | DatabaseJobRow | DatabaseMessageRow>> {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = `SELECT * FROM ${table} WHERE is_dirty = TRUE ORDER BY updated_at DESC`;
-    return await this.db.getAllAsync(query);
+    return await this.db.getAllAsync<DatabaseUserRow | DatabaseJobRow | DatabaseMessageRow>(query);
   }
 
   async markRecordSynced(table: string, id: string): Promise<void> {
@@ -452,15 +533,15 @@ class LocalDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = 'SELECT * FROM sync_metadata WHERE table_name = ?';
-    const result = await this.db.getFirstAsync(query, [tableName]);
+    const result = await this.db.getFirstAsync<DatabaseSyncMetadataRow>(query, [tableName]);
 
     if (!result) return null;
 
     return {
-      table: (result as unknown).table_name,
-      lastSyncTimestamp: (result as unknown).last_sync_timestamp,
-      recordCount: (result as unknown).record_count,
-      isDirty: Boolean((result as unknown).is_dirty),
+      table: result.table_name,
+      lastSyncTimestamp: result.last_sync_timestamp,
+      recordCount: result.record_count,
+      isDirty: Boolean(result.is_dirty),
     };
   }
 
@@ -512,12 +593,12 @@ class LocalDatabaseService {
     ]);
   }
 
-  async getOfflineActions(): Promise<any[]> {
+  async getOfflineActions(): Promise<DatabaseOfflineActionRow[]> {
     if (!this.db) throw new Error('Database not initialized');
 
     const query =
       'SELECT * FROM offline_actions WHERE synced_at IS NULL ORDER BY created_at ASC';
-    return await this.db.getAllAsync(query);
+    return await this.db.getAllAsync<DatabaseOfflineActionRow>(query);
   }
 
   async removeOfflineAction(actionId: string): Promise<void> {
@@ -558,7 +639,7 @@ class LocalDatabaseService {
     if (!this.db) throw new Error('Database not initialized');
 
     const totalQuery = `
-      SELECT 
+      SELECT
         (SELECT COUNT(*) FROM users) +
         (SELECT COUNT(*) FROM jobs) +
         (SELECT COUNT(*) FROM messages) +
@@ -566,7 +647,7 @@ class LocalDatabaseService {
     `;
 
     const dirtyQuery = `
-      SELECT 
+      SELECT
         (SELECT COUNT(*) FROM users WHERE is_dirty = TRUE) +
         (SELECT COUNT(*) FROM jobs WHERE is_dirty = TRUE) +
         (SELECT COUNT(*) FROM messages WHERE is_dirty = TRUE) +
@@ -577,15 +658,15 @@ class LocalDatabaseService {
       'SELECT COUNT(*) as actions FROM offline_actions WHERE synced_at IS NULL';
 
     const [totalResult, dirtyResult, actionsResult] = await Promise.all([
-      this.db.getFirstAsync(totalQuery),
-      this.db.getFirstAsync(dirtyQuery),
-      this.db.getFirstAsync(actionsQuery),
+      this.db.getFirstAsync<DatabaseStorageInfoRow>(totalQuery),
+      this.db.getFirstAsync<DatabaseStorageInfoRow>(dirtyQuery),
+      this.db.getFirstAsync<DatabaseStorageInfoRow>(actionsQuery),
     ]);
 
     return {
-      totalRecords: (totalResult as unknown)?.total || 0,
-      dirtyRecords: (dirtyResult as unknown)?.dirty || 0,
-      pendingActions: (actionsResult as unknown)?.actions || 0,
+      totalRecords: totalResult?.total || 0,
+      dirtyRecords: dirtyResult?.dirty || 0,
+      pendingActions: actionsResult?.actions || 0,
     };
   }
 

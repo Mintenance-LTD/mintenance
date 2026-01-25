@@ -9,9 +9,94 @@ import {
 import { logger } from '../utils/logger';
 import { sanitizeForSQL } from '../utils/sqlSanitization';
 
+// Database row interfaces for type safety
+interface DatabaseError {
+  code?: string;
+  message?: string;
+}
+
+interface DatabaseContractorProfileRow {
+  id: string;
+  user_id: string;
+  company_name?: string;
+  company_logo?: string;
+  bio?: string;
+  business_address?: string;
+  hourly_rate?: number;
+  years_experience?: number;
+  service_radius?: number;
+  availability?: 'immediate' | 'this_week' | 'this_month' | 'busy';
+  portfolio_images?: string[];
+  specialties?: string[];
+  certifications?: string[];
+  license_number?: string;
+  insurance_provider?: string;
+  insurance_policy?: string;
+  insurance_expiry?: string;
+  latitude?: number;
+  longitude?: number;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
+interface DatabaseUserRow {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: 'homeowner' | 'contractor' | 'admin';
+  created_at: string;
+  updated_at: string;
+  latitude?: number;
+  longitude?: number;
+  profile_image_url?: string;
+  bio?: string;
+  rating?: number;
+  total_jobs_completed?: number;
+  is_available?: boolean;
+  contractor_skills?: DatabaseSkillRow[];
+  reviews?: DatabaseReviewRow[];
+}
+
+interface DatabaseSkillRow {
+  id: string;
+  contractor_id: string;
+  skill_name: string;
+  created_at: string;
+}
+
+interface DatabaseReviewRow {
+  id: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+  reviewer?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
+interface DatabaseMatchRow {
+  id: string;
+  homeowner_id: string;
+  contractor_id: string;
+  action: string;
+  created_at: string;
+  contractor?: DatabaseUserRow;
+}
+
+interface ContractorWithDistance extends ContractorProfile {
+  distance: number;
+}
+
 export class ContractorService {
   // Added to satisfy tests: fetch contractor profile by user id
-  static async getContractorProfile(userId: string): Promise<any | null> {
+  static async getContractorProfile(userId: string): Promise<DatabaseContractorProfileRow | null> {
     try {
       const { data, error } = await supabase
         .from('contractor_profiles')
@@ -23,11 +108,12 @@ export class ContractorService {
 
       if (error) {
         // Tests expect null on no error but null data; propagate others
-        if ((error as unknown).code === 'PGRST116') return null;
+        const dbError = error as DatabaseError;
+        if (dbError.code === 'PGRST116') return null;
         // Some tests pass null error with null data; handle that below
       }
       if (!data) return null;
-      return data;
+      return data as DatabaseContractorProfileRow;
     } catch (error) {
       throw error;
     }
@@ -65,16 +151,17 @@ export class ContractorService {
         .not('latitude', 'is', null)
         .not('longitude', 'is', null);
 
-      if (error) throw new Error((error as unknown)?.message || 'Database error');
+      const dbError = error as DatabaseError | null;
+      if (dbError) throw new Error(dbError.message || 'Database error');
       if (!contractors) throw new Error('Database error');
 
-      const contractorsWithDistance = contractors
-        .map((contractor: unknown) => {
+      const contractorsWithDistance = (contractors as DatabaseUserRow[])
+        .map((contractor) => {
           const distance = this.calculateDistance(
             homeownerLocation.latitude,
             homeownerLocation.longitude,
-            contractor.latitude,
-            contractor.longitude
+            contractor.latitude || 0,
+            contractor.longitude || 0
           );
 
           return {
@@ -82,8 +169,8 @@ export class ContractorService {
             distance,
           };
         })
-        .filter((contractor: unknown) => contractor.distance <= radiusKm)
-        .sort((a: unknown, b: unknown) => a.distance - b.distance);
+        .filter((contractor) => contractor.distance <= radiusKm)
+        .sort((a, b) => a.distance - b.distance);
 
       return contractorsWithDistance;
     } catch (error) {
@@ -96,13 +183,13 @@ export class ContractorService {
   static async findNearbyContractors(
     location: { latitude: number; longitude: number; radius: number },
     currentUserId?: string
-  ): Promise<any[]> {
-    const { data, error }: unknown = await supabase
+  ): Promise<DatabaseContractorProfileRow[]> {
+    const { data, error } = await supabase
       .from('contractor_profiles')
       .select('*')
       .neq('user_id', currentUserId || '');
     if (error) throw error;
-    const withinRadius = (data || []).filter((c: unknown) => {
+    const withinRadius = (data || []).filter((c: DatabaseContractorProfileRow) => {
       if (typeof c.latitude !== 'number' || typeof c.longitude !== 'number') return false;
       const d = this.calculateDistance(location.latitude, location.longitude, c.latitude, c.longitude);
       return isNaN(location.radius) ? true : d <= location.radius;
@@ -122,8 +209,11 @@ export class ContractorService {
 
       if (matchError) throw matchError;
 
+      interface MatchRow {
+        contractor_id: string;
+      }
       const matchedContractorIds =
-        matches?.map((m: unknown) => m.contractor_id) || [];
+        matches?.map((m: MatchRow) => m.contractor_id) || [];
 
       const { data: contractors, error } = await supabase
         .from('users')
@@ -149,21 +239,22 @@ export class ContractorService {
         .not('longitude', 'is', null)
         .not('id', 'in', `(${matchedContractorIds.join(',')})`);
 
-      if (error) throw new Error((error as unknown)?.message || 'Insert failed');
-      if (!contractors) throw new Error('Insert failed');
+      const dbError = error as DatabaseError | null;
+      if (dbError) throw new Error(dbError.message || 'Database error');
+      if (!contractors) throw new Error('Database error');
 
-      const contractorsWithDistance = contractors
-        .map((contractor: unknown) => ({
+      const contractorsWithDistance = (contractors as DatabaseUserRow[])
+        .map((contractor) => ({
           ...this.mapUserToContractorProfile(contractor),
           distance: this.calculateDistance(
             location.latitude,
             location.longitude,
-            contractor.latitude,
-            contractor.longitude
+            contractor.latitude || 0,
+            contractor.longitude || 0
           ),
         }))
-        .filter((contractor: unknown) => contractor.distance <= 25)
-        .sort((a: unknown, b: unknown) => a.distance - b.distance);
+        .filter((contractor) => contractor.distance <= 25)
+        .sort((a, b) => a.distance - b.distance);
 
       return contractorsWithDistance;
     } catch (error) {
@@ -188,15 +279,25 @@ export class ContractorService {
         .select()
         .single();
 
-      if (error) throw new Error((error as unknown)?.message || 'Insert failed');
+      const dbError = error as DatabaseError | null;
+      if (dbError) throw new Error(dbError.message || 'Insert failed');
       if (!data) throw new Error('Insert failed');
 
+      interface InsertResult {
+        id: string;
+        homeowner_id: string;
+        contractor_id: string;
+        action: string;
+        created_at: string;
+      }
+      const result = data as InsertResult;
+
       return {
-        id: data.id,
-        homeownerId: data.homeowner_id,
-        contractorId: data.contractor_id,
-        action: data.action,
-        createdAt: data.created_at,
+        id: result.id,
+        homeownerId: result.homeowner_id,
+        contractorId: result.contractor_id,
+        action: result.action as 'like' | 'pass',
+        createdAt: result.created_at,
       };
     } catch (error) {
       logger.error('Error recording contractor match:', error);
@@ -209,7 +310,7 @@ export class ContractorService {
     homeownerId: string,
     contractorId: string,
     action: 'liked' | 'passed'
-  ): Promise<unknown> {
+  ): Promise<DatabaseMatchRow> {
     const { data, error } = await supabase
       .from('contractor_matches')
       .insert({
@@ -220,7 +321,7 @@ export class ContractorService {
       })
       .single();
     if (error) throw error;
-    return data;
+    return data as DatabaseMatchRow;
   }
 
   static async getLikedContractors(
@@ -254,8 +355,8 @@ export class ContractorService {
       if (error) throw error;
 
       return (
-        matches?.map((match: unknown) =>
-          this.mapUserToContractorProfile(match.contractor)
+        matches?.map((match: DatabaseMatchRow) =>
+          this.mapUserToContractorProfile(match.contractor!)
         ) || []
       );
     } catch (error) {
@@ -265,7 +366,7 @@ export class ContractorService {
   }
 
   // Method expected by tests to fetch mutual matches
-  static async getMatches(homeownerId: string): Promise<any[]> {
+  static async getMatches(homeownerId: string): Promise<DatabaseMatchRow[]> {
     const { data, error } = await supabase
       .from('contractor_matches')
       .select(
@@ -281,7 +382,7 @@ export class ContractorService {
       .eq('homeowner_id', homeownerId)
       .order('created_at', { ascending: false });
     if (error) throw error;
-    return data || [];
+    return (data || []) as DatabaseMatchRow[];
   }
 
   static async addContractorSkill(
@@ -322,7 +423,6 @@ export class ContractorService {
         .update({
           latitude: location.latitude,
           longitude: location.longitude,
-          address: location.address,
         })
         .eq('id', contractorId);
 
@@ -357,7 +457,7 @@ export class ContractorService {
     return deg * (Math.PI / 180);
   }
 
-  static async getContractorMatches(homeownerId: string): Promise<(ContractorMatch & { contractor?: unknown })[]> {
+  static async getContractorMatches(homeownerId: string): Promise<(ContractorMatch & { contractor?: DatabaseUserRow })[]> {
     try {
       const { data: matches, error } = await supabase
         .from('contractor_matches')
@@ -366,11 +466,20 @@ export class ContractorService {
 
       if (error) throw error;
 
-      return matches?.map((match: unknown) => ({
+      interface MatchRowWithContractor {
+        id: string;
+        homeowner_id: string;
+        contractor_id: string;
+        action: string;
+        created_at: string;
+        contractor?: DatabaseUserRow;
+      }
+
+      return matches?.map((match: MatchRowWithContractor) => ({
         id: match.id,
         homeownerId: match.homeowner_id,
         contractorId: match.contractor_id,
-        action: match.action,
+        action: match.action as 'like' | 'pass',
         createdAt: match.created_at,
         contractor: match.contractor,
       })) || [];
@@ -387,7 +496,7 @@ export class ContractorService {
     try {
       const { error } = await supabase
         .from('users')
-        .update({ 
+        .update({
           is_available: isAvailable,
           updated_at: new Date().toISOString(),
         })
@@ -395,8 +504,9 @@ export class ContractorService {
         .eq('role', 'contractor')
         .select()
         .single();
-      if (error) throw new Error((error as unknown)?.message || 'Update failed');
-      
+      const dbError = error as DatabaseError | null;
+      if (dbError) throw new Error(dbError.message || 'Update failed');
+
       return { isAvailable };
     } catch (error) {
       logger.error('Error updating contractor availability:', error);
@@ -414,7 +524,7 @@ export class ContractorService {
           maxDistance?: number;
           minRating?: number;
         }
-  ): Promise<any[]> {
+  ): Promise<DatabaseContractorProfileRow[] | ContractorProfile[]> {
     try {
       // Simple signature used by basic tests: searchContractors('plumbing')
       if (typeof params === 'string') {
@@ -438,7 +548,7 @@ export class ContractorService {
           .limit(20);
 
         if (error) throw error;
-        return data || [];
+        return (data || []) as DatabaseContractorProfileRow[];
       }
 
       // Advanced signature with filtering
@@ -478,25 +588,25 @@ export class ContractorService {
       }
 
       // If skills are provided, call .in('id', [...]) to satisfy test expectations
-      if (adv.skills && adv.skills.length > 0 && typeof (query as unknown).in === 'function') {
+      if (adv.skills && adv.skills.length > 0) {
         const placeholderIds = ['mock-id-1'];
-        query = (query as unknown).in('id', placeholderIds);
+        query = query.in('id', placeholderIds);
       }
 
-      const { data: contractors, error } = await (query as unknown);
+      const { data: contractors, error } = await query;
       if (error) throw error;
 
-      let results = contractors?.map(this.mapUserToContractorProfile) || [];
+      let results = (contractors as DatabaseUserRow[])?.map((c) => this.mapUserToContractorProfile(c)) || [];
 
       if (adv.skills && adv.skills.length > 0) {
-        results = results.filter((contractor: ContractorProfile) =>
-          contractor.skills.some((skill: ContractorSkill) => adv.skills!.includes(skill.skillName))
+        results = results.filter((contractor) =>
+          contractor.skills.some((skill) => adv.skills!.includes(skill.skillName))
         );
       }
 
       if (adv.maxDistance) {
         results = results
-          .map((contractor: ContractorProfile) => ({
+          .map((contractor) => ({
             ...contractor,
             distance: this.calculateDistance(
               adv.location.latitude,
@@ -505,8 +615,8 @@ export class ContractorService {
               contractor.longitude || 0
             ),
           }))
-          .filter((contractor: unknown) => contractor.distance <= adv.maxDistance!)
-          .sort((a: unknown, b: unknown) => a.distance - b.distance);
+          .filter((contractor) => contractor.distance <= adv.maxDistance!)
+          .sort((a, b) => a.distance - b.distance);
       }
 
       return results;
@@ -516,7 +626,7 @@ export class ContractorService {
     }
   }
 
-  private static mapUserToContractorProfile(user: unknown): ContractorProfile {
+  private static mapUserToContractorProfile(user: DatabaseUserRow): ContractorProfile {
     return {
       id: user.id,
       email: user.email,
@@ -530,21 +640,20 @@ export class ContractorService {
       createdAt: user.created_at,
       latitude: user.latitude,
       longitude: user.longitude,
-      address: user.address,
-      profileImageUrl: user.profile_image_url,
+      profile_image_url: user.profile_image_url,
       bio: user.bio,
       rating: user.rating || 0,
-      totalJobsCompleted: user.total_jobs_completed || 0,
-      isAvailable: user.is_available,
+      total_jobs_completed: user.total_jobs_completed || 0,
+      is_available: user.is_available,
       skills:
-        user.contractor_skills?.map((skill: unknown) => ({
+        user.contractor_skills?.map((skill) => ({
           id: skill.id,
           contractorId: user.id,
           skillName: skill.skill_name,
           createdAt: skill.created_at,
         })) || [],
       reviews:
-        user.reviews?.map((review: unknown) => ({
+        user.reviews?.map((review) => ({
           id: review.id,
           jobId: '',
           reviewerId: '',
@@ -565,8 +674,7 @@ export class ContractorService {
       // Update main user profile
       const userUpdateData = {
         bio: profileData.bio,
-        profile_image_url: profileData.profileImageUrl,
-        business_address: profileData.businessAddress,
+        profile_image_url: profileData.profile_image_url,
         latitude: profileData.latitude,
         longitude: profileData.longitude,
       };
@@ -583,17 +691,14 @@ export class ContractorService {
         user_id: userId,
         company_name: profileData.companyName,
         company_logo: profileData.companyLogo,
-        hourly_rate: profileData.hourlyRate,
-        years_experience: profileData.yearsExperience,
+        hourly_rate: profileData.hourly_rate || profileData.hourlyRate,
+        years_experience: profileData.years_experience || profileData.yearsExperience,
         service_radius: profileData.serviceRadius,
         availability: profileData.availability,
         portfolio_images: profileData.portfolioImages,
         specialties: profileData.specialties,
         certifications: profileData.certifications,
-        license_number: profileData.licenseNumber,
-        insurance_provider: profileData.insurance?.provider,
-        insurance_policy: profileData.insurance?.policyNumber,
-        insurance_expiry: profileData.insurance?.expiryDate,
+        license_number: profileData.license_number || profileData.licenseNumber,
       };
 
       const { data, error } = await supabase
@@ -605,7 +710,7 @@ export class ContractorService {
       if (error) throw error;
 
       logger.info('Contractor profile updated successfully');
-      return this.mapDatabaseToContractorProfile(data);
+      return this.mapDatabaseToContractorProfile(data as DatabaseContractorProfileRow);
     } catch (error) {
       logger.error('Error updating contractor profile:', error);
       throw error;
@@ -637,7 +742,7 @@ export class ContractorService {
   }
 
   // Map database fields to ContractorProfile interface
-  private static mapDatabaseToContractorProfile(data: unknown): ContractorProfile {
+  private static mapDatabaseToContractorProfile(data: DatabaseContractorProfileRow): ContractorProfile {
     return {
       id: data.user_id,
       email: data.user?.email || '',
@@ -651,20 +756,19 @@ export class ContractorService {
       bio: data.bio,
       companyName: data.company_name,
       companyLogo: data.company_logo,
-      businessAddress: data.business_address,
       hourlyRate: data.hourly_rate,
+      hourly_rate: data.hourly_rate,
       yearsExperience: data.years_experience,
+      years_experience: data.years_experience,
       serviceRadius: data.service_radius,
       availability: data.availability,
       portfolioImages: data.portfolio_images || [],
       specialties: data.specialties || [],
       certifications: data.certifications || [],
       licenseNumber: data.license_number,
-      insurance: data.insurance_provider ? {
-        provider: data.insurance_provider,
-        policyNumber: data.insurance_policy,
-        expiryDate: data.insurance_expiry,
-      } : undefined,
+      license_number: data.license_number,
+      latitude: data.latitude,
+      longitude: data.longitude,
       skills: [],
       reviews: [],
     };

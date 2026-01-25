@@ -2,12 +2,113 @@ import { supabase } from '../config/supabase';
 import {
   ContractorMeeting,
   MeetingUpdate,
-  ContractorLocation,
   LocationData,
+  User,
+  Job,
 } from '@mintenance/types';
 import { logger } from '../utils/logger';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { JobContextLocationService, ContractorLocationContext } from './JobContextLocationService';
+
+// Local type definitions
+interface ContractorLocation {
+  id: string;
+  contractorId: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: string;
+  isActive: boolean;
+  meetingId: string | null;
+}
+
+interface DatabaseMeetingRow {
+  id: string;
+  job_id: string;
+  homeowner_id: string;
+  contractor_id: string;
+  scheduled_datetime: string;
+  status: ContractorMeeting['status'];
+  meeting_type: 'site_visit' | 'consultation' | 'work_session';
+  latitude: number;
+  longitude: number;
+  address?: string;
+  duration: number;
+  notes?: string;
+  estimated_arrival?: string;
+  actual_arrival?: string;
+  created_at: string;
+  updated_at: string;
+  homeowner?: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    created_at?: string;
+    updated_at?: string;
+    phone?: string;
+    profile_image_url?: string;
+  };
+  contractor?: {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    created_at?: string;
+    updated_at?: string;
+    phone?: string;
+    profile_image_url?: string;
+    rating?: number;
+  };
+  job?: {
+    id: string;
+    title: string;
+    description: string;
+    location?: string;
+    status: string;
+    budget: number;
+    created_at?: string;
+    updated_at?: string;
+  };
+}
+
+interface DatabaseMeetingUpdateRow {
+  id: string;
+  meeting_id: string;
+  update_type: MeetingUpdate['updateType'];
+  message: string;
+  updated_by: string;
+  timestamp: string;
+  old_value: string | null;
+  new_value: string | null;
+}
+
+interface DatabaseContractorLocationRow {
+  id: string;
+  contractor_id: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: string;
+  is_active: boolean;
+  meeting_id: string | null;
+  eta_minutes?: number;
+  context?: ContractorLocationContext;
+}
+
+interface RealtimePayload<T> {
+  new?: T;
+  old?: T;
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+}
+
+interface SupabaseError {
+  message?: string;
+  error_description?: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+}
 
 export class MeetingService {
   static async createMeeting(meetingData: {
@@ -16,7 +117,7 @@ export class MeetingService {
     contractorId: string;
     scheduledDateTime: string;
     meetingType: 'site_visit' | 'consultation' | 'work_session';
-    location: LocationData;
+    location: LocationData & { address?: string };
     duration: number;
     notes?: string;
   }): Promise<ContractorMeeting> {
@@ -204,10 +305,10 @@ export class MeetingService {
       // Log the reschedule
       await this.createMeetingUpdate({
         meetingId,
-        updateType: 'schedule_change',
+        updateType: 'rescheduled',
         message: reason || 'Meeting rescheduled',
         updatedBy,
-        oldValue: currentMeeting?.scheduledDateTime,
+        oldValue: currentMeeting?.scheduled_datetime,
         newValue: newDateTime,
       });
 
@@ -341,7 +442,7 @@ export class MeetingService {
 
       if (error) throw this.normalizeSupabaseError(error, 'Failed to fetch meeting updates');
 
-      return (data || []).map((update: unknown) => ({
+      return (data || []).map((update: DatabaseMeetingUpdateRow): MeetingUpdate => ({
         id: update.id,
         meetingId: update.meeting_id,
         updateType: update.update_type,
@@ -372,7 +473,7 @@ export class MeetingService {
           table: 'contractor_locations',
           filter: `contractor_id=eq.${contractorId}`,
         },
-        (payload: unknown) => {
+        (payload: RealtimePayload<DatabaseContractorLocationRow>) => {
           if (payload.new) {
             callback({
               id: payload.new.id,
@@ -405,7 +506,7 @@ export class MeetingService {
           table: 'contractor_meetings',
           filter: `id=eq.${meetingId}`,
         },
-        async (payload: unknown) => {
+        async (payload: RealtimePayload<DatabaseMeetingRow>) => {
           if (payload.new) {
             const meeting = await this.getMeetingById(payload.new.id);
             callback(meeting);
@@ -430,7 +531,7 @@ export class MeetingService {
         throw new Error('Meeting not found');
       }
 
-      if (!meeting.location?.latitude || !meeting.location?.longitude) {
+      if (!meeting.latitude || !meeting.longitude) {
         throw new Error('Meeting location not set');
       }
 
@@ -454,11 +555,11 @@ export class MeetingService {
       const locationService = new JobContextLocationService();
       await locationService.startJobTracking(
         contractorId,
-        meeting.jobId || '',
+        meeting.job_id || '',
         meetingId,
         {
-          latitude: meeting.location.latitude,
-          longitude: meeting.location.longitude,
+          latitude: meeting.latitude,
+          longitude: meeting.longitude,
         },
         async (location, eta) => {
           // Notify via callback if provided
@@ -475,7 +576,7 @@ export class MeetingService {
       logger.info('Started travel tracking for meeting', {
         meetingId,
         contractorId,
-        destination: meeting.location,
+        destination: { latitude: meeting.latitude, longitude: meeting.longitude },
       });
 
       return locationService;
@@ -501,7 +602,7 @@ export class MeetingService {
 
       // Mark as arrived in location service
       await locationService.markArrived(
-        meeting.jobId || '',
+        meeting.job_id || '',
         meetingId
       );
 
@@ -551,7 +652,7 @@ export class MeetingService {
           table: 'contractor_locations',
           filter: `contractor_id=eq.${contractorId} AND meeting_id=eq.${meetingId} AND is_active=eq.true`,
         },
-        (payload: unknown) => {
+        (payload: RealtimePayload<DatabaseContractorLocationRow>) => {
           if (payload.new) {
             callback({
               location: {
@@ -582,71 +683,60 @@ export class MeetingService {
       return error;
     }
 
+    const supabaseError = error as SupabaseError;
     const messageCandidate = [
-      typeof error.message === 'string' && error.message.trim(),
-      typeof error.error_description === 'string' && error.error_description.trim(),
-      typeof error.details === 'string' && error.details.trim(),
-      typeof error.hint === 'string' && error.hint.trim(),
+      typeof supabaseError.message === 'string' && supabaseError.message.trim(),
+      typeof supabaseError.error_description === 'string' && supabaseError.error_description.trim(),
+      typeof supabaseError.details === 'string' && supabaseError.details.trim(),
+      typeof supabaseError.hint === 'string' && supabaseError.hint.trim(),
     ].find((value) => value);
 
     return new Error((messageCandidate as string) || fallbackMessage);
   }
 
-  private static mapDatabaseToMeeting(data: unknown): ContractorMeeting {
+  private static mapDatabaseToMeeting(data: DatabaseMeetingRow): ContractorMeeting {
     return {
       id: data.id,
-      jobId: data.job_id,
-      homeownerId: data.homeowner_id,
-      contractorId: data.contractor_id,
-      scheduledDateTime: data.scheduled_datetime,
+      job_id: data.job_id,
+      homeowner_id: data.homeowner_id,
+      contractor_id: data.contractor_id,
+      scheduled_datetime: data.scheduled_datetime,
       status: data.status,
-      meetingType: data.meeting_type,
-      location: {
-        latitude: data.latitude,
-        longitude: data.longitude,
-        address: data.address,
-      },
+      meeting_type: data.meeting_type,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      address: data.address,
       duration: data.duration,
       notes: data.notes,
-      estimatedArrival: data.estimated_arrival,
-      actualArrival: data.actual_arrival,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
       // Include expanded details if available
       homeowner: data.homeowner ? {
         id: data.homeowner.id,
         email: data.homeowner.email,
         first_name: data.homeowner.first_name,
         last_name: data.homeowner.last_name,
-        role: 'homeowner',
+        role: 'homeowner' as const,
         created_at: data.homeowner.created_at || new Date().toISOString(),
         updated_at: data.homeowner.updated_at || new Date().toISOString(),
         phone: data.homeowner.phone,
-        profileImageUrl: data.homeowner.profile_image_url,
+        profile_image_url: data.homeowner.profile_image_url,
       } : undefined,
       contractor: data.contractor ? {
         id: data.contractor.id,
         email: data.contractor.email,
         first_name: data.contractor.first_name,
         last_name: data.contractor.last_name,
-        role: 'contractor',
+        role: 'contractor' as const,
         created_at: data.contractor.created_at || new Date().toISOString(),
         updated_at: data.contractor.updated_at || new Date().toISOString(),
         phone: data.contractor.phone,
-        profileImageUrl: data.contractor.profile_image_url,
+        profile_image_url: data.contractor.profile_image_url,
         rating: data.contractor.rating,
       } : undefined,
       job: data.job ? {
         id: data.job.id,
         title: data.job.title,
-        description: data.job.description,
-        location: data.job.location || '',
-        homeowner_id: data.homeowner_id,
-        contractor_id: data.contractor_id,
-        status: data.job.status,
-        budget: data.job.budget,
-        created_at: data.job.created_at || new Date().toISOString(),
-        updated_at: data.job.updated_at || new Date().toISOString(),
       } : undefined,
     };
   }

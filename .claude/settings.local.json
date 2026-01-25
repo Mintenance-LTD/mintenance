@@ -93,7 +93,8 @@
       "Bash(then echo \"$f\")",
       "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && head -30 \"\"\"\"{}\"\"\"\"')",
       "Bash(Select-Object -Last 100)",
-      "Bash(cut:*)"
+      "Bash(cut:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
