@@ -24,7 +24,7 @@ global.window = {
  */
 
 import { Platform } from 'react-native';
-import PerformanceTracker from '../PerformanceTracker';
+import { PerformanceTracker } from '../PerformanceTracker';
 import { AnalyticsConfig } from '../../types';
 
 // Mock dependencies
