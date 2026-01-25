@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../config/supabase';
+import type { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { logger } from '../utils/logger';
 import { handleDatabaseOperation, validateRequired } from '../utils/serviceHelper';
 import { performanceMonitor } from '../utils/performance';
@@ -494,9 +495,9 @@ export class AdvancedSearchService {
   // Private helper methods
 
   private static applyContractorFilters(
-    queryBuilder: any,
+    queryBuilder: PostgrestFilterBuilder<any, any, any>,
     filters: SearchFilters
-  ): any {
+  ): PostgrestFilterBuilder<any, any, any> {
     // Skills filter
     if (filters.skills.length > 0) {
       queryBuilder = queryBuilder.overlaps('skills', filters.skills);
@@ -543,9 +544,9 @@ export class AdvancedSearchService {
   }
 
   private static applyContractorSorting(
-    queryBuilder: any,
+    queryBuilder: PostgrestFilterBuilder<any, any, any>,
     sortBy: string
-  ): any {
+  ): PostgrestFilterBuilder<any, any, any> {
     switch (sortBy) {
       case 'rating':
         return queryBuilder.order('rating', { ascending: false });
@@ -561,9 +562,9 @@ export class AdvancedSearchService {
   }
 
   private static applyJobFilters(
-    queryBuilder: any,
+    queryBuilder: PostgrestFilterBuilder<any, any, any>,
     filters: SearchFilters
-  ): any {
+  ): PostgrestFilterBuilder<any, any, any> {
     // Skills filter
     if (filters.skills.length > 0) {
       queryBuilder = queryBuilder.overlaps('skills_required', filters.skills);
@@ -591,9 +592,9 @@ export class AdvancedSearchService {
   }
 
   private static applyJobSorting(
-    queryBuilder: any,
+    queryBuilder: PostgrestFilterBuilder<any, any, any>,
     sortBy: string
-  ): any {
+  ): PostgrestFilterBuilder<any, any, any> {
     switch (sortBy) {
       case 'price_high':
         return queryBuilder.order('budget_max', { ascending: false });
