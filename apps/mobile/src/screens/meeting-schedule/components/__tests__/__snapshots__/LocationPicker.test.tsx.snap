@@ -1,0 +1,415 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`LocationPicker Component Basic Rendering should match snapshot in loading state 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 2,
+      "marginBottom": 16,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 4,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#000000",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "marginBottom": 16,
+      }
+    }
+  >
+    Location
+  </Text>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 8,
+        "justifyContent": "center",
+        "paddingVertical": 16,
+      }
+    }
+  >
+    <ActivityIndicator
+      color="#007AFF"
+      size="small"
+    />
+    <Text
+      style={
+        {
+          "color": "#666666",
+          "fontSize": 14,
+        }
+      }
+    >
+      Getting your location...
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`LocationPicker Component Error State should match snapshot in error state 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 2,
+      "marginBottom": 16,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 4,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#000000",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "marginBottom": 16,
+      }
+    }
+  >
+    Location
+  </Text>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "gap": 12,
+        "paddingVertical": 16,
+      }
+    }
+  >
+    <Ionicons
+      color="#EF4444"
+      name="location-outline"
+      size={24}
+    />
+    <Text
+      style={
+        {
+          "color": "#EF4444",
+          "fontSize": 14,
+        }
+      }
+    >
+      Failed to get location
+    </Text>
+    <TouchableOpacity
+      onPress={[MockFunction]}
+      style={
+        {
+          "backgroundColor": "#EF4444",
+          "borderRadius": 8,
+          "paddingHorizontal": 16,
+          "paddingVertical": 8,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontSize": 12,
+            "fontWeight": "600",
+          }
+        }
+      >
+        Retry
+      </Text>
+    </TouchableOpacity>
+  </View>
+</View>
+`;
+
+exports[`LocationPicker Component Error State should match snapshot in error state with location data 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 2,
+      "marginBottom": 16,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 4,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#000000",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "marginBottom": 16,
+      }
+    }
+  >
+    Location
+  </Text>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "gap": 12,
+        "paddingVertical": 16,
+      }
+    }
+  >
+    <Ionicons
+      color="#EF4444"
+      name="location-outline"
+      size={24}
+    />
+    <Text
+      style={
+        {
+          "color": "#EF4444",
+          "fontSize": 14,
+        }
+      }
+    >
+      Failed to get location
+    </Text>
+    <TouchableOpacity
+      onPress={[MockFunction]}
+      style={
+        {
+          "backgroundColor": "#EF4444",
+          "borderRadius": 8,
+          "paddingHorizontal": 16,
+          "paddingVertical": 8,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontSize": 12,
+            "fontWeight": "600",
+          }
+        }
+      >
+        Retry
+      </Text>
+    </TouchableOpacity>
+  </View>
+</View>
+`;
+
+exports[`LocationPicker Component Loading State should match snapshot with location but loading state 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 2,
+      "marginBottom": 16,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 4,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#000000",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "marginBottom": 16,
+      }
+    }
+  >
+    Location
+  </Text>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 8,
+        "justifyContent": "center",
+        "paddingVertical": 16,
+      }
+    }
+  >
+    <ActivityIndicator
+      color="#007AFF"
+      size="small"
+    />
+    <Text
+      style={
+        {
+          "color": "#666666",
+          "fontSize": 14,
+        }
+      }
+    >
+      Getting your location...
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`LocationPicker Component Success State should match snapshot in success state 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 2,
+      "marginBottom": 16,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 4,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#000000",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "marginBottom": 16,
+      }
+    }
+  >
+    Location
+  </Text>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#F5F5F5",
+        "borderRadius": 8,
+        "flexDirection": "row",
+        "gap": 12,
+        "padding": 12,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "#FFFFFF",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "width": 40,
+        }
+      }
+    >
+      <Ionicons
+        color="#10B981"
+        name="location"
+        size={20}
+      />
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#666666",
+            "fontSize": 12,
+            "fontWeight": "500",
+            "marginBottom": 2,
+          }
+        }
+      >
+        Meeting Location
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#000000",
+            "fontSize": 14,
+            "fontWeight": "500",
+          }
+        }
+      >
+        123 Main St, New York, NY 10001
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`LocationPicker Component Success State should match snapshot in success state without location 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 2,
+      "marginBottom": 16,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 4,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#000000",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "marginBottom": 16,
+      }
+    }
+  >
+    Location
+  </Text>
+</View>
+`;

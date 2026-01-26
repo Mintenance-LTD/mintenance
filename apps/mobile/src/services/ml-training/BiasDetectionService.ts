@@ -109,7 +109,7 @@ export class BiasDetectionService {
   private async calculateBiasMetrics(
     predictions: number[],
     labels: number[][],
-    metadata: any[]
+    metadata: unknown[]
   ): Promise<Omit<BiasMetrics, 'biasDetected' | 'affectedGroups' | 'recommendations' | 'timestamp' | 'datasetSize'>> {
     const flatLabels = labels.map(label => label[0] || 0);
 
@@ -139,7 +139,7 @@ export class BiasDetectionService {
    * Calculate demographic parity
    * Measures if positive prediction rates are equal across groups
    */
-  private calculateDemographicParity(predictions: number[], metadata: any[]): number {
+  private calculateDemographicParity(predictions: number[], metadata: unknown[]): number {
     const groups = this.groupByProtectedAttribute(metadata, 'location');
     let minParity = 1.0;
 
@@ -164,7 +164,7 @@ export class BiasDetectionService {
    * Calculate equal opportunity
    * Measures if true positive rates are equal across groups
    */
-  private calculateEqualOpportunity(predictions: number[], labels: number[], metadata: any[]): number {
+  private calculateEqualOpportunity(predictions: number[], labels: number[], metadata: unknown[]): number {
     const groups = this.groupByProtectedAttribute(metadata, 'location');
     let minOpportunity = 1.0;
 
@@ -189,7 +189,7 @@ export class BiasDetectionService {
    * Calculate disparate impact
    * 80% rule: ratio of positive prediction rates
    */
-  private calculateDisparateImpact(predictions: number[], metadata: any[]): number {
+  private calculateDisparateImpact(predictions: number[], metadata: unknown[]): number {
     const groups = this.groupByProtectedAttribute(metadata, 'location');
     const groupKeys = Object.keys(groups);
 
@@ -216,7 +216,7 @@ export class BiasDetectionService {
    * Calculate calibration
    * Measures if predicted probabilities match actual outcomes
    */
-  private calculateCalibration(predictions: number[], labels: number[], metadata: any[]): number {
+  private calculateCalibration(predictions: number[], labels: number[], metadata: unknown[]): number {
     const groups = this.groupByProtectedAttribute(metadata, 'location');
     let maxCalibrationDiff = 0;
 
@@ -240,7 +240,7 @@ export class BiasDetectionService {
   /**
    * Group data by protected attribute
    */
-  private groupByProtectedAttribute(metadata: any[], attribute: string): { [key: string]: number[] } {
+  private groupByProtectedAttribute(metadata: unknown[], attribute: string): { [key: string]: number[] } {
     const groups: { [key: string]: number[] } = {};
 
     metadata.forEach((item, index) => {

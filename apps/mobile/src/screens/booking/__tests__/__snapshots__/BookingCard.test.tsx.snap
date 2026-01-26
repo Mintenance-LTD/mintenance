@@ -1,0 +1,1085 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`BookingCard Snapshot Stability should render consistently for cancelled booking 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 16,
+      "elevation": 5,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-start",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 12,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 18,
+            "fontWeight": "700",
+            "marginBottom": 4,
+          }
+        }
+      >
+        Plumbing Service
+      </Text>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Ionicons
+          color="#EF4444"
+          name="close-circle-outline"
+          size={16}
+        />
+        <Text
+          style={
+            [
+              {
+                "fontSize": 14,
+                "fontWeight": "600",
+              },
+              {
+                "color": "#EF4444",
+              },
+            ]
+          }
+        >
+          Cancelled
+        </Text>
+      </View>
+    </View>
+    <TouchableOpacity
+      accessibilityLabel="Share booking"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        {
+          "padding": 4,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="share-outline"
+        size={20}
+      />
+    </TouchableOpacity>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "marginBottom": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "#0F172A",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontSize": 16,
+            "fontWeight": "700",
+          }
+        }
+      >
+        J
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 16,
+            "fontWeight": "600",
+            "marginBottom": 2,
+          }
+        }
+      >
+        John Doe
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        123 Main St, City, State
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "marginBottom": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+          "marginBottom": 8,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="calendar-outline"
+        size={16}
+      />
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        March 15, 2024
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+          "marginBottom": 8,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="time-outline"
+        size={16}
+      />
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        10:00 AM
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+          "marginBottom": 8,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="hourglass-outline"
+        size={16}
+      />
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        2 hours
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 12,
+            "marginBottom": 2,
+          }
+        }
+      >
+        Total
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 20,
+            "fontWeight": "700",
+          }
+        }
+      >
+        $
+        150
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+        }
+      }
+    >
+      <TouchableOpacity
+        onPress={[Function]}
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#0F172A",
+              "fontSize": 14,
+              "fontWeight": "600",
+            }
+          }
+        >
+          View Details
+        </Text>
+        <Ionicons
+          color="#0F172A"
+          name="chevron-forward"
+          size={16}
+        />
+      </TouchableOpacity>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`BookingCard Snapshot Stability should render consistently for completed booking 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 16,
+      "elevation": 5,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-start",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 12,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 18,
+            "fontWeight": "700",
+            "marginBottom": 4,
+          }
+        }
+      >
+        Plumbing Service
+      </Text>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Ionicons
+          color="#059669"
+          name="checkmark-circle-outline"
+          size={16}
+        />
+        <Text
+          style={
+            [
+              {
+                "fontSize": 14,
+                "fontWeight": "600",
+              },
+              {
+                "color": "#059669",
+              },
+            ]
+          }
+        >
+          Completed
+        </Text>
+      </View>
+    </View>
+    <TouchableOpacity
+      accessibilityLabel="Share booking"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        {
+          "padding": 4,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="share-outline"
+        size={20}
+      />
+    </TouchableOpacity>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "marginBottom": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "#0F172A",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontSize": 16,
+            "fontWeight": "700",
+          }
+        }
+      >
+        J
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 16,
+            "fontWeight": "600",
+            "marginBottom": 2,
+          }
+        }
+      >
+        John Doe
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        123 Main St, City, State
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "marginBottom": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+          "marginBottom": 8,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="calendar-outline"
+        size={16}
+      />
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        March 15, 2024
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+          "marginBottom": 8,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="time-outline"
+        size={16}
+      />
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        10:00 AM
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+          "marginBottom": 8,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="hourglass-outline"
+        size={16}
+      />
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        2 hours
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 12,
+            "marginBottom": 2,
+          }
+        }
+      >
+        Total
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 20,
+            "fontWeight": "700",
+          }
+        }
+      >
+        $
+        150
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+        }
+      }
+    >
+      <TouchableOpacity
+        onPress={[Function]}
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": "#F8FAFC",
+            "borderRadius": 8,
+            "flexDirection": "row",
+            "gap": 4,
+            "paddingHorizontal": 12,
+            "paddingVertical": 8,
+          }
+        }
+      >
+        <Ionicons
+          color="#F59E0B"
+          name="star-outline"
+          size={16}
+        />
+        <Text
+          style={
+            {
+              "color": "#0F172A",
+              "fontSize": 12,
+              "fontWeight": "600",
+            }
+          }
+        >
+          Rate
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={[Function]}
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#0F172A",
+              "fontSize": 14,
+              "fontWeight": "600",
+            }
+          }
+        >
+          View Details
+        </Text>
+        <Ionicons
+          color="#0F172A"
+          name="chevron-forward"
+          size={16}
+        />
+      </TouchableOpacity>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`BookingCard Snapshot Stability should render consistently for upcoming booking 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 16,
+      "elevation": 5,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-start",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 12,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 18,
+            "fontWeight": "700",
+            "marginBottom": 4,
+          }
+        }
+      >
+        Plumbing Service
+      </Text>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Ionicons
+          color="#0F172A"
+          name="time-outline"
+          size={16}
+        />
+        <Text
+          style={
+            [
+              {
+                "fontSize": 14,
+                "fontWeight": "600",
+              },
+              {
+                "color": "#0F172A",
+              },
+            ]
+          }
+        >
+          Upcoming
+        </Text>
+      </View>
+    </View>
+    <TouchableOpacity
+      accessibilityLabel="Share booking"
+      accessibilityRole="button"
+      onPress={[Function]}
+      style={
+        {
+          "padding": 4,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="share-outline"
+        size={20}
+      />
+    </TouchableOpacity>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "marginBottom": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "#0F172A",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontSize": 16,
+            "fontWeight": "700",
+          }
+        }
+      >
+        J
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 16,
+            "fontWeight": "600",
+            "marginBottom": 2,
+          }
+        }
+      >
+        John Doe
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        123 Main St, City, State
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "marginBottom": 16,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+          "marginBottom": 8,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="calendar-outline"
+        size={16}
+      />
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        March 15, 2024
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+          "marginBottom": 8,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="time-outline"
+        size={16}
+      />
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        10:00 AM
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+          "marginBottom": 8,
+        }
+      }
+    >
+      <Ionicons
+        color="#475569"
+        name="hourglass-outline"
+        size={16}
+      />
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 14,
+          }
+        }
+      >
+        2 hours
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "flex-start",
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#475569",
+            "fontSize": 12,
+            "marginBottom": 2,
+          }
+        }
+      >
+        Total
+      </Text>
+      <Text
+        style={
+          {
+            "color": "#0F172A",
+            "fontSize": 20,
+            "fontWeight": "700",
+          }
+        }
+      >
+        $
+        150
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 8,
+        }
+      }
+    >
+      <TouchableOpacity
+        onPress={[Function]}
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": "#F8FAFC",
+            "borderRadius": 8,
+            "flexDirection": "row",
+            "gap": 4,
+            "paddingHorizontal": 12,
+            "paddingVertical": 8,
+          }
+        }
+      >
+        <Ionicons
+          color="#0F172A"
+          name="refresh-outline"
+          size={16}
+        />
+        <Text
+          style={
+            {
+              "color": "#0F172A",
+              "fontSize": 12,
+              "fontWeight": "600",
+            }
+          }
+        >
+          Reschedule
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={[Function]}
+        style={
+          [
+            {
+              "alignItems": "center",
+              "backgroundColor": "#F8FAFC",
+              "borderRadius": 8,
+              "flexDirection": "row",
+              "gap": 4,
+              "paddingHorizontal": 12,
+              "paddingVertical": 8,
+            },
+            {
+              "backgroundColor": "#F87171",
+            },
+          ]
+        }
+      >
+        <Ionicons
+          color="#EF4444"
+          name="close-outline"
+          size={16}
+        />
+        <Text
+          style={
+            [
+              {
+                "color": "#0F172A",
+                "fontSize": 12,
+                "fontWeight": "600",
+              },
+              {
+                "color": "#EF4444",
+              },
+            ]
+          }
+        >
+          Cancel
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={[Function]}
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Text
+          style={
+            {
+              "color": "#0F172A",
+              "fontSize": 14,
+              "fontWeight": "600",
+            }
+          }
+        >
+          View Details
+        </Text>
+        <Ionicons
+          color="#0F172A"
+          name="chevron-forward"
+          size={16}
+        />
+      </TouchableOpacity>
+    </View>
+  </View>
+</View>
+`;

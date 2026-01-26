@@ -1,0 +1,501 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services[39m
+
+ [32mÔ£ô[39m src/notifications/__tests__/NotificationQueueService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/feature-flags/__tests__/FeatureFlagMetricsService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/NotificationTemplateService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/contracts/__tests__/ContractLifecycleService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/InAppNotificationService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/PushNotificationService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/admin/__tests__/FeedbackProcessingService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/messaging/__tests__/MessageAttachmentService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/admin/__tests__/ModelPerformanceService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/messaging/__tests__/MessageNotificationService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/admin/__tests__/DriftDetectionService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/bids/__tests__/BidNotificationService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/admin/__tests__/MLMonitoringController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/ai/__tests__/SearchRankingService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/NotificationController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/PaymentIntentHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/feature-flags/__tests__/FeatureFlagService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/feature-flags/__tests__/FeatureFlagController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/analytics/__tests__/AnalyticsController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/bids/__tests__/BidScoringService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/jobs/__tests__/JobDetailsValidator.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/__tests__/StripeWebhookHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [31mÔØ»[39m src/users/__tests__/UserSettingsController.test.ts [2m([22m[2m4 tests[22m[2m | [22m[31m4 failed[39m[2m)[22m[32m 11[2mms[22m[39m
+[31m       [31m├ù[31m should create an instance[39m[32m 7[2mms[22m[39m
+[31m       [31m├ù[31m should handle successful operations[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should handle errors gracefully[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should validate inputs[39m[32m 1[2mms[22m[39m
+ [31mÔØ»[39m src/users/__tests__/UserProfileController.test.ts [2m([22m[2m4 tests[22m[2m | [22m[31m4 failed[39m[2m)[22m[32m 10[2mms[22m[39m
+[31m       [31m├ù[31m should create an instance[39m[32m 6[2mms[22m[39m
+[31m       [31m├ù[31m should handle successful operations[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should handle errors gracefully[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should validate inputs[39m[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m src/jobs/__tests__/JobDetailsService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/ai/__tests__/EmbeddingService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/analytics/__tests__/ReportingService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/analytics/__tests__/InsightsService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/index.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/admin/__tests__/MLMonitoringService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/SubscriptionHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/analytics/__tests__/DashboardService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m src/ai/__tests__/AISearchController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/contracts/__tests__/ContractController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/jobs/__tests__/JobStatusService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/messaging/__tests__/VideoCallService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [31mÔØ»[39m src/users/__tests__/UserAvatarController.test.ts [2m([22m[2m4 tests[22m[2m | [22m[31m4 failed[39m[2m)[22m[32m 11[2mms[22m[39m
+[31m       [31m├ù[31m should create an instance[39m[32m 6[2mms[22m[39m
+[31m       [31m├ù[31m should handle successful operations[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should handle errors gracefully[39m[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should validate inputs[39m[32m 1[2mms[22m[39m
+ [32mÔ£ô[39m src/feature-flags/__tests__/RollbackService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m src/ai/__tests__/AISearchService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m src/contracts/__tests__/ContractService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/messaging/__tests__/MessageController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/messaging/__tests__/RealtimeService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/__tests__/WebhookController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/payments/__tests__/PaymentController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/CheckoutHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/payments/__tests__/PaymentService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/InvoiceHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/AccountHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/__tests__/WebhookService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/users/__tests__/UserRepository.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32mÔ£ô[39m src/bids/__tests__/BidRepository.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/analytics/__tests__/ExportService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/jobs/__tests__/JobRepository.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/messaging/__tests__/ThreadService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/payments/__tests__/RefundService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/payments/__tests__/EscrowService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/webhooks/handlers/stripe/__tests__/ChargeHandler.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/bids/__tests__/BidController.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/bids/__tests__/BidValidator.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/users/__tests__/UserService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/bids/__tests__/BidService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m src/users/__tests__/index.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32mÔ£ô[39m src/notifications/__tests__/SMSService.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+node.exe : 
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Failed Suites 
+9 [49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m src/analytics/__tests__/Eve
+ntTrackingService.test.ts[2m [ 
+src/analytics/__tests__/EventTrackingService.test.ts 
+][22m
+[31m[1mTypeError[22m: 
+__vite_ssr_import_0__.EventTrackingService is not a 
+constructor[39m
+[36m [2mÔØ»[22m new AnalyticsController src/analyt
+ics/AnalyticsController.ts:[2m136:26[22m[39m
+    [90m134| [39m      redis[33m:[39m {} 
+[35mas[39m any[33m,[39m [90m// For real-time 
+metrics[39m
+    [90m135| [39m    }[33m;[39m
+    [90m136| [39m    this.eventTracking = new 
+EventTrackingService(config.supabase, conÔÇª
+    [90m   | [39m                         
+[31m^[39m
+    [90m137| [39m    this.metricsAggregation = new 
+MetricsAggregationService(config.supÔÇª
+    [90m138| [39m    
+[35mthis[39m[33m.[39mreporting [33m=[39m 
+[35mnew[39m [33mReportingService[39m(config[33m.
+[39msupabase)[33m;[39m
+[90m [2mÔØ»[22m src/analytics/AnalyticsController.
+ts:[2m628:36[22m[39m
+[90m [2mÔØ»[22m src/analytics/EventTrackingService
+.ts:[2m10:1[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/analytics/__tests__/Met
+ricsAggregationService.test.ts[2m [ src/analytics/__
+tests__/MetricsAggregationService.test.ts ][22m
+[31m[1mTypeError[22m: 
+__vite_ssr_import_2__.MetricsAggregationService is 
+not a constructor[39m
+[36m [2mÔØ»[22m new AnalyticsController src/analyt
+ics/AnalyticsController.ts:[2m137:31[22m[39m
+    [90m135| [39m    }[33m;[39m
+    [90m136| [39m    this.eventTracking = new 
+EventTrackingService(config.supabase, conÔÇª
+    [90m137| [39m    this.metricsAggregation = new 
+MetricsAggregationService(config.supÔÇª
+    [90m   | [39m                              
+[31m^[39m
+    [90m138| [39m    
+[35mthis[39m[33m.[39mreporting [33m=[39m 
+[35mnew[39m [33mReportingService[39m(config[33m.
+[39msupabase)[33m;[39m
+    [90m139| [39m    
+[35mthis[39m[33m.[39mdashboard [33m=[39m 
+[35mnew[39m [33mDashboardService[39m(config[33m.
+[39msupabase)[33m;[39m
+[90m [2mÔØ»[22m src/analytics/AnalyticsController.
+ts:[2m628:36[22m[39m
+[90m [2mÔØ»[22m src/analytics/MetricsAggregationSe
+rvice.ts:[2m9:1[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobController.test.ts[2m [ 
+src/jobs/__tests__/JobController.test.ts ][22m
+[31m[1mTypeError[22m: createJobSchema.partial is 
+not a function[39m
+[36m [2mÔØ»[22m 
+src/jobs/JobValidator.ts:[2m124:57[22m[39m
+    [90m122| [39m)[33m;[39m
+    [90m123| [39m[90m// Schema for updating a job 
+(all fields optional)[39m
+    [90m124| [39m[35mexport[39m [35mconst[39m 
+updateJobSchema [33m=[39m (createJobSchema 
+[35mas[39m 
+any)[33m.[39m[34mpartial[39m()[33m;[39m
+    [90m   | [39m                                  
+                      [31m^[39m
+    [90m125| [39m[90m// Schema for job status 
+update[39m
+    [90m126| [39m[35mexport[39m [35mconst[39m 
+updateJobStatusSchema [33m=[39m 
+z[33m.[39m[34mobject[39m({
+[90m [2mÔØ»[22m 
+src/jobs/JobService.ts:[2m12:1[22m[39m
+[90m [2mÔØ»[22m 
+src/jobs/JobController.ts:[2m5:1[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobDetailsController.test.ts[2m 
+[ src/jobs/__tests__/JobDetailsController.test.ts 
+][22m
+[31m[1mTypeError[22m: createJobSchema.partial is 
+not a function[39m
+[36m [2mÔØ»[22m 
+src/jobs/JobValidator.ts:[2m124:57[22m[39m
+    [90m122| [39m)[33m;[39m
+    [90m123| [39m[90m// Schema for updating a job 
+(all fields optional)[39m
+    [90m124| [39m[35mexport[39m [35mconst[39m 
+updateJobSchema [33m=[39m (createJobSchema 
+[35mas[39m 
+any)[33m.[39m[34mpartial[39m()[33m;[39m
+    [90m   | [39m                                  
+                      [31m^[39m
+    [90m125| [39m[90m// Schema for job status 
+update[39m
+    [90m126| [39m[35mexport[39m [35mconst[39m 
+updateJobStatusSchema [33m=[39m 
+z[33m.[39m[34mobject[39m({
+[90m [2mÔØ»[22m 
+src/jobs/JobService.ts:[2m12:1[22m[39m
+[90m [2mÔØ»[22m 
+src/jobs/JobDetailsController.ts:[2m8:1[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobService.test.ts[2m [ 
+src/jobs/__tests__/JobService.test.ts ][22m
+[31m[1mTypeError[22m: createJobSchema.partial is 
+not a function[39m
+[36m [2mÔØ»[22m 
+src/jobs/JobValidator.ts:[2m124:57[22m[39m
+    [90m122| [39m)[33m;[39m
+    [90m123| [39m[90m// Schema for updating a job 
+(all fields optional)[39m
+    [90m124| [39m[35mexport[39m [35mconst[39m 
+updateJobSchema [33m=[39m (createJobSchema 
+[35mas[39m 
+any)[33m.[39m[34mpartial[39m()[33m;[39m
+    [90m   | [39m                                  
+                      [31m^[39m
+    [90m125| [39m[90m// Schema for job status 
+update[39m
+    [90m126| [39m[35mexport[39m [35mconst[39m 
+updateJobStatusSchema [33m=[39m 
+z[33m.[39m[34mobject[39m({
+[90m [2mÔØ»[22m 
+src/jobs/JobService.ts:[2m12:1[22m[39m
+[90m [2mÔØ»[22m src/jobs/__tests__/JobService.test
+.ts:[2m2:1[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobValidator.test.ts[2m [ 
+src/jobs/__tests__/JobValidator.test.ts ][22m
+[31m[1mTypeError[22m: createJobSchema.partial is 
+not a function[39m
+[36m [2mÔØ»[22m 
+src/jobs/JobValidator.ts:[2m124:57[22m[39m
+    [90m122| [39m)[33m;[39m
+    [90m123| [39m[90m// Schema for updating a job 
+(all fields optional)[39m
+    [90m124| [39m[35mexport[39m [35mconst[39m 
+updateJobSchema [33m=[39m (createJobSchema 
+[35mas[39m 
+any)[33m.[39m[34mpartial[39m()[33m;[39m
+    [90m   | [39m                                  
+                      [31m^[39m
+    [90m125| [39m[90m// Schema for job status 
+update[39m
+    [90m126| [39m[35mexport[39m [35mconst[39m 
+updateJobStatusSchema [33m=[39m 
+z[33m.[39m[34mobject[39m({
+[90m [2mÔØ»[22m src/jobs/__tests__/JobValidator.te
+st.ts:[2m2:1[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/messaging/__tests__/MessageService.test.ts[2m [ 
+src/messaging/__tests__/MessageService.test.ts ][22m
+[31m[1mTypeError[22m: 
+__vite_ssr_import_0__.MessageService is not a 
+constructor[39m
+[36m [2mÔØ»[22m new MessageController src/messagin
+g/MessageController.ts:[2m131:27[22m[39m
+    [90m129| [39m      pusher[33m:[39m {} 
+[35mas[39m any[33m,[39m [90m// For real-time 
+messaging[39m
+    [90m130| [39m    }[33m;[39m
+    [90m131| [39m    
+[35mthis[39m[33m.[39mmessageService [33m=[39m 
+[35mnew[39m 
+[33mMessageService[39m(config)[33m;[39m
+    [90m   | [39m                          
+[31m^[39m
+    [90m132| [39m    
+[35mthis[39m[33m.[39mthreadService [33m=[39m 
+[35mnew[39m 
+[33mThreadService[39m(config)[33m;[39m
+    [90m133| [39m    
+[35mthis[39m[33m.[39mrealtimeService [33m=[39m 
+[35mnew[39m 
+[33mRealtimeService[39m(config)[33m;[39m
+[90m [2mÔØ»[22m src/messaging/MessageController.ts
+:[2m693:34[22m[39m
+[90m [2mÔØ»[22m 
+src/messaging/MessageService.ts:[2m4:1[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/notifications/__tests__/EmailService.test.ts[2m 
+[ src/notifications/__tests__/EmailService.test.ts 
+][22m
+[31m[1mTypeError[22m: 
+__vite_ssr_import_2__.EmailService is not a 
+constructor[39m
+[36m [2mÔØ»[22m new NotificationController src/not
+ifications/NotificationController.ts:[2m114:25[22m
+[39m
+    [90m112| [39m    }[33m;[39m
+    [90m113| [39m    
+[35mthis[39m[33m.[39mnotificationService 
+[33m=[39m [35mnew[39m 
+[33mNotificationService[39m(config)[33m;[39m
+    [90m114| [39m    
+[35mthis[39m[33m.[39memailService [33m=[39m 
+[35mnew[39m 
+[33mEmailService[39m(config)[33m;[39m
+    [90m   | [39m                        
+[31m^[39m
+    [90m115| [39m    
+[35mthis[39m[33m.[39msmsService [33m=[39m 
+[35mnew[39m [33mSMSService[39m(config)[33m;[39m
+    [90m116| [39m    
+[35mthis[39m[33m.[39mpushService [33m=[39m 
+[35mnew[39m 
+[33mPushNotificationService[39m(config)[33m;[39m
+[90m [2mÔØ»[22m src/notifications/NotificationCont
+roller.ts:[2m558:39[22m[39m
+[90m [2mÔØ»[22m 
+src/notifications/EmailService.ts:[2m4:1[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[8/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/notifications/__tests__
+/NotificationService.test.ts[2m [ src/notifications/
+__tests__/NotificationService.test.ts ][22m
+[31m[1mTypeError[22m: 
+__vite_ssr_import_0__.NotificationService is not a 
+constructor[39m
+[36m [2mÔØ»[22m new NotificationController src/not
+ifications/NotificationController.ts:[2m113:32[22m
+[39m
+    [90m111| [39m      }
+    [90m112| [39m    }[33m;[39m
+    [90m113| [39m    
+[35mthis[39m[33m.[39mnotificationService 
+[33m=[39m [35mnew[39m 
+[33mNotificationService[39m(config)[33m;[39m
+    [90m   | [39m                               
+[31m^[39m
+    [90m114| [39m    
+[35mthis[39m[33m.[39memailService [33m=[39m 
+[35mnew[39m 
+[33mEmailService[39m(config)[33m;[39m
+    [90m115| [39m    
+[35mthis[39m[33m.[39msmsService [33m=[39m 
+[35mnew[39m [33mSMSService[39m(config)[33m;[39m
+[90m [2mÔØ»[22m src/notifications/NotificationCont
+roller.ts:[2m558:39[22m[39m
+[90m [2mÔØ»[22m src/notifications/NotificationServ
+ice.ts:[2m4:1[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[9/21]ÔÄ»[22m[39m
+
+
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Failed Tests 
+12 [49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m 
+src/users/__tests__/UserAvatarController.test.ts[2m 
+> [22mUserAvatarController[2m > 
+[22minitialization[2m > [22mshould create an 
+instance
+[41m[1m FAIL [22m[49m 
+src/users/__tests__/UserAvatarController.test.ts[2m 
+> [22mUserAvatarController[2m > [22mmethods[2m > 
+[22mshould handle successful operations
+[41m[1m FAIL [22m[49m 
+src/users/__tests__/UserAvatarController.test.ts[2m 
+> [22mUserAvatarController[2m > [22mmethods[2m > 
+[22mshould handle errors gracefully
+[41m[1m FAIL [22m[49m 
+src/users/__tests__/UserAvatarController.test.ts[2m 
+> [22mUserAvatarController[2m > [22mmethods[2m > 
+[22mshould validate inputs
+[31m[1mError[22m: Missing Supabase 
+configuration[39m
+[36m [2mÔØ»[22m new UserAvatarController 
+src/users/UserAvatarController.ts:[2m27:13[22m[39m
+    [90m 25| [39m    const supabaseKey = 
+process.env.SUPABASE_SERVICE_ROLE_KEY || proceÔÇª
+    [90m 26| [39m    [35mif[39m 
+([33m![39msupabaseUrl [33m||[39m 
+[33m![39msupabaseKey) {
+    [90m 27| [39m      [35mthrow[39m 
+[35mnew[39m [33mError[39m([32m'Missing Supabase 
+configuration'[39m)[33m;[39m
+    [90m   | [39m            [31m^[39m
+    [90m 28| [39m    }
+    [90m 29| [39m    [35mconst[39m supabase 
+[33m=[39m 
+[34mcreateClient[39m(supabaseUrl[33m,[39m 
+supabaseKey)[33m;[39m
+[90m [2mÔØ»[22m src/users/__tests__/UserAvatarCont
+roller.test.ts:[2m8:15[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[10/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/users/__tests__/UserPro
+fileController.test.ts[2m > 
+[22mUserProfileController[2m > 
+[22minitialization[2m > [22mshould create an 
+instance
+[41m[1m FAIL [22m[49m src/users/__tests__/UserPro
+fileController.test.ts[2m > 
+[22mUserProfileController[2m > [22mmethods[2m > 
+[22mshould handle successful operations
+[41m[1m FAIL [22m[49m src/users/__tests__/UserPro
+fileController.test.ts[2m > 
+[22mUserProfileController[2m > [22mmethods[2m > 
+[22mshould handle errors gracefully
+[41m[1m FAIL [22m[49m src/users/__tests__/UserPro
+fileController.test.ts[2m > 
+[22mUserProfileController[2m > [22mmethods[2m > 
+[22mshould validate inputs
+[31m[1mError[22m: Missing Supabase 
+configuration[39m
+[36m [2mÔØ»[22m new UserProfileController src/user
+s/UserProfileController.ts:[2m19:13[22m[39m
+    [90m 17| [39m    const supabaseKey = 
+process.env.SUPABASE_SERVICE_ROLE_KEY || proceÔÇª
+    [90m 18| [39m    [35mif[39m 
+([33m![39msupabaseUrl [33m||[39m 
+[33m![39msupabaseKey) {
+    [90m 19| [39m      [35mthrow[39m 
+[35mnew[39m [33mError[39m([32m'Missing Supabase 
+configuration'[39m)[33m;[39m
+    [90m   | [39m            [31m^[39m
+    [90m 20| [39m    }
+    [90m 21| [39m    [35mconst[39m supabase 
+[33m=[39m 
+[34mcreateClient[39m(supabaseUrl[33m,[39m 
+supabaseKey)[33m;[39m
+[90m [2mÔØ»[22m src/users/__tests__/UserProfileCon
+troller.test.ts:[2m8:15[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[11/21]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m src/users/__tests__/UserSet
+tingsController.test.ts[2m > 
+[22mUserSettingsController[2m > 
+[22minitialization[2m > [22mshould create an 
+instance
+[41m[1m FAIL [22m[49m src/users/__tests__/UserSet
+tingsController.test.ts[2m > 
+[22mUserSettingsController[2m > [22mmethods[2m > 
+[22mshould handle successful operations
+[41m[1m FAIL [22m[49m src/users/__tests__/UserSet
+tingsController.test.ts[2m > 
+[22mUserSettingsController[2m > [22mmethods[2m > 
+[22mshould handle errors gracefully
+[41m[1m FAIL [22m[49m src/users/__tests__/UserSet
+tingsController.test.ts[2m > 
+[22mUserSettingsController[2m > [22mmethods[2m > 
+[22mshould validate inputs
+[31m[1mError[22m: Missing Supabase 
+configuration[39m
+[36m [2mÔØ»[22m new UserSettingsController src/use
+rs/UserSettingsController.ts:[2m19:13[22m[39m
+    [90m 17| [39m    const supabaseKey = 
+process.env.SUPABASE_SERVICE_ROLE_KEY || proceÔÇª
+    [90m 18| [39m    [35mif[39m 
+([33m![39msupabaseUrl [33m||[39m 
+[33m![39msupabaseKey) {
+    [90m 19| [39m      [35mthrow[39m 
+[35mnew[39m [33mError[39m([32m'Missing Supabase 
+configuration'[39m)[33m;[39m
+    [90m   | [39m            [31m^[39m
+    [90m 20| [39m    }
+    [90m 21| [39m    [35mconst[39m supabase 
+[33m=[39m 
+[34mcreateClient[39m(supabaseUrl[33m,[39m 
+supabaseKey)[33m;[39m
+[90m [2mÔØ»[22m src/users/__tests__/UserSettingsCo
+ntroller.test.ts:[2m8:15[22m[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[12/21]ÔÄ»[22m[39m
+
+
+[2m Test Files [22m [1m[31m12 failed[39m[22m[2m | [22m[1m[32m60 passed[39m[22m[90m (72)[39m
+[2m      Tests [22m [1m[31m12 failed[39m[22m[2m | [22m[1m[32m240 passed[39m[22m[90m (252)[39m
+[2m   Start at [22m 09:41:08
+[2m   Duration [22m 3.71s[2m (transform 10.54s, setup 0ms, import 14.34s, tests 372ms, environment 17ms)[22m
+

@@ -10,15 +10,22 @@ import {
   rateLimitConfigs,
   userTierLimits,
 } from '../RateLimiter';
-import { logger } from '../logger';
+import logger from '../logger';
 
-// Mock logger
-jest.mock('../logger', () => ({
-  logger: {
+// Mock logger - needs both default and named export
+jest.mock('../logger', () => {
+  const mockLogger = {
     info: jest.fn(),
     debug: jest.fn(),
-  },
-}));
+    warn: jest.fn(),
+    error: jest.fn(),
+  };
+  return {
+    __esModule: true,
+    default: mockLogger,
+    logger: mockLogger,
+  };
+});
 
 describe('RateLimiter', () => {
   let limiter: RateLimiter;

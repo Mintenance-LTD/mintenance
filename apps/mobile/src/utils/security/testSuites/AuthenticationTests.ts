@@ -9,23 +9,23 @@ import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } fr
 
 export class AuthenticationTestSuite {
   static createBruteForceTest(): PenetrationTest {
-    return this.createAuthTest('brute_force', 'Brute Force Protection Test');
+    return this.createAuthTest('brute_force', 'brute_force');
   }
 
   static createWeakPasswordTest(): PenetrationTest {
-    return this.createAuthTest('weak_passwords', 'Weak Password Detection Test');
+    return this.createAuthTest('weak_passwords', 'weak_passwords');
   }
 
   static createSessionManagementTest(): PenetrationTest {
-    return this.createAuthTest('session_management', 'Session Management Test');
+    return this.createAuthTest('session_management', 'session_management');
   }
 
   static createJWTSecurityTest(): PenetrationTest {
-    return this.createAuthTest('jwt_security', 'JWT Token Security Test');
+    return this.createAuthTest('jwt_security', 'jwt_security');
   }
 
   static createBiometricFallbackTest(): PenetrationTest {
-    return this.createAuthTest('biometric_fallback', 'Biometric Authentication Fallback Test');
+    return this.createAuthTest('biometric_fallback', 'biometric_fallback');
   }
 
   private static createAuthTest(id: string, testType: string): PenetrationTest {

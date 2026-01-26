@@ -1,17 +1,17 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logger } from '../utils/logger';
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
-  errorInfo?: any;
+  errorInfo?: ErrorInfo;
 }
 
 interface ErrorBoundaryProps {
   children: ReactNode;
   fallback?: (error: Error, resetError: () => void) => React.ReactNode;
-  onError?: (error: Error, errorInfo: any) => void;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
 
 class ErrorBoundary extends React.Component<
@@ -27,7 +27,7 @@ class ErrorBoundary extends React.Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logger.error('ErrorBoundary caught an error', error);
     logger.error('Error info', errorInfo);
 

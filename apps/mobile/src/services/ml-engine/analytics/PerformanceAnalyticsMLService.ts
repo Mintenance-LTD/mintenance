@@ -491,7 +491,7 @@ export class PerformanceAnalyticsMLService {
   /**
    * Generate drift recommendations
    */
-  private _generateDriftRecommendations(driftAnalysis: any): string[] {
+  private _generateDriftRecommendations(driftAnalysis: unknown): string[] {
     const recommendations: string[] = [];
 
     if (driftAnalysis.score > 0.3) {
@@ -632,7 +632,7 @@ export class PerformanceAnalyticsMLService {
   /**
    * Generate performance recommendations
    */
-  private _generatePerformanceRecommendations(modelDetails: any[]): string[] {
+  private _generatePerformanceRecommendations(modelDetails: unknown[]): string[] {
     const recommendations: string[] = [];
 
     const criticalModels = modelDetails.filter(m => m.status === 'critical');

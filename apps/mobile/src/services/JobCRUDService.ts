@@ -1,6 +1,6 @@
 /**
  * Job CRUD Service
- * 
+ *
  * Handles core job management operations:
  * - Creating jobs
  * - Updating jobs
@@ -9,9 +9,27 @@
  */
 
 import { supabase } from '../config/supabase';
-import { Job } from '@mintenance/types';
+import type { Job } from '@mintenance/types';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
+
+// Database row interface for Supabase queries (snake_case)
+interface DatabaseJobRow {
+  id: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  homeowner_id?: string;
+  contractor_id?: string;
+  status?: 'posted' | 'assigned' | 'in_progress' | 'completed';
+  budget?: number;
+  created_at?: string;
+  updated_at?: string;
+  category?: string;
+  subcategory?: string;
+  priority?: 'low' | 'medium' | 'high';
+  photos?: string[];
+}
 
 export class JobCRUDService {
   static async createJob(jobData: {
@@ -49,7 +67,7 @@ export class JobCRUDService {
       ServiceErrorHandler.validateRequired(safeLocation, 'Location', context);
       ServiceErrorHandler.validatePositiveNumber(jobData.budget, 'Budget', context);
 
-      const homeowner_id = (jobData as any).homeowner_id ?? jobData.homeownerId;
+      const homeowner_id = jobData.homeowner_id ?? jobData.homeownerId;
       ServiceErrorHandler.validateRequired(homeowner_id, 'Homeowner ID', context);
 
       const { data, error } = await supabase
@@ -77,7 +95,7 @@ export class JobCRUDService {
         throw ServiceErrorHandler.handleDatabaseError(error, context);
       }
 
-      return data as Job;
+      return this.formatJob(data as DatabaseJobRow);
     }, context);
 
     if (!result.success || !result.data) {
@@ -96,11 +114,11 @@ export class JobCRUDService {
 
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
-      throw new Error((error as any)?.message || String(error));
+      throw new Error(error.message || String(error));
     }
-    
+
     if (!data) return null;
-    return this.formatJob(data);
+    return this.formatJob(data as DatabaseJobRow);
   }
 
   static async updateJob(
@@ -110,17 +128,17 @@ export class JobCRUDService {
     if (updates.status && !['posted', 'assigned', 'in_progress', 'completed'].includes(updates.status)) {
       throw new Error('Invalid status');
     }
-    
+
     const { data, error } = await supabase
       .from('jobs')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', jobId)
       .select('*')
       .single();
-      
+
     if (error) throw error;
     if (!data) throw new Error('Job not found');
-    return this.formatJob(data);
+    return this.formatJob(data as DatabaseJobRow);
   }
 
   static async deleteJob(jobId: string): Promise<void> {
@@ -133,7 +151,7 @@ export class JobCRUDService {
     status: Job['status'],
     contractorId?: string
   ): Promise<Job> {
-    const updateData: any = {
+    const updateData: Partial<DatabaseJobRow> = {
       status,
       updated_at: new Date().toISOString(),
     };
@@ -149,9 +167,9 @@ export class JobCRUDService {
       .select('*')
       .single();
 
-    if (error) throw new Error((error as any)?.message || String(error));
+    if (error) throw new Error(error.message || String(error));
     if (!data) throw new Error('Job not found');
-    return this.formatJob(data);
+    return this.formatJob(data as DatabaseJobRow);
   }
 
   static async startJob(jobId: string): Promise<void> {
@@ -179,39 +197,35 @@ export class JobCRUDService {
   }
 
   // Helper method
-  private static formatJob(data: any): Job {
-    if (!data) {
-      throw new Error('Job data cannot be null or undefined');
-    }
-    
+  private static formatJob(data: DatabaseJobRow): Job {
     const job: Job = {
-      id: data.id || '',
-      title: data.title || '',
-      description: data.description || '',
-      location: data.location || '',
-      homeowner_id: data.homeowner_id || '',
-      status: data.status || 'posted',
-      budget: data.budget || 0,
-      category: data.category || '',
-      subcategory: data.subcategory || '',
-      priority: data.priority || 'medium',
-      photos: data.photos || [],
-      created_at: data.created_at || new Date().toISOString(),
-      updated_at: data.updated_at || new Date().toISOString(),
+      id: data.id,
+      title: data.title ?? '',
+      description: data.description ?? '',
+      location: data.location ?? '',
+      homeowner_id: data.homeowner_id ?? '',
+      status: data.status ?? 'posted',
+      budget: data.budget ?? 0,
+      category: data.category ?? '',
+      subcategory: data.subcategory ?? '',
+      priority: data.priority ?? 'medium',
+      photos: data.photos ?? [],
+      created_at: data.created_at ?? new Date().toISOString(),
+      updated_at: data.updated_at ?? new Date().toISOString(),
     };
-    
-    if (typeof data.contractor_id !== 'undefined') {
-      (job as any).contractor_id = data.contractor_id;
+
+    if (data.contractor_id !== undefined) {
+      job.contractor_id = data.contractor_id;
     }
-    
+
     // Only add computed fields if they don't break test expectations
     if (!process.env.JEST_WORKER_ID) {
-      (job as any).homeownerId = job.homeowner_id;
-      (job as any).contractorId = data.contractor_id;
-      (job as any).createdAt = job.created_at;
-      (job as any).updatedAt = job.updated_at;
+      job.homeownerId = job.homeowner_id;
+      job.contractorId = data.contractor_id;
+      job.createdAt = job.created_at;
+      job.updatedAt = job.updated_at;
     }
-    
+
     return job;
   }
 }

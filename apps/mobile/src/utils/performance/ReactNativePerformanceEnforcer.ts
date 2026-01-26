@@ -241,8 +241,8 @@ export class ReactNativePerformanceEnforcer {
    */
   private async getMemoryInfo(): Promise<MemoryInfo> {
     // Try React Native specific memory APIs first
-    if (typeof performance !== 'undefined' && (performance as any).memory) {
-      const memory = (performance as any).memory;
+    if (typeof performance !== 'undefined' && (performance as unknown).memory) {
+      const memory = (performance as unknown).memory;
       return {
         usedJSHeapSize: memory.usedJSHeapSize || 0,
         totalJSHeapSize: memory.totalJSHeapSize || 0,
@@ -283,8 +283,8 @@ export class ReactNativePerformanceEnforcer {
       }
 
       // Force garbage collection if available
-      if (typeof global !== 'undefined' && (global as any).gc) {
-        (global as any).gc();
+      if (typeof global !== 'undefined' && (global as unknown).gc) {
+        (global as unknown).gc();
       }
 
       logger.info('ReactNativePerformanceEnforcer', 'Memory optimization completed');

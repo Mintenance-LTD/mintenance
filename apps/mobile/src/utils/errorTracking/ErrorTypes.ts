@@ -53,7 +53,7 @@ export interface ErrorContext {
   jobId?: string;
   contractorId?: string;
   experimentVariant?: string;
-  customData?: Record<string, any>;
+  customData?: Record<string, unknown>;
 }
 
 export interface Breadcrumb {
@@ -61,7 +61,7 @@ export interface Breadcrumb {
   category: string;
   message: string;
   level: 'debug' | 'info' | 'warning' | 'error';
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export interface ErrorInsight {
@@ -69,7 +69,7 @@ export interface ErrorInsight {
   title: string;
   description: string;
   confidence: number; // 0-1
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface ErrorRecommendation {

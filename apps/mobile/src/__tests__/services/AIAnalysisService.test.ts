@@ -1,10 +1,22 @@
-import React from 'react';
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
+import { Job } from '../../types';
+import { logger } from '../../utils/logger';
+
+// Import the REAL AIAnalysisService (not mocked) - we want to test the actual implementation
 import {
   AIAnalysisService,
   AIAnalysis,
 } from '../../services/AIAnalysisService';
-import { Job } from '@mintenance/types';
-import { logger } from '../../utils/logger';
 
 // Define enums locally for tests
 enum JobPriority {

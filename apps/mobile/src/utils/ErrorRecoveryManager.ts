@@ -29,7 +29,7 @@ export interface RecoveryStrategy {
   type: 'retry' | 'fallback' | 'redirect' | 'refresh' | 'ignore';
   maxAttempts?: number;
   delay?: number;
-  fallbackComponent?: React.ComponentType<any>;
+  fallbackComponent?: React.ComponentType<unknown>;
   redirectTarget?: string;
   message?: string;
   allowUserChoice?: boolean;
@@ -533,7 +533,7 @@ export const useErrorRecovery = () => {
 export interface EnhancedErrorBoundaryProps {
   children: React.ReactNode;
   context?: ErrorContext;
-  onRecoveryAction?: (action: string, data?: any) => void;
+  onRecoveryAction?: (action: string, data?: unknown) => void;
   fallbackComponent?: React.ComponentType<{
     error: Error;
     strategy: RecoveryStrategy;

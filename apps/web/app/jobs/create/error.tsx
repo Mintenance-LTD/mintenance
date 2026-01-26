@@ -17,7 +17,7 @@ export default function JobCreationError({
 
   useEffect(() => {
     // Log the error to an error reporting service
-    logger.error('Job creation error:', error', [object Object], { service: 'app' });
+    logger.error('Job creation error:', error, { service: 'app' });
 
     // Report to Sentry if configured
     if (typeof window !== 'undefined' && (window as any).Sentry) {
@@ -31,7 +31,7 @@ export default function JobCreationError({
         localStorage.setItem('job-creation-recovery', formData);
       }
     } catch (e) {
-      logger.error('Could not save form data for recovery:', e', [object Object], { service: 'app' });
+      logger.error('Could not save form data for recovery:', e, { service: 'app' });
     }
   }, [error]);
 

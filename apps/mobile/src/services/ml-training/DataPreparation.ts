@@ -65,8 +65,8 @@ export class DataPreparation {
    */
   async processInteraction(
     interaction: 'pricing' | 'matching' | 'complexity' | 'sentiment',
-    inputData: any,
-    actualOutcome: any,
+    inputData: unknown,
+    actualOutcome: unknown,
     userFeedback?: {
       rating: number;
       accuracy: number;
@@ -120,7 +120,7 @@ export class DataPreparation {
   /**
    * Extract features based on interaction type
    */
-  extractFeatures(inputData: any, interaction: string): number[] {
+  extractFeatures(inputData: unknown, interaction: string): number[] {
     switch (interaction) {
       case 'pricing':
         return this.extractPricingFeatures(inputData);
@@ -138,7 +138,7 @@ export class DataPreparation {
   /**
    * Extract labels based on interaction type
    */
-  extractLabels(actualOutcome: any, interaction: string): number[] {
+  extractLabels(actualOutcome: unknown, interaction: string): number[] {
     switch (interaction) {
       case 'pricing':
         return [
@@ -163,7 +163,7 @@ export class DataPreparation {
   /**
    * Extract pricing-specific features
    */
-  private extractPricingFeatures(inputData: any): number[] {
+  private extractPricingFeatures(inputData: unknown): number[] {
     // Simplified feature extraction for pricing
     return new Array(47).fill(0).map(() => Math.random());
   }
@@ -171,7 +171,7 @@ export class DataPreparation {
   /**
    * Extract matching-specific features
    */
-  private extractMatchingFeatures(inputData: any): number[] {
+  private extractMatchingFeatures(inputData: unknown): number[] {
     // Simplified feature extraction for matching
     return new Array(64).fill(0).map(() => Math.random());
   }
@@ -179,7 +179,7 @@ export class DataPreparation {
   /**
    * Extract complexity-specific features
    */
-  private extractComplexityFeatures(inputData: any): number[] {
+  private extractComplexityFeatures(inputData: unknown): number[] {
     // Simplified feature extraction for complexity
     return new Array(32).fill(0).map(() => Math.random());
   }
@@ -187,7 +187,7 @@ export class DataPreparation {
   /**
    * Extract sentiment-specific features
    */
-  private extractSentimentFeatures(inputData: any): number[] {
+  private extractSentimentFeatures(inputData: unknown): number[] {
     // Simplified feature extraction for sentiment
     return new Array(512).fill(0).map(() => Math.random());
   }
@@ -244,7 +244,7 @@ export class DataPreparation {
    */
   async applyResampling(
     data: TrainingData,
-    biasMetrics: any
+    biasMetrics: unknown
   ): Promise<TrainingData> {
     logger.info('Applying resampling bias mitigation');
     return data; // Simplified - return original data
@@ -255,7 +255,7 @@ export class DataPreparation {
    */
   async preprocessForFairness(
     data: TrainingData,
-    biasMetrics: any
+    biasMetrics: unknown
   ): Promise<TrainingData> {
     logger.info('Preprocessing data for fairness');
     return data; // Simplified

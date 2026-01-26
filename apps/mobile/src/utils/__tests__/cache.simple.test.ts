@@ -37,7 +37,7 @@ describe('CacheManager - Basic Functionality', () => {
   let cache: CacheManager;
 
   beforeEach(() => {
-    cache = new CacheManager();
+    cache = CacheManager;
   });
 
   describe('Basic Operations', () => {
@@ -90,7 +90,7 @@ describe('CacheManager - Basic Functionality', () => {
 
   describe('Statistics Tracking', () => {
     it('should initialize with zero stats', () => {
-      const freshCache = new CacheManager();
+      const freshCache = CacheManager;
       const stats = freshCache.getStats();
 
       expect(stats.totalRequests).toBe(0);

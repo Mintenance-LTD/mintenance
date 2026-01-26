@@ -78,7 +78,7 @@ export class JobService {
     return JobSearchService.getJobsByStatus(status, userId);
   }
 
-  static async getJobs(arg1?: any, arg2?: any): Promise<Job[]> {
+  static async getJobs(arg1?: unknown, arg2?: unknown): Promise<Job[]> {
     return JobSearchService.getJobs(arg1, arg2);
   }
 

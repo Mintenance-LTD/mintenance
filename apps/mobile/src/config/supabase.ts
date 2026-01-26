@@ -128,7 +128,7 @@ function createMockSupabase() {
       single: () => Promise.resolve({ data: null, error: null }),
     };
 
-    chain.then = (onResolve: any) => Promise.resolve({ data: [], error: null }).then(onResolve);
+    chain.then = (onResolve: unknown) => Promise.resolve({ data: [], error: null }).then(onResolve);
     chain[Symbol.asyncIterator] = async function* () {};
     return chain;
   };

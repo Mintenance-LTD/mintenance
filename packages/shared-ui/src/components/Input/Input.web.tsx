@@ -3,14 +3,11 @@
  * 
  * Web-specific Input component using design tokens
  */
-
 'use client';
-
 import React, { useState, useId, forwardRef } from 'react';
 import { webTokens } from '@mintenance/design-tokens';
 import { cn } from '../../utils/cn';
 import type { WebInputProps, InputSize } from './types';
-
 /**
  * Input Component for Web
  * 
@@ -47,11 +44,9 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
     ...restProps
   } = props;
   const [isFocused, setIsFocused] = useState(false);
-
   const hasError = error || !!errorText;
   const hasSuccess = success || !!successText;
   const showHelperText = helperText || errorText || successText;
-
   // Size styles
   const sizeStyles: Record<InputSize, React.CSSProperties> = {
     sm: {
@@ -70,14 +65,12 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
       minHeight: '48px',
     },
   };
-
   // Base border color
   const baseBorderColor = hasError 
     ? webTokens.colors.error 
     : hasSuccess 
     ? webTokens.colors.success 
     : webTokens.colors.border;
-
   // Base styles - using separate border properties instead of shorthand
   const baseStyles: React.CSSProperties = {
     width: '100%',
@@ -91,7 +84,6 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
     transition: 'all 0.2s ease',
     ...sizeStyles[size],
   };
-
   // Focus styles - only set borderColor, never use border shorthand
   const focusStyles: React.CSSProperties = isFocused && !disabled
     ? {
@@ -99,15 +91,13 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
         boxShadow: `0 0 0 3px ${hasError ? webTokens.colors.error + '20' : hasSuccess ? webTokens.colors.success + '20' : webTokens.colors.primary + '20'}`,
       }
     : {};
-
   // Normalize style prop to avoid mixing shorthand and non-shorthand border properties
   // Extract style from props if it exists (React Hook Form might pass it through spread)
-  const propsStyle = (props as any).style;
+  const propsStyle = (props as unknown).style;
   const allStyles = [style, propsStyle].filter(Boolean);
   const mergedStyle = allStyles.length > 0 
     ? Object.assign({}, ...allStyles) 
     : {};
-  
   // Remove all border-related shorthand and non-shorthand properties to avoid conflicts
   // We use separate border properties (borderWidth, borderStyle, borderColor) so we must
   // remove any shorthand 'border' property to prevent React warnings
@@ -121,10 +111,8 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
     'borderStyle',     // Individual - we set this ourselves
     // Note: We allow borderColor to be overridden from normalizedStyle, but we'll merge it carefully
   ];
-  
   const normalizedStyle: React.CSSProperties = {};
   let normalizedBorderColor: string | undefined;
-  
   Object.keys(mergedStyle).forEach(key => {
     if (key === 'borderColor') {
       // Store borderColor separately - we'll merge it carefully with our own borderColor
@@ -133,30 +121,26 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
       normalizedStyle[key as keyof React.CSSProperties] = mergedStyle[key];
     }
   });
-
   // Remove style from props to prevent it from being spread on the input element
-  const { style: _, ...propsWithoutStyle } = restProps as any;
-
+  const { style: _, ...propsWithoutStyle } = restProps as unknown;
   // Also filter out any border-related properties from props that might be spread
   // This prevents React Hook Form or other libraries from adding border shorthand
-  const cleanedProps: any = {};
+  const cleanedProps: Record<string, unknown> = {};
   const borderProps = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft', 'borderWidth', 'borderStyle', 'borderColor'];
   Object.keys(propsWithoutStyle).forEach(key => {
     if (!borderProps.includes(key)) {
       cleanedProps[key] = propsWithoutStyle[key];
     }
   });
-
   // Final safety check: explicitly remove any border shorthand that might have slipped through
   // This ensures React never sees both 'border' and 'borderColor' at the same time
-  const finalCleanedProps: any = { ...cleanedProps };
+  const finalCleanedProps: unknown = { ...cleanedProps };
   const borderShorthandProps = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft'];
   borderShorthandProps.forEach(prop => {
     if (prop in finalCleanedProps) {
       delete finalCleanedProps[prop];
     }
   });
-
   // Build final input styles ensuring no border shorthand conflicts
   // Order matters: baseStyles -> normalizedStyle -> focusStyles (which sets borderColor)
   // If normalizedStyle has borderColor, it will be overridden by focusStyles when focused
@@ -167,44 +151,39 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
     ...(normalizedBorderColor && !isFocused ? { borderColor: normalizedBorderColor } : {}),
     ...focusStyles, // Apply focus styles last so borderColor override works correctly
   };
-  
   // CRITICAL: Remove all border shorthand properties BEFORE they can conflict with borderColor
   // This must happen after merging all styles to catch any that slipped through
   // React will warn if both 'border' and 'borderColor' exist simultaneously
   const borderShorthandKeys = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft'];
   borderShorthandKeys.forEach(key => {
     if (key in inputStyles) {
-      delete (inputStyles as any)[key];
+      delete (inputStyles as unknown)[key];
     }
   });
-  
   // Also ensure no borderWidth or borderStyle from normalizedStyle conflicts
   // We set these ourselves in baseStyles, so remove any from normalizedStyle
   if ('borderWidth' in normalizedStyle && normalizedStyle.borderWidth !== baseStyles.borderWidth) {
     // Only remove if it's different from what we set
-    delete (inputStyles as any).borderWidth;
+    delete (inputStyles as unknown).borderWidth;
     inputStyles.borderWidth = baseStyles.borderWidth;
   }
   if ('borderStyle' in normalizedStyle && normalizedStyle.borderStyle !== baseStyles.borderStyle) {
-    delete (inputStyles as any).borderStyle;
+    delete (inputStyles as unknown).borderStyle;
     inputStyles.borderStyle = baseStyles.borderStyle;
   }
-
   // FINAL CHECK: Ensure borderColor is never removed if border shorthand exists
   // If somehow border shorthand still exists, remove borderColor to avoid conflict
   // But ideally, border shorthand should never exist at this point
   const hasBorderShorthand = borderShorthandKeys.some(key => key in inputStyles);
   if (hasBorderShorthand && 'borderColor' in inputStyles) {
     // This shouldn't happen, but if it does, remove borderColor to avoid React warning
-    delete (inputStyles as any).borderColor;
+    delete (inputStyles as unknown).borderColor;
   }
-
   // Use useId() hook to generate stable IDs that match between server and client
   // This prevents hydration mismatches
   const generatedId = useId();
   const inputId = props.id || generatedId;
   const helperTextId = showHelperText ? `${inputId}-helper` : undefined;
-
   return (
     <div className={cn('input-wrapper', className)} style={{ width: '100%' }}>
       {label && (
@@ -226,7 +205,6 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
           )}
         </label>
       )}
-
       <div style={{ position: 'relative', width: '100%' }}>
         {leftIcon && (
           <span
@@ -244,7 +222,6 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
             {leftIcon}
           </span>
         )}
-
         <input
           ref={ref}
           {...finalCleanedProps}
@@ -277,7 +254,6 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
           aria-describedby={helperTextId || ariaDescribedby}
           aria-invalid={ariaInvalid !== undefined ? ariaInvalid : hasError}
         />
-
         {rightIcon && (
           <span
             style={{
@@ -295,7 +271,6 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
           </span>
         )}
       </div>
-
       {showHelperText && (
         <p
           id={helperTextId}
@@ -312,8 +287,5 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
     </div>
   );
 });
-
 Input.displayName = 'Input';
-
 export default Input;
-

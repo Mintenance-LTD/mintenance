@@ -187,7 +187,7 @@ export class MLTrainingPipelineService {
     modelType: ModelType,
     keys: number[],
     values: number[],
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     const onlineService = this.onlineLearningServices.get(modelType);
     if (!onlineService) {
@@ -513,7 +513,7 @@ export class MLTrainingPipelineService {
   /**
    * Emit training event
    */
-  private emitEvent(type: TrainingEventType, modelType: ModelType, data: Record<string, any>): void {
+  private emitEvent(type: TrainingEventType, modelType: ModelType, data: Record<string, unknown>): void {
     const event: TrainingEvent = {
       type,
       modelType,
@@ -546,7 +546,7 @@ export class MLTrainingPipelineService {
   private combineTrainingData(dataArray: TrainingData[]): TrainingData {
     const allFeatures: number[][] = [];
     const allLabels: number[][] = [];
-    const allMetadata: any[] = [];
+    const allMetadata: unknown[] = [];
 
     dataArray.forEach(data => {
       allFeatures.push(...data.features);
@@ -648,7 +648,7 @@ export class MLTrainingPipelineService {
   /**
    * Get system statistics
    */
-  getSystemStats(): any {
+  getSystemStats(): unknown {
     return {
       repository: this.repository.getStorageStats(),
       memory: this.trainingEngine.getMemoryInfo(),

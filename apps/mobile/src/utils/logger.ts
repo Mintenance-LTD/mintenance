@@ -1,16 +1,16 @@
-import { logger } from '@mintenance/shared';
+import { logger as sharedLogger } from '@mintenance/shared';
 // Global Sentry functions - will be set by Sentry initialization
 let sentryFunctions = {
-  captureMessage: (() => {}) as any,
-  captureException: (() => {}) as any,
-  addBreadcrumb: (() => {}) as any,
+  captureMessage: (() => {}) as unknown,
+  captureException: (() => {}) as unknown,
+  addBreadcrumb: (() => {}) as unknown,
 };
 
 // Function to set Sentry functions after initialization
 export const setSentryFunctions = (functions: {
-  captureMessage: any;
-  captureException: any;
-  addBreadcrumb: any;
+  captureMessage: unknown;
+  captureException: unknown;
+  addBreadcrumb: unknown;
 }) => {
   sentryFunctions = functions;
 };
@@ -20,7 +20,7 @@ export const setSentryFunctions = (functions: {
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogContext {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 class Logger {
@@ -41,7 +41,7 @@ class Logger {
     return { message: first, context: second };
   }
 
-  private safeStringify(obj: any): string {
+  private safeStringify(obj: unknown): string {
     try {
       return JSON.stringify(obj, (key, value) => {
         // Handle circular references
@@ -79,16 +79,19 @@ class Logger {
     }
   }
 
-  debug(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
+  debug(
+    messageOrTag: string,
+    contextOrMessage?: LogContext | unknown | string,
+    maybeContext?: LogContext | unknown
+  ): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
-      contextOrMessage as any,
+      contextOrMessage as unknown,
       maybeContext
     );
     if (this.isDevelopment) {
-      logger.info('this.formatMessage('debug', {
-        service: 'mobile'
-      }))
+      console.debug(
+        this.formatMessage('debug', message, this.toContext(context))
       );
     }
 
@@ -103,11 +106,11 @@ class Logger {
   info(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
-      contextOrMessage as any,
+      contextOrMessage as unknown,
       maybeContext
     );
     if (this.isDevelopment) {
-      console.info(
+      console.log(
         this.formatMessage('info', message, this.toContext(context))
       );
     }
@@ -124,12 +127,11 @@ class Logger {
   warn(messageOrTag: string, contextOrMessage?: LogContext | unknown | string, maybeContext?: LogContext | unknown): void {
     const { message, context } = this.normalizeMessageArgs(
       messageOrTag,
-      contextOrMessage as any,
+      contextOrMessage as unknown,
       maybeContext
     );
     if (this.isDevelopment) {
-      logger.warn('this.formatMessage('warn', message, this.toContext(context, { service: 'mobile' }))
-      );
+      console.warn(this.formatMessage('warn', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -164,20 +166,31 @@ class Logger {
   }
 
   error(
-    messageOrTag: string,
+    messageOrTag: string | Error,
     errorOrContextOrMessage?: unknown | string,
     maybeContext?: LogContext
   ): void {
-    const { message, context } = this.normalizeMessageArgs(
-      messageOrTag,
-      errorOrContextOrMessage as any,
-      maybeContext
-    );
-    const isErr = errorOrContextOrMessage instanceof Error;
-    const err: Error | undefined = isErr
-      ? (errorOrContextOrMessage as Error)
-      : undefined;
-    const ctx = isErr ? context : this.toContext(errorOrContextOrMessage);
+    const isMessageError = messageOrTag instanceof Error;
+    const isContextError = errorOrContextOrMessage instanceof Error;
+    const err: Error | undefined = isMessageError
+      ? messageOrTag
+      : isContextError
+        ? (errorOrContextOrMessage as Error)
+        : undefined;
+    const { message, context } = isMessageError
+      ? {
+          message: messageOrTag.message,
+          context: this.toContext(errorOrContextOrMessage),
+        }
+      : this.normalizeMessageArgs(
+          messageOrTag,
+          errorOrContextOrMessage as unknown,
+          maybeContext
+        );
+    const ctx =
+      isMessageError || isContextError
+        ? context
+        : this.toContext(errorOrContextOrMessage);
     const sanitizedContext = ctx ? this.sanitizeContext(ctx) : undefined;
     const formattedMessage = this.formatMessage(
       'error',
@@ -186,7 +199,7 @@ class Logger {
     );
 
     if (this.isDevelopment) {
-      logger.error('formattedMessage', err, { service: 'mobile' });
+      console.error(formattedMessage, err, { service: 'mobile' });
     }
 
     sentryFunctions.addBreadcrumb({
@@ -214,7 +227,7 @@ class Logger {
     const message = `${operation} completed in ${duration}ms`;
 
     if (this.isDevelopment) {
-      logger.info('this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
+      console.log(this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -275,7 +288,7 @@ class Logger {
     const message = `User action: ${action}`;
 
     if (this.isDevelopment) {
-      logger.info('this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
+      console.log(this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -291,7 +304,7 @@ class Logger {
     const message = `Navigation: ${from} -> ${to}`;
 
     if (this.isDevelopment) {
-      logger.info('this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
+      console.log(this.formatMessage('info', message, this.toContext(context, { service: 'mobile' })));
     }
 
     sentryFunctions.addBreadcrumb({
@@ -337,22 +350,22 @@ export const log = {
     messageOrTag: string,
     contextOrMessage?: LogContext | unknown | string,
     maybeContext?: LogContext | unknown
-  ) => logger.debug(messageOrTag, contextOrMessage as any, maybeContext),
+  ) => logger.debug(messageOrTag, contextOrMessage as unknown, maybeContext),
   info: (
     messageOrTag: string,
     contextOrMessage?: LogContext | unknown | string,
     maybeContext?: LogContext | unknown
-  ) => logger.info(messageOrTag, contextOrMessage as any, maybeContext),
+  ) => logger.info(messageOrTag, contextOrMessage as unknown, maybeContext),
   warn: (
     messageOrTag: string,
     contextOrMessage?: LogContext | unknown | string,
     maybeContext?: LogContext | unknown
-  ) => logger.warn(messageOrTag, contextOrMessage as any, maybeContext),
+  ) => logger.warn(messageOrTag, contextOrMessage as unknown, maybeContext),
   error: (
     messageOrTag: string,
     errorOrContextOrMessage?: unknown | string,
     maybeContext?: LogContext
-  ) => logger.error(messageOrTag, errorOrContextOrMessage as any, maybeContext),
+  ) => logger.error(messageOrTag, errorOrContextOrMessage as unknown, maybeContext),
   performance: (
     operation: string,
     duration: number,

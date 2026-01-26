@@ -27,7 +27,7 @@ import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
 import { ErrorManager, ErrorCategory, ErrorSeverity } from '../utils/ErrorManager';
 
 interface Props {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
@@ -323,7 +323,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         navigation.navigate('JobDetails', { jobId: result?.id || 'job-1' });
       }, delay);
 
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Job posting failed:', error);
       setSubmissionError(error.message || 'Failed to create job');
       ErrorManager.handleError(error, {

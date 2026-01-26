@@ -8,6 +8,9 @@ import {
   CreateGoalRequest,
   UpdateGoalRequest,
   Goal,
+  Milestone,
+  GoalTimeframe,
+  GoalMetrics,
 } from './types';
 
 export class GoalValidationService {
@@ -180,7 +183,7 @@ export class GoalValidationService {
   /**
    * Validate milestone completion
    */
-  validateMilestoneCompletion(milestone: any): void {
+  validateMilestoneCompletion(milestone: Milestone): void {
     const errors: string[] = [];
 
     if (!milestone.id) {
@@ -211,7 +214,7 @@ export class GoalValidationService {
   /**
    * Validate timeframe
    */
-  private validateTimeframe(timeframe: any, errors: string[]): void {
+  private validateTimeframe(timeframe: GoalTimeframe, errors: string[]): void {
     if (!timeframe.startDate) {
       errors.push('Start date is required');
     }
@@ -250,7 +253,7 @@ export class GoalValidationService {
   /**
    * Validate metrics
    */
-  private validateMetrics(metrics: any, errors: string[]): void {
+  private validateMetrics(metrics: GoalMetrics, errors: string[]): void {
     if (metrics.targetValue === undefined || metrics.targetValue === null) {
       errors.push('Target value is required');
     }
@@ -284,7 +287,7 @@ export class GoalValidationService {
   /**
    * Validate recurrence settings
    */
-  private validateRecurrence(recurrence: any, errors: string[]): void {
+  private validateRecurrence(recurrence: NonNullable<GoalTimeframe['recurrence']>, errors: string[]): void {
     if (!recurrence.frequency) {
       errors.push('Recurrence frequency is required');
     }
@@ -297,7 +300,7 @@ export class GoalValidationService {
       errors.push('Recurrence end condition is required');
     }
 
-    if (recurrence.endCondition === 'count' && (!recurrence.endValue || recurrence.endValue < 1)) {
+    if (recurrence.endCondition === 'count' && (!recurrence.endValue || (typeof recurrence.endValue === 'number' && recurrence.endValue < 1))) {
       errors.push('End count must be at least 1');
     }
 

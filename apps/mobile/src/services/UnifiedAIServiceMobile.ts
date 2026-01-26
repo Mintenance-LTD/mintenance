@@ -110,7 +110,7 @@ export class UnifiedAIServiceMobile {
       // Use fallback if API fails
       return this.getFallbackAssessment(images, jobDetails);
     } catch (error) {
-      logger.error('Building assessment failed:', error', [object Object], { service: 'mobile' });
+      logger.error('Building assessment failed:', error, { service: 'mobile' });
       return this.getFallbackAssessment(images, jobDetails);
     }
   }
@@ -131,7 +131,7 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      logger.error('Pricing recommendation failed:', error', [object Object], { service: 'mobile' });
+      logger.error('Pricing recommendation failed:', error, { service: 'mobile' });
       return null;
     }
   }
@@ -154,7 +154,7 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      logger.error('Agent decision failed:', error', [object Object], { service: 'mobile' });
+      logger.error('Agent decision failed:', error, { service: 'mobile' });
       return null;
     }
   }
@@ -162,7 +162,7 @@ export class UnifiedAIServiceMobile {
   /**
    * Semantic search
    */
-  async search(query: string, filters?: any): Promise<SearchResult[]> {
+  async search(query: string, filters?: unknown): Promise<SearchResult[]> {
     try {
       const searchQuery: SemanticSearchQuery = {
         query,
@@ -179,7 +179,7 @@ export class UnifiedAIServiceMobile {
       // Fallback to local search
       return this.performLocalSearch(query, filters);
     } catch (error) {
-      logger.error('Search failed:', error', [object Object], { service: 'mobile' });
+      logger.error('Search failed:', error, { service: 'mobile' });
       return this.performLocalSearch(query, filters);
     }
   }
@@ -197,7 +197,7 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      logger.error('ESG calculation failed:', error', [object Object], { service: 'mobile' });
+      logger.error('ESG calculation failed:', error, { service: 'mobile' });
       return null;
     }
   }
@@ -215,7 +215,7 @@ export class UnifiedAIServiceMobile {
 
       return [];
     } catch (error) {
-      logger.error('Image analysis failed:', error', [object Object], { service: 'mobile' });
+      logger.error('Image analysis failed:', error, { service: 'mobile' });
       return [];
     }
   }
@@ -225,7 +225,7 @@ export class UnifiedAIServiceMobile {
    */
   async submitCorrections(
     assessmentId: string,
-    corrections: any[]
+    corrections: unknown[]
   ): Promise<boolean> {
     try {
       const response = await this.service.submitCorrections(
@@ -235,7 +235,7 @@ export class UnifiedAIServiceMobile {
 
       return response.success;
     } catch (error) {
-      logger.error('Correction submission failed:', error', [object Object], { service: 'mobile' });
+      logger.error('Correction submission failed:', error, { service: 'mobile' });
       return false;
     }
   }
@@ -243,7 +243,7 @@ export class UnifiedAIServiceMobile {
   /**
    * Get usage metrics
    */
-  async getUsageMetrics(): Promise<any> {
+  async getUsageMetrics(): Promise<unknown> {
     try {
       const response = await this.service.getUsageMetrics('monthly');
 
@@ -253,7 +253,7 @@ export class UnifiedAIServiceMobile {
 
       return null;
     } catch (error) {
-      logger.error('Failed to fetch usage metrics:', error', [object Object], { service: 'mobile' });
+      logger.error('Failed to fetch usage metrics:', error, { service: 'mobile' });
       return null;
     }
   }
@@ -289,8 +289,8 @@ export class UnifiedAIServiceMobile {
 
   async resolveDispute(
     jobId: string,
-    disputeDetails: any
-  ): Promise<any> {
+    disputeDetails: unknown
+  ): Promise<unknown> {
     const response = await this.service.completeAgentAction(
       'DisputeResolutionAgent',
       'resolve',
@@ -302,7 +302,7 @@ export class UnifiedAIServiceMobile {
   async predictJobDemand(
     category: string,
     location: string
-  ): Promise<any> {
+  ): Promise<unknown> {
     const response = await this.service.completeAgentAction(
       'PredictiveAgent',
       'predict-demand',
@@ -326,7 +326,7 @@ export class UnifiedAIServiceMobile {
       assessmentIds.push(assessment.id);
       await AsyncStorage.setItem('assessment_ids', JSON.stringify(assessmentIds));
     } catch (error) {
-      logger.error('Failed to store assessment locally:', error', [object Object], { service: 'mobile' });
+      logger.error('Failed to store assessment locally:', error, { service: 'mobile' });
     }
   }
 
@@ -350,7 +350,7 @@ export class UnifiedAIServiceMobile {
       const key = `decision_${decision.agentName}_${Date.now()}`;
       await AsyncStorage.setItem(key, JSON.stringify(decision));
     } catch (error) {
-      logger.error('Failed to store agent decision:', error', [object Object], { service: 'mobile' });
+      logger.error('Failed to store agent decision:', error, { service: 'mobile' });
     }
   }
 
@@ -359,7 +359,7 @@ export class UnifiedAIServiceMobile {
    */
   private getFallbackAssessment(
     images: string[],
-    jobDetails?: any
+    jobDetails?: unknown
   ): BuildingAssessment | null {
     // Use the existing RealAIAnalysisService fallback logic
     // This ensures mobile app still works even if API is down
@@ -418,7 +418,7 @@ export class UnifiedAIServiceMobile {
    * Estimate severity from category
    */
   private estimateSeverityFromCategory(category: string): 'minimal' | 'moderate' | 'severe' | 'critical' {
-    const severityMap: { [key: string]: any } = {
+    const severityMap: { [key: string]: unknown } = {
       'emergency': 'critical',
       'plumbing_leak': 'severe',
       'electrical': 'severe',
@@ -434,7 +434,7 @@ export class UnifiedAIServiceMobile {
   /**
    * Perform local search when API is unavailable
    */
-  private async performLocalSearch(query: string, filters?: any): Promise<SearchResult[]> {
+  private async performLocalSearch(query: string, filters?: unknown): Promise<SearchResult[]> {
     // Implement basic local search using AsyncStorage
     // This would search through cached jobs, contractors, etc.
     return [];
@@ -457,7 +457,7 @@ export class UnifiedAIServiceMobile {
   /**
    * Get cache statistics
    */
-  getCacheStats(): any {
+  getCacheStats(): unknown {
     return this.service.getCacheStats();
   }
 }

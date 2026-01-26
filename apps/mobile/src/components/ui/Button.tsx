@@ -53,15 +53,23 @@ export const Button: React.FC<ButtonProps> = ({
   iconOnly = false,
   testID,
 }) => {
-  const v = theme.components.button[variant] as any;
-  const backgroundColor = v?.backgroundColor ?? theme.colors.primary;
-  const borderColor = v?.borderColor ?? 'transparent';
-  const color = v?.color ?? theme.colors.textInverse;
+  const variantStyles = variant === 'tertiary'
+    ? { backgroundColor: 'transparent', color: theme.colors.info, borderColor: 'transparent' }
+    : theme.components.button[variant as Exclude<ButtonVariant, 'tertiary'>];
+  const backgroundColor = disabled ? theme.colors.textTertiary : (variantStyles?.backgroundColor ?? theme.colors.primary);
+  const borderColor = variantStyles?.borderColor ?? 'transparent';
+  const color = variantStyles?.color ?? theme.colors.textInverse;
   const isTertiary = variant === 'tertiary';
+
+  const handlePress = () => {
+    if (!disabled && !loading && onPress) {
+      onPress();
+    }
+  };
 
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       disabled={disabled || loading}
       accessibilityRole='button'
       accessibilityLabel={accessibilityLabel || title}
@@ -69,15 +77,13 @@ export const Button: React.FC<ButtonProps> = ({
       testID={testID}
       style={[
         styles.base,
-        size === 'sm' ? styles.sm : styles.md,
-        iconOnly && styles.iconOnly,
+        iconOnly ? styles.iconOnly : (size === 'sm' ? styles.sm : styles.md),
         {
           backgroundColor,
           borderColor,
           width: fullWidth ? ('100%' as const) : undefined,
         },
-        disabled ? styles.disabled : null,
-        backgroundColor === 'transparent' && styles.noShadow,
+        !disabled && !loading && backgroundColor !== 'transparent' && theme.shadows.lg,
         style,
       ]}
     >
@@ -92,9 +98,11 @@ export const Button: React.FC<ButtonProps> = ({
           ) : null}
           <Text
             style={[
-              styles.text,
-              { color },
-              isTertiary && styles.linkText,
+              isTertiary ? styles.linkText : styles.text,
+              {
+                color,
+                ...(isTertiary && { fontSize: theme.typography.fontSize.lg })
+              },
               textStyle,
             ]}
           >
@@ -114,7 +122,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    ...theme.shadows.lg,
   },
   md: {
     minHeight: theme.layout.buttonHeightLarge,
@@ -140,15 +147,6 @@ const styles = StyleSheet.create({
   linkText: {
     textDecorationLine: 'underline',
     fontWeight: theme.typography.fontWeight.medium,
-  },
-  disabled: {
-    backgroundColor: theme.colors.textTertiary,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  noShadow: {
-    shadowOpacity: 0,
-    elevation: 0,
   },
   contentRow: {
     flexDirection: 'row',

@@ -1,4 +1,3 @@
-import React from 'react';
 import * as Sentry from '../../config/sentry';
 
 // Mock Sentry
@@ -37,6 +36,19 @@ beforeAll(() => {
 
 afterAll(() => {
   global.console = originalConsole;
+});
+
+
+beforeEach(() => {
+  jest.spyOn(console, 'log').mockImplementation(() => {});
+  jest.spyOn(console, 'info').mockImplementation(() => {});
+  jest.spyOn(console, 'warn').mockImplementation(() => {});
+  jest.spyOn(console, 'error').mockImplementation(() => {});
+  jest.spyOn(console, 'debug').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 describe('Logger', () => {

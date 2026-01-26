@@ -11,11 +11,9 @@
  * 3. Scalability: Semantic naming for easy maintenance
  * 4. Performance: Optimized for minimal repaints
  */
-
 // ============================================
 // COLOR SYSTEM
 // ============================================
-
 /**
  * Base Colors
  * Core color palette with semantic variations
@@ -35,7 +33,6 @@ export const baseColors = {
     900: '#134E4A',
     950: '#042F2E',
   },
-
   // Brand Navy (Secondary)
   navy: {
     50: '#F8FAFC',
@@ -50,7 +47,6 @@ export const baseColors = {
     900: '#0F172A',
     950: '#020617',
   },
-
   // Brand Emerald (Accent)
   emerald: {
     50: '#ECFDF5',
@@ -65,7 +61,6 @@ export const baseColors = {
     900: '#064E3B',
     950: '#022C22',
   },
-
   // Semantic Colors
   red: {
     50: '#FEF2F2',
@@ -79,7 +74,6 @@ export const baseColors = {
     800: '#991B1B',
     900: '#7F1D1D',
   },
-
   amber: {
     50: '#FFFBEB',
     100: '#FEF3C7',
@@ -92,7 +86,6 @@ export const baseColors = {
     800: '#92400E',
     900: '#78350F',
   },
-
   blue: {
     50: '#EFF6FF',
     100: '#DBEAFE',
@@ -105,7 +98,6 @@ export const baseColors = {
     800: '#1E40AF',
     900: '#1E3A8A',
   },
-
   // Neutral Gray
   gray: {
     50: '#FAFAFA',
@@ -121,7 +113,6 @@ export const baseColors = {
     950: '#09090B',
   },
 } as const;
-
 /**
  * Semantic Colors
  * Purpose-driven color mappings
@@ -136,7 +127,6 @@ export const semanticColors = {
     subtle: baseColors.teal[50],
     subtleHover: baseColors.teal[100],
   },
-
   // Secondary Actions
   secondary: {
     DEFAULT: baseColors.navy[800],
@@ -146,7 +136,6 @@ export const semanticColors = {
     subtle: baseColors.navy[50],
     subtleHover: baseColors.navy[100],
   },
-
   // Accent/Premium
   accent: {
     DEFAULT: baseColors.emerald[500],
@@ -156,7 +145,6 @@ export const semanticColors = {
     subtle: baseColors.emerald[50],
     subtleHover: baseColors.emerald[100],
   },
-
   // Status Colors
   success: {
     DEFAULT: baseColors.emerald[500],
@@ -165,7 +153,6 @@ export const semanticColors = {
     background: baseColors.emerald[50],
     border: baseColors.emerald[200],
   },
-
   error: {
     DEFAULT: baseColors.red[500],
     hover: baseColors.red[600],
@@ -173,7 +160,6 @@ export const semanticColors = {
     background: baseColors.red[50],
     border: baseColors.red[200],
   },
-
   warning: {
     DEFAULT: baseColors.amber[500],
     hover: baseColors.amber[600],
@@ -181,7 +167,6 @@ export const semanticColors = {
     background: baseColors.amber[50],
     border: baseColors.amber[200],
   },
-
   info: {
     DEFAULT: baseColors.blue[500],
     hover: baseColors.blue[600],
@@ -189,7 +174,6 @@ export const semanticColors = {
     background: baseColors.blue[50],
     border: baseColors.blue[200],
   },
-
   // Text Colors
   text: {
     primary: baseColors.navy[900],
@@ -201,7 +185,6 @@ export const semanticColors = {
     link: baseColors.teal[600],
     linkHover: baseColors.teal[700],
   },
-
   // Background Colors
   background: {
     primary: '#FFFFFF',
@@ -211,7 +194,6 @@ export const semanticColors = {
     overlay: 'rgba(0, 0, 0, 0.5)',
     dark: baseColors.navy[900],
   },
-
   // Border Colors
   border: {
     DEFAULT: baseColors.gray[200],
@@ -222,18 +204,15 @@ export const semanticColors = {
     error: baseColors.red[500],
   },
 } as const;
-
 // ============================================
 // TYPOGRAPHY SYSTEM
 // ============================================
-
 export const typography = {
   // Font Families
   fontFamily: {
     sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
     mono: ['JetBrains Mono', 'Consolas', 'Monaco', 'monospace'],
   },
-
   // Font Sizes with Line Heights
   fontSize: {
     xs: ['0.75rem', { lineHeight: '1rem' }],      // 12px
@@ -247,7 +226,6 @@ export const typography = {
     '5xl': ['3rem', { lineHeight: '1' }],         // 48px
     '6xl': ['3.75rem', { lineHeight: '1' }],      // 60px
   },
-
   // Font Weights
   fontWeight: {
     normal: 400,
@@ -255,7 +233,6 @@ export const typography = {
     semibold: 600,
     bold: 700,
   },
-
   // Letter Spacing
   letterSpacing: {
     tighter: '-0.05em',
@@ -264,7 +241,6 @@ export const typography = {
     wide: '0.025em',
     wider: '0.05em',
   },
-
   // Text Styles (Composed)
   textStyles: {
     // Headings
@@ -304,7 +280,6 @@ export const typography = {
       fontWeight: 600,
       letterSpacing: '0',
     },
-
     // Body Text
     body: {
       fontSize: '1rem',
@@ -316,7 +291,6 @@ export const typography = {
       lineHeight: '1.25rem',
       fontWeight: 400,
     },
-
     // UI Text
     label: {
       fontSize: '0.875rem',
@@ -338,11 +312,9 @@ export const typography = {
     },
   },
 } as const;
-
 // ============================================
 // SPACING SYSTEM
 // ============================================
-
 export const spacing = {
   px: '1px',
   0: '0',
@@ -380,11 +352,9 @@ export const spacing = {
   80: '20rem',       // 320px
   96: '24rem',       // 384px
 } as const;
-
 // ============================================
 // BORDER RADIUS SYSTEM
 // ============================================
-
 export const borderRadius = {
   none: '0',
   sm: '0.125rem',    // 2px
@@ -396,11 +366,9 @@ export const borderRadius = {
   '3xl': '1.5rem',    // 24px
   full: '9999px',
 } as const;
-
 // ============================================
 // SHADOW SYSTEM
 // ============================================
-
 export const shadows = {
   // Elevation Shadows
   xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
@@ -410,64 +378,50 @@ export const shadows = {
   lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
   '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-
   // Card Shadows (Consistent for all surfaces)
   card: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
   cardHover: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
   cardActive: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-
   // Inner Shadow
   inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
-
   // Focus Glow
   focus: `0 0 0 3px ${baseColors.teal[600]}33`,
   focusError: `0 0 0 3px ${baseColors.red[500]}33`,
-
   // Button Shadows
   button: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
   buttonHover: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1)',
-
   // Status Glows
   successGlow: `0 0 0 3px ${baseColors.emerald[500]}33`,
   errorGlow: `0 0 0 3px ${baseColors.red[500]}33`,
   warningGlow: `0 0 0 3px ${baseColors.amber[500]}33`,
   infoGlow: `0 0 0 3px ${baseColors.blue[500]}33`,
-
   none: 'none',
 } as const;
-
 // ============================================
 // GRADIENTS
 // ============================================
-
 export const gradients = {
   // Brand Gradients
   primary: `linear-gradient(135deg, ${baseColors.teal[600]} 0%, ${baseColors.teal[700]} 100%)`,
   secondary: `linear-gradient(135deg, ${baseColors.navy[800]} 0%, ${baseColors.navy[900]} 100%)`,
   accent: `linear-gradient(135deg, ${baseColors.emerald[500]} 0%, ${baseColors.emerald[600]} 100%)`,
-
   // Hero Gradients
   hero: `linear-gradient(135deg, ${baseColors.teal[600]} 0%, ${baseColors.emerald[500]} 100%)`,
   heroSubtle: `linear-gradient(180deg, ${baseColors.teal[50]} 0%, rgba(255, 255, 255, 0) 100%)`,
-
   // Card Gradients
   cardHover: `linear-gradient(135deg, rgba(13, 148, 136, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%)`,
-
   // Background Gradients
   backgroundSubtle: 'linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%)',
   backgroundDark: `linear-gradient(135deg, ${baseColors.navy[900]} 0%, ${baseColors.navy[950]} 100%)`,
-
   // Status Gradients
   success: `linear-gradient(135deg, ${baseColors.emerald[500]} 0%, ${baseColors.emerald[600]} 100%)`,
   error: `linear-gradient(135deg, ${baseColors.red[500]} 0%, ${baseColors.red[600]} 100%)`,
   warning: `linear-gradient(135deg, ${baseColors.amber[500]} 0%, ${baseColors.amber[600]} 100%)`,
   info: `linear-gradient(135deg, ${baseColors.blue[500]} 0%, ${baseColors.blue[600]} 100%)`,
 } as const;
-
 // ============================================
 // ANIMATION & TRANSITIONS
 // ============================================
-
 export const transitions = {
   // Durations
   duration: {
@@ -477,7 +431,6 @@ export const transitions = {
     slow: '350ms',
     slower: '500ms',
   },
-
   // Easing Functions
   easing: {
     linear: 'linear',
@@ -486,7 +439,6 @@ export const transitions = {
     inOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
     elastic: 'cubic-bezier(0.68, -0.6, 0.32, 1.6)',
   },
-
   // Common Transitions
   all: 'all 250ms cubic-bezier(0.4, 0, 0.2, 1)',
   colors: 'background-color, border-color, color, fill, stroke 250ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -494,11 +446,9 @@ export const transitions = {
   shadow: 'box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1)',
   transform: 'transform 250ms cubic-bezier(0.4, 0, 0.2, 1)',
 } as const;
-
 // ============================================
 // Z-INDEX SYSTEM
 // ============================================
-
 export const zIndex = {
   hide: -1,
   base: 0,
@@ -513,11 +463,9 @@ export const zIndex = {
   toast: 1700,
   tooltip: 1800,
 } as const;
-
 // ============================================
 // COMPONENT TOKENS
 // ============================================
-
 export const components = {
   // Button Styles
   button: {
@@ -578,7 +526,6 @@ export const components = {
       transition: transitions.all,
     },
   },
-
   // Badge Styles
   badge: {
     default: {
@@ -627,7 +574,6 @@ export const components = {
       fontWeight: typography.fontWeight.medium,
     },
   },
-
   // Card Styles
   card: {
     default: {
@@ -660,7 +606,6 @@ export const components = {
       cursor: 'pointer',
     },
   },
-
   // Input Styles
   input: {
     default: {
@@ -692,7 +637,6 @@ export const components = {
       transition: transitions.all,
     },
   },
-
   // Modal Styles
   modal: {
     overlay: {
@@ -721,11 +665,9 @@ export const components = {
     },
   },
 } as const;
-
 // ============================================
 // EXPORT ALL TOKENS
 // ============================================
-
 export const unifiedTokens = {
   colors: {
     ...baseColors,
@@ -740,5 +682,4 @@ export const unifiedTokens = {
   zIndex,
   components,
 } as const;
-
 export type UnifiedTokens = typeof unifiedTokens;

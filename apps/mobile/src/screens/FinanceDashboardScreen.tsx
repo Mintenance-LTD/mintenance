@@ -13,7 +13,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { theme } from '../theme';
 
 interface FinanceDashboardScreenProps {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({

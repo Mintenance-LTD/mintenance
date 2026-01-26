@@ -8,11 +8,11 @@ import {
   TestAccessibilityResult,
   EnhancedRenderOptions,
 } from '../../utils/testing';
-import { render } from '@testing-library/react-native';
-import React from 'react';
+import { render } from '../test-utils';
+
 
 // Mock dependencies
-jest.mock('@testing-library/react-native', () => ({
+jest.mock('test-utils', () => ({
   render: jest.fn(),
   fireEvent: {
     press: jest.fn(),

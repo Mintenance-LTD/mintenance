@@ -1,8 +1,8 @@
 'use client';
 
 import React, { Component, type ReactNode } from 'react';
-import { logger } from '@mintenance/shared';
 
+import { logger } from '@mintenance/shared';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
@@ -67,11 +67,13 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
       errorInfo,
       isChunkError,
       retryCount: this.state.retryCount,
-    }', [object Object], { service: 'ui' });
+    });
 
     // If it's a chunk error and we haven't exceeded retry limit
     if (isChunkError && this.state.retryCount < MAX_AUTO_RETRIES) {
-      logger.warn('[ChunkLoadErrorBoundary] Auto-retry %s/%s', [object Object], { service: 'ui' });
+      logger.warn(
+        `[ChunkLoadErrorBoundary] Auto-retry ${this.state.retryCount + 1}/${MAX_AUTO_RETRIES}`
+      );
 
       // Clear cache and retry
       this.clearCacheAndRetry();
@@ -79,7 +81,7 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
   }
 
   clearCacheAndRetry = async () => {
-    console.info('[ChunkLoadErrorBoundary] Clearing cache and retrying...');
+    logger.info('[ChunkLoadErrorBoundary] Clearing cache and retrying...');
 
     // Notify service worker to clear cache
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -92,7 +94,7 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
     try {
       sessionStorage.removeItem('next-build-id');
     } catch (e) {
-      logger.warn('[ChunkLoadErrorBoundary] Failed to clear session storage:', e', [object Object], { service: 'ui' });
+      logger.warn('[ChunkLoadErrorBoundary] Failed to clear session storage:', e);
     }
 
     // Increment retry count
@@ -106,12 +108,12 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
   };
 
   handleManualRetry = () => {
-    console.info('[ChunkLoadErrorBoundary] Manual retry requested');
+    logger.info('[ChunkLoadErrorBoundary] Manual retry requested');
     this.clearCacheAndRetry();
   };
 
   handleReset = () => {
-    console.info('[ChunkLoadErrorBoundary] Resetting error boundary');
+    logger.info('[ChunkLoadErrorBoundary] Resetting error boundary');
     this.setState({
       hasError: false,
       error: null,

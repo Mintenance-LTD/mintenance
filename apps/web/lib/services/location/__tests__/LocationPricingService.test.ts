@@ -1,11 +1,12 @@
+import { vi } from 'vitest';
 import { LocationPricingService } from '../LocationPricingService';
 
 // Mock fetch for postcodes.io API
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('LocationPricingService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     LocationPricingService.clearCaches();
   });
 
@@ -17,7 +18,7 @@ describe('LocationPricingService', () => {
     describe('Postcode-based pricing', () => {
       it('should return high multiplier for central London postcode', async () => {
         // Mock postcodes.io API response
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        vi.mocked(global.fetch).mockResolvedValueOnce({
           ok: true,
           json: async () => ({
             status: 200,
@@ -40,7 +41,7 @@ describe('LocationPricingService', () => {
       });
 
       it('should return moderate multiplier for South East postcode', async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        vi.mocked(global.fetch).mockResolvedValueOnce({
           ok: true,
           json: async () => ({
             status: 200,
@@ -63,7 +64,7 @@ describe('LocationPricingService', () => {
       });
 
       it('should return low multiplier for North East postcode', async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        vi.mocked(global.fetch).mockResolvedValueOnce({
           ok: true,
           json: async () => ({
             status: 200,
@@ -86,7 +87,7 @@ describe('LocationPricingService', () => {
       });
 
       it('should handle postcode without spaces', async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        vi.mocked(global.fetch).mockResolvedValueOnce({
           ok: true,
           json: async () => ({
             status: 200,
@@ -109,7 +110,7 @@ describe('LocationPricingService', () => {
       });
 
       it('should use postcode area fallback when API fails', async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        vi.mocked(global.fetch).mockResolvedValueOnce({
           ok: false,
           status: 404,
         });
@@ -187,7 +188,7 @@ describe('LocationPricingService', () => {
       });
 
       it('should return 1.0 on API error', async () => {
-        (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+        vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'));
         const factor = await LocationPricingService.getLocationFactor('Test Location');
         expect(factor).toBe(1.0);
       });
@@ -203,7 +204,7 @@ describe('LocationPricingService', () => {
       });
 
       it('should cache postcode lookups', async () => {
-        (global.fetch as jest.Mock).mockResolvedValue({
+        vi.mocked(global.fetch).mockResolvedValue({
           ok: true,
           json: async () => ({
             status: 200,
@@ -235,7 +236,7 @@ describe('LocationPricingService', () => {
 
   describe('getLocationData', () => {
     it('should return comprehensive location data for valid postcode', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           status: 200,
@@ -262,7 +263,7 @@ describe('LocationPricingService', () => {
     });
 
     it('should return null for invalid postcode', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: false,
         status: 404,
       });
@@ -272,7 +273,7 @@ describe('LocationPricingService', () => {
     });
 
     it('should prefer city multipliers over regional multipliers', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           status: 200,
@@ -296,7 +297,7 @@ describe('LocationPricingService', () => {
 
   describe('Postcode extraction and normalization', () => {
     it('should extract postcode from location string', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => ({
           status: 200,
@@ -316,7 +317,7 @@ describe('LocationPricingService', () => {
     });
 
     it('should normalize postcode format', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => ({
           status: 200,
@@ -391,8 +392,8 @@ describe('LocationPricingService', () => {
       ];
 
       for (const location of locations) {
-        (global.fetch as jest.Mock).mockClear();
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        vi.mocked(global.fetch).mockClear();
+        vi.mocked(global.fetch).mockResolvedValueOnce({
           ok: true,
           json: async () => ({
             status: 200,
@@ -433,7 +434,7 @@ describe('LocationPricingService', () => {
 
   describe('Error handling', () => {
     it('should handle API timeout gracefully', async () => {
-      (global.fetch as jest.Mock).mockImplementationOnce(() =>
+      vi.mocked(global.fetch).mockImplementationOnce(() =>
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Timeout')), 100)
         )
@@ -447,7 +448,7 @@ describe('LocationPricingService', () => {
     });
 
     it('should handle malformed API response', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           status: 500,
@@ -462,7 +463,7 @@ describe('LocationPricingService', () => {
     });
 
     it('should handle network errors', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'));
 
       const factor = await LocationPricingService.getLocationFactor('Test Location');
       expect(factor).toBe(1.0); // Safe default
@@ -471,7 +472,7 @@ describe('LocationPricingService', () => {
 
   describe('Performance', () => {
     it('should handle multiple concurrent requests efficiently', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => ({
           status: 200,
@@ -500,7 +501,7 @@ describe('LocationPricingService', () => {
       expect(global.fetch).toHaveBeenCalled();
 
       // Verify caching works for subsequent calls
-      (global.fetch as jest.Mock).mockClear();
+      vi.mocked(global.fetch).mockClear();
       await LocationPricingService.getLocationFactor('London, SW1A 1AA');
       expect(global.fetch).toHaveBeenCalledTimes(0); // Should use cache
     });

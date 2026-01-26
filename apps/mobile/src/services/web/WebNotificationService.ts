@@ -4,7 +4,7 @@ import { addBreadcrumb, trackUserAction } from '../../config/sentry';
 export interface WebPushNotificationContent {
   title: string;
   body: string;
-  data?: any;
+  data?: unknown;
   badge?: string;
   icon?: string;
   image?: string;
@@ -144,7 +144,7 @@ export class WebNotificationService {
     userId: string,
     title: string,
     body: string,
-    data?: any
+    data?: unknown
   ): Promise<void> {
     try {
       await this.presentNotificationAsync({

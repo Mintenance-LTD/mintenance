@@ -17,7 +17,7 @@ const LazyVideoCallService = createLazyComponent(
   }
 );
 
-export const VideoCallService = (props: any) => (
+export const VideoCallService = (props: unknown) => (
   <Suspense fallback={<LoadingSpinner />}>
     <LazyVideoCallService {...props} />
   </Suspense>

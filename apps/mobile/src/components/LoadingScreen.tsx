@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 
 interface LoadingScreenProps {
   message?: string;
@@ -34,7 +34,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
 export const LoadingIndicator: React.FC<{
   size?: 'small' | 'large';
   color?: string;
-  style?: any;
+  style?: ViewStyle;
 }> = ({ size = 'small', color = '#0066CC', style }) => {
   return <ActivityIndicator size={size} color={color} style={style} />;
 };
@@ -44,8 +44,8 @@ export const LoadingButton: React.FC<{
   loading: boolean;
   onPress: () => void;
   title: string;
-  style?: any;
-  textStyle?: any;
+  style?: ViewStyle;
+  textStyle?: TextStyle;
   loadingColor?: string;
   disabled?: boolean;
 }> = ({
@@ -96,7 +96,7 @@ export const SkeletonLoader: React.FC<{
   width?: number | string;
   height?: number;
   borderRadius?: number;
-  style?: any;
+  style?: ViewStyle;
 }> = ({ width = '100%', height = 20, borderRadius = 4, style }) => {
   return (
     <View
@@ -116,7 +116,7 @@ export const SkeletonLoader: React.FC<{
 // List skeleton for loading lists
 export const ListSkeleton: React.FC<{
   count?: number;
-  style?: any;
+  style?: ViewStyle;
 }> = ({ count = 5, style }) => {
   return (
     <View style={style}>
@@ -139,7 +139,7 @@ export const ListSkeleton: React.FC<{
 
 // Card skeleton for loading cards
 export const CardSkeleton: React.FC<{
-  style?: any;
+  style?: ViewStyle;
 }> = ({ style }) => {
   return (
     <View style={[styles.card, style]}>

@@ -23,7 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 
 interface VerificationScreenProps {
-  navigation: any;
+  navigation: unknown;
 }
 
 interface VerificationData {

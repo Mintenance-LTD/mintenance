@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * @jest-environment node
  */
@@ -5,19 +6,19 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 import { createClient } from '@supabase/supabase-js';
 
 // Mock dependencies
-jest.mock('@supabase/supabase-js');
-jest.mock('@/lib/logger', () => ({
+vi.mock('@supabase/supabase-js');
+vi.mock('@/lib/logger', () => ({
   logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
-jest.mock('@/lib/monitoring', () => ({
+vi.mock('@/lib/monitoring', () => ({
   monitoring: {
-    recordMetric: jest.fn(),
-    sendAlert: jest.fn(),
+    recordMetric: vi.fn(),
+    sendAlert: vi.fn(),
   },
 }));
 
@@ -29,19 +30,19 @@ describe('Refresh Token Breach Detection', () => {
   let tokenService: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock Supabase client
     mockSupabase = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn(),
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn(),
     };
 
-    (createClient as jest.Mock).mockReturnValue(mockSupabase);
+    vi.mocked(createClient).mockReturnValue(mockSupabase);
 
     // Token service implementation
     tokenService = {
@@ -180,7 +181,7 @@ describe('Refresh Token Breach Detection', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Normal refresh token rotation', () => {
@@ -479,7 +480,7 @@ describe('Refresh Token Breach Detection', () => {
       const familyId = 'family-history';
 
       mockSupabase.select.mockReturnValueOnce({
-        eq: jest.fn().mockResolvedValue({
+        eq: vi.fn().mockResolvedValue({
           data: [
             { id: 'token-1', generation: 1, consumed_at: '2024-01-01' },
             { id: 'token-2', generation: 2, consumed_at: '2024-01-02' },
@@ -650,7 +651,7 @@ describe('Refresh Token Breach Detection', () => {
       await tokenService.createTokenPair('user-1');
       await tokenService.createTokenPair('user-2');
 
-      const calls = (mockSupabase.insert as jest.Mock).mock.calls;
+      const calls = vi.mocked(mockSupabase.insert).mock.calls;
       expect(calls[0][0].family_id).not.toBe(calls[1][0].family_id);
     });
   });

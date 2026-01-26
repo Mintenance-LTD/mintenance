@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import type { User } from '@/types';
 import { UserService, ContractorStats, UserProfile } from '../../../services/UserService';
 import { JobService } from '../../../services/JobService';
 import { logger } from '../../../utils/logger';
@@ -16,7 +17,7 @@ import { logger } from '../../../utils/logger';
 export interface HomeState {
   contractorStats: ContractorStats | null;
   previousContractors: UserProfile[];
-  homeownerJobs: any[];
+  homeownerJobs: unknown[];
   loading: boolean;
   refreshing: boolean;
   error: string | null;
@@ -35,7 +36,7 @@ export interface HomeViewModel extends HomeState, HomeActions {}
 /**
  * Custom hook that provides Home screen business logic
  */
-export const useHomeViewModel = (user: any): HomeViewModel => {
+export const useHomeViewModel = (user: unknown): HomeViewModel => {
   // State management
   const [contractorStats, setContractorStats] = useState<ContractorStats | null>(null);
   const [previousContractors, setPreviousContractors] = useState<UserProfile[]>([]);
@@ -88,7 +89,7 @@ export const useHomeViewModel = (user: any): HomeViewModel => {
    * Load data specific to homeowners
    */
   const loadHomeownerSpecificData = async (opts?: { skipJobs?: boolean }) => {
-    const promises: Promise<any>[] = [
+    const promises: Promise<unknown>[] = [
       UserService.getPreviousContractors(user.id)
     ];
 
@@ -170,7 +171,7 @@ export class HomeViewModelClass {
     this.setState = setState;
   }
 
-  async loadData(user: any, opts?: { skipJobs?: boolean }): Promise<void> {
+  async loadData(user: User | null, opts?: { skipJobs?: boolean }): Promise<void> {
     if (!user) {
       this.setState({ loading: false });
       return;
@@ -205,7 +206,7 @@ export class HomeViewModelClass {
   }
 
   private async loadHomeownerData(userId: string, opts?: { skipJobs?: boolean }): Promise<void> {
-    const promises: Promise<any>[] = [
+    const promises: Promise<unknown>[] = [
       UserService.getPreviousContractors(userId)
     ];
 
@@ -221,7 +222,7 @@ export class HomeViewModelClass {
     });
   }
 
-  handleRefresh(user: any): Promise<void> {
+  handleRefresh(user: unknown): Promise<void> {
     this.setState({ refreshing: true });
     return this.loadData(user);
   }

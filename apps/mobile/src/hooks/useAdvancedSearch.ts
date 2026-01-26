@@ -130,7 +130,7 @@ export const useAdvancedSearch = ({
           filters,
         };
 
-        let searchResult: SearchResult<any>;
+        let searchResult: SearchResult<unknown>;
 
         if (searchType === 'contractors') {
           searchResult = await AdvancedSearchService.searchContractors(
@@ -169,7 +169,7 @@ export const useAdvancedSearch = ({
           totalResults: searchResult.total,
           executionTime: searchResult.executionTime,
         });
-      } catch (error: any) {
+      } catch (error) {
         // Don't update state if request was aborted
         if (searchAbortController.current?.signal.aborted) {
           return;

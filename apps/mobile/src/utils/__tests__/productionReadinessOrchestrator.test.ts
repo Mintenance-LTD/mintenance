@@ -71,7 +71,7 @@ jest.mock('../errorTracking', () => ({
   },
 }));
 
-jest.mock('../securityAuditAndPenetrationTesting', () => ({
+jest.mock('../security', () => ({
   securityAuditService: {
     runSecurityAudit: jest.fn(() => Promise.resolve({
       summary: {

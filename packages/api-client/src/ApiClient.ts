@@ -4,9 +4,7 @@
  * Unified HTTP client for web API endpoints with consistent error handling,
  * retry logic, and request/response interceptors.
  */
-
 import { parseError, logError, ApiError, NetworkError } from './ErrorHandler';
-
 export interface ApiClientConfig {
   baseURL?: string;
   timeout?: number;
@@ -14,20 +12,17 @@ export interface ApiClientConfig {
   retryDelay?: number;
   headers?: Record<string, string>;
 }
-
 export interface RequestOptions extends RequestInit {
   timeout?: number;
   retries?: number;
   retryDelay?: number;
 }
-
 export class ApiClient {
   private baseURL: string;
   private timeout: number;
   private defaultRetries: number;
   private retryDelay: number;
   private defaultHeaders: Record<string, string>;
-
   constructor(config: ApiClientConfig = {}) {
     this.baseURL = config.baseURL || (typeof window !== 'undefined' ? window.location.origin : '');
     this.timeout = config.timeout || 30000; // 30 seconds
@@ -38,21 +33,18 @@ export class ApiClient {
       ...config.headers,
     };
   }
-
   /**
    * Set default headers
    */
   setHeaders(headers: Record<string, string>): void {
     this.defaultHeaders = { ...this.defaultHeaders, ...headers };
   }
-
   /**
    * Set authorization token
    */
   setAuthToken(token: string): void {
     this.setHeaders({ Authorization: `Bearer ${token}` });
   }
-
   /**
    * Clear authorization token
    */
@@ -60,7 +52,6 @@ export class ApiClient {
     const { Authorization, ...rest } = this.defaultHeaders;
     this.defaultHeaders = rest;
   }
-
   /**
    * Make HTTP request with retry logic
    */
@@ -74,29 +65,23 @@ export class ApiClient {
       retryDelay = this.retryDelay,
       ...fetchOptions
     } = options;
-
     const fullUrl = url.startsWith('http') ? url : `${this.baseURL}${url}`;
     const headers = {
       ...this.defaultHeaders,
       ...fetchOptions.headers,
     };
-
     let lastError: ApiError | NetworkError | null = null;
-
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         // Create abort controller for timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
-
         const response = await fetch(fullUrl, {
           ...fetchOptions,
           headers,
           signal: controller.signal,
         });
-
         clearTimeout(timeoutId);
-
         // Handle non-OK responses
         if (!response.ok) {
           const errorData = await this.parseErrorResponse(response);
@@ -106,46 +91,37 @@ export class ApiClient {
             statusCode: response.status,
             details: errorData,
           });
-
           // Don't retry on client errors (4xx)
           if (response.status >= 400 && response.status < 500) {
             logError(error, `API Request failed: ${url}`);
             throw error;
           }
-
           // Retry on server errors (5xx) or network errors
           lastError = error;
           if (attempt < retries) {
             await this.delay(retryDelay * (attempt + 1));
             continue;
           }
-
           throw error;
         }
-
         // Parse response
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           return await response.json();
         }
-
         return (await response.text()) as unknown as T;
       } catch (error) {
         const parsedError = parseError(error);
-
         // Don't retry on abort (timeout)
         if (error instanceof Error && error.name === 'AbortError') {
           throw new NetworkError('Request timeout', error);
         }
-
         // Don't retry on client errors
         if (parsedError.type !== 'NETWORK' && parsedError.statusCode && parsedError.statusCode < 500) {
           logError(parsedError, `API Request failed: ${url}`);
           throw parsedError;
         }
-
         lastError = parsedError;
-
         // Retry on network errors or server errors
         if (attempt < retries) {
           await this.delay(retryDelay * (attempt + 1));
@@ -153,16 +129,13 @@ export class ApiClient {
         }
       }
     }
-
     // All retries exhausted
     if (lastError) {
       logError(lastError, `API Request failed after ${retries} retries: ${url}`);
       throw lastError;
     }
-
     throw new NetworkError('Request failed after retries');
   }
-
   /**
    * Parse error response
    */
@@ -184,21 +157,18 @@ export class ApiClient {
       };
     }
   }
-
   /**
    * Delay helper for retries
    */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
-
   /**
    * GET request
    */
   async get<T>(url: string, options?: RequestOptions): Promise<T> {
     return this.request<T>(url, { ...options, method: 'GET' });
   }
-
   /**
    * POST request
    */
@@ -209,7 +179,6 @@ export class ApiClient {
       body: data ? JSON.stringify(data) : undefined,
     });
   }
-
   /**
    * PUT request
    */
@@ -220,7 +189,6 @@ export class ApiClient {
       body: data ? JSON.stringify(data) : undefined,
     });
   }
-
   /**
    * PATCH request
    */
@@ -231,7 +199,6 @@ export class ApiClient {
       body: data ? JSON.stringify(data) : undefined,
     });
   }
-
   /**
    * DELETE request
    */
@@ -239,9 +206,7 @@ export class ApiClient {
     return this.request<T>(url, { ...options, method: 'DELETE' });
   }
 }
-
 /**
  * Default API client instance
  */
 export const apiClient = new ApiClient();
-

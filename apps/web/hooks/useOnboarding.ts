@@ -191,7 +191,7 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
    * Get profile completion items based on user type
    */
   const getProfileCompletionItems = useCallback(
-    (userData: any): ProfileCompletionItem[] => {
+    (userData: unknown): ProfileCompletionItem[] => {
       if (userType === 'homeowner') {
         return [
           {
@@ -292,7 +292,7 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
    * Calculate profile completion percentage
    */
   const getProfileCompletion = useCallback(
-    (userData: any): number => {
+    (userData: unknown): number => {
       const items = getProfileCompletionItems(userData);
       return calculateProfileCompletion(items);
     },

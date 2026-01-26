@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ErrorInfo } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ScreenErrorBoundary } from './ScreenErrorBoundary';
 import { QueryErrorBoundary } from './QueryErrorBoundary';
@@ -13,7 +13,7 @@ interface AppErrorBoundaryProps {
 export const AppErrorBoundary: React.FC<AppErrorBoundaryProps> = ({
   children,
 }) => {
-  const handleGlobalError = (error: Error, errorInfo: any) => {
+  const handleGlobalError = (error: Error, errorInfo: ErrorInfo) => {
     logger.error('Global app error', error);
 
     try {
@@ -119,7 +119,7 @@ export const useErrorHandler = () => {
   }, []);
 
   const handleAsyncError = React.useCallback(
-    async (asyncOperation: () => Promise<any>, context?: string) => {
+    async (asyncOperation: () => Promise<unknown>, context?: string): Promise<unknown> => {
       try {
         return await asyncOperation();
       } catch (error) {

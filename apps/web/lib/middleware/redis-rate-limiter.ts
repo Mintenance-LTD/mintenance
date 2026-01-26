@@ -152,7 +152,7 @@ export async function checkRedisHealth(): Promise<boolean> {
     await redis.ping();
     return true;
   } catch (error) {
-    logger.error('Redis health check failed:', error', [object Object], { service: 'lib' });
+    logger.error('Redis health check failed:', error, { service: 'lib' });
     return false;
   }
 }

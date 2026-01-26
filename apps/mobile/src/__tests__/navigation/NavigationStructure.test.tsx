@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 
@@ -75,7 +84,7 @@ jest.mock('../../screens/JobsScreen', () => {
   };
 });
 
-jest.mock('../../screens/JobDetailsScreen', () => {
+jest.mock('../../screens/job-details/JobDetailsScreen', () => {
   const { View, Text } = require('react-native');
   return function MockJobDetailsScreen() {
     return (
@@ -208,7 +217,7 @@ jest.mock('../../screens/NotificationSettingsScreen', () => {
   };
 });
 
-jest.mock('../../screens/PaymentMethodsScreen', () => {
+jest.mock('../../screens/payment-methods/PaymentMethodsScreen', () => {
   const { View, Text } = require('react-native');
   return function MockPaymentMethodsScreen() {
     return (
@@ -285,7 +294,7 @@ jest.mock('../../screens/QuoteBuilderScreen', () => {
   };
 });
 
-jest.mock('../../screens/CreateQuoteScreen', () => {
+jest.mock('../../screens/create-quote/CreateQuoteScreen', () => {
   const { View, Text } = require('react-native');
   return function MockCreateQuoteScreen() {
     return (
@@ -348,6 +357,10 @@ describe('Navigation Structure', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   describe('Navigation Types', () => {
     it('should have properly typed navigation parameters', () => {

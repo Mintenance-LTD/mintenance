@@ -25,11 +25,11 @@ export function measurePerformance(
   name?: string,
   category: PerformanceMetric['category'] = 'custom'
 ) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
     const methodName = name || `${target.constructor.name}.${propertyKey}`;
 
-    descriptor.value = function (...args: any[]) {
+    descriptor.value = function (...args: unknown[]) {
       return performanceMonitor.measureSync(
         methodName,
         () => originalMethod.apply(this, args),

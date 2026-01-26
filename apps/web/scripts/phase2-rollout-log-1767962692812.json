@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-01-09T12:44:52.810Z",
+  "phase": 2,
+  "rollout": 5,
+  "controllers": [
+    {
+      "name": "USER_PROFILE",
+      "percentage": 5
+    },
+    {
+      "name": "USER_SETTINGS",
+      "percentage": 5
+    },
+    {
+      "name": "USER_AVATAR",
+      "percentage": 5
+    }
+  ],
+  "executedBy": "unknown"
+}

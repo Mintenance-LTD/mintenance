@@ -52,7 +52,7 @@ export interface MarketingChannel {
   spent: number;
   performance: ChannelPerformance;
   content: string[];
-  settings: any;
+  settings: unknown;
 }
 
 export interface ChannelPerformance {

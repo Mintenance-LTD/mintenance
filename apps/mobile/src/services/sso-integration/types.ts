@@ -6,6 +6,7 @@
 
 export interface SSOProvider {
   id: string;
+  contractor_id: string;
   provider_name: string;
   provider_type:
     | 'google'
@@ -46,8 +47,8 @@ export interface SSOProvider {
   ldap_user_search_filter?: string;
   ldap_group_search_filter?: string;
   requested_scopes?: string[];
-  user_attributes?: any;
-  group_attributes?: any;
+  user_attributes?: unknown;
+  group_attributes?: unknown;
   display_name: string;
   description?: string;
   logo_url?: string;
@@ -57,12 +58,12 @@ export interface SSOProvider {
   auto_create_users: boolean;
   auto_link_accounts: boolean;
   require_matching_email: boolean;
-  custom_claims?: any;
+  custom_claims?: unknown;
   token_lifetime: number;
   refresh_token_enabled: boolean;
   created_by?: string;
   last_tested_at?: string;
-  test_results?: any;
+  test_results?: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -82,12 +83,12 @@ export interface UserSSOAccount {
   refresh_token_encrypted?: string;
   id_token_encrypted?: string;
   token_expires_at?: string;
-  profile_data: any;
-  permissions: any[];
-  groups: any[];
+  profile_data: unknown;
+  permissions: unknown[];
+  groups: unknown[];
   last_login_at?: string;
   login_count: number;
-  metadata: any;
+  metadata: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -100,7 +101,7 @@ export interface SSOSession {
   session_type: 'web' | 'mobile' | 'api' | 'sso';
   ip_address?: string;
   user_agent?: string;
-  device_info?: any;
+  device_info?: unknown;
   location?: {
     country?: string;
     region?: string;
@@ -111,7 +112,7 @@ export interface SSOSession {
   expires_at: string;
   last_activity_at: string;
   is_active: boolean;
-  metadata: any;
+  metadata: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -129,7 +130,7 @@ export interface SSOConfiguration {
   default_permissions?: string[];
   group_mapping?: Record<string, string>;
   attribute_mapping?: Record<string, string>;
-  custom_settings?: any;
+  custom_settings?: unknown;
   created_at: string;
   updated_at: string;
 }
@@ -143,7 +144,7 @@ export interface SSOEvent {
   ip_address?: string;
   user_agent?: string;
   error_message?: string;
-  metadata: any;
+  metadata: unknown;
   created_at: string;
 }
 
@@ -178,7 +179,7 @@ export interface SSOUserProfile {
   };
   groups?: string[];
   roles?: string[];
-  custom_attributes?: Record<string, any>;
+  custom_attributes?: Record<string, unknown>;
 }
 
 export interface SSOProviderConfig {
@@ -192,6 +193,8 @@ export interface SSOProviderConfig {
   jwks_url?: string;
   issuer?: string;
   requested_scopes?: string[];
+  user_attributes?: Record<string, string>;
+  group_attributes?: Record<string, string>;
   custom_endpoints?: Record<string, string>;
   saml_config?: {
     entity_id: string;
@@ -235,7 +238,7 @@ export interface SSOTestResult {
   success: boolean;
   error_message?: string;
   response_time_ms: number;
-  details: any;
+  details: unknown;
   tested_at: string;
 }
 

@@ -9,7 +9,7 @@ import { MLModel } from './types';
 
 export class MLModelRegistry {
   private models: Map<string, MLModel> = new Map();
-  private modelCache: Map<string, any> = new Map();
+  private modelCache: Map<string, unknown> = new Map();
 
   constructor() {
     this.initializeBuiltInModels();
@@ -154,14 +154,14 @@ export class MLModelRegistry {
   /**
    * Get cache for model
    */
-  getModelCache(key: string): any {
+  getModelCache(key: string): unknown {
     return this.modelCache.get(key);
   }
 
   /**
    * Set cache for model
    */
-  setModelCache(key: string, value: any): void {
+  setModelCache(key: string, value: unknown): void {
     this.modelCache.set(key, value);
   }
 

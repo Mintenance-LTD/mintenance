@@ -29,11 +29,11 @@ export interface SocialNavigationActions {
  * Navigation coordinator for ContractorSocial screen
  */
 export class SocialNavigationCoordinator implements SocialNavigationActions {
-  private navigation: NavigationProp<any>;
+  private navigation: NavigationProp<unknown>;
   private haptics: ReturnType<typeof useHaptics>;
 
   constructor(
-    navigation: NavigationProp<any>,
+    navigation: NavigationProp<unknown>,
     haptics: ReturnType<typeof useHaptics>
   ) {
     this.navigation = navigation;
@@ -140,7 +140,7 @@ export class SocialNavigationCoordinator implements SocialNavigationActions {
  * Custom hook for Social navigation
  */
 export const useSocialNavigation = (
-  navigation: NavigationProp<any>
+  navigation: NavigationProp<unknown>
 ): SocialNavigationActions => {
   const haptics = useHaptics();
   const coordinator = new SocialNavigationCoordinator(navigation, haptics);

@@ -3,7 +3,6 @@
  * 
  * React Native-specific Input component using design tokens
  */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -16,7 +15,6 @@ import {
 import type { ComponentRef } from 'react';
 import { mobileTokens } from '@mintenance/design-tokens';
 import type { NativeInputProps, InputSize } from './types';
-
 /**
  * Input Component for React Native
  * 
@@ -55,11 +53,9 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
     ref
   ) => {
     const [isFocused, setIsFocused] = useState(false);
-
     const hasError = error || !!errorText;
     const hasSuccess = success || !!successText;
     const showHelperText = helperText || errorText || successText;
-
     // Size styles
     const sizeStyles: Record<InputSize, { padding: number; fontSize: number; minHeight: number }> = {
       sm: {
@@ -78,7 +74,6 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
         minHeight: 48,
       },
     };
-
     // Base styles
     const baseInputStyle: TextStyle = {
       flex: 1,
@@ -89,14 +84,12 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
       color: mobileTokens.colors.textPrimary,
       ...sizeStyles[size],
     };
-
     // Focus styles
     const focusInputStyle: TextStyle = isFocused && !disabled
       ? {
           borderColor: hasError ? mobileTokens.colors.error : hasSuccess ? mobileTokens.colors.success : mobileTokens.colors.primary,
         }
       : {};
-
     return (
       <View style={[styles.container, containerStyle as ViewStyle]}>
         {label && (
@@ -107,14 +100,12 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
             )}
           </Text>
         )}
-
         <View style={styles.inputWrapper}>
           {leftIcon && (
             <View style={styles.leftIcon}>
               {leftIcon}
             </View>
           )}
-
           <TextInput
             ref={ref}
             value={value}
@@ -145,14 +136,12 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
             accessibilityHint={accessibilityHint}
             testID={testID}
           />
-
           {rightIcon && (
             <View style={styles.rightIcon}>
               {rightIcon}
             </View>
           )}
         </View>
-
         {showHelperText && (
           <Text
             style={[
@@ -168,9 +157,7 @@ export const Input = React.forwardRef<TextInput, NativeInputProps>(
     );
   }
 );
-
 Input.displayName = 'Input';
-
 const styles = StyleSheet.create({
   container: {
     width: '100%',
@@ -202,6 +189,4 @@ const styles = StyleSheet.create({
     color: mobileTokens.colors.textSecondary,
   },
 });
-
 export default Input;
-

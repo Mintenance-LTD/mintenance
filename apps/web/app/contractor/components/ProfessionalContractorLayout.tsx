@@ -240,7 +240,7 @@ export function ProfessionalContractorLayout({
       await fetch('/api/auth/logout', { method: 'POST' });
       router.push('/login');
     } catch (error) {
-      logger.error('Logout error:', error', [object Object], { service: 'ui' });
+      logger.error('Logout error', error, { service: 'ui' });
     }
   };
 

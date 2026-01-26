@@ -1,6 +1,18 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 /**
  * @jest-environment node
  */
+
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 describe('OfflineManager Memory Leak', () => {
@@ -81,21 +93,21 @@ describe('OfflineManager Memory Leak', () => {
   });
 
   describe('Add listener', () => {
-    it('should return unsubscribe function', () => {
+    it('should return unsubscribe function', async () => {
       const callback = jest.fn();
       const unsubscribe = OfflineManager.addListener('sync', callback);
 
       expect(unsubscribe).toBeInstanceOf(Function);
     });
 
-    it('should add listener to store', () => {
+    it('should add listener to store', async () => {
       const callback = jest.fn();
       OfflineManager.addListener('sync', callback);
 
       expect(OfflineManager.getListenerCount('sync')).toBe(1);
     });
 
-    it('should call listener when event is emitted', () => {
+    it('should call listener when event is emitted', async () => {
       const callback = jest.fn();
       OfflineManager.addListener('sync', callback);
 
@@ -104,7 +116,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(callback).toHaveBeenCalledWith({ status: 'complete' });
     });
 
-    it('should support multiple events', () => {
+    it('should support multiple events', async () => {
       const callback1 = jest.fn();
       const callback2 = jest.fn();
 
@@ -118,7 +130,7 @@ describe('OfflineManager Memory Leak', () => {
   });
 
   describe('Multiple listeners', () => {
-    it('should track all listeners for same event', () => {
+    it('should track all listeners for same event', async () => {
       const callback1 = jest.fn();
       const callback2 = jest.fn();
       const callback3 = jest.fn();
@@ -130,7 +142,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getListenerCount('sync')).toBe(3);
     });
 
-    it('should call all listeners when event is emitted', () => {
+    it('should call all listeners when event is emitted', async () => {
       const callback1 = jest.fn();
       const callback2 = jest.fn();
 
@@ -143,7 +155,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(callback2).toHaveBeenCalledWith({ data: 'test' });
     });
 
-    it('should track listeners across multiple events', () => {
+    it('should track listeners across multiple events', async () => {
       OfflineManager.addListener('sync', jest.fn());
       OfflineManager.addListener('sync', jest.fn());
       OfflineManager.addListener('error', jest.fn());
@@ -154,7 +166,7 @@ describe('OfflineManager Memory Leak', () => {
   });
 
   describe('Unsubscribe', () => {
-    it('should remove specific listener', () => {
+    it('should remove specific listener', async () => {
       const callback = jest.fn();
       const unsubscribe = OfflineManager.addListener('sync', callback);
 
@@ -165,7 +177,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getListenerCount('sync')).toBe(0);
     });
 
-    it('should not call listener after unsubscribe', () => {
+    it('should not call listener after unsubscribe', async () => {
       const callback = jest.fn();
       const unsubscribe = OfflineManager.addListener('sync', callback);
 
@@ -178,7 +190,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(callback).toHaveBeenCalledTimes(1); // Still only called once
     });
 
-    it('should only remove the specific listener, not others', () => {
+    it('should only remove the specific listener, not others', async () => {
       const callback1 = jest.fn();
       const callback2 = jest.fn();
       const callback3 = jest.fn();
@@ -200,7 +212,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(callback3).toHaveBeenCalled();
     });
 
-    it('should handle multiple unsubscribes safely', () => {
+    it('should handle multiple unsubscribes safely', async () => {
       const callback = jest.fn();
       const unsubscribe = OfflineManager.addListener('sync', callback);
 
@@ -210,7 +222,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getListenerCount('sync')).toBe(0);
     });
 
-    it('should clean up empty event sets', () => {
+    it('should clean up empty event sets', async () => {
       const callback = jest.fn();
       const unsubscribe = OfflineManager.addListener('sync', callback);
 
@@ -224,7 +236,7 @@ describe('OfflineManager Memory Leak', () => {
   });
 
   describe('Component unmount - cleanup listeners', () => {
-    it('should cleanup listeners on component unmount', () => {
+    it('should cleanup listeners on component unmount', async () => {
       // Simulate React component lifecycle
       const mockComponent = () => {
         const unsubscribe = OfflineManager.addListener('sync', jest.fn());
@@ -240,7 +252,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getTotalListenerCount()).toBe(0);
     });
 
-    it('should cleanup multiple listeners from same component', () => {
+    it('should cleanup multiple listeners from same component', async () => {
       const mockComponent = () => {
         const unsubscribes: Function[] = [];
 
@@ -260,7 +272,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getTotalListenerCount()).toBe(0);
     });
 
-    it('should handle component remounting', () => {
+    it('should handle component remounting', async () => {
       const createComponent = () => {
         return OfflineManager.addListener('sync', jest.fn());
       };
@@ -282,7 +294,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getTotalListenerCount()).toBe(0);
     });
 
-    it('should not affect other components listeners', () => {
+    it('should not affect other components listeners', async () => {
       const component1Cleanup = OfflineManager.addListener('sync', jest.fn());
       const component2Cleanup = OfflineManager.addListener('sync', jest.fn());
 
@@ -299,7 +311,7 @@ describe('OfflineManager Memory Leak', () => {
   });
 
   describe('Memory usage over time', () => {
-    it('should not grow unbounded with add/remove cycles', () => {
+    it('should not grow unbounded with add/remove cycles', async () => {
       const cycles = 1000;
 
       for (let i = 0; i < cycles; i++) {
@@ -312,7 +324,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(listenerStore.size).toBe(0); // No lingering event keys
     });
 
-    it('should handle many concurrent listeners', () => {
+    it('should handle many concurrent listeners', async () => {
       const listeners: Function[] = [];
 
       // Add 100 listeners
@@ -330,7 +342,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(listenerStore.size).toBe(0);
     });
 
-    it('should maintain stable memory with continuous usage', () => {
+    it('should maintain stable memory with continuous usage', async () => {
       const iterations = 100;
 
       for (let i = 0; i < iterations; i++) {
@@ -351,7 +363,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(listenerStore.size).toBe(0);
     });
 
-    it('should not leak listeners in error scenarios', () => {
+    it('should not leak listeners in error scenarios', async () => {
       const failingCallback = jest.fn(() => {
         throw new Error('Listener error');
       });
@@ -370,12 +382,12 @@ describe('OfflineManager Memory Leak', () => {
   });
 
   describe('Real-world usage patterns', () => {
-    it('should handle typical component lifecycle pattern', () => {
+    it('should handle typical component lifecycle pattern', async () => {
       // Simulate React useEffect pattern
       const useOfflineSync = () => {
         const [syncStatus, setSyncStatus] = [null, jest.fn()];
 
-        const unsubscribe = OfflineManager.addListener('sync', (data: any) => {
+        const unsubscribe = OfflineManager.addListener('sync', (data: unknown) => {
           setSyncStatus(data.status);
         });
 
@@ -396,7 +408,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getListenerCount('sync')).toBe(0);
     });
 
-    it('should handle screen navigation pattern', () => {
+    it('should handle screen navigation pattern', async () => {
       // Screen A mounts
       const screenACleanup = OfflineManager.addListener('sync', jest.fn());
       expect(OfflineManager.getTotalListenerCount()).toBe(1);
@@ -414,7 +426,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getTotalListenerCount()).toBe(0);
     });
 
-    it('should handle tab switching pattern', () => {
+    it('should handle tab switching pattern', async () => {
       const tabs = ['home', 'profile', 'settings'];
       const cleanups: Map<string, Function> = new Map();
 
@@ -432,7 +444,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getTotalListenerCount()).toBe(0);
     });
 
-    it('should handle conditional listener registration', () => {
+    it('should handle conditional listener registration', async () => {
       const isOfflineMode = (enabled: boolean) => {
         if (enabled) {
           return OfflineManager.addListener('sync', jest.fn());
@@ -456,7 +468,7 @@ describe('OfflineManager Memory Leak', () => {
   });
 
   describe('Memory leak detection', () => {
-    it('should not retain references to removed listeners', () => {
+    it('should not retain references to removed listeners', async () => {
       const callback = jest.fn();
       const unsubscribe = OfflineManager.addListener('sync', callback);
 
@@ -471,7 +483,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(listenerSetAfter).toBeUndefined();
     });
 
-    it('should cleanup event keys with no listeners', () => {
+    it('should cleanup event keys with no listeners', async () => {
       OfflineManager.addListener('event1', jest.fn())();
       OfflineManager.addListener('event2', jest.fn())();
       OfflineManager.addListener('event3', jest.fn())();
@@ -482,7 +494,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(listenerStore.has('event3')).toBe(false);
     });
 
-    it('should handle rapid add/remove cycles', () => {
+    it('should handle rapid add/remove cycles', async () => {
       const rapid = () => {
         for (let i = 0; i < 10; i++) {
           const unsub = OfflineManager.addListener('sync', jest.fn());
@@ -500,7 +512,7 @@ describe('OfflineManager Memory Leak', () => {
   });
 
   describe('Edge cases', () => {
-    it('should handle same callback registered multiple times', () => {
+    it('should handle same callback registered multiple times', async () => {
       const callback = jest.fn();
 
       const unsub1 = OfflineManager.addListener('sync', callback);
@@ -517,7 +529,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getListenerCount('sync')).toBe(0);
     });
 
-    it('should handle empty event name', () => {
+    it('should handle empty event name', async () => {
       const callback = jest.fn();
       const unsubscribe = OfflineManager.addListener('', callback);
 
@@ -527,7 +539,7 @@ describe('OfflineManager Memory Leak', () => {
       expect(OfflineManager.getListenerCount('')).toBe(0);
     });
 
-    it('should handle unsubscribe before any emit', () => {
+    it('should handle unsubscribe before any emit', async () => {
       const callback = jest.fn();
       const unsubscribe = OfflineManager.addListener('sync', callback);
 

@@ -31,7 +31,7 @@ import { logger } from '@mintenance/shared';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface Props {
-  navigation: any;
+  navigation: unknown;
   route: {
     params: {
       videoId: string;
@@ -86,9 +86,9 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
   const { videoId, assessmentId, propertyId } = route.params;
 
   const [currentStage, setCurrentStage] = useState<ProcessingStage>(PROCESSING_STAGES[0]);
-  const [processingResults, setProcessingResults] = useState<any>(null);
+  const [processingResults, setProcessingResults] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
-  const [queueStatus, setQueueStatus] = useState<any>(null);
+  const [queueStatus, setQueueStatus] = useState<unknown>(null);
   const [isComplete, setIsComplete] = useState(false);
 
   // Animation values
@@ -208,7 +208,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
     transform: [{ scale: pulseAnimation.value }],
   }));
 
-  const renderDamageItem = (type: string, data: any) => {
+  const renderDamageItem = (type: string, data: unknown) => {
     const severityColors = {
       early: '#4CAF50',
       midway: '#FF9800',

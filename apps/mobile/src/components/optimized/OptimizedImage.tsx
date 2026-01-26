@@ -26,7 +26,7 @@ export interface OptimizedImageProps {
   errorComponent?: React.ReactNode;
   loadingComponent?: React.ReactNode;
   onLoad?: () => void;
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
   onLoadStart?: () => void;
   onLoadEnd?: () => void;
   testID?: string;
@@ -165,7 +165,7 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     onLoad?.();
   }, [onLoad]);
 
-  const handleError = useCallback((error: any) => {
+  const handleError = useCallback((error: unknown) => {
     setImageState(prev => ({
       ...prev,
       loading: false,

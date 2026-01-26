@@ -20,7 +20,12 @@ import { ESGScore } from '../services/SustainabilityEngine';
 
 interface SustainabilityScoreWidgetProps {
   contractorId?: string;
-  jobAnalysis?: any;
+  jobAnalysis?: {
+    materials?: unknown[];
+    carbonFootprint?: number;
+    recyclingRate?: number;
+    energyEfficiency?: number;
+  };
   showDetails?: boolean;
   onScorePress?: () => void;
   variant?: 'compact' | 'detailed' | 'gamified';

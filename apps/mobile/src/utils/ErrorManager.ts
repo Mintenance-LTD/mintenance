@@ -44,7 +44,7 @@ class ErrorManagerService {
     this.showUserError(errorInfo);
   }
 
-  public handleNetworkError(error: any): void {
+  public handleNetworkError(error: unknown): void {
     let message = 'Network error occurred';
     
     if (!navigator.onLine) {

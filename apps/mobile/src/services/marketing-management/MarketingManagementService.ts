@@ -216,7 +216,7 @@ export class MarketingManagementService {
   /**
    * Content Management Methods
    */
-  async createContent(request: ContentCreationRequest): Promise<any> {
+  async createContent(request: ContentCreationRequest): Promise<unknown> {
     try {
       return await this.contentService.createContent(request);
     } catch (error) {
@@ -348,7 +348,7 @@ export class MarketingManagementService {
   /**
    * Campaign Performance Analysis
    */
-  async getCampaignPerformance(campaignId: string): Promise<any> {
+  async getCampaignPerformance(campaignId: string): Promise<unknown> {
     try {
       return await this.analyticsService.getCampaignPerformance(campaignId);
     } catch (error) {

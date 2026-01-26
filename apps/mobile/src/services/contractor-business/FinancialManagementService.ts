@@ -4,6 +4,67 @@ import { logger } from '../../utils/logger';
 import { Invoice, InvoiceLineItem, ExpenseRecord, PaymentRecord } from './types';
 
 // =====================================================
+// DATABASE ROW INTERFACES (snake_case)
+// =====================================================
+
+interface DatabaseInvoiceRow {
+  id: string;
+  contractor_id: string;
+  job_id?: string | null;
+  client_id: string;
+  invoice_number: string;
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  due_date: string;
+  issue_date: string;
+  paid_date?: string | null;
+  notes?: string | null;
+  line_items: InvoiceLineItem[];
+  created_at: string;
+  updated_at: string;
+  client?: {
+    email: string;
+    first_name: string;
+    last_name: string;
+  };
+}
+
+interface DatabaseExpenseRow {
+  id: string;
+  contractor_id: string;
+  category: string;
+  subcategory?: string | null;
+  amount: number;
+  description: string;
+  date: string;
+  receipt_url?: string | null;
+  tax_deductible: boolean;
+  vendor?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DatabasePaymentRow {
+  id: string;
+  contractor_id: string;
+  invoice_id?: string | null;
+  amount: number;
+  payment_method: string;
+  payment_date: string;
+  reference_number?: string | null;
+  notes?: string | null;
+  created_at: string;
+}
+
+interface DatabaseInvoiceUpdateData {
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+  updated_at: string;
+  paid_date?: string;
+}
+
+// =====================================================
 // FINANCIAL MANAGEMENT SERVICE
 // Handles invoicing, expenses, and financial tracking
 // =====================================================
@@ -72,7 +133,7 @@ export class FinancialManagementService {
       ServiceErrorHandler.validateRequired(status, 'Status', context);
       ServiceErrorHandler.validateRequired(contractorId, 'Contractor ID', context);
 
-      const updateData: any = {
+      const updateData: DatabaseInvoiceUpdateData = {
         status,
         updated_at: new Date().toISOString(),
       };
@@ -363,13 +424,18 @@ export class FinancialManagementService {
         throw ServiceErrorHandler.handleDatabaseError(outstandingError, context);
       }
 
-      const totalRevenue = paidInvoices?.reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
-      const totalExpenses = expenses?.reduce((sum: number, exp: any) => sum + exp.amount, 0) || 0;
+      const typedPaidInvoices = (paidInvoices || []) as Array<Pick<DatabaseInvoiceRow, 'total_amount'>>;
+      const typedExpenses = (expenses || []) as Array<Pick<DatabaseExpenseRow, 'amount'>>;
+      const typedOutstandingInvoices = (outstandingInvoices || []) as Array<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>>;
+
+      const totalRevenue = typedPaidInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+      const totalExpenses = typedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
       const totalProfit = totalRevenue - totalExpenses;
 
-      const outstanding = outstandingInvoices?.reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
-      const overdue = outstandingInvoices?.filter((inv: any) => new Date(inv.due_date) < new Date())
-        .reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
+      const outstanding = typedOutstandingInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+      const overdue = typedOutstandingInvoices
+        .filter((inv) => new Date(inv.due_date) < new Date())
+        .reduce((sum, inv) => sum + inv.total_amount, 0);
 
       return {
         totalRevenue,
@@ -593,7 +659,9 @@ export class FinancialManagementService {
         taxDeductibleAmount: number;
       }>();
 
-      expenses?.forEach((expense: any) => {
+      const typedExpenses = (expenses || []) as Array<Pick<DatabaseExpenseRow, 'category' | 'amount' | 'tax_deductible'>>;
+
+      typedExpenses.forEach((expense) => {
         const existing = categoryMap.get(expense.category) || {
           totalAmount: 0,
           count: 0,
@@ -624,7 +692,7 @@ export class FinancialManagementService {
   /**
    * Private helper methods
    */
-  private static async generateInvoicePDF(invoice: any): Promise<Buffer> {
+  private static async generateInvoicePDF(invoice: DatabaseInvoiceRow): Promise<Buffer> {
     // Mock implementation - would use a PDF library like puppeteer, jsPDF, or PDFKit
     logger.info('Generating invoice PDF', { invoiceId: invoice.id });
 
@@ -632,7 +700,7 @@ export class FinancialManagementService {
     return Buffer.from(`Mock PDF for invoice ${invoice.invoice_number}`);
   }
 
-  private static async sendInvoiceEmail(invoice: any, pdfBuffer: Buffer): Promise<void> {
+  private static async sendInvoiceEmail(invoice: DatabaseInvoiceRow, pdfBuffer: Buffer): Promise<void> {
     // Mock implementation - would integrate with email service like SendGrid, Mailgun, or AWS SES
     logger.info('Sending invoice email', {
       invoiceId: invoice.id,
@@ -663,7 +731,8 @@ export class FinancialManagementService {
         .gte('paid_date', startDate.toISOString())
         .lte('paid_date', endDate.toISOString());
 
-      const monthlyRev = invoices?.reduce((sum: number, inv: any) => sum + (inv.total_amount || 0), 0) || 0;
+      const typedInvoices = (invoices || []) as Array<Pick<DatabaseInvoiceRow, 'total_amount'>>;
+      const monthlyRev = typedInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
       results.push(monthlyRev);
     }
 
@@ -696,10 +765,12 @@ export class FinancialManagementService {
 
     if (error) return { outstandingInvoices: 0, overdueAmount: 0 };
 
-    const outstanding = invoices?.reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
-    const overdue = invoices
-      ?.filter((inv: any) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
-      .reduce((sum: number, inv: any) => sum + inv.total_amount, 0) || 0;
+    const typedInvoices = (invoices || []) as Array<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>>;
+
+    const outstanding = typedInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
+    const overdue = typedInvoices
+      .filter((inv) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
+      .reduce((sum, inv) => sum + inv.total_amount, 0);
 
     return { outstandingInvoices: outstanding, overdueAmount: overdue };
   }

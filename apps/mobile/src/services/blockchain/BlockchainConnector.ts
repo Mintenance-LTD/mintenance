@@ -79,7 +79,7 @@ export class BlockchainConnector {
   public async sendTransaction(
     contract: SmartContract,
     method: string,
-    parameters: any[]
+    parameters: unknown[]
   ): Promise<TransactionResult> {
     if (!this.isConnected) {
       throw new Error('Not connected to blockchain network');
@@ -176,7 +176,7 @@ export class BlockchainConnector {
   public async estimateGas(
     contract: SmartContract,
     method: string,
-    parameters: any[]
+    parameters: unknown[]
   ): Promise<number> {
     try {
       // Simulate gas estimation (replace with actual implementation)
@@ -221,7 +221,7 @@ export class BlockchainConnector {
   private async executeTransaction(
     contract: SmartContract,
     method: string,
-    parameters: any[]
+    parameters: unknown[]
   ): Promise<TransactionResult> {
     // Simulate transaction execution
     await this.delay(1000);

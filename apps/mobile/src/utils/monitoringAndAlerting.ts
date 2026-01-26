@@ -18,7 +18,7 @@ export interface HealthCheck {
 export interface HealthStatus {
   healthy: boolean;
   message?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   responseTime?: number;
   timestamp: number;
 }
@@ -51,7 +51,7 @@ export interface Alert {
   timestamp: number;
   acknowledged: boolean;
   resolved: boolean;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface MetricThreshold {
@@ -60,6 +60,8 @@ export interface MetricThreshold {
   critical: number;
   comparison: 'greater' | 'less' | 'equal';
 }
+
+const MONITORING_GLOBAL_INSTANCE_KEY = '__mintenanceMonitoringInstance';
 
 /**
  * Advanced Monitoring and Alerting Manager
@@ -77,6 +79,7 @@ export class MonitoringAndAlerting {
   private alertRules = new Map<string, AlertRule>();
   private activeAlerts = new Map<string, Alert>();
   private alertCooldowns = new Map<string, number>();
+  private alertCooldownChecks = new Map<string, number>();
   private webhookEndpoints: string[] = [];
 
   private monitoringInterval?: NodeJS.Timeout;
@@ -85,7 +88,9 @@ export class MonitoringAndAlerting {
 
   static getInstance(): MonitoringAndAlerting {
     if (!this.instance) {
-      this.instance = new MonitoringAndAlerting();
+      const globalInstance = (globalThis as any)[MONITORING_GLOBAL_INSTANCE_KEY] as MonitoringAndAlerting | undefined;
+      this.instance = globalInstance || new MonitoringAndAlerting();
+      (globalThis as any)[MONITORING_GLOBAL_INSTANCE_KEY] = this.instance;
     }
     return this.instance;
   }
@@ -152,7 +157,7 @@ export class MonitoringAndAlerting {
       name: 'app_responsiveness',
       check: async () => {
         const start = Date.now();
-        await new Promise(resolve => setTimeout(resolve, 0)); // Yield to event loop
+        await Promise.resolve(); // Yield to microtask queue
         const responseTime = Date.now() - start;
 
         return {
@@ -289,6 +294,13 @@ export class MonitoringAndAlerting {
    */
   addHealthCheck(healthCheck: HealthCheck): void {
     this.healthChecks.set(healthCheck.name, healthCheck);
+    if (!this.currentHealth.services.has(healthCheck.name)) {
+      this.currentHealth.services.set(healthCheck.name, {
+        healthy: true,
+        message: 'Health check scheduled',
+        timestamp: Date.now()
+      });
+    }
 
     if (this.isInitialized) {
       this.startHealthCheck(healthCheck);
@@ -395,17 +407,27 @@ export class MonitoringAndAlerting {
     const currentTime = Date.now();
 
     for (const rule of this.alertRules.values()) {
-      // Check cooldown
-      const lastAlertTime = this.alertCooldowns.get(rule.id) || 0;
-      if (currentTime - lastAlertTime < rule.cooldown) {
+      // Check condition
+      const lastAlertTime = this.alertCooldowns.get(rule.id);
+      if (lastAlertTime !== undefined && currentTime - lastAlertTime < rule.cooldown) {
+        const cooldownCheckedFor = this.alertCooldownChecks.get(rule.id);
+        if (cooldownCheckedFor === lastAlertTime) {
+          continue;
+        }
+
+        if (rule.condition(metrics, this.currentHealth)) {
+          this.alertCooldownChecks.set(rule.id, lastAlertTime);
+        }
         continue;
       }
 
-      // Check condition
-      if (rule.condition(metrics, this.currentHealth)) {
-        this.triggerAlert(rule, metrics);
-        this.alertCooldowns.set(rule.id, currentTime);
+      if (!rule.condition(metrics, this.currentHealth)) {
+        continue;
       }
+
+      this.triggerAlert(rule, metrics);
+      this.alertCooldowns.set(rule.id, currentTime);
+      this.alertCooldownChecks.delete(rule.id);
     }
   }
 
@@ -602,8 +624,8 @@ export class MonitoringAndAlerting {
   /**
    * Get health summary for logging
    */
-  private getHealthSummary(): Record<string, any> {
-    const summary: Record<string, any> = {
+  private getHealthSummary(): Record<string, unknown> {
+    const summary: Record<string, unknown> = {
       overall: this.currentHealth.overall,
       lastUpdated: this.currentHealth.lastUpdated,
       services: {}
@@ -743,7 +765,14 @@ export class MonitoringAndAlerting {
     this.alertRules.clear();
     this.activeAlerts.clear();
     this.alertCooldowns.clear();
+    this.alertCooldownChecks.clear();
     this.alertListeners = [];
+    this.webhookEndpoints = [];
+    this.currentHealth = {
+      overall: 'healthy',
+      services: new Map(),
+      lastUpdated: Date.now()
+    };
 
     this.isInitialized = false;
     logger.info('MonitoringAndAlerting', 'Monitoring system disposed');
@@ -753,13 +782,16 @@ export class MonitoringAndAlerting {
    * Check system health (alias for getSystemHealth)
    */
   async checkSystemHealth(): Promise<SystemHealth> {
-    return this.getSystemHealth();
+    return {
+      ...this.currentHealth,
+      services: this.currentHealth.services
+    };
   }
 
   /**
    * Get alert statistics (stub for compatibility)
    */
-  getAlertStatistics(): any {
+  getAlertStatistics(): unknown {
     return {
       totalAlerts: this.activeAlerts.size,
       criticalAlerts: Array.from(this.activeAlerts.values()).filter(alert => alert.severity === 'critical').length,

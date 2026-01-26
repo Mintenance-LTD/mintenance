@@ -239,7 +239,7 @@ export class FeatureAccessManager {
         });
       }
     } catch (err) {
-      logger.error('[FeatureAccess] Initialization failed', err', [object Object], { service: 'mobile' });
+      logger.error('[FeatureAccess] Initialization failed', err, { service: 'mobile' });
       // Default to trial on error
       this.subscription = {
         tier: 'trial',
@@ -330,7 +330,7 @@ export class FeatureAccessManager {
       });
 
       if (error) {
-        logger.error('[FeatureAccess] Failed to track usage', error', [object Object], { service: 'mobile' });
+        logger.error('[FeatureAccess] Failed to track usage', error, { service: 'mobile' });
         return false;
       }
 
@@ -345,7 +345,7 @@ export class FeatureAccessManager {
 
       return true;
     } catch (err) {
-      logger.error('[FeatureAccess] Error tracking usage', err', [object Object], { service: 'mobile' });
+      logger.error('[FeatureAccess] Error tracking usage', err, { service: 'mobile' });
       return false;
     }
   }

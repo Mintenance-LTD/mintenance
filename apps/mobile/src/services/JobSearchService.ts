@@ -1,6 +1,6 @@
 /**
  * Job Search Service
- * 
+ *
  * Handles job search and filtering operations:
  * - Getting jobs by various criteria
  * - Searching jobs by text
@@ -12,6 +12,46 @@ import { Job } from '@mintenance/types';
 import { sanitizeForSQL, isValidSearchTerm } from '../utils/sqlSanitization';
 import { logger } from '../utils/logger';
 import { JobCRUDService } from './JobCRUDService';
+
+// Database row interface matching snake_case DB schema
+interface DatabaseJobRow {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  homeowner_id: string;
+  contractor_id?: string | null;
+  status: 'posted' | 'assigned' | 'in_progress' | 'completed';
+  budget: number;
+  created_at: string;
+  updated_at: string;
+  category?: string | null;
+  subcategory?: string | null;
+  priority?: 'low' | 'medium' | 'high' | null;
+  photos?: string[] | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  city?: string | null;
+}
+
+// Supabase query builder type for jobs table
+interface SupabaseJobQuery extends PromiseLike<{ data: DatabaseJobRow[] | null; error: Error | null }> {
+  select: (columns: string) => SupabaseJobQuery;
+  eq: (column: string, value: string | number) => SupabaseJobQuery;
+  or: (query: string) => SupabaseJobQuery;
+  order: (column: string, options: { ascending: boolean }) => SupabaseJobQuery;
+  limit: (count: number) => Promise<{ data: DatabaseJobRow[] | null; error: Error | null }>;
+  range: (from: number, to: number) => Promise<{ data: DatabaseJobRow[] | null; error: Error | null }>;
+  textSearch?: (column: string, query: string) => SupabaseJobQuery;
+  gte?: (column: string, value: number) => SupabaseJobQuery;
+  lte?: (column: string, value: number) => SupabaseJobQuery;
+}
+
+// Error type with message property
+interface ErrorWithMessage {
+  message: string;
+  code?: string;
+}
 
 export class JobSearchService {
   static async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
@@ -33,17 +73,20 @@ export class JobSearchService {
       .eq('homeowner_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) throw new Error((error as any)?.message || String(error));
+    if (error) {
+      const err = error as ErrorWithMessage;
+      throw new Error(err.message || String(error));
+    }
     if (!data) return [];
     return data.map(JobCRUDService['formatJob']);
   }
 
   static async getAvailableJobs(): Promise<Job[]> {
-    let q: any = supabase
+    const q = supabase
       .from('jobs')
       .select('*')
       .eq('status', 'posted')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as SupabaseJobQuery;
 
     // Support both chain styles used in tests
     if (typeof q.limit === 'function') {
@@ -79,7 +122,7 @@ export class JobSearchService {
   }
 
   static async getJobsByUser(userId: string, role: 'homeowner' | 'contractor'): Promise<Job[]> {
-    let q: any = supabase.from('jobs').select('*');
+    let q = supabase.from('jobs').select('*') as SupabaseJobQuery;
     if (role === 'homeowner') q = q.eq('homeowner_id', userId);
     else q = q.eq('contractor_id', userId);
     const { data, error } = await q.order('created_at', { ascending: false });
@@ -89,7 +132,7 @@ export class JobSearchService {
   }
 
   // Generic job retrieval with pagination
-  static async getJobs(arg1?: any, arg2?: any): Promise<Job[]> {
+  static async getJobs(arg1?: unknown, arg2?: unknown): Promise<Job[]> {
     // Overloaded signature support:
     // - getJobs(status?: Job['status'], limit?: number)
     // - getJobs(limit?: number, offset?: number)
@@ -108,7 +151,7 @@ export class JobSearchService {
       limit = arg2;
     }
 
-    let query: any = supabase.from('jobs').select('*');
+    let query = supabase.from('jobs').select('*') as SupabaseJobQuery;
     if (status) {
       query = query.eq('status', status);
     }
@@ -127,7 +170,7 @@ export class JobSearchService {
       if (!data) return [];
       return data.map(JobCRUDService['formatJob']);
     }
-    
+
     // Default to limited page when supported (tests finalize via limit())
     if (typeof query.limit === 'function') {
       const { data, error } = await query.limit(20);
@@ -159,7 +202,7 @@ export class JobSearchService {
       return [];
     }
 
-    let q: any = supabase.from('jobs').select('*');
+    let q = supabase.from('jobs').select('*') as SupabaseJobQuery;
 
     // Prefer textSearch when available (some tests mock this)
     if (typeof q.textSearch === 'function') {
@@ -170,8 +213,8 @@ export class JobSearchService {
     }
 
     if (filters?.category) q = q.eq('category', filters.category);
-    if (filters?.minBudget != null) q = q.gte('budget', filters.minBudget);
-    if (filters?.maxBudget != null) q = q.lte('budget', filters.maxBudget);
+    if (filters?.minBudget != null && typeof q.gte === 'function') q = q.gte('budget', filters.minBudget);
+    if (filters?.maxBudget != null && typeof q.lte === 'function') q = q.lte('budget', filters.maxBudget);
 
     q = q.order('created_at', { ascending: false });
 

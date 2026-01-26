@@ -8,32 +8,32 @@ import Stripe from 'stripe';
 import * as speakeasy from 'speakeasy';
 
 // Mock all external dependencies
-jest.mock('@supabase/supabase-js');
-jest.mock('stripe');
-jest.mock('speakeasy');
-jest.mock('@/lib/redis', () => ({
+vi.mock('@supabase/supabase-js');
+vi.mock('stripe');
+vi.mock('speakeasy');
+vi.mock('@/lib/redis', () => ({
   redis: {
-    get: jest.fn(),
-    set: jest.fn(),
-    incr: jest.fn(),
-    expire: jest.fn(),
-    del: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    incr: vi.fn(),
+    expire: vi.fn(),
+    del: vi.fn(),
   },
-  isRedisAvailable: jest.fn(),
+  isRedisAvailable: vi.fn(),
 }));
 
-jest.mock('@/lib/logger', () => ({
+vi.mock('@/lib/logger', () => ({
   logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
-jest.mock('@/lib/monitoring', () => ({
+vi.mock('@/lib/monitoring', () => ({
   monitoring: {
-    recordMetric: jest.fn(),
-    sendAlert: jest.fn(),
+    recordMetric: vi.fn(),
+    sendAlert: vi.fn(),
   },
 }));
 
@@ -52,43 +52,43 @@ describe('Critical Fixes Integration Tests', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock Supabase
     mockSupabase = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
-      single: jest.fn(),
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      single: vi.fn(),
     };
 
-    (createClient as jest.Mock).mockReturnValue(mockSupabase);
+    vi.mocked(createClient).mockReturnValue(mockSupabase);
 
     // Mock Stripe
     mockStripe = {
       paymentIntents: {
-        create: jest.fn(),
-        retrieve: jest.fn(),
-        cancel: jest.fn(),
+        create: vi.fn(),
+        retrieve: vi.fn(),
+        cancel: vi.fn(),
       },
     };
 
     (Stripe as any).mockImplementation(() => mockStripe);
 
     // Mock speakeasy
-    (speakeasy.generateSecret as jest.Mock).mockReturnValue({
+    vi.mocked(speakeasy.generateSecret).mockReturnValue({
       base32: 'JBSWY3DPEHPK3PXP',
       otpauth_url: 'otpauth://totp/App:user@example.com?secret=JBSWY3DPEHPK3PXP',
     });
 
-    (speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
+    vi.mocked(speakeasy.totp.verify).mockReturnValue(true);
 
     // Mock Redis availability
-    (isRedisAvailable as jest.Mock).mockResolvedValue(true);
+    vi.mocked(isRedisAvailable).mockResolvedValue(true);
 
     // Initialize integrated services
     services = {
@@ -292,7 +292,7 @@ describe('Critical Fixes Integration Tests', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Complete MFA enrollment and login flow', () => {
@@ -314,7 +314,7 @@ describe('Critical Fixes Integration Tests', () => {
       );
 
       // Step 2: Verify TOTP token
-      (redis.incr as jest.Mock).mockResolvedValue(1); // Rate limit check
+      vi.mocked(redis.incr).mockResolvedValue(1); // Rate limit check
 
       mockSupabase.single.mockResolvedValueOnce({
         data: {
@@ -340,7 +340,7 @@ describe('Critical Fixes Integration Tests', () => {
     it('should enforce rate limiting on MFA verification', async () => {
       const userId = 'user-rate-limited';
 
-      (redis.incr as jest.Mock).mockResolvedValue(6); // Exceeds limit
+      vi.mocked(redis.incr).mockResolvedValue(6); // Exceeds limit
 
       await expect(services.mfa.verify(userId, '123456')).rejects.toThrow(
         'Too many attempts'
@@ -352,8 +352,8 @@ describe('Critical Fixes Integration Tests', () => {
     it('should process low-value payment without MFA', async () => {
       const userId = 'user-payment-1';
 
-      (redis.set as jest.Mock).mockResolvedValue('OK'); // Lock acquired
-      (redis.get as jest.Mock).mockResolvedValue(null); // No history
+      vi.mocked(redis.set).mockResolvedValue('OK'); // Lock acquired
+      vi.mocked(redis.get).mockResolvedValue(null); // No history
 
       mockStripe.paymentIntents.create.mockResolvedValue({
         id: 'pi_test123',
@@ -378,7 +378,7 @@ describe('Critical Fixes Integration Tests', () => {
     it('should require MFA for high-value payment', async () => {
       const userId = 'user-payment-2';
 
-      (redis.set as jest.Mock).mockResolvedValue('OK');
+      vi.mocked(redis.set).mockResolvedValue('OK');
 
       await expect(
         services.payments.process(userId, 150000, false) // $1500, no MFA
@@ -388,8 +388,8 @@ describe('Critical Fixes Integration Tests', () => {
     it('should allow high-value payment with MFA', async () => {
       const userId = 'user-payment-3';
 
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock).mockResolvedValue(null);
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get).mockResolvedValue(null);
 
       mockStripe.paymentIntents.create.mockResolvedValue({
         id: 'pi_mfa123',
@@ -404,11 +404,11 @@ describe('Critical Fixes Integration Tests', () => {
     it('should detect and alert on payment anomalies', async () => {
       const userId = 'user-payment-4';
 
-      (redis.set as jest.Mock).mockResolvedValue('OK');
+      vi.mocked(redis.set).mockResolvedValue('OK');
 
       // Mock payment history: average $50
       const history = Array.from({ length: 10 }, () => ({ amount: 5000, timestamp: Date.now() }));
-      (redis.get as jest.Mock).mockResolvedValue(JSON.stringify(history));
+      vi.mocked(redis.get).mockResolvedValue(JSON.stringify(history));
 
       mockStripe.paymentIntents.create.mockResolvedValue({
         id: 'pi_anomaly',
@@ -430,7 +430,7 @@ describe('Critical Fixes Integration Tests', () => {
     it('should use distributed locking to prevent concurrent payments', async () => {
       const userId = 'user-payment-5';
 
-      (redis.set as jest.Mock)
+      vi.mocked(redis.set)
         .mockResolvedValueOnce('OK') // First payment acquires lock
         .mockResolvedValueOnce(null); // Second payment fails to acquire
 
@@ -439,7 +439,7 @@ describe('Critical Fixes Integration Tests', () => {
         status: 'succeeded',
       });
 
-      (redis.get as jest.Mock).mockResolvedValue(null);
+      vi.mocked(redis.get).mockResolvedValue(null);
 
       // First payment succeeds
       const payment1 = services.payments.process(userId, 1000);
@@ -544,27 +544,27 @@ describe('Critical Fixes Integration Tests', () => {
 
   describe('Rate limiting across multiple requests', () => {
     it('should track rate limits across multiple requests', async () => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(true);
+      vi.mocked(isRedisAvailable).mockResolvedValue(true);
 
       const identifier = 'user-rate-test';
       const limit = 5;
 
       // First 5 requests allowed
       for (let i = 1; i <= 5; i++) {
-        (redis.incr as jest.Mock).mockResolvedValue(i);
+        vi.mocked(redis.incr).mockResolvedValue(i);
 
         const result = await services.rateLimit.check(identifier, limit);
         expect(result.allowed).toBe(true);
       }
 
       // 6th request denied
-      (redis.incr as jest.Mock).mockResolvedValue(6);
+      vi.mocked(redis.incr).mockResolvedValue(6);
       const result = await services.rateLimit.check(identifier, limit);
       expect(result.allowed).toBe(false);
     });
 
     it('should use fallback mode when Redis is down', async () => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(false);
+      vi.mocked(isRedisAvailable).mockResolvedValue(false);
 
       const result = await services.rateLimit.check('user-fallback');
 
@@ -574,8 +574,8 @@ describe('Critical Fixes Integration Tests', () => {
     });
 
     it('should handle Redis errors gracefully', async () => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(true);
-      (redis.incr as jest.Mock).mockRejectedValue(new Error('Redis error'));
+      vi.mocked(isRedisAvailable).mockResolvedValue(true);
+      vi.mocked(redis.incr).mockRejectedValue(new Error('Redis error'));
 
       // Should fall back to allowing request rather than failing
       await expect(services.rateLimit.check('user-error')).rejects.toThrow();
@@ -666,7 +666,7 @@ describe('Critical Fixes Integration Tests', () => {
       expect(secret).toBeDefined();
 
       // 2. Verify MFA
-      (redis.incr as jest.Mock).mockResolvedValue(1);
+      vi.mocked(redis.incr).mockResolvedValue(1);
       mockSupabase.single.mockResolvedValue({
         data: { user_id: userId, secret, enabled: false },
         error: null,
@@ -675,8 +675,8 @@ describe('Critical Fixes Integration Tests', () => {
       await services.mfa.verify(userId, '123456');
 
       // 3. Process payment with MFA
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock).mockResolvedValue(null);
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get).mockResolvedValue(null);
       mockStripe.paymentIntents.create.mockResolvedValue({
         id: 'pi_e2e',
         status: 'succeeded',
@@ -698,8 +698,8 @@ describe('Critical Fixes Integration Tests', () => {
       expect(fnr.shouldEscalate).toBe(false);
 
       // 5. Rate limiting working
-      (isRedisAvailable as jest.Mock).mockResolvedValue(true);
-      (redis.incr as jest.Mock).mockResolvedValue(1);
+      vi.mocked(isRedisAvailable).mockResolvedValue(true);
+      vi.mocked(redis.incr).mockResolvedValue(1);
 
       const rateLimit = await services.rateLimit.check(userId);
       expect(rateLimit.allowed).toBe(true);
@@ -710,8 +710,8 @@ describe('Critical Fixes Integration Tests', () => {
 
       // Anomalous payment amount
       const history = Array.from({ length: 10 }, () => ({ amount: 1000, timestamp: Date.now() }));
-      (redis.set as jest.Mock).mockResolvedValue('OK');
-      (redis.get as jest.Mock).mockResolvedValue(JSON.stringify(history));
+      vi.mocked(redis.set).mockResolvedValue('OK');
+      vi.mocked(redis.get).mockResolvedValue(JSON.stringify(history));
 
       mockStripe.paymentIntents.create.mockResolvedValue({
         id: 'pi_suspicious',
@@ -727,7 +727,7 @@ describe('Critical Fixes Integration Tests', () => {
       expect(monitoring.sendAlert).toHaveBeenCalled();
 
       // Too many attempts
-      (redis.incr as jest.Mock).mockResolvedValue(10); // Exceeds rate limit
+      vi.mocked(redis.incr).mockResolvedValue(10); // Exceeds rate limit
       await expect(services.mfa.verify(userId, '123456')).rejects.toThrow('Too many attempts');
     });
   });

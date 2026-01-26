@@ -14,7 +14,7 @@
 // Sentry import - using @sentry/react-native directly (removed sentry-expo for security)
 import { logger } from './logger';
 
-let Sentry: any = null;
+let Sentry: unknown = null;
 try {
   Sentry = require('@sentry/react-native');
   logger.info('Sentry (@sentry/react-native) available for error tracking');
@@ -111,7 +111,7 @@ export class ErrorTracker {
       if (Sentry) {
         Sentry.init({
           ...SENTRY_CONFIG,
-          beforeSend(event: any) {
+          beforeSend(event: unknown) {
             // Filter out development errors in production
             if (SENTRY_CONFIG.environment === 'production') {
               if (event.exception?.values?.[0]?.value?.includes('__DEV__')) {
@@ -122,7 +122,7 @@ export class ErrorTracker {
             // Add custom processing
             return tracker.processEvent(event);
           },
-          beforeBreadcrumb(breadcrumb: any) {
+          beforeBreadcrumb(breadcrumb: unknown) {
             // Filter sensitive information from breadcrumbs
             if (
               breadcrumb.message?.includes('password') ||
@@ -160,7 +160,7 @@ export class ErrorTracker {
     category: ErrorCategory,
     severity: ErrorSeverity = ErrorSeverity.ERROR,
     context?: BusinessContext,
-    extra?: Record<string, any>
+    extra?: Record<string, unknown>
   ): string {
     try {
       if (Sentry) {
@@ -238,9 +238,9 @@ export class ErrorTracker {
     category: ErrorCategory,
     businessData: {
       operation: string;
-      input?: any;
-      expected?: any;
-      actual?: any;
+      input?: unknown;
+      expected?: unknown;
+      actual?: unknown;
       userId?: string;
       jobId?: string;
       contractorId?: string;
@@ -305,7 +305,7 @@ export class ErrorTracker {
     message: string,
     category: string,
     level: 'debug' | 'info' | 'warning' | 'error' = 'info',
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ): void {
     Sentry.addBreadcrumb({
       message,
@@ -359,7 +359,7 @@ export class ErrorTracker {
   /**
    * Process events before sending to Sentry
    */
-  private processEvent(event: any): any | null {
+  private processEvent(event: unknown): unknown | null {
     // Add custom fingerprinting for better error grouping
     if (event.exception?.values?.[0]) {
       const error = event.exception.values[0];
@@ -441,7 +441,7 @@ export class ErrorTracker {
     ];
 
     criticalOperations.forEach((operation) => {
-      Sentry.addGlobalEventProcessor((event: any) => {
+      Sentry.addGlobalEventProcessor((event: unknown) => {
         if (event.tags?.operation === operation) {
           event.level = 'error';
           event.contexts = event.contexts || {};
@@ -507,8 +507,8 @@ export const trackAPIError = (
 export const trackMLError = (
   error: Error,
   modelName: string,
-  inputData: any,
-  inference?: any
+  inputData: unknown,
+  inference?: unknown
 ): string => {
   return ErrorTracker.captureError(
     error,

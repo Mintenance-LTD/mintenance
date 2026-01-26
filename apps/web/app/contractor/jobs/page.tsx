@@ -70,7 +70,7 @@ export default function ContractorJobsPage2025() {
 
         setAllJobsStats({ active, pending, completed, totalValue });
       } catch (error) {
-        logger.error('Failed to fetch stats:', error', [object Object], { service: 'app' });
+        logger.error('Failed to fetch stats:', error, { service: 'app' });
         // Don't show toast for stats failure, just log it
       } finally {
         setLoadingStats(false);
@@ -140,7 +140,7 @@ export default function ContractorJobsPage2025() {
         }
 
         // Transform API data based on endpoint type
-        let jobsData: any[] = [];
+        let jobsData: unknown[] = [];
 
         if (filter === 'viewed' && data.views) {
           jobsData = data.views.map((view: unknown) => view.job).filter(Boolean);
@@ -179,7 +179,7 @@ export default function ContractorJobsPage2025() {
 
         setJobs(transformedJobs);
       } catch (error) {
-        logger.error('Error fetching jobs:', error', [object Object], { service: 'app' });
+        logger.error('Error fetching jobs:', error, { service: 'app' });
         toast.error(error instanceof Error ? error.message : 'Failed to load jobs');
         setJobs([]);
       } finally {
@@ -280,7 +280,7 @@ export default function ContractorJobsPage2025() {
                   ].map((tab) => (
                     <button
                       key={tab.value}
-                      onClick={() => setFilter(tab.value as any)}
+                      onClick={() => setFilter(tab.value as unknown)}
                       className={`px-6 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
                         filter === tab.value
                           ? 'bg-teal-600 text-white shadow-sm'

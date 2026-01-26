@@ -94,7 +94,7 @@ export function AddCertificationModal({ onClose, onSuccess, getCsrfHeaders }: Ad
 
       onSuccess(newCertification);
     } catch (error) {
-      logger.error('Error adding certification:', error', [object Object], { service: 'ui' });
+      logger.error('Error adding certification:', error, { service: 'ui' });
       toast.error(error instanceof Error ? error.message : 'Failed to add certification');
     } finally {
       setIsSubmitting(false);

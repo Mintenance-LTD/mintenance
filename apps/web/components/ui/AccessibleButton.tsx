@@ -245,7 +245,7 @@ AccessibleButton.displayName = 'AccessibleButton';
 export const IconButton = forwardRef<HTMLButtonElement, AccessibleButtonProps>(
   ({ children, ariaLabel, visuallyHiddenText, ...props }, ref) => {
     if (!ariaLabel && !visuallyHiddenText) {
-      logger.warn('IconButton: Must provide either ariaLabel or visuallyHiddenText for accessibility', [object Object], { service: 'ui' });
+      logger.warn('IconButton: Must provide either ariaLabel or visuallyHiddenText for accessibility', { service: 'ui' });
     }
 
     return (

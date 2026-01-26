@@ -1,11 +1,11 @@
-import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
+import { QueryClient, QueryCache, MutationCache, Query, Mutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import HapticService from '../utils/haptics';
 import { logger } from '../utils/logger';
 
 // Error handling for queries
-const handleQueryError = (error: unknown, query: any) => {
+const handleQueryError = (error: unknown, query: Query<unknown, Error, unknown>) => {
   logger.error('Query error:', error, query);
 
   // Haptic feedback for errors
@@ -26,7 +26,7 @@ const handleMutationError = (
   error: unknown,
   variables: unknown,
   context: unknown,
-  mutation: any
+  mutation: Mutation<unknown, Error, unknown>
 ) => {
   logger.error('Mutation error:', error, mutation);
 
@@ -72,7 +72,7 @@ export const queryClient = new QueryClient({
       networkMode: 'offlineFirst',
 
       // Retry configuration
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: unknown) => {
         // Don't retry on 4xx errors (client errors)
         if (error?.status >= 400 && error?.status < 500) {
           return false;
@@ -110,7 +110,7 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       // More aggressive retry for mutations
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: unknown) => {
         // Don't retry client errors
         if (error?.status >= 400 && error?.status < 500) return false;
         // Don't retry offline queued errors

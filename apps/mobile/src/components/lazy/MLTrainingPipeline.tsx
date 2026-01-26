@@ -17,7 +17,7 @@ const LazyMLTrainingPipeline = createLazyComponent(
   }
 );
 
-export const MLTrainingPipeline = (props: any) => (
+export const MLTrainingPipeline = (props: unknown) => (
   <Suspense fallback={<LoadingSpinner />}>
     <LazyMLTrainingPipeline {...props} />
   </Suspense>

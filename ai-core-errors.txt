@@ -1,0 +1,12 @@
+﻿packages/ai-core/src/services/UnifiedAIService.ts(7,27): error TS2307: Cannot find module '@/types' or its corresponding type declarations.
+packages/ai-core/src/services/UnifiedAIService.ts(127,17): error TS18046: 'error' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(128,20): error TS18046: 'error' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(129,20): error TS18046: 'error' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(130,22): error TS18046: 'error' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(433,18): error TS18046: 'response' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(435,32): error TS18046: 'response' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(436,26): error TS18046: 'response' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(437,29): error TS18046: 'response' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(438,17): error TS18046: 'response' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(439,21): error TS18046: 'response' is of type 'unknown'.
+packages/ai-core/src/services/UnifiedAIService.ts(467,24): error TS18046: 'error' is of type 'unknown'.

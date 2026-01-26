@@ -378,7 +378,7 @@ export async function fetchWithOpenAIRetry(
       const errorText = await response.text();
       // #region agent log
       const logData = {location:'openai-rate-limit.ts:377',message:'OpenAI API error response',data:{status:response.status,errorTextLength:errorText.length,errorTextPreview:errorText.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'};
-      logger.error('[DEBUG] OpenAI API error:', logData', [object Object], { service: 'lib' });
+      logger.error('[DEBUG] OpenAI API error:', logData, { service: 'lib' });
       try {
         const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
         fs.appendFileSync(logPath, JSON.stringify(logData) + '\n');

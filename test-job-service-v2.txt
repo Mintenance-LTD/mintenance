@@ -1,0 +1,96 @@
+﻿
+ RUN  v4.0.16 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services
+
+node.exe : stderr | 
+src/jobs/__tests__/JobService.test.ts > JobService > 
+listJobs > should fetch and enrich jobs
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (stderr  
+   | src/jo...and enrich jobs:String) [], RemoteExc  
+  eption
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[vitest] The vi.fn() mock did not use 'function' or 
+'class' in its implementation, see 
+https://vitest.dev/api/vi#vi-spyon for examples.
+
+stderr | src/jobs/__tests__/JobService.test.ts > 
+JobService > createJob > should successfully create 
+a job for a serious buyer
+[vitest] The vi.fn() mock did not use 'function' or 
+'class' in its implementation, see 
+https://vitest.dev/api/vi#vi-spyon for examples.
+
+stderr | src/jobs/__tests__/JobService.test.ts > 
+JobService > createJob > should throw error if user 
+is not a serious buyer
+[vitest] The vi.fn() mock did not use 'function' or 
+'class' in its implementation, see 
+https://vitest.dev/api/vi#vi-spyon for examples.
+
+stderr | src/jobs/__tests__/JobService.test.ts > 
+JobService > deleteJob > should delete attachments 
+and job if owned by user
+[vitest] The vi.fn() mock did not use 'function' or 
+'class' in its implementation, see 
+https://vitest.dev/api/vi#vi-spyon for examples.
+
+stderr | src/jobs/__tests__/JobService.test.ts > 
+JobService > deleteJob > should throw error if user 
+does not own the job
+[vitest] The vi.fn() mock did not use 'function' or 
+'class' in its implementation, see 
+https://vitest.dev/api/vi#vi-spyon for examples.
+
+ ÔØ» src/jobs/__tests__/JobService.test.ts (5 tests | 5 failed) 14ms
+       ├ù should fetch and enrich jobs 7ms
+       ├ù should successfully create a job for a serious buyer 1ms
+       ├ù should throw error if user is not a serious buyer 2ms
+       ├ù should delete attachments and job if owned by user 1ms
+       ├ù should throw error if user does not own the job 1ms
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 5 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/jobs/__tests__/JobService.test.ts > 
+JobService > listJobs > should fetch and enrich jobs
+ FAIL  src/jobs/__tests__/JobService.test.ts > 
+JobService > createJob > should successfully create 
+a job for a serious buyer
+ FAIL  src/jobs/__tests__/JobService.test.ts > 
+JobService > createJob > should throw error if user 
+is not a serious buyer
+ FAIL  src/jobs/__tests__/JobService.test.ts > 
+JobService > deleteJob > should delete attachments 
+and job if owned by user
+ FAIL  src/jobs/__tests__/JobService.test.ts > 
+JobService > deleteJob > should throw error if user 
+does not own the job
+TypeError: () => ({
+    processAttachments: 
+__vite_ssr_import_0__.vi.fn(),
+    createAttachments: 
+__vite_ssr_import_0__.vi...<omitted>...}) is not a 
+constructor
+ ÔØ» new JobService src/jobs/JobService.ts:41:30
+     39|     this.repository = new 
+JobRepository(config.supabase);
+     40|     this.validator = new JobValidator();
+     41|     this.attachmentService = new 
+AttachmentService();
+       |                              ^
+     42|     // Optional services
+     43|     if (config.enableNotifications) {
+ ÔØ» src/jobs/__tests__/JobService.test.ts:65:15
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/5]ÔÄ»
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed (5)
+   Start at  11:46:11
+   Duration  714ms (transform 276ms, setup 0ms, import 358ms, tests 14ms, environment 0ms)
+

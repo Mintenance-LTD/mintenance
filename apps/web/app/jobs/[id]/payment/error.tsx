@@ -17,7 +17,7 @@ export default function JobPaymentError({
   const params = useParams();
 
   useEffect(() => {
-    logger.error('Job payment error:', error', [object Object], { service: 'app' });
+    logger.error('Job payment error:', error, { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

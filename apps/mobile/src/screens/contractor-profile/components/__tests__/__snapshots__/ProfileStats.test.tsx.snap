@@ -1,0 +1,441 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProfileStats Component Snapshot Stability renders consistently with different value combinations 1`] = `
+<View
+  style={
+    {
+      "flexDirection": "row",
+      "justifyContent": "space-around",
+      "paddingVertical": 16,
+    }
+  }
+  testID="profile-stats-container"
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="jobs-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="jobs-value"
+    >
+      156
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Jobs
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="rating-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="rating-value"
+    >
+      4.7
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Rating
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="reviews-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="reviews-value"
+    >
+      243
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Reviews
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`ProfileStats Component Snapshot Stability renders consistently with maximum values 1`] = `
+<View
+  style={
+    {
+      "flexDirection": "row",
+      "justifyContent": "space-around",
+      "paddingVertical": 16,
+    }
+  }
+  testID="profile-stats-container"
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="jobs-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="jobs-value"
+    >
+      9999
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Jobs
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="rating-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="rating-value"
+    >
+      5
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Rating
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="reviews-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="reviews-value"
+    >
+      9999
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Reviews
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`ProfileStats Component Snapshot Stability renders consistently with typical values 1`] = `
+<View
+  style={
+    {
+      "flexDirection": "row",
+      "justifyContent": "space-around",
+      "paddingVertical": 16,
+    }
+  }
+  testID="profile-stats-container"
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="jobs-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="jobs-value"
+    >
+      42
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Jobs
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="rating-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="rating-value"
+    >
+      4.8
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Rating
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="reviews-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="reviews-value"
+    >
+      127
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Reviews
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`ProfileStats Component Snapshot Stability renders consistently with zero values 1`] = `
+<View
+  style={
+    {
+      "flexDirection": "row",
+      "justifyContent": "space-around",
+      "paddingVertical": 16,
+    }
+  }
+  testID="profile-stats-container"
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="jobs-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="jobs-value"
+    >
+      0
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Jobs
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="rating-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="rating-value"
+    >
+      0
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Rating
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+      }
+    }
+    testID="reviews-stat"
+  >
+    <Text
+      style={
+        {
+          "color": "#171717",
+          "fontSize": 24,
+          "fontWeight": "600",
+        }
+      }
+      testID="reviews-value"
+    >
+      0
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#737373",
+          "fontSize": 14,
+          "marginTop": 4,
+        }
+      }
+    >
+      Reviews
+    </Text>
+  </View>
+</View>
+`;

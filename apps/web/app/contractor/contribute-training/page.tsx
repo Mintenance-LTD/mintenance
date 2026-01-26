@@ -173,7 +173,7 @@ export default function ContributeTrainingPage() {
         toast.success(`Image uploaded successfully! Earned 5 credits`);
 
       } catch (error) {
-        logger.error('Upload error:', error', [object Object], { service: 'app' });
+        logger.error('Upload error:', error, { service: 'app' });
         setUploadedImages(prev =>
           prev.map(img =>
             img.id === image.id

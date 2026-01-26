@@ -119,9 +119,8 @@ function OptimizedFlatListComponent<T = any>(
           changed: info.changed.length,
           firstItem: info.viewableItems[0]?.index,
           lastItem: info.viewableItems[info.viewableItems.length - 1]?.index,
-        }', {
-        service: 'ui'
-      });
+          service: 'ui'
+        });
       }
       onViewableItemsChanged?.(info);
     },
@@ -188,7 +187,6 @@ function OptimizedFlatListComponent<T = any>(
         dataLength: data.length,
         estimatedItemSize,
         ...platformOptimizations,
-      }', {
         service: 'ui'
       });
     }

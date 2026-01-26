@@ -186,7 +186,7 @@ export class ARVRVisualizationService {
     sessionId: string,
     type: 'tap' | 'pinch' | 'pan' | 'rotate' | 'voice' | 'gesture',
     target: string,
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ) {
     return this.sessionManager.recordInteraction(sessionId, type, target, data);
   }

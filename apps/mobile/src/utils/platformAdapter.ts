@@ -160,7 +160,7 @@ export class WebPlatformServices {
    * Web File Picker
    */
   static async pickWebFile(options: { accept?: string; multiple?: boolean } = {}): Promise<FileList | null> {
-    if (!platformCapabilities.fileSystem && !(window as any).showOpenFilePicker) {
+    if (!platformCapabilities.fileSystem && !(window as unknown).showOpenFilePicker) {
       // Fallback to traditional file input
       return new Promise((resolve) => {
         const input = document.createElement('input');
@@ -176,7 +176,7 @@ export class WebPlatformServices {
     }
 
     try {
-      const [fileHandle] = await (window as any).showOpenFilePicker({
+      const [fileHandle] = await (window as unknown).showOpenFilePicker({
         types: options.accept ? [{
           description: 'Allowed files',
           accept: { [options.accept]: [] }

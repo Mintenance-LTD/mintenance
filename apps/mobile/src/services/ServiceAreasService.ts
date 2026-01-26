@@ -14,7 +14,7 @@ export interface ServiceArea {
   center_latitude?: number;
   center_longitude?: number;
   radius_km?: number;
-  boundary_coordinates?: any; // GeoJSON
+  boundary_coordinates?: unknown; // GeoJSON
   postal_codes?: string[];
   cities?: string[];
   base_travel_charge: number;
@@ -84,7 +84,7 @@ export interface ServiceRoute {
   total_distance_km?: number;
   total_travel_cost?: number;
   jobs: string[];
-  waypoints: any[];
+  waypoints: unknown[];
   status: 'planned' | 'active' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
@@ -107,7 +107,7 @@ export class ServiceAreasService {
     center_latitude?: number;
     center_longitude?: number;
     radius_km?: number;
-    boundary_coordinates?: any;
+    boundary_coordinates?: unknown;
     postal_codes?: string[];
     cities?: string[];
     base_travel_charge?: number;
@@ -557,35 +557,42 @@ export class ServiceAreasService {
     };
   }
 
-  static formatServiceArea(data: any): ServiceArea {
+  static formatServiceArea(data: unknown): ServiceArea {
+    if (!data) {
+      throw new Error('Service area data cannot be null or undefined');
+    }
+
+    // Type assertion to access properties
+    const dbData = data as any;
+
     return {
-      id: data.id,
-      contractor_id: data.contractor_id,
-      area_name: data.area_name,
-      description: data.description,
-      area_type: data.area_type,
-      center_latitude: data.center_latitude,
-      center_longitude: data.center_longitude,
-      radius_km: data.radius_km,
-      boundary_coordinates: data.boundary_coordinates,
-      postal_codes: data.postal_codes,
-      cities: data.cities,
-      base_travel_charge: data.base_travel_charge,
-      per_km_rate: data.per_km_rate,
-      minimum_job_value: data.minimum_job_value,
-      priority_level: data.priority_level,
-      is_primary_area: data.is_primary_area,
-      is_active: data.is_active,
-      max_distance_km: data.max_distance_km,
-      response_time_hours: data.response_time_hours,
-      weekend_surcharge: data.weekend_surcharge,
-      evening_surcharge: data.evening_surcharge,
-      emergency_available: data.emergency_available,
-      emergency_surcharge: data.emergency_surcharge,
-      preferred_days: data.preferred_days,
-      preferred_hours: data.preferred_hours,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
+      id: dbData.id,
+      contractor_id: dbData.contractor_id,
+      area_name: dbData.area_name,
+      description: dbData.description,
+      area_type: dbData.area_type,
+      center_latitude: dbData.center_latitude,
+      center_longitude: dbData.center_longitude,
+      radius_km: dbData.radius_km,
+      boundary_coordinates: dbData.boundary_coordinates,
+      postal_codes: dbData.postal_codes,
+      cities: dbData.cities,
+      base_travel_charge: dbData.base_travel_charge,
+      per_km_rate: dbData.per_km_rate,
+      minimum_job_value: dbData.minimum_job_value,
+      priority_level: dbData.priority_level,
+      is_primary_area: dbData.is_primary_area,
+      is_active: dbData.is_active,
+      max_distance_km: dbData.max_distance_km,
+      response_time_hours: dbData.response_time_hours,
+      weekend_surcharge: dbData.weekend_surcharge,
+      evening_surcharge: dbData.evening_surcharge,
+      emergency_available: dbData.emergency_available,
+      emergency_surcharge: dbData.emergency_surcharge,
+      preferred_days: dbData.preferred_days,
+      preferred_hours: dbData.preferred_hours,
+      created_at: dbData.created_at,
+      updated_at: dbData.updated_at,
     };
   }
 }

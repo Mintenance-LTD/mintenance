@@ -4,7 +4,6 @@
  * Shadow definitions for both web (CSS) and mobile (React Native).
  * Platform adapters will convert these to the appropriate format.
  */
-
 export const shadows = {
   // Web shadows (CSS box-shadow format)
   web: {
@@ -22,7 +21,6 @@ export const shadows = {
     warningGlow: '0 8px 16px rgba(245, 158, 11, 0.2)',
     errorGlow: '0 8px 16px rgba(239, 68, 68, 0.2)',
   },
-
   // Mobile shadows (React Native format)
   mobile: {
     sm: {
@@ -55,6 +53,4 @@ export const shadows = {
     },
   },
 } as const;
-
 export type Shadows = typeof shadows;
-

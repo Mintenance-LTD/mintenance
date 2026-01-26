@@ -75,7 +75,7 @@ export class PhotoUploadService {
           uri: photo.uri,
           type: 'image/jpeg',
           name: `before_${Date.now()}.jpg`,
-        } as any);
+        } as unknown);
         formData.append('metadata', JSON.stringify(metadata));
 
         // Get auth token for FormData upload
@@ -151,7 +151,7 @@ export class PhotoUploadService {
           uri: photo.uri,
           type: 'image/jpeg',
           name: `after_${Date.now()}.jpg`,
-        } as any);
+        } as unknown);
         formData.append('metadata', JSON.stringify(metadata));
 
         // Get auth token for FormData upload
@@ -224,7 +224,7 @@ export class PhotoUploadService {
         uri: video.uri,
         type: 'video/mp4',
         name: `walkthrough_${Date.now()}.mp4`,
-      } as any);
+      } as unknown);
       formData.append('metadata', JSON.stringify(metadata));
 
       // Get auth token for FormData upload

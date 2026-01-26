@@ -1,0 +1,299 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`BookingList Snapshot Tests should match snapshot for empty state 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "flex": 1,
+      "justifyContent": "center",
+      "padding": 40,
+    }
+  }
+>
+  <Ionicons
+    color="#64748B"
+    name="calendar-outline"
+    size={64}
+  />
+  <Text
+    style={
+      {
+        "color": "#0F172A",
+        "fontSize": 18,
+        "fontWeight": "600",
+        "marginBottom": 8,
+        "marginTop": 16,
+      }
+    }
+  >
+    No bookings found
+  </Text>
+  <Text
+    style={
+      {
+        "color": "#475569",
+        "fontSize": 14,
+        "lineHeight": 20,
+        "textAlign": "center",
+      }
+    }
+  >
+    Your bookings will appear here once you have them
+  </Text>
+</View>
+`;
+
+exports[`BookingList Snapshot Tests should match snapshot for multiple bookings 1`] = `
+<ScrollView
+  contentContainerStyle={
+    {
+      "gap": 12,
+      "padding": 16,
+    }
+  }
+  showsVerticalScrollIndicator={false}
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "flex": 1,
+    }
+  }
+>
+  <View
+    testID="booking-card-booking-1"
+  >
+    <Text
+      testID="booking-name-booking-1"
+    >
+      John Doe
+    </Text>
+    <Text
+      testID="booking-service-booking-1"
+    >
+      Plumbing Service
+    </Text>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="cancel-button-booking-1"
+    >
+      <Text>
+        Cancel
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="reschedule-button-booking-1"
+    >
+      <Text>
+        Reschedule
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="rate-button-booking-1"
+    >
+      <Text>
+        Rate
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="share-button-booking-1"
+    >
+      <Text>
+        Share
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="view-details-button-booking-1"
+    >
+      <Text>
+        View Details
+      </Text>
+    </TouchableOpacity>
+  </View>
+  <View
+    testID="booking-card-booking-2"
+  >
+    <Text
+      testID="booking-name-booking-2"
+    >
+      John Doe
+    </Text>
+    <Text
+      testID="booking-service-booking-2"
+    >
+      Plumbing Service
+    </Text>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="cancel-button-booking-2"
+    >
+      <Text>
+        Cancel
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="reschedule-button-booking-2"
+    >
+      <Text>
+        Reschedule
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="rate-button-booking-2"
+    >
+      <Text>
+        Rate
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="share-button-booking-2"
+    >
+      <Text>
+        Share
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="view-details-button-booking-2"
+    >
+      <Text>
+        View Details
+      </Text>
+    </TouchableOpacity>
+  </View>
+  <View
+    testID="booking-card-booking-3"
+  >
+    <Text
+      testID="booking-name-booking-3"
+    >
+      John Doe
+    </Text>
+    <Text
+      testID="booking-service-booking-3"
+    >
+      Plumbing Service
+    </Text>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="cancel-button-booking-3"
+    >
+      <Text>
+        Cancel
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="reschedule-button-booking-3"
+    >
+      <Text>
+        Reschedule
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="rate-button-booking-3"
+    >
+      <Text>
+        Rate
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="share-button-booking-3"
+    >
+      <Text>
+        Share
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="view-details-button-booking-3"
+    >
+      <Text>
+        View Details
+      </Text>
+    </TouchableOpacity>
+  </View>
+</ScrollView>
+`;
+
+exports[`BookingList Snapshot Tests should match snapshot for single booking 1`] = `
+<ScrollView
+  contentContainerStyle={
+    {
+      "gap": 12,
+      "padding": 16,
+    }
+  }
+  showsVerticalScrollIndicator={false}
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "flex": 1,
+    }
+  }
+>
+  <View
+    testID="booking-card-booking-1"
+  >
+    <Text
+      testID="booking-name-booking-1"
+    >
+      John Doe
+    </Text>
+    <Text
+      testID="booking-service-booking-1"
+    >
+      Plumbing Service
+    </Text>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="cancel-button-booking-1"
+    >
+      <Text>
+        Cancel
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="reschedule-button-booking-1"
+    >
+      <Text>
+        Reschedule
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="rate-button-booking-1"
+    >
+      <Text>
+        Rate
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="share-button-booking-1"
+    >
+      <Text>
+        Share
+      </Text>
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      testID="view-details-button-booking-1"
+    >
+      <Text>
+        View Details
+      </Text>
+    </TouchableOpacity>
+  </View>
+</ScrollView>
+`;

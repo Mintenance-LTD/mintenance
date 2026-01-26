@@ -1,3 +1,4 @@
+import { renderHook, act } from '@testing-library/react-native';
 /**
  * Tests for useJobs Hooks - Job Management Service Integration
  *
@@ -6,10 +7,26 @@
  */
 
 import { JobService } from '../../services/JobService';
-import { Job } from '@mintenance/types';
+import type { Job } from '../../types';
 
-// Mock JobService
-jest.mock('../../services/JobService');
+// Mock JobService with all methods
+jest.mock('../../services/JobService', () => ({
+  JobService: {
+    getJobs: jest.fn(),
+    getAvailableJobs: jest.fn(),
+    getJobsByHomeowner: jest.fn(),
+    getJobsByStatus: jest.fn(),
+    getJobById: jest.fn(),
+    getBidsByJob: jest.fn(),
+    searchJobs: jest.fn(),
+    createJob: jest.fn(),
+    updateJobStatus: jest.fn(),
+    startJob: jest.fn(),
+    completeJob: jest.fn(),
+    submitBid: jest.fn(),
+    acceptBid: jest.fn(),
+  }
+}));
 
 describe('useJobs Hooks Integration', () => {
   const mockJob: Job = {
@@ -90,7 +107,7 @@ describe('useJobs Hooks Integration', () => {
         const result = await JobService.getAvailableJobs();
 
         expect(result).toHaveLength(2);
-        expect(result.every((j: any) => j.status === 'posted')).toBe(true);
+        expect(result.every((j: unknown) => j.status === 'posted')).toBe(true);
       });
     });
 

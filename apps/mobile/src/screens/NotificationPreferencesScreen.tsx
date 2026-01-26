@@ -62,7 +62,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
     }
   };
 
-  const updatePreference = (key: keyof NotificationPreferences, value: any) => {
+  const updatePreference = (key: keyof NotificationPreferences, value: unknown) => {
     if (!preferences) return;
 
     const newPreferences = { ...preferences, [key]: value };
@@ -70,7 +70,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
     savePreferences(newPreferences);
   };
 
-  const updateQuietHours = (key: 'enabled' | 'start' | 'end', value: any) => {
+  const updateQuietHours = (key: 'enabled' | 'start' | 'end', value: unknown) => {
     if (!preferences) return;
 
     const newPreferences = {
@@ -114,7 +114,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
     <View style={styles.preferenceItem}>
       <View style={styles.preferenceContent}>
         <View style={styles.preferenceHeader}>
-          <Ionicons name={icon as any} size={24} color={theme.colors.primary} />
+          <Ionicons name={icon as unknown} size={24} color={theme.colors.primary} />
           <View style={styles.preferenceText}>
             <Text style={styles.preferenceTitle}>{title}</Text>
             <Text style={styles.preferenceDescription}>{description}</Text>

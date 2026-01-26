@@ -91,7 +91,7 @@ export interface QuoteInteraction {
   id: string;
   quote_id: string;
   interaction_type: 'sent' | 'viewed' | 'downloaded' | 'shared' | 'commented';
-  interaction_details?: any;
+  interaction_details?: unknown;
   ip_address?: string;
   user_agent?: string;
   created_at: string;
@@ -642,23 +642,23 @@ export class QuoteBuilderService {
       const quotes = data || [];
       const totalQuotes = quotes.length;
       const draftQuotes = quotes.filter(
-        (q: any) => q.status === 'draft'
+        (q: unknown) => q.status === 'draft'
       ).length;
-      const sentQuotes = quotes.filter((q: any) => q.status === 'sent').length;
+      const sentQuotes = quotes.filter((q: unknown) => q.status === 'sent').length;
       const acceptedQuotes = quotes.filter(
-        (q: any) => q.status === 'accepted'
+        (q: unknown) => q.status === 'accepted'
       ).length;
       const rejectedQuotes = quotes.filter(
-        (q: any) => q.status === 'rejected'
+        (q: unknown) => q.status === 'rejected'
       ).length;
 
       const totalValue = quotes.reduce(
-        (sum: number, q: any) => sum + (q.total_amount || 0),
+        (sum: number, q: unknown) => sum + (q.total_amount || 0),
         0
       );
       const acceptedValue = quotes
-        .filter((q: any) => q.status === 'accepted')
-        .reduce((sum: number, q: any) => sum + (q.total_amount || 0), 0);
+        .filter((q: unknown) => q.status === 'accepted')
+        .reduce((sum: number, q: unknown) => sum + (q.total_amount || 0), 0);
 
       const averageQuoteValue = totalQuotes > 0 ? totalValue / totalQuotes : 0;
       const acceptanceRate =
@@ -687,7 +687,7 @@ export class QuoteBuilderService {
   static async trackQuoteInteraction(
     quoteId: string,
     interactionType: QuoteInteraction['interaction_type'],
-    details?: any
+    details?: unknown
   ): Promise<void> {
     try {
       const { error } = await supabase.from('quote_interactions').insert({

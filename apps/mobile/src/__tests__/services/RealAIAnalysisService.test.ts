@@ -1,5 +1,25 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
+
+jest.mock('../../services/RealAIAnalysisService', () => ({
+  RealAIAnalysisService: {
+    ...jest.requireActual('../../services/RealAIAnalysisService').RealAIAnalysisService,
+    initialize: jest.fn(),
+    cleanup: jest.fn(),
+  }
+}));
+
 import { RealAIAnalysisService } from '../../services/RealAIAnalysisService';
-import { Job } from '@mintenance/types';
+import { Job } from '../../types';
 
 // Mock fetch globally
 global.fetch = jest.fn();

@@ -1,0 +1,13 @@
+import * as sentryUtils from '../../utils/sentryUtils';
+
+describe('sentryUtils Utility', () => {
+  describe('basic functionality', () => {
+    it('should export functions', () => {
+      expect(sentryUtils).toBeDefined();
+      expect(typeof sentryUtils).toBe('object');
+    });
+
+    // TODO: Add specific tests for sentryUtils functions
+    it.todo('should test main functionality');
+  });
+});

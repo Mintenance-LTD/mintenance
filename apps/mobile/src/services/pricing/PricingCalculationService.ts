@@ -6,7 +6,7 @@ export class PricingCalculationService {
    * Combine ML predictions with market data for enhanced accuracy
    */
   combineMLWithMarketData(
-    mlResult: any,
+    mlResult: unknown,
     marketData: MarketContext,
     input: JobPricingInput
   ) {
@@ -31,7 +31,7 @@ export class PricingCalculationService {
     input: JobPricingInput,
     complexity: JobComplexityMetrics,
     marketData: MarketContext,
-    mlResult: any
+    mlResult: unknown
   ): PricingFactor[] {
     const factors: PricingFactor[] = [
       {
@@ -78,7 +78,7 @@ export class PricingCalculationService {
   /**
    * Get fallback pricing when ML fails
    */
-  getFallbackPricing(input: JobPricingInput): any {
+  getFallbackPricing(input: JobPricingInput): unknown {
     // Base pricing logic for fallback
     const baseRates: Record<string, number> = {
       plumbing: 45,

@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const followingOnly = searchParams.get('following') === 'true';
 
-    let posts: any[] = [];
+    let posts: unknown[] = [];
     let postsError: unknown = null;
 
     // SECURITY FIX: Use secure RPC function for search queries

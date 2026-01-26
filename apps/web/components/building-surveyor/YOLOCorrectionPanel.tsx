@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react';
+import { logger } from '@mintenance/shared';
 import { YOLOCorrectionEditor, type CorrectedDetection } from './YOLOCorrectionEditor';
 import type { RoboflowDetection } from '@/lib/services/building-surveyor/types';
 
@@ -110,7 +111,7 @@ export function YOLOCorrectionPanel({
         onComplete?.();
       }
     } catch (error) {
-      console.error('Failed to submit correction:', error);
+      logger.error('Failed to submit correction:', error);
       alert(error instanceof Error ? error.message : 'Failed to submit correction');
       throw error;
     } finally {

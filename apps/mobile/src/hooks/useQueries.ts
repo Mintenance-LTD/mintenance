@@ -63,7 +63,7 @@ export const invalidateQueries = {
 };
 
 // Job-related hooks
-export const useJobs = (filters?: any, enabled = true) => {
+export const useJobs = (filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.jobs.list(JSON.stringify(filters || {})),
     queryFn: () => JobService.getJobs(),
@@ -83,7 +83,7 @@ export const useJobDetails = (jobId: string, enabled = true) => {
 
 export const useCreateJob = () => {
   return useMutation({
-    mutationFn: (jobData: any) => JobService.createJob(jobData),
+    mutationFn: (jobData: unknown) => JobService.createJob(jobData),
     onSuccess: () => {
       // Invalidate jobs list to show new job
       invalidateQueries.allJobs();
@@ -105,7 +105,7 @@ export const useUpdateJob = () => {
       jobId: string;
       status: 'posted' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
       contractorId?: string;
-    }) => JobService.updateJobStatus(jobId, status as any, contractorId),
+    }) => JobService.updateJobStatus(jobId, status as unknown, contractorId),
     onSuccess: (data, variables) => {
       // Invalidate specific job details
       invalidateQueries.jobDetails(variables.jobId);
@@ -123,7 +123,7 @@ export const useDeleteJob = () => {
   return useMutation({
     // Soft-delete by marking as cancelled
     mutationFn: (jobId: string) =>
-      JobService.updateJobStatus(jobId, 'cancelled' as any),
+      JobService.updateJobStatus(jobId, 'cancelled' as unknown),
     onSuccess: () => {
       invalidateQueries.allJobs();
       HapticService.success();
@@ -135,11 +135,11 @@ export const useDeleteJob = () => {
 };
 
 // Contractor-related hooks
-export const useContractors = (filters?: any, enabled = true) => {
+export const useContractors = (filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.contractors.list(JSON.stringify(filters || {})),
     // Placeholder: implement actual list API; returning empty for now
-    queryFn: () => Promise.resolve([] as any[]),
+    queryFn: () => Promise.resolve([] as unknown[]),
     enabled,
     staleTime: 10 * 60 * 1000, // 10 minutes
   });
@@ -154,7 +154,7 @@ export const useContractorDetails = (contractorId: string, enabled = true) => {
   });
 };
 
-export const useContractorsInfinite = (filters?: any) => {
+export const useContractorsInfinite = (filters?: unknown) => {
   return useInfiniteQuery({
     queryKey: queryKeys.contractors.list(JSON.stringify(filters || {})),
     queryFn: async () => [],
@@ -216,7 +216,7 @@ export const useSendMessage = () => {
 };
 
 // Feed/Social hooks
-export const useFeedPosts = (filters?: any, enabled = true) => {
+export const useFeedPosts = (filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.feed.posts(JSON.stringify(filters || {})),
     queryFn: () => {
@@ -278,7 +278,7 @@ export const useToggleSave = () => {
 // Search hooks
 export const useSearchContractors = (
   query: string,
-  filters?: any,
+  filters?: unknown,
   enabled = true
 ) => {
   return useQuery({
@@ -286,13 +286,13 @@ export const useSearchContractors = (
       query,
       JSON.stringify(filters || {})
     ),
-    queryFn: () => Promise.resolve([] as any[]),
+    queryFn: () => Promise.resolve([] as unknown[]),
     enabled: enabled && query.length > 2, // Only search if query is 3+ characters
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
-export const useSearchJobs = (query: string, filters?: any, enabled = true) => {
+export const useSearchJobs = (query: string, filters?: unknown, enabled = true) => {
   return useQuery({
     queryKey: queryKeys.search.jobs(query, JSON.stringify(filters || {})),
     queryFn: () => JobService.searchJobs(query, filters),
@@ -307,9 +307,9 @@ export const useOptimisticUpdate = <T>({
   updateFn,
   mutationFn,
 }: {
-  queryKey: any[];
-  updateFn: (oldData: T, variables: any) => T;
-  mutationFn: (variables: any) => Promise<any>;
+  queryKey: unknown[];
+  updateFn: (oldData: T, variables: unknown) => T;
+  mutationFn: (variables: unknown) => Promise<unknown>;
 }) => {
   return useMutation({
     mutationFn,

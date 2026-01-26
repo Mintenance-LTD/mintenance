@@ -1,71 +1,95 @@
 'use client';
 
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/Button';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { logger } from '@mintenance/shared';
+import React from 'react';
+import { Button, Card } from '../../components/ui';
+import { theme } from '@/lib/theme';
 
-export default function SearchError({
-  error,
-  reset,
-}: {
+interface ErrorPageProps {
   error: Error & { digest?: string };
   reset: () => void;
-}) {
-  const router = useRouter();
+}
 
-  useEffect(() => {
-    logger.error('Search error:', error', [object Object], { service: 'app' });
-
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error);
-    }
-  }, [error]);
+export default function Error({ error, reset }: ErrorPageProps) {
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100">
-            <AlertTriangle className="h-8 w-8 text-red-600" />
-          </div>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#f9fafb',
+      padding: '1rem',
+    }}>
+      <Card variant="elevated" style={{
+        maxWidth: '600px',
+        width: '100%',
+        padding: '2rem',
+        textAlign: 'center',
+      }}>
+        <div style={{
+          fontSize: '64px',
+          marginBottom: '1rem',
+          color: theme.colors.error || '#ef4444',
+        }}>
+           
+        </div>
 
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Search error
-          </h2>
+        <h1 style={{
+          fontSize: '1.875rem',
+          fontWeight: 700,
+          color: theme.colors.textPrimary || '#111827',
+          marginBottom: '1rem',
+        }}>
+          Search Error
+        </h1>
 
-          <p className="mt-2 text-sm text-gray-600">
-            We encountered an error while searching. Please try again or adjust your search criteria.
-          </p>
+        <p style={{
+          fontSize: '1rem',
+          color: theme.colors.textSecondary || '#6b7280',
+          marginBottom: '2rem',
+          lineHeight: 1.6,
+        }}>
+          We encountered an error while processing your search.
+        </p>
 
-          {error.digest && (
-            <p className="mt-2 text-xs text-gray-500">
-              Error ID: {error.digest}
+        {isDevelopment && error && (
+          <details style={{
+            backgroundColor: '#f3f4f6',
+            padding: '1rem',
+            borderRadius: '0.5rem',
+            marginBottom: '2rem',
+            textAlign: 'left',
+            border: '1px solid #e5e7eb',
+          }}>
+            <summary style={{
+              cursor: 'pointer',
+              fontWeight: 600,
+              marginBottom: '0.5rem',
+              color: theme.colors.textPrimary || '#111827',
+            }}>
+              Error Details
+            </summary>
+            <p style={{
+              fontSize: '0.875rem',
+              color: theme.colors.error || '#ef4444',
+              marginTop: '0.5rem',
+            }}>
+              {error.message}
             </p>
-          )}
-        </div>
+          </details>
+        )}
 
-        <div className="mt-8 space-y-3">
-          <Button
-            onClick={reset}
-            variant="primary"
-            className="w-full flex items-center justify-center"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Try again
-          </Button>
-
-          <Button
-            onClick={() => router.push('/')}
-            variant="secondary"
-            className="w-full flex items-center justify-center"
-          >
-            <Home className="mr-2 h-4 w-4" />
-            Go to homepage
-          </Button>
+        <div style={{
+          display: 'flex',
+          gap: '0.75rem',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+        }}>
+          <Button variant="primary" onClick={reset}>Try Again</Button>
+          <Button variant="outline" onClick={() => window.location.href = '/'}>Go Home</Button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

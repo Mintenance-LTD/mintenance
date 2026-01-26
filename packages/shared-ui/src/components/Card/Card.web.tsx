@@ -3,14 +3,11 @@
  * 
  * Web-specific Card component using design tokens
  */
-
 'use client';
-
 import React, { useState } from 'react';
 import { webTokens } from '@mintenance/design-tokens';
 import { cn } from '../../utils/cn';
 import type { WebCardProps, CardVariant, CardPadding } from './types';
-
 /**
  * Card Component for Web
  * 
@@ -32,9 +29,7 @@ export function Card({
 }: WebCardProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-
   const isInteractive = !!onClick;
-
   // Base styles using design tokens
   const baseStyles: React.CSSProperties = {
     position: 'relative',
@@ -43,7 +38,6 @@ export function Card({
     cursor: isInteractive ? 'pointer' : 'default',
     opacity: disabled ? 0.6 : 1,
   };
-
   // Variant styles
   const variantStyles: Record<CardVariant, React.CSSProperties> = {
     default: {
@@ -65,7 +59,6 @@ export function Card({
       boxShadow: 'none',
     },
   };
-
   // Padding values
   const paddingValues: Record<CardPadding, string> = {
     none: '0',
@@ -73,7 +66,6 @@ export function Card({
     md: `${webTokens.spacing.lg}px`,
     lg: `${webTokens.spacing.xl}px`,
   };
-
   // Hover styles
   const hoverStyles: React.CSSProperties = (isInteractive && (hover || isHovered) && !disabled)
     ? {
@@ -82,7 +74,6 @@ export function Card({
         borderColor: webTokens.colors.borderDark,
       }
     : {};
-
   // Focus styles for accessibility
   const focusStyles: React.CSSProperties = isFocused && isInteractive && !disabled
     ? {
@@ -90,7 +81,6 @@ export function Card({
         outlineOffset: '4px',
       }
     : {};
-
   const cardStyles: React.CSSProperties = {
     ...baseStyles,
     ...variantStyles[variant],
@@ -99,7 +89,6 @@ export function Card({
     ...focusStyles,
     ...style,
   };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (isInteractive && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
@@ -107,7 +96,6 @@ export function Card({
     }
     props.onKeyDown?.(e);
   };
-
   return (
     <div
       {...props}
@@ -130,13 +118,11 @@ export function Card({
     </div>
   );
 }
-
 // Card sub-components
 interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
 }
-
 export function CardHeader({ children, className = '', ...props }: CardHeaderProps) {
   return (
     <div
@@ -153,13 +139,11 @@ export function CardHeader({ children, className = '', ...props }: CardHeaderPro
     </div>
   );
 }
-
 interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
   children: React.ReactNode;
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
   className?: string;
 }
-
 export function CardTitle({ children, as = 'h3', className = '', ...props }: CardTitleProps) {
   const Tag = as;
   return (
@@ -178,12 +162,10 @@ export function CardTitle({ children, as = 'h3', className = '', ...props }: Car
     </Tag>
   );
 }
-
 interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {
   children: React.ReactNode;
   className?: string;
 }
-
 export function CardDescription({ children, className = '', ...props }: CardDescriptionProps) {
   return (
     <p
@@ -201,12 +183,10 @@ export function CardDescription({ children, className = '', ...props }: CardDesc
     </p>
   );
 }
-
 interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
 }
-
 export function CardContent({ children, className = '', ...props }: CardContentProps) {
   return (
     <div className={cn('card-content', className)} {...props}>
@@ -214,12 +194,10 @@ export function CardContent({ children, className = '', ...props }: CardContentP
     </div>
   );
 }
-
 interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
 }
-
 export function CardFooter({ children, className = '', ...props }: CardFooterProps) {
   return (
     <div
@@ -238,4 +216,3 @@ export function CardFooter({ children, className = '', ...props }: CardFooterPro
     </div>
   );
 }
-

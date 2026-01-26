@@ -1,13 +1,64 @@
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 
+// =====================================================
+// DATABASE ROW INTERFACES (snake_case)
+// =====================================================
+
+interface DatabaseJobSheetRow {
+  id: string;
+  contractor_id: string;
+  status: string;
+  completed_at: string | null;
+  due_date: string | null;
+  quality_score: number | null;
+  created_at: string;
+  started_at: string | null;
+}
+
+interface DatabaseFormAnalyticsRow {
+  id: string;
+  contractor_id: string;
+  template_id: string | null;
+  job_sheet_id: string | null;
+  form_completion_time: number | null;
+  field_completion_rates: Record<string, number> | null;
+  error_count: number;
+  revision_count: number;
+  accuracy_score: number | null;
+  completeness_score: number | null;
+  timeliness_score: number | null;
+  device_type: string | null;
+  offline_completion: boolean;
+  sync_issues: number;
+  start_date: string | null;
+  completion_date: string | null;
+  created_at: string;
+}
+
+interface DatabaseFormTemplateRow {
+  id: string;
+  template_name: string;
+  contractor_id: string;
+}
+
+interface DatabaseFormTrendsRow {
+  created_at: string;
+  form_completion_time: number | null;
+  error_count: number;
+}
+
+// =====================================================
+// PUBLIC INTERFACES (camelCase)
+// =====================================================
+
 export interface FormAnalytics {
   id: string;
   contractor_id: string;
   template_id?: string;
   job_sheet_id?: string;
   form_completion_time?: number;
-  field_completion_rates?: any;
+  field_completion_rates?: Record<string, number>;
   error_count: number;
   revision_count: number;
   accuracy_score?: number;
@@ -46,18 +97,18 @@ export class FormAnalyticsService {
 
       if (error) throw error;
 
-      const sheets = data || [];
+      const sheets = (data || []) as DatabaseJobSheetRow[];
       const totalSheets = sheets.length;
       const completedSheets = sheets.filter(
-        (s: any) => s.status === 'completed' || s.status === 'approved'
+        (s) => s.status === 'completed' || s.status === 'approved'
       ).length;
-      const pendingSheets = sheets.filter((s: any) =>
+      const pendingSheets = sheets.filter((s) =>
         ['created', 'in_progress', 'pending_review'].includes(s.status)
       ).length;
 
       const now = new Date();
       const overdueSheets = sheets.filter(
-        (s: any) =>
+        (s) =>
           s.due_date &&
           new Date(s.due_date) < now &&
           !['completed', 'approved'].includes(s.status)
@@ -65,11 +116,11 @@ export class FormAnalyticsService {
 
       // Calculate average completion time (in hours)
       const completedWithTimes = sheets.filter(
-        (s: any) => s.started_at && s.completed_at
+        (s) => s.started_at && s.completed_at
       );
       const avgCompletionTime =
         completedWithTimes.length > 0
-          ? completedWithTimes.reduce((sum: number, s: any) => {
+          ? completedWithTimes.reduce((sum: number, s) => {
               const start = new Date(s.started_at!).getTime();
               const end = new Date(s.completed_at!).getTime();
               return sum + (end - start) / (1000 * 60 * 60); // Convert to hours
@@ -78,12 +129,12 @@ export class FormAnalyticsService {
 
       // Calculate average quality score
       const sheetsWithQuality = sheets.filter(
-        (s: any) => s.quality_score !== null
+        (s) => s.quality_score !== null
       );
       const avgQualityScore =
         sheetsWithQuality.length > 0
           ? sheetsWithQuality.reduce(
-              (sum: number, s: any) => sum + (s.quality_score || 0),
+              (sum: number, s) => sum + (s.quality_score || 0),
               0
             ) / sheetsWithQuality.length
           : 0;
@@ -94,7 +145,7 @@ export class FormAnalyticsService {
 
       // Calculate on-time completion rate
       const completedOnTime = sheets.filter(
-        (s: any) =>
+        (s) =>
           s.completed_at &&
           s.due_date &&
           new Date(s.completed_at) <= new Date(s.due_date)
@@ -182,7 +233,10 @@ export class FormAnalyticsService {
 
       if (error) throw error;
 
-      const analytics = data || [];
+      const analytics = (data || []) as Pick<
+        DatabaseFormAnalyticsRow,
+        'form_completion_time' | 'error_count' | 'completeness_score'
+      >[];
       const usageCount = analytics.length;
 
       if (usageCount === 0) {
@@ -222,7 +276,7 @@ export class FormAnalyticsService {
       job_sheet_id?: string;
       field_name: string;
       action: 'focus' | 'blur' | 'change' | 'error';
-      value?: any;
+      value?: unknown;
       error_message?: string;
     }
   ): Promise<void> {
@@ -250,8 +304,14 @@ export class FormAnalyticsService {
     dateRange: { start: string; end: string }
   ): Promise<{
     summary: JobSheetSummaryStats;
-    template_performance: any[];
-    trends: any;
+    template_performance: Array<{
+      template_name: string;
+      usage_count: number;
+      average_completion_time: number;
+      error_rate: number;
+      completion_rate: number;
+    }>;
+    trends: DatabaseFormTrendsRow[];
   }> {
     try {
       // Get summary stats
@@ -265,8 +325,13 @@ export class FormAnalyticsService {
 
       if (templatesError) throw templatesError;
 
+      const typedTemplates = (templates || []) as Pick<
+        DatabaseFormTemplateRow,
+        'id' | 'template_name'
+      >[];
+
       const templatePerformance = await Promise.all(
-        (templates || []).map(async (template) => {
+        typedTemplates.map(async (template) => {
           const stats = await this.getTemplatePerformanceStats(template.id);
           return {
             template_name: template.template_name,
@@ -289,7 +354,7 @@ export class FormAnalyticsService {
       return {
         summary,
         template_performance: templatePerformance,
-        trends: trendsData || [],
+        trends: (trendsData || []) as DatabaseFormTrendsRow[],
       };
     } catch (error) {
       logger.error('Error generating performance report', error);

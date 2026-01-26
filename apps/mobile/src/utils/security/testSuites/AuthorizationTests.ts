@@ -9,19 +9,19 @@ import type { PenetrationTest, PenetrationTestResult, SecurityVulnerability } fr
 
 export class AuthorizationTestSuite {
   static createPrivilegeEscalationTest(): PenetrationTest {
-    return this.createAuthzTest('privilege_escalation', 'Privilege Escalation Test');
+    return this.createAuthzTest('privilege_escalation', 'privilege_escalation');
   }
 
   static createIdorTest(): PenetrationTest {
-    return this.createAuthzTest('idor', 'Insecure Direct Object Reference Test');
+    return this.createAuthzTest('idor', 'idor');
   }
 
   static createRoleBasedAccessTest(): PenetrationTest {
-    return this.createAuthzTest('role_based_access', 'Role-based Access Control Test');
+    return this.createAuthzTest('role_based_access', 'role_based_access');
   }
 
   static createResourceAccessTest(): PenetrationTest {
-    return this.createAuthzTest('resource_access', 'Resource Access Control Test');
+    return this.createAuthzTest('resource_access', 'resource_access');
   }
 
   private static createAuthzTest(id: string, testType: string): PenetrationTest {

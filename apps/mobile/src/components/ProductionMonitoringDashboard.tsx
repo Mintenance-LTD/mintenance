@@ -22,10 +22,22 @@ interface DashboardStatus {
     score: number;
     lastCheck: number;
   };
-  performance: any;
-  errors: any;
-  security: any;
-  health: any;
+  performance: {
+    score: number;
+    metrics: Record<string, unknown>;
+  };
+  errors: {
+    count: number;
+    recent: unknown[];
+  };
+  security: {
+    status: string;
+    issues: unknown[];
+  };
+  health: {
+    status: string;
+    uptime: number;
+  };
 }
 
 export function ProductionMonitoringDashboard() {

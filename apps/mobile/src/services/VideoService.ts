@@ -32,7 +32,7 @@ export interface VideoProcessingResult {
   status: 'queued' | 'uploading' | 'processing' | 'completed' | 'failed';
   videoUrl?: string;
   sam2ProcessingId?: string;
-  damageAssessment?: any;
+  damageAssessment?: unknown;
   error?: string;
   progress?: number;
 }
@@ -357,7 +357,7 @@ class VideoService {
   /**
    * Get SAM2 processing status
    */
-  async getSAM2ProcessingStatus(processingId: string): Promise<any> {
+  async getSAM2ProcessingStatus(processingId: string): Promise<unknown> {
     try {
       const response = await fetch(
         `${this.getSAM2ServiceUrl()}/processing-status/${processingId}`,
@@ -490,7 +490,7 @@ class VideoService {
   /**
    * Store processing results
    */
-  private async storeProcessingResults(videoId: string, results: any) {
+  private async storeProcessingResults(videoId: string, results: unknown) {
     try {
       await AsyncStorage.setItem(
         `video_results_${videoId}`,
@@ -509,7 +509,7 @@ class VideoService {
   /**
    * Get processing results
    */
-  async getProcessingResults(videoId: string): Promise<any> {
+  async getProcessingResults(videoId: string): Promise<unknown> {
     try {
       const results = await AsyncStorage.getItem(`video_results_${videoId}`);
       return results ? JSON.parse(results) : null;

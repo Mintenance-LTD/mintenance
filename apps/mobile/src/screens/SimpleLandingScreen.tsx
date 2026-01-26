@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#f8fafc',
-    ...(Platform.OS === 'web' ? { position: 'sticky' as any, top: 0, zIndex: 50 } : {}),
+    ...(Platform.OS === 'web' ? { position: 'sticky' as unknown, top: 0, zIndex: 50 } : {}),
   },
   brandRow: { flexDirection: 'row', alignItems: 'center' },
   logoMark: {

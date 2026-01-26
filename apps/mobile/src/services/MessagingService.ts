@@ -5,6 +5,38 @@ import { sanitizeText } from '../utils/sanitize';
 import { sanitizeForSQL, isValidSearchTerm } from '../utils/sqlSanitization';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 
+// ============================================================================
+// DATABASE ROW INTERFACES (snake_case from database)
+// ============================================================================
+
+interface DatabaseMessageRow {
+  id: string;
+  job_id: string;
+  sender_id: string;
+  receiver_id: string;
+  message_text?: string;
+  content?: string;
+  message_type: string;
+  attachment_url?: string;
+  call_id?: string;
+  call_duration?: number;
+  read: boolean;
+  created_at: string;
+  sender?: {
+    first_name?: string;
+    last_name?: string;
+    role?: string;
+  };
+  [key: string]: unknown;
+}
+
+interface RealtimePayload<T = Record<string, unknown>> {
+  new: T;
+  old?: T;
+  error?: unknown;
+  [key: string]: unknown;
+}
+
 export interface Message {
   id: string;
   jobId: string;
@@ -99,9 +131,9 @@ export class MessagingService {
       }
 
       // Create notification for recipient
-      await this.createMessageNotification(data, receiverId);
+      await this.createMessageNotification(data as DatabaseMessageRow, receiverId);
 
-      return this.formatMessage(data);
+      return this.formatMessage(data as DatabaseMessageRow);
     }, context);
 
     if (!result.success || !result.data) {
@@ -134,7 +166,7 @@ export class MessagingService {
 
       if (error) throw error;
 
-      return data.map(this.formatMessage).reverse(); // Reverse to get chronological order
+      return (data as DatabaseMessageRow[]).map(this.formatMessage).reverse(); // Reverse to get chronological order
     } catch (error) {
       logger.error('Error fetching messages:', error);
       throw error;
@@ -192,7 +224,7 @@ export class MessagingService {
           jobId: job.id,
           jobTitle: job.title,
           lastMessage: lastMessage?.[0]
-            ? this.formatMessage(lastMessage[0])
+            ? this.formatMessage(lastMessage[0] as DatabaseMessageRow)
             : undefined,
           unreadCount: unreadCount || 0,
           participants: [
@@ -250,7 +282,7 @@ export class MessagingService {
     jobId: string,
     onNewMessage: (message: Message) => void,
     onMessageUpdate: (message: Message) => void = () => {},
-    onError: (error: any) => void = (error) =>
+    onError: (error: unknown) => void = (error) =>
       logger.error('Real-time subscription error:', error)
   ): () => void {
     const channelKey = `messages_${jobId}`;
@@ -278,8 +310,9 @@ export class MessagingService {
             table: 'messages',
             filter: `job_id=eq.${jobId}`,
           },
-          async (payload: any) => {
+          async (payload: unknown) => {
             try {
+              const realtimePayload = payload as RealtimePayload<DatabaseMessageRow>;
               // Fetch the complete message with sender info
               const { data, error } = await supabase
                 .from('messages')
@@ -289,7 +322,7 @@ export class MessagingService {
                   sender:users!messages_sender_id_fkey(first_name, last_name, role)
                 `
                 )
-                .eq('id', payload.new.id)
+                .eq('id', realtimePayload.new.id)
                 .single();
 
               if (error) {
@@ -299,7 +332,7 @@ export class MessagingService {
               }
 
               if (data) {
-                onNewMessage(this.formatMessage(data));
+                onNewMessage(this.formatMessage(data as DatabaseMessageRow));
               }
             } catch (error) {
               logger.error('Error processing new message:', error);
@@ -315,8 +348,9 @@ export class MessagingService {
             table: 'messages',
             filter: `job_id=eq.${jobId}`,
           },
-          async (payload: any) => {
+          async (payload: unknown) => {
             try {
+              const realtimePayload = payload as RealtimePayload<DatabaseMessageRow>;
               const { data, error } = await supabase
                 .from('messages')
                 .select(
@@ -325,7 +359,7 @@ export class MessagingService {
                   sender:users!messages_sender_id_fkey(first_name, last_name, role)
                 `
                 )
-                .eq('id', payload.new.id)
+                .eq('id', realtimePayload.new.id)
                 .single();
 
               if (error) {
@@ -335,7 +369,7 @@ export class MessagingService {
               }
 
               if (data) {
-                onMessageUpdate(this.formatMessage(data));
+                onMessageUpdate(this.formatMessage(data as DatabaseMessageRow));
               }
             } catch (error) {
               logger.error('Error processing message update:', error);
@@ -343,7 +377,7 @@ export class MessagingService {
             }
           }
         )
-        .subscribe((status: any) => {
+        .subscribe((status: unknown) => {
           if (status === 'SUBSCRIBED') {
             logger.info(`Successfully subscribed to messages for job ${jobId}`);
           } else if (status === 'CLOSED') {
@@ -384,7 +418,9 @@ export class MessagingService {
     let oldestKey: string | null = null;
     let oldestTime = Date.now();
 
-    for (const [key, data] of this.activeChannels.entries()) {
+    // Convert entries to array to avoid iterator issues with downlevelIteration
+    const entries = Array.from(this.activeChannels.entries());
+    for (const [key, data] of entries) {
       if (data.createdAt < oldestTime) {
         oldestTime = data.createdAt;
         oldestKey = key;
@@ -479,7 +515,7 @@ export class MessagingService {
 
       if (error) throw error;
 
-      return data.map(this.formatMessage);
+      return (data as DatabaseMessageRow[]).map(this.formatMessage);
     } catch (error) {
       logger.error('Error searching messages:', error);
       throw error;
@@ -490,7 +526,7 @@ export class MessagingService {
    * Create notification for new message
    */
   private static async createMessageNotification(
-    message: any,
+    message: DatabaseMessageRow,
     receiverId: string
   ): Promise<void> {
     try {
@@ -512,24 +548,23 @@ export class MessagingService {
   /**
    * Format message data for consistent interface
    */
-  private static formatMessage(data: any): Message {
-    const d = data || {};
+  private static formatMessage(data: DatabaseMessageRow): Message {
     return {
-      id: d.id || '',
-      jobId: d.job_id || '',
-      senderId: d.sender_id || '',
-      receiverId: d.receiver_id || '',
-      messageText: d.content || d.message_text || '', // Use 'content' first (schema uses 'content'), fallback to 'message_text' for backward compatibility
-      messageType: d.message_type || 'text',
-      attachmentUrl: d.attachment_url,
-      callId: d.call_id,
-      callDuration: d.call_duration,
-      read: Boolean(d.read),
-      createdAt: d.created_at || new Date().toISOString(),
-      senderName: d.sender
-        ? `${d.sender.first_name || ''} ${d.sender.last_name || ''}`.trim()
+      id: data.id || '',
+      jobId: data.job_id || '',
+      senderId: data.sender_id || '',
+      receiverId: data.receiver_id || '',
+      messageText: data.content || data.message_text || '', // Use 'content' first (schema uses 'content'), fallback to 'message_text' for backward compatibility
+      messageType: (data.message_type as Message['messageType']) || 'text',
+      attachmentUrl: data.attachment_url,
+      callId: data.call_id,
+      callDuration: data.call_duration,
+      read: Boolean(data.read),
+      createdAt: data.created_at || new Date().toISOString(),
+      senderName: data.sender
+        ? `${data.sender.first_name || ''} ${data.sender.last_name || ''}`.trim()
         : 'Unknown User',
-      senderRole: d.sender?.role,
+      senderRole: data.sender?.role,
     };
   }
 
@@ -643,7 +678,7 @@ export class MessagingService {
 
       if (error) throw error;
 
-      return data.map(this.formatMessage);
+      return (data as DatabaseMessageRow[]).map(this.formatMessage);
     } catch (error) {
       logger.error('Error fetching video call messages:', error);
       throw error;
@@ -685,8 +720,8 @@ export class MessagingService {
    * Clean up all active message subscriptions
    */
   static cleanup(): void {
-    this.activeChannels.forEach((channel) => {
-      channel.unsubscribe();
+    this.activeChannels.forEach((channelData) => {
+      channelData.channel.unsubscribe();
     });
     this.activeChannels.clear();
   }

@@ -9,32 +9,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { POST } from '../app/api/webhooks/stripe/route';
 
 // Mock dependencies
-jest.mock('stripe', () => {
-  return jest.fn().mockImplementation(() => ({
+vi.mock('stripe', () => {
+  return vi.fn().mockImplementation(() => ({
     webhooks: {
-      constructEvent: jest.fn(),
+      constructEvent: vi.fn(),
     },
   }));
 });
 
-jest.mock('@/lib/api/supabaseServer', () => ({
+vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    rpc: jest.fn(),
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn(),
+    rpc: vi.fn(),
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(),
         })),
       })),
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(),
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(),
         })),
       })),
-      update: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn(),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn(),
           })),
         })),
       })),
@@ -42,15 +42,15 @@ jest.mock('@/lib/api/supabaseServer', () => ({
   },
 }));
 
-jest.mock('@/lib/rate-limiter', () => ({
-  checkWebhookRateLimit: jest.fn(),
+vi.mock('@/lib/rate-limiter', () => ({
+  checkWebhookRateLimit: vi.fn(),
 }));
 
-jest.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -61,7 +61,7 @@ describe('Stripe Webhook Security', () => {
   const mockLogger = require('@mintenance/shared').logger;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Set up environment variables
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_secret';

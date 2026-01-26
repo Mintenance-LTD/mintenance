@@ -48,7 +48,9 @@
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
-    "**/*.spec.tsx"
+    "**/*.spec.tsx",
+    "scripts/**/*.js",
+    "*.js"
   ],
   "references": [
     {

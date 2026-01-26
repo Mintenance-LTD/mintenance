@@ -51,7 +51,7 @@ export interface DecisionLog {
   outcomeSuccess: boolean | null;
   createdAt: string;
   reasoning: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 /**
@@ -565,7 +565,7 @@ export class AgentAnalytics {
     }
   }
 
-  private static calculateAccuracyTrend(decisions: any[]): number[] {
+  private static calculateAccuracyTrend(decisions: unknown[]): number[] {
     const days = 7;
     const trend: number[] = [];
     const now = new Date();

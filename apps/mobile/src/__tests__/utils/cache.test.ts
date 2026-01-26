@@ -347,7 +347,7 @@ describe('CacheManager', () => {
       cacheManager.setStrategy({
         name: 'SIZE_AWARE',
         shouldCache: (key, value, config) => {
-          const calculateSize = (val: any) => JSON.stringify(val).length;
+          const calculateSize = (val: unknown) => JSON.stringify(val).length;
           const size = calculateSize(value);
           return size < (config?.maxSize || 1024 * 1024);
         },

@@ -54,7 +54,7 @@ const EditProfileScreen: React.FC = () => {
       } else {
         navigation.goBack();
       }
-    } catch (error: any) {
+    } catch (error) {
       Alert.alert('Error', error.message || 'Failed to update profile');
     } finally {
       setLoading(false);

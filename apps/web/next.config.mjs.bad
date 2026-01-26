@@ -1,0 +1,217 @@
+import withBundleAnalyzerInit from '@next/bundle-analyzer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Enable bundle analyzer when ANALYZE env is set
+const withBundleAnalyzer = withBundleAnalyzerInit({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+const nextConfig = {
+  // Enable standalone output for smaller deployments
+  output: 'standalone',
+
+  poweredByHeader: false,
+
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui', '@hookform/resolvers'],
+
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 2592000,
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.stripe.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+    ],
+  },
+
+  experimental: {
+    // Enable optimizations
+    optimizeCss: true,
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-*',
+      'date-fns',
+      'react-hook-form',
+      'framer-motion',
+    ],
+  },
+
+  // Performance optimizations
+  compress: true,
+  productionBrowserSourceMaps: false,
+
+  webpack: (config, { isServer, dev }) => {
+    // Bundle analyzer
+    if (process.env.ANALYZE === 'true') {
+      const { BundleAnalyzerPlugin } = await import('webpack-bundle-analyzer');
+      config.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: 'static',
+          reportFilename: isServer
+            ? '../analyze/server.html'
+            : './analyze/client.html',
+          openAnalyzer: false,
+        })
+      );
+    }
+
+    // Production optimizations
+    if (!dev && !isServer) {
+      // Tree shaking
+      config.optimization.usedExports = true;
+      config.optimization.sideEffects = false;
+
+      // Module concatenation
+      config.optimization.concatenateModules = true;
+
+      // Split chunks optimally
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          default: false,
+          vendors: false,
+          framework: {
+            chunks: 'all',
+            name: 'framework',
+            test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+            priority: 40,
+            enforce: true,
+          },
+          lib: {
+            test(module) {
+              return module.size() > 160000 &&
+                /node_modules[/\\]/.test(module.identifier());
+            },
+            name(module) {
+              const hash = require('crypto')
+                .createHash('sha256')
+                .update(module.identifier())
+                .digest('hex');
+              return `lib-${hash.substring(0, 8)}`;
+            },
+            priority: 30,
+            minChunks: 1,
+            reuseExistingChunk: true,
+          },
+          commons: {
+            name: 'commons',
+            minChunks: 2,
+            priority: 20,
+          },
+          shared: {
+            name(module, chunks) {
+              const hash = require('crypto')
+                .createHash('sha256')
+                .update(chunks.reduce((acc, chunk) => acc + chunk.name, ''))
+                .digest('hex');
+              return `shared-${hash.substring(0, 8)}`;
+            },
+            priority: 10,
+            minChunks: 2,
+            reuseExistingChunk: true,
+          },
+        },
+        maxAsyncRequests: 30,
+        maxInitialRequests: 30,
+      };
+    }
+
+    // Ignore specific warnings
+    config.ignoreWarnings = [
+      { module: /node_modules/ },
+      { message: /Critical dependency/ },
+    ];
+
+    return config;
+  },
+
+  headers: async () => {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, max-age=0',
+          },
+        ],
+      },
+    ];
+  },
+
+  async redirects() {
+    return [
+      {
+        source: '/home',
+        destination: '/',
+        permanent: true,
+      },
+    ];
+  },
+
+  async rewrites() {
+    return [
+      {
+        source: '/api/supabase/:path*',
+        destination: `${process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321'}/:path*`,
+      },
+    ];
+  },
+};
+
+export default withBundleAnalyzer(nextConfig);

@@ -30,7 +30,7 @@ interface PaymentScreenProps {
       useEscrow?: boolean;
     };
   };
-  navigation: any;
+  navigation: unknown;
 }
 
 interface PaymentMethodOptionProps {
@@ -74,7 +74,7 @@ const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
     >
       <View style={styles.methodContent}>
         <View style={styles.methodIcon}>
-          <Ionicons name={getMethodIcon() as any} size={24} color={theme.colors.primary} />
+          <Ionicons name={getMethodIcon() as unknown} size={24} color={theme.colors.primary} />
         </View>
         <View style={styles.methodDetails}>
           <Text style={styles.methodType}>{getMethodDetails()}</Text>

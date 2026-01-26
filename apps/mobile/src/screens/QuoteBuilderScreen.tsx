@@ -22,7 +22,7 @@ import { QuoteCard } from '../components/QuoteCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface QuoteBuilderScreenProps {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
@@ -45,7 +45,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
     try {
       const statusFilter =
-        selectedStatus === 'all' ? undefined : [selectedStatus as any];
+        selectedStatus === 'all' ? undefined : [selectedStatus as unknown];
       const data = await QuoteBuilderService.getQuotes(user?.id || '', {
         status: statusFilter,
       });
@@ -80,7 +80,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     setLoading(true);
 
     try {
-      const statusFilter = status === 'all' ? undefined : [status as any];
+      const statusFilter = status === 'all' ? undefined : [status as unknown];
       const data = await QuoteBuilderService.getQuotes(user?.id || '', {
         status: statusFilter,
       });

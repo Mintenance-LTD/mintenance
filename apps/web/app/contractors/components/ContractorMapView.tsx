@@ -243,7 +243,7 @@ export function ContractorMapView({ contractors: initialContractors }: Contracto
         markerClustererRef.current = new MarkerClusterer({
           map: mapInstance,
           markers: markersRef.current,
-          algorithm: new (MarkerClusterer as any).SuperClusterAlgorithm({ radius: 100 }),
+          algorithm: new (MarkerClusterer as unknown).SuperClusterAlgorithm({ radius: 100 }),
         });
         logger.info(`✅ Marker clustering enabled for ${contractors.length} contractors`);
       }

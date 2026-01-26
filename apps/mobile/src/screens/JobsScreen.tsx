@@ -28,7 +28,7 @@ type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
 
 const JobsScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<unknown>();
   const { isDesktop, isTablet } = useResponsive();
   const { columns, containerStyle, columnStyle } = useMultiColumnLayout();
 
@@ -204,7 +204,7 @@ const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
   const daysAgo = Math.floor(
     (Date.now() -
       new Date(
-        item.createdAt || (item as any).created_at || Date.now()
+        item.createdAt || (item as unknown).created_at || Date.now()
       ).getTime()) /
       (1000 * 3600 * 24)
   );
@@ -302,7 +302,7 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getStatusIcon = (status: string): any => {
+const getStatusIcon = (status: string): unknown => {
   switch (status) {
     case 'posted':
       return 'radio-button-on';

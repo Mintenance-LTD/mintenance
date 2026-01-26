@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { logger } from '@mintenance/shared';
 import { DBSCheckModal } from '@/components/contractor/DBSCheckModal';
 import { PersonalityTestModal } from '@/components/contractor/PersonalityTestModal';
 import { ProfileBoostWidget } from '@/components/contractor/ProfileBoostWidget';
@@ -179,7 +180,7 @@ export default function TestVerificationPage() {
         isOpen={showDBSModal}
         onClose={() => setShowDBSModal(false)}
         onSuccess={() => {
-          console.log('DBS Check completed successfully!');
+          logger.info('DBS Check completed successfully!');
           setShowDBSModal(false);
         }}
       />
@@ -188,7 +189,7 @@ export default function TestVerificationPage() {
         isOpen={showPersonalityModal}
         onClose={() => setShowPersonalityModal(false)}
         onSuccess={() => {
-          console.log('Personality Test completed successfully!');
+          logger.info('Personality Test completed successfully!');
           setShowPersonalityModal(false);
         }}
       />

@@ -10,9 +10,15 @@ import { theme } from '../../theme';
 
 export const BookingLoading: React.FC = () => {
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color={theme.colors.primary} />
-      <Text style={styles.loadingText}>Loading your bookings...</Text>
+    <View style={styles.container} testID="booking-loading-container">
+      <ActivityIndicator
+        size="large"
+        color={theme.colors.primary}
+        testID="booking-loading-spinner"
+      />
+      <Text style={styles.loadingText} testID="booking-loading-text">
+        Loading your bookings...
+      </Text>
     </View>
   );
 };

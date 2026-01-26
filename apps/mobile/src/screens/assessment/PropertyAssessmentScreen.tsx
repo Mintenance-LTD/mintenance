@@ -20,7 +20,7 @@ import VideoService from '../../services/VideoService';
 import { logger } from '@mintenance/shared';
 
 interface Props {
-  navigation: any;
+  navigation: unknown;
   route: {
     params?: {
       propertyId?: string;
@@ -87,7 +87,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
 
   const [capturedVideos, setCapturedVideos] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [assessmentResults, setAssessmentResults] = useState<any>(null);
+  const [assessmentResults, setAssessmentResults] = useState<unknown>(null);
 
   // REQUEST CANCELLATION FIX: Load videos with cleanup
   useEffect(() => {
@@ -126,7 +126,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
     });
   };
 
-  const handleVideoPress = (video: any) => {
+  const handleVideoPress = (video: unknown) => {
     if (video.status === 'completed') {
       navigation.navigate('VideoProcessingStatus', {
         videoId: video.id,

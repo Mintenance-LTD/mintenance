@@ -15,7 +15,7 @@ export interface BlockchainReputation {
   verifiedJobs: number;
   totalValue: number;
   trustScore: number;
-  badges: any[];
+  badges: unknown[];
   disputeRate: number;
   responseRate: number;
   lastUpdated: number;

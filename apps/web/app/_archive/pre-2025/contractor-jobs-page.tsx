@@ -65,7 +65,7 @@ export default async function ContractorJobsPage({
   const { data: jobs, error, count } = await query;
 
   if (error) {
-    logger.error('Error fetching jobs:', error', [object Object], { service: 'app' });
+    logger.error('Error fetching jobs:', error, { service: 'app' });
   }
 
   // Fetch homeowner data for each job

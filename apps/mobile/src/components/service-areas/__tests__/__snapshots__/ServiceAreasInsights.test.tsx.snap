@@ -1,0 +1,225 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ServiceAreasInsights Snapshots should match snapshot with empty array (null render) 1`] = `null`;
+
+exports[`ServiceAreasInsights Snapshots should match snapshot with multiple areas 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 5,
+      "marginBottom": 16,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#0F172A",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "marginBottom": 12,
+      }
+    }
+  >
+    Coverage Overview
+  </Text>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "marginBottom": 8,
+      }
+    }
+  >
+    <Text
+      color="#F59E0B"
+      name="star"
+      size={16}
+    >
+      star
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "flex": 1,
+          "fontSize": 14,
+          "marginLeft": 8,
+        }
+      }
+    >
+      Primary area: 
+      Area 1
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "marginBottom": 8,
+      }
+    }
+  >
+    <Text
+      color="#0F172A"
+      name="speedometer"
+      size={16}
+    >
+      speedometer
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "flex": 1,
+          "fontSize": 14,
+          "marginLeft": 8,
+        }
+      }
+    >
+      Average response time: 
+      24
+      h
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "marginBottom": 8,
+      }
+    }
+  >
+    <Text
+      color="#10B981"
+      name="cash"
+      size={16}
+    >
+      cash
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "flex": 1,
+          "fontSize": 14,
+          "marginLeft": 8,
+        }
+      }
+    >
+      Base travel charges: £
+      76.50
+       total
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`ServiceAreasInsights Snapshots should match snapshot with single area 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 5,
+      "marginBottom": 16,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 3.84,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#0F172A",
+        "fontSize": 16,
+        "fontWeight": "600",
+        "marginBottom": 12,
+      }
+    }
+  >
+    Coverage Overview
+  </Text>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "marginBottom": 8,
+      }
+    }
+  >
+    <Text
+      color="#0F172A"
+      name="speedometer"
+      size={16}
+    >
+      speedometer
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "flex": 1,
+          "fontSize": 14,
+          "marginLeft": 8,
+        }
+      }
+    >
+      Average response time: 
+      24
+      h
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "marginBottom": 8,
+      }
+    }
+  >
+    <Text
+      color="#10B981"
+      name="cash"
+      size={16}
+    >
+      cash
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#475569",
+          "flex": 1,
+          "fontSize": 14,
+          "marginLeft": 8,
+        }
+      }
+    >
+      Base travel charges: £
+      25.50
+       total
+    </Text>
+  </View>
+</View>
+`;

@@ -171,7 +171,7 @@ global.__PAYMENT_TEST_UTILS__ = {
     ...overrides,
   }),
 
-  validatePaymentResponse: (response: any) => {
+  validatePaymentResponse: (response: unknown) => {
     expect(response).toBeDefined();
     expect(response).toHaveProperty('client_secret');
     expect(typeof response.client_secret).toBe('string');

@@ -11,7 +11,7 @@ import { logger } from '@mintenance/shared';
 
 interface Props {
   children: ReactNode;
-  fallback?: ReactNode;
+  fallback?: ReactNode | ((error: Error, resetError: () => void) => ReactNode);
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
@@ -87,6 +87,10 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       // Use custom fallback if provided
       if (this.props.fallback) {
+        // Check if fallback is a function (render prop pattern)
+        if (typeof this.props.fallback === 'function') {
+          return this.props.fallback(this.state.error!, this.handleReset);
+        }
         return this.props.fallback;
       }
 

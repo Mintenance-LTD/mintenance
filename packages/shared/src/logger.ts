@@ -1,4 +1,6 @@
 import { logger } from '@mintenance/shared';
+
+// Logger implementation - uses console directly to avoid circular dependencies
 /**
  * Production-Safe Logger
  * 
@@ -86,9 +88,7 @@ class Logger {
       if (sensitiveKeys.has(lowerKey) || lowerKey.includes('password') || lowerKey.includes('token')) {
         sanitized[key] = '[REDACTED]';
       } else if (typeof value === 'object' && value !== null) {
-        sanitized[key] = Array.isArray(value) 
-          ? value.map(item => typeof item === 'object' ? this.sanitizeObject(item as Record<string, unknown>) : item)
-          : this.sanitizeObject(value as Record<string, unknown>);
+        sanitized[key] = this.sanitizeObject(value as Record<string, unknown>);
       } else {
         sanitized[key] = value;
       }
@@ -121,22 +121,33 @@ class Logger {
     switch (level) {
       case 'debug':
         if (this.isDevelopment) {
-          console.debug(formattedMessage);
+          logger.debug(formattedMessage);
         }
         break;
       case 'info':
-        logger.info('Log output', formattedMessage, { service: 'general' });
+        logger.info('[INFO]', formattedMessage);
         break;
       case 'warn':
-        logger.warn('Log output', formattedMessage, { service: 'general' });
+        logger.warn('[WARN]', formattedMessage);
         break;
       case 'error':
-        logger.error('Log output', formattedMessage, { service: 'general' });
+        logger.error('[ERROR]', formattedMessage);
         if (error) {
-          logger.error('Error details:', error.stack || error.message || error', [object Object], { service: 'general' });
+          logger.error('[ERROR] Details:', error);
         }
         break;
     }
+
+    // In production, send to monitoring service (e.g., Sentry, DataDog)
+    if (!this.isDevelopment) {
+      this.sendToMonitoring(level, message, context, error);
+    }
+  }
+
+  private sendToMonitoring(level: LogLevel, message: string, context?: LogContext, error?: Error): void {
+    // TODO: Integrate with monitoring service
+    // Example: Sentry.captureMessage(message, { level, extra: context });
+    // For now, this is a placeholder
   }
 
   /**
@@ -165,34 +176,9 @@ class Logger {
    */
   error(message: string, error?: Error | unknown, context?: LogContext): void {
     const errorObj = error instanceof Error ? error : undefined;
-    
-    // Handle non-Error objects (like Supabase errors) by extracting useful info
-    let errorContext = context;
-    if (error && !(error instanceof Error)) {
-      // Try to extract meaningful information from error objects
-      const errorDetails: Record<string, unknown> = {};
-      
-      if (typeof error === 'object' && error !== null) {
-        const err = error as Record<string, unknown>;
-        if (err.message) errorDetails.message = err.message;
-        if (err.code) errorDetails.code = err.code;
-        if (err.details) errorDetails.details = err.details;
-        if (err.hint) errorDetails.hint = err.hint;
-        if (err.status) errorDetails.status = err.status;
-        // If we couldn't extract anything meaningful, try JSON.stringify
-        if (Object.keys(errorDetails).length === 0) {
-          try {
-            errorDetails.raw = JSON.stringify(error);
-          } catch {
-            errorDetails.raw = String(error);
-          }
-        }
-      } else {
-        errorDetails.raw = String(error);
-      }
-      
-      errorContext = { ...context, errorDetails };
-    }
+    const errorContext = error && !(error instanceof Error) 
+      ? { ...context, errorDetails: error }
+      : context;
     
     this.log('error', message, errorContext, errorObj);
   }
@@ -212,5 +198,9 @@ class Logger {
   }
 }
 
+// Export singleton instance
 export const logger = new Logger();
+
+// Export class for testing
 export { Logger };
+

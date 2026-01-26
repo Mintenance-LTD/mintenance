@@ -65,7 +65,7 @@ export const useAccessibleColors = () => {
     );
 
     const subscription = AccessibilityInfo.addEventListener?.(
-      'highTextContrastChanged' as any,
+      'highTextContrastChanged' as unknown,
       setIsHighContrastEnabled
     );
 

@@ -79,7 +79,7 @@ export function LocationPromptModal({
         }
       } catch (err) {
         // Permission API not fully supported, continue anyway
-        logger.warn('Permission API check failed:', err', [object Object], { service: 'ui' });
+        logger.warn('Permission API check failed', err, { service: 'ui' });
       }
     }
 
@@ -109,7 +109,7 @@ export function LocationPromptModal({
           onClose();
         } catch (err) {
           setError('Failed to save location. Please try again.');
-          logger.error('Location save error:', err', [object Object], { service: 'ui' });
+          logger.error('Location save error', err, { service: 'ui' });
         } finally {
           setIsLoadingGeo(false);
         }
@@ -172,7 +172,7 @@ export function LocationPromptModal({
       onClose();
     } catch (err) {
       setError('Failed to save location. Please try again.');
-      logger.error('Manual location save error:', err', [object Object], { service: 'ui' });
+      logger.error('Manual location save error', err, { service: 'ui' });
     } finally {
       setIsLoadingManual(false);
     }
@@ -208,7 +208,7 @@ export function LocationPromptModal({
 
       return {};
     } catch (err) {
-      logger.error('Reverse geocoding error:', err', [object Object], { service: 'ui' });
+      logger.error('Reverse geocoding error', err, { service: 'ui' });
       return {};
     }
   };
@@ -245,7 +245,7 @@ export function LocationPromptModal({
 
       return null;
     } catch (err) {
-      logger.error('Geocoding error:', err', [object Object], { service: 'ui' });
+      logger.error('Geocoding error', err, { service: 'ui' });
       return null;
     }
   };

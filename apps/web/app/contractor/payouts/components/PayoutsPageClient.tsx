@@ -110,13 +110,13 @@ export function PayoutsPageClient({
   }, []);
 
   const handleSetupStripeConnect = async () => {
-    logger.info('🔵 Setup button clicked', [object Object], { service: 'ui' });
-    logger.info('🔵 CSRF Token:', csrfToken', [object Object], { service: 'ui' });
-    logger.info('🔵 CSRF Loading:', csrfLoading', [object Object], { service: 'ui' });
-    logger.error('🔵 CSRF Error:', csrfError', [object Object], { service: 'ui' });
+    logger.info('🔵 Setup button clicked', { service: 'ui' });
+    logger.info('🔵 CSRF Token:', csrfToken, { service: 'ui' });
+    logger.info('🔵 CSRF Loading:', csrfLoading, { service: 'ui' });
+    logger.error('🔵 CSRF Error:', csrfError, { service: 'ui' });
 
     if (!csrfToken) {
-      logger.info('🔴 No CSRF token available', [object Object], { service: 'ui' });
+      logger.info('🔴 No CSRF token available', { service: 'ui' });
       setError('Security token not loaded. Please refresh the page and try again.');
       return;
     }
@@ -126,7 +126,7 @@ export function PayoutsPageClient({
       setError('');
       setSuccess('');
 
-      logger.info('🔵 Making API request to /api/contractor/payout/setup', [object Object], { service: 'ui' });
+      logger.info('🔵 Making API request to /api/contractor/payout/setup', { service: 'ui' });
       const response = await fetch('/api/contractor/payout/setup', {
         method: 'POST',
         headers: {
@@ -136,26 +136,26 @@ export function PayoutsPageClient({
         credentials: 'include',
       });
 
-      logger.info('🔵 Response status:', response.status', [object Object], { service: 'ui' });
+      logger.info('🔵 Response status:', response.status, { service: 'ui' });
       const data = await response.json();
-      logger.info('🔵 Response data:', data', [object Object], { service: 'ui' });
+      logger.info('🔵 Response data:', data, { service: 'ui' });
 
       if (!response.ok) {
-        logger.error('🔴 Response not OK:', data.error', [object Object], { service: 'ui' });
+        logger.error('🔴 Response not OK:', data.error, { service: 'ui' });
         const errorMessage = data.error?.message || data.error || 'Failed to set up payout account';
         throw new Error(errorMessage);
       }
 
       // Redirect to Stripe onboarding
       if (data.accountUrl) {
-        logger.info('🟢 Redirecting to:', data.accountUrl', [object Object], { service: 'ui' });
+        logger.info('🟢 Redirecting to:', data.accountUrl, { service: 'ui' });
         window.location.href = data.accountUrl;
       } else {
-        logger.info('🔴 No accountUrl in response', [object Object], { service: 'ui' });
+        logger.info('🔴 No accountUrl in response', { service: 'ui' });
         throw new Error('No onboarding URL returned');
       }
     } catch (err) {
-      logger.error('🔴 Error caught:', err', [object Object], { service: 'ui' });
+      logger.error('🔴 Error caught:', err, { service: 'ui' });
       setError(err instanceof Error ? err.message : 'Failed to set up payout account');
     } finally {
       setIsSubmitting(false);

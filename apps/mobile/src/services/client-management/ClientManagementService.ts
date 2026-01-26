@@ -22,6 +22,9 @@ import {
   ClientImportData,
   ClientExportOptions,
   ClientFollowUpTask,
+  ClientSegment,
+  SegmentCriteria,
+  ClientCommunicationTemplate,
 } from './types';
 
 export class ClientManagementService {
@@ -194,7 +197,7 @@ export class ClientManagementService {
   /**
    * Get client segments
    */
-  async getClientSegments(contractorId: string): Promise<any[]> {
+  async getClientSegments(contractorId: string): Promise<ClientSegment[]> {
     try {
       return await this.segmentationService.getClientSegments(contractorId);
     } catch (error) {
@@ -210,9 +213,9 @@ export class ClientManagementService {
     segmentData: {
       name: string;
       description: string;
-      criteria: any;
+      criteria: SegmentCriteria;
     }
-  ): Promise<any> {
+  ): Promise<ClientSegment> {
     try {
       return await this.segmentationService.createClientSegment(contractorId, segmentData);
     } catch (error) {
@@ -296,7 +299,7 @@ export class ClientManagementService {
   /**
    * Get client communication templates
    */
-  async getCommunicationTemplates(contractorId: string): Promise<any[]> {
+  async getCommunicationTemplates(contractorId: string): Promise<ClientCommunicationTemplate[]> {
     try {
       return await this.communicationService.getCommunicationTemplates(contractorId);
     } catch (error) {
@@ -310,7 +313,7 @@ export class ClientManagementService {
   async sendBulkCommunication(
     segmentId: string,
     templateId: string,
-    customizations?: Record<string, any>
+    customizations?: Record<string, unknown>
   ): Promise<{ sent: number; failed: number }> {
     try {
       return await this.communicationService.sendBulkCommunication(segmentId, templateId, customizations);

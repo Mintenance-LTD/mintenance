@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, act } from '@testing-library/react-native';
+import { render, fireEvent, act , waitFor} from '../test-utils';
 import { Toast } from '../../components/ui/Toast/Toast';
 
 // Mock design tokens
@@ -183,7 +192,7 @@ describe('Toast Component', () => {
         <Toast {...defaultProps} action={mockAction} />
       );
 
-      fireEvent.press(getByText('Retry'));
+      act(() => fireEvent.press(getByText('Retry')));
       expect(mockAction.onPress).toHaveBeenCalledTimes(1);
     });
 
@@ -244,7 +253,7 @@ describe('Toast Component', () => {
         <Toast {...defaultProps} onDismiss={mockOnDismiss} />
       );
 
-      fireEvent.press(getByText('close'));
+      act(() => fireEvent.press(getByText('close')));
 
       // Advance timers for animation completion
       act(() => {
@@ -263,14 +272,14 @@ describe('Toast Component', () => {
         <Toast {...defaultProps} onPress={mockOnPress} />
       );
 
-      fireEvent.press(getByText('Test Toast'));
+      act(() => fireEvent.press(getByText('Test Toast')));
       expect(mockOnPress).toHaveBeenCalledTimes(1);
     });
 
     it('does not respond to press when onPress is not provided', () => {
       const { getByText } = render(<Toast {...defaultProps} />);
       // Should not throw error when pressed
-      fireEvent.press(getByText('Test Toast'));
+      act(() => fireEvent.press(getByText('Test Toast')));
       expect(getByText('Test Toast')).toBeTruthy();
     });
   });
@@ -350,7 +359,7 @@ describe('Toast Component', () => {
         <Toast {...defaultProps} onHide={mockOnHide} />
       );
 
-      fireEvent.press(getByText('close'));
+      act(() => fireEvent.press(getByText('close')));
       expect(mockOnHide).toHaveBeenCalledWith('test-toast');
     });
   });

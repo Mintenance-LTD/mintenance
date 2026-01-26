@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -21,7 +21,7 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
 }) => {
   const [isRetrying, setIsRetrying] = React.useState(false);
 
-  const handleAsyncError = (error: Error, errorInfo: any) => {
+  const handleAsyncError = (error: Error, errorInfo: ErrorInfo) => {
     logger.error(`Async operation error in ${operationName}:`, error, {
       operationName,
       componentStack: errorInfo.componentStack?.substring(0, 500),

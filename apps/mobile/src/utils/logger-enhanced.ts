@@ -40,7 +40,7 @@ const mobileContext = {
 const logger = baseLogger.child(mobileContext);
 
 // Track app state changes
-let appStateSubscription: any;
+let appStateSubscription: unknown;
 
 if (Platform.OS !== 'web') {
   import('react-native').then(({ AppState }) => {
@@ -55,7 +55,7 @@ if (Platform.OS !== 'web') {
 /**
  * Log navigation events
  */
-export function logNavigation(from: string, to: string, params?: any): void {
+export function logNavigation(from: string, to: string, params?: unknown): void {
   logger.info('Navigation', {
     from,
     to,
@@ -67,7 +67,7 @@ export function logNavigation(from: string, to: string, params?: any): void {
 /**
  * Log screen views
  */
-export function logScreenView(screenName: string, metadata?: Record<string, any>): void {
+export function logScreenView(screenName: string, metadata?: Record<string, unknown>): void {
   logger.info('Screen view', {
     screenName,
     ...metadata,
@@ -81,7 +81,7 @@ export function logScreenView(screenName: string, metadata?: Record<string, any>
 export function logInteraction(
   component: string,
   action: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   logger.info('User interaction', {
     component,
@@ -110,7 +110,7 @@ export function logApiCall(
     });
   } else {
     const level = status && status >= 400 ? 'error' : 'info';
-    logger.log(level as any, 'API call', {
+    logger.log(level as unknown, 'API call', {
       method,
       endpoint,
       status,
@@ -125,7 +125,7 @@ export function logApiCall(
 export function logPerformance(
   operation: string,
   duration: number,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   logger.info('Performance', {
     operation,
@@ -164,7 +164,7 @@ export function logStorage(
 export function logPermission(
   permission: string,
   status: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   logger.info('Permission request', {
     permission,
@@ -180,7 +180,7 @@ export function logPermission(
 export function logNotification(
   event: 'received' | 'opened' | 'dismissed',
   notificationId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   logger.info('Push notification', {
     event,
@@ -231,7 +231,7 @@ export function logMedia(
   operation: 'capture' | 'select' | 'upload' | 'process',
   mediaType: 'photo' | 'video',
   success: boolean,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   logger.info('Media operation', {
     operation,
@@ -285,7 +285,7 @@ export function createServiceLogger(serviceName: string): EnhancedLogger {
 /**
  * Log app crashes (to be called from error boundaries)
  */
-export function logCrash(error: Error, errorInfo?: any): void {
+export function logCrash(error: Error, errorInfo?: unknown): void {
   logger.error('App crashed', error, {
     errorInfo: errorInfo ? JSON.stringify(errorInfo) : undefined,
     timestamp: new Date().toISOString()

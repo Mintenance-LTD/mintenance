@@ -48,7 +48,7 @@ interface UserDetailModalProps {
 
 export function UserDetailModal({ isOpen, onClose, userId, onVerificationUpdate }: UserDetailModalProps) {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<unknown>(null);
   const [verification, setVerification] = useState<VerificationData | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);

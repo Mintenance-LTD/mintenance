@@ -115,7 +115,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setLoading(true);
     try {
       const result = await AuthService.signIn(email, password);
-      let nextUser: any = result?.user;
+      let nextUser: unknown = result?.user;
       if (!nextUser) {
         nextUser = await AuthService.getCurrentUser();
       }

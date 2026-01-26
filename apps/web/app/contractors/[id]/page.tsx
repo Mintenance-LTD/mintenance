@@ -309,7 +309,7 @@ function ContractorPublicProfilePage2025() {
           setFetchedReviews(fetchedReviews);
         }
       } catch (error) {
-        logger.error('Error fetching contractor:', error', [object Object], { service: 'app' });
+        logger.error('Error fetching contractor:', error, { service: 'app' });
         const errorMessage = error instanceof Error ? error.message : 'Failed to load contractor profile';
         setError(errorMessage);
         toast.error('Failed to load contractor profile');
@@ -438,7 +438,7 @@ function ContractorPublicProfilePage2025() {
         toast.success('Profile link copied to clipboard');
       }
     } catch (error) {
-      logger.error('Failed to copy to clipboard:', error', [object Object], { service: 'app' });
+      logger.error('Failed to copy to clipboard:', error, { service: 'app' });
       toast.error('Failed to copy link. Please copy the URL manually.');
     }
   };

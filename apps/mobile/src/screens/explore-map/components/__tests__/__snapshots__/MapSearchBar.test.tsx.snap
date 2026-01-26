@@ -1,0 +1,290 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MapSearchBar Snapshot Consistency maintains consistent structure with empty value 1`] = `
+<View
+  style={
+    {
+      "flexDirection": "row",
+      "gap": 16,
+      "left": 16,
+      "position": "absolute",
+      "right": 16,
+      "top": 16,
+      "zIndex": 1,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 12,
+        "elevation": 5,
+        "flex": 1,
+        "flexDirection": "row",
+        "gap": 8,
+        "height": 50,
+        "paddingHorizontal": 24,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+      }
+    }
+  >
+    <Text
+      color="#64748B"
+      name="search"
+      size={20}
+    >
+      search
+    </Text>
+    <TextInput
+      onChangeText={[MockFunction]}
+      placeholder="Search contractors..."
+      placeholderTextColor="#64748B"
+      style={
+        {
+          "color": "#0F172A",
+          "flex": 1,
+          "fontSize": 17,
+        }
+      }
+      value=""
+    />
+  </View>
+  <TouchableOpacity
+    onPress={[MockFunction]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#0F172A",
+        "borderRadius": 12,
+        "elevation": 5,
+        "height": 50,
+        "justifyContent": "center",
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+        "width": 50,
+      }
+    }
+  >
+    <Text
+      color="#FFFFFF"
+      name="options"
+      size={24}
+    >
+      options
+    </Text>
+  </TouchableOpacity>
+</View>
+`;
+
+exports[`MapSearchBar Snapshot Consistency maintains consistent structure with long value 1`] = `
+<View
+  style={
+    {
+      "flexDirection": "row",
+      "gap": 16,
+      "left": 16,
+      "position": "absolute",
+      "right": 16,
+      "top": 16,
+      "zIndex": 1,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 12,
+        "elevation": 5,
+        "flex": 1,
+        "flexDirection": "row",
+        "gap": 8,
+        "height": 50,
+        "paddingHorizontal": 24,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+      }
+    }
+  >
+    <Text
+      color="#64748B"
+      name="search"
+      size={20}
+    >
+      search
+    </Text>
+    <TextInput
+      onChangeText={[MockFunction]}
+      placeholder="Search contractors..."
+      placeholderTextColor="#64748B"
+      style={
+        {
+          "color": "#0F172A",
+          "flex": 1,
+          "fontSize": 17,
+        }
+      }
+      value="Emergency Plumbing Services Available 24/7"
+    />
+    <TouchableOpacity
+      onPress={[Function]}
+    >
+      <Text
+        color="#64748B"
+        name="close-circle"
+        size={20}
+      >
+        close-circle
+      </Text>
+    </TouchableOpacity>
+  </View>
+  <TouchableOpacity
+    onPress={[MockFunction]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#0F172A",
+        "borderRadius": 12,
+        "elevation": 5,
+        "height": 50,
+        "justifyContent": "center",
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+        "width": 50,
+      }
+    }
+  >
+    <Text
+      color="#FFFFFF"
+      name="options"
+      size={24}
+    >
+      options
+    </Text>
+  </TouchableOpacity>
+</View>
+`;
+
+exports[`MapSearchBar Snapshot Consistency maintains consistent structure with value 1`] = `
+<View
+  style={
+    {
+      "flexDirection": "row",
+      "gap": 16,
+      "left": 16,
+      "position": "absolute",
+      "right": 16,
+      "top": 16,
+      "zIndex": 1,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 12,
+        "elevation": 5,
+        "flex": 1,
+        "flexDirection": "row",
+        "gap": 8,
+        "height": 50,
+        "paddingHorizontal": 24,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+      }
+    }
+  >
+    <Text
+      color="#64748B"
+      name="search"
+      size={20}
+    >
+      search
+    </Text>
+    <TextInput
+      onChangeText={[MockFunction]}
+      placeholder="Search contractors..."
+      placeholderTextColor="#64748B"
+      style={
+        {
+          "color": "#0F172A",
+          "flex": 1,
+          "fontSize": 17,
+        }
+      }
+      value="plumber"
+    />
+    <TouchableOpacity
+      onPress={[Function]}
+    >
+      <Text
+        color="#64748B"
+        name="close-circle"
+        size={20}
+      >
+        close-circle
+      </Text>
+    </TouchableOpacity>
+  </View>
+  <TouchableOpacity
+    onPress={[MockFunction]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#0F172A",
+        "borderRadius": 12,
+        "elevation": 5,
+        "height": 50,
+        "justifyContent": "center",
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 3.84,
+        "width": 50,
+      }
+    }
+  >
+    <Text
+      color="#FFFFFF"
+      name="options"
+      size={24}
+    >
+      options
+    </Text>
+  </TouchableOpacity>
+</View>
+`;

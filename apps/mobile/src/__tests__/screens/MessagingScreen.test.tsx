@@ -1,5 +1,13 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import MessagingScreen from '../../screens/MessagingScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { MessagingService } from '../../services/MessagingService';
@@ -7,7 +15,14 @@ import { useNetworkState } from '../../hooks/useNetworkState';
 
 // Mock dependencies
 jest.mock('../../contexts/AuthContext');
-jest.mock('../../services/MessagingService');
+jest.mock('../../services/MessagingService', () => ({
+  MessagingService: {
+    getMessages: jest.fn(),
+    sendMessage: jest.fn(),
+    markAsRead: jest.fn(),
+    subscribeToMessages: jest.fn(),
+  },
+}));
 jest.mock('../../hooks/useNetworkState');
 jest.mock('../../utils/logger', () => ({
   logger: {
@@ -148,8 +163,8 @@ describe('MessagingScreen', () => {
     const messageInput = getByTestId('message-input');
     const sendButton = getByTestId('send-button');
 
-    fireEvent.changeText(messageInput, 'Test message');
-    fireEvent.press(sendButton);
+    act(() => fireEvent.changeText(messageInput, 'Test message'));
+    act(() => fireEvent.press(sendButton));
 
     await waitFor(() => {
       expect(mockMessagingService.sendMessage).toHaveBeenCalledWith({
@@ -169,8 +184,8 @@ describe('MessagingScreen', () => {
     const messageInput = getByTestId('message-input');
     const sendButton = getByTestId('send-button');
 
-    fireEvent.changeText(messageInput, 'Test message');
-    fireEvent.press(sendButton);
+    act(() => fireEvent.changeText(messageInput, 'Test message'));
+    act(() => fireEvent.press(sendButton));
 
     await waitFor(() => {
       expect(messageInput.props.value).toBe('');
@@ -183,7 +198,7 @@ describe('MessagingScreen', () => {
     );
 
     const sendButton = getByTestId('send-button');
-    fireEvent.press(sendButton);
+    act(() => fireEvent.press(sendButton));
 
     expect(mockMessagingService.sendMessage).not.toHaveBeenCalled();
   });
@@ -198,8 +213,8 @@ describe('MessagingScreen', () => {
     const messageInput = getByTestId('message-input');
     const sendButton = getByTestId('send-button');
 
-    fireEvent.changeText(messageInput, 'Test message');
-    fireEvent.press(sendButton);
+    act(() => fireEvent.changeText(messageInput, 'Test message'));
+    act(() => fireEvent.press(sendButton));
 
     await waitFor(() => {
       expect(getByText('Failed to send message')).toBeTruthy();
@@ -290,7 +305,7 @@ describe('MessagingScreen', () => {
     );
 
     const backButton = getByTestId('back-button');
-    fireEvent.press(backButton);
+    act(() => fireEvent.press(backButton));
 
     expect(mockNavigation.goBack).toHaveBeenCalled();
   });
@@ -303,8 +318,8 @@ describe('MessagingScreen', () => {
     const messageInput = getByTestId('message-input');
     const sendButton = getByTestId('send-button');
 
-    fireEvent.changeText(messageInput, 'New message');
-    fireEvent.press(sendButton);
+    act(() => fireEvent.changeText(messageInput, 'New message'));
+    act(() => fireEvent.press(sendButton));
 
     await waitFor(() => {
       expect(getByTestId('keyboard-aware-scroll')).toBeTruthy();
@@ -365,8 +380,8 @@ describe('MessagingScreen', () => {
     const messageInput = getByTestId('message-input');
     const sendButton = getByTestId('send-button');
 
-    fireEvent.changeText(messageInput, 'Retry message');
-    fireEvent.press(sendButton);
+    act(() => fireEvent.changeText(messageInput, 'Retry message'));
+    act(() => fireEvent.press(sendButton));
 
     await waitFor(() => {
       expect(getByText('Failed to send message')).toBeTruthy();
@@ -374,7 +389,7 @@ describe('MessagingScreen', () => {
 
     // Click retry button
     const retryButton = getByTestId('retry-button');
-    fireEvent.press(retryButton);
+    act(() => fireEvent.press(retryButton));
 
     await waitFor(() => {
       expect(mockMessagingService.sendMessage).toHaveBeenCalledTimes(2);

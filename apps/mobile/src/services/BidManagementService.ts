@@ -11,6 +11,30 @@ import { supabase } from '../config/supabase';
 import { Bid } from '@mintenance/types';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 
+/**
+ * Database row interface for bids table
+ */
+interface DatabaseBidsRow {
+  id: string;
+  job_id: string;
+  contractor_id: string;
+  amount: number;
+  description: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+  contractor?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
+  job?: {
+    title?: string;
+    description?: string;
+    location?: string;
+    budget?: number;
+  };
+}
+
 export class BidManagementService {
   static async submitBid(bidData: {
     jobId: string;
@@ -79,7 +103,13 @@ export class BidManagementService {
       .eq('id', bidId)
       .single();
 
-    if (bidError) throw new Error((bidError as any)?.message || 'Bid fetch failed');
+    if (bidError) {
+      if (bidError && typeof bidError === 'object' && 'message' in bidError) {
+        throw new Error(String(bidError.message) || 'Bid fetch failed');
+      } else {
+        throw new Error('Bid fetch failed');
+      }
+    }
     if (!bid) throw new Error('Bid not found');
 
     // Accept the bid
@@ -113,19 +143,15 @@ export class BidManagementService {
   }
 
   // Helper method
-  private static formatBid(data: any): Bid {
-    if (!data) {
-      throw new Error('Bid data cannot be null or undefined');
-    }
-    
+  private static formatBid(data: DatabaseBidsRow): Bid {
     return {
-      id: data.id || '',
-      jobId: data.job_id || '',
-      contractorId: data.contractor_id || '',
-      amount: data.amount || 0,
-      description: data.description || '',
-      createdAt: data.created_at || new Date().toISOString(),
-      status: data.status || 'pending',
+      id: data.id,
+      jobId: data.job_id,
+      contractorId: data.contractor_id,
+      amount: data.amount,
+      description: data.description,
+      createdAt: data.created_at,
+      status: data.status,
       ...(data.contractor && data.contractor.first_name && data.contractor.last_name && {
         contractorName: `${data.contractor.first_name} ${data.contractor.last_name}`,
         contractorEmail: data.contractor.email || '',

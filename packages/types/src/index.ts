@@ -1,5 +1,4 @@
 // Shared TypeScript types for Mintenance apps
-
 // Core User types
 export interface User {
   id: string;
@@ -27,7 +26,6 @@ export interface User {
   rating?: number;
   jobs_count?: number;
 }
-
 // Database User type (for creation)
 export interface CreateUserData {
   email: string;
@@ -37,19 +35,16 @@ export interface CreateUserData {
   role: 'homeowner' | 'contractor' | 'admin';
   phone?: string;
 }
-
 // Authentication types
 export interface AuthResult {
   success: boolean;
   user?: User;
   error?: string;
 }
-
 export interface LoginCredentials {
   email: string;
   password: string;
 }
-
 export interface RegisterData {
   email: string;
   password: string;
@@ -58,7 +53,6 @@ export interface RegisterData {
   role: 'homeowner' | 'contractor' | 'admin';
   phone?: string;
 }
-
 // API Response types
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -66,7 +60,6 @@ export interface ApiResponse<T = any> {
   error?: string;
   message?: string;
 }
-
 // Rate limiting types
 export interface RateLimitInfo {
   limit: number;
@@ -74,7 +67,6 @@ export interface RateLimitInfo {
   resetTime: number;
   retryAfter?: number;
 }
-
 // JWT Payload
 export interface JWTPayload {
   sub: string; // user ID
@@ -85,7 +77,6 @@ export interface JWTPayload {
   iat: number;
   exp: number;
 }
-
 // Job types
 export interface Job {
   id: string;
@@ -138,7 +129,6 @@ export interface Job {
   skills?: string[];
   photoUrls?: string[]; // Normalized photo URLs
 }
-
 export interface Bid {
   id: string;
   jobId: string;
@@ -176,14 +166,12 @@ export interface Bid {
     profile_image_url?: string;
   };
 }
-
 export interface ContractorSkill {
   id: string;
   contractorId: string;
   skillName: string;
   createdAt: string;
 }
-
 export interface ContractorMatch {
   id: string;
   homeownerId: string;
@@ -191,7 +179,6 @@ export interface ContractorMatch {
   action: 'like' | 'pass';
   createdAt: string;
 }
-
 export interface Review {
   id: string;
   jobId: string;
@@ -201,7 +188,6 @@ export interface Review {
   comment: string;
   createdAt: string;
 }
-
 // Location types
 export interface LocationData {
   latitude: number;
@@ -211,7 +197,6 @@ export interface LocationData {
   heading?: number;
   speed?: number;
 }
-
 // Message types
 export interface Message {
   id: string;
@@ -234,7 +219,6 @@ export interface Message {
   receiver?: User;
   job?: Job;
 }
-
 export interface MessageThread {
   jobId: string;
   jobTitle: string;
@@ -246,7 +230,6 @@ export interface MessageThread {
   unreadCount: number;
   lastMessage?: Message;
 }
-
 // Contractor types
 export interface ContractorProfile extends User {
   skills: ContractorSkill[];
@@ -282,7 +265,6 @@ export interface ContractorProfile extends User {
   // Stats
   total_jobs_completed?: number;
 }
-
 // Enhanced Video call types
 export interface VideoCall {
   id: string;
@@ -319,7 +301,6 @@ export interface VideoCall {
     category: string;
   };
 }
-
 export interface VideoCallParticipant {
   id: string;
   callId: string;
@@ -332,7 +313,6 @@ export interface VideoCallParticipant {
   screenShareEnabled: boolean;
   role: 'host' | 'participant';
 }
-
 export interface VideoCallSettings {
   id: string;
   userId: string;
@@ -347,7 +327,6 @@ export interface VideoCallSettings {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface CallQualityMetrics {
   id: string;
   callId: string;
@@ -360,7 +339,6 @@ export interface CallQualityMetrics {
   bandwidth: number; // in kbps
   timestamp: string;
 }
-
 export interface VideoCallInvitation {
   id: string;
   callId: string;
@@ -372,7 +350,6 @@ export interface VideoCallInvitation {
   respondedAt?: string;
   createdAt: string;
 }
-
 // Payment types
 export interface PaymentIntent {
   id: string;
@@ -385,7 +362,6 @@ export interface PaymentIntent {
   | 'canceled';
   client_secret: string;
 }
-
 export interface EscrowTransaction {
   id: string;
   jobId: string;
@@ -412,7 +388,6 @@ export interface EscrowTransaction {
     last_name: string;
   };
 }
-
 export interface PaymentMethod {
   id: string;
   type: string;
@@ -435,14 +410,12 @@ export interface PaymentMethod {
     };
   };
 }
-
 export interface FeeCalculation {
   platformFee: number;
   stripeFee: number;
   contractorAmount: number;
   totalFees: number;
 }
-
 export interface ContractorPayoutAccount {
   id: string;
   contractorId: string;
@@ -451,7 +424,6 @@ export interface ContractorPayoutAccount {
   createdAt: string;
   updatedAt: string;
 }
-
 // Advanced Search Types
 export interface LocationRadius {
   latitude: number;
@@ -459,52 +431,41 @@ export interface LocationRadius {
   radiusMiles: number;
   address?: string;
 }
-
 export interface PriceRange {
   min: number;
   max: number;
   currency: 'USD';
 }
-
 export interface SkillLevel {
   skill: string;
   level: 'beginner' | 'intermediate' | 'expert';
   yearsExperience?: number;
 }
-
 export interface AdvancedSearchFilters {
   // Location-based filtering
   location?: LocationRadius;
-
   // Price-based filtering
   priceRange?: PriceRange;
-
   // Skill-based filtering
   skills: string[];
   skillLevels?: SkillLevel[];
-
   // Rating and experience
   minRating?: number;
   minJobsCompleted?: number;
-
   // Availability filtering
   availability: 'immediate' | 'this_week' | 'this_month' | 'flexible';
-
   // Project type filtering
   projectTypes: string[];
   projectComplexity?: 'simple' | 'medium' | 'complex';
-
   // Time-based filtering
   urgency?: 'emergency' | 'urgent' | 'normal' | 'flexible';
   estimatedDuration?: number; // in hours
-
   // Additional filters
   hasInsurance?: boolean;
   isBackgroundChecked?: boolean;
   hasPortfolio?: boolean;
   responseTimeHours?: number;
 }
-
 export interface SearchResult<T> {
   items: T[];
   totalCount: number;
@@ -512,7 +473,6 @@ export interface SearchResult<T> {
   facets?: SearchFacets;
   suggestions?: string[];
 }
-
 export interface SearchFacets {
   skills: { [key: string]: number };
   priceRanges: { [key: string]: number };
@@ -520,7 +480,6 @@ export interface SearchFacets {
   locations: { [key: string]: number };
   availability: { [key: string]: number };
 }
-
 export interface SavedSearch {
   id: string;
   userId: string;
@@ -530,7 +489,6 @@ export interface SavedSearch {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface SearchAnalytics {
   userId: string;
   searchQuery: string;
@@ -540,7 +498,6 @@ export interface SearchAnalytics {
   timestamp: string;
   sessionId: string;
 }
-
 // Project Timeline & Milestone Types
 export interface ProjectTimeline {
   id: string;
@@ -562,7 +519,6 @@ export interface ProjectTimeline {
   totalMilestones?: number;
   completedMilestones?: number;
 }
-
 export interface ProjectMilestone {
   id: string;
   timelineId: string;
@@ -589,7 +545,6 @@ export interface ProjectMilestone {
   dependsOn?: ProjectMilestone[];
   blocking?: ProjectMilestone[];
 }
-
 export interface MilestoneAttachment {
   id: string;
   milestoneId: string;
@@ -602,7 +557,6 @@ export interface MilestoneAttachment {
   uploadedAt: string;
   description?: string;
 }
-
 export interface MilestoneNote {
   id: string;
   milestoneId: string;
@@ -615,7 +569,6 @@ export interface MilestoneNote {
   // Populated fields
   author?: User;
 }
-
 export interface ProjectProgress {
   timelineId: string;
   totalMilestones: number;
@@ -628,7 +581,6 @@ export interface ProjectProgress {
   daysRemaining?: number;
   daysOverdue?: number;
 }
-
 export interface TimelineTemplate {
   id: string;
   name: string;
@@ -643,7 +595,6 @@ export interface TimelineTemplate {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface MilestoneTemplate {
   id: string;
   templateId: string;
@@ -658,7 +609,6 @@ export interface MilestoneTemplate {
   isRequired: boolean;
   order: number;
 }
-
 export interface ProjectUpdateNotification {
   id: string;
   timelineId: string;
@@ -671,7 +621,6 @@ export interface ProjectUpdateNotification {
   readBy: string[];
   actionUrl?: string;
 }
-
 export interface ProjectAnalytics {
   timelineId: string;
   totalDuration: number; // actual days taken
@@ -696,7 +645,6 @@ export interface ProjectAnalytics {
   bottlenecks: ProjectBottleneck[];
   recommendations: string[];
 }
-
 export interface ProjectBottleneck {
   milestoneId: string;
   milestoneName: string;
@@ -705,11 +653,9 @@ export interface ProjectBottleneck {
   reason: string;
   suggestedAction: string;
 }
-
 // =====================================================
 // LinkedIn Parity Features - Groups, Articles, Companies
 // =====================================================
-
 // ===== GROUPS =====
 export type TradeType =
   | 'electricians'
@@ -726,8 +672,6 @@ export type TradeType =
   | 'cleaners'
   | 'general'
   | 'multi_trade';
-
-
 // Subscription types for scheduling/maintenance
 export interface Subscription {
   id: string;
@@ -737,7 +681,6 @@ export interface Subscription {
   created_at: string;
   user_id?: string;
 }
-
 // Google Places API response types
 export interface PlaceSuggestion {
   place_id: string;
@@ -747,7 +690,6 @@ export interface PlaceSuggestion {
     secondary_text: string;
   };
 }
-
 // Meeting types for scheduling
 export interface ContractorMeeting {
   id: string;
@@ -776,7 +718,6 @@ export interface ContractorMeeting {
     title: string;
   };
 }
-
 export interface MeetingUpdate {
   id: string;
   meetingId: string;
@@ -786,10 +727,9 @@ export interface MeetingUpdate {
   message: string;
   updatedBy: string;
   timestamp: string;
-  oldValue?: any;
-  newValue?: any;
+  oldValue?: unknown;
+  newValue?: unknown;
 }
-
 // Notification types
 export interface Notification {
   id: string;
@@ -802,7 +742,6 @@ export interface Notification {
   action_url?: string;
   metadata?: Record<string, unknown>;
 }
-
 // Error types
 export interface ApiError {
   message: string;
@@ -810,11 +749,9 @@ export interface ApiError {
   statusCode?: number;
   details?: unknown;
 }
-
 // =====================================================
 // Additional Utility Types for Type Safety
 // =====================================================
-
 /**
  * Paginated API response wrapper
  */
@@ -825,14 +762,12 @@ export interface PaginatedResponse<T> {
   limit: number;
   hasMore: boolean;
 }
-
 /**
  * Form data record for handling form submissions
  */
 export interface FormDataRecord {
   [key: string]: string | number | boolean | null | undefined | File | FileList;
 }
-
 /**
  * Standard API error response
  */
@@ -842,7 +777,6 @@ export interface ApiErrorResponse {
   details?: Record<string, unknown>;
   statusCode?: number;
 }
-
 /**
  * Property type for homeowners
  */
@@ -867,7 +801,6 @@ export interface Property {
   created_at: string;
   updated_at: string;
 }
-
 /**
  * Quote/Estimate from contractor
  */
@@ -891,7 +824,6 @@ export interface Quote {
   contractor?: User;
   homeowner?: User;
 }
-
 export interface QuoteLineItem {
   id: string;
   quote_id: string;
@@ -901,7 +833,6 @@ export interface QuoteLineItem {
   total: number;
   category?: string;
 }
-
 /**
  * Contract between homeowner and contractor
  */
@@ -928,7 +859,6 @@ export interface Contract {
   contractor?: User;
   homeowner?: User;
 }
-
 /**
  * Testimonial/Review from homeowner
  */
@@ -952,7 +882,6 @@ export interface Testimonial {
   homeowner?: User;
   job?: Job;
 }
-
 /**
  * Schedule/Appointment for jobs
  */
@@ -972,7 +901,6 @@ export interface Schedule {
   created_at: string;
   updated_at: string;
 }
-
 /**
  * Financial summary for dashboards
  */
@@ -991,7 +919,6 @@ export interface FinancialSummary {
     end: string;
   };
 }
-
 /**
  * Pricing plan for subscriptions
  */
@@ -1017,7 +944,6 @@ export interface PricingPlan {
   created_at: string;
   updated_at: string;
 }
-
 /**
  * Customer (homeowner from contractor's perspective)
  */
@@ -1042,7 +968,6 @@ export interface Customer {
   homeowner?: User;
   jobs?: Job[];
 }
-
 /**
  * Swipe action for discovery cards
  */
@@ -1054,7 +979,6 @@ export interface SwipeAction {
   timestamp: string;
   metadata?: Record<string, unknown>;
 }
-
 /**
  * Recommendation for contractors/jobs
  */
@@ -1075,7 +999,6 @@ export interface Recommendation {
   contractor?: ContractorProfile;
   job?: Job;
 }
-
 /**
  * Job tracking data
  */
@@ -1103,7 +1026,6 @@ export interface TrackingData {
     reported_at: string;
   }[];
 }
-
 /**
  * Sign-off data for job completion
  */
@@ -1127,7 +1049,6 @@ export interface SignOffData {
   created_at: string;
   updated_at: string;
 }
-
 /**
  * Card design for contractor business cards
  */
@@ -1158,7 +1079,6 @@ export interface CardDesign {
   created_at: string;
   updated_at: string;
 }
-
 /**
  * GDPR data export
  */
@@ -1174,16 +1094,13 @@ export interface GDPRExportData {
   notifications: Notification[];
   exported_at: string;
 }
-
 // =====================================================
 // Feature Access & Subscription Types
 // =====================================================
-
 /**
  * Subscription tier for contractors
  */
 export type SubscriptionTier = 'free' | 'basic' | 'professional' | 'enterprise';
-
 /**
  * Feature limit definition
  */
@@ -1194,7 +1111,6 @@ export interface FeatureLimit {
   enterprise?: number | boolean | 'unlimited';
   homeowner?: boolean;
 }
-
 /**
  * Feature definition with access controls
  */
@@ -1207,7 +1123,6 @@ export interface FeatureDefinition {
   upgradeMessage?: string;
   learnMoreUrl?: string;
 }
-
 /**
  * Feature usage tracking
  */
@@ -1221,7 +1136,6 @@ export interface FeatureUsage {
   created_at: string;
   updated_at: string;
 }
-
 /**
  * Feature access result
  */
@@ -1234,7 +1148,6 @@ export interface FeatureAccessResult {
   upgradeTiers: SubscriptionTier[];
   feature?: FeatureDefinition;
 }
-
 /**
  * Subscription information
  */
@@ -1246,7 +1159,6 @@ export interface SubscriptionInfo {
   canceledAt?: string | null;
   cancelAtPeriodEnd?: boolean;
 }
-
 /**
  * Tier pricing information
  */
@@ -1258,7 +1170,6 @@ export interface TierPricing {
   popular?: boolean;
   features?: string[];
 }
-
 /**
  * Feature category
  */
@@ -1279,6 +1190,5 @@ export type FeatureCategory =
   | 'Payments'
   | 'Reviews'
   | 'Properties';
-
 // Export contract types (only those not already defined in index.ts)
 export type { JobSummary, JobDetail, ContractorSummary, UserSummary, Service, TimelineEvent, ThreadSummary } from './contracts';

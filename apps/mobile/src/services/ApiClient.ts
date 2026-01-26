@@ -32,7 +32,7 @@ import type {
   Payment,
   CreatePayment,
   ApiSuccess,
-  ApiError,
+  ApiError as ApiErrorType,
   PaginatedResponse,
 } from '../types/schemas';
 
@@ -64,7 +64,7 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public code?: string,
-    public details?: any
+    public details?: unknown
   ) {
     super(message);
     this.name = 'ApiError';
@@ -128,7 +128,7 @@ export class TypeSafeApiClient {
     endpoint: string,
     options: {
       method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-      body?: any;
+      body?: unknown;
       schema?: z.ZodSchema<TResponse>;
       headers?: Record<string, string>;
       timeout?: number;
@@ -211,7 +211,7 @@ export class TypeSafeApiClient {
     throw lastError!;
   }
 
-  private async parseErrorResponse(response: Response): Promise<ApiError> {
+  private async parseErrorResponse(response: Response): Promise<ApiErrorType> {
     try {
       const data = await response.json();
       return validateSchema(ApiErrorSchema, data);
@@ -222,7 +222,7 @@ export class TypeSafeApiClient {
           code: 'UNKNOWN_ERROR',
           message: `HTTP ${response.status}: ${response.statusText}`,
         },
-      } as ApiError;
+      } as ApiErrorType;
     }
   }
 
@@ -321,7 +321,7 @@ export class TypeSafeApiClient {
   // ============================================================================
 
   async getJobs(filters?: JobFilter): Promise<PaginatedResponse<Job>> {
-    const query = filters ? new URLSearchParams(filters as any).toString() : '';
+    const query = filters ? new URLSearchParams(filters as unknown).toString() : '';
     const endpoint = `/jobs${query ? `?${query}` : ''}`;
     
     return this.request(endpoint, {
@@ -438,7 +438,7 @@ export class TypeSafeApiClient {
   // MESSAGE API
   // ============================================================================
 
-  async getConversations(): Promise<PaginatedResponse<any>> {
+  async getConversations(): Promise<PaginatedResponse<unknown>> {
     return this.request('/conversations', {
       method: 'GET',
       schema: PaginatedResponseSchema,

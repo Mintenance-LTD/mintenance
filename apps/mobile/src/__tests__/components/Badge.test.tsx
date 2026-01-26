@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent , waitFor} from '../test-utils';
 import { Badge, Chip, NotificationBadge } from '../../components/ui/Badge/Badge';
 
 // Mock design tokens
@@ -142,7 +151,7 @@ describe('Badge Component', () => {
         </Badge>
       );
 
-      fireEvent.press(getByTestId('pressable-badge'));
+      act(() => fireEvent.press(getByTestId('pressable-badge')));
       expect(mockOnPress).toHaveBeenCalledTimes(1);
     });
 
@@ -261,7 +270,7 @@ describe('Chip Component', () => {
         <Chip onDelete={mockOnDelete}>Deletable Chip</Chip>
       );
 
-      fireEvent.press(getByText('close'));
+      act(() => fireEvent.press(getByText('close')));
       expect(mockOnDelete).toHaveBeenCalledTimes(1);
     });
 
@@ -296,7 +305,7 @@ describe('Chip Component', () => {
         </Chip>
       );
 
-      fireEvent.press(getByTestId('pressable-chip'));
+      act(() => fireEvent.press(getByTestId('pressable-chip')));
       expect(mockOnPress).toHaveBeenCalledTimes(1);
     });
 

@@ -235,7 +235,7 @@ describe('Logger', () => {
       logger.error('Operation failed', error);
       
       expect(console.error).toHaveBeenCalled();
-      const errorCall = (console.error as jest.Mock).mock.calls.find((call: any) => 
+      const errorCall = (console.error as jest.Mock).mock.calls.find((call: unknown) => 
         call[0]?.includes?.('Error details')
       );
       expect(errorCall).toBeDefined();

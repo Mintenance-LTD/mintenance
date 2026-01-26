@@ -75,8 +75,8 @@ class PerformanceMonitor {
   recordMemoryUsage(): void {
     // React Native doesn't have performance.memory, so we use JSC memory if available
     try {
-      if (global.performance && (global.performance as any).memory) {
-        const memory = (global.performance as any).memory;
+      if (global.performance && (global.performance as unknown).memory) {
+        const memory = (global.performance as unknown).memory;
         const memoryUsage = memory.usedJSHeapSize;
         this.metrics.memoryUsage = memoryUsage;
         this.checkBudget('memoryUsage', memoryUsage);
@@ -84,8 +84,8 @@ class PerformanceMonitor {
           `Memory usage: ${(memoryUsage / 1024 / 1024).toFixed(2)}MB`
         );
       } else if (
-        (global as any).__DEV__ &&
-        (global as any).nativePerformanceNow
+        (global as unknown).__DEV__ &&
+        (global as unknown).nativePerformanceNow
       ) {
         // Use approximate memory estimation for development
         const approximateMemory = 50 * 1024 * 1024; // 50MB baseline
@@ -116,13 +116,13 @@ class PerformanceMonitor {
 
     // Store in a custom metrics map for later retrieval
     if (!this.metrics.customMetrics) {
-      (this.metrics as any).customMetrics = new Map<string, number>();
+      (this.metrics as unknown).customMetrics = new Map<string, number>();
     }
-    (this.metrics as any).customMetrics.set(name, value);
+    (this.metrics as unknown).customMetrics.set(name, value);
   }
 
   getCustomMetrics(): Map<string, number> {
-    return (this.metrics as any).customMetrics || new Map();
+    return (this.metrics as unknown).customMetrics || new Map();
   }
 
   private checkBudget(metric: keyof PerformanceMetrics, value: number): void {
@@ -175,7 +175,7 @@ class PerformanceMonitor {
     // This will be called by the monitoring system when it's available
     // Using a weak reference to avoid circular dependencies
     try {
-      const monitoring = (global as any).__monitoringSystem;
+      const monitoring = (global as unknown).__monitoringSystem;
       if (monitoring && monitoring.recordPerformanceViolation) {
         monitoring.recordPerformanceViolation({
           metric,

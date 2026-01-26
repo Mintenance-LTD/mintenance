@@ -149,8 +149,8 @@ export class PerformanceMetricsCollector {
    */
   private async getMemoryInfo(): Promise<MemoryInfo> {
     // Try to get actual memory info
-    if (typeof performance !== 'undefined' && (performance as any).memory) {
-      const memory = (performance as any).memory;
+    if (typeof performance !== 'undefined' && (performance as unknown).memory) {
+      const memory = (performance as unknown).memory;
       return {
         usedJSHeapSize: memory.usedJSHeapSize || 0,
         totalJSHeapSize: memory.totalJSHeapSize || 0,

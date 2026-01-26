@@ -1,0 +1,173 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DateTimeSelector Component Basic Rendering should match snapshot in default state 1`] = `
+<View
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 12,
+      "elevation": 2,
+      "marginBottom": 16,
+      "padding": 16,
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 2,
+        "width": 0,
+      },
+      "shadowOpacity": 0.1,
+      "shadowRadius": 4,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "color": "#000000",
+        "fontSize": 20,
+        "fontWeight": "600",
+        "marginBottom": 16,
+      }
+    }
+  >
+    Date & Time
+  </Text>
+  <View
+    style={
+      {
+        "gap": 12,
+      }
+    }
+  >
+    <TouchableOpacity
+      onPress={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "#F5F5F5",
+          "borderRadius": 8,
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+          "padding": 12,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "flexDirection": "row",
+            "gap": 12,
+          }
+        }
+      >
+        <Ionicons
+          color="#007AFF"
+          name="calendar-outline"
+          size={20}
+        />
+        <View
+          style={
+            {
+              "flex": 1,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#666666",
+                "fontSize": 12,
+                "marginBottom": 2,
+              }
+            }
+          >
+            Date
+          </Text>
+          <Text
+            style={
+              {
+                "color": "#000000",
+                "fontSize": 14,
+                "fontWeight": "500",
+              }
+            }
+          >
+            Sunday, March 15, 2026
+          </Text>
+        </View>
+      </View>
+      <Ionicons
+        color="#999999"
+        name="chevron-down"
+        size={20}
+      />
+    </TouchableOpacity>
+    <TouchableOpacity
+      onPress={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "#F5F5F5",
+          "borderRadius": 8,
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+          "padding": 12,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flex": 1,
+            "flexDirection": "row",
+            "gap": 12,
+          }
+        }
+      >
+        <Ionicons
+          color="#007AFF"
+          name="time-outline"
+          size={20}
+        />
+        <View
+          style={
+            {
+              "flex": 1,
+            }
+          }
+        >
+          <Text
+            style={
+              {
+                "color": "#666666",
+                "fontSize": 12,
+                "marginBottom": 2,
+              }
+            }
+          >
+            Time
+          </Text>
+          <Text
+            style={
+              {
+                "color": "#000000",
+                "fontSize": 14,
+                "fontWeight": "500",
+              }
+            }
+          >
+            2:30 PM
+          </Text>
+        </View>
+      </View>
+      <Ionicons
+        color="#999999"
+        name="chevron-down"
+        size={20}
+      />
+    </TouchableOpacity>
+  </View>
+</View>
+`;

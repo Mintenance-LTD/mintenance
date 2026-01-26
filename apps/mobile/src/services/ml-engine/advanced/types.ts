@@ -14,13 +14,13 @@ export interface MLModel {
   accuracy: number;
   createdAt: number;
   lastUpdated: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ModelPrediction {
   modelId: string;
-  input: any;
-  output: any;
+  input: unknown;
+  output: unknown;
   confidence: number;
   timestamp: number;
   latency: number;
@@ -45,7 +45,7 @@ export interface ABTestVariant {
   name: string;
   description: string;
   modelId?: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   allocation: number; // 0-100 percentage
 }
 
@@ -75,13 +75,13 @@ export interface ModelDeploymentConfig {
 export interface MLFeature {
   name: string;
   type: 'numerical' | 'categorical' | 'text' | 'boolean' | 'datetime';
-  value: any;
+  value: unknown;
   importance?: number;
 }
 
 export interface ModelTrainingConfig {
   algorithm: 'random_forest' | 'xgboost' | 'neural_network' | 'linear_regression' | 'svm';
-  hyperparameters: Record<string, any>;
+  hyperparameters: Record<string, unknown>;
   features: string[];
   target: string;
   validationSplit: number;

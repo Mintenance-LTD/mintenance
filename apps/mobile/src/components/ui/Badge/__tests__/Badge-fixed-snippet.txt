@@ -1,0 +1,28 @@
+SECTION 1: Fix background color test (line 138-149)
+OLD:
+    it('applies correct background color for primary variant', () => {
+      const { getByText } = render(<Badge variant="primary">Primary</Badge>);
+      const badge = getByText('Primary').parent;
+      const styles = Array.isArray(badge?.props.style) ? badge.props.style : [badge?.props.style];
+      expect(styles).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            backgroundColor: '#0EA5E9',
+          }),
+        ])
+      );
+    });
+
+NEW:
+    it('applies correct background color for primary variant', () => {
+      const { getByText } = render(<Badge variant="primary">Primary</Badge>);
+      const badge = getByText('Primary').parent;
+      const styles = getStylesArray(badge?.props.style);
+      expect(styles).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            backgroundColor: '#0EA5E9',
+          }),
+        ])
+      );
+    });

@@ -30,7 +30,7 @@ export interface ErrorContext {
   screen?: string;
   action?: string;
   feature?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface StandardError {
@@ -201,7 +201,7 @@ export class ErrorHandlingService {
   /**
    * Check if error is already standardized
    */
-  private static isStandardError(error: any): error is StandardError {
+  private static isStandardError(error: unknown): error is StandardError {
     return (
       typeof error === 'object' &&
       error !== null &&
@@ -281,7 +281,7 @@ export class ErrorHandlingService {
    * Get appropriate alert buttons
    */
   private static getAlertButtons(error: StandardError) {
-    const buttons: any[] = [{ text: 'OK', style: 'default' }];
+    const buttons: unknown[] = [{ text: 'OK', style: 'default' }];
 
     // Add retry button for network errors
     if (error.category === ErrorCategory.NETWORK) {

@@ -1,14 +1,35 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
+import React from 'react';
 /**
  * Payment Workflows Integration Tests
  * Tests payment flows with real component interactions
  */
 
-import React from 'react';
-import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
+
+import { render, fireEvent, waitFor, screen } from '../test-utils';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainer } from '@react-navigation/native';
 import { PaymentService } from '../../services/PaymentService';
+
+jest.mock('../../services/PaymentService', () => ({
+  PaymentService: {
+    createPaymentIntent: jest.fn(),
+    confirmPayment: jest.fn(),
+    refundPayment: jest.fn(),
+    getPaymentHistory: jest.fn(),
+    savePaymentMethod: jest.fn(),
+    getPaymentMethods: jest.fn(),
+    deletePaymentMethod: jest.fn(),
+  }
+}));
 import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 
 // Mock payment screens (would import actual screens in real app)
@@ -37,7 +58,7 @@ const MockPaymentScreen = ({ navigation, route }: any) => {
       if (result.status === 'succeeded') {
         navigation.navigate('PaymentSuccess', { paymentId: result.id });
       }
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
@@ -127,6 +148,10 @@ describe('Payment Workflows Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   describe('Successful Payment Flow', () => {
     it('should complete full payment workflow from UI interaction', async () => {
@@ -180,7 +205,7 @@ describe('Payment Workflows Integration Tests', () => {
 
       // Trigger payment flow
       const payButton = getByTestId('pay-button');
-      fireEvent.press(payButton);
+      act(() => fireEvent.press(payButton));
 
       // Wait for payment processing
       await waitFor(() => {
@@ -274,7 +299,7 @@ describe('Payment Workflows Integration Tests', () => {
 
       // Trigger payment flow
       const payButton = getByTestId('pay-button');
-      fireEvent.press(payButton);
+      act(() => fireEvent.press(payButton));
 
       // Wait for error to appear
       await waitFor(() => {
@@ -309,7 +334,7 @@ describe('Payment Workflows Integration Tests', () => {
 
       // Trigger payment flow
       const payButton = getByTestId('pay-button');
-      fireEvent.press(payButton);
+      act(() => fireEvent.press(payButton));
 
       // Wait for error to appear
       await waitFor(() => {
@@ -418,7 +443,7 @@ describe('Payment Workflows Integration Tests', () => {
             if (result.status === 'succeeded') {
               navigation.navigate('PaymentSuccess', { paymentId: result.id });
             }
-          } catch (err: any) {
+          } catch (err) {
             setError(err.message);
           } finally {
             setLoading(false);
@@ -443,7 +468,7 @@ describe('Payment Workflows Integration Tests', () => {
 
       // Trigger payment flow
       const payButton = getByTestId('pay-button');
-      fireEvent.press(payButton);
+      act(() => fireEvent.press(payButton));
 
       // Wait for successful completion
       await waitFor(() => {
@@ -568,7 +593,7 @@ describe('Payment Workflows Integration Tests', () => {
       });
 
       // Should fail when offline
-      await expect(offlinePaymentPromise).rejects.toThrow();
+      await await expect(offlinePaymentPromise).rejects.toThrow();
 
       // Mock coming back online
       mockNetworkState.isConnected = true;

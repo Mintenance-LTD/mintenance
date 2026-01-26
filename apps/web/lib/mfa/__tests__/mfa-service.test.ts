@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * @jest-environment node
  */
@@ -7,20 +8,20 @@ import * as qrcode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
 
 // Mock dependencies
-jest.mock('speakeasy');
-jest.mock('qrcode');
-jest.mock('@supabase/supabase-js');
-jest.mock('@/lib/logger', () => ({
+vi.mock('speakeasy');
+vi.mock('qrcode');
+vi.mock('@supabase/supabase-js');
+vi.mock('@/lib/logger', () => ({
   logger: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
-jest.mock('@/lib/rate-limiter', () => ({
+vi.mock('@/lib/rate-limiter', () => ({
   rateLimiter: {
-    check: jest.fn(),
+    check: vi.fn(),
   },
 }));
 
@@ -32,34 +33,34 @@ describe('MFA Service', () => {
   let mfaService: any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock Supabase client
     mockSupabase = {
-      from: jest.fn().mockReturnThis(),
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn(),
+      from: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn(),
     };
 
-    (createClient as jest.Mock).mockReturnValue(mockSupabase);
+    vi.mocked(createClient).mockReturnValue(mockSupabase);
 
     // Mock speakeasy
-    (speakeasy.generateSecret as jest.Mock).mockReturnValue({
+    vi.mocked(speakeasy.generateSecret).mockReturnValue({
       base32: 'JBSWY3DPEHPK3PXP',
       otpauth_url: 'otpauth://totp/MyApp:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=MyApp',
     });
 
-    (speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
+    vi.mocked(speakeasy.totp.verify).mockReturnValue(true);
 
     // Mock QR code generation
-    (qrcode.toDataURL as jest.Mock).mockResolvedValue('data:image/png;base64,iVBORw0KG...');
+    vi.mocked(qrcode.toDataURL).mockResolvedValue('data:image/png;base64,iVBORw0KG...');
 
     // Mock rate limiter
-    (rateLimiter.check as jest.Mock).mockResolvedValue({ allowed: true });
+    vi.mocked(rateLimiter.check).mockResolvedValue({ allowed: true });
 
     // MFA Service implementation
     mfaService = {
@@ -319,7 +320,7 @@ describe('MFA Service', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('TOTP enrollment', () => {
@@ -356,7 +357,7 @@ describe('MFA Service', () => {
     it('should not enable MFA until verified', async () => {
       await mfaService.enrollTOTP('user-789', 'user@example.com');
 
-      const insertCall = (mockSupabase.insert as jest.Mock).mock.calls[0][0];
+      const insertCall = vi.mocked(mockSupabase.insert).mock.calls[0][0];
       expect(insertCall.enabled).toBe(false);
     });
 
@@ -380,7 +381,7 @@ describe('MFA Service', () => {
         error: null,
       });
 
-      (speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
+      vi.mocked(speakeasy.totp.verify).mockReturnValue(true);
 
       const result = await mfaService.verifyTOTP('user-123', '123456');
 
@@ -400,7 +401,7 @@ describe('MFA Service', () => {
         error: null,
       });
 
-      (speakeasy.totp.verify as jest.Mock).mockReturnValue(false);
+      vi.mocked(speakeasy.totp.verify).mockReturnValue(false);
 
       await expect(mfaService.verifyTOTP('user-123', '000000')).rejects.toThrow(
         'Invalid TOTP token'
@@ -421,7 +422,7 @@ describe('MFA Service', () => {
         error: null,
       });
 
-      (speakeasy.totp.verify as jest.Mock).mockReturnValue(true);
+      vi.mocked(speakeasy.totp.verify).mockReturnValue(true);
 
       await mfaService.verifyAndEnableTOTP('user-456', '123456');
 
@@ -618,7 +619,7 @@ describe('MFA Service', () => {
 
   describe('Rate limiting on verification attempts', () => {
     it('should enforce rate limit on TOTP verification', async () => {
-      (rateLimiter.check as jest.Mock).mockResolvedValue({ allowed: false });
+      vi.mocked(rateLimiter.check).mockResolvedValue({ allowed: false });
 
       await expect(mfaService.verifyTOTP('user-123', '123456')).rejects.toThrow(
         'Too many verification attempts'
@@ -628,7 +629,7 @@ describe('MFA Service', () => {
     });
 
     it('should allow TOTP verification under rate limit', async () => {
-      (rateLimiter.check as jest.Mock).mockResolvedValue({ allowed: true });
+      vi.mocked(rateLimiter.check).mockResolvedValue({ allowed: true });
 
       mockSupabase.single.mockResolvedValue({
         data: {
@@ -645,7 +646,7 @@ describe('MFA Service', () => {
     });
 
     it('should enforce rate limit on backup code usage', async () => {
-      (rateLimiter.check as jest.Mock).mockResolvedValue({ allowed: false });
+      vi.mocked(rateLimiter.check).mockResolvedValue({ allowed: false });
 
       await expect(mfaService.useBackupCode('user-789', '12345678')).rejects.toThrow(
         'Too many backup code attempts'
@@ -655,7 +656,7 @@ describe('MFA Service', () => {
     });
 
     it('should use different rate limits for TOTP vs backup codes', async () => {
-      (rateLimiter.check as jest.Mock).mockResolvedValue({ allowed: true });
+      vi.mocked(rateLimiter.check).mockResolvedValue({ allowed: true });
 
       mockSupabase.single.mockResolvedValue({
         data: {
@@ -761,7 +762,7 @@ describe('MFA Service', () => {
     });
 
     it('should handle QR code generation errors', async () => {
-      (qrcode.toDataURL as jest.Mock).mockRejectedValue(new Error('QR generation failed'));
+      vi.mocked(qrcode.toDataURL).mockRejectedValue(new Error('QR generation failed'));
 
       await expect(
         mfaService.enrollTOTP('user-123', 'user@example.com')

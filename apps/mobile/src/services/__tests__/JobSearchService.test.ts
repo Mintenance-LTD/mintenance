@@ -1,11 +1,22 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 /**
  * Tests for JobSearchService - Job Search and Filtering Operations
  */
 
 import { JobSearchService } from '../JobSearchService';
+import type { Job } from '@mintenance/types';
 import { JobCRUDService } from '../JobCRUDService';
 import { supabase } from '../../config/supabase';
-import { Job } from '@mintenance/types';
 import { sanitizeForSQL, isValidSearchTerm } from '../../utils/sqlSanitization';
 import { logger } from '../../utils/logger';
 
@@ -18,7 +29,12 @@ jest.mock('../../config/supabase', () => ({
 
 jest.mock('../../utils/sqlSanitization');
 jest.mock('../../utils/logger');
-jest.mock('../JobCRUDService');
+jest.mock('../JobCRUDService', () => ({
+  JobCRUDService: {
+    formatJob: jest.fn((data) => data),
+    getJobById: jest.fn(),
+  },
+}));
 
 describe('JobSearchService', () => {
   const mockJobData = {
@@ -47,7 +63,7 @@ describe('JobSearchService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (JobCRUDService['formatJob'] as jest.Mock) = jest.fn((data) => ({
+    (JobCRUDService['formatJob'] as jest.Mock).mockImplementation((data) => ({
       ...data,
       // Mock formatting
     }));
@@ -180,7 +196,7 @@ describe('JobSearchService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnValue({
-          then: (cb: any) => cb({ data: [mockJobData], error: null }),
+          then: (cb: unknown) => cb({ data: [mockJobData], error: null }),
         }),
       };
       (supabase.from as jest.Mock).mockReturnValue(mockFrom);
@@ -384,7 +400,7 @@ describe('JobSearchService', () => {
       const mockFrom = {
         select: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnValue({
-          then: (cb: any) => cb({ data: [mockJobData], error: null }),
+          then: (cb: unknown) => cb({ data: [mockJobData], error: null }),
         }),
       };
       (supabase.from as jest.Mock).mockReturnValue(mockFrom);
@@ -530,7 +546,7 @@ describe('JobSearchService', () => {
         select: jest.fn().mockReturnThis(),
         textSearch: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnValue({
-          then: (cb: any) => cb({ data: [mockJobData], error: null }),
+          then: (cb: unknown) => cb({ data: [mockJobData], error: null }),
         }),
       };
       (supabase.from as jest.Mock).mockReturnValue(mockFrom);

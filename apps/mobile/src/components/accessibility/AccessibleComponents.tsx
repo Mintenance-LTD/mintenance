@@ -231,9 +231,9 @@ AccessibleHeader.displayName = 'AccessibleHeader';
 // ACCESSIBLE LIST
 // ============================================================================
 
-export interface AccessibleListProps {
-  data: any[];
-  renderItem: (item: any, index: number) => React.ReactNode;
+export interface AccessibleListProps<T = unknown> {
+  data: T[];
+  renderItem: (item: T, index: number) => React.ReactNode;
   label?: string;
   style?: ViewStyle;
   testID?: string;
@@ -245,7 +245,7 @@ export const AccessibleList = memo<AccessibleListProps>(({
   label,
   style,
   testID,
-}) => {
+}: AccessibleListProps) => {
   const { getListProps, getListItemProps } = useAccessibility();
 
   const listProps = getListProps(data.length, label);
@@ -256,7 +256,9 @@ export const AccessibleList = memo<AccessibleListProps>(({
         const itemProps = getListItemProps(
           index,
           data.length,
-          item.title || item.name || `Item ${index + 1}`
+          (item as { title?: string; name?: string }).title ||
+          (item as { title?: string; name?: string }).name ||
+          `Item ${index + 1}`
         );
 
         return (

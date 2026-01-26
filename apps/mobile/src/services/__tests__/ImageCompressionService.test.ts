@@ -1,3 +1,14 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 /**
  * ImageCompressionService Tests
  *
@@ -17,8 +28,20 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
 
 // Mock expo modules
-jest.mock('expo-image-manipulator');
-jest.mock('expo-file-system');
+jest.mock('expo-image-manipulator', () => ({
+  manipulateAsync: jest.fn(),
+  SaveFormat: {
+    JPEG: 'jpeg',
+    PNG: 'png',
+    WEBP: 'webp',
+  },
+}));
+jest.mock('expo-file-system', () => ({
+  getInfoAsync: jest.fn(),
+  deleteAsync: jest.fn(),
+  documentDirectory: 'file:///documents/',
+  cacheDirectory: 'file:///cache/',
+}));
 
 // Mock logger
 jest.mock('../../utils/logger-enhanced', () => ({
@@ -35,15 +58,26 @@ describe('ImageCompressionService', () => {
   const mockImageUri = 'file:///mock/image.jpg';
   const mockCompressedUri = 'file:///mock/compressed.jpg';
   const mockThumbnailUri = 'file:///mock/thumbnail.jpg';
+  const getPrimaryCompressionCall = () => {
+    const calls = (ImageManipulator.manipulateAsync as jest.Mock).mock.calls;
+    return calls.find((call) => {
+      const options = call[2];
+      return options?.compress !== 1 && options?.compress !== 0.6;
+    });
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     // Setup default mocks
-    (FileSystem.getInfoAsync as jest.Mock).mockResolvedValue({
-      exists: true,
-      size: 5000000, // 5MB
-      isDirectory: false,
+    (FileSystem.getInfoAsync as jest.Mock).mockImplementation((uri: string) => {
+      const size =
+        uri === mockCompressedUri || uri === mockThumbnailUri ? 1000000 : 5000000;
+      return Promise.resolve({
+        exists: true,
+        size,
+        isDirectory: false,
+      });
     });
 
     (ImageManipulator.manipulateAsync as jest.Mock).mockResolvedValue({
@@ -70,9 +104,8 @@ describe('ImageCompressionService', () => {
         purpose: 'profile',
       });
 
-      const manipulateCall = (ImageManipulator.manipulateAsync as jest.Mock).mock.calls[0];
-      const actions = manipulateCall[1];
-      const options = manipulateCall[2];
+      const manipulateCall = getPrimaryCompressionCall();
+      const options = manipulateCall?.[2];
 
       expect(options.compress).toBe(0.7);
       expect(options.format).toBe(ImageManipulator.SaveFormat.JPEG);
@@ -83,8 +116,8 @@ describe('ImageCompressionService', () => {
         purpose: 'job',
       });
 
-      const manipulateCall = (ImageManipulator.manipulateAsync as jest.Mock).mock.calls[0];
-      const options = manipulateCall[2];
+      const manipulateCall = getPrimaryCompressionCall();
+      const options = manipulateCall?.[2];
 
       expect(options.compress).toBe(0.8);
     });
@@ -94,8 +127,8 @@ describe('ImageCompressionService', () => {
         purpose: 'property-assessment',
       });
 
-      const manipulateCall = (ImageManipulator.manipulateAsync as jest.Mock).mock.calls[0];
-      const options = manipulateCall[2];
+      const manipulateCall = getPrimaryCompressionCall();
+      const options = manipulateCall?.[2];
 
       expect(options.compress).toBe(0.85);
     });
@@ -107,9 +140,8 @@ describe('ImageCompressionService', () => {
         maxWidth: 2000,
       });
 
-      const manipulateCall = (ImageManipulator.manipulateAsync as jest.Mock).mock.calls[0];
-      const actions = manipulateCall[1];
-      const options = manipulateCall[2];
+      const manipulateCall = getPrimaryCompressionCall();
+      const options = manipulateCall?.[2];
 
       expect(options.compress).toBe(0.95);
     });
@@ -131,8 +163,8 @@ describe('ImageCompressionService', () => {
         purpose: 'job',
       });
 
-      const manipulateCall = (ImageManipulator.manipulateAsync as jest.Mock).mock.calls[1];
-      const actions = manipulateCall[1];
+      const manipulateCall = getPrimaryCompressionCall();
+      const actions = manipulateCall?.[1] || [];
 
       expect(actions).toContainEqual({
         resize: expect.objectContaining({
@@ -204,21 +236,16 @@ describe('ImageCompressionService', () => {
 
     it('should calculate compression ratio correctly', async () => {
       (FileSystem.getInfoAsync as jest.Mock)
-        .mockResolvedValueOnce({
+        .mockImplementationOnce(() => Promise.resolve({
           exists: true,
           size: 5000000, // 5MB original
           isDirectory: false,
-        })
-        .mockResolvedValueOnce({
-          exists: true,
-          size: 5000000,
-          isDirectory: false,
-        })
-        .mockResolvedValueOnce({
+        }))
+        .mockImplementationOnce(() => Promise.resolve({
           exists: true,
           size: 1000000, // 1MB compressed
           isDirectory: false,
-        });
+        }));
 
       const result = await ImageCompressionService.compress(mockImageUri, {
         purpose: 'job',
@@ -230,9 +257,9 @@ describe('ImageCompressionService', () => {
     });
 
     it('should handle file not found error', async () => {
-      (FileSystem.getInfoAsync as jest.Mock).mockResolvedValue({
+      (FileSystem.getInfoAsync as jest.Mock).mockImplementationOnce(() => Promise.resolve({
         exists: false,
-      });
+      }));
 
       const result = await ImageCompressionService.compress(mockImageUri);
 
@@ -265,10 +292,41 @@ describe('ImageCompressionService', () => {
         .mockResolvedValueOnce({ uri: 'compressed2.jpg', width: 1200, height: 900 })
         .mockResolvedValueOnce({ uri: 'compressed3.jpg', width: 1200, height: 900 });
 
-      (FileSystem.getInfoAsync as jest.Mock).mockResolvedValue({
-        exists: true,
-        size: 3000000,
-        isDirectory: false,
+      (FileSystem.getInfoAsync as jest.Mock).mockImplementation((uri: string) => {
+        const originalSizes: Record<string, number> = {
+          'image1.jpg': 5000000,
+          'image2.jpg': 4000000,
+          'image3.jpg': 3000000,
+        };
+        const compressedSizes: Record<string, number> = {
+          'compressed1.jpg': 1000000,
+          'compressed2.jpg': 800000,
+          'compressed3.jpg': 600000,
+        };
+
+        const matchingOriginal = Object.keys(originalSizes).find((key) => uri.includes(key));
+        if (matchingOriginal) {
+          return Promise.resolve({
+            exists: true,
+            size: originalSizes[matchingOriginal],
+            isDirectory: false,
+          });
+        }
+
+        const matchingCompressed = Object.keys(compressedSizes).find((key) => uri.includes(key));
+        if (matchingCompressed) {
+          return Promise.resolve({
+            exists: true,
+            size: compressedSizes[matchingCompressed],
+            isDirectory: false,
+          });
+        }
+
+        return Promise.resolve({
+          exists: true,
+          size: 0,
+          isDirectory: false,
+        });
       });
     });
 
@@ -315,16 +373,18 @@ describe('ImageCompressionService', () => {
     });
 
     it('should calculate total compression stats', async () => {
-      (FileSystem.getInfoAsync as jest.Mock)
-        .mockResolvedValueOnce({ exists: true, size: 5000000, isDirectory: false })
-        .mockResolvedValueOnce({ exists: true, size: 5000000, isDirectory: false })
-        .mockResolvedValueOnce({ exists: true, size: 1000000, isDirectory: false })
-        .mockResolvedValueOnce({ exists: true, size: 4000000, isDirectory: false })
-        .mockResolvedValueOnce({ exists: true, size: 4000000, isDirectory: false })
-        .mockResolvedValueOnce({ exists: true, size: 800000, isDirectory: false })
-        .mockResolvedValueOnce({ exists: true, size: 3000000, isDirectory: false })
-        .mockResolvedValueOnce({ exists: true, size: 3000000, isDirectory: false })
-        .mockResolvedValueOnce({ exists: true, size: 600000, isDirectory: false });
+      const sizeQueue = [
+        { exists: true, size: 5000000, isDirectory: false }, // original 1
+        { exists: true, size: 1000000, isDirectory: false }, // compressed 1
+        { exists: true, size: 4000000, isDirectory: false }, // original 2
+        { exists: true, size: 800000, isDirectory: false }, // compressed 2
+        { exists: true, size: 3000000, isDirectory: false }, // original 3
+        { exists: true, size: 600000, isDirectory: false }, // compressed 3
+      ];
+
+      (FileSystem.getInfoAsync as jest.Mock).mockImplementation(() => Promise.resolve(
+        sizeQueue.shift() || { exists: true, size: 0, isDirectory: false }
+      ));
 
       const result = await ImageCompressionService.compressBatch(mockUris, {
         purpose: 'job',
@@ -336,12 +396,20 @@ describe('ImageCompressionService', () => {
     });
 
     it('should measure batch processing duration', async () => {
+      let now = 0;
+      const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => {
+        now += 10;
+        return now;
+      });
+
       const result = await ImageCompressionService.compressBatch(mockUris, {
         purpose: 'job',
       });
 
       expect(result.duration).toBeGreaterThan(0);
       expect(typeof result.duration).toBe('number');
+
+      nowSpy.mockRestore();
     });
   });
 
@@ -495,7 +563,7 @@ describe('ImageCompressionService', () => {
   });
 
   describe('getCompressionStats()', () => {
-    it('should calculate compression statistics', () => {
+    it('should calculate compression statistics', async () => {
       const result: CompressionResult = {
         uri: mockCompressedUri,
         width: 1200,
@@ -512,7 +580,7 @@ describe('ImageCompressionService', () => {
       expect(stats.savedPercentage).toBeCloseTo(80, 0);
     });
 
-    it('should handle zero original size', () => {
+    it('should handle zero original size', async () => {
       const result: CompressionResult = {
         uri: mockCompressedUri,
         width: 1200,
@@ -533,8 +601,8 @@ describe('ImageCompressionService', () => {
     it('compressProfilePhoto should use profile preset', async () => {
       await compressProfilePhoto(mockImageUri);
 
-      const manipulateCall = (ImageManipulator.manipulateAsync as jest.Mock).mock.calls[0];
-      const options = manipulateCall[2];
+      const manipulateCall = getPrimaryCompressionCall();
+      const options = manipulateCall?.[2];
 
       expect(options.compress).toBe(0.7); // Profile quality
     });
@@ -542,8 +610,8 @@ describe('ImageCompressionService', () => {
     it('compressJobPhoto should use job preset', async () => {
       await compressJobPhoto(mockImageUri);
 
-      const manipulateCall = (ImageManipulator.manipulateAsync as jest.Mock).mock.calls[0];
-      const options = manipulateCall[2];
+      const manipulateCall = getPrimaryCompressionCall();
+      const options = manipulateCall?.[2];
 
       expect(options.compress).toBe(0.8); // Job quality
     });
@@ -551,8 +619,8 @@ describe('ImageCompressionService', () => {
     it('compressPropertyAssessmentPhoto should use property-assessment preset', async () => {
       await compressPropertyAssessmentPhoto(mockImageUri);
 
-      const manipulateCall = (ImageManipulator.manipulateAsync as jest.Mock).mock.calls[0];
-      const options = manipulateCall[2];
+      const manipulateCall = getPrimaryCompressionCall();
+      const options = manipulateCall?.[2];
 
       expect(options.compress).toBe(0.85); // Property assessment quality
     });

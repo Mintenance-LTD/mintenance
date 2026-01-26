@@ -1,0 +1,22 @@
+describe('__tests__ module exports', () => {
+  it('should export expected modules', () => {
+    const moduleExports = require('../index');
+    expect(moduleExports).toBeDefined();
+
+    // Verify the module exports something
+    const exportKeys = Object.keys(moduleExports);
+    expect(exportKeys.length).toBeGreaterThan(0);
+  });
+
+  it('should export valid functions or objects', () => {
+    const moduleExports = require('../index');
+
+    // Check that exports are valid types
+    Object.entries(moduleExports).forEach(([key, value]) => {
+      expect(value).toBeDefined();
+      // Each export should be a function, object, or class
+      const valueType = typeof value;
+      expect(['function', 'object', 'string', 'number', 'boolean'].includes(valueType)).toBeTruthy();
+    });
+  });
+});

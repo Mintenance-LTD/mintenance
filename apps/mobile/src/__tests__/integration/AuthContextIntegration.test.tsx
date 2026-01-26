@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '../test-utils';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 
@@ -127,6 +136,10 @@ describe('Auth Context Integration', () => {
     mockBiometricService.isBiometricEnabled.mockResolvedValue(false);
     mockNotificationService.initialize.mockResolvedValue('mock-token');
   });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
 
   it('should show loading state initially', async () => {
     // Use a delayed promise to control loading state timing
@@ -201,7 +214,7 @@ describe('Auth Context Integration', () => {
     // Click sign in button
     const signInButton = getByTestId('sign-in-button');
     await act(async () => {
-      fireEvent.press(signInButton);
+      act(() => fireEvent.press(signInButton));
     });
 
     // Verify sign in was called
@@ -269,7 +282,7 @@ describe('Auth Context Integration', () => {
     // Click sign up button
     const signUpButton = getByTestId('sign-up-button');
     await act(async () => {
-      fireEvent.press(signUpButton);
+      act(() => fireEvent.press(signUpButton));
     });
 
     // Verify sign up was called with correct data
@@ -326,7 +339,7 @@ describe('Auth Context Integration', () => {
     // Click sign out button
     const signOutButton = getByTestId('sign-out-button');
     await act(async () => {
-      fireEvent.press(signOutButton);
+      act(() => fireEvent.press(signOutButton));
     });
 
     // Verify sign out was called

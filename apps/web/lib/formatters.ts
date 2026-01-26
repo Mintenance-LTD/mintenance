@@ -1,4 +1,5 @@
 import { logger } from '@mintenance/shared';
+
 /**
  * Data Formatting Utilities
  *
@@ -61,7 +62,7 @@ export function formatCurrency(
 
     return formatter.format(numValue);
   } catch (error) {
-    logger.error('Currency formatting error:', error', [object Object], { service: 'lib' });
+    logger.error('Currency formatting error:', error);
     return fallback;
   }
 }
@@ -140,7 +141,7 @@ export function formatNumber(
 
     return formatter.format(numValue);
   } catch (error) {
-    logger.error('Number formatting error:', error', [object Object], { service: 'lib' });
+    logger.error('Number formatting error:', error);
     return fallback;
   }
 }
@@ -271,7 +272,7 @@ export function formatDate(
         return dateObj.toLocaleDateString(locale);
     }
   } catch (error) {
-    logger.error('Date formatting error:', error', [object Object], { service: 'lib' });
+    logger.error('Date formatting error:', error);
     return fallback;
   }
 }
@@ -450,14 +451,14 @@ export function formatPhoneNumber(
  * Ensure chart data has meaningful ranges and values
  */
 export function normalizeChartData(
-  data: any[],
+  data: Record<string, unknown>[],
   options: {
     minValue?: number;
     maxValue?: number;
     fillEmpty?: boolean;
     emptyValue?: number;
   } = {}
-): any[] {
+): unknown[] {
   const { minValue = 0, maxValue, fillEmpty = true, emptyValue = 0 } = options;
 
   if (!data || data.length === 0) {

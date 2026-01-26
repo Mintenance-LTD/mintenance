@@ -1,12 +1,57 @@
 /**
  * AISearchService
- * 
+ *
  * Provides AI-powered semantic search capabilities for jobs, contractors, and content.
  * Uses OpenAI embeddings for intelligent matching and natural language processing.
  */
 
 import { logger } from '../utils/logger';
 import { supabase } from '../config/supabase';
+
+// Database row interfaces matching snake_case DB schema
+interface DatabaseJobRow {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  location: string | null;
+  budget: number | null;
+  status: string;
+  similarity_score: number;
+}
+
+interface DatabaseContractorRow {
+  id: string;
+  first_name: string;
+  last_name: string;
+  bio: string | null;
+  specialties: string[] | null;
+  location: string | null;
+  rating: number | null;
+  availability: string | null;
+  similarity_score: number;
+}
+
+interface DatabaseSearchAnalyticsRow {
+  query: string;
+  count: number;
+}
+
+interface DatabaseQuerySuggestionRow {
+  query: string;
+}
+
+interface DatabaseLocationRow {
+  location: string;
+}
+
+interface EmbeddingResponse {
+  embedding: number[];
+}
+
+interface SuggestionWithRelevance extends SearchSuggestion {
+  relevanceScore: number;
+}
 
 export interface SearchResult {
   id: string;
@@ -20,7 +65,7 @@ export interface SearchResult {
     price?: number;
     rating?: number;
     availability?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -150,8 +195,9 @@ export class AISearchService {
         .limit(limit);
 
       if (error) throw error;
+      if (!data) return [];
 
-      return data.map(item => ({
+      return (data as DatabaseSearchAnalyticsRow[]).map(item => ({
         text: item.query,
         type: 'query' as const,
         popularity: item.count,
@@ -178,8 +224,11 @@ export class AISearchService {
         throw new Error('Job not found');
       }
 
+      // Type assertion for job data
+      const jobData = job as DatabaseJobRow;
+
       // Generate embedding for the job
-      const jobText = `${job.title} ${job.description} ${job.category}`;
+      const jobText = `${jobData.title} ${jobData.description} ${jobData.category}`;
       const jobEmbedding = await this.generateEmbedding(jobText);
 
       // Find similar jobs
@@ -191,17 +240,18 @@ export class AISearchService {
         });
 
       if (searchError) throw searchError;
+      if (!similarJobs) return [];
 
-      return similarJobs.map((job: any) => ({
+      return (similarJobs as DatabaseJobRow[]).map((job) => ({
         id: job.id,
         type: 'job' as const,
         title: job.title,
         description: job.description,
         relevanceScore: job.similarity_score,
         metadata: {
-          location: job.location,
+          location: job.location || undefined,
           category: job.category,
-          price: job.budget,
+          price: job.budget || undefined,
           availability: job.status,
         },
       }));
@@ -231,7 +281,7 @@ export class AISearchService {
         throw new Error('Failed to generate embedding');
       }
 
-      const data = await response.json();
+      const data: EmbeddingResponse = await response.json() as EmbeddingResponse;
       return data.embedding;
     } catch (error) {
       logger.error('Failed to generate embedding', error);
@@ -259,17 +309,18 @@ export class AISearchService {
         });
 
       if (error) throw error;
+      if (!data) return [];
 
-      return data.map((job: any) => ({
+      return (data as DatabaseJobRow[]).map((job) => ({
         id: job.id,
         type: 'job' as const,
         title: job.title,
         description: job.description,
         relevanceScore: job.similarity_score,
         metadata: {
-          location: job.location,
+          location: job.location || undefined,
           category: job.category,
-          price: job.budget,
+          price: job.budget || undefined,
           availability: job.status,
         },
       }));
@@ -298,18 +349,19 @@ export class AISearchService {
         });
 
       if (error) throw error;
+      if (!data) return [];
 
-      return data.map((contractor: any) => ({
+      return (data as DatabaseContractorRow[]).map((contractor) => ({
         id: contractor.id,
         type: 'contractor' as const,
         title: `${contractor.first_name} ${contractor.last_name}`,
         description: contractor.bio || contractor.specialties?.join(', ') || '',
         relevanceScore: contractor.similarity_score,
         metadata: {
-          location: contractor.location,
+          location: contractor.location || undefined,
           category: contractor.specialties?.[0],
-          rating: contractor.rating,
-          availability: contractor.availability,
+          rating: contractor.rating || undefined,
+          availability: contractor.availability || undefined,
         },
       }));
     } catch (error) {
@@ -440,8 +492,9 @@ export class AISearchService {
         .limit(limit);
 
       if (error) throw error;
+      if (!data) return [];
 
-      return data.map(item => ({
+      return (data as DatabaseQuerySuggestionRow[]).map(item => ({
         text: item.query,
         type: 'query' as const,
         popularity: 1,
@@ -489,8 +542,13 @@ export class AISearchService {
         .limit(limit);
 
       if (error) throw error;
+      if (!data) return [];
 
-      const uniqueLocations = [...new Set(data.map(item => item.location))];
+      const locationData = data as DatabaseLocationRow[];
+      const uniqueLocations = Array.from(
+        new Set(locationData.map(item => item.location).filter(Boolean))
+      );
+
       return uniqueLocations.map(location => ({
         text: location,
         type: 'location' as const,
@@ -509,12 +567,15 @@ export class AISearchService {
     suggestions: SearchSuggestion[],
     partialQuery: string
   ): SearchSuggestion[] {
-    return suggestions
+    const suggestionsWithRelevance: SuggestionWithRelevance[] = suggestions
       .map(suggestion => ({
         ...suggestion,
         relevanceScore: this.calculateSuggestionRelevance(suggestion, partialQuery),
-      }))
-      .sort((a, b) => b.relevanceScore - a.relevanceScore);
+      }));
+
+    return suggestionsWithRelevance
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .map(({ relevanceScore, ...suggestion }) => suggestion);
   }
 
   /**

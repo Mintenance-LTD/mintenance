@@ -19,7 +19,7 @@ export class TestDataBuilder {
   }
 
   // Fluent API methods for individual entities
-  user(userData: any): this {
+  user(userData: unknown): this {
     if (!this.entities.has('users')) {
       this.entities.set('users', []);
     }
@@ -27,7 +27,7 @@ export class TestDataBuilder {
     return this;
   }
 
-  job(jobData: any): this {
+  job(jobData: unknown): this {
     if (!this.entities.has('jobs')) {
       this.entities.set('jobs', []);
     }
@@ -35,7 +35,7 @@ export class TestDataBuilder {
     return this;
   }
 
-  bid(bidData: any): this {
+  bid(bidData: unknown): this {
     if (!this.entities.has('bids')) {
       this.entities.set('bids', []);
     }
@@ -43,7 +43,7 @@ export class TestDataBuilder {
     return this;
   }
 
-  message(messageData: any): this {
+  message(messageData: unknown): this {
     if (!this.entities.has('messages')) {
       this.entities.set('messages', []);
     }
@@ -51,7 +51,7 @@ export class TestDataBuilder {
     return this;
   }
 
-  bids(bidsData: any[]): this {
+  bids(bidsData: unknown[]): this {
     if (!this.entities.has('bids')) {
       this.entities.set('bids', []);
     }
@@ -77,7 +77,7 @@ export class TestDataBuilder {
   addBids(count: number): this {
     const users = this.entities.get('users') || [];
     const jobs = this.entities.get('jobs') || [];
-    const contractors = users.filter((u: any) => u.role === 'contractor');
+    const contractors = users.filter((u: unknown) => u.role === 'contractor');
 
     const bids = MockDataGenerator.generateBids(count, jobs, contractors);
     this.entities.set('bids', bids);
@@ -180,7 +180,7 @@ export class TestDataBuilder {
         const toEntities = this.entities.get(relation.to);
 
         if (fromEntities && toEntities) {
-          fromEntities.forEach((entity: any) => {
+          fromEntities.forEach((entity: unknown) => {
             if (toEntities.length > 0) {
               const randomTarget = toEntities[Math.floor(Math.random() * toEntities.length)];
               entity[relation.field] = randomTarget.id;
@@ -198,19 +198,19 @@ export class TestDataBuilder {
     return result;
   }
 
-  getUsers(): any[] {
+  getUsers(): unknown[] {
     return this.entities.get('users') || [];
   }
 
-  getJobs(): any[] {
+  getJobs(): unknown[] {
     return this.entities.get('jobs') || [];
   }
 
-  getBids(): any[] {
+  getBids(): unknown[] {
     return this.entities.get('bids') || [];
   }
 
-  getMessages(): any[] {
+  getMessages(): unknown[] {
     return this.entities.get('messages') || [];
   }
 

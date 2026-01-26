@@ -31,11 +31,11 @@ export interface HomeNavigationActions {
  * Navigation coordinator for Home screen
  */
 export class HomeNavigationCoordinator implements HomeNavigationActions {
-  private navigation: NavigationProp<any>;
+  private navigation: NavigationProp<unknown>;
   private haptics: ReturnType<typeof useHaptics>;
 
   constructor(
-    navigation: NavigationProp<any>,
+    navigation: NavigationProp<unknown>,
     haptics: ReturnType<typeof useHaptics>
   ) {
     this.navigation = navigation;
@@ -171,7 +171,7 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
  * Custom hook for Home navigation
  */
 export const useHomeNavigation = (
-  navigation: NavigationProp<any>
+  navigation: NavigationProp<unknown>
 ): HomeNavigationActions => {
   const haptics = useHaptics();
   const coordinator = new HomeNavigationCoordinator(navigation, haptics);

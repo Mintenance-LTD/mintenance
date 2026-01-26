@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@mintenance/shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -250,7 +251,7 @@ export function ModelMonitoringDashboard() {
         setRetrainingJob(null);
       }
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+      logger.error('Failed to fetch dashboard data:', error);
     }
   };
 
@@ -310,7 +311,7 @@ export function ModelMonitoringDashboard() {
         fetchDashboardData();
       }
     } catch (error) {
-      console.error('Failed to trigger manual retrain:', error);
+      logger.error('Failed to trigger manual retrain:', error);
     }
   };
 

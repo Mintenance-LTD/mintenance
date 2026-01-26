@@ -218,23 +218,23 @@ const ActionMenu = ({ invoice }: { invoice: Invoice }) => {
   const actions = useMemo(() => {
     const baseActions: InvoiceAction[] = [
       { icon: Eye, label: 'View Details', href: `/invoices/${invoice.id}` },
-      { icon: Download, label: 'Download PDF', action: () => {} }, // logger.info('Download', invoice.id', [object Object], { service: 'ui' })
+      { icon: Download, label: 'Download PDF', action: () => {} }, // logger.info('Download', invoice.id', { service: 'ui' })
     ];
 
     if (invoice.status === 'draft') {
       baseActions.unshift(
         { icon: Edit, label: 'Edit Invoice', href: `/invoices/${invoice.id}/edit` },
-        { icon: Send, label: 'Send to Client', action: () => {} }, // logger.info('Send', invoice.id', [object Object], { service: 'ui' })
+        { icon: Send, label: 'Send to Client', action: () => {} }, // logger.info('Send', invoice.id', { service: 'ui' })
       );
     } else if (invoice.status === 'sent' || invoice.status === 'overdue' || invoice.status === 'partial') {
       baseActions.unshift(
-        { icon: CheckCircle, label: 'Mark as Paid', action: () => {} }, // logger.info('Mark paid', invoice.id', [object Object], { service: 'ui' })
-        { icon: Send, label: 'Send Reminder', action: () => {} }, // logger.info('Remind', invoice.id', [object Object], { service: 'ui' })
+        { icon: CheckCircle, label: 'Mark as Paid', action: () => {} }, // logger.info('Mark paid', invoice.id', { service: 'ui' })
+        { icon: Send, label: 'Send Reminder', action: () => {} }, // logger.info('Remind', invoice.id', { service: 'ui' })
       );
     }
 
     baseActions.push(
-      { icon: Trash2, label: 'Delete', action: () => {}, danger: true }, // logger.info('Delete', invoice.id', [object Object], { service: 'ui' })
+      { icon: Trash2, label: 'Delete', action: () => {}, danger: true }, // logger.info('Delete', invoice.id', { service: 'ui' })
     );
 
     return baseActions;

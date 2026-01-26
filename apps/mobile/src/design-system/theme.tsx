@@ -4,7 +4,7 @@
 // ============================================================================
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Appearance, ColorSchemeName } from 'react-native';
+import { Appearance, ColorSchemeName, ViewStyle } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   colors,
@@ -85,10 +85,10 @@ export interface Theme {
   // Theme-specific properties
   isDark: boolean;
   elevation: {
-    sm: any;
-    md: any;
-    lg: any;
-    xl: any;
+    sm: ViewStyle;
+    md: ViewStyle;
+    lg: ViewStyle;
+    xl: ViewStyle;
   };
 }
 
@@ -388,11 +388,12 @@ export const getThemeColor = (
   colorPath: string
 ): string => {
   const paths = colorPath.split('.');
-  let current: any = theme.colors;
+  let current: unknown = theme.colors;
 
   for (const path of paths) {
-    current = current?.[path];
-    if (current === undefined) {
+    if (current && typeof current === 'object' && path in current) {
+      current = (current as Record<string, unknown>)[path];
+    } else {
       logger.warn(`Theme color not found: ${colorPath}`);
       return theme.colors.text.primary;
     }

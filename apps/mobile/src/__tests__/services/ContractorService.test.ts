@@ -1,10 +1,24 @@
-import { ContractorService } from '../../services/ContractorService';
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
+// Import supabase and types BEFORE ContractorService so mocks are in place
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { ContractorProfile, LocationData, ContractorMatch } from '@mintenance/types';
+import { ContractorProfile, LocationData, ContractorMatch } from '../../types';
 
 // Use global Supabase mock from jest-setup.js
 jest.mock('../../config/supabase');
+
+// Import the REAL ContractorService (not mocked) - we want to test the actual implementation
+import { ContractorService } from '../../services/ContractorService';
 
 // Logger is not mocked - using real implementation
 
@@ -416,6 +430,7 @@ describe('ContractorService', () => {
         from: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
         eq: jest.fn(() => mockSupabaseChain),
+        or: jest.fn(() => mockSupabaseChain), // Add .or() method for search
         ilike: jest.fn(() => ({
           data: [mockContractor],
           error: null,
@@ -430,10 +445,8 @@ describe('ContractorService', () => {
       });
 
       expect(result).toHaveLength(1);
-      expect(mockSupabaseChain.ilike).toHaveBeenCalledWith(
-        'first_name',
-        '%John%'
-      );
+      expect(result[0]).toEqual(mockContractor);
+      expect(mockSupabaseChain.or).toHaveBeenCalled(); // Verify .or() was used for multi-field search
     });
 
     it('should handle empty search results', async () => {
@@ -441,6 +454,7 @@ describe('ContractorService', () => {
         from: jest.fn(() => mockSupabaseChain),
         select: jest.fn(() => mockSupabaseChain),
         eq: jest.fn(() => mockSupabaseChain),
+        or: jest.fn(() => mockSupabaseChain), // Add .or() method for search
         ilike: jest.fn(() => ({
           data: [],
           error: null,

@@ -9,7 +9,7 @@ export interface JobSheetSignature {
   signer_email?: string;
   signature_data: string;
   signature_date: string;
-  device_info?: any;
+  device_info?: unknown;
   ip_address?: string;
   user_agent?: string;
   consent_given: boolean;

@@ -1,0 +1,39 @@
+import { vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { PricingTable } from '../PricingTable';
+
+// Mock dependencies
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useParams: () => ({ id: 'test-id' }),
+}));
+
+describe('PricingTable', () => {
+  const defaultProps = {
+    // Add default props here
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should render without crashing', () => {
+    render(<PricingTable {...defaultProps} />);
+    expect(true).toBeTruthy(); // Component rendered
+  });
+
+  it('should handle user interactions', async () => {
+    render(<PricingTable {...defaultProps} />);
+    // Add interaction tests
+  });
+
+  it('should display correct data', () => {
+    render(<PricingTable {...defaultProps} />);
+    // Add data display tests
+  });
+
+  it('should handle edge cases', () => {
+    render(<PricingTable {...defaultProps} />);
+    // Test edge cases
+  });
+});

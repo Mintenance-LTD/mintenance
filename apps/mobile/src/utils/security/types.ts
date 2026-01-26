@@ -29,7 +29,7 @@ export interface PenetrationTestResult {
   vulnerability?: SecurityVulnerability;
   executionTime: number;
   details: string;
-  evidence?: any;
+  evidence?: unknown;
 }
 
 export interface SecurityAuditReport {

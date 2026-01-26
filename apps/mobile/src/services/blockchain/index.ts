@@ -80,7 +80,7 @@ export class BlockchainReviewService {
     rating: number;
     content: string;
     categories: ReviewCategories;
-    media?: any[];
+    media?: unknown[];
   }): Promise<BlockchainReview> {
     this.ensureInitialized();
 

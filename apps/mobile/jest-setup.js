@@ -541,3 +541,8 @@ jest.mock(
 
 // Mock react-native-safe-area-context - Temporarily disabled to fix circular dependency
 // jest.mock('react-native-safe-area-context', () => require('./__mocks__/react-native-safe-area-context.js'));
+
+// Mock expo-linear-gradient
+jest.mock('expo-linear-gradient', () => ({
+  LinearGradient: 'LinearGradient',
+}));

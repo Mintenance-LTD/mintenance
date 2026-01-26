@@ -31,7 +31,7 @@ export default async function ContractorJobDetailsPage({ params }: { params: Pro
     .single();
 
   if (error || !job) {
-    logger.error('Error fetching job:', error', [object Object], { service: 'app' });
+    logger.error('Error fetching job:', error, { service: 'app' });
     return (
       <div className="p-8 text-center">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">Job Not Found</h1>

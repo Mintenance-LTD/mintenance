@@ -237,7 +237,7 @@ export class ModelDriftDetectionService {
     /**
      * Calculate drift metrics from predictions
      */
-    private static async calculateMetrics(predictions: any[]): Promise<DriftMetrics> {
+    private static async calculateMetrics(predictions: unknown[]): Promise<DriftMetrics> {
         // Average confidence
         const avgConfidence = predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length;
 
@@ -281,7 +281,7 @@ export class ModelDriftDetectionService {
     /**
      * Calculate distribution shift using KL divergence
      */
-    private static async calculateDistributionShift(predictions: any[]): Promise<number> {
+    private static async calculateDistributionShift(predictions: unknown[]): Promise<number> {
         if (!this.baselineMetrics) return 0;
 
         // Get damage type distribution
@@ -311,7 +311,7 @@ export class ModelDriftDetectionService {
     /**
      * Get damage type distribution
      */
-    private static getDamageTypeDistribution(predictions: any[]): Record<string, number> {
+    private static getDamageTypeDistribution(predictions: unknown[]): Record<string, number> {
         const counts: Record<string, number> = {};
         const total = predictions.length;
 

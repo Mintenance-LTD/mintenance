@@ -63,7 +63,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           <Text style={styles.serviceName}>{booking.serviceName}</Text>
           <View style={styles.statusContainer}>
             <Ionicons
-              name={getStatusIcon(booking.status) as any}
+              name={getStatusIcon(booking.status) as unknown}
               size={16}
               color={getStatusColor(booking.status)}
             />

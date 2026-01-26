@@ -10,10 +10,11 @@ interface FinanceHeaderProps {
 
 export const FinanceHeader: React.FC<FinanceHeaderProps> = ({ navigation }) => {
   return (
-    <View style={styles.header}>
+    <View style={styles.header} testID="finance-header">
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
+        testID="back-button"
       >
         <Ionicons name='arrow-back' size={24} color={theme.colors.white} />
       </TouchableOpacity>
@@ -21,6 +22,7 @@ export const FinanceHeader: React.FC<FinanceHeaderProps> = ({ navigation }) => {
       <TouchableOpacity
         style={styles.exportButton}
         onPress={() => navigation.navigate('FinanceReports')}
+        testID="export-button"
       >
         <Ionicons name='document-text' size={24} color={theme.colors.white} />
       </TouchableOpacity>

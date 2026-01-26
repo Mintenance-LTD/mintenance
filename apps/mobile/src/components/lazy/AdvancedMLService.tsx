@@ -17,7 +17,7 @@ const LazyAdvancedMLService = createLazyComponent(
   }
 );
 
-export const AdvancedMLService = (props: any) => (
+export const AdvancedMLService = (props: unknown) => (
   <Suspense fallback={<LoadingSpinner />}>
     <LazyAdvancedMLService {...props} />
   </Suspense>

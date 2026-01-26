@@ -178,7 +178,7 @@ export class ModelValidationService {
   private calculateCompleteness(
     features: number[][],
     labels: number[][],
-    metadata: any[]
+    metadata: unknown[]
   ): number {
     let totalFields = 0;
     let completeFields = 0;
@@ -209,7 +209,7 @@ export class ModelValidationService {
   /**
    * Calculate data consistency
    */
-  private calculateConsistency(features: number[][], metadata: any[]): number {
+  private calculateConsistency(features: number[][], metadata: unknown[]): number {
     let consistencyScore = 1.0;
 
     // Check feature consistency (same number of features per sample)

@@ -3,7 +3,6 @@
  * 
  * React Native-specific Button component using design tokens
  */
-
 import React, { forwardRef, useState } from 'react';
 import {
   TouchableOpacity,
@@ -19,7 +18,6 @@ import {
 import type { ComponentRef } from 'react';
 import { mobileTokens } from '@mintenance/design-tokens';
 import type { NativeButtonProps } from './types';
-
 /**
  * Button Component for React Native
  * 
@@ -50,13 +48,10 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
   ) => {
     const [pressAnimation] = useState(new Animated.Value(1));
     const [isPressed, setIsPressed] = useState(false);
-
     const isDisabled = disabled || loading;
-
     // Get button styles using design tokens
     const buttonStyles = getButtonStyles(variant, size, fullWidth, isDisabled, isPressed);
     const textStyles = getTextStyles(variant, size, isDisabled);
-
     const handlePressIn = () => {
       if (isDisabled) return;
       setIsPressed(true);
@@ -67,7 +62,6 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
         friction: 10,
       }).start();
     };
-
     const handlePressOut = () => {
       setIsPressed(false);
       Animated.spring(pressAnimation, {
@@ -77,12 +71,10 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
         friction: 10,
       }).start();
     };
-
     const handlePress = () => {
       if (isDisabled) return;
       onPress?.();
     };
-
     const renderContent = () => {
       if (loading) {
         return (
@@ -98,7 +90,6 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
           </View>
         );
       }
-
       return (
         <View style={styles.contentContainer}>
           {leftIcon && <View style={{ marginRight: mobileTokens.spacing.sm }}>{leftIcon}</View>}
@@ -109,7 +100,6 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
         </View>
       );
     };
-
     return (
       <Animated.View
         style={[
@@ -142,9 +132,7 @@ export const Button = forwardRef<ComponentRef<typeof TouchableOpacity>, NativeBu
     );
   }
 );
-
 Button.displayName = 'Button';
-
 // Style functions using design tokens
 const getButtonStyles = (
   variant: string,
@@ -162,11 +150,9 @@ const getButtonStyles = (
     minWidth: 44,
     overflow: 'hidden',
   };
-
   if (fullWidth) {
     baseStyle.width = '100%';
   }
-
   // Size padding
   const sizePadding = {
     sm: { paddingHorizontal: mobileTokens.spacing.md, paddingVertical: mobileTokens.spacing.sm },
@@ -174,7 +160,6 @@ const getButtonStyles = (
     lg: { paddingHorizontal: mobileTokens.spacing.xl, paddingVertical: mobileTokens.spacing.lg },
     xl: { paddingHorizontal: mobileTokens.spacing['2xl'], paddingVertical: mobileTokens.spacing.xl },
   };
-
   // Variant styles
   const variantStyles: Record<string, ViewStyle> = {
     primary: {
@@ -217,7 +202,6 @@ const getButtonStyles = (
       ...mobileTokens.shadows.md,
     },
   };
-
   return {
     ...baseStyle,
     ...sizePadding[size as keyof typeof sizePadding],
@@ -225,14 +209,12 @@ const getButtonStyles = (
     opacity: disabled ? 0.6 : 1,
   };
 };
-
 const getTextStyles = (variant: string, size: string, disabled: boolean): TextStyle => {
   const baseStyle: TextStyle = {
     fontSize: mobileTokens.typography.rawFontSize[size === 'sm' ? 'sm' : size === 'xl' ? 'lg' : 'base'],
     fontWeight: mobileTokens.typography.fontWeight.semibold,
     textAlign: 'center',
   };
-
   const textColors: Record<string, string> = {
     primary: mobileTokens.colors.white,
     secondary: mobileTokens.colors.white,
@@ -245,16 +227,13 @@ const getTextStyles = (variant: string, size: string, disabled: boolean): TextSt
     'gradient-primary': mobileTokens.colors.white,
     'gradient-success': mobileTokens.colors.white,
   };
-
   return {
     ...baseStyle,
     color: textColors[variant] || mobileTokens.colors.textPrimary,
   };
 };
-
 const getTextColor = (variant: string, disabled: boolean): string => {
   if (disabled) return mobileTokens.colors.gray500;
-  
   const colors: Record<string, string> = {
     primary: mobileTokens.colors.white,
     secondary: mobileTokens.colors.white,
@@ -263,10 +242,8 @@ const getTextColor = (variant: string, disabled: boolean): string => {
     danger: mobileTokens.colors.white,
     success: mobileTokens.colors.white,
   };
-  
   return colors[variant] || mobileTokens.colors.textPrimary;
 };
-
 const styles = StyleSheet.create({
   contentContainer: {
     flexDirection: 'row',
@@ -274,6 +251,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-
 export default Button;
-

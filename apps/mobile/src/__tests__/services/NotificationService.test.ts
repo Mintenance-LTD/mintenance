@@ -1,4 +1,14 @@
-import { NotificationService } from '../../services/NotificationService';
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 
@@ -16,26 +26,6 @@ jest.mock('expo-constants', () => ({
 }));
 
 // Mock Platform
-jest.mock('react-native', () => ({
-  Platform: {
-    OS: 'ios',
-  },
-}));
-
-// Get mocked modules
-const mockNotifications = Notifications as jest.Mocked<typeof Notifications>;
-const mockDeviceModule = Device as jest.Mocked<typeof Device>;
-
-// Mock logger
-jest.mock('../../utils/logger', () => ({
-  logger: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-    debug: jest.fn(),
-  },
-}));
-
 // Mock Supabase with simple pattern
 jest.mock('../../config/supabase', () => ({
   supabase: {
@@ -45,16 +35,22 @@ jest.mock('../../config/supabase', () => ({
 
 const { supabase } = require('../../config/supabase');
 
+// Import the REAL NotificationService (not mocked) - we want to test the actual implementation
+import { NotificationService } from '../../services/NotificationService';
+
 // Mock fetch
 global.fetch = jest.fn();
+
+// Get mocked Notifications as mockNotifications
+const mockNotifications = Notifications as jest.Mocked<typeof Notifications>;
 
 describe('NotificationService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Reset Device mock to true by default
     jest.mocked(Device).isDevice = true;
-    
+
     // Set up default mocks
     mockNotifications.setNotificationHandler.mockImplementation(() => {});
     mockNotifications.setNotificationChannelAsync.mockResolvedValue();

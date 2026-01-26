@@ -19,6 +19,11 @@ const EXCLUDE_PATTERNS = [
   /\.d\.ts$/,
   /test-results/,
   /playwright-report/,
+  /\.next/,          // Next.js build output
+  /dist/,            // Build output
+  /build/,           // Build output
+  /\.turbo/,         // Turbo cache
+  /\.expo/,          // Expo cache
 ];
 
 const INCLUDE_PATTERNS = [

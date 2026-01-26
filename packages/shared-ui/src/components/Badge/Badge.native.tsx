@@ -3,7 +3,6 @@
  * 
  * React Native-specific Badge component using design tokens
  */
-
 import React from 'react';
 import {
   View,
@@ -14,7 +13,6 @@ import {
 } from 'react-native';
 import { mobileTokens } from '@mintenance/design-tokens';
 import type { NativeBadgeProps, BadgeVariant, BadgeSize } from './types';
-
 /**
  * Badge Component for React Native
  * 
@@ -52,7 +50,6 @@ export function Badge({
       minHeight: 28,
     },
   };
-
   // Variant styles
   const getVariantStyles = (): { backgroundColor: string; borderColor: string; textColor: string } => {
     switch (variant) {
@@ -88,10 +85,8 @@ export function Badge({
         };
     }
   };
-
   const variantStyles = getVariantStyles();
   const sizeStyle = sizeStyles[size];
-
   return (
     <View
       style={[
@@ -129,7 +124,6 @@ export function Badge({
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
@@ -146,6 +140,4 @@ const styles = StyleSheet.create({
     fontWeight: mobileTokens.typography.fontWeight.semibold,
   },
 });
-
 export default Badge;
-

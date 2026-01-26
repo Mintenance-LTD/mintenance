@@ -12,7 +12,7 @@ import { theme } from '../../theme';
 import { ResponsiveGrid } from '../../components/responsive';
 import { useHaptics } from '../../utils/haptics';
 
-interface QuickServicesProps {
+export interface QuickServicesProps {
   onServicePress: (params: Record<string, unknown>) => void;
   onBrowseAllPress: () => void;
 }
@@ -104,7 +104,7 @@ export const QuickServices: React.FC<QuickServicesProps> = ({
               styles.quickServiceIcon,
               { backgroundColor: service.backgroundColor },
             ]}>
-              <Ionicons name={service.icon as any} size={24} color={service.iconColor} />
+              <Ionicons name={service.icon as unknown} size={24} color={service.iconColor} />
             </View>
             <Text style={styles.quickServiceText}>{service.name}</Text>
             <Text style={styles.quickServiceSubtext}>{service.subtitle}</Text>

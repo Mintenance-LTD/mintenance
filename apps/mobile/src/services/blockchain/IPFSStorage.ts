@@ -8,7 +8,7 @@ import { performanceMonitor } from '../../utils/performanceMonitor';
 
 export interface IPFSContent {
   hash: string;
-  content: any;
+  content: unknown;
   size: number;
   timestamp: number;
   pinned: boolean;
@@ -21,7 +21,7 @@ export class IPFSStorage {
   /**
    * Upload content to IPFS
    */
-  async uploadToIPFS(content: any): Promise<string> {
+  async uploadToIPFS(content: unknown): Promise<string> {
     const operationId = performanceMonitor.startOperation('ipfs_upload');
 
     try {
@@ -59,7 +59,7 @@ export class IPFSStorage {
   /**
    * Retrieve content from IPFS
    */
-  async retrieveFromIPFS(hash: string): Promise<any> {
+  async retrieveFromIPFS(hash: string): Promise<unknown> {
     const operationId = performanceMonitor.startOperation('ipfs_retrieve');
 
     try {
@@ -88,7 +88,7 @@ export class IPFSStorage {
   /**
    * Generate verification hash for content
    */
-  generateVerificationHash(content: any): string {
+  generateVerificationHash(content: unknown): string {
     const contentStr = JSON.stringify(content);
     let hash = 0;
 
@@ -104,7 +104,7 @@ export class IPFSStorage {
   /**
    * Generate IPFS hash (CID)
    */
-  private generateIPFSHash(content: any): string {
+  private generateIPFSHash(content: unknown): string {
     const contentStr = JSON.stringify(content);
     const hash = this.generateVerificationHash(content);
 

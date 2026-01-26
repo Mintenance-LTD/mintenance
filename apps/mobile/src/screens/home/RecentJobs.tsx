@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
 interface RecentJobsProps {
-  jobs: any[];
+  jobs: unknown[];
   onViewAllPress: () => void;
 }
 

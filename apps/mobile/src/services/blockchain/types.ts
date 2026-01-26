@@ -58,7 +58,7 @@ export interface ReviewMetadata {
 
 export interface SmartContract {
   address: string;
-  abi: any[];
+  abi: unknown[];
   network: string;
   version: string;
 }

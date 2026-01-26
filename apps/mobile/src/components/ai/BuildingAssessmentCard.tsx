@@ -17,9 +17,37 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import UnifiedAIServiceMobile from '../../services/UnifiedAIServiceMobile';
-import { BuildingAssessment } from '@mintenance/ai-core/types';
 import { theme } from '../../theme';
-import { logger } from '@mintenance/shared';
+import { logger } from '../../utils/logger';
+
+// BuildingAssessment type definition
+interface BuildingAssessment {
+  overallCondition: string;
+  urgencyLevel: string;
+  structuralIntegrity: number;
+  estimatedCost: number;
+  issues: Array<{
+    category: string;
+    severity: string;
+    description: string;
+    location?: string;
+  }>;
+  recommendations: Array<{
+    priority: string;
+    action: string;
+    estimatedCost: number;
+  }>;
+  redFlags?: Array<{
+    type: string;
+    description: string;
+    severity: string;
+  }>;
+  materialAnalysis?: {
+    primaryMaterial: string;
+    condition: string;
+    ageEstimate: string;
+  };
+}
 
 interface BuildingAssessmentCardProps {
   images: string[];
@@ -30,7 +58,7 @@ interface BuildingAssessmentCardProps {
     location: string;
   };
   onAssessmentComplete?: (assessment: BuildingAssessment) => void;
-  onCorrection?: (assessmentId: string, corrections: any[]) => void;
+  onCorrection?: (assessmentId: string, corrections: unknown[]) => void;
 }
 
 export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
@@ -71,7 +99,7 @@ export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
         }
       }
     } catch (error) {
-      logger.error('Assessment failed:', error', [object Object], { service: 'ui' });
+      logger.error('Assessment failed:', error, { service: 'ui' });
       Alert.alert('Assessment Failed', 'Unable to analyze images. Please try again.');
     } finally {
       setLoading(false);
@@ -84,7 +112,7 @@ export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
       case 'severe': return '#FF9500';
       case 'moderate': return '#FFCC00';
       case 'minimal': return '#34C759';
-      default: return theme.colors.text.secondary;
+      default: return theme.colors.textSecondary;
     }
   };
 
@@ -176,7 +204,7 @@ export const BuildingAssessmentCard: React.FC<BuildingAssessmentCardProps> = ({
           <Ionicons
             name={expanded ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color={theme.colors.text.secondary}
+            color={theme.colors.textSecondary}
           />
         </View>
       </TouchableOpacity>
@@ -401,12 +429,12 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: theme.colors.text.primary,
+    color: theme.colors.textPrimary,
   },
   loadingSubtext: {
     marginTop: 4,
     fontSize: 12,
-    color: theme.colors.text.secondary,
+    color: theme.colors.textSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -429,7 +457,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
-    color: theme.colors.text.primary,
+    color: theme.colors.textPrimary,
   },
   confidenceBadge: {
     backgroundColor: theme.colors.success + '20',
@@ -462,7 +490,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   damageInfo: {
@@ -475,12 +503,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    color: theme.colors.text.secondary,
+    color: theme.colors.textSecondary,
     width: 80,
   },
   value: {
     fontSize: 14,
-    color: theme.colors.text.primary,
+    color: theme.colors.textPrimary,
     flex: 1,
   },
   severityBadge: {
@@ -495,7 +523,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: theme.colors.text.primary,
+    color: theme.colors.textPrimary,
     lineHeight: 20,
     marginTop: 8,
   },
@@ -506,7 +534,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
-    color: theme.colors.text.secondary,
+    color: theme.colors.textSecondary,
   },
   issueItem: {
     backgroundColor: theme.colors.background,
@@ -517,16 +545,16 @@ const styles = StyleSheet.create({
   issueType: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: theme.colors.textPrimary,
   },
   issueLocation: {
     fontSize: 12,
-    color: theme.colors.text.secondary,
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   issueSource: {
     fontSize: 11,
-    color: theme.colors.text.tertiary,
+    color: theme.colors.textTertiary,
     marginTop: 2,
   },
   safetyContent: {
@@ -535,7 +563,7 @@ const styles = StyleSheet.create({
   riskLevel: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   criticalFlag: {
@@ -550,7 +578,7 @@ const styles = StyleSheet.create({
   },
   safetyDetails: {
     fontSize: 13,
-    color: theme.colors.text.secondary,
+    color: theme.colors.textSecondary,
     marginTop: 8,
     lineHeight: 18,
   },
@@ -563,7 +591,7 @@ const styles = StyleSheet.create({
   },
   costLabel: {
     fontSize: 14,
-    color: theme.colors.text.secondary,
+    color: theme.colors.textSecondary,
     width: 80,
   },
   costValue: {
@@ -576,7 +604,7 @@ const styles = StyleSheet.create({
   },
   costRangeText: {
     fontSize: 12,
-    color: theme.colors.text.secondary,
+    color: theme.colors.textSecondary,
   },
   costBreakdown: {
     marginTop: 12,
@@ -591,11 +619,11 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: 13,
-    color: theme.colors.text.secondary,
+    color: theme.colors.textSecondary,
   },
   breakdownValue: {
     fontSize: 13,
-    color: theme.colors.text.primary,
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   insuranceInfo: {
@@ -621,7 +649,7 @@ const styles = StyleSheet.create({
   },
   recommendedAction: {
     fontSize: 13,
-    color: theme.colors.text.secondary,
+    color: theme.colors.textSecondary,
     marginTop: 8,
     lineHeight: 18,
   },
@@ -634,7 +662,7 @@ const styles = StyleSheet.create({
   },
   recommendationText: {
     fontSize: 13,
-    color: theme.colors.text.primary,
+    color: theme.colors.textPrimary,
     marginLeft: 8,
     flex: 1,
     lineHeight: 18,
@@ -646,12 +674,12 @@ const styles = StyleSheet.create({
   metadataTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.text.tertiary,
+    color: theme.colors.textTertiary,
     marginBottom: 8,
   },
   metadataItem: {
     fontSize: 11,
-    color: theme.colors.text.tertiary,
+    color: theme.colors.textTertiary,
     marginBottom: 2,
   },
   actions: {

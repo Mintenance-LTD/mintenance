@@ -32,7 +32,7 @@ import { FindContractorsButton } from './FindContractorsButton';
 
 export const HomeownerDashboard: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<unknown>();
   const haptics = useHaptics();
 
   const [previousContractors, setPreviousContractors] = useState<UserProfile[]>([]);

@@ -29,11 +29,11 @@ export interface BookingNavigationActions {
  * Navigation coordinator for BookingStatus screen
  */
 export class BookingNavigationCoordinator implements BookingNavigationActions {
-  private navigation: NavigationProp<any>;
+  private navigation: NavigationProp<unknown>;
   private haptics: ReturnType<typeof useHaptics>;
 
   constructor(
-    navigation: NavigationProp<any>,
+    navigation: NavigationProp<unknown>,
     haptics: ReturnType<typeof useHaptics>
   ) {
     this.navigation = navigation;
@@ -136,7 +136,7 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
  * Custom hook for Booking navigation
  */
 export const useBookingNavigation = (
-  navigation: NavigationProp<any>
+  navigation: NavigationProp<unknown>
 ): BookingNavigationActions => {
   const haptics = useHaptics();
   const coordinator = new BookingNavigationCoordinator(navigation, haptics);

@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Edge Case Unit Tests for Agent Services
  * 
@@ -11,23 +12,23 @@ import { EscrowReleaseAgent } from '../EscrowReleaseAgent';
 import { PredictiveAgent } from '../PredictiveAgent';
 
 // Mock dependencies
-jest.mock('@/lib/api/supabaseServer', () => ({
+vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn(),
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(),
         })),
       })),
     })),
   },
 }));
 
-jest.mock('../ml-engine/memory/MemoryManager', () => ({
+vi.mock('../ml-engine/memory/MemoryManager', () => ({
   memoryManager: {
-    getOrCreateMemorySystem: jest.fn(),
-    queryMemory: jest.fn(),
-    updateMemory: jest.fn(),
+    getOrCreateMemorySystem: vi.fn(),
+    queryMemory: vi.fn(),
+    updateMemory: vi.fn(),
   },
 }));
 
@@ -54,9 +55,9 @@ describe('PricingAgent - Edge Cases', () => {
     it('should handle database query failure', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: null,
               error: { message: 'Database error' },
             }),
@@ -72,9 +73,9 @@ describe('PricingAgent - Edge Cases', () => {
     it('should handle missing job data', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: null,
               error: null,
             }),
@@ -92,9 +93,9 @@ describe('PricingAgent - Edge Cases', () => {
     it('should handle job with zero budget', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: {
                 id: 'test-job',
                 budget: 0,
@@ -115,9 +116,9 @@ describe('PricingAgent - Edge Cases', () => {
     it('should handle job with very high budget', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: {
                 id: 'test-job',
                 budget: 1000000,
@@ -138,9 +139,9 @@ describe('PricingAgent - Edge Cases', () => {
     it('should handle job with no market data', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: {
                 id: 'test-job',
                 budget: 500,
@@ -154,9 +155,9 @@ describe('PricingAgent - Edge Cases', () => {
 
       // Mock empty market data
       serverSupabase.from.mockReturnValueOnce({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            gte: jest.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            gte: vi.fn(() => ({
               data: [],
               error: null,
             })),
@@ -189,8 +190,8 @@ describe('JobStatusAgent - Edge Cases', () => {
     it('should handle database update failure', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        update: jest.fn(() => ({
-          eq: jest.fn().mockResolvedValue({
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({
             data: null,
             error: { message: 'Update failed' },
           }),
@@ -207,8 +208,8 @@ describe('JobStatusAgent - Edge Cases', () => {
     it('should handle status update to same status', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        update: jest.fn(() => ({
-          eq: jest.fn().mockResolvedValue({
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({
             data: { id: 'test-job', status: 'posted' },
             error: null,
           }),
@@ -223,8 +224,8 @@ describe('JobStatusAgent - Edge Cases', () => {
     it('should handle rapid status transitions', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        update: jest.fn(() => ({
-          eq: jest.fn().mockResolvedValue({
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({
             data: { id: 'test-job', status: 'in_progress' },
             error: null,
           }),
@@ -252,9 +253,9 @@ describe('EscrowReleaseAgent - Edge Cases', () => {
     it('should handle non-existent escrow', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: null,
               error: null,
             }),
@@ -270,9 +271,9 @@ describe('EscrowReleaseAgent - Edge Cases', () => {
     it('should handle escrow already released', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: {
                 id: 'test-escrow',
                 status: 'released',
@@ -292,9 +293,9 @@ describe('EscrowReleaseAgent - Edge Cases', () => {
     it('should handle payment processing failure', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: {
                 id: 'test-escrow',
                 status: 'pending',
@@ -304,8 +305,8 @@ describe('EscrowReleaseAgent - Edge Cases', () => {
             }),
           })),
         })),
-        update: jest.fn(() => ({
-          eq: jest.fn().mockResolvedValue({
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({
             data: null,
             error: { message: 'Payment processing failed' },
           }),
@@ -322,9 +323,9 @@ describe('EscrowReleaseAgent - Edge Cases', () => {
     it('should handle zero amount escrow', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: {
                 id: 'test-escrow',
                 status: 'pending',
@@ -344,9 +345,9 @@ describe('EscrowReleaseAgent - Edge Cases', () => {
     it('should handle very large escrow amount', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: {
                 id: 'test-escrow',
                 status: 'pending',
@@ -376,9 +377,9 @@ describe('PredictiveAgent - Edge Cases', () => {
     it('should handle missing job data', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: null,
               error: null,
             }),
@@ -407,9 +408,9 @@ describe('PredictiveAgent - Edge Cases', () => {
     it('should handle job with minimal data', async () => {
       const { serverSupabase } = require('@/lib/api/supabaseServer');
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: {
                 id: 'test-job',
                 title: 'Test',
@@ -441,9 +442,9 @@ describe('PredictiveAgent - Edge Cases', () => {
       };
 
       serverSupabase.from.mockReturnValue({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn().mockResolvedValue({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
               data: largeJobData,
               error: null,
             }),

@@ -74,7 +74,7 @@ export class MaintenanceDetectionService {
           'https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/yolo-models/maintenance-v1.0.onnx';
       }
 
-      // logger.info('Loading YOLO model from:', this.modelUrl', [object Object], { service: 'lib' });
+      // logger.info('Loading YOLO model from:', this.modelUrl', { service: 'lib' });
 
       // Create ONNX Runtime session
       this.session = await ort.InferenceSession.create(this.modelUrl as string, {
@@ -82,11 +82,11 @@ export class MaintenanceDetectionService {
         graphOptimizationLevel: 'all'
       });
 
-      // logger.info('✅ Model loaded successfully', [object Object], { service: 'lib' });
+      // logger.info('✅ Model loaded successfully', { service: 'lib' });
     } catch (error) {
-      logger.error('Failed to load model:', error', [object Object], { service: 'lib' });
+      logger.error('Failed to load model:', error, { service: 'lib' });
       // Fallback to mock mode for development
-      // logger.info('⚠️ Running in mock mode', [object Object], { service: 'lib' });
+      // logger.info('⚠️ Running in mock mode', { service: 'lib' });
     } finally {
       this.isLoading = false;
     }
@@ -238,26 +238,26 @@ export class MaintenanceDetectionService {
 
       // If model failed to load, use mock
       if (!this.session) {
-        // logger.info('Using mock detection (model not loaded', [object Object], { service: 'lib' })');
+        // logger.info('Using mock detection (model not loaded', { service: 'lib' })');
         return this.mockDetection(imageUrl);
       }
 
       // Preprocess image
-      // logger.info('Preprocessing image...', [object Object], { service: 'lib' });
+      // logger.info('Preprocessing image...', { service: 'lib' });
       const inputData = await this.preprocessImage(imageUrl);
 
       // Create input tensor
       const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 640, 640]);
 
       // Run inference
-      // logger.info('Running inference...', [object Object], { service: 'lib' });
+      // logger.info('Running inference...', { service: 'lib' });
       const results = await this.session.run({ images: inputTensor });
 
       // Get output tensor
       const output = results['output0'] || results['output'] || Object.values(results)[0];
 
       if (!output) {
-        logger.error('No output from model', [object Object], { service: 'lib' });
+        logger.error('No output from model', { service: 'lib' });
         return this.mockDetection(imageUrl);
       }
 
@@ -268,11 +268,11 @@ export class MaintenanceDetectionService {
         maxDetections
       );
 
-      // logger.info('Found %s detections', [object Object], { service: 'lib' });
+      // logger.info('Found %s detections', { service: 'lib' });
       return detections;
 
     } catch (error) {
-      logger.error('Detection failed:', error', [object Object], { service: 'lib' });
+      logger.error('Detection failed:', error, { service: 'lib' });
       // Fallback to mock
       return this.mockDetection(imageUrl);
     }

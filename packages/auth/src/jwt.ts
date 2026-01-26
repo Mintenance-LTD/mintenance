@@ -1,12 +1,11 @@
 import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from 'jose';
-
 // Define our JWT payload interface
 interface JosePayload extends JoseJWTPayload {
   email: string;
   role: string;
 }
 // Conditional import for crypto (Node.js only, not Edge Runtime compatible)
-let crypto: any = null;
+let crypto: unknown = null;
 try {
   // Check if we're in a Node.js environment
   if (typeof window === 'undefined' && typeof process !== 'undefined') {
@@ -16,7 +15,6 @@ try {
   // crypto not available in Edge Runtime or other environments
 }
 import type { JWTPayload } from '@mintenance/types';
-
 /**
  * Generate JWT token
  */
@@ -26,7 +24,6 @@ export async function generateJWT(payload: {
   role: string;
 }, secret: string, expiresIn: string = '1h'): Promise<string> {
   const secretKey = new TextEncoder().encode(secret);
-
   const token = await new SignJWT({
     sub: payload.id,
     email: payload.email,
@@ -37,10 +34,8 @@ export async function generateJWT(payload: {
     .setIssuedAt()
     .setExpirationTime(expiresIn)
     .sign(secretKey);
-
   return token;
 }
-
 /**
  * Generate refresh token
  */
@@ -50,7 +45,6 @@ export function generateRefreshToken(): string {
   }
   return crypto.randomBytes(32).toString('hex');
 }
-
 /**
  * Hash refresh token for storage
  */
@@ -60,7 +54,6 @@ export function hashRefreshToken(token: string): string {
   }
   return crypto.createHash('sha256').update(token).digest('hex');
 }
-
 /**
  * Generate token pair (access + refresh)
  */
@@ -71,10 +64,8 @@ export async function generateTokenPair(payload: {
 }, secret: string): Promise<{ accessToken: string; refreshToken: string }> {
   const accessToken = await generateJWT(payload, secret, '1h');
   const refreshToken = generateRefreshToken();
-  
   return { accessToken, refreshToken };
 }
-
 /**
  * Verify JWT token
  */
@@ -82,7 +73,6 @@ export async function verifyJWT(token: string, secret: string): Promise<JWTPaylo
   try {
     const secretKey = new TextEncoder().encode(secret);
     const { payload } = await jwtVerify<JosePayload>(token, secretKey);
-
     return {
       sub: payload.sub!,
       email: payload.email,
@@ -94,7 +84,6 @@ export async function verifyJWT(token: string, secret: string): Promise<JWTPaylo
     return null;
   }
 }
-
 /**
  * Decode JWT payload without verification (for inspection only)
  * WARNING: This does NOT verify the token signature. Use verifyJWT for authentication.
@@ -103,11 +92,9 @@ export function decodeJWTPayload(token: string): Partial<JWTPayload> | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-
     // Safe base64 decode
     const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     let decoded = '';
-
     // Type-safe global access
     const g = globalThis as typeof globalThis & { atob?: (data: string) => string };
     if (typeof g.atob === 'function') {
@@ -117,7 +104,6 @@ export function decodeJWTPayload(token: string): Partial<JWTPayload> | null {
     } else {
       return null;
     }
-
     const parsed = JSON.parse(decoded);
     // Return as Partial since unverified payload may be incomplete
     return parsed as Partial<JWTPayload>;

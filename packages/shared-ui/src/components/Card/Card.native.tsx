@@ -3,7 +3,6 @@
  * 
  * React Native-specific Card component using design tokens
  */
-
 import React, { useState } from 'react';
 import {
   View,
@@ -15,7 +14,6 @@ import {
 import type { ComponentRef } from 'react';
 import { mobileTokens } from '@mintenance/design-tokens';
 import type { NativeCardProps, CardVariant, CardPadding } from './types';
-
 /**
  * Card Component for React Native
  * 
@@ -42,9 +40,7 @@ export const Card = React.forwardRef<View, NativeCardProps>(
   ) => {
     const [scaleAnimation] = useState(new Animated.Value(1));
     const [isPressed, setIsPressed] = useState(false);
-
     const cardStyles = getCardStyles(variant, padding, interactive, disabled, isPressed);
-
     const handlePressIn = () => {
       if (disabled) return;
       setIsPressed(true);
@@ -55,7 +51,6 @@ export const Card = React.forwardRef<View, NativeCardProps>(
         friction: 10,
       }).start();
     };
-
     const handlePressOut = () => {
       setIsPressed(false);
       Animated.spring(scaleAnimation, {
@@ -65,7 +60,6 @@ export const Card = React.forwardRef<View, NativeCardProps>(
         friction: 10,
       }).start();
     };
-
     // Render as TouchableOpacity if interactive
     if (interactive || onPress || onLongPress) {
       return (
@@ -94,7 +88,6 @@ export const Card = React.forwardRef<View, NativeCardProps>(
         </Animated.View>
       );
     }
-
     // Render as regular View
     return (
       <View
@@ -110,43 +103,35 @@ export const Card = React.forwardRef<View, NativeCardProps>(
     );
   }
 );
-
 Card.displayName = 'Card';
-
 // Card sub-components
 export interface CardHeaderProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
-
 export const CardHeader: React.FC<CardHeaderProps> = ({ children, style }) => (
   <View style={[styles.header, style]}>
     {children}
   </View>
 );
-
 export interface CardBodyProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
-
 export const CardBody: React.FC<CardBodyProps> = ({ children, style }) => (
   <View style={[styles.body, style]}>
     {children}
   </View>
 );
-
 export interface CardFooterProps {
   children: React.ReactNode;
   style?: ViewStyle;
 }
-
 export const CardFooter: React.FC<CardFooterProps> = ({ children, style }) => (
   <View style={[styles.footer, style]}>
     {children}
   </View>
 );
-
 // Style functions using design tokens
 const getCardStyles = (
   variant: CardVariant,
@@ -159,7 +144,6 @@ const getCardStyles = (
     borderRadius: mobileTokens.borderRadius.xl,
     overflow: 'hidden',
   };
-
   // Add padding
   if (padding !== 'none') {
     const paddingMap: Record<Exclude<CardPadding, 'none'>, number> = {
@@ -169,7 +153,6 @@ const getCardStyles = (
     };
     baseStyle.padding = paddingMap[padding];
   }
-
   // Apply variant styles
   switch (variant) {
     case 'default':
@@ -181,7 +164,6 @@ const getCardStyles = (
         ...mobileTokens.shadows.sm,
         opacity: disabled ? 0.6 : 1,
       };
-
     case 'elevated':
       return {
         ...baseStyle,
@@ -191,7 +173,6 @@ const getCardStyles = (
         ...(isPressed ? mobileTokens.shadows.lg : mobileTokens.shadows.base),
         opacity: disabled ? 0.6 : 1,
       };
-
     case 'outlined':
       return {
         ...baseStyle,
@@ -200,12 +181,10 @@ const getCardStyles = (
         borderColor: mobileTokens.colors.border,
         opacity: disabled ? 0.6 : 1,
       };
-
     default:
       return baseStyle;
   }
 };
-
 const styles = StyleSheet.create({
   header: {
     marginBottom: mobileTokens.spacing.md,
@@ -223,6 +202,4 @@ const styles = StyleSheet.create({
     borderTopColor: mobileTokens.colors.border,
   },
 });
-
 export default Card;
-

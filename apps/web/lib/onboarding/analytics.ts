@@ -252,7 +252,7 @@ function storeEventLocally(event: OnboardingAnalyticsEvent) {
 
     localStorage.setItem(key, JSON.stringify(events));
   } catch (error) {
-    logger.error('Failed to store event locally:', error', [object Object], { service: 'lib' });
+    logger.error('Failed to store event locally:', error, { service: 'lib' });
   }
 }
 
@@ -267,7 +267,7 @@ export function getLocalEvents(): OnboardingAnalyticsEvent[] {
     const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    logger.error('Failed to get local events:', error', [object Object], { service: 'lib' });
+    logger.error('Failed to get local events:', error, { service: 'lib' });
     return [];
   }
 }
@@ -281,6 +281,6 @@ export function clearLocalEvents(): void {
   try {
     localStorage.removeItem('mintenance_onboarding_events');
   } catch (error) {
-    logger.error('Failed to clear local events:', error', [object Object], { service: 'lib' });
+    logger.error('Failed to clear local events:', error, { service: 'lib' });
   }
 }

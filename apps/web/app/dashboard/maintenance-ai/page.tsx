@@ -9,7 +9,7 @@ export default function MaintenanceAIPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [assessment, setAssessment] = useState<any>(null);
+  const [assessment, setAssessment] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState('normal');

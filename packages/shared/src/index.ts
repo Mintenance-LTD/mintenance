@@ -3,7 +3,6 @@ export { logger } from './logger';
 export { formatDate, formatCurrency, formatPhone } from './formatters';
 export { debounce, throttle, hashString } from './utils';
 export { generateId, sanitizeString } from './helpers';
-
 // Application Configuration Constants
 export const APP_CONFIG = {
   DEFAULT_TIMEOUT: 30000,
@@ -13,7 +12,6 @@ export const APP_CONFIG = {
   SUPPORTED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/webp'],
   SUPPORTED_FILE_TYPES: ['application/pdf', 'text/plain'],
 } as const;
-
 // Business Logic Constants
 export const BUSINESS_RULES = {
   /** Minimum budget (GBP) that requires photo attachments */
@@ -39,7 +37,6 @@ export const BUSINESS_RULES = {
   /** Maximum skills per contractor */
   MAX_SKILLS_PER_CONTRACTOR: 20,
 } as const;
-
 // Rate Limiting Constants
 export const RATE_LIMITS = {
   /** API requests per minute */
@@ -61,7 +58,6 @@ export const RATE_LIMITS = {
   /** Production fallback retry after (seconds) */
   PRODUCTION_FALLBACK_RETRY_AFTER: 60,
 } as const;
-
 // Feature Flags Constants
 export const FEATURE_FLAGS = {
   /** Default rollout percentage for new features */
@@ -69,7 +65,6 @@ export const FEATURE_FLAGS = {
   /** Environment variable name for 2025 UI rollout */
   UI_2025_ROLLOUT_ENV: 'FEATURE_2025_UI_ROLLOUT_PERCENTAGE',
 } as const;
-
 // Time Constants (in milliseconds)
 export const TIME_MS = {
   /** One second in milliseconds */

@@ -1,3 +1,14 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 import { ContractorService } from '../../services/ContractorService';
 
 // Mock only external dependencies
@@ -211,7 +222,7 @@ describe('ContractorService - Simple Tests', () => {
 
       const mockChain = {
         select: jest.fn().mockReturnThis(),
-        ilike: jest.fn().mockReturnThis(),
+        or: jest.fn().mockReturnThis(), // FIXED: Added .or() method for string search
         order: jest.fn().mockReturnThis(),
         limit: jest.fn().mockResolvedValue({ data: mockContractors, error: null }),
       };

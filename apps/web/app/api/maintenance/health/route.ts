@@ -42,7 +42,7 @@ export async function GET() {
       ready: false
     });
   } catch (error) {
-    logger.error('Health check failed:', error', [object Object], { service: 'api' });
+    logger.error('Health check failed:', error, { service: 'api' });
     return NextResponse.json(
       {
         status: 'error',

@@ -10,7 +10,7 @@ export async function withErrorHandling<T>(
   context: {
     service: string;
     method: string;
-    params?: Record<string, any>;
+    params?: Record<string, unknown>;
   }
 ): Promise<T> {
   const startTime = Date.now();
@@ -41,11 +41,11 @@ export async function withErrorHandling<T>(
  * Handle Supabase database operations with centralized error handling
  */
 export async function handleDatabaseOperation<T>(
-  operation: () => Promise<{ data: T | null; error: any }>,
+  operation: () => Promise<{ data: T | null; error: Error | unknown }>,
   context: {
     service: string;
     method: string;
-    params?: Record<string, any>;
+    params?: Record<string, unknown>;
   }
 ): Promise<T> {
   return withErrorHandling(async () => {
@@ -63,12 +63,12 @@ export async function handleDatabaseOperation<T>(
  * Validate required parameters before service operations
  */
 export function validateRequired(
-  value: any,
+  value: unknown,
   fieldName: string,
   context: {
     service: string;
     method: string;
-    params?: Record<string, any>;
+    params?: Record<string, unknown>;
   }
 ): void {
   ServiceErrorHandler.validateRequired(value, fieldName, context);

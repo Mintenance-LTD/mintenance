@@ -24,7 +24,7 @@ import { Input } from '../components/ui/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface ContractorCardEditorScreenProps {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProps> = ({
@@ -270,7 +270,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
                   styles.availabilityOption,
                   profile.availability === option && styles.availabilityOptionActive
                 ]}
-                onPress={() => setProfile(prev => ({ ...prev, availability: option as any }))}
+                onPress={() => setProfile(prev => ({ ...prev, availability: option as unknown }))}
               >
                 <Text style={[
                   styles.availabilityText,

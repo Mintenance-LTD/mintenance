@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * SAM3 Training Data Flow Tests
  *
@@ -20,27 +21,27 @@ import type { Phase1BuildingAssessment, RoboflowDetection } from '../types';
 import type { DamageTypeSegmentation } from '../SAM3Service';
 
 // Mock dependencies
-jest.mock('@/lib/api/supabaseServer', () => ({
+vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    from: jest.fn(() => ({
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => ({
+    from: vi.fn(() => ({
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(() => ({
             data: { id: 'test-id' },
             error: null,
           })),
         })),
       })),
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          order: jest.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          order: vi.fn(() => ({
             data: [],
             error: null,
           })),
         })),
       })),
     })),
-    rpc: jest.fn(() => ({
+    rpc: vi.fn(() => ({
       data: [
         {
           gpt4_labels_total: 150,
@@ -61,19 +62,19 @@ jest.mock('@/lib/api/supabaseServer', () => ({
   },
 }));
 
-jest.mock('../SAM3Service');
-jest.mock('@mintenance/shared', () => ({
+vi.mock('../SAM3Service');
+vi.mock('@mintenance/shared', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 describe('SAM3 Training Data Collection Flow', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('1. Assessment Flow: GPT-4 + SAM3 Capture', () => {
@@ -208,8 +209,8 @@ describe('SAM3 Training Data Collection Flow', () => {
     it('should generate pseudo-labels for unlabeled images', async () => {
       // Mock SAM3Service
       const { SAM3Service } = await import('../SAM3Service');
-      (SAM3Service.healthCheck as jest.Mock).mockResolvedValue(true);
-      (SAM3Service.segmentDamageTypes as jest.Mock).mockResolvedValue({
+      vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
+      vi.mocked(SAM3Service.segmentDamageTypes).mockResolvedValue({
         success: true,
         damage_types: {
           crack: {
@@ -353,8 +354,8 @@ describe('SAM3 Training Data Collection Flow', () => {
       ];
 
       const { SAM3Service } = await import('../SAM3Service');
-      (SAM3Service.healthCheck as jest.Mock).mockResolvedValue(true);
-      (SAM3Service.segmentDamageTypes as jest.Mock).mockResolvedValue({
+      vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
+      vi.mocked(SAM3Service.segmentDamageTypes).mockResolvedValue({
         success: true,
         damage_types: {
           crack: {

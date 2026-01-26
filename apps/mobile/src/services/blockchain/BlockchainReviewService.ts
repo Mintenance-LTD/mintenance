@@ -272,7 +272,7 @@ export class BlockchainReviewService {
     };
   }
 
-  private getContractABI(): any[] {
+  private getContractABI(): unknown[] {
     // This would contain the actual contract ABI
     // For now, returning a simplified version
     return [
@@ -309,7 +309,7 @@ export class BlockchainReviewService {
     ];
   }
 
-  private prepareReviewData(review: Partial<BlockchainReview>, verificationLevel: string): any {
+  private prepareReviewData(review: Partial<BlockchainReview>, verificationLevel: string): unknown {
     return {
       id: review.id,
       jobId: review.jobId,

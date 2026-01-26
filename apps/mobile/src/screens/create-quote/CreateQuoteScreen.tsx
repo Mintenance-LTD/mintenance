@@ -22,7 +22,7 @@ import {
 } from './components';
 
 interface CreateQuoteScreenProps {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
   route: {
     params?: {
       jobId?: string;

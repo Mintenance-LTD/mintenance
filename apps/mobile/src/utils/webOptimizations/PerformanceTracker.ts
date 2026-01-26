@@ -67,11 +67,11 @@ export class PerformanceTracker {
       document.head.appendChild(script);
 
       // Initialize gtag
-      (window as any).dataLayer = (window as any).dataLayer || [];
-      const gtag = (...args: any[]) => {
-        (window as any).dataLayer.push(args);
+      (window as unknown).dataLayer = (window as unknown).dataLayer || [];
+      const gtag = (...args: unknown[]) => {
+        (window as unknown).dataLayer.push(args);
       };
-      (window as any).gtag = gtag;
+      (window as unknown).gtag = gtag;
 
       gtag('js', new Date());
       gtag('config', analyticsId, {
@@ -97,14 +97,14 @@ export class PerformanceTracker {
 
     // Largest Contentful Paint (LCP)
     this.observePerformance('largest-contentful-paint', (entries) => {
-      const lcpEntry = entries[entries.length - 1] as any;
+      const lcpEntry = entries[entries.length - 1] as unknown;
       const lcpValue = lcpEntry.renderTime || lcpEntry.loadTime || lcpEntry.startTime;
       this.trackWebVital('LCP', lcpValue);
     });
 
     // First Input Delay (FID)
     this.observePerformance('first-input', (entries) => {
-      const fidEntry = entries[0] as any;
+      const fidEntry = entries[0] as unknown;
       const fidValue = fidEntry.processingStart - fidEntry.startTime;
       this.trackWebVital('FID', fidValue);
     });
@@ -112,7 +112,7 @@ export class PerformanceTracker {
     // Cumulative Layout Shift (CLS)
     let clsValue = 0;
     this.observePerformance('layout-shift', (entries) => {
-      entries.forEach((entry: any) => {
+      entries.forEach((entry: unknown) => {
         if (!entry.hadRecentInput) {
           clsValue += entry.value;
         }
@@ -275,12 +275,12 @@ export class PerformanceTracker {
   /**
    * Track custom event
    */
-  trackEvent(eventName: string, properties: Record<string, any> = {}): void {
+  trackEvent(eventName: string, properties: Record<string, unknown> = {}): void {
     if (!this.analyticsInitialized) return;
 
     // Track to Google Analytics
-    if ((window as any).gtag) {
-      (window as any).gtag('event', eventName, properties);
+    if ((window as unknown).gtag) {
+      (window as unknown).gtag('event', eventName, properties);
     }
 
     logger.debug('PerformanceTracker', 'Event tracked', { event: eventName, properties });
@@ -293,8 +293,8 @@ export class PerformanceTracker {
     if (!this.analyticsInitialized) return;
 
     // Track to Google Analytics
-    if ((window as any).gtag) {
-      (window as any).gtag('event', 'timing_complete', {
+    if ((window as unknown).gtag) {
+      (window as unknown).gtag('event', 'timing_complete', {
         name: variable,
         value: value,
         event_category: category,
@@ -339,11 +339,11 @@ export class PerformanceTracker {
   /**
    * Throttle function execution
    */
-  private throttle(func: (...args: any[]) => void, delay: number): (...args: any[]) => void {
+  private throttle(func: (...args: unknown[]) => void, delay: number): (...args: unknown[]) => void {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     let lastExecTime = 0;
 
-    return (...args: any[]) => {
+    return (...args: unknown[]) => {
       const currentTime = Date.now();
 
       if (currentTime - lastExecTime > delay) {

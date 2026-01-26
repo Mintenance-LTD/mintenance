@@ -7,6 +7,7 @@ import Logo from '@/app/components/Logo';
 import { HomeownerProfileDropdown } from '@/components/profile/HomeownerProfileDropdown';
 import { AirbnbSearchBar } from './AirbnbSearchBar';
 import Link from 'next/link';
+import { logger } from '@/lib/logger';
 import {
   Plus,
   Search,
@@ -91,7 +92,9 @@ export function HomeownerDashboardWithSearch({ data }: HomeownerDashboardWithSea
           setProperties(data.properties);
         }
       })
-      .catch(console.error)
+      .catch((error) => {
+        logger.error('Failed to fetch properties', { error });
+      })
       .finally(() => setLoadingProperties(false));
   }, []);
 

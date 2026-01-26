@@ -1,4 +1,5 @@
 import { logger } from '@mintenance/shared';
+
 /**
  * Onboarding State Management
  * Tracks user progress through onboarding flows and everboarding features
@@ -39,7 +40,7 @@ export function getOnboardingState(): OnboardingState {
       return JSON.parse(stored);
     }
   } catch (error) {
-    logger.error('Failed to parse onboarding state:', error', [object Object], { service: 'lib' });
+    logger.error('Failed to parse onboarding state:', error);
   }
 
   return getDefaultState();
@@ -54,7 +55,7 @@ export function saveOnboardingState(state: OnboardingState): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
-    logger.error('Failed to save onboarding state:', error', [object Object], { service: 'lib' });
+    logger.error('Failed to save onboarding state:', error);
   }
 }
 

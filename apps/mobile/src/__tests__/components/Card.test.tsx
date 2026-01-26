@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render , waitFor} from '../test-utils';
 import { Text, View } from 'react-native';
 import { Card } from '../../components/ui/Card';
 
@@ -283,7 +292,7 @@ describe('Card Component', () => {
     it('does not re-render unnecessarily', () => {
       const renderSpy = jest.fn();
 
-      const TestCard = (props: any) => {
+      const TestCard = (props: unknown) => {
         renderSpy();
         return (
           <Card {...props}>

@@ -40,7 +40,7 @@ import Reanimated, {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 interface Props {
-  navigation: any;
+  navigation: unknown;
   route: {
     params?: {
       assessmentId?: string;

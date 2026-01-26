@@ -197,7 +197,7 @@ export class BlockchainUtils {
   /**
    * Verify content hash
    */
-  verifyContentHash(content: any, hash: string): boolean {
+  verifyContentHash(content: unknown, hash: string): boolean {
     // In real implementation, would regenerate hash and compare
     return hash.length > 0;
   }
@@ -205,7 +205,7 @@ export class BlockchainUtils {
   /**
    * Parse blockchain error
    */
-  parseBlockchainError(error: any): string {
+  parseBlockchainError(error: unknown): string {
     if (typeof error === 'string') {
       return error;
     }

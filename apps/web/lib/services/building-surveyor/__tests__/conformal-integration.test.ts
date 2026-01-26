@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Integration tests for Conformal Prediction in HybridInferenceService
  * Tests the complete flow of using calibrated uncertainty for routing decisions
@@ -63,7 +64,7 @@ describe('Conformal Prediction Integration', () => {
       };
 
       // Mock the conformal prediction response
-      jest.spyOn(conformalService, 'getPredictionInterval').mockResolvedValue(mockInterval);
+      vi.spyOn(conformalService, 'getPredictionInterval').mockResolvedValue(mockInterval);
 
       // The routing logic would use interval size = 1 to route to internal
       expect(mockInterval.interval_size).toBe(1);
@@ -79,7 +80,7 @@ describe('Conformal Prediction Integration', () => {
         interval_size: 2,
       };
 
-      jest.spyOn(conformalService, 'getPredictionInterval').mockResolvedValue(mockInterval);
+      vi.spyOn(conformalService, 'getPredictionInterval').mockResolvedValue(mockInterval);
 
       expect(mockInterval.interval_size).toBe(2);
       expect(mockInterval.prediction_set.length).toBe(2);
@@ -94,7 +95,7 @@ describe('Conformal Prediction Integration', () => {
         interval_size: 3,
       };
 
-      jest.spyOn(conformalService, 'getPredictionInterval').mockResolvedValue(mockInterval);
+      vi.spyOn(conformalService, 'getPredictionInterval').mockResolvedValue(mockInterval);
 
       expect(mockInterval.interval_size).toBe(3);
       expect(mockInterval.prediction_set.length).toBe(3);
@@ -121,7 +122,7 @@ describe('Conformal Prediction Integration', () => {
 
     it('should fall back to property age stratum when detailed data insufficient', async () => {
       // Mock insufficient detailed calibration data
-      jest.spyOn(conformalService as any, 'getStratumCalibrationData')
+      vi.spyOn(conformalService as any, 'getStratumCalibrationData')
         .mockImplementation((stratum: string) => {
           if (stratum.includes('_')) {
             return Promise.resolve([]); // No data for detailed stratum
@@ -144,7 +145,7 @@ describe('Conformal Prediction Integration', () => {
     });
 
     it('should fall back to global stratum when all specific strata insufficient', async () => {
-      jest.spyOn(conformalService as any, 'getStratumCalibrationData')
+      vi.spyOn(conformalService as any, 'getStratumCalibrationData')
         .mockResolvedValue([]); // No calibration data for any stratum
 
       const interval = await conformalService.getPredictionInterval(
@@ -167,7 +168,7 @@ describe('Conformal Prediction Integration', () => {
         importanceWeight: 1.0,
       }));
 
-      jest.spyOn(conformalService as any, 'getStratumCalibrationData')
+      vi.spyOn(conformalService as any, 'getStratumCalibrationData')
         .mockResolvedValue(smallCalibrationSet);
 
       const interval = await conformalService.getPredictionInterval(
@@ -189,7 +190,7 @@ describe('Conformal Prediction Integration', () => {
         importanceWeight: 1.0,
       }));
 
-      jest.spyOn(conformalService as any, 'getStratumCalibrationData')
+      vi.spyOn(conformalService as any, 'getStratumCalibrationData')
         .mockResolvedValue(largeCalibrationSet);
 
       const interval = await conformalService.getPredictionInterval(
@@ -206,8 +207,8 @@ describe('Conformal Prediction Integration', () => {
 
   describe('Calibration Recording', () => {
     it('should record calibration samples with multiple strata', async () => {
-      const mockSupabaseInsert = jest.fn().mockResolvedValue({ error: null });
-      jest.spyOn(conformalService as any, 'serverSupabase').mockResolvedValue({
+      const mockSupabaseInsert = vi.fn().mockResolvedValue({ error: null });
+      vi.spyOn(conformalService as any, 'serverSupabase').mockResolvedValue({
         from: () => ({
           insert: mockSupabaseInsert,
         }),
@@ -286,7 +287,7 @@ describe('Conformal Prediction Integration', () => {
 
   describe('Fallback Behavior', () => {
     it('should use raw confidence thresholds when calibration unavailable', async () => {
-      jest.spyOn(conformalService, 'getPredictionInterval').mockRejectedValue(
+      vi.spyOn(conformalService, 'getPredictionInterval').mockRejectedValue(
         new Error('Calibration unavailable')
       );
 

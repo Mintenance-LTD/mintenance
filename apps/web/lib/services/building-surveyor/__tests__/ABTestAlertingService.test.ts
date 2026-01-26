@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Unit tests for ABTestAlertingService
  */
@@ -6,18 +7,18 @@ import { ABTestAlertingService } from '../ABTestAlertingService';
 import { ABTestMonitoringService } from '../ABTestMonitoringService';
 
 // Mock the monitoring service
-jest.mock('../ABTestMonitoringService');
+vi.mock('../ABTestMonitoringService');
 
 describe('ABTestAlertingService', () => {
   const mockExperimentId = 'test-experiment-id';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('checkAlerts', () => {
     it('should detect critical SFN rate alerts', async () => {
-      (ABTestMonitoringService.getMetrics as jest.Mock).mockResolvedValue({
+      vi.mocked(ABTestMonitoringService.getMetrics).mockResolvedValue({
         sfnRate: 0.15, // Above 0.1% threshold
         automationRate: 50,
         escalationRate: 50,
@@ -29,8 +30,8 @@ describe('ABTestAlertingService', () => {
         criticModelObservations: 150,
       });
 
-      (ABTestMonitoringService.getCoverageViolations as jest.Mock).mockResolvedValue([]);
-      (ABTestMonitoringService.getAutomationRateOverTime as jest.Mock).mockResolvedValue([]);
+      vi.mocked(ABTestMonitoringService.getCoverageViolations).mockResolvedValue([]);
+      vi.mocked(ABTestMonitoringService.getAutomationRateOverTime).mockResolvedValue([]);
 
       const result = await ABTestAlertingService.checkAlerts(mockExperimentId);
 
@@ -40,7 +41,7 @@ describe('ABTestAlertingService', () => {
     });
 
     it('should detect warning coverage violations', async () => {
-      (ABTestMonitoringService.getMetrics as jest.Mock).mockResolvedValue({
+      vi.mocked(ABTestMonitoringService.getMetrics).mockResolvedValue({
         sfnRate: 0.05,
         automationRate: 50,
         escalationRate: 50,
@@ -52,7 +53,7 @@ describe('ABTestAlertingService', () => {
         criticModelObservations: 150,
       });
 
-      (ABTestMonitoringService.getCoverageViolations as jest.Mock).mockResolvedValue([
+      vi.mocked(ABTestMonitoringService.getCoverageViolations).mockResolvedValue([
         {
           stratum: 'test_stratum',
           expectedCoverage: 0.90,
@@ -62,7 +63,7 @@ describe('ABTestAlertingService', () => {
         },
       ]);
 
-      (ABTestMonitoringService.getAutomationRateOverTime as jest.Mock).mockResolvedValue([]);
+      vi.mocked(ABTestMonitoringService.getAutomationRateOverTime).mockResolvedValue([]);
 
       const result = await ABTestAlertingService.checkAlerts(mockExperimentId);
 
@@ -72,7 +73,7 @@ describe('ABTestAlertingService', () => {
     });
 
     it('should detect automation rate spikes', async () => {
-      (ABTestMonitoringService.getMetrics as jest.Mock).mockResolvedValue({
+      vi.mocked(ABTestMonitoringService.getMetrics).mockResolvedValue({
         sfnRate: 0.05,
         automationRate: 50,
         escalationRate: 50,
@@ -84,9 +85,9 @@ describe('ABTestAlertingService', () => {
         criticModelObservations: 150,
       });
 
-      (ABTestMonitoringService.getCoverageViolations as jest.Mock).mockResolvedValue([]);
+      vi.mocked(ABTestMonitoringService.getCoverageViolations).mockResolvedValue([]);
 
-      (ABTestMonitoringService.getAutomationRateOverTime as jest.Mock).mockResolvedValue([
+      vi.mocked(ABTestMonitoringService.getAutomationRateOverTime).mockResolvedValue([
         { date: '2024-01-01', rate: 30 },
         { date: '2024-01-02', rate: 55 }, // 25% spike
       ]);
@@ -99,7 +100,7 @@ describe('ABTestAlertingService', () => {
     });
 
     it('should detect info alerts for low critic observations', async () => {
-      (ABTestMonitoringService.getMetrics as jest.Mock).mockResolvedValue({
+      vi.mocked(ABTestMonitoringService.getMetrics).mockResolvedValue({
         sfnRate: 0.05,
         automationRate: 50,
         escalationRate: 50,
@@ -111,8 +112,8 @@ describe('ABTestAlertingService', () => {
         criticModelObservations: 50, // Below 100 threshold
       });
 
-      (ABTestMonitoringService.getCoverageViolations as jest.Mock).mockResolvedValue([]);
-      (ABTestMonitoringService.getAutomationRateOverTime as jest.Mock).mockResolvedValue([]);
+      vi.mocked(ABTestMonitoringService.getCoverageViolations).mockResolvedValue([]);
+      vi.mocked(ABTestMonitoringService.getAutomationRateOverTime).mockResolvedValue([]);
 
       const result = await ABTestAlertingService.checkAlerts(mockExperimentId);
 
@@ -122,7 +123,7 @@ describe('ABTestAlertingService', () => {
     });
 
     it('should return no alerts when all metrics are healthy', async () => {
-      (ABTestMonitoringService.getMetrics as jest.Mock).mockResolvedValue({
+      vi.mocked(ABTestMonitoringService.getMetrics).mockResolvedValue({
         sfnRate: 0.05,
         automationRate: 50,
         escalationRate: 50,
@@ -134,8 +135,8 @@ describe('ABTestAlertingService', () => {
         criticModelObservations: 150,
       });
 
-      (ABTestMonitoringService.getCoverageViolations as jest.Mock).mockResolvedValue([]);
-      (ABTestMonitoringService.getAutomationRateOverTime as jest.Mock).mockResolvedValue([
+      vi.mocked(ABTestMonitoringService.getCoverageViolations).mockResolvedValue([]);
+      vi.mocked(ABTestMonitoringService.getAutomationRateOverTime).mockResolvedValue([
         { date: '2024-01-01', rate: 50 },
         { date: '2024-01-02', rate: 52 }, // Small change
       ]);

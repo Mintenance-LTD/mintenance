@@ -1,5 +1,14 @@
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent , waitFor} from '../test-utils';
 import { Input } from '../../components/ui/Input';
 
 describe('Input Component', () => {
@@ -72,7 +81,7 @@ describe('Input Component', () => {
       );
 
       const input = getByPlaceholderText('Type here');
-      fireEvent.changeText(input, 'Hello World');
+      act(() => fireEvent.changeText(input, 'Hello World'));
 
       expect(mockOnChangeText).toHaveBeenCalledWith('Hello World');
     });
@@ -90,7 +99,7 @@ describe('Input Component', () => {
 
       // Simulate text change
       const input = getByDisplayValue('Controlled');
-      fireEvent.changeText(input, 'Updated');
+      act(() => fireEvent.changeText(input, 'Updated'));
 
       expect(mockOnChangeText).toHaveBeenCalledWith('Updated');
 
@@ -111,7 +120,7 @@ describe('Input Component', () => {
       );
 
       const input = getByPlaceholderText('Uncontrolled input');
-      fireEvent.changeText(input, 'User typed text');
+      act(() => fireEvent.changeText(input, 'User typed text'));
 
       // Input should accept the text
       expect(input).toBeTruthy();
@@ -412,7 +421,7 @@ describe('Input Component', () => {
     it('does not re-render unnecessarily', () => {
       const renderSpy = jest.fn();
 
-      const TestInput = (props: any) => {
+      const TestInput = (props: unknown) => {
         renderSpy();
         return <Input {...props} placeholder="Performance test" />;
       };
@@ -439,7 +448,7 @@ describe('Input Component', () => {
 
       // Simulate rapid typing
       for (let i = 0; i < 10; i++) {
-        fireEvent.changeText(input, `Text ${i}`);
+        act(() => fireEvent.changeText(input, `Text ${i}`));
       }
 
       expect(mockOnChangeText).toHaveBeenCalledTimes(10);

@@ -49,7 +49,7 @@ class AdminSecurityPenetrationTester {
    * Try to use symmetric key as public key for asymmetric algorithm
    */
   async testAlgorithmConfusion() {
-    logger.info('\n[ATTACK 1] Testing JWT Algorithm Confusion...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 1] Testing JWT Algorithm Confusion...', {}, { service: 'general' });
 
     try {
       // Create token with HS256 but claim it's RS256
@@ -104,7 +104,7 @@ class AdminSecurityPenetrationTester {
    * ATTACK 2: Token Signature Stripping (None Algorithm)
    */
   async testNoneAlgorithmAttack() {
-    logger.info('\n[ATTACK 2] Testing None Algorithm Attack...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 2] Testing None Algorithm Attack...', {}, { service: 'general' });
 
     try {
       const payload = {
@@ -154,7 +154,7 @@ class AdminSecurityPenetrationTester {
    * Use public key as HMAC secret
    */
   async testKeyConfusion() {
-    logger.info('\n[ATTACK 3] Testing JWT Key Confusion...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 3] Testing JWT Key Confusion...', {}, { service: 'general' });
 
     try {
       // If RS256 is used, try to sign with public key as HMAC secret
@@ -202,7 +202,7 @@ class AdminSecurityPenetrationTester {
    * Valid JWT with tampered role claim
    */
   async testRoleClaimTampering() {
-    logger.info('\n[ATTACK 4] Testing Role Claim Tampering...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 4] Testing Role Claim Tampering...', {}, { service: 'general' });
 
     try {
       // Create valid token for contractor, then modify role to admin
@@ -259,7 +259,7 @@ class AdminSecurityPenetrationTester {
    * ATTACK 5: Brute Force Rate Limiting Test
    */
   async testBruteForceRateLimit() {
-    logger.info('\n[ATTACK 5] Testing Brute Force Rate Limiting...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 5] Testing Brute Force Rate Limiting...', {}, { service: 'general' });
 
     try {
       const requests = [];
@@ -305,7 +305,7 @@ class AdminSecurityPenetrationTester {
    * ATTACK 6: SQL Injection via Query Parameters
    */
   async testSQLInjection() {
-    logger.info('\n[ATTACK 6] Testing SQL Injection Vulnerabilities...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 6] Testing SQL Injection Vulnerabilities...', {}, { service: 'general' });
 
     const injectionPayloads = [
       "' OR '1'='1",
@@ -354,7 +354,7 @@ class AdminSecurityPenetrationTester {
    * ATTACK 7: CSRF Attack Simulation
    */
   async testCSRFProtection() {
-    logger.info('\n[ATTACK 7] Testing CSRF Protection...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 7] Testing CSRF Protection...', {}, { service: 'general' });
 
     try {
       // Simulate CSRF attack: POST request without CSRF token
@@ -397,7 +397,7 @@ class AdminSecurityPenetrationTester {
    * ATTACK 8: Information Disclosure via Error Messages
    */
   async testInformationDisclosure() {
-    logger.info('\n[ATTACK 8] Testing Information Disclosure...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 8] Testing Information Disclosure...', {}, { service: 'general' });
 
     try {
       // Send invalid request to trigger errors
@@ -447,7 +447,7 @@ class AdminSecurityPenetrationTester {
    * ATTACK 9: Session Hijacking / Token Replay
    */
   async testSessionHijacking() {
-    logger.info('\n[ATTACK 9] Testing Session Hijacking Protection...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 9] Testing Session Hijacking Protection...', {}, { service: 'general' });
 
     try {
       // Simulate: Attacker steals valid token and tries to use it
@@ -500,7 +500,7 @@ class AdminSecurityPenetrationTester {
    * ATTACK 10: Privilege Escalation via Parameter Tampering
    */
   async testPrivilegeEscalation() {
-    logger.info('\n[ATTACK 10] Testing Privilege Escalation...', [object Object], { service: 'general' });
+    logger.info('\n[ATTACK 10] Testing Privilege Escalation...', {}, { service: 'general' });
 
     try {
       // Try to modify another user as contractor
@@ -553,71 +553,71 @@ class AdminSecurityPenetrationTester {
    * Generate penetration test report
    */
   generateReport(): string {
-    logger.info('\n' + '='.repeat(80', [object Object], { service: 'general' }));
-    logger.info('PENETRATION TEST REPORT - ADMIN ENDPOINTS', [object Object], { service: 'general' });
-    logger.info('='.repeat(80', [object Object], { service: 'general' }));
+    logger.info('\n' + '='.repeat(80), {}, { service: 'general' });
+    logger.info('PENETRATION TEST REPORT - ADMIN ENDPOINTS', {}, { service: 'general' });
+    logger.info('='.repeat(80), {}, { service: 'general' });
 
     const criticalFindings = this.results.filter(r => r.severity === 'CRITICAL' && r.actualOutcome === 'FAIL');
     const highFindings = this.results.filter(r => r.severity === 'HIGH' && r.actualOutcome === 'FAIL');
     const warnings = this.results.filter(r => r.actualOutcome === 'WARNING');
     const passed = this.results.filter(r => r.actualOutcome === 'PASS');
 
-    logger.info('\nSUMMARY:', [object Object], { service: 'general' });
-    logger.info('  Total Tests: %s', [object Object], { service: 'general' });
-    logger.info('  ✅ Passed: %s', [object Object], { service: 'general' });
-    logger.warn('  ⚠️  Warnings: %s', [object Object], { service: 'general' });
-    logger.info('  ❌ High Risk Failures: %s', [object Object], { service: 'general' });
-    logger.info('  🚨 Critical Failures: %s', [object Object], { service: 'general' });
+    logger.info('\nSUMMARY:', {}, { service: 'general' });
+    logger.info('  Total Tests: %s', {}, { service: 'general' });
+    logger.info('  ✅ Passed: %s', {}, { service: 'general' });
+    logger.warn('  ⚠️  Warnings: %s', {}, { service: 'general' });
+    logger.info('  ❌ High Risk Failures: %s', {}, { service: 'general' });
+    logger.info('  🚨 Critical Failures: %s', {}, { service: 'general' });
 
     if (criticalFindings.length > 0) {
-      logger.info('\n🚨 CRITICAL FINDINGS:', [object Object], { service: 'general' });
+      logger.info('\n🚨 CRITICAL FINDINGS:', {}, { service: 'general' });
       criticalFindings.forEach(finding => {
-        logger.info('\n  Attack: %s', [object Object], { service: 'general' });
-        logger.info('  Description: %s', [object Object], { service: 'general' });
-        logger.info('  Details: %s', [object Object], { service: 'general' });
-        logger.info('  Remediation: %s', [object Object], { service: 'general' });
+        logger.info('\n  Attack: %s', {}, { service: 'general' });
+        logger.info('  Description: %s', {}, { service: 'general' });
+        logger.info('  Details: %s', {}, { service: 'general' });
+        logger.info('  Remediation: %s', {}, { service: 'general' });
       });
     }
 
     if (highFindings.length > 0) {
-      logger.info('\n❌ HIGH RISK FINDINGS:', [object Object], { service: 'general' });
+      logger.info('\n❌ HIGH RISK FINDINGS:', {}, { service: 'general' });
       highFindings.forEach(finding => {
-        logger.info('\n  Attack: %s', [object Object], { service: 'general' });
-        logger.info('  Details: %s', [object Object], { service: 'general' });
-        logger.info('  Remediation: %s', [object Object], { service: 'general' });
+        logger.info('\n  Attack: %s', {}, { service: 'general' });
+        logger.info('  Details: %s', {}, { service: 'general' });
+        logger.info('  Remediation: %s', {}, { service: 'general' });
       });
     }
 
     if (warnings.length > 0) {
-      logger.warn('\n⚠️  WARNINGS:', [object Object], { service: 'general' });
+      logger.warn('\n⚠️  WARNINGS:', {}, { service: 'general' });
       warnings.forEach(finding => {
-        logger.info('\n  Attack: %s', [object Object], { service: 'general' });
-        logger.info('  Details: %s', [object Object], { service: 'general' });
+        logger.info('\n  Attack: %s', {}, { service: 'general' });
+        logger.info('  Details: %s', {}, { service: 'general' });
       });
     }
 
-    logger.info('\n✅ PASSED TESTS:', [object Object], { service: 'general' });
+    logger.info('\n✅ PASSED TESTS:', {}, { service: 'general' });
     passed.forEach(finding => {
-      logger.info('  ✓ %s: %s', [object Object], { service: 'general' });
+      logger.info('  ✓ %s: %s', {}, { service: 'general' });
     });
 
-    logger.info('\n' + '='.repeat(80', [object Object], { service: 'general' }));
+    logger.info('\n' + '='.repeat(80), {}, { service: 'general' });
 
     // Overall security score
     const score = (passed.length / this.results.length) * 100;
-    logger.info('\nOVERALL SECURITY SCORE: ${score.toFixed(1', [object Object], { service: 'general' })}%`);
+    logger.info(`\nOVERALL SECURITY SCORE: ${score.toFixed(1)}%`, {}, { service: 'general' });
 
     if (score >= 90) {
-      logger.info('RATING: EXCELLENT ✅', [object Object], { service: 'general' });
+      logger.info('RATING: EXCELLENT ✅', {}, { service: 'general' });
     } else if (score >= 75) {
-      logger.info('RATING: GOOD ⚠️  (Some improvements needed', [object Object], { service: 'general' })');
+      logger.info('RATING: GOOD ⚠️  (Some improvements needed)', {}, { service: 'general' });
     } else if (score >= 50) {
-      logger.info('RATING: FAIR ❌ (Significant improvements needed', [object Object], { service: 'general' })');
+      logger.info('RATING: FAIR ❌ (Significant improvements needed)', {}, { service: 'general' });
     } else {
-      logger.info('RATING: POOR 🚨 (URGENT: Multiple critical vulnerabilities', [object Object], { service: 'general' })');
+      logger.info('RATING: POOR 🚨 (URGENT: Multiple critical vulnerabilities)', {}, { service: 'general' });
     }
 
-    logger.info('='.repeat(80', [object Object], { service: 'general' }));
+    logger.info('='.repeat(80), {}, { service: 'general' });
 
     return JSON.stringify(this.results, null, 2);
   }
@@ -626,8 +626,8 @@ class AdminSecurityPenetrationTester {
    * Run all penetration tests
    */
   async runAllTests() {
-    logger.info('Starting Admin Endpoint Penetration Testing...', [object Object], { service: 'general' });
-    logger.info('Target:', this.baseUrl', [object Object], { service: 'general' });
+    logger.info('Starting Admin Endpoint Penetration Testing...', {}, { service: 'general' });
+    logger.info('Target: ' + this.baseUrl, {}, { service: 'general' });
 
     await this.testAlgorithmConfusion();
     await this.testNoneAlgorithmAttack();
@@ -653,11 +653,11 @@ if (require.main === module) {
   tester
     .runAllTests()
     .then(report => {
-      logger.info('\nDetailed JSON report available for further analysis.', [object Object], { service: 'general' });
+      logger.info('\nDetailed JSON report available for further analysis.', {}, { service: 'general' });
       process.exit(0);
     })
     .catch(error => {
-      logger.error('Penetration testing failed:', error', [object Object], { service: 'general' });
+      logger.error('Penetration testing failed:', error, { service: 'general' });
       process.exit(1);
     });
 }

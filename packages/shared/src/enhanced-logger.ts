@@ -10,15 +10,15 @@
  * - Log batching for efficiency
  */
 
-import { LogLevel, LogContext } from './logger';
-import { logger } from '@mintenance/shared';
+import { LogLevel, LogContext, LogEntry, logger } from './logger';
 
 export interface LogTransport {
   name: string;
-  send(entry: LogEntry): Promise<void>;
+  send(entry: EnhancedLogEntry): Promise<void>;
 }
 
-export interface LogEntry {
+// LogEntry is imported from ./logger
+export interface EnhancedLogEntry extends LogEntry {
   level: LogLevel;
   message: string;
   timestamp: string;
@@ -167,8 +167,8 @@ export class EnhancedLogger {
     context?: EnhancedLogContext,
     error?: Error,
     metadata?: Record<string, unknown>
-  ): LogEntry {
-    const entry: LogEntry = {
+  ): EnhancedLogEntry {
+    const entry: EnhancedLogEntry = {
       level,
       message,
       timestamp: new Date().toISOString(),
@@ -199,7 +199,7 @@ export class EnhancedLogger {
   /**
    * Format log entry for output
    */
-  private formatLogEntry(entry: LogEntry): string {
+  private formatLogEntry(entry: EnhancedLogEntry): string {
     if (this.config.enableJsonLogging) {
       // Production: structured JSON logging
       return JSON.stringify({
@@ -230,7 +230,7 @@ export class EnhancedLogger {
   /**
    * Sanitize sensitive data from context
    */
-  private sanitizeContext(data: any): any {
+  private sanitizeContext(data: Record<string, unknown>): unknown {
     if (!data) return data;
     if (typeof data !== 'object') return data;
 
@@ -254,7 +254,7 @@ export class EnhancedLogger {
       /supabase[_-]?key/i,
     ];
 
-    const sanitized: any = Array.isArray(data) ? [] : {};
+    const sanitized: unknown = Array.isArray(data) ? [] : {};
 
     for (const [key, value] of Object.entries(data)) {
       const keyStr = String(key);
@@ -286,7 +286,7 @@ export class EnhancedLogger {
         await transport.send(entry);
       } catch (error) {
         // Fallback to console if transport fails
-        logger.error('Transport %s failed:, error', [object Object], { service: 'general' });
+        logger.error('Transport failed:', error, { service: 'general' });
       }
     }
   }
@@ -310,16 +310,16 @@ export class EnhancedLogger {
       const formatted = this.formatLogEntry(entry);
       switch (entry.level) {
         case 'debug':
-          console.debug(formatted);
+          logger.debug(formatted);
           break;
         case 'info':
-          logger.info('Log output', formatted, { service: 'general' });
+          logger.info(`Log output: ${formatted}`, { service: 'general' });
           break;
         case 'warn':
-          logger.warn('Log output', formatted, { service: 'general' });
+          logger.warn(`Log output: ${formatted}`, { service: 'general' });
           break;
         case 'error':
-          logger.error('Log output', formatted, { service: 'general' });
+          logger.error(`Log output: ${formatted}`, undefined, { service: 'general' });
           break;
       }
     }
@@ -339,12 +339,12 @@ export class EnhancedLogger {
       try {
         // Transports can implement batch sending
         if ('sendBatch' in transport && typeof transport.sendBatch === 'function') {
-          (transport as any).sendBatch(entries);
+          (transport as unknown).sendBatch(entries);
         } else {
           entries.forEach(entry => transport.send(entry));
         }
       } catch (error) {
-        logger.error('Transport %s batch failed:, error', [object Object], { service: 'general' });
+        logger.error('Transport batch failed:', error, { service: 'general' });
       }
     }
 
@@ -352,7 +352,7 @@ export class EnhancedLogger {
     if (this.config.environment === 'production' && this.transports.length === 0) {
       entries.forEach(entry => {
         const formatted = this.formatLogEntry(entry);
-        logger.info('Log output', formatted, { service: 'general' });
+        logger.info(`Log output: ${formatted}`, { service: 'general' });
       });
     }
   }
@@ -411,7 +411,7 @@ export class EnhancedLogger {
 
       // Try to extract useful info
       if (typeof error === 'object' && error !== null) {
-        const err = error as any;
+        const err = error as unknown;
         if (err.message) errorMetadata.message = err.message;
         if (err.code) errorMetadata.code = err.code;
         if (err.status) errorMetadata.status = err.status;
@@ -509,21 +509,21 @@ export const enhancedLogger = new EnhancedLogger();
 export class ConsoleTransport implements LogTransport {
   name = 'console';
 
-  async send(entry: LogEntry): Promise<void> {
+  async send(entry: EnhancedLogEntry): Promise<void> {
     const formatted = JSON.stringify(entry);
 
     switch (entry.level) {
       case 'debug':
-        console.debug(formatted);
+        logger.debug(formatted);
         break;
       case 'info':
-        logger.info('Log output', formatted, { service: 'general' });
+        logger.info(`Log output: ${formatted}`, { service: 'general' });
         break;
       case 'warn':
-        logger.warn('Log output', formatted, { service: 'general' });
+        logger.warn(`Log output: ${formatted}`, { service: 'general' });
         break;
       case 'error':
-        logger.error('Log output', formatted, { service: 'general' });
+        logger.error(`Log output: ${formatted}`, undefined, { service: 'general' });
         break;
     }
   }
@@ -534,47 +534,48 @@ export class ConsoleTransport implements LogTransport {
  */
 export class SentryTransport implements LogTransport {
   name = 'sentry';
-  private sentryClient: any;
+  private sentryClient: unknown;
 
-  constructor(sentryClient?: any) {
+  constructor(sentryClient?: unknown) {
     this.sentryClient = sentryClient;
   }
 
-  async send(entry: LogEntry): Promise<void> {
+  async send(entry: EnhancedLogEntry): Promise<void> {
     if (!this.sentryClient) {
       // Try to get Sentry from global scope
-      if (typeof window !== 'undefined' && (window as any).Sentry) {
-        this.sentryClient = (window as any).Sentry;
-      } else if (typeof global !== 'undefined' && (global as any).Sentry) {
-        this.sentryClient = (global as any).Sentry;
+      if (typeof window !== 'undefined' && (window as unknown).Sentry) {
+        this.sentryClient = (window as unknown).Sentry;
+      } else if (typeof global !== 'undefined' && (global as unknown).Sentry) {
+        this.sentryClient = (global as unknown).Sentry;
       }
     }
 
     if (!this.sentryClient) return;
 
     // Send appropriate level to Sentry
+    const client = this.sentryClient as unknown;
     switch (entry.level) {
       case 'error':
         if (entry.error) {
-          this.sentryClient.captureException(entry.error, {
+          client.captureException(entry.error, {
             contexts: { logger: entry.context },
             extra: entry.metadata,
           });
         } else {
-          this.sentryClient.captureMessage(entry.message, 'error', {
+          client.captureMessage(entry.message, 'error', {
             contexts: { logger: entry.context },
             extra: entry.metadata,
           });
         }
         break;
       case 'warn':
-        this.sentryClient.captureMessage(entry.message, 'warning', {
+        client.captureMessage(entry.message, 'warning', {
           contexts: { logger: entry.context },
           extra: entry.metadata,
         });
         break;
       case 'info':
-        this.sentryClient.addBreadcrumb({
+        client.addBreadcrumb({
           message: entry.message,
           level: 'info',
           data: entry.context,
@@ -582,7 +583,7 @@ export class SentryTransport implements LogTransport {
         });
         break;
       case 'debug':
-        this.sentryClient.addBreadcrumb({
+        client.addBreadcrumb({
           message: entry.message,
           level: 'debug',
           data: entry.context,

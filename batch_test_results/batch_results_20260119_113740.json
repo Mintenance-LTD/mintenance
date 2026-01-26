@@ -1,0 +1,110 @@
+{
+  "timestamp": "2026-01-19T11:37:40.606490",
+  "model": "best_model_final_v2.pt",
+  "image_directory": "yolo_dataset\\val\\images",
+  "confidence_threshold": 0.25,
+  "total_images": 5,
+  "successful_images": 5,
+  "failed_images": 0,
+  "total_detections": 5,
+  "class_statistics": {
+    "roofing_damage": 5
+  },
+  "results": [
+    {
+      "image": "yolo_dataset\\val\\images\\00377-3093835386-window-in-a-brick-wall_png_jpg.rf.2d4babe94ae97f74dc2d8ff1cf0f6a5e.jpg",
+      "success": true,
+      "detections_count": 1,
+      "detections": [
+        {
+          "class_id": 7,
+          "class_name": "roofing_damage",
+          "confidence": 0.40192949771881104,
+          "bbox": [
+            177.480224609375,
+            161.59735107421875,
+            440.83349609375,
+            520.0680541992188
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "image": "yolo_dataset\\val\\images\\00377-3093835386-window-in-a-brick-wall_png_jpg.rf.50c25972f1c4c5af930fe92386ac5eec.jpg",
+      "success": true,
+      "detections_count": 1,
+      "detections": [
+        {
+          "class_id": 7,
+          "class_name": "roofing_damage",
+          "confidence": 0.3662295341491699,
+          "bbox": [
+            180.99993896484375,
+            193.63677978515625,
+            429.6702880859375,
+            500.8870849609375
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "image": "yolo_dataset\\val\\images\\00386-3093835395-window-in-a-brick-wall_png_jpg.rf.451d3657bec3285b040ff65673595113.jpg",
+      "success": true,
+      "detections_count": 1,
+      "detections": [
+        {
+          "class_id": 7,
+          "class_name": "roofing_damage",
+          "confidence": 0.6052642464637756,
+          "bbox": [
+            186.41357421875,
+            62.12799072265625,
+            544.4384765625,
+            479.7841796875
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "image": "yolo_dataset\\val\\images\\00391-3093835400-window-in-a-brick-wall_png_jpg.rf.549214eb2e9085dae32baaf598ad73b0.jpg",
+      "success": true,
+      "detections_count": 1,
+      "detections": [
+        {
+          "class_id": 7,
+          "class_name": "roofing_damage",
+          "confidence": 0.7292711734771729,
+          "bbox": [
+            154.40301513671875,
+            68.06317138671875,
+            468.89971923828125,
+            477.00885009765625
+          ]
+        }
+      ],
+      "error": null
+    },
+    {
+      "image": "yolo_dataset\\val\\images\\00395-3093835404-window-in-a-brick-wall_png_jpg.rf.5624a71e7e6e699d780521caa3bb34f7.jpg",
+      "success": true,
+      "detections_count": 1,
+      "detections": [
+        {
+          "class_id": 7,
+          "class_name": "roofing_damage",
+          "confidence": 0.547419548034668,
+          "bbox": [
+            253.7237548828125,
+            47.93292236328125,
+            569.6361694335938,
+            462.9329833984375
+          ]
+        }
+      ],
+      "error": null
+    }
+  ]
+}

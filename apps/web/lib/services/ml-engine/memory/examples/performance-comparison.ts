@@ -30,7 +30,7 @@ const colors = {
 };
 
 function log(message: string, color: keyof typeof colors = 'reset') {
-  // logger.info('%s%s%s', [object Object], { service: 'lib' });
+  // logger.info('%s%s%s', { service: 'lib' });
 }
 
 function initializeWeights(architecture: number[]): {

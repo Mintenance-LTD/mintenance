@@ -38,7 +38,7 @@ export interface ScalingTrigger {
 
 export interface ScalingAction {
   type: 'scale_up' | 'scale_down' | 'scale_out' | 'scale_in' | 'failover' | 'alert';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   priority: number;
 }
 

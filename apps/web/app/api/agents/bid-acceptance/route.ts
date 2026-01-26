@@ -364,7 +364,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error: unknown) {
-    logger.error('Bid acceptance agent error:', error', [object Object], { service: 'api' });
+    logger.error('Bid acceptance agent error:', error, { service: 'api' });
 
     if (error.name === 'ZodError') {
       return NextResponse.json(

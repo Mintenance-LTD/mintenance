@@ -29,7 +29,7 @@ export class ReviewManager {
     rating: number;
     content: string;
     categories: ReviewCategories;
-    media?: any[];
+    media?: unknown[];
   }): Promise<BlockchainReview> {
     const operationId = performanceMonitor.startOperation('submit_blockchain_review');
 

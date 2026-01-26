@@ -1,16 +1,16 @@
 import React from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Animated, Easing, ViewStyle } from 'react-native';
 
 interface JobListSkeletonProps {
   count?: number;
-  style?: any;
+  style?: ViewStyle;
 }
 
 const SkeletonBox: React.FC<{
   width?: number | string;
   height?: number;
   borderRadius?: number;
-  style?: any;
+  style?: ViewStyle;
 }> = ({ width = '100%', height = 20, borderRadius = 4, style }) => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
 

@@ -3,11 +3,11 @@ import '../../test-utils/jest-globals';
 
 const createStub = () => global.jest?.fn?.() || (() => {});
 const createChainStub = () => global.jest?.fn?.() || (() => ({}));
-const createPromiseStub = (value: any) =>
+const createPromiseStub = (value: unknown) =>
   global.jest?.fn?.()?.mockResolvedValue?.(value) || (() => Promise.resolve(value));
 
 const createMockChain = () => {
-  const chain: any = {};
+  const chain: Record<string, unknown> = {};
 
   // Chain methods that return the chain
   const chainMethods = [

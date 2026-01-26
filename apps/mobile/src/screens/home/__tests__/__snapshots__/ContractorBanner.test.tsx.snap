@@ -1,0 +1,155 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ContractorBanner Rendering should match snapshot with null user 1`] = `
+<View
+  style={
+    {
+      "alignItems": "flex-end",
+      "backgroundColor": "#007AFF",
+      "flexDirection": "row",
+      "justifyContent": "space-between",
+      "paddingBottom": 32,
+      "paddingHorizontal": 0,
+      "paddingTop": 60,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "flex": 1,
+        "paddingLeft": 20,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#E5E5EA",
+          "fontSize": 14,
+          "fontWeight": "500",
+          "marginBottom": 4,
+        }
+      }
+    >
+      Mintenance Service Hub
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#E5E5EA",
+          "fontSize": 16,
+          "marginBottom": 4,
+        }
+      }
+    >
+      Good morning,
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontSize": 28,
+          "fontWeight": "700",
+          "marginBottom": 8,
+        }
+      }
+    />
+  </View>
+  <TouchableOpacity
+    accessibilityHint="Double tap to view and edit your profile"
+    accessibilityLabel="Profile"
+    accessibilityRole="button"
+    style={
+      {
+        "padding": 4,
+        "paddingRight": 20,
+      }
+    }
+  >
+    <Ionicons
+      color="#FFFFFF"
+      name="person-circle"
+      size={48}
+    />
+  </TouchableOpacity>
+</View>
+`;
+
+exports[`ContractorBanner Rendering should match snapshot with valid user 1`] = `
+<View
+  style={
+    {
+      "alignItems": "flex-end",
+      "backgroundColor": "#007AFF",
+      "flexDirection": "row",
+      "justifyContent": "space-between",
+      "paddingBottom": 32,
+      "paddingHorizontal": 0,
+      "paddingTop": 60,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "flex": 1,
+        "paddingLeft": 20,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#E5E5EA",
+          "fontSize": 14,
+          "fontWeight": "500",
+          "marginBottom": 4,
+        }
+      }
+    >
+      Mintenance Service Hub
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#E5E5EA",
+          "fontSize": 16,
+          "marginBottom": 4,
+        }
+      }
+    >
+      Good morning,
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontSize": 28,
+          "fontWeight": "700",
+          "marginBottom": 8,
+        }
+      }
+    >
+      John
+    </Text>
+  </View>
+  <TouchableOpacity
+    accessibilityHint="Double tap to view and edit your profile"
+    accessibilityLabel="Profile"
+    accessibilityRole="button"
+    style={
+      {
+        "padding": 4,
+        "paddingRight": 20,
+      }
+    }
+  >
+    <Ionicons
+      color="#FFFFFF"
+      name="person-circle"
+      size={48}
+    />
+  </TouchableOpacity>
+</View>
+`;

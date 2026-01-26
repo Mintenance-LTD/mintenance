@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { logger } from '@mintenance/shared';
 import {
   Check,
   X,
@@ -37,7 +38,6 @@ const staggerItem = {
 };
 
 import type { LucideIcon } from 'lucide-react';
-import { logger } from '@mintenance/shared';
 
 interface PricingPlan {
   id: string;
@@ -282,7 +282,7 @@ export default function PricingPage2025() {
         }
       }
     } catch (error) {
-      logger.error('Subscription creation error:', error', [object Object], { service: 'app' });
+      logger.error('Subscription creation error:', error);
       toast.error('Network error. Please check your connection and try again.');
     } finally {
       setLoadingPlan(null);

@@ -6,7 +6,7 @@
 import { PaymentService } from '../../services/PaymentService';
 
 // Test data generators
-export const generateTestPaymentIntent = (overrides: any = {}) => ({
+export const generateTestPaymentIntent = (overrides: Record<string, unknown> = {}) => ({
   id: 'pi_test_' + Math.random().toString(36).substr(2, 9),
   client_secret: 'pi_test_' + Math.random().toString(36).substr(2, 9) + '_secret_' + Math.random().toString(36).substr(2, 9),
   amount: 15000, // $150.00
@@ -15,7 +15,7 @@ export const generateTestPaymentIntent = (overrides: any = {}) => ({
   ...overrides,
 });
 
-export const generateTestPaymentMethod = (overrides: any = {}) => ({
+export const generateTestPaymentMethod = (overrides: Record<string, unknown> = {}) => ({
   id: 'pm_test_' + Math.random().toString(36).substr(2, 9),
   card: {
     brand: 'visa',
@@ -27,7 +27,7 @@ export const generateTestPaymentMethod = (overrides: any = {}) => ({
   ...overrides,
 });
 
-export const generateTestEscrowTransaction = (overrides: any = {}) => ({
+export const generateTestEscrowTransaction = (overrides: Record<string, unknown> = {}) => ({
   id: 'escrow_' + Math.random().toString(36).substr(2, 9),
   job_id: 'job_' + Math.random().toString(36).substr(2, 9),
   payer_id: 'homeowner_' + Math.random().toString(36).substr(2, 9),
@@ -77,7 +77,7 @@ export const createMockStripe3DS = () => ({
 });
 
 // Supabase mock helpers
-export const createMockSupabaseSuccess = (data: any) => ({
+export const createMockSupabaseSuccess = (data: unknown) => ({
   data,
   error: null,
 });

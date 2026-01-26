@@ -8,7 +8,7 @@
 import { logger } from './logger';
 
 // Safe Sentry imports
-let sentryFunctions: any = {};
+let sentryFunctions: Record<string, unknown> = {};
 
 try {
   const sentry = require('../config/sentry');
@@ -16,7 +16,7 @@ try {
     setUserContext: sentry.setUserContext || (() => {}),
     trackUserAction: sentry.trackUserAction || (() => {}),
     addBreadcrumb: sentry.addBreadcrumb || (() => {}),
-    measureAsyncPerformance: sentry.measureAsyncPerformance || ((fn: any) => fn()),
+    measureAsyncPerformance: sentry.measureAsyncPerformance || ((fn: unknown) => fn()),
   };
 } catch (error) {
   logger.debug('Sentry not available, using no-op functions');
@@ -24,7 +24,7 @@ try {
     setUserContext: () => {},
     trackUserAction: () => {},
     addBreadcrumb: () => {},
-    measureAsyncPerformance: (fn: any) => fn(),
+    measureAsyncPerformance: (fn: unknown) => fn(),
   };
 }
 

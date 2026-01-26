@@ -1,0 +1,521 @@
+npm warn config ignoring workspace config at C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\mobile/.npmrc
+
+> @mintenance/mobile@1.2.4 test
+> npx jest BiometricService.test.ts --coverage --collectCoverageFrom=src/services/BiometricService.ts
+
+npm warn config ignoring workspace config at C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\mobile/.npmrc
+FAIL mobile src/services/web/__tests__/WebBiometricService.test.ts
+  ● WebBiometricService › initialization › should be properly exported
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+    [0m [90m 22 |[39m   describe([32m'initialization'[39m[33m,[39m () [33m=>[39m {
+     [90m 23 |[39m     it([32m'should be properly exported'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 24 |[39m       expect(service)[33m.[39mtoBeDefined()[33m;[39m
+     [90m    |[39m                       [31m[1m^[22m[39m
+     [90m 25 |[39m     })[33m;[39m
+     [90m 26 |[39m   })[33m;[39m
+     [90m 27 |[39m[0m
+
+      at Object.toBeDefined (src/services/web/__tests__/WebBiometricService.test.ts:24:23)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+FAIL mobile src/services/__tests__/BiometricService.test.ts
+  ● BiometricService › Security edge cases › only stores refresh token, not access token
+
+    Storage full
+
+    [0m [90m 313 |[39m
+     [90m 314 |[39m     it([32m'handles SecureStore errors'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 315 |[39m       mockSecureStore[33m.[39msetItemAsync[33m.[39mmockRejectedValue([36mnew[39m [33mError[39m([32m'Storage full'[39m))[33m;[39m
+     [90m     |[39m                                                      [31m[1m^[22m[39m
+     [90m 316 |[39m
+     [90m 317 |[39m       [36mawait[39m expect([33mBiometricService[39m[33m.[39menableBiometric(email[33m,[39m tokens))[33m.[39mrejects[33m.[39mtoThrow(
+     [90m 318 |[39m         [32m'Storage full'[39m[0m
+
+      at Object.<anonymous> (src/services/__tests__/BiometricService.test.ts:315:54)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+FAIL mobile src/__tests__/services/BiometricService.test.ts
+  ● BiometricService › isAvailable › returns true when biometric hardware is available and enrolled
+
+    TypeError: _BiometricService.BiometricService.isAvailable is not a function
+
+    [0m [90m 60 |[39m       ])[33m;[39m
+     [90m 61 |[39m
+    [31m[1m>[22m[39m[90m 62 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39misAvailable()[33m;[39m
+     [90m    |[39m                                             [31m[1m^[22m[39m
+     [90m 63 |[39m
+     [90m 64 |[39m       expect(result)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 65 |[39m       expect(mockLocalAuth[33m.[39mhasHardwareAsync)[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at Object.isAvailable (src/__tests__/services/BiometricService.test.ts:62:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › isAvailable › returns false when hardware is not available
+
+    TypeError: _BiometricService.BiometricService.isAvailable is not a function
+
+    [0m [90m 75 |[39m       mockLocalAuth[33m.[39msupportedAuthenticationTypesAsync[33m.[39mmockResolvedValue([])[33m;[39m
+     [90m 76 |[39m
+    [31m[1m>[22m[39m[90m 77 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39misAvailable()[33m;[39m
+     [90m    |[39m                                             [31m[1m^[22m[39m
+     [90m 78 |[39m
+     [90m 79 |[39m       expect(result)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 80 |[39m     })[33m;[39m[0m
+
+      at Object.isAvailable (src/__tests__/services/BiometricService.test.ts:77:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › isAvailable › returns false when biometrics are not enrolled
+
+    TypeError: _BiometricService.BiometricService.isAvailable is not a function
+
+    [0m [90m 87 |[39m       ])[33m;[39m
+     [90m 88 |[39m
+    [31m[1m>[22m[39m[90m 89 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39misAvailable()[33m;[39m
+     [90m    |[39m                                             [31m[1m^[22m[39m
+     [90m 90 |[39m
+     [90m 91 |[39m       expect(result)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 92 |[39m     })[33m;[39m[0m
+
+      at Object.isAvailable (src/__tests__/services/BiometricService.test.ts:89:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › isAvailable › handles errors gracefully
+
+    TypeError: _BiometricService.BiometricService.isAvailable is not a function
+
+    [0m [90m  97 |[39m       )[33m;[39m
+     [90m  98 |[39m
+    [31m[1m>[22m[39m[90m  99 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39misAvailable()[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 100 |[39m
+     [90m 101 |[39m       expect(result)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 102 |[39m     })[33m;[39m[0m
+
+      at Object.isAvailable (src/__tests__/services/BiometricService.test.ts:99:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › getSupportedTypes › returns supported authentication types
+
+    TypeError: _BiometricService.BiometricService.getSupportedTypes is not a function
+
+    [0m [90m 113 |[39m       )[33m;[39m
+     [90m 114 |[39m
+    [31m[1m>[22m[39m[90m 115 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39mgetSupportedTypes()[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 116 |[39m
+     [90m 117 |[39m       expect(result)[33m.[39mtoEqual(mockTypes)[33m;[39m
+     [90m 118 |[39m     })[33m;[39m[0m
+
+      at Object.getSupportedTypes (src/__tests__/services/BiometricService.test.ts:115:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › getSupportedTypes › handles errors and returns empty array
+
+    TypeError: _BiometricService.BiometricService.getSupportedTypes is not a function
+
+    [0m [90m 123 |[39m       )[33m;[39m
+     [90m 124 |[39m
+    [31m[1m>[22m[39m[90m 125 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39mgetSupportedTypes()[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 126 |[39m
+     [90m 127 |[39m       expect(result)[33m.[39mtoEqual([])[33m;[39m
+     [90m 128 |[39m     })[33m;[39m[0m
+
+      at Object.getSupportedTypes (src/__tests__/services/BiometricService.test.ts:125:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › getTypeDisplayName › returns correct display name for fingerprint
+
+    TypeError: _BiometricService.BiometricService.getTypeDisplayName is not a function
+
+    [0m [90m 131 |[39m   describe([32m'getTypeDisplayName'[39m[33m,[39m () [33m=>[39m {
+     [90m 132 |[39m     it([32m'returns correct display name for fingerprint'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 133 |[39m       [36mconst[39m name [33m=[39m [33mBiometricService[39m[33m.[39mgetTypeDisplayName(
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 134 |[39m         [33mLocalAuthentication[39m[33m.[39m[33mAuthenticationType[39m[33m.[39m[33mFINGERPRINT[39m
+     [90m 135 |[39m       )[33m;[39m
+     [90m 136 |[39m       expect(name)[33m.[39mtoBe([32m'Fingerprint'[39m)[33m;[39m[0m
+
+      at Object.getTypeDisplayName (src/__tests__/services/BiometricService.test.ts:133:37)
+
+  ● BiometricService › getTypeDisplayName › returns correct display name for face ID
+
+    TypeError: _BiometricService.BiometricService.getTypeDisplayName is not a function
+
+    [0m [90m 138 |[39m
+     [90m 139 |[39m     it([32m'returns correct display name for face ID'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 140 |[39m       [36mconst[39m name [33m=[39m [33mBiometricService[39m[33m.[39mgetTypeDisplayName(
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 141 |[39m         [33mLocalAuthentication[39m[33m.[39m[33mAuthenticationType[39m[33m.[39m[33mFACIAL_RECOGNITION[39m
+     [90m 142 |[39m       )[33m;[39m
+     [90m 143 |[39m       expect(name)[33m.[39mtoBe([32m'Face ID'[39m)[33m;[39m[0m
+
+      at Object.getTypeDisplayName (src/__tests__/services/BiometricService.test.ts:140:37)
+
+  ● BiometricService › getTypeDisplayName › returns default for unknown type
+
+    TypeError: _BiometricService.BiometricService.getTypeDisplayName is not a function
+
+    [0m [90m 145 |[39m
+     [90m 146 |[39m     it([32m'returns default for unknown type'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 147 |[39m       [36mconst[39m name [33m=[39m [33mBiometricService[39m[33m.[39mgetTypeDisplayName([35m999[39m [36mas[39m any)[33m;[39m
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 148 |[39m       expect(name)[33m.[39mtoBe([32m'Biometric'[39m)[33m;[39m
+     [90m 149 |[39m     })[33m;[39m
+     [90m 150 |[39m   })[33m;[39m[0m
+
+      at Object.getTypeDisplayName (src/__tests__/services/BiometricService.test.ts:147:37)
+
+  ● BiometricService › isBiometricEnabled › returns true when biometric is enabled
+
+    TypeError: _BiometricService.BiometricService.isBiometricEnabled is not a function
+
+    [0m [90m 154 |[39m       mockSecureStore[33m.[39mgetItemAsync[33m.[39mmockResolvedValue([32m'true'[39m)[33m;[39m
+     [90m 155 |[39m
+    [31m[1m>[22m[39m[90m 156 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39misBiometricEnabled()[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 157 |[39m
+     [90m 158 |[39m       expect(result)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 159 |[39m       expect(mockSecureStore[33m.[39mgetItemAsync)[33m.[39mtoHaveBeenCalledWith([0m
+
+      at Object.isBiometricEnabled (src/__tests__/services/BiometricService.test.ts:156:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › isBiometricEnabled › returns false when biometric is not enabled
+
+    TypeError: _BiometricService.BiometricService.isBiometricEnabled is not a function
+
+    [0m [90m 165 |[39m       mockSecureStore[33m.[39mgetItemAsync[33m.[39mmockResolvedValue([32m'false'[39m)[33m;[39m
+     [90m 166 |[39m
+    [31m[1m>[22m[39m[90m 167 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39misBiometricEnabled()[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 168 |[39m
+     [90m 169 |[39m       expect(result)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 170 |[39m     })[33m;[39m[0m
+
+      at Object.isBiometricEnabled (src/__tests__/services/BiometricService.test.ts:167:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › isBiometricEnabled › handles errors and returns false
+
+    TypeError: _BiometricService.BiometricService.isBiometricEnabled is not a function
+
+    [0m [90m 175 |[39m       )[33m;[39m
+     [90m 176 |[39m
+    [31m[1m>[22m[39m[90m 177 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39misBiometricEnabled()[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 178 |[39m
+     [90m 179 |[39m       expect(result)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 180 |[39m     })[33m;[39m[0m
+
+      at Object.isBiometricEnabled (src/__tests__/services/BiometricService.test.ts:177:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › enableBiometric › successfully enables biometric authentication
+
+    TypeError: _BiometricService.BiometricService.enableBiometric is not a function
+
+    [0m [90m 193 |[39m       mockSecureStore[33m.[39msetItemAsync[33m.[39mmockResolvedValue()[33m;[39m
+     [90m 194 |[39m
+    [31m[1m>[22m[39m[90m 195 |[39m       [36mawait[39m [33mBiometricService[39m[33m.[39menableBiometric([32m'test@example.com'[39m[33m,[39m {
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 196 |[39m         accessToken[33m:[39m [32m'access123'[39m[33m,[39m
+     [90m 197 |[39m         refreshToken[33m:[39m [32m'refresh123'[39m[33m,[39m
+     [90m 198 |[39m       })[33m;[39m[0m
+
+      at Object.enableBiometric (src/__tests__/services/BiometricService.test.ts:195:30)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › enableBiometric › throws error when biometric is not available
+
+    TypeError: _BiometricService.BiometricService.enableBiometric is not a function
+
+    [0m [90m 216 |[39m
+     [90m 217 |[39m       [36mawait[39m expect(
+    [31m[1m>[22m[39m[90m 218 |[39m         [33mBiometricService[39m[33m.[39menableBiometric([32m'test@example.com'[39m[33m,[39m {
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 219 |[39m           accessToken[33m:[39m [32m'access123'[39m[33m,[39m
+     [90m 220 |[39m           refreshToken[33m:[39m [32m'refresh123'[39m[33m,[39m
+     [90m 221 |[39m         })[0m
+
+      at Object.enableBiometric (src/__tests__/services/BiometricService.test.ts:218:26)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › enableBiometric › throws error when session tokens are missing
+
+    TypeError: _BiometricService.BiometricService.enableBiometric is not a function
+
+    [0m [90m 226 |[39m     it([32m'throws error when session tokens are missing'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m 227 |[39m       [36mawait[39m expect(
+    [31m[1m>[22m[39m[90m 228 |[39m         [33mBiometricService[39m[33m.[39menableBiometric([32m'test@example.com'[39m[33m,[39m {
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 229 |[39m           accessToken[33m:[39m [32m''[39m[33m,[39m
+     [90m 230 |[39m           refreshToken[33m:[39m [32m''[39m[33m,[39m
+     [90m 231 |[39m         })[0m
+
+      at Object.enableBiometric (src/__tests__/services/BiometricService.test.ts:228:26)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › authenticate › successfully authenticates and returns credentials
+
+    TypeError: _BiometricService.BiometricService.authenticate is not a function
+
+    [0m [90m 264 |[39m       })[33m;[39m
+     [90m 265 |[39m
+    [31m[1m>[22m[39m[90m 266 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39mauthenticate()[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 267 |[39m
+     [90m 268 |[39m       expect(result)[33m.[39mtoEqual({
+     [90m 269 |[39m         email[33m:[39m [32m'test@example.com'[39m[33m,[39m[0m
+
+      at Object.authenticate (src/__tests__/services/BiometricService.test.ts:266:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › authenticate › returns null when authentication fails
+
+    TypeError: _BiometricService.BiometricService.authenticate is not a function
+
+    [0m [90m 280 |[39m       })[33m;[39m
+     [90m 281 |[39m
+    [31m[1m>[22m[39m[90m 282 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39mauthenticate()[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 283 |[39m
+     [90m 284 |[39m       expect(result)[33m.[39mtoBeNull()[33m;[39m
+     [90m 285 |[39m     })[33m;[39m[0m
+
+      at Object.authenticate (src/__tests__/services/BiometricService.test.ts:282:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › authenticate › returns null when biometric is not enabled
+
+    TypeError: _BiometricService.BiometricService.authenticate is not a function
+
+    [0m [90m 291 |[39m       })[33m;[39m
+     [90m 292 |[39m
+    [31m[1m>[22m[39m[90m 293 |[39m       [36mconst[39m result [33m=[39m [36mawait[39m [33mBiometricService[39m[33m.[39mauthenticate()[33m;[39m
+     [90m     |[39m                                             [31m[1m^[22m[39m
+     [90m 294 |[39m
+     [90m 295 |[39m       expect(result)[33m.[39mtoBeNull()[33m;[39m
+     [90m 296 |[39m     })[33m;[39m[0m
+
+      at Object.authenticate (src/__tests__/services/BiometricService.test.ts:293:45)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › authenticate › throws error when credentials are not found
+
+    TypeError: _BiometricService.BiometricService.authenticate is not a function
+
+    [0m [90m 308 |[39m       })[33m;[39m
+     [90m 309 |[39m
+    [31m[1m>[22m[39m[90m 310 |[39m       [36mawait[39m expect([33mBiometricService[39m[33m.[39mauthenticate())[33m.[39mrejects[33m.[39mtoThrow(
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 311 |[39m         [32m'Biometric credentials not found'[39m
+     [90m 312 |[39m       )[33m;[39m
+     [90m 313 |[39m     })[33m;[39m[0m
+
+      at Object.authenticate (src/__tests__/services/BiometricService.test.ts:310:37)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › throws error when stored credentials lack tokens
+
+    TypeError: _BiometricService.BiometricService.authenticate is not a function
+
+    [0m [90m 327 |[39m       })[33m;[39m
+     [90m 328 |[39m
+    [31m[1m>[22m[39m[90m 329 |[39m       [36mawait[39m expect([33mBiometricService[39m[33m.[39mauthenticate())[33m.[39mrejects[33m.[39mtoThrow(
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 330 |[39m         [32m'Saved biometric credentials are incomplete. Please sign in again.'[39m
+     [90m 331 |[39m       )[33m;[39m
+     [90m 332 |[39m     })[33m;[39m[0m
+
+      at Object.authenticate (src/__tests__/services/BiometricService.test.ts:329:37)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › disableBiometric › successfully disables biometric authentication
+
+    TypeError: _BiometricService.BiometricService.disableBiometric is not a function
+
+    [0m [90m 336 |[39m       mockSecureStore[33m.[39mdeleteItemAsync[33m.[39mmockResolvedValue()[33m;[39m
+     [90m 337 |[39m
+    [31m[1m>[22m[39m[90m 338 |[39m       [36mawait[39m [33mBiometricService[39m[33m.[39mdisableBiometric()[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 339 |[39m
+     [90m 340 |[39m       expect(mockSecureStore[33m.[39mdeleteItemAsync)[33m.[39mtoHaveBeenCalledWith(
+     [90m 341 |[39m         [32m'biometric_credentials'[39m[0m
+
+      at Object.disableBiometric (src/__tests__/services/BiometricService.test.ts:338:30)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › disableBiometric › handles errors gracefully
+
+    TypeError: _BiometricService.BiometricService.disableBiometric is not a function
+
+    [0m [90m 351 |[39m       )[33m;[39m
+     [90m 352 |[39m
+    [31m[1m>[22m[39m[90m 353 |[39m       [36mawait[39m expect([33mBiometricService[39m[33m.[39mdisableBiometric())[33m.[39mrejects[33m.[39mtoThrow(
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 354 |[39m         [32m'Delete failed'[39m
+     [90m 355 |[39m       )[33m;[39m
+     [90m 356 |[39m     })[33m;[39m[0m
+
+      at Object.disableBiometric (src/__tests__/services/BiometricService.test.ts:353:37)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › clearBiometricData › clears all biometric data
+
+    TypeError: _BiometricService.BiometricService.clearBiometricData is not a function
+
+    [0m [90m 361 |[39m       mockSecureStore[33m.[39mdeleteItemAsync[33m.[39mmockResolvedValue()[33m;[39m
+     [90m 362 |[39m
+    [31m[1m>[22m[39m[90m 363 |[39m       [36mawait[39m [33mBiometricService[39m[33m.[39mclearBiometricData()[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 364 |[39m
+     [90m 365 |[39m       expect(mockSecureStore[33m.[39mdeleteItemAsync)[33m.[39mtoHaveBeenCalledWith(
+     [90m 366 |[39m         [32m'biometric_credentials'[39m[0m
+
+      at Object.clearBiometricData (src/__tests__/services/BiometricService.test.ts:363:30)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › clearBiometricData › handles errors silently
+
+    TypeError: _BiometricService.BiometricService.clearBiometricData is not a function
+
+    [0m [90m 377 |[39m
+     [90m 378 |[39m       [90m// Should not throw[39m
+    [31m[1m>[22m[39m[90m 379 |[39m       [36mawait[39m [33mBiometricService[39m[33m.[39mclearBiometricData()[33m;[39m
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 380 |[39m
+     [90m 381 |[39m       expect(mockSecureStore[33m.[39mdeleteItemAsync)[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 382 |[39m     })[33m;[39m[0m
+
+      at Object.clearBiometricData (src/__tests__/services/BiometricService.test.ts:379:30)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › promptEnableBiometric › shows prompt when biometric is available
+
+    TypeError: _BiometricService.BiometricService.promptEnableBiometric is not a function
+
+    [0m [90m 401 |[39m       })[33m;[39m
+     [90m 402 |[39m
+    [31m[1m>[22m[39m[90m 403 |[39m       [36mawait[39m [33mBiometricService[39m[33m.[39mpromptEnableBiometric(
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 404 |[39m         [32m'test@example.com'[39m[33m,[39m
+     [90m 405 |[39m         mockOnEnable
+     [90m 406 |[39m       )[33m;[39m[0m
+
+      at Object.promptEnableBiometric (src/__tests__/services/BiometricService.test.ts:403:30)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  ● BiometricService › promptEnableBiometric › does not show prompt when biometric is not available
+
+    TypeError: _BiometricService.BiometricService.promptEnableBiometric is not a function
+
+    [0m [90m 418 |[39m       [36mconst[39m mockOnEnable [33m=[39m jest[33m.[39mfn(() [33m=>[39m [33mPromise[39m[33m.[39mresolve())[33m;[39m
+     [90m 419 |[39m
+    [31m[1m>[22m[39m[90m 420 |[39m       [36mawait[39m [33mBiometricService[39m[33m.[39mpromptEnableBiometric(
+     [90m     |[39m                              [31m[1m^[22m[39m
+     [90m 421 |[39m         [32m'test@example.com'[39m[33m,[39m
+     [90m 422 |[39m         mockOnEnable
+     [90m 423 |[39m       )[33m;[39m[0m
+
+      at Object.promptEnableBiometric (src/__tests__/services/BiometricService.test.ts:420:30)
+      at asyncGeneratorStep (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at ../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (../../node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+---------------------|---------|----------|---------|---------|-------------------
+File                 | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+---------------------|---------|----------|---------|---------|-------------------
+All files            |     100 |      100 |     100 |     100 |                   
+ BiometricService.ts |     100 |      100 |     100 |     100 |                   
+---------------------|---------|----------|---------|---------|-------------------
+Test Suites: 3 failed, 3 total
+Tests:       28 failed, 53 passed, 81 total
+Snapshots:   0 total
+Time:        4.545 s
+Ran all test suites matching /BiometricService.test.ts/i.
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\mobile
+npm error workspace @mintenance/mobile@1.2.4
+npm error location C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\mobile
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c npx jest BiometricService.test.ts --coverage --collectCoverageFrom=src/services/BiometricService.ts

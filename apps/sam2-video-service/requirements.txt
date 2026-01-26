@@ -16,6 +16,7 @@ numpy==1.24.3
 # Machine learning
 torch>=2.0.0
 torchvision>=0.15.0
+ultralytics>=8.4.6
 
 # SAM 2 (install from source)
 # git clone https://github.com/facebookresearch/sam2.git

@@ -140,7 +140,7 @@ class ToastService {
     messages: {
       loading?: string;
       success?: string | ((data: T) => string);
-      error?: string | ((error: any) => string);
+      error?: string | ((error: unknown) => string);
     },
     options?: Partial<ToastConfig>
   ): Promise<T> {
@@ -240,8 +240,11 @@ export const useToast = () => {
       toastManager.loading(title, message, options),
 
     // Promise helper
-    promise: (promise: Promise<any>, messages: any, options?: Partial<ToastConfig>) =>
-      toastManager.promise(promise, messages, options),
+    promise: <T,>(
+      promise: Promise<T>,
+      messages: { loading?: string; success?: string; error?: string },
+      options?: Partial<ToastConfig>
+    ) => toastManager.promise(promise, messages, options),
   };
 };
 

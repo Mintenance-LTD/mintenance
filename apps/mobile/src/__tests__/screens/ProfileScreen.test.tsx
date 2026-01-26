@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { act } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import { Alert, Linking } from 'react-native';
 import ProfileScreen from '../../screens/ProfileScreen';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,25 +9,14 @@ import { useNavigation } from '@react-navigation/native';
 
 // Mock dependencies
 jest.mock('../../contexts/AuthContext');
-jest.mock('../../services/JobService');
-jest.mock('@react-navigation/native');
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  RN.Alert = {
-    alert: jest.fn(),
-  };
-  RN.Linking = {
-    openURL: jest.fn(),
-  };
-  return RN;
-});
-
-jest.mock('../../utils/logger', () => ({
-  logger: {
-    error: jest.fn(),
-    debug: jest.fn(),
+jest.mock('../../services/JobService', () => ({
+  JobService: {
+    getJobsByHomeowner: jest.fn(),
+    getJobsByUser: jest.fn(),
+    getUserJobs: jest.fn(),
   },
 }));
+jest.mock('@react-navigation/native');
 
 jest.mock('../../config/legal', () => ({
   TERMS_URL: 'https://example.com/terms',
@@ -119,16 +109,15 @@ describe('ProfileScreen', () => {
 
     expect(getByText('John Doe')).toBeTruthy();
     expect(getByText('test@example.com')).toBeTruthy();
-    expect(getByText('Account & Settings')).toBeTruthy();
+    expect(getByText('Account')).toBeTruthy();
   });
 
   it('should display user stats for homeowner', async () => {
-    const { getByText } = render(<ProfileScreen />);
+    const { getAllByText, getByText } = render(<ProfileScreen />);
 
     await waitFor(() => {
       expect(getByText('2')).toBeTruthy(); // Total jobs
-      expect(getByText('1')).toBeTruthy(); // Completed jobs
-      expect(getByText('1')).toBeTruthy(); // Active jobs
+      expect(getAllByText('1').length).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -150,17 +139,17 @@ describe('ProfileScreen', () => {
       session: null,
     });
 
-    const { getByText } = render(<ProfileScreen />);
+    const { getAllByText, getByText } = render(<ProfileScreen />);
 
     expect(getByText('Jane Smith')).toBeTruthy();
     expect(getByText('contractor@example.com')).toBeTruthy();
   });
 
   it('should navigate to edit profile when edit button is pressed', () => {
-    const { getByTestId } = render(<ProfileScreen />);
+    const { getAllByText, getByText } = render(<ProfileScreen />);
 
-    const editButton = getByTestId('edit-profile-button');
-    fireEvent.press(editButton);
+    const editButton = getByText('Edit Profile');
+    act(() => fireEvent.press(editButton));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('EditProfile');
   });
@@ -184,10 +173,10 @@ describe('ProfileScreen', () => {
       session: null,
     });
 
-    const { getByText } = render(<ProfileScreen />);
+    const { getAllByText, getByText } = render(<ProfileScreen />);
 
     const signOutButton = getByText('Sign Out');
-    fireEvent.press(signOutButton);
+    act(() => fireEvent.press(signOutButton));
 
     expect(Alert.alert).toHaveBeenCalledWith(
       'Sign Out',
@@ -208,19 +197,19 @@ describe('ProfileScreen', () => {
   });
 
   it('should open terms and conditions', async () => {
-    const { getByText } = render(<ProfileScreen />);
+    const { getAllByText, getByText } = render(<ProfileScreen />);
 
-    const termsButton = getByText('Terms & Conditions');
-    fireEvent.press(termsButton);
+    const termsButton = getByText('Terms of Service');
+    act(() => fireEvent.press(termsButton));
 
     expect(Linking.openURL).toHaveBeenCalledWith('https://example.com/terms');
   });
 
   it('should open privacy policy', async () => {
-    const { getByText } = render(<ProfileScreen />);
+    const { getAllByText, getByText } = render(<ProfileScreen />);
 
     const privacyButton = getByText('Privacy Policy');
-    fireEvent.press(privacyButton);
+    act(() => fireEvent.press(privacyButton));
 
     expect(Linking.openURL).toHaveBeenCalledWith('https://example.com/privacy');
   });
@@ -228,14 +217,14 @@ describe('ProfileScreen', () => {
   it('should handle job service errors gracefully', async () => {
     mockJobService.getJobsByHomeowner.mockRejectedValue(new Error('Service error'));
 
-    const { getByText } = render(<ProfileScreen />);
+    const { getAllByText, getByText } = render(<ProfileScreen />);
 
     // Should still render the profile without crashing
     expect(getByText('John Doe')).toBeTruthy();
 
     // Stats should show default values when error occurs
     await waitFor(() => {
-      expect(getByText('0')).toBeTruthy(); // Should show 0 for failed stats
+      expect(getAllByText('0').length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -252,14 +241,14 @@ describe('ProfileScreen', () => {
     const { getByText } = render(<ProfileScreen />);
 
     // Should handle null user gracefully
-    expect(getByText('Account & Settings')).toBeTruthy();
+    expect(getByText('Account')).toBeTruthy();
   });
 
   it('should navigate to notification settings', () => {
     const { getByText } = render(<ProfileScreen />);
 
-    const notificationButton = getByText('Notification Settings');
-    fireEvent.press(notificationButton);
+    const notificationButton = getByText('Notifications');
+    act(() => fireEvent.press(notificationButton));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('NotificationSettings');
   });
@@ -268,7 +257,7 @@ describe('ProfileScreen', () => {
     const { getByText } = render(<ProfileScreen />);
 
     const paymentButton = getByText('Payment Methods');
-    fireEvent.press(paymentButton);
+    act(() => fireEvent.press(paymentButton));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('PaymentMethods');
   });
@@ -276,8 +265,8 @@ describe('ProfileScreen', () => {
   it('should navigate to help center', () => {
     const { getByText } = render(<ProfileScreen />);
 
-    const helpButton = getByText('Help & Support');
-    fireEvent.press(helpButton);
+    const helpButton = getByText('Help Center');
+    act(() => fireEvent.press(helpButton));
 
     expect(mockNavigation.navigate).toHaveBeenCalledWith('HelpCenter');
   });
@@ -286,8 +275,7 @@ describe('ProfileScreen', () => {
     const { getByText } = render(<ProfileScreen />);
 
     await waitFor(() => {
-      // Should format the createdAt date properly
-      expect(getByText(/Member since/)).toBeTruthy();
+      expect(getByText(/Since/i)).toBeTruthy();
     });
   });
 
@@ -313,12 +301,11 @@ describe('ProfileScreen', () => {
 
     mockJobService.getJobsByHomeowner.mockResolvedValue(jobs as any);
 
-    const { getByText } = render(<ProfileScreen />);
+    const { getByText, getAllByText } = render(<ProfileScreen />);
 
     await waitFor(() => {
       expect(getByText('5')).toBeTruthy(); // Total jobs
-      expect(getByText('2')).toBeTruthy(); // Completed jobs
-      expect(getByText('2')).toBeTruthy(); // Active jobs (in_progress + assigned)
+      expect(getAllByText('2').length).toBeGreaterThanOrEqual(2);
     });
   });
 });

@@ -1,0 +1,61 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ServiceAreasHeader Snapshot should match snapshot 1`] = `
+<View
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "#0F172A",
+      "flexDirection": "row",
+      "justifyContent": "space-between",
+      "paddingBottom": 16,
+      "paddingHorizontal": 16,
+      "paddingTop": 60,
+    }
+  }
+>
+  <TouchableOpacity
+    onPress={[Function]}
+    style={
+      {
+        "padding": 8,
+      }
+    }
+  >
+    <Text
+      color="#FFFFFF"
+      size={24}
+      testID="icon-arrow-back"
+    >
+      arrow-back
+    </Text>
+  </TouchableOpacity>
+  <Text
+    style={
+      {
+        "color": "#FFFFFF",
+        "fontSize": 20,
+        "fontWeight": "600",
+      }
+    }
+  >
+    Service Areas
+  </Text>
+  <TouchableOpacity
+    onPress={[Function]}
+    style={
+      {
+        "padding": 8,
+      }
+    }
+  >
+    <Text
+      color="#FFFFFF"
+      size={24}
+      testID="icon-add"
+    >
+      add
+    </Text>
+  </TouchableOpacity>
+</View>
+`;

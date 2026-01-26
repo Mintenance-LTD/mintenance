@@ -60,7 +60,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       await AuthService.resetPassword(email);
       setSuccess(true);
       logger.info('Password reset email sent', { email });
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Password reset failed', error);
       setErrorMessage(
         error.message ||
@@ -70,7 +70,6 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
       setLoading(false);
     }
   };
-
 
   if (success) {
     return (

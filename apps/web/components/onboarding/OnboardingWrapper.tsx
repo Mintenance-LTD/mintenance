@@ -35,10 +35,10 @@ export function OnboardingWrapper({
     userType,
     autoStart,
     onComplete: () => {
-      // logger.info('Onboarding completed!', [object Object], { service: 'ui' });
+      // logger.info('Onboarding completed!', { service: 'ui' });
     },
     onSkip: () => {
-      // logger.info('Onboarding skipped', [object Object], { service: 'ui' });
+      // logger.info('Onboarding skipped', { service: 'ui' });
     },
   });
 

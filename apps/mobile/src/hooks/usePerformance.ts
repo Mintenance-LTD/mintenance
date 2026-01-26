@@ -70,7 +70,7 @@ export const useDebounced = <T>(
  * Hook to throttle expensive operations
  * Limits the frequency of function calls
  */
-export const useThrottled = <T extends (...args: any[]) => any>(
+export const useThrottled = <T extends (...args: unknown[]) => any>(
   callback: T,
   delay: number = 300
 ): T => {
@@ -140,7 +140,7 @@ export const useListOptimization = (
   }, [windowHeight, itemHeight]);
 
   const getItemLayout = useCallback(
-    (data: any, index: number) => ({
+    (data: unknown, index: number) => ({
       length: itemHeight,
       offset: itemHeight * index,
       index,
@@ -149,7 +149,7 @@ export const useListOptimization = (
   );
 
   const keyExtractor = useCallback(
-    (item: any, index: number) => {
+    (item: unknown, index: number) => {
       return item?.id?.toString() || index.toString();
     },
     []

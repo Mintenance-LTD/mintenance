@@ -1,6 +1,53 @@
-# PROJECT INSTRUCTIONS - MINTENANCE CODEBASE
+# CLAUDE MANDATORY DEVELOPMENT CONTRACT (MDC) - MINTENANCE CODEBASE
 
-## MANDATORY SUB-AGENT USAGE RULES
+## ⚠️ CRITICAL: CODE QUALITY CATASTROPHE DETECTED
+
+**Current State: F Grade (35/100) - IMMEDIATE ACTION REQUIRED**
+- 1,054 line functions (52x over limit)
+- 1,700 `any` types (should be 0)
+- 3,189 console statements (should be 0)
+- <10% test coverage (should be 80%)
+
+## SECTION 1: ABSOLUTE VERIFICATION REQUIREMENTS - NO FALSE RESULTS
+
+### ZERO TOLERANCE FOR FALSE CLAIMS
+
+**BEFORE making ANY claim, you MUST:**
+1. **RUN the actual command** - No assumptions
+2. **CAPTURE real output** - No summaries
+3. **SHOW evidence** - No hiding failures
+4. **VERIFY it works** - No theoretical fixes
+
+**VERIFICATION PROTOCOL FOR EVERY CHANGE:**
+```bash
+# 1. Type check
+npx tsc --noEmit [file] 2>&1
+
+# 2. Lint check
+npx eslint [file] 2>&1
+
+# 3. Test check
+npm test -- [file].test.ts 2>&1
+
+# 4. Build check
+npm run build 2>&1
+
+# MUST show ALL outputs, even failures
+```
+
+## SECTION 2: MANDATORY CODE STANDARDS - BUILD WILL FAIL
+
+### HARD LIMITS (NO EXCEPTIONS):
+| Metric | Maximum | Current Violation | Priority |
+|--------|---------|-------------------|----------|
+| File size | 300 lines | 1,200 lines (4x) | CRITICAL |
+| Function size | 50 lines | 1,054 lines (21x) | CRITICAL |
+| Class methods | 7 | 33 methods (5x) | HIGH |
+| `any` types | 0 | 1,700 | CRITICAL |
+| console.* | 0 | 3,189 | CRITICAL |
+| Test coverage | 80% | <10% | CRITICAL |
+
+## SECTION 3: MANDATORY SUB-AGENT USAGE RULES
 
 ### CRITICAL: Sub-Agent Invocation Requirements
 

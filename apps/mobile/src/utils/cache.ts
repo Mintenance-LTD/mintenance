@@ -51,7 +51,7 @@ export interface CacheStats {
 
 export interface CacheStrategy {
   name: string;
-  shouldCache: (key: string, value: any, config?: CacheConfig) => boolean;
+  shouldCache: (key: string, value: unknown, config?: CacheConfig) => boolean;
   shouldEvict: (entry: CacheEntry, stats: CacheStats) => boolean;
   getPriority: (entry: CacheEntry) => number;
 }
@@ -295,7 +295,7 @@ export class CacheManager {
     this.strategy = strategy;
   }
 
-  async warmup(keys: string[], fetcher: (key: string) => Promise<any>): Promise<number> {
+  async warmup(keys: string[], fetcher: (key: string) => Promise<unknown>): Promise<number> {
     let warmedCount = 0;
 
     for (const key of keys) {
@@ -314,7 +314,7 @@ export class CacheManager {
     return warmedCount;
   }
 
-  async prefetch(keys: string[], fetcher: (key: string) => Promise<any>): Promise<number> {
+  async prefetch(keys: string[], fetcher: (key: string) => Promise<unknown>): Promise<number> {
     const prefetchPromises = keys.map(async (key) => {
       try {
         const existing = await this.get(key);
@@ -413,7 +413,7 @@ export class CacheManager {
     await this.clear();
   }
 
-  private serializeValue<T>(value: T): any {
+  private serializeValue<T>(value: T): unknown {
     try {
       return JSON.stringify(value);
     } catch {
@@ -421,7 +421,7 @@ export class CacheManager {
     }
   }
 
-  private deserializeValue<T>(value: any): T {
+  private deserializeValue<T>(value: unknown): T {
     try {
       return typeof value === 'string' ? JSON.parse(value) : value;
     } catch {
@@ -429,12 +429,12 @@ export class CacheManager {
     }
   }
 
-  private async compressValue(value: any): Promise<any> {
+  private async compressValue(value: unknown): Promise<unknown> {
     // In a real implementation, you'd use a compression library
     return value; // Placeholder
   }
 
-  private async encryptValue(value: any): Promise<any> {
+  private async encryptValue(value: unknown): Promise<unknown> {
     // In a real implementation, you'd use encryption
     return value; // Placeholder
   }
@@ -516,7 +516,7 @@ export class CacheManager {
 // UTILITY FUNCTIONS
 // ============================================================================
 
-function calculateSize(value: any): number {
+function calculateSize(value: unknown): number {
   if (typeof value === 'string') {
     return value.length * 2; // Rough estimate for UTF-16
   }

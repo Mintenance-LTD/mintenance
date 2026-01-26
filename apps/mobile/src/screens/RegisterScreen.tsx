@@ -99,8 +99,8 @@ const RegisterScreen: React.FC<Props> = () => {
         lastName: lastName.trim(),
         role,
       };
-      if ((signUp as any)?.mock) {
-        await (signUp as any)(payload);
+      if ((signUp as unknown)?.mock) {
+        await (signUp as unknown)(payload);
       } else {
         await signUp(payload.email, payload.password, {
           firstName: payload.firstName,
@@ -118,7 +118,7 @@ const RegisterScreen: React.FC<Props> = () => {
       setRole('homeowner');
       setTermsAccepted(false);
       setSubmissionSuccess('Account created! You can now sign in.');
-    } catch (error: any) {
+    } catch (error) {
       setSubmissionError(error.message);
       setSubmissionSuccess(null);
     }

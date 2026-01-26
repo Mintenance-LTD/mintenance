@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Integration tests for PricingAgent with LocationPricingService
  *
@@ -8,41 +9,41 @@ import { PricingAgent } from '../PricingAgent';
 import { LocationPricingService } from '../../location/LocationPricingService';
 
 // Mock dependencies
-jest.mock('@/lib/api/supabaseServer', () => ({
+vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          single: jest.fn(() => Promise.resolve({ data: null, error: null })),
-          limit: jest.fn(() => Promise.resolve({ data: [], error: null })),
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({ data: null, error: null })),
+          limit: vi.fn(() => Promise.resolve({ data: [], error: null })),
         })),
-        gte: jest.fn(() => ({
-          eq: jest.fn(() => Promise.resolve({ count: 0 })),
+        gte: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ count: 0 })),
         })),
       })),
-      insert: jest.fn(() => ({
-        select: jest.fn(() => ({
-          single: jest.fn(() => Promise.resolve({ data: { id: 'test-id' }, error: null })),
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          single: vi.fn(() => Promise.resolve({ data: { id: 'test-id' }, error: null })),
         })),
       })),
     })),
   },
 }));
 
-jest.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
 // Mock fetch for postcodes.io
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 describe('PricingAgent - Location Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     LocationPricingService.clearCaches();
   });
 
@@ -76,19 +77,19 @@ describe('PricingAgent - Location Integration', () => {
       serverSupabase.from.mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: mockJob, error: null })),
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockJob, error: null })),
               })),
             })),
           };
         }
         if (table === 'bids') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                order: jest.fn(() => ({
-                  limit: jest.fn(() => Promise.resolve({
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => ({
+                  limit: vi.fn(() => Promise.resolve({
                     data: mockBids.map(b => ({
                       amount: b.amount,
                       jobs: { category: 'plumbing', location: 'London' },
@@ -102,18 +103,18 @@ describe('PricingAgent - Location Integration', () => {
         }
         if (table === 'pricing_recommendations') {
           return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: { id: 'rec-1' }, error: null })),
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: { id: 'rec-1' }, error: null })),
               })),
             })),
           };
         }
         return {
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              gte: jest.fn(() => ({
-                eq: jest.fn(() => Promise.resolve({ count: 0 })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              gte: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({ count: 0 })),
               })),
             })),
           })),
@@ -121,7 +122,7 @@ describe('PricingAgent - Location Integration', () => {
       });
 
       // Mock postcodes.io API
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           status: 200,
@@ -179,19 +180,19 @@ describe('PricingAgent - Location Integration', () => {
       serverSupabase.from.mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: mockJob, error: null })),
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockJob, error: null })),
               })),
             })),
           };
         }
         if (table === 'bids') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                order: jest.fn(() => ({
-                  limit: jest.fn(() => Promise.resolve({
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => ({
+                  limit: vi.fn(() => Promise.resolve({
                     data: mockBids.map(b => ({
                       amount: b.amount,
                       jobs: { category: 'electrical', location: 'Newcastle' },
@@ -205,25 +206,25 @@ describe('PricingAgent - Location Integration', () => {
         }
         if (table === 'pricing_recommendations') {
           return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: { id: 'rec-2' }, error: null })),
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: { id: 'rec-2' }, error: null })),
               })),
             })),
           };
         }
         return {
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              gte: jest.fn(() => ({
-                eq: jest.fn(() => Promise.resolve({ count: 0 })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              gte: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({ count: 0 })),
               })),
             })),
           })),
         };
       });
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: true,
         json: async () => ({
           status: 200,
@@ -288,19 +289,19 @@ describe('PricingAgent - Location Integration', () => {
         serverSupabase.from.mockImplementation((table: string) => {
           if (table === 'jobs') {
             return {
-              select: jest.fn(() => ({
-                eq: jest.fn(() => ({
-                  single: jest.fn(() => Promise.resolve({ data: mockJob, error: null })),
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  single: vi.fn(() => Promise.resolve({ data: mockJob, error: null })),
                 })),
               })),
             };
           }
           if (table === 'bids') {
             return {
-              select: jest.fn(() => ({
-                eq: jest.fn(() => ({
-                  order: jest.fn(() => ({
-                    limit: jest.fn(() => Promise.resolve({
+              select: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  order: vi.fn(() => ({
+                    limit: vi.fn(() => Promise.resolve({
                       data: mockBids.map(b => ({
                         amount: b.amount,
                         jobs: { category: 'plumbing', location },
@@ -314,18 +315,18 @@ describe('PricingAgent - Location Integration', () => {
           }
           if (table === 'pricing_recommendations') {
             return {
-              insert: jest.fn(() => ({
-                select: jest.fn(() => ({
-                  single: jest.fn(() => Promise.resolve({ data: { id: `rec-${location}` }, error: null })),
+              insert: vi.fn(() => ({
+                select: vi.fn(() => ({
+                  single: vi.fn(() => Promise.resolve({ data: { id: `rec-${location}` }, error: null })),
                 })),
               })),
             };
           }
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                gte: jest.fn(() => ({
-                  eq: jest.fn(() => Promise.resolve({ count: 0 })),
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                gte: vi.fn(() => ({
+                  eq: vi.fn(() => Promise.resolve({ count: 0 })),
                 })),
               })),
             })),
@@ -333,7 +334,7 @@ describe('PricingAgent - Location Integration', () => {
         });
 
         // Mock postcode API responses
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
+        vi.mocked(global.fetch).mockResolvedValueOnce({
           ok: true,
           json: async () => ({
             status: 200,
@@ -381,19 +382,19 @@ describe('PricingAgent - Location Integration', () => {
       serverSupabase.from.mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: mockJob, error: null })),
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockJob, error: null })),
               })),
             })),
           };
         }
         if (table === 'bids') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                order: jest.fn(() => ({
-                  limit: jest.fn(() => Promise.resolve({
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => ({
+                  limit: vi.fn(() => Promise.resolve({
                     data: mockBids.map(b => ({
                       amount: b.amount,
                       jobs: { category: 'plumbing', location: '' },
@@ -407,18 +408,18 @@ describe('PricingAgent - Location Integration', () => {
         }
         if (table === 'pricing_recommendations') {
           return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: { id: 'rec-no-loc' }, error: null })),
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: { id: 'rec-no-loc' }, error: null })),
               })),
             })),
           };
         }
         return {
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              gte: jest.fn(() => ({
-                eq: jest.fn(() => Promise.resolve({ count: 0 })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              gte: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({ count: 0 })),
               })),
             })),
           })),
@@ -453,19 +454,19 @@ describe('PricingAgent - Location Integration', () => {
       serverSupabase.from.mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: mockJob, error: null })),
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockJob, error: null })),
               })),
             })),
           };
         }
         if (table === 'bids') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                order: jest.fn(() => ({
-                  limit: jest.fn(() => Promise.resolve({
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => ({
+                  limit: vi.fn(() => Promise.resolve({
                     data: mockBids.map(b => ({
                       amount: b.amount,
                       jobs: { category: 'plumbing', location: mockJob.location },
@@ -479,25 +480,25 @@ describe('PricingAgent - Location Integration', () => {
         }
         if (table === 'pricing_recommendations') {
           return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: { id: 'rec-invalid' }, error: null })),
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: { id: 'rec-invalid' }, error: null })),
               })),
             })),
           };
         }
         return {
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              gte: jest.fn(() => ({
-                eq: jest.fn(() => Promise.resolve({ count: 0 })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              gte: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({ count: 0 })),
               })),
             })),
           })),
         };
       });
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      vi.mocked(global.fetch).mockResolvedValueOnce({
         ok: false,
         status: 404,
       });
@@ -531,19 +532,19 @@ describe('PricingAgent - Location Integration', () => {
       serverSupabase.from.mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: mockJob, error: null })),
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockJob, error: null })),
               })),
             })),
           };
         }
         if (table === 'bids') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                order: jest.fn(() => ({
-                  limit: jest.fn(() => Promise.resolve({
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => ({
+                  limit: vi.fn(() => Promise.resolve({
                     data: mockBids.map(b => ({
                       amount: b.amount,
                       jobs: { category: 'plumbing', location: mockJob.location },
@@ -557,18 +558,18 @@ describe('PricingAgent - Location Integration', () => {
         }
         if (table === 'pricing_recommendations') {
           return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: { id: 'rec-cap' }, error: null })),
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: { id: 'rec-cap' }, error: null })),
               })),
             })),
           };
         }
         return {
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              gte: jest.fn(() => ({
-                eq: jest.fn(() => Promise.resolve({ count: 0 })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              gte: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({ count: 0 })),
               })),
             })),
           })),
@@ -606,19 +607,19 @@ describe('PricingAgent - Location Integration', () => {
       serverSupabase.from.mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: mockJob, error: null })),
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: mockJob, error: null })),
               })),
             })),
           };
         }
         if (table === 'bids') {
           return {
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                order: jest.fn(() => ({
-                  limit: jest.fn(() => Promise.resolve({
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                order: vi.fn(() => ({
+                  limit: vi.fn(() => Promise.resolve({
                     data: mockBids.map(b => ({
                       amount: b.amount,
                       jobs: { category: 'plumbing', location: 'London' },
@@ -632,25 +633,25 @@ describe('PricingAgent - Location Integration', () => {
         }
         if (table === 'pricing_recommendations') {
           return {
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn(() => Promise.resolve({ data: { id: 'rec-cache' }, error: null })),
+            insert: vi.fn(() => ({
+              select: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({ data: { id: 'rec-cache' }, error: null })),
               })),
             })),
           };
         }
         return {
-          select: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              gte: jest.fn(() => ({
-                eq: jest.fn(() => Promise.resolve({ count: 0 })),
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              gte: vi.fn(() => ({
+                eq: vi.fn(() => Promise.resolve({ count: 0 })),
               })),
             })),
           })),
         };
       });
 
-      (global.fetch as jest.Mock).mockResolvedValue({
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         json: async () => ({
           status: 200,

@@ -17,7 +17,7 @@ const LazyBusinessDashboard = createLazyComponent(
   }
 );
 
-export const BusinessDashboard = (props: any) => (
+export const BusinessDashboard = (props: unknown) => (
   <Suspense fallback={<LoadingSpinner />}>
     <LazyBusinessDashboard {...props} />
   </Suspense>

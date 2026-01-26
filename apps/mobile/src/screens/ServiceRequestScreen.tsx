@@ -19,7 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
 
 interface Props {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 interface ServiceCategory {
@@ -285,7 +285,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
         'Service request posted successfully! Contractors in your area will be notified.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
-    } catch (error: any) {
+    } catch (error) {
       Alert.alert('Error', error.message || 'Failed to post service request');
     } finally {
       setLoading(false);
@@ -327,7 +327,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                     ]}
                   >
                     <Ionicons
-                      name={category.icon as any}
+                      name={category.icon as unknown}
                       size={30}
                       color={theme.colors.white}
                     />
@@ -439,7 +439,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                   { borderColor: level.color },
                   priority === level.id && { backgroundColor: level.color },
                 ]}
-                onPress={() => setPriority(level.id as any)}
+                onPress={() => setPriority(level.id as unknown)}
               >
                 <Text
                   style={[

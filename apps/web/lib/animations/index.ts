@@ -277,7 +277,7 @@ export function enableAnimationDebug(): void {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         if (entry.entryType === 'measure' && entry.name.includes('animation')) {
-          // logger.debug('[Animation Debug]', entry.name, `${entry.duration}ms`', [object Object], { service: 'lib' });
+          // logger.debug('[Animation Debug]', entry.name, `${entry.duration}ms`', { service: 'lib' });
         }
       }
     });

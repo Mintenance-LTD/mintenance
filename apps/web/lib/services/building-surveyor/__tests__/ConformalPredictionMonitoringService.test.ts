@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * Unit tests for ConformalPredictionMonitoringService
  */
@@ -6,9 +7,9 @@ import { ConformalPredictionMonitoringService } from '../ConformalPredictionMoni
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 // Mock Supabase
-jest.mock('@/lib/api/supabaseServer', () => ({
+vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    from: jest.fn(),
+    from: vi.fn(),
   },
 }));
 
@@ -16,7 +17,7 @@ describe('ConformalPredictionMonitoringService', () => {
   const mockExperimentId = 'test-experiment-id';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getStratumCoverageMetrics', () => {
@@ -42,11 +43,11 @@ describe('ConformalPredictionMonitoringService', () => {
         },
       ];
 
-      (serverSupabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: mockOutcomes }),
+      vi.mocked(serverSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: mockOutcomes }),
       });
 
       const metrics = await ConformalPredictionMonitoringService.getStratumCoverageMetrics(
@@ -67,11 +68,11 @@ describe('ConformalPredictionMonitoringService', () => {
     });
 
     it('should handle empty outcomes', async () => {
-      (serverSupabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: [] }),
+      vi.mocked(serverSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: [] }),
       });
 
       const metrics = await ConformalPredictionMonitoringService.getStratumCoverageMetrics(
@@ -93,11 +94,11 @@ describe('ConformalPredictionMonitoringService', () => {
         },
       ];
 
-      (serverSupabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: mockOutcomes }),
+      vi.mocked(serverSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: mockOutcomes }),
       });
 
       const result = await ConformalPredictionMonitoringService.checkCoverageViolations(
@@ -119,11 +120,11 @@ describe('ConformalPredictionMonitoringService', () => {
         },
       ];
 
-      (serverSupabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: mockOutcomes }),
+      vi.mocked(serverSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: mockOutcomes }),
       });
 
       const result = await ConformalPredictionMonitoringService.checkCoverageViolations(
@@ -144,11 +145,11 @@ describe('ConformalPredictionMonitoringService', () => {
         validated_at: '2024-01-01T00:00:00Z',
       });
 
-      (serverSupabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue({ data: mockOutcomes }),
+      vi.mocked(serverSupabase.from).mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue({ data: mockOutcomes }),
       });
 
       const suggestions = await ConformalPredictionMonitoringService.getRecalibrationSuggestions(

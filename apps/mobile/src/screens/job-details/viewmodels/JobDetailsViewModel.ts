@@ -21,7 +21,7 @@ export interface JobDetailsState {
   aiLoading: boolean;
   job: Job | undefined;
   jobLoading: boolean;
-  jobError: any;
+  jobError: unknown;
 }
 
 export interface JobDetailsActions {

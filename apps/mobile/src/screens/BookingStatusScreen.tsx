@@ -8,7 +8,7 @@
 import React from 'react';
 import { BookingStatusScreen as NewBookingStatusScreen } from './booking';
 
-const BookingStatusScreen: React.FC<any> = (props) => {
+const BookingStatusScreen: React.FC<unknown> = (props) => {
   return <NewBookingStatusScreen {...props} />;
 };
 

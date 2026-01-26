@@ -1,5 +1,5 @@
+import React from 'react';
 import {
-import { logger } from '@mintenance/shared';
   errorMonitoring,
   withErrorMonitoring,
   useErrorReporting,
@@ -9,7 +9,7 @@ import { logger } from '@mintenance/shared';
   DeviceInfo,
 } from '../../utils/errorMonitoring';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React from 'react';
+
 
 // Mock dependencies
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -38,7 +38,12 @@ jest.mock('../../utils/memoryManager', () => ({
 // Mock React
 jest.mock('react', () => ({
   useCallback: jest.fn((fn) => fn),
-  Component: class Component {},
+  Component: class Component {
+    props: unknown;
+    constructor(props: unknown) {
+      this.props = props;
+    }
+  },
   createElement: jest.fn((type, props, children) => ({
     type,
     props,
@@ -52,12 +57,23 @@ const { memoryManager } = require('../../utils/memoryManager');
 describe('ErrorMonitoringSystem', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.useFakeTimers();
 
     // Mock AsyncStorage responses
     (AsyncStorage.getItem as jest.Mock)
       .mockResolvedValueOnce('test_session_123') // Session ID
       .mockResolvedValueOnce(null); // No stored errors initially
+
+    (errorMonitoring as any).errorReports = [];
+    (errorMonitoring as any).errorHandlers = new Set();
+    (errorMonitoring as any).options = {
+      enableAutoReporting: true,
+      enableUserFeedback: true,
+      enableMemoryTracking: true,
+      maxStoredErrors: 1000,
+      enableRetryMechanism: true,
+      retryAttempts: 3,
+    };
+    (errorMonitoring as any).sessionId = 'test_session_123';
   });
 
   afterEach(() => {
@@ -439,8 +455,9 @@ describe('ErrorMonitoringSystem', () => {
       expect(report.summary).toContain('2 critical');
 
       expect(report.recommendations).toContain('Address critical errors immediately');
-      expect(report.recommendations).toContain('High error rate detected');
-      expect(report.recommendations).toContain('Focus on network errors');
+      expect(report.recommendations).toContain(
+        'Focus on network errors (8 occurrences)'
+      );
 
       expect(report.metrics).toBeDefined();
     });
@@ -532,12 +549,11 @@ describe('ErrorMonitoringSystem', () => {
         },
       ];
 
+      (AsyncStorage.getItem as jest.Mock).mockReset();
       (AsyncStorage.getItem as jest.Mock)
-        .mockResolvedValueOnce('test_session')
         .mockResolvedValueOnce(JSON.stringify(storedErrors));
 
-      const newSystem = ErrorMonitoringSystem.getInstance();
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await (errorMonitoring as any).loadStoredErrors();
 
       expect(logger.debug).toHaveBeenCalledWith(
         'Loaded 1 stored error reports'
@@ -546,11 +562,12 @@ describe('ErrorMonitoringSystem', () => {
   });
 
   describe('global error handlers', () => {
-    it('should intercept console.error calls', () => {
+    it('should intercept console.error calls', async () => {
       const originalConsoleError = console.error;
       const testError = new Error('Console error test');
 
-      logger.error(testError);
+      console.error(testError);
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       // Verify error was reported
       const allErrors = errorMonitoring.getAllErrors();

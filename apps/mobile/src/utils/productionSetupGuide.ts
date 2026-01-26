@@ -43,7 +43,7 @@ export async function initializeProductionSystems(): Promise<void> {
  */
 export async function validateDeploymentReadiness(environment: 'staging' | 'production'): Promise<{
   approved: boolean;
-  report: any;
+  report: unknown;
   blockers: string[];
 }> {
   logger.info('ProductionSetup', `Validating deployment readiness for ${environment}`);
@@ -95,8 +95,8 @@ export async function runDailySecurityAudit(): Promise<void> {
     const auditReport = await securityAuditService.runSecurityAudit('production');
 
     // Check for critical issues
-    const criticalVulns = auditReport.vulnerabilities.filter((v: any) => v.severity === 'critical');
-    const highVulns = auditReport.vulnerabilities.filter((v: any) => v.severity === 'high');
+    const criticalVulns = auditReport.vulnerabilities.filter((v: unknown) => v.severity === 'critical');
+    const highVulns = auditReport.vulnerabilities.filter((v: unknown) => v.severity === 'high');
 
     if (criticalVulns.length > 0) {
       logger.error('ProductionSetup', `🚨 CRITICAL: ${criticalVulns.length} critical vulnerabilities found!`, {
@@ -162,7 +162,7 @@ export const performanceTracking = {
  */
 export const errorTracking = {
   // Track application errors
-  trackError: (error: Error, context?: any) => {
+  trackError: (error: Error, context?: unknown) => {
     enhancedErrorAnalytics.recordError({
       message: error.message,
       stack: error.stack,
@@ -174,7 +174,7 @@ export const errorTracking = {
   },
 
   // Track user actions for error context
-  trackUserAction: (action: string, data?: any) => {
+  trackUserAction: (action: string, data?: unknown) => {
     enhancedErrorAnalytics.recordUserAction({
       type: action,
       timestamp: Date.now(),

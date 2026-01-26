@@ -1,18 +1,15 @@
 import React from 'react';
 import { clsx } from 'clsx';
-
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'danger' | 'success' | 'link';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   loading?: boolean;
   children: React.ReactNode;
 }
-
 // Brand colors - aligned with Mintenance design system
 const BRAND_PRIMARY = '#0F172A'; // Navy
 const BRAND_SECONDARY = '#10B981'; // Emerald
 const BRAND_ACCENT = '#F59E0B'; // Amber
-
 const buttonVariants = {
   primary: `bg-[${BRAND_PRIMARY}] text-white hover:bg-[#1E293B] focus:ring-[${BRAND_PRIMARY}]`,
   secondary: `bg-[${BRAND_SECONDARY}] text-white hover:bg-[#059669] focus:ring-[${BRAND_SECONDARY}]`,
@@ -23,14 +20,12 @@ const buttonVariants = {
   success: `bg-[${BRAND_SECONDARY}] text-white hover:bg-[#059669] focus:ring-[${BRAND_SECONDARY}]`,
   link: `bg-transparent text-[${BRAND_SECONDARY}] hover:text-[#059669] hover:underline underline-offset-4`,
 };
-
 const buttonSizes = {
   sm: 'px-3 py-1.5 text-sm min-h-[32px]',
   md: 'px-4 py-2 text-base min-h-[40px]',
   lg: 'px-6 py-3 text-lg min-h-[48px]',
   xl: 'px-8 py-4 text-xl min-h-[56px]',
 };
-
 export const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   size = 'md',

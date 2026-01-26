@@ -145,21 +145,21 @@ export default async function ContractorDiscoverPage2025() {
     .limit(50);
 
   // Debug logging
-  logger.info('[DISCOVER] Contractor ID:', user.id', [object Object], { service: 'app' });
-  logger.info('[DISCOVER] Contractor Location:', contractorLocation', [object Object], { service: 'app' });
-  logger.error('[DISCOVER] Query Error:', error', [object Object], { service: 'app' });
-  logger.info('[DISCOVER] Jobs Fetched:', jobs?.length || 0', [object Object], { service: 'app' });
-  logger.info('[DISCOVER] First 3 Jobs:', jobs?.slice(0, 3', [object Object], { service: 'app' }).map(j => ({
+  logger.info(`[DISCOVER] Contractor ID: ${user.id}`, { service: 'app' });
+  logger.info(`[DISCOVER] Contractor Location: ${JSON.stringify(contractorLocation)}`, { service: 'app' });
+  logger.error('[DISCOVER] Query Error', error, { service: 'app' });
+  logger.info(`[DISCOVER] Jobs Fetched: ${jobs?.length || 0}`, { service: 'app' });
+  logger.info(`[DISCOVER] First 3 Jobs: ${JSON.stringify(jobs?.slice(0, 3).map(j => ({
     id: j.id,
     title: j.title,
     status: j.status,
     lat: j.latitude,
     lng: j.longitude,
     location: j.location
-  })));
+  })))}`, { service: 'app' });
 
   if (error) {
-    logger.error('Error fetching jobs:', error', [object Object], { service: 'app' });
+    logger.error('Error fetching jobs', error, { service: 'app' });
   }
 
   // Fetch homeowner data separately for better error handling

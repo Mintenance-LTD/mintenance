@@ -547,7 +547,7 @@ export const withMemoryTracking = <P extends object>(
     WrappedComponent.name ||
     'Unknown';
 
-  return React.forwardRef((props: any, ref: any) => {
+  return React.forwardRef((props: Record<string, unknown>, ref: unknown) => {
     React.useEffect(() => {
       memoryManager.trackComponent(name, 'mount');
 

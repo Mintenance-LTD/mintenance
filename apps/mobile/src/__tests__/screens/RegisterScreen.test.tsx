@@ -1,5 +1,13 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import RegisterScreen from '../../screens/RegisterScreen';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -17,6 +25,25 @@ const mockUseAuth = jest.mocked(useAuth);
 
 // RegisterScreen import should now work correctly with default import
 
+const mockNavigation = {
+  navigate: jest.fn(),
+  goBack: jest.fn(),
+  dispatch: jest.fn(),
+  reset: jest.fn(),
+  setParams: jest.fn(),
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+  canGoBack: jest.fn(() => true),
+  isFocused: jest.fn(() => true),
+  setOptions: jest.fn(),
+};
+
+const mockRoute = {
+  params: {},
+  key: 'test-route',
+  name: 'TestScreen',
+};
+
 describe('RegisterScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -30,6 +57,10 @@ describe('RegisterScreen', () => {
       signOut: jest.fn(),
       updateProfile: jest.fn(),
     });
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   });
 
   it('renders registration form correctly', () => {
@@ -48,7 +79,7 @@ describe('RegisterScreen', () => {
   it('validates required fields', async () => {
     const { getByText } = render(<RegisterScreen />);
 
-    fireEvent.press(getByText('Create Account'));
+    act(() => fireEvent.press(getByText('Create Account')));
 
     await waitFor(() => {
       expect(getByText('First name is required')).toBeTruthy();
@@ -58,10 +89,10 @@ describe('RegisterScreen', () => {
   it('validates email format', async () => {
     const { getByTestId, getByText } = render(<RegisterScreen />);
 
-    fireEvent.changeText(getByTestId('first-name-input'), 'John');
-    fireEvent.changeText(getByTestId('last-name-input'), 'Doe');
-    fireEvent.changeText(getByTestId('email-input'), 'invalid-email');
-    fireEvent.press(getByText('Create Account'));
+    act(() => fireEvent.changeText(getByTestId('first-name-input')), 'John');
+    act(() => fireEvent.changeText(getByTestId('last-name-input')), 'Doe');
+    act(() => fireEvent.changeText(getByTestId('email-input')), 'invalid-email');
+    act(() => fireEvent.press(getByText('Create Account')));
 
     await waitFor(() => {
       expect(getByText('Please enter a valid email address')).toBeTruthy();
@@ -71,11 +102,11 @@ describe('RegisterScreen', () => {
   it('validates password strength', async () => {
     const { getByTestId, getByText } = render(<RegisterScreen />);
 
-    fireEvent.changeText(getByTestId('first-name-input'), 'John');
-    fireEvent.changeText(getByTestId('last-name-input'), 'Doe');
-    fireEvent.changeText(getByTestId('email-input'), 'john@example.com');
-    fireEvent.changeText(getByTestId('password-input'), '123');
-    fireEvent.press(getByText('Create Account'));
+    act(() => fireEvent.changeText(getByTestId('first-name-input')), 'John');
+    act(() => fireEvent.changeText(getByTestId('last-name-input')), 'Doe');
+    act(() => fireEvent.changeText(getByTestId('email-input')), 'john@example.com');
+    act(() => fireEvent.changeText(getByTestId('password-input')), '123');
+    act(() => fireEvent.press(getByText('Create Account')));
 
     await waitFor(() => {
       expect(getByText('Password must be at least 8 characters')).toBeTruthy();
@@ -85,15 +116,15 @@ describe('RegisterScreen', () => {
   it('validates password confirmation', async () => {
     const { getByTestId, getByText } = render(<RegisterScreen />);
 
-    fireEvent.changeText(getByTestId('first-name-input'), 'John');
-    fireEvent.changeText(getByTestId('last-name-input'), 'Doe');
-    fireEvent.changeText(getByTestId('email-input'), 'john@example.com');
-    fireEvent.changeText(getByTestId('password-input'), 'password123');
-    fireEvent.changeText(
-      getByTestId('confirm-password-input'),
+    act(() => fireEvent.changeText(getByTestId('first-name-input')), 'John');
+    act(() => fireEvent.changeText(getByTestId('last-name-input')), 'Doe');
+    act(() => fireEvent.changeText(getByTestId('email-input')), 'john@example.com');
+    act(() => fireEvent.changeText(getByTestId('password-input')), 'password123');
+    act(() => fireEvent.changeText(
+      getByTestId('confirm-password-input')),
       'differentpassword'
     );
-    fireEvent.press(getByText('Create Account'));
+    act(() => fireEvent.press(getByText('Create Account')));
 
     await waitFor(() => {
       expect(getByText('Passwords do not match')).toBeTruthy();
@@ -106,11 +137,11 @@ describe('RegisterScreen', () => {
     const homeownerOption = getByTestId('role-homeowner');
     const contractorOption = getByTestId('role-contractor');
 
-    fireEvent.press(contractorOption);
+    act(() => fireEvent.press(contractorOption));
     expect(contractorOption.props.accessibilityState.checked).toBe(true);
     expect(homeownerOption.props.accessibilityState.checked).toBe(false);
 
-    fireEvent.press(homeownerOption);
+    act(() => fireEvent.press(homeownerOption));
     expect(homeownerOption.props.accessibilityState.checked).toBe(true);
     expect(contractorOption.props.accessibilityState.checked).toBe(false);
   });
@@ -129,14 +160,14 @@ describe('RegisterScreen', () => {
 
     const { getByTestId, getByText } = render(<RegisterScreen />);
 
-    fireEvent.changeText(getByTestId('first-name-input'), 'John');
-    fireEvent.changeText(getByTestId('last-name-input'), 'Doe');
-    fireEvent.changeText(getByTestId('email-input'), 'john@example.com');
-    fireEvent.changeText(getByTestId('password-input'), 'password123');
-    fireEvent.changeText(getByTestId('confirm-password-input'), 'password123');
-    fireEvent.press(getByTestId('role-homeowner'));
-    fireEvent.press(getByTestId('terms-checkbox'));
-    fireEvent.press(getByText('Create Account'));
+    act(() => fireEvent.changeText(getByTestId('first-name-input')), 'John');
+    act(() => fireEvent.changeText(getByTestId('last-name-input')), 'Doe');
+    act(() => fireEvent.changeText(getByTestId('email-input')), 'john@example.com');
+    act(() => fireEvent.changeText(getByTestId('password-input')), 'password123');
+    act(() => fireEvent.changeText(getByTestId('confirm-password-input')), 'password123');
+    act(() => fireEvent.press(getByTestId('role-homeowner')));
+    act(() => fireEvent.press(getByTestId('terms-checkbox')));
+    act(() => fireEvent.press(getByText('Create Account')));
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
@@ -182,14 +213,14 @@ describe('RegisterScreen', () => {
     const { getByTestId, getByText } = render(<RegisterScreen />);
 
     // Fill form
-    fireEvent.changeText(getByTestId('first-name-input'), 'John');
-    fireEvent.changeText(getByTestId('last-name-input'), 'Doe');
-    fireEvent.changeText(getByTestId('email-input'), 'john@example.com');
-    fireEvent.changeText(getByTestId('password-input'), 'password123');
-    fireEvent.changeText(getByTestId('confirm-password-input'), 'password123');
-    fireEvent.press(getByTestId('role-homeowner'));
-    fireEvent.press(getByTestId('terms-checkbox'));
-    fireEvent.press(getByText('Create Account'));
+    act(() => fireEvent.changeText(getByTestId('first-name-input')), 'John');
+    act(() => fireEvent.changeText(getByTestId('last-name-input')), 'Doe');
+    act(() => fireEvent.changeText(getByTestId('email-input')), 'john@example.com');
+    act(() => fireEvent.changeText(getByTestId('password-input')), 'password123');
+    act(() => fireEvent.changeText(getByTestId('confirm-password-input')), 'password123');
+    act(() => fireEvent.press(getByTestId('role-homeowner')));
+    act(() => fireEvent.press(getByTestId('terms-checkbox')));
+    act(() => fireEvent.press(getByText('Create Account')));
 
     await waitFor(() => {
       expect(getByText('Email already exists')).toBeTruthy();
@@ -200,13 +231,13 @@ describe('RegisterScreen', () => {
     const { getByTestId, getByText } = render(<RegisterScreen />);
 
     // Fill form but don't check terms
-    fireEvent.changeText(getByTestId('first-name-input'), 'John');
-    fireEvent.changeText(getByTestId('last-name-input'), 'Doe');
-    fireEvent.changeText(getByTestId('email-input'), 'john@example.com');
-    fireEvent.changeText(getByTestId('password-input'), 'password123');
-    fireEvent.changeText(getByTestId('confirm-password-input'), 'password123');
-    fireEvent.press(getByTestId('role-homeowner'));
-    fireEvent.press(getByText('Create Account'));
+    act(() => fireEvent.changeText(getByTestId('first-name-input')), 'John');
+    act(() => fireEvent.changeText(getByTestId('last-name-input')), 'Doe');
+    act(() => fireEvent.changeText(getByTestId('email-input')), 'john@example.com');
+    act(() => fireEvent.changeText(getByTestId('password-input')), 'password123');
+    act(() => fireEvent.changeText(getByTestId('confirm-password-input')), 'password123');
+    act(() => fireEvent.press(getByTestId('role-homeowner')));
+    act(() => fireEvent.press(getByText('Create Account')));
 
     await waitFor(() => {
       expect(getByText('Please accept the terms and conditions')).toBeTruthy();
@@ -216,7 +247,7 @@ describe('RegisterScreen', () => {
   it('navigates to login screen when login link is pressed', () => {
     const { getByText } = render(<RegisterScreen />);
 
-    fireEvent.press(getByText('Already have an account? Sign In'));
+    act(() => fireEvent.press(getByText('Already have an account? Sign In')));
 
     expect(mockNavigate).toHaveBeenCalledWith('Login');
   });
@@ -224,7 +255,7 @@ describe('RegisterScreen', () => {
   it('shows terms and conditions modal', () => {
     const { getByText, getByTestId } = render(<RegisterScreen />);
 
-    fireEvent.press(getByText('Terms and Conditions'));
+    act(() => fireEvent.press(getByText('Terms and Conditions')));
 
     expect(getByTestId('terms-modal')).toBeTruthy();
   });
@@ -232,7 +263,7 @@ describe('RegisterScreen', () => {
   it('shows privacy policy modal', () => {
     const { getByText, getByTestId } = render(<RegisterScreen />);
 
-    fireEvent.press(getByText('Privacy Policy'));
+    act(() => fireEvent.press(getByText('Privacy Policy')));
 
     expect(getByTestId('privacy-modal')).toBeTruthy();
   });
@@ -245,7 +276,7 @@ describe('RegisterScreen', () => {
 
     expect(passwordInput.props.secureTextEntry).toBe(true);
 
-    fireEvent.press(toggleButton);
+    act(() => fireEvent.press(toggleButton));
 
     expect(passwordInput.props.secureTextEntry).toBe(false);
   });
@@ -265,14 +296,14 @@ describe('RegisterScreen', () => {
     const { getByTestId, getByText } = render(<RegisterScreen />);
 
     // Fill and submit form
-    fireEvent.changeText(getByTestId('first-name-input'), 'John');
-    fireEvent.changeText(getByTestId('last-name-input'), 'Doe');
-    fireEvent.changeText(getByTestId('email-input'), 'john@example.com');
-    fireEvent.changeText(getByTestId('password-input'), 'password123');
-    fireEvent.changeText(getByTestId('confirm-password-input'), 'password123');
-    fireEvent.press(getByTestId('role-homeowner'));
-    fireEvent.press(getByTestId('terms-checkbox'));
-    fireEvent.press(getByText('Create Account'));
+    act(() => fireEvent.changeText(getByTestId('first-name-input')), 'John');
+    act(() => fireEvent.changeText(getByTestId('last-name-input')), 'Doe');
+    act(() => fireEvent.changeText(getByTestId('email-input')), 'john@example.com');
+    act(() => fireEvent.changeText(getByTestId('password-input')), 'password123');
+    act(() => fireEvent.changeText(getByTestId('confirm-password-input')), 'password123');
+    act(() => fireEvent.press(getByTestId('role-homeowner')));
+    act(() => fireEvent.press(getByTestId('terms-checkbox')));
+    act(() => fireEvent.press(getByText('Create Account')));
 
     await waitFor(() => {
       expect(getByTestId('first-name-input').props.value).toBe('');

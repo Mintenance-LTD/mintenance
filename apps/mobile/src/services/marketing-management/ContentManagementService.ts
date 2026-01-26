@@ -8,7 +8,7 @@ import { supabase } from '../../config/supabase';
 import { ContentCreationRequest, MarketingAsset, ContentCalendar } from './types';
 
 export class ContentManagementService {
-  async createContent(request: ContentCreationRequest): Promise<any> {
+  async createContent(request: ContentCreationRequest): Promise<unknown> {
     const { data, error } = await supabase
       .from('marketing_content')
       .insert({

@@ -51,7 +51,7 @@ async function generateInvoiceNumber(contractorId: string): Promise<string> {
 }
 
 // Calculate invoice totals
-function calculateTotals(lineItems: any[], taxRate: number) {
+function calculateTotals(lineItems: unknown[], taxRate: number) {
   const subtotal = lineItems.reduce((sum, item) => {
     const amount = item.quantity * item.unit_price;
     return sum + amount;

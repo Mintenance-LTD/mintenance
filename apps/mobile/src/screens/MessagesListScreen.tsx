@@ -19,7 +19,7 @@ import { Banner } from '../components/ui/Banner';
 import { useMessageThreadsWithRealTime } from '../hooks/useMessaging';
 
 const MessagesListScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<unknown>();
   const { user } = useAuth();
   const haptics = useHaptics();
   const [refreshing, setRefreshing] = useState(false);
@@ -109,10 +109,10 @@ const MessagesListScreen: React.FC = () => {
             </Text>
           </View>
         ) : (
-          conversations.map((thread: any) => {
+          conversations.map((thread: unknown) => {
             const otherParticipant =
               thread.participants.find(
-                (p: any) => p.id !== user?.id
+                (p: unknown) => p.id !== user?.id
               ) || thread.participants[0];
             const formatTime = (timestamp: string) => {
               const date = new Date(timestamp);

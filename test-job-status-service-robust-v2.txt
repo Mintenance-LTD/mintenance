@@ -1,0 +1,103 @@
+﻿
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services[39m
+
+[90mstdout[2m | src/jobs/__tests__/JobStatusService.test.ts[2m > [22m[2mJobStatusService[2m > [22m[2mupdateJobStatus[2m > [22m[2mshould successfully update status from draft to posted for owner
+[22m[39m[INFO] [2026-01-13T11:35:01.562Z] INFO  Job status changed {"jobId":"job-123","from":"draft","to":"posted","userId":"user-123"}
+
+[90mstdout[2m | src/jobs/__tests__/JobStatusService.test.ts[2m > [22m[2mJobStatusService[2m > [22m[2mupdateJobStatus[2m > [22m[2mshould allow admin to bypass ownership
+[22m[39m[INFO] [2026-01-13T11:35:01.572Z] INFO  Job status changed {"jobId":"job-123","from":"draft","to":"posted","userId":"admin-123"}
+
+[90mstdout[2m | src/jobs/__tests__/JobStatusService.test.ts[2m > [22m[2mJobStatusService[2m > [22m[2mupdateJobStatus[2m > [22m[2mshould allow contractor to mark as completed if assigned
+[22m[39m[INFO] [2026-01-13T11:35:01.586Z] INFO  Job status changed {"jobId":"job-123","from":"in_progress","to":"completed","userId":"contractor-123"}
+
+ [31mÔØ»[39m src/jobs/__tests__/JobStatusService.test.ts [2m([22m[2m15 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 41[2mms[22m[39m
+       [32mÔ£ô[39m should allow draft -> posted[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m should allow draft -> cancelled[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should NOT allow draft -> completed[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should allow posted -> in_progress[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should allow in_progress -> completed[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should successfully update status from draft to posted for owner[32m 5[2mms[22m[39m
+       [32mÔ£ô[39m should throw error if job not found[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m should throw error if transition is invalid[32m 2[2mms[22m[39m
+       [32mÔ£ô[39m should throw error if user is not authorized (not owner)[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should allow admin to bypass ownership[32m 1[2mms[22m[39m
+       [32mÔ£ô[39m should enforce business rules: cannot post without title[32m 1[2mms[22m[39m
+[31m       [31m├ù[31m should enforce business rules: cannot start without accepted bid or contractor[39m[32m 10[2mms[22m[39m
+       [32mÔ£ô[39m should allow contractor to mark as completed if assigned[32m 4[2mms[22m[39m
+       [32mÔ£ô[39m should block contractor from marking as completed if NOT assigned[32m 2[2mms[22m[39m
+[31m       [31m├ù[31m should call getNearbyContractors when job is posted[39m[32m 2[2mms[22m[39m
+node.exe : 
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m[1m[41m Failed 
+Tests 2 [49m[22m[31mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobStatusService.test.ts[2m > 
+[22mJobStatusService[2m > [22mupdateJobStatus[2m 
+> [22mshould enforce business rules: cannot start 
+without accepted bid or contractor
+[31m[1mAssertionError[22m: expected [Function] to 
+throw error including 'Job must have an accepted bid 
+or assiÔÇª' but got 'User role homeowner cannot 
+change staÔÇª'[39m
+
+Expected: [32m"[7mJob mus[27mt ha[7mve an 
+accepted bid or assigned contractor[27m"[39m
+Received: [31m"[7mUser role homeowner canno[27mt 
+[7mc[27mha[7mnge status from posted to 
+in_progress[27m"[39m
+
+[36m [2mÔØ»[22m src/jobs/__tests__/JobStatusServic
+e.test.ts:[2m130:7[22m[39m
+    [90m128| [39m      mockRepository[33m.[39mget
+AcceptedBidForJob[33m.[39m[34mmockResolvedValue[3
+9m([35mnull[39m)[33m;[39m
+    [90m129| [39m
+    [90m130| [39m      await 
+expect(service.updateJobStatus('job-123', 
+'in_progress', mÔÇª
+    [90m   | [39m      [31m^[39m
+    [90m131| [39m        .rejects.toThrow('Job 
+must have an accepted bid or assigned coÔÇª
+    [90m132| [39m    })[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/2]ÔÄ»[22m[39m
+
+[41m[1m FAIL [22m[49m 
+src/jobs/__tests__/JobStatusService.test.ts[2m > 
+[22mJobStatusService[2m > 
+[22mhandleStatusChangeNotifications[2m > 
+[22mshould call getNearbyContractors when job is 
+posted
+[31m[1mAssertionError[22m: expected "vi.fn()" to 
+be called at least once[39m
+[36m [2mÔØ»[22m src/jobs/__tests__/JobStatusServic
+e.test.ts:[2m167:51[22m[39m
+    [90m165| [39m      await 
+service.handleStatusChangeNotifications('job-123', 
+'postedÔÇª
+    [90m166| [39m
+    [90m167| [39m      [34mexpect[39m(mockReposit
+ory[33m.[39mgetNearbyContractors)[33m.[39m[34mto
+HaveBeenCalled[39m()[33m;[39m
+    [90m   | [39m                                  
+                [31m^[39m
+    [90m168| [39m    })[33m;[39m
+    [90m169| [39m  })[33m;[39m
+
+[31m[2mÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/2]ÔÄ»[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m13 passed[39m[22m[90m (15)[39m
+[2m   Start at [22m 11:35:00
+[2m   Duration [22m 746ms[2m (transform 233ms, setup 0ms, import 325ms, tests 41ms, environment 0ms)[22m
+

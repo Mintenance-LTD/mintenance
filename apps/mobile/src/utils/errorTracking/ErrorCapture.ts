@@ -84,7 +84,7 @@ export class ErrorCapture {
     message: string,
     category: string,
     level: 'debug' | 'info' | 'warning' | 'error' = 'info',
-    data?: Record<string, any>
+    data?: Record<string, unknown>
   ): void {
     const breadcrumb: Breadcrumb = {
       timestamp: Date.now(),
@@ -168,7 +168,7 @@ export class ErrorCapture {
       version: Platform.Version.toString(),
       device: Platform.OS === 'ios' ? 'iOS Device' : 'Android Device',
       network: typeof navigator !== 'undefined' && 'connection' in navigator
-        ? (navigator as any).connection?.effectiveType
+        ? (navigator as unknown).connection?.effectiveType
         : 'unknown'
     };
   }

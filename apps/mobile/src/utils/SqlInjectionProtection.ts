@@ -253,10 +253,10 @@ export class SqlInjectionProtection {
    */
   static createSafeQuery(
     template: string,
-    params: Record<string, any>
-  ): { query: string; safeParams: Record<string, any>; isValid: boolean; errors: string[] } {
+    params: Record<string, unknown>
+  ): { query: string; safeParams: Record<string, unknown>; isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    const safeParams: Record<string, any> = {};
+    const safeParams: Record<string, unknown> = {};
 
     // Validate template doesn't contain dangerous patterns
     const templateCheck = this.scanForSqlInjection(template);

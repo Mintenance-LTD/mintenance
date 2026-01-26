@@ -83,7 +83,7 @@ export function BidSubmissionForm({ jobId }: { jobId: string }) {
 
   const handleSubmit = async () => {
     // Submit bid logic here
-    // logger.info('Submitting bid...', { jobId, bidAmount, description }', [object Object], { service: 'ui' });
+    // logger.info('Submitting bid...', { jobId, bidAmount, description }', { service: 'ui' });
 
     // Show success and navigate
     router.push('/contractor/bids?success=true');

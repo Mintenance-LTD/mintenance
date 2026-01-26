@@ -28,7 +28,7 @@ export interface VRJobWalkthrough {
   difficulty: 'easy' | 'medium' | 'hard';
   createdAt: number;
   updatedAt: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface VRWaypoint {
@@ -73,5 +73,5 @@ export interface VRInteractiveElement {
     action: string;
     feedback: 'visual' | 'audio' | 'haptic';
   }>;
-  state: Record<string, any>;
+  state: Record<string, unknown>;
 }

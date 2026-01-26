@@ -107,6 +107,33 @@ export interface JobSustainabilityAnalysis {
   certification_eligible: boolean;
 }
 
+// Helper interfaces for internal methods
+interface JobHistoryMetrics {
+  community_projects: number;
+  employment_score: number;
+  education_initiatives: number;
+  local_employment_percentage: number;
+  diversity_score: number;
+}
+
+interface SustainabilityFeedback {
+  transparency_score: number;
+  ethics_score: number;
+  engagement_score: number;
+}
+
+interface SustainableMaterialRow {
+  name: string;
+  certification_labels: string[];
+  carbon_intensity: number;
+  cost_premium_percentage: number;
+  local_availability: boolean;
+}
+
+interface ESGScoreRow {
+  contractor_id: string;
+}
+
 // =====================================================
 // SUSTAINABILITY CALCULATION ENGINE
 // =====================================================
@@ -817,7 +844,7 @@ class SustainabilityEngine {
     return data || [];
   }
 
-  private async getContractorJobHistory(contractorId: string): Promise<any> {
+  private async getContractorJobHistory(contractorId: string): Promise<JobHistoryMetrics> {
     // Mock data - in real implementation would query actual job history
     return {
       community_projects: 2,
@@ -830,7 +857,7 @@ class SustainabilityEngine {
 
   private async getContractorSustainabilityFeedback(
     contractorId: string
-  ): Promise<any> {
+  ): Promise<SustainabilityFeedback> {
     // Mock data - in real implementation would query client feedback
     return {
       transparency_score: 82,
@@ -869,7 +896,7 @@ class SustainabilityEngine {
 
     if (error) return [];
 
-    return (data || []).map((item: any) => ({
+    return (data || []).map((item: SustainableMaterialRow) => ({
       original_material: material,
       sustainable_alternative: item.name,
       benefits: item.certification_labels,
@@ -911,7 +938,7 @@ class SustainabilityEngine {
       .limit(10);
 
     if (error) return [];
-    return (data || []).map((item: any) => item.contractor_id);
+    return (data || []).map((item: ESGScoreRow) => item.contractor_id);
   }
 }
 

@@ -1,11 +1,11 @@
 /**
  * SSOAnalyticsService
- * 
+ *
  * Handles analytics calculations and performance metrics for SSO providers.
  */
 
 import { supabase } from '../../config/supabase';
-import { SSOProvider, SSOAnalytics } from './types';
+import { SSOProvider, SSOAnalytics, SSOEvent } from './types';
 
 export class SSOAnalyticsService {
   /**
@@ -165,7 +165,7 @@ export class SSOAnalyticsService {
       page?: number;
       limit?: number;
     }
-  ): Promise<{ events: any[]; total: number }> {
+  ): Promise<{ events: SSOEvent[]; total: number }> {
     let query = supabase
       .from('sso_events')
       .select('*', { count: 'exact' })

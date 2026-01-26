@@ -17,7 +17,7 @@ export default function ContractorDetailsError({
 
   useEffect(() => {
     // Log the error to an error reporting service
-    logger.error('Contractor details error:', error', [object Object], { service: 'app' });
+    logger.error('Contractor details error:', error, { service: 'app' });
 
     // Report to Sentry if configured
     if (typeof window !== 'undefined' && (window as any).Sentry) {

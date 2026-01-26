@@ -378,7 +378,10 @@ async function main() {
 
 // Run if called directly
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch((error) => {
+    logger.error('Migration runner failed:', error, { service: 'migration' });
+    process.exit(1);
+  });
 }
 
 export { MigrationRunner };

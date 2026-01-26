@@ -7,7 +7,10 @@ export class ReactNativeMockFactory {
     return {
       OS: 'ios' as 'ios' | 'android' | 'web' | 'windows' | 'macos',
       Version: '16.0',
-      select: jest.fn((obj: any) => obj.ios || obj.default),
+      select: jest.fn(<T extends Record<string, unknown>>(obj: T): unknown => {
+        const typed = obj as Record<string, unknown>;
+        return (typed.ios !== undefined ? typed.ios : typed.default);
+      }),
       isPad: false,
       isTVOS: false,
       constants: {
@@ -29,7 +32,7 @@ export class ReactNativeMockFactory {
       get: jest.fn((dimension: 'window' | 'screen') => mockDimensions),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
-      set: jest.fn((dims: any) => {
+      set: jest.fn((dims: unknown) => {
         Object.assign(mockDimensions, dims);
       }),
     };
@@ -37,8 +40,19 @@ export class ReactNativeMockFactory {
 
   // Alert Mock
   static createAlertMock() {
+    interface AlertButton {
+      text?: string;
+      onPress?: () => void;
+      style?: 'default' | 'cancel' | 'destructive';
+    }
+
     return {
-      alert: jest.fn((title, message, buttons, options) => {
+      alert: jest.fn((
+        title: string,
+        message?: string,
+        buttons?: AlertButton[],
+        options?: Record<string, unknown>
+      ) => {
         // Simulate pressing first button
         if (buttons && buttons.length > 0 && buttons[0].onPress) {
           buttons[0].onPress();
@@ -209,7 +223,7 @@ export class ReactNativeMockFactory {
   // InteractionManager Mock
   static createInteractionManagerMock() {
     return {
-      runAfterInteractions: jest.fn((callback) => {
+      runAfterInteractions: jest.fn((callback: () => void) => {
         // Execute immediately in tests
         setTimeout(callback, 0);
         return { cancel: jest.fn() };
@@ -261,7 +275,7 @@ export class ReactNativeMockFactory {
     const NativeModules = this.createNativeModulesMock();
 
     // Mock React Native components
-    const mockComponent = jest.fn(({ children, ...props }) => children);
+    const mockComponent = jest.fn(({ children, ...props }: { children: unknown; [key: string]: unknown }) => children) as jest.MockedFunction<(props: { children: unknown; [key: string]: unknown }) => unknown> & { displayName: string };
     mockComponent.displayName = 'MockComponent';
 
     return {
@@ -325,7 +339,7 @@ export class ReactNativeMockFactory {
         ValueXY: jest.fn(),
         timing: jest.fn(() => ({
           start: jest.fn(
-            (callback) => callback && callback({ finished: true })
+            (callback?: (result: { finished: boolean }) => void) => callback && callback({ finished: true })
           ),
           stop: jest.fn(),
           reset: jest.fn(),
@@ -333,14 +347,14 @@ export class ReactNativeMockFactory {
 
         spring: jest.fn(() => ({
           start: jest.fn(
-            (callback) => callback && callback({ finished: true })
+            (callback?: (result: { finished: boolean }) => void) => callback && callback({ finished: true })
           ),
           stop: jest.fn(),
           reset: jest.fn(),
         })),
         decay: jest.fn(() => ({
           start: jest.fn(
-            (callback) => callback && callback({ finished: true })
+            (callback?: (result: { finished: boolean }) => void) => callback && callback({ finished: true })
           ),
           stop: jest.fn(),
           reset: jest.fn(),

@@ -1,10 +1,21 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 /**
  * Tests for JobCRUDService - Job CRUD Operations
  */
 
 import { JobCRUDService } from '../JobCRUDService';
 import { supabase } from '../../config/supabase';
-import { Job } from '@mintenance/types';
+import type { Job } from '@mintenance/types';
 import { sanitizeText } from '../../utils/sanitize';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 

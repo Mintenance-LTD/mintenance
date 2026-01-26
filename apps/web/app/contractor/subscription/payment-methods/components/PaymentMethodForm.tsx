@@ -30,7 +30,7 @@ export function PaymentMethodForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement payment method creation with Stripe
-    // logger.info('Form data:', formData', [object Object], { service: 'ui' });
+    // logger.info('Form data:', formData', { service: 'ui' });
   };
 
   return (

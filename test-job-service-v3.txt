@@ -1,0 +1,74 @@
+﻿
+ RUN  v4.0.16 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services
+
+stdout | src/jobs/__tests__/JobService.test.ts > JobService > createJob > should successfully create a job for a serious buyer
+[INFO] [2026-01-13T11:47:35.468Z] INFO  Job created successfully {"service":"JobService","jobId":"new-job-id","userId":"user-123","hasPhotos":false,"hasAIAssessment":false}
+
+stdout | src/jobs/__tests__/JobService.test.ts > JobService > deleteJob > should delete attachments and job if owned by user
+[INFO] [2026-01-13T11:47:35.476Z] INFO  Job deleted successfully {"service":"JobService","jobId":"job-123","userId":"user-123"}
+
+ ÔØ» src/jobs/__tests__/JobService.test.ts (5 tests | 2 failed) 24ms
+       ├ù should fetch and enrich jobs 8ms
+       Ô£ô should successfully create a job for a serious buyer 5ms
+       ├ù should throw error if user is not a serious buyer 6ms
+       Ô£ô should delete attachments and job if owned by user 2ms
+       Ô£ô should throw error if user does not own the job 1ms
+node.exe : 
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String 
+   ) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 2 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/jobs/__tests__/JobService.test.ts > 
+JobService > listJobs > should fetch and enrich jobs
+TypeError: this.repository.getUserJobsQuery is not a 
+function
+ ÔØ» JobService.listJobs src/jobs/JobService.ts:75:31
+     73|     } else {
+     74|       // Users viewing their own jobs
+     75|       query = 
+this.repository.getUserJobsQuery(userId, userRole);
+       |                               ^
+     76|     }
+     77|     // Apply filters
+ ÔØ» src/jobs/__tests__/JobService.test.ts:91:36
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/2]ÔÄ»
+
+ FAIL  src/jobs/__tests__/JobService.test.ts > 
+JobService > createJob > should throw error if user 
+is not a serious buyer
+AssertionError: expected [Function] to throw error 
+including 'User must be a serious buyer' but got 
+'Cannot read properties of undefined (ÔÇª'
+
+Expected: [32m"User must be a serious buyer"[39m
+Received: [31m"Cannot read properties of undefined 
+(reading 'id')"[39m
+
+ ÔØ» src/jobs/__tests__/JobService.test.ts:130:7
+    128|       const createData = { title: 'New 
+Job', description: 'desc', cateÔÇª
+    129| 
+    130|       await 
+expect(service.createJob(createData, mockUser))
+       |       ^
+    131|         .rejects.toThrow('User must be a 
+serious buyer');
+    132|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/2]ÔÄ»
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 3 passed (5)
+   Start at  11:47:34
+   Duration  703ms (transform 255ms, setup 0ms, import 340ms, tests 24ms, environment 0ms)
+

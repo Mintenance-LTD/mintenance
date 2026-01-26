@@ -22,7 +22,7 @@ import {
 } from './components';
 
 interface ContractorProfileScreenProps {
-  navigation: any;
+  navigation: unknown;
   route?: {
     params?: {
       contractorId?: string;

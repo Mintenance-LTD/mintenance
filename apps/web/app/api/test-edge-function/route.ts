@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { rateLimiter } from '@/lib/rate-limiter';
 
@@ -28,7 +29,7 @@ export async function GET() {
 
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    console.log('🔵 Testing Edge Function');
+    logger.info('🔵 Testing Edge Function');
 
     const { data, error } = await serverSupabase.functions.invoke('test-payout', {
       body: { test: true },
@@ -37,14 +38,14 @@ export async function GET() {
       },
     });
 
-    console.log('🔍 Test Response:', JSON.stringify({ data, error }, null, 2));
+    logger.info('🔍 Test Response:', JSON.stringify({ data, error }, null, 2));
 
     return NextResponse.json({
       data,
       error: error ? { name: error.name, message: error.message } : null,
     });
   } catch (error) {
-    console.error('🔴 Test Error:', error);
+    logger.error('🔴 Test Error:', error);
     return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

@@ -13,6 +13,14 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AlertingService, AlertType, AlertSeverity } from './AlertingService';
 import { DriftMonitorService } from './DriftMonitorService';
+import type {
+  CorrectionRecord,
+  ModelHyperparameters,
+  TriggerMetadata,
+  TrainedModel,
+  ValidationMetrics,
+  TestMetrics
+} from '@/lib/types/ml.types';
 
 /**
  * Retraining trigger reasons
@@ -84,7 +92,7 @@ interface ModelMetadata {
     f1Score: number;
     confusionMatrix: number[][];
   };
-  hyperparameters: Record<string, any>;
+  hyperparameters: ModelHyperparameters;
   featureImportance: Record<string, number>;
   status: TrainingStatus;
   deploymentInfo?: {
@@ -100,7 +108,7 @@ interface ModelMetadata {
 interface RetrainingJob {
   id: string;
   trigger: RetrainTrigger;
-  triggerMetadata: Record<string, any>;
+  triggerMetadata: TriggerMetadata;
   modelVersion: string;
   status: TrainingStatus;
   startedAt: Date;
@@ -552,9 +560,9 @@ export class AutoRetrainingService {
    */
   private static async prepareTrainingData(job: RetrainingJob): Promise<{
     totalSamples: number;
-    trainingSet: any[];
-    validationSet: any[];
-    testSet: any[];
+    trainingSet: CorrectionRecord[];
+    validationSet: CorrectionRecord[];
+    testSet: CorrectionRecord[];
   }> {
     // Get all corrections and predictions
     const { data: corrections } = await serverSupabase
@@ -600,13 +608,14 @@ export class AutoRetrainingService {
   /**
    * Validate model
    */
-  private static async validateModel(model: unknown, validationSet: any[]): Promise<any> {
+  private static async validateModel(model: unknown, validationSet: CorrectionRecord[]): Promise<ValidationMetrics> {
     // Placeholder validation metrics
     return {
       accuracy: 0.88 + Math.random() * 0.1,
       precision: 0.87 + Math.random() * 0.1,
       recall: 0.86 + Math.random() * 0.1,
       f1Score: 0.87 + Math.random() * 0.1,
+      loss: 0.15 + Math.random() * 0.05,
       confusionMatrix: [
         [85, 15],
         [12, 88]
@@ -617,20 +626,23 @@ export class AutoRetrainingService {
   /**
    * Test model
    */
-  private static async testModel(model: unknown, testSet: any[]): Promise<any> {
+  private static async testModel(model: unknown, testSet: CorrectionRecord[]): Promise<TestMetrics> {
     // Placeholder test metrics
     return {
       accuracy: 0.86 + Math.random() * 0.1,
       precision: 0.85 + Math.random() * 0.1,
       recall: 0.84 + Math.random() * 0.1,
-      f1Score: 0.85 + Math.random() * 0.1
+      f1Score: 0.85 + Math.random() * 0.1,
+      loss: 0.18 + Math.random() * 0.05,
+      testSetSize: testSet.length,
+      timestamp: new Date().toISOString()
     };
   }
 
   /**
    * Compare with current model
    */
-  private static async compareWithCurrentModel(newMetrics: unknown): Promise<boolean> {
+  private static async compareWithCurrentModel(newMetrics: ValidationMetrics): Promise<boolean> {
     try {
       // Get current model metrics
       const { data: currentBaseline } = await serverSupabase

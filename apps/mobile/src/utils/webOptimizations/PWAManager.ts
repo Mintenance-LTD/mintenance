@@ -10,7 +10,7 @@ import { PWAConfig } from './types';
 
 export class PWAManager {
   private serviceWorkerRegistration?: ServiceWorkerRegistration;
-  private deferredPrompt: any;
+  private deferredPrompt: unknown;
   private isInstalled = false;
 
   constructor(private config: PWAConfig) {}
@@ -130,7 +130,7 @@ export class PWAManager {
   /**
    * Show install banner
    */
-  private showInstallBanner(deferredPrompt: any): void {
+  private showInstallBanner(deferredPrompt: unknown): void {
     // Create install banner
     const banner = document.createElement('div');
     banner.id = 'pwa-install-banner';

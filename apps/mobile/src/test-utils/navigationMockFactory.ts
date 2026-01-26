@@ -83,7 +83,7 @@ export class NavigationMockFactory {
       navigate: jest.fn((screen: keyof AuthStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as any;
+    } as unknown;
   }
 
   static createJobsNavigationMock(): StackNavigationProp<JobsStackParamList, 'JobsList'> {
@@ -93,7 +93,7 @@ export class NavigationMockFactory {
       navigate: jest.fn((screen: keyof JobsStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as any;
+    } as unknown;
   }
 
   static createRootNavigationMock(): StackNavigationProp<RootStackParamList, 'Main'> {
@@ -103,7 +103,7 @@ export class NavigationMockFactory {
       navigate: jest.fn((screen: keyof RootStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as any;
+    } as unknown;
   }
 
   static createMessagingNavigationMock(): StackNavigationProp<MessagingStackParamList, 'MessagesList'> {
@@ -113,7 +113,7 @@ export class NavigationMockFactory {
       navigate: jest.fn((screen: keyof MessagingStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as any;
+    } as unknown;
   }
 
   static createProfileNavigationMock(): StackNavigationProp<ProfileStackParamList, 'ProfileMain'> {
@@ -123,17 +123,17 @@ export class NavigationMockFactory {
       navigate: jest.fn((screen: keyof ProfileStackParamList, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as any;
+    } as unknown;
   }
 
-  static createGenericNavigationMock(): StackNavigationProp<any> {
+  static createGenericNavigationMock(): StackNavigationProp<unknown> {
     const baseMock = this.createBaseMock();
     return {
       ...baseMock,
       navigate: jest.fn((screen: string, params?: any) => {
         // Navigation logging handled by navigation service in real app
       }),
-    } as any;
+    } as unknown;
   }
 
   static resetAllMocks(): void {

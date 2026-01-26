@@ -35,7 +35,7 @@ export function ChunkRetryHandler() {
         return; // Not a chunk error, let other handlers deal with it
       }
 
-      logger.warn('[ChunkRetry] Chunk loading error detected:', event.message', [object Object], { service: 'app' });
+      logger.warn(`[ChunkRetry] Chunk loading error detected: ${event.message}`, { service: 'app' });
 
       // Prevent default error handling
       event.preventDefault();
@@ -45,7 +45,7 @@ export function ChunkRetryHandler() {
 
       // If we've exceeded max retries, clear cache and hard reload
       if (retryCountRef.current >= MAX_RETRIES) {
-        logger.error('[ChunkRetry] Max retries (%s', [object Object], { service: 'app' }) exceeded. Clearing cache and reloading...`);
+        logger.error(`[ChunkRetry] Max retries (${MAX_RETRIES}) exceeded. Clearing cache and reloading...`, { service: 'app' });
 
         // Notify service worker to clear cache
         if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -58,7 +58,7 @@ export function ChunkRetryHandler() {
         try {
           sessionStorage.removeItem('next-build-id');
         } catch (e) {
-          logger.warn('[ChunkRetry] Failed to clear session storage:', e', [object Object], { service: 'app' });
+          logger.error('[ChunkRetry] Failed to clear session storage', e, { service: 'app' });
         }
 
         // Hard reload after a brief delay
@@ -74,11 +74,11 @@ export function ChunkRetryHandler() {
 
       // Calculate exponential backoff delay
       const delay = RETRY_DELAY * Math.pow(2, retryCountRef.current - 1);
-      console.info(`[ChunkRetry] Retry ${retryCountRef.current}/${MAX_RETRIES} in ${delay}ms...`);
+      logger.info(`[ChunkRetry] Retry ${retryCountRef.current}/${MAX_RETRIES} in ${delay}ms...`);
 
       // Retry with exponential backoff
       setTimeout(() => {
-        console.info('[ChunkRetry] Attempting page reload...');
+        logger.info('[ChunkRetry] Attempting page reload...');
         window.location.reload();
       }, delay);
     };
@@ -94,7 +94,7 @@ export function ChunkRetryHandler() {
         reason.includes('ChunkLoadError') ||
         (reason.includes('chunk') && reason.includes('failed'))
       ) {
-        logger.warn('[ChunkRetry] Chunk error in promise rejection:', reason', [object Object], { service: 'app' });
+        logger.warn(`[ChunkRetry] Chunk error in promise rejection: ${reason}`, { service: 'app' });
 
         // Convert to ErrorEvent format
         const errorEvent = new ErrorEvent('error', {
@@ -111,7 +111,7 @@ export function ChunkRetryHandler() {
     // Reset retry count on successful navigation
     const resetRetryCount = () => {
       if (retryCountRef.current > 0) {
-        console.info('[ChunkRetry] Navigation successful, resetting retry count');
+        logger.info('[ChunkRetry] Navigation successful, resetting retry count');
         retryCountRef.current = 0;
         hasReloadedRef.current = false;
       }
@@ -123,7 +123,7 @@ export function ChunkRetryHandler() {
     // Listen for service worker messages
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data && event.data.type === 'CACHE_CLEARED') {
-        console.info('[ChunkRetry] Service worker cache cleared:', event.data.message);
+        logger.info('[ChunkRetry] Service worker cache cleared:', event.data.message);
       }
     };
 

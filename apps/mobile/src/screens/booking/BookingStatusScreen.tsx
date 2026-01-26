@@ -24,7 +24,7 @@ interface BookingStatusParams {
 
 interface Props {
   route?: RouteProp<{ params: BookingStatusParams }>;
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 export type BookingStatus = 'upcoming' | 'completed' | 'cancelled';

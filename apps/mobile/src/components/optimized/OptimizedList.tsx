@@ -34,7 +34,7 @@ export interface OptimizedListProps<T> {
   numColumns?: number;
   horizontal?: boolean;
   estimatedItemSize?: number;
-  onScroll?: (event: any) => void;
+  onScroll?: (event: unknown) => void;
   scrollEventThrottle?: number;
   testID?: string;
 }

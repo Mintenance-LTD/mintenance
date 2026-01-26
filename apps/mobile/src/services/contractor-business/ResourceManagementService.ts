@@ -2,6 +2,91 @@ import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 
+// Database row interfaces
+interface DatabaseInventoryRow {
+  id: string;
+  contractor_id: string;
+  name: string;
+  category: string;
+  sku?: string;
+  description?: string;
+  quantity: number;
+  min_threshold: number;
+  unit_cost: number;
+  supplier_id?: string;
+  location?: string;
+  status: 'in_stock' | 'low_stock' | 'out_of_stock' | 'ordered';
+  last_restocked?: string;
+  expiry_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DatabaseEquipmentRow {
+  id: string;
+  contractor_id: string;
+  name: string;
+  type: string;
+  model?: string;
+  serial_number?: string;
+  purchase_date?: string;
+  purchase_price?: number;
+  current_value?: number;
+  status: 'operational' | 'maintenance' | 'repair' | 'retired';
+  condition: 'excellent' | 'good' | 'fair' | 'poor';
+  next_maintenance_date?: string;
+  last_maintenance_date?: string;
+  maintenance_cost?: number;
+  warranty_expiry?: string;
+  location?: string;
+  utilization: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DatabaseSupplierRow {
+  id: string;
+  contractor_id: string;
+  name: string;
+  contact_name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  category: string[];
+  rating: number;
+  payment_terms?: string;
+  delivery_time?: number;
+  minimum_order?: number;
+  discount_rate?: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DatabaseMaintenanceRecordRow {
+  id: string;
+  equipment_id: string;
+  type: 'routine' | 'repair' | 'inspection' | 'calibration';
+  description: string;
+  cost: number;
+  performed_by: string;
+  performed_date: string;
+  next_due_date?: string;
+  parts_used?: string[];
+  downtime?: number;
+  notes?: string;
+  attachments?: string[];
+  created_at: string;
+}
+
+interface PurchaseOrderItem {
+  inventoryItemId: string;
+  quantity: number;
+  unitCost: number;
+  description: string;
+}
+
+// Application interfaces
 interface InventoryItem {
   id: string;
   contractorId: string;
@@ -114,14 +199,14 @@ interface ResourceAnalytics {
   maintenanceCosts: number;
   mostUsedItems: InventoryItem[];
   underutilizedEquipment: Equipment[];
-  supplierPerformance: any[];
-  costOptimizationOpportunities: any[];
+  supplierPerformance: Record<string, unknown>[];
+  costOptimizationOpportunities: Record<string, unknown>[];
   resourceEfficiency: number;
 }
 
 export class ResourceManagementService {
   static async addInventoryItem(item: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>): Promise<InventoryItem> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { data, error } = await supabase
           .from('inventory_items')
@@ -145,15 +230,23 @@ export class ResourceManagementService {
 
         if (error) throw error;
 
-        return this.mapInventoryItem(data);
+        return this.mapInventoryItem(data as DatabaseInventoryRow);
       },
-      'ResourceManagementService',
-      'addInventoryItem'
+      {
+        service: 'ResourceManagementService',
+        method: 'addInventoryItem',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to add inventory item');
+    }
+
+    return result.data;
   }
 
   static async getInventoryItems(contractorId: string): Promise<InventoryItem[]> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { data, error } = await supabase
           .from('inventory_items')
@@ -163,15 +256,23 @@ export class ResourceManagementService {
 
         if (error) throw error;
 
-        return data.map(this.mapInventoryItem);
+        return (data as DatabaseInventoryRow[]).map(this.mapInventoryItem);
       },
-      'ResourceManagementService',
-      'getInventoryItems'
+      {
+        service: 'ResourceManagementService',
+        method: 'getInventoryItems',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to get inventory items');
+    }
+
+    return result.data;
   }
 
   static async updateInventoryQuantity(itemId: string, newQuantity: number, reason: string, reference?: string): Promise<void> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { data: item, error: fetchError } = await supabase
           .from('inventory_items')
@@ -181,7 +282,8 @@ export class ResourceManagementService {
 
         if (fetchError) throw fetchError;
 
-        const quantityDiff = newQuantity - item.quantity;
+        const itemRow = item as DatabaseInventoryRow;
+        const quantityDiff = newQuantity - itemRow.quantity;
         const movementType = quantityDiff > 0 ? 'inbound' : 'outbound';
 
         await supabase.rpc('update_inventory_with_movement', {
@@ -195,13 +297,19 @@ export class ResourceManagementService {
 
         await this.checkLowStockThreshold(itemId);
       },
-      'ResourceManagementService',
-      'updateInventoryQuantity'
+      {
+        service: 'ResourceManagementService',
+        method: 'updateInventoryQuantity',
+      }
     );
+
+    if (!result.success) {
+      throw result.error || new Error('Failed to update inventory quantity');
+    }
   }
 
   static async addEquipment(equipment: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Equipment> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { data, error } = await supabase
           .from('equipment')
@@ -228,15 +336,23 @@ export class ResourceManagementService {
 
         if (error) throw error;
 
-        return this.mapEquipment(data);
+        return this.mapEquipment(data as DatabaseEquipmentRow);
       },
-      'ResourceManagementService',
-      'addEquipment'
+      {
+        service: 'ResourceManagementService',
+        method: 'addEquipment',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to add equipment');
+    }
+
+    return result.data;
   }
 
   static async getEquipment(contractorId: string): Promise<Equipment[]> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { data, error } = await supabase
           .from('equipment')
@@ -246,15 +362,23 @@ export class ResourceManagementService {
 
         if (error) throw error;
 
-        return data.map(this.mapEquipment);
+        return (data as DatabaseEquipmentRow[]).map(this.mapEquipment);
       },
-      'ResourceManagementService',
-      'getEquipment'
+      {
+        service: 'ResourceManagementService',
+        method: 'getEquipment',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to get equipment');
+    }
+
+    return result.data;
   }
 
   static async scheduleMaintenanceCheck(): Promise<Equipment[]> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const today = new Date();
         const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -267,15 +391,23 @@ export class ResourceManagementService {
 
         if (error) throw error;
 
-        return data.map(this.mapEquipment);
+        return (data as DatabaseEquipmentRow[]).map(this.mapEquipment);
       },
-      'ResourceManagementService',
-      'scheduleMaintenanceCheck'
+      {
+        service: 'ResourceManagementService',
+        method: 'scheduleMaintenanceCheck',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to schedule maintenance check');
+    }
+
+    return result.data;
   }
 
   static async recordMaintenance(maintenance: Omit<MaintenanceRecord, 'id' | 'createdAt'>): Promise<MaintenanceRecord> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { data, error } = await supabase
           .from('maintenance_records')
@@ -308,15 +440,23 @@ export class ResourceManagementService {
             .eq('id', maintenance.equipmentId);
         }
 
-        return this.mapMaintenanceRecord(data);
+        return this.mapMaintenanceRecord(data as DatabaseMaintenanceRecordRow);
       },
-      'ResourceManagementService',
-      'recordMaintenance'
+      {
+        service: 'ResourceManagementService',
+        method: 'recordMaintenance',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to record maintenance');
+    }
+
+    return result.data;
   }
 
   static async addSupplier(supplier: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>): Promise<Supplier> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { data, error } = await supabase
           .from('suppliers')
@@ -340,15 +480,23 @@ export class ResourceManagementService {
 
         if (error) throw error;
 
-        return this.mapSupplier(data);
+        return this.mapSupplier(data as DatabaseSupplierRow);
       },
-      'ResourceManagementService',
-      'addSupplier'
+      {
+        service: 'ResourceManagementService',
+        method: 'addSupplier',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to add supplier');
+    }
+
+    return result.data;
   }
 
   static async getSuppliers(contractorId: string, category?: string): Promise<Supplier[]> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         let query = supabase
           .from('suppliers')
@@ -364,15 +512,23 @@ export class ResourceManagementService {
 
         if (error) throw error;
 
-        return data.map(this.mapSupplier);
+        return (data as DatabaseSupplierRow[]).map(this.mapSupplier);
       },
-      'ResourceManagementService',
-      'getSuppliers'
+      {
+        service: 'ResourceManagementService',
+        method: 'getSuppliers',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to get suppliers');
+    }
+
+    return result.data;
   }
 
-  static async createPurchaseOrder(contractorId: string, supplierId: string, items: any[]): Promise<string> {
-    return ServiceErrorHandler.handleServiceCall(
+  static async createPurchaseOrder(contractorId: string, supplierId: string, items: PurchaseOrderItem[]): Promise<string> {
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { data: supplier, error: supplierError } = await supabase
           .from('suppliers')
@@ -382,6 +538,7 @@ export class ResourceManagementService {
 
         if (supplierError) throw supplierError;
 
+        const supplierRow = supplier as DatabaseSupplierRow;
         const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0);
 
         const { data: order, error: orderError } = await supabase
@@ -392,24 +549,33 @@ export class ResourceManagementService {
             status: 'pending',
             total_amount: totalAmount,
             items: items,
-            delivery_date: this.calculateDeliveryDate(supplier.delivery_time),
+            delivery_date: this.calculateDeliveryDate(supplierRow.delivery_time),
           })
           .select()
           .single();
 
         if (orderError) throw orderError;
 
-        await this.sendPurchaseOrderEmail(order.id, supplier.email);
+        const orderRow = order as { id: string; [key: string]: unknown };
+        await this.sendPurchaseOrderEmail(orderRow.id, supplierRow.email);
 
-        return order.id;
+        return orderRow.id;
       },
-      'ResourceManagementService',
-      'createPurchaseOrder'
+      {
+        service: 'ResourceManagementService',
+        method: 'createPurchaseOrder',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to create purchase order');
+    }
+
+    return result.data;
   }
 
   static async trackResourceUtilization(utilization: ResourceUtilization): Promise<void> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { error } = await supabase
           .from('resource_utilization')
@@ -431,13 +597,19 @@ export class ResourceManagementService {
           await this.updateEquipmentUtilization(utilization.resourceId, utilization.utilizationHours || 0);
         }
       },
-      'ResourceManagementService',
-      'trackResourceUtilization'
+      {
+        service: 'ResourceManagementService',
+        method: 'trackResourceUtilization',
+      }
     );
+
+    if (!result.success) {
+      throw result.error || new Error('Failed to track resource utilization');
+    }
   }
 
   static async getResourceAnalytics(contractorId: string, startDate: string, endDate: string): Promise<ResourceAnalytics> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const [
           inventoryValue,
@@ -476,13 +648,21 @@ export class ResourceManagementService {
           resourceEfficiency: resourceEfficiency,
         };
       },
-      'ResourceManagementService',
-      'getResourceAnalytics'
+      {
+        service: 'ResourceManagementService',
+        method: 'getResourceAnalytics',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to get resource analytics');
+    }
+
+    return result.data;
   }
 
   static async autoReorderLowStock(contractorId: string): Promise<string[]> {
-    return ServiceErrorHandler.handleServiceCall(
+    const result = await ServiceErrorHandler.executeOperation(
       async () => {
         const { data: lowStockItems, error } = await supabase
           .from('inventory_items')
@@ -495,7 +675,7 @@ export class ResourceManagementService {
 
         const orderIds: string[] = [];
 
-        for (const item of lowStockItems) {
+        for (const item of lowStockItems as DatabaseInventoryRow[]) {
           if (item.supplier_id && item.min_threshold > 0) {
             const orderQuantity = Math.max(item.min_threshold * 2, 10);
 
@@ -519,9 +699,17 @@ export class ResourceManagementService {
 
         return orderIds;
       },
-      'ResourceManagementService',
-      'autoReorderLowStock'
+      {
+        service: 'ResourceManagementService',
+        method: 'autoReorderLowStock',
+      }
     );
+
+    if (!result.success || !result.data) {
+      throw result.error || new Error('Failed to auto-reorder low stock');
+    }
+
+    return result.data;
   }
 
   private static async checkLowStockThreshold(itemId: string): Promise<void> {
@@ -533,14 +721,15 @@ export class ResourceManagementService {
 
     if (error || !item) return;
 
-    let newStatus = 'in_stock';
-    if (item.quantity === 0) {
+    const itemRow = item as DatabaseInventoryRow;
+    let newStatus: 'in_stock' | 'low_stock' | 'out_of_stock' | 'ordered' = 'in_stock';
+    if (itemRow.quantity === 0) {
       newStatus = 'out_of_stock';
-    } else if (item.quantity <= item.min_threshold) {
+    } else if (itemRow.quantity <= itemRow.min_threshold) {
       newStatus = 'low_stock';
     }
 
-    if (newStatus !== item.status) {
+    if (newStatus !== itemRow.status) {
       await supabase
         .from('inventory_items')
         .update({ status: newStatus })
@@ -557,7 +746,8 @@ export class ResourceManagementService {
 
     if (fetchError || !equipment) return;
 
-    const newUtilization = Math.min(equipment.utilization + hours, 100);
+    const equipmentRow = equipment as { utilization: number };
+    const newUtilization = Math.min(equipmentRow.utilization + hours, 100);
 
     await supabase
       .from('equipment')
@@ -654,13 +844,14 @@ export class ResourceManagementService {
 
     if (error || !data) return [];
 
-    const usage = data.reduce((acc, record) => {
-      acc[record.resource_id] = (acc[record.resource_id] || 0) + (record.quantity || 0);
+    const usage = data.reduce<Record<string, number>>((acc, record) => {
+      const typedRecord = record as { resource_id: string; quantity?: number };
+      acc[typedRecord.resource_id] = (acc[typedRecord.resource_id] || 0) + (typedRecord.quantity || 0);
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
 
     const topItems = Object.entries(usage)
-      .sort(([, a], [, b]) => b - a)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
       .slice(0, 5)
       .map(([resourceId]) => resourceId);
 
@@ -671,7 +862,7 @@ export class ResourceManagementService {
 
     if (itemsError || !items) return [];
 
-    return items.map(this.mapInventoryItem);
+    return (items as DatabaseInventoryRow[]).map(this.mapInventoryItem);
   }
 
   private static async getUnderutilizedEquipment(contractorId: string): Promise<Equipment[]> {
@@ -684,15 +875,15 @@ export class ResourceManagementService {
 
     if (error || !data) return [];
 
-    return data.map(this.mapEquipment);
+    return (data as DatabaseEquipmentRow[]).map(this.mapEquipment);
   }
 
-  private static async getSupplierPerformance(contractorId: string, startDate: string, endDate: string): Promise<any[]> {
+  private static async getSupplierPerformance(contractorId: string, startDate: string, endDate: string): Promise<Record<string, unknown>[]> {
     // Implementation would analyze delivery times, quality, pricing trends
     return [];
   }
 
-  private static async getOptimizationOpportunities(contractorId: string): Promise<any[]> {
+  private static async getOptimizationOpportunities(contractorId: string): Promise<Record<string, unknown>[]> {
     // Implementation would identify cost-saving opportunities
     return [];
   }
@@ -702,7 +893,7 @@ export class ResourceManagementService {
     return 85;
   }
 
-  private static mapInventoryItem(data: any): InventoryItem {
+  private static mapInventoryItem(data: DatabaseInventoryRow): InventoryItem {
     return {
       id: data.id,
       contractorId: data.contractor_id,
@@ -723,7 +914,7 @@ export class ResourceManagementService {
     };
   }
 
-  private static mapEquipment(data: any): Equipment {
+  private static mapEquipment(data: DatabaseEquipmentRow): Equipment {
     return {
       id: data.id,
       contractorId: data.contractor_id,
@@ -747,7 +938,7 @@ export class ResourceManagementService {
     };
   }
 
-  private static mapSupplier(data: any): Supplier {
+  private static mapSupplier(data: DatabaseSupplierRow): Supplier {
     return {
       id: data.id,
       contractorId: data.contractor_id,
@@ -768,7 +959,7 @@ export class ResourceManagementService {
     };
   }
 
-  private static mapMaintenanceRecord(data: any): MaintenanceRecord {
+  private static mapMaintenanceRecord(data: DatabaseMaintenanceRecordRow): MaintenanceRecord {
     return {
       id: data.id,
       equipmentId: data.equipment_id,

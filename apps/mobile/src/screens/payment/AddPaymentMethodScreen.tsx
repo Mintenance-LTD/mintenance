@@ -86,7 +86,7 @@ export default function AddPaymentMethodScreen() {
         throw new Error(confirmError.message);
       }
 
-      if (setupIntent?.status === 'Succeeded') {
+      if (setupIntent?.status?.toLowerCase?.() === 'succeeded') {
         // Step 3: Save payment method ID to backend
         const paymentMethodId = setupIntent.paymentMethodId;
 

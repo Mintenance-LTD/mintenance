@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    identifier: `${req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'anonymous'}:${req.url}`,
     windowMs: 60000,
     maxRequests: 30
   });

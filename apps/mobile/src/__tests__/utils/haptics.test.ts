@@ -1,4 +1,3 @@
-import React from 'react';
 // Mock logger first to avoid Sentry issues
 jest.mock('../../utils/logger', () => ({
   logger: {
@@ -10,7 +9,7 @@ jest.mock('../../utils/logger', () => ({
 jest.mock('expo-haptics');
 
 import { HapticService } from '../../utils/haptics';
-import * as Haptics from 'expo-haptics';
+import * as Haptics from '../../utils/haptics';
 
 const mockHaptics = Haptics as jest.Mocked<typeof Haptics>;
 

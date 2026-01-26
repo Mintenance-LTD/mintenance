@@ -56,7 +56,7 @@ export const useI18n = () => {
   };
 
   // Enhanced translation function with fallbacks
-  const translate = (key: string, options?: any) => {
+  const translate = (key: string, options?: unknown) => {
     try {
       return t(key, options);
     } catch (error) {
@@ -67,7 +67,7 @@ export const useI18n = () => {
   };
 
   // Pluralization helper
-  const translatePlural = (key: string, count: number, options?: any) => {
+  const translatePlural = (key: string, count: number, options?: unknown) => {
     return t(key, { count, ...options });
   };
 
@@ -75,7 +75,7 @@ export const useI18n = () => {
   const translateWithContext = (
     key: string,
     context: string,
-    options?: any
+    options?: unknown
   ) => {
     const contextKey = `${key}_${context}`;
     const translation = t(contextKey, { defaultValue: '', ...options });
@@ -88,7 +88,7 @@ export const useI18n = () => {
   const getString = (
     namespace: string,
     key: string,
-    values?: Record<string, any>
+    values?: Record<string, unknown>
   ) => {
     const fullKey = `${namespace}.${key}`;
     return translate(fullKey, values);
@@ -225,7 +225,7 @@ export const useI18n = () => {
 };
 
 // Hook for RTL-aware styles
-export const useRTLStyles = <T extends Record<string, any>>(
+export const useRTLStyles = <T extends Record<string, unknown>>(
   ltrStyles: T,
   rtlStyles?: Partial<T>
 ) => {

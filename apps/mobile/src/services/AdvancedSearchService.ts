@@ -4,9 +4,10 @@
  */
 
 import { supabase } from '../config/supabase';
+import type { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { logger } from '../utils/logger';
 import { handleDatabaseOperation, validateRequired } from '../utils/serviceHelper';
-import { measurePerformance } from '../utils/performance';
+import { performanceMonitor } from '../utils/performance';
 import { sanitizeForSQL } from '../utils/sqlSanitization';
 import {
   SearchFilters,
@@ -19,11 +20,69 @@ import {
   FilterPreset,
   SearchPersonalization,
   SearchPerformanceMetrics,
+  LocationRadius,
+  ProjectType,
   DEFAULT_FILTER_PRESETS,
 } from '../types/search';
 
+// Database row interfaces matching snake_case DB schema
+interface DatabaseContractorProfileRow {
+  id: string;
+  user_id: string;
+  bio: string | null;
+  skills: string[] | null;
+  hourly_rate: number | null;
+  rating: number | null;
+  review_count: number | null;
+  verified: boolean | null;
+  location_city: string | null;
+  location_state: string | null;
+  location_coordinates: { latitude: number; longitude: number } | null;
+  availability_immediate: boolean | null;
+  availability_this_week: boolean | null;
+  availability_this_month: boolean | null;
+  completed_jobs: number | null;
+  response_time: string | null;
+  users?: {
+    first_name: string;
+    last_name: string;
+    profile_image_url: string | null;
+  };
+}
+
+interface DatabaseJobRow {
+  id: string;
+  title: string;
+  description: string;
+  budget_min: number | null;
+  budget_max: number | null;
+  budget_type: 'hourly' | 'fixed';
+  location_city: string | null;
+  location_state: string | null;
+  location_coordinates: { latitude: number; longitude: number } | null;
+  created_at: string;
+  urgency: 'low' | 'medium' | 'high' | null;
+  skills_required: string[] | null;
+  project_type: string;
+  status: string;
+  users?: {
+    first_name: string;
+    last_name: string;
+    homeowner_rating: number | null;
+    homeowner_reviews: number | null;
+  };
+}
+
+interface DatabaseUserSearchPreferenceRow {
+  user_id: string;
+  preferred_skills: string[] | null;
+  preferred_price_range: { min: number; max: number; hourly: boolean } | null;
+  preferred_location: { radius: number; unit: string; coordinates: { latitude: number; longitude: number } | null } | null;
+  updated_at: string;
+}
+
 export class AdvancedSearchService {
-  private static searchCache = new Map<string, { data: any; timestamp: number }>();
+  private static searchCache = new Map<string, { data: unknown; timestamp: number }>();
   private static readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   /**
@@ -34,7 +93,9 @@ export class AdvancedSearchService {
     page: number = 1,
     limit: number = 20
   ): Promise<SearchResult<ContractorSearchResult>> {
-    return measurePerformance('advanced_search_contractors', async () => {
+    const startTimer = performanceMonitor.startTimer('advanced_search_contractors');
+
+    try {
       const context = {
         service: 'AdvancedSearchService',
         method: 'searchContractors',
@@ -48,10 +109,11 @@ export class AdvancedSearchService {
       const cached = this.getFromCache(cacheKey);
       if (cached) {
         logger.info('Returning cached contractor search results', { cacheKey });
-        return cached;
+        startTimer();
+        return cached as SearchResult<ContractorSearchResult>;
       }
 
-      return handleDatabaseOperation(async () => {
+      const result = await handleDatabaseOperation(async () => {
         const startTime = Date.now();
 
         // Build base query
@@ -142,7 +204,13 @@ export class AdvancedSearchService {
 
         return { data: searchResult, error: null };
       }, context);
-    });
+
+      startTimer();
+      return result;
+    } catch (error) {
+      startTimer();
+      throw error;
+    }
   }
 
   /**
@@ -153,7 +221,9 @@ export class AdvancedSearchService {
     page: number = 1,
     limit: number = 20
   ): Promise<SearchResult<JobSearchResult>> {
-    return measurePerformance('advanced_search_jobs', async () => {
+    const startTimer = performanceMonitor.startTimer('advanced_search_jobs');
+
+    try {
       const context = {
         service: 'AdvancedSearchService',
         method: 'searchJobs',
@@ -165,10 +235,11 @@ export class AdvancedSearchService {
       const cacheKey = this.generateCacheKey('jobs', query, page, limit);
       const cached = this.getFromCache(cacheKey);
       if (cached) {
-        return cached;
+        startTimer();
+        return cached as SearchResult<JobSearchResult>;
       }
 
-      return handleDatabaseOperation(async () => {
+      const result = await handleDatabaseOperation(async () => {
         const startTime = Date.now();
 
         let queryBuilder = supabase
@@ -250,7 +321,13 @@ export class AdvancedSearchService {
 
         return { data: searchResult, error: null };
       }, context);
-    });
+
+      startTimer();
+      return result;
+    } catch (error) {
+      startTimer();
+      throw error;
+    }
   }
 
   /**
@@ -261,8 +338,13 @@ export class AdvancedSearchService {
     type: 'contractors' | 'jobs' = 'contractors',
     limit: number = 5
   ): Promise<SearchSuggestion[]> {
-    return measurePerformance('search_suggestions', async () => {
-      if (input.length < 2) return [];
+    const startTimer = performanceMonitor.startTimer('search_suggestions');
+
+    try {
+      if (input.length < 2) {
+        startTimer();
+        return [];
+      }
 
       const context = {
         service: 'AdvancedSearchService',
@@ -272,28 +354,30 @@ export class AdvancedSearchService {
 
       const suggestions: SearchSuggestion[] = [];
 
-      try {
-        // Skill suggestions
-        const skillSuggestions = await this.getSkillSuggestions(input, limit);
-        suggestions.push(...skillSuggestions);
+      // Skill suggestions
+      const skillSuggestions = await this.getSkillSuggestions(input, limit);
+      suggestions.push(...skillSuggestions);
 
-        // Location suggestions
-        const locationSuggestions = await this.getLocationSuggestions(input, limit);
-        suggestions.push(...locationSuggestions);
+      // Location suggestions
+      const locationSuggestions = await this.getLocationSuggestions(input, limit);
+      suggestions.push(...locationSuggestions);
 
-        // Project type suggestions
-        const projectSuggestions = await this.getProjectTypeSuggestions(input, limit);
-        suggestions.push(...projectSuggestions);
+      // Project type suggestions
+      const projectSuggestions = await this.getProjectTypeSuggestions(input, limit);
+      suggestions.push(...projectSuggestions);
 
-        // Sort by relevance and limit
-        return suggestions
-          .sort((a, b) => (b.metadata?.count || 0) - (a.metadata?.count || 0))
-          .slice(0, limit);
-      } catch (error) {
-        logger.error('Error getting search suggestions:', error);
-        return [];
-      }
-    });
+      // Sort by relevance and limit
+      const result = suggestions
+        .sort((a, b) => (b.metadata?.count || 0) - (a.metadata?.count || 0))
+        .slice(0, limit);
+
+      startTimer();
+      return result;
+    } catch (error) {
+      logger.error('Error getting search suggestions:', error);
+      startTimer();
+      return [];
+    }
   }
 
   /**
@@ -310,7 +394,9 @@ export class AdvancedSearchService {
     userId: string,
     personalization: Partial<SearchPersonalization>
   ): Promise<void> {
-    return measurePerformance('save_search_personalization', async () => {
+    const startTimer = performanceMonitor.startTimer('save_search_personalization');
+
+    try {
       const context = {
         service: 'AdvancedSearchService',
         method: 'saveSearchPersonalization',
@@ -319,14 +405,14 @@ export class AdvancedSearchService {
 
       validateRequired(userId, 'userId', context);
 
-      return handleDatabaseOperation(async () => {
+      await handleDatabaseOperation(async () => {
         const result = await supabase
           .from('user_search_preferences')
           .upsert({
             user_id: userId,
             preferred_skills: personalization.preferredSkills || [],
-            preferred_price_range: personalization.preferredPriceRange,
-            preferred_location: personalization.preferredLocation,
+            preferred_price_range: personalization.preferredPriceRange || null,
+            preferred_location: personalization.preferredLocation || null,
             updated_at: new Date().toISOString(),
           })
           .select()
@@ -334,14 +420,21 @@ export class AdvancedSearchService {
 
         return result;
       }, context);
-    });
+
+      startTimer();
+    } catch (error) {
+      startTimer();
+      throw error;
+    }
   }
 
   /**
    * Get user search personalization data
    */
   static async getSearchPersonalization(userId: string): Promise<SearchPersonalization | null> {
-    return measurePerformance('get_search_personalization', async () => {
+    const startTimer = performanceMonitor.startTimer('get_search_personalization');
+
+    try {
       const context = {
         service: 'AdvancedSearchService',
         method: 'getSearchPersonalization',
@@ -350,22 +443,39 @@ export class AdvancedSearchService {
 
       validateRequired(userId, 'userId', context);
 
-      return handleDatabaseOperation(async () => {
-        const result = await supabase
+      const result = await handleDatabaseOperation(async () => {
+        const queryResult = await supabase
           .from('user_search_preferences')
           .select('*')
           .eq('user_id', userId)
           .single();
 
-        if (result.error || !result.data) {
+        if (queryResult.error || !queryResult.data) {
           return { data: null, error: null };
         }
 
+        const data = queryResult.data as DatabaseUserSearchPreferenceRow;
+
+        // Default location with proper type
+        const defaultLocation: LocationRadius = {
+          radius: 25,
+          unit: 'miles',
+          coordinates: null,
+        };
+
+        // Ensure preferred_location has the correct unit type
+        const preferredLocation: LocationRadius = data.preferred_location
+          ? {
+              ...data.preferred_location,
+              unit: (data.preferred_location.unit === 'kilometers' ? 'kilometers' : 'miles') as 'miles' | 'kilometers',
+            }
+          : defaultLocation;
+
         const personalization: SearchPersonalization = {
           userId,
-          preferredSkills: result.data.preferred_skills || [],
-          preferredPriceRange: result.data.preferred_price_range,
-          preferredLocation: result.data.preferred_location,
+          preferredSkills: data.preferred_skills || [],
+          preferredPriceRange: data.preferred_price_range || { min: 0, max: 1000, hourly: true },
+          preferredLocation,
           searchHistory: [], // Would be loaded separately
           bookmarkedContractors: [], // Would be loaded separately
           contactedContractors: [], // Would be loaded separately
@@ -373,12 +483,21 @@ export class AdvancedSearchService {
 
         return { data: personalization, error: null };
       }, context);
-    });
+
+      startTimer();
+      return result;
+    } catch (error) {
+      startTimer();
+      throw error;
+    }
   }
 
   // Private helper methods
 
-  private static applyContractorFilters(queryBuilder: any, filters: SearchFilters) {
+  private static applyContractorFilters(
+    queryBuilder: PostgrestFilterBuilder<any, any, any>,
+    filters: SearchFilters
+  ): PostgrestFilterBuilder<any, any, any> {
     // Skills filter
     if (filters.skills.length > 0) {
       queryBuilder = queryBuilder.overlaps('skills', filters.skills);
@@ -424,7 +543,10 @@ export class AdvancedSearchService {
     return queryBuilder;
   }
 
-  private static applyContractorSorting(queryBuilder: any, sortBy: string) {
+  private static applyContractorSorting(
+    queryBuilder: PostgrestFilterBuilder<any, any, any>,
+    sortBy: string
+  ): PostgrestFilterBuilder<any, any, any> {
     switch (sortBy) {
       case 'rating':
         return queryBuilder.order('rating', { ascending: false });
@@ -439,7 +561,10 @@ export class AdvancedSearchService {
     }
   }
 
-  private static applyJobFilters(queryBuilder: any, filters: SearchFilters) {
+  private static applyJobFilters(
+    queryBuilder: PostgrestFilterBuilder<any, any, any>,
+    filters: SearchFilters
+  ): PostgrestFilterBuilder<any, any, any> {
     // Skills filter
     if (filters.skills.length > 0) {
       queryBuilder = queryBuilder.overlaps('skills_required', filters.skills);
@@ -466,7 +591,10 @@ export class AdvancedSearchService {
     return queryBuilder;
   }
 
-  private static applyJobSorting(queryBuilder: any, sortBy: string) {
+  private static applyJobSorting(
+    queryBuilder: PostgrestFilterBuilder<any, any, any>,
+    sortBy: string
+  ): PostgrestFilterBuilder<any, any, any> {
     switch (sortBy) {
       case 'price_high':
         return queryBuilder.order('budget_max', { ascending: false });
@@ -478,17 +606,17 @@ export class AdvancedSearchService {
   }
 
   private static transformContractorResults(
-    data: any[],
+    data: DatabaseContractorProfileRow[],
     userLocation: { latitude: number; longitude: number } | null
   ): ContractorSearchResult[] {
     return data.map((item) => ({
       id: item.id,
-      name: `${item.users.first_name} ${item.users.last_name}`,
-      profileImage: item.users.profile_image_url,
+      name: item.users ? `${item.users.first_name} ${item.users.last_name}` : 'Unknown',
+      profileImage: item.users?.profile_image_url || undefined,
       skills: item.skills || [],
       rating: item.rating || 0,
       reviewCount: item.review_count || 0,
-      hourlyRate: item.hourly_rate,
+      hourlyRate: item.hourly_rate || undefined,
       location: {
         city: item.location_city || '',
         state: item.location_state || '',
@@ -510,7 +638,7 @@ export class AdvancedSearchService {
   }
 
   private static transformJobResults(
-    data: any[],
+    data: DatabaseJobRow[],
     userLocation: { latitude: number; longitude: number } | null
   ): JobSearchResult[] {
     return data.map((item) => ({
@@ -518,8 +646,8 @@ export class AdvancedSearchService {
       title: item.title,
       description: item.description,
       budget: {
-        min: item.budget_min,
-        max: item.budget_max,
+        min: item.budget_min || undefined,
+        max: item.budget_max || undefined,
         type: item.budget_type,
       },
       location: {
@@ -532,11 +660,11 @@ export class AdvancedSearchService {
       postedDate: item.created_at,
       urgency: item.urgency || 'medium',
       skills: item.skills_required || [],
-      projectType: item.project_type,
+      projectType: item.project_type as ProjectType,
       homeowner: {
-        name: `${item.users.first_name} ${item.users.last_name}`,
-        rating: item.users.homeowner_rating || 0,
-        reviewCount: item.users.homeowner_reviews || 0,
+        name: item.users ? `${item.users.first_name} ${item.users.last_name}` : 'Unknown',
+        rating: item.users?.homeowner_rating || 0,
+        reviewCount: item.users?.homeowner_reviews || 0,
       },
       matchScore: 80,
     }));
@@ -665,7 +793,7 @@ export class AdvancedSearchService {
     return Buffer.from(queryString).toString('base64');
   }
 
-  private static getFromCache(key: string): any {
+  private static getFromCache(key: string): unknown {
     const cached = this.searchCache.get(key);
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
       return cached.data;
@@ -676,7 +804,7 @@ export class AdvancedSearchService {
     return null;
   }
 
-  private static setCache(key: string, data: any): void {
+  private static setCache(key: string, data: unknown): void {
     this.searchCache.set(key, {
       data,
       timestamp: Date.now(),

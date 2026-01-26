@@ -1,0 +1,652 @@
+[
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\admin\\users\\[userId]\\route.ts",
+    "matches": [
+      {
+        "line": 84,
+        "content": "]) as [any, any[]];",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractors\\service-areas-batch\\route.ts",
+    "matches": [
+      {
+        "line": 96,
+        "content": "}, {} as Record<string, any[]>);",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardFixed.tsx",
+    "matches": [
+      {
+        "line": 124,
+        "content": "{contractor.company || contractor.email}",
+        "match": "any |"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardProfessional.tsx",
+    "matches": [
+      {
+        "line": 161,
+        "content": "Welcome back, {contractor.company || contractor.name.split(' ')[0]}",
+        "match": "any |"
+      },
+      {
+        "line": 167,
+        "content": "alt={contractor.company || contractor.name}",
+        "match": "any |"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\components\\ContractorMapView.tsx",
+    "matches": [
+      {
+        "line": 304,
+        "content": "serviceAreasData.forEach(([contractorId, areas]: [string, any[]]) => {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\invoices\\[invoiceId]\\page.tsx",
+    "matches": [
+      {
+        "line": 281,
+        "content": "{invoice.contractor.company || invoice.contractor.name}",
+        "match": "any |"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\scheduling\\meetings\\components\\MeetingScheduler.tsx",
+    "matches": [
+      {
+        "line": 61,
+        "content": "const [jobs, setJobs] = useState<any[]>([]);",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\jobs-create-page.tsx",
+    "matches": [
+      {
+        "line": 119,
+        "content": "const [assessment, setAssessment] = useState<any>(null);",
+        "match": "<any>"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\hooks\\queries\\__test-component.tsx",
+    "matches": [
+      {
+        "line": 132,
+        "content": "{data.jobs.slice(0, 3).map((job: any) => (",
+        "match": ": any"
+      },
+      {
+        "line": 174,
+        "content": "{data.contractors.slice(0, 3).map((contractor: any) => (",
+        "match": ": any"
+      },
+      {
+        "line": 234,
+        "content": "function TestResult({ label, value }: { label: string; value: any }) {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\queries\\scheduling.ts",
+    "matches": [
+      {
+        "line": 212,
+        "content": "export async function fetchMeetingsForUser(userId: string): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\adjust-rollout.ts",
+    "matches": [
+      {
+        "line": 43,
+        "content": "metadata: any;",
+        "match": ": any"
+      },
+      {
+        "line": 59,
+        "content": "private supabase: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\benchmark-presence-detection.ts",
+    "matches": [
+      {
+        "line": 57,
+        "content": "private metadata: any;",
+        "match": ": any"
+      },
+      {
+        "line": 85,
+        "content": "filter: (img: any, idx: number) => idx % 2 === 0 ? img.category === 'damaged' : img.category === 'undamaged',",
+        "match": ": any"
+      },
+      {
+        "line": 89,
+        "content": "filter: (img: any, idx: number) => idx % 5 === 0 ? img.category === 'damaged' : img.category === 'undamaged',",
+        "match": ": any"
+      },
+      {
+        "line": 111,
+        "content": "filter: (img: any, idx?: number) => boolean;",
+        "match": ": any"
+      },
+      {
+        "line": 143,
+        "content": "private async benchmarkWithPresenceDetection(testImages: unknown[]): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 201,
+        "content": "private async benchmarkWithoutPresenceDetection(testImages: unknown[]): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 244,
+        "content": "private async simulateYoloInference(): Promise<any> {",
+        "match": "<any>"
+      },
+      {
+        "line": 312,
+        "content": "private calculateSummary(): any {",
+        "match": ": any"
+      },
+      {
+        "line": 358,
+        "content": "private calculateMonthlySavings(summary: unknown): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\bootstrap-maintenance-training.ts",
+    "matches": [
+      {
+        "line": 91,
+        "content": "private async getHistoricalJobImages(limit: number): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 166,
+        "content": "private async runSAM3Segmentation(imageUrl: string): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\create-gcp-buckets.ts",
+    "matches": [
+      {
+        "line": 101,
+        "content": "let lastError: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\explore-supabase-database.ts",
+    "matches": [
+      {
+        "line": 100,
+        "content": "const roleCounts = userRoles.reduce((acc: any, user) => {",
+        "match": ": any"
+      },
+      {
+        "line": 118,
+        "content": "const statusCounts = jobStatuses.reduce((acc: any, job) => {",
+        "match": ": any"
+      },
+      {
+        "line": 136,
+        "content": "const damageCounts = damageTypes.reduce((acc: any, assessment) => {",
+        "match": ": any"
+      },
+      {
+        "line": 144,
+        "content": ".sort((a: any, b: any) => b[1] - a[1])",
+        "match": ": any"
+      },
+      {
+        "line": 144,
+        "content": ".sort((a: any, b: any) => b[1] - a[1])",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\fix-any-types.ts",
+    "matches": [
+      {
+        "line": 30,
+        "content": "{ pattern: /<any>/, suggestion: '<unknown>', context: 'generic' }",
+        "match": "<any>"
+      },
+      {
+        "line": 84,
+        "content": "const anyMatches = line.match(/:\\s*any\\b|as\\s+any\\b|<any>/g);",
+        "match": "<any>"
+      },
+      {
+        "line": 103,
+        "content": "if (line.includes('any[]')) {",
+        "match": "any[]"
+      },
+      {
+        "line": 105,
+        "content": "} else if (line.includes('any | null')) {",
+        "match": "any |"
+      },
+      {
+        "line": 107,
+        "content": "} else if (line.includes('any | undefined')) {",
+        "match": "any |"
+      },
+      {
+        "line": 109,
+        "content": "} else if (line.includes('Promise<any>')) {",
+        "match": "<any>"
+      },
+      {
+        "line": 121,
+        "content": ".replace(/<any>/g, `<${suggestedType}>`)",
+        "match": "<any>"
+      },
+      {
+        "line": 216,
+        "content": "console.log('   - any[]         → unknown[]');",
+        "match": "any[]"
+      },
+      {
+        "line": 217,
+        "content": "console.log('   - any | null    → unknown | null');",
+        "match": "any |"
+      },
+      {
+        "line": 218,
+        "content": "console.log('   - Promise<any>  → Promise<unknown>');",
+        "match": "<any>"
+      },
+      {
+        "line": 220,
+        "content": "console.log('   - data: any     → data: unknown');",
+        "match": ": any"
+      },
+      {
+        "line": 222,
+        "content": "console.log('   - config: any   → config: ConfigInterface');",
+        "match": ": any"
+      },
+      {
+        "line": 223,
+        "content": "console.log('   - user: any     → user: User');",
+        "match": ": any"
+      },
+      {
+        "line": 224,
+        "content": "console.log('   - response: any → response: ApiResponse<T>');",
+        "match": ": any"
+      },
+      {
+        "line": 250,
+        "content": "console.log('\\n📄 Detailed suggestions saved to: any-type-suggestions.txt');",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\fix-typescript-errors.ts",
+    "matches": [
+      {
+        "line": 124,
+        "content": "\"import { Job } from '@mintenance/types';\\n\\ntype JobDetail = Job & { bids?: unknown[]; contractor?: any };\\ntype JobSummary = Pick<Job, 'id' | 'title' | 'status' | 'created_at'>;\"",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\load-test-ai-cache.ts",
+    "matches": [
+      {
+        "line": 71,
+        "content": "function generateMockImageAnalysis(id: number): any {",
+        "match": ": any"
+      },
+      {
+        "line": 86,
+        "content": "function generateMockDamageAssessment(id: number): any {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\monitor-migration-performance.ts",
+    "matches": [
+      {
+        "line": 49,
+        "content": "private supabase: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\performance-monitoring.ts",
+    "matches": [
+      {
+        "line": 322,
+        "content": "target: any,",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\populate-ab-test-calibration-data.ts",
+    "matches": [
+      {
+        "line": 43,
+        "content": "assessment_data: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\populate-ab-test-historical-validations.ts",
+    "matches": [
+      {
+        "line": 42,
+        "content": "assessment_data: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\populate-calibration-data-from-ground-truth.ts",
+    "matches": [
+      {
+        "line": 46,
+        "content": "context_features: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-api-direct.ts",
+    "matches": [
+      {
+        "line": 124,
+        "content": "assessment.detections.forEach((detection: any, idx: number) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-maintenance-api.ts",
+    "matches": [
+      {
+        "line": 113,
+        "content": "assessment.detections?.forEach((detection: any, idx: number) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-migration-staging.ts",
+    "matches": [
+      {
+        "line": 24,
+        "content": "body?: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-payment-flow.ts",
+    "matches": [
+      {
+        "line": 277,
+        "content": "escrow: any | null,",
+        "match": ": any"
+      },
+      {
+        "line": 316,
+        "content": "let escrow: any | null = null;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-upload-image.ts",
+    "matches": [
+      {
+        "line": 91,
+        "content": "assessment.detections.forEach((detection: any, idx: number) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\update-yolo-database-record.ts",
+    "matches": [
+      {
+        "line": 168,
+        "content": "const updateData: any = {",
+        "match": ": any"
+      },
+      {
+        "line": 204,
+        "content": "const insertData: any = {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\verify-database.ts",
+    "matches": [
+      {
+        "line": 203,
+        "content": "const statuses = transactions?.reduce((acc: Record<string, number>, tx: any) => {",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\warm-up-critic.ts",
+    "matches": [
+      {
+        "line": 47,
+        "content": "context_features: any;",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\test\\mocks\\ai-services.ts",
+    "matches": [
+      {
+        "line": 110,
+        "content": "const error: any = new Error('Aborted');",
+        "match": ": any"
+      },
+      {
+        "line": 147,
+        "content": "export function mockAIAnalysisResult(overrides?: Partial<any>) {",
+        "match": "<any>"
+      },
+      {
+        "line": 175,
+        "content": "set: vi.fn((key: string, value: any) => cache.set(key, value)),",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\test\\mocks\\dompurify.ts",
+    "matches": [
+      {
+        "line": 5,
+        "content": "const sanitize = vi.fn((input: string, config?: any) => {",
+        "match": ": any"
+      },
+      {
+        "line": 62,
+        "content": "export default vi.fn((window?: any) => mockDOMPurify);",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\test\\utils.tsx",
+    "matches": [
+      {
+        "line": 164,
+        "content": "success: (data: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 196,
+        "content": "success: (data: any) => ({",
+        "match": ": any"
+      },
+      {
+        "line": 218,
+        "content": "eq: (column: string, value: any) => ({",
+        "match": ": any"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\admin\\ModelPerformanceService.ts",
+    "matches": [
+      {
+        "line": 330,
+        "content": "private async getBaselineComparison(modelId: string): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\ai\\AISearchService.ts",
+    "matches": [
+      {
+        "line": 152,
+        "content": "}): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\ExportService.ts",
+    "matches": [
+      {
+        "line": 272,
+        "content": "private async fetchData(config: ExportConfig): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 304,
+        "content": "): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\analytics\\InsightsService.ts",
+    "matches": [
+      {
+        "line": 536,
+        "content": "private async detectAnomalies(): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 540,
+        "content": "private async generatePlatformRecommendations(): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 584,
+        "content": "private async recommendSkills(contractorId: string): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 590,
+        "content": "private async predictMaintenanceNeeds(userId: string): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 611,
+        "content": "private async getSeasonalRecommendations(): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 624,
+        "content": "private async recommendContractors(userId: string): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\jobs\\JobRepository.ts",
+    "matches": [
+      {
+        "line": 325,
+        "content": "async getBidsForJob(jobId: string): Promise<any[]> {",
+        "match": "any[]"
+      },
+      {
+        "line": 331,
+        "content": "async getAttachmentsForJob(jobId: string): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\api-services\\src\\webhooks\\WebhookService.ts",
+    "matches": [
+      {
+        "line": 204,
+        "content": "async getFailedEvents(source?: string, limit = 10): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\auth-unified\\src\\hooks\\useAuth.tsx",
+    "matches": [
+      {
+        "line": 32,
+        "content": "const [user, setUser] = useState<any | null>(null);",
+        "match": "any |"
+      }
+    ]
+  },
+  {
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\packages\\shared\\src\\services\\conformal-prediction.ts",
+    "matches": [
+      {
+        "line": 168,
+        "content": "async getCalibrationSummary(): Promise<any[]> {",
+        "match": "any[]"
+      }
+    ]
+  }
+]

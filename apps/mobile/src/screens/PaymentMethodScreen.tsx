@@ -25,7 +25,7 @@ interface PaymentMethodParams {
 
 interface Props {
   route: RouteProp<{ params: PaymentMethodParams }>;
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<unknown>;
 }
 
 type PaymentMethodType = 'cash' | 'card' | 'paypal' | 'apple_pay';

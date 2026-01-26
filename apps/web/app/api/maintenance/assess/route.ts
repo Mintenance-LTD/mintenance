@@ -60,9 +60,7 @@ export async function POST(request: NextRequest) {
     //   jobId,
     //   useSAM3,
     //   useGPTFallback
-    // }', {
-        service: 'api'
-      });
+    // }, { service: 'api' });
 
     // Run assessment
     const assessment = await MaintenanceAssessmentService.assessMaintenanceIssue(
@@ -88,7 +86,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Assessment error:', error', [object Object], { service: 'api' });
+    logger.error('Assessment error:', error, { service: 'api' });
 
     // Handle specific error types
     if (error instanceof Error) {
@@ -183,7 +181,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Get assessment error:', error', [object Object], { service: 'api' });
+    logger.error('Get assessment error:', error, { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to retrieve assessment' },
       { status: 500 }
@@ -231,7 +229,7 @@ async function trackUsageMetrics(userId: string, assessment: unknown): Promise<v
     });
 
   } catch (error) {
-    logger.error('Failed to track metrics:', error', [object Object], { service: 'api' });
+    logger.error('Failed to track metrics:', error, { service: 'api' });
     // Don't throw - metrics are not critical
   }
 }

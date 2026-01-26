@@ -13,7 +13,7 @@ export class TransactionManager {
 
   constructor(
     private smartContract: SmartContract,
-    private walletProvider: any
+    private walletProvider: unknown
   ) {}
 
   /**
@@ -23,7 +23,7 @@ export class TransactionManager {
     jobId: string;
     rating: number;
     contentHash: string;
-    metadata: any;
+    metadata: unknown;
   }): Promise<string> {
     const operationId = performanceMonitor.startOperation('blockchain_review_transaction');
 
@@ -71,7 +71,7 @@ export class TransactionManager {
   async createBadgeTransaction(data: {
     userId: string;
     badgeType: string;
-    metadata: any;
+    metadata: unknown;
   }): Promise<string> {
     const operationId = performanceMonitor.startOperation('blockchain_badge_transaction');
 

@@ -16,7 +16,7 @@ export default function DisputeDetailsError({
   const router = useRouter();
 
   useEffect(() => {
-    logger.error('Dispute details error:', error', [object Object], { service: 'app' });
+    logger.error('Dispute details error:', error, { service: 'app' });
 
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error);

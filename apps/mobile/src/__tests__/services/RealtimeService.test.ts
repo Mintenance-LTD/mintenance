@@ -1,7 +1,20 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
+// FIXED: Removed service mock - now testing real RealtimeService with mocked dependencies
+
 import { RealtimeService } from '../../services/RealtimeService';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { Message, Job, Bid } from '@mintenance/types';
+import { Message, Job, Bid } from '../../types';
 
 enum JobStatus {
   POSTED = 'posted',

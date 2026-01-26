@@ -78,7 +78,7 @@ export async function isScreenReaderEnabled(): Promise<boolean> {
   try {
     return await AccessibilityInfo.isScreenReaderEnabled();
   } catch (error) {
-    logger.warn('Failed to check screen reader status:', error', [object Object], { service: 'mobile' });
+    logger.warn('Failed to check screen reader status:', error, { service: 'mobile' });
     return false;
   }
 }
@@ -90,7 +90,7 @@ export async function isReduceMotionEnabled(): Promise<boolean> {
   try {
     return await AccessibilityInfo.isReduceMotionEnabled();
   } catch (error) {
-    logger.warn('Failed to check reduce motion status:', error', [object Object], { service: 'mobile' });
+    logger.warn('Failed to check reduce motion status:', error, { service: 'mobile' });
     return false;
   }
 }
@@ -104,7 +104,7 @@ export async function isBoldTextEnabled(): Promise<boolean> {
       // @ts-ignore - This method exists but isn't in the TypeScript definitions
       return await AccessibilityInfo.isBoldTextEnabled();
     } catch (error) {
-      logger.warn('Failed to check bold text status:', error', [object Object], { service: 'mobile' });
+      logger.warn('Failed to check bold text status:', error, { service: 'mobile' });
       return false;
     }
   }
@@ -120,7 +120,7 @@ export async function isGrayscaleEnabled(): Promise<boolean> {
       // @ts-ignore - This method exists but isn't in the TypeScript definitions
       return await AccessibilityInfo.isGrayscaleEnabled();
     } catch (error) {
-      logger.warn('Failed to check grayscale status:', error', [object Object], { service: 'mobile' });
+      logger.warn('Failed to check grayscale status:', error, { service: 'mobile' });
       return false;
     }
   }
@@ -136,7 +136,7 @@ export async function isInvertColorsEnabled(): Promise<boolean> {
       // @ts-ignore - This method exists but isn't in the TypeScript definitions
       return await AccessibilityInfo.isInvertColorsEnabled();
     } catch (error) {
-      logger.warn('Failed to check invert colors status:', error', [object Object], { service: 'mobile' });
+      logger.warn('Failed to check invert colors status:', error, { service: 'mobile' });
       return false;
     }
   }
@@ -146,7 +146,7 @@ export async function isInvertColorsEnabled(): Promise<boolean> {
 /**
  * Focus on a specific component
  */
-export function setAccessibilityFocus(ref: any): void {
+export function setAccessibilityFocus(ref: unknown): void {
   if (!ref) return;
 
   const reactTag = findNodeHandle(ref);
@@ -490,9 +490,9 @@ export function generateA11yId(prefix = 'a11y'): string {
  * Hook-like function to manage focus restoration
  */
 export class FocusManager {
-  private previousFocus: any = null;
+  private previousFocus: unknown = null;
 
-  saveFocus(ref: any): void {
+  saveFocus(ref: unknown): void {
     this.previousFocus = ref;
   }
 

@@ -26,7 +26,7 @@ export const SpecialOffersCarousel: React.FC<SpecialOffersCarouselProps> = ({
   const [currentIndex, setCurrentIndex] = React.useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const onViewRef = React.useRef((viewableItems: any) => {
+  const onViewRef = React.useRef((viewableItems: unknown) => {
     if (viewableItems.viewableItems.length > 0) {
       setCurrentIndex(viewableItems.viewableItems[0].index || 0);
     }

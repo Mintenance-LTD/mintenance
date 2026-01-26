@@ -1,3 +1,14 @@
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 /**
  * Tests for LocationService - Location and Geocoding Service
  */
@@ -235,7 +246,7 @@ describe('LocationService', () => {
   });
 
   describe('calculateDistance', () => {
-    it('should calculate distance between New York and Los Angeles', () => {
+    it('should calculate distance between New York and Los Angeles', async () => {
       // NY: 40.7128, -74.0060
       // LA: 34.0522, -118.2437
       const distance = LocationService.calculateDistance(40.7128, -74.0060, 34.0522, -118.2437);
@@ -245,7 +256,7 @@ describe('LocationService', () => {
       expect(distance).toBeLessThan(4000);
     });
 
-    it('should calculate distance between San Francisco and San Jose', () => {
+    it('should calculate distance between San Francisco and San Jose', async () => {
       // SF: 37.7749, -122.4194
       // SJ: 37.3382, -121.8863
       const distance = LocationService.calculateDistance(37.7749, -122.4194, 37.3382, -121.8863);
@@ -255,13 +266,13 @@ describe('LocationService', () => {
       expect(distance).toBeLessThan(75);
     });
 
-    it('should return 0 for same coordinates', () => {
+    it('should return 0 for same coordinates', async () => {
       const distance = LocationService.calculateDistance(40.7128, -74.0060, 40.7128, -74.0060);
 
       expect(distance).toBe(0);
     });
 
-    it('should handle negative coordinates', () => {
+    it('should handle negative coordinates', async () => {
       // Sydney: -33.8688, 151.2093
       // Melbourne: -37.8136, 144.9631
       const distance = LocationService.calculateDistance(-33.8688, 151.2093, -37.8136, 144.9631);
@@ -271,7 +282,7 @@ describe('LocationService', () => {
       expect(distance).toBeLessThan(730);
     });
 
-    it('should calculate small distances accurately', () => {
+    it('should calculate small distances accurately', async () => {
       // Two points about 1 km apart
       const distance = LocationService.calculateDistance(40.7128, -74.0060, 40.7228, -74.0060);
 
@@ -279,7 +290,7 @@ describe('LocationService', () => {
       expect(distance).toBeLessThan(1.5);
     });
 
-    it('should handle crossing the equator', () => {
+    it('should handle crossing the equator', async () => {
       // Northern hemisphere: 10°N, 0°E
       // Southern hemisphere: 10°S, 0°E
       const distance = LocationService.calculateDistance(10, 0, -10, 0);
@@ -289,7 +300,7 @@ describe('LocationService', () => {
       expect(distance).toBeLessThan(2250);
     });
 
-    it('should handle crossing the prime meridian', () => {
+    it('should handle crossing the prime meridian', async () => {
       // West: 0°N, 10°W
       // East: 0°N, 10°E
       const distance = LocationService.calculateDistance(0, -10, 0, 10);
@@ -301,38 +312,38 @@ describe('LocationService', () => {
   });
 
   describe('formatDistance', () => {
-    it('should format distances less than 1km in meters', () => {
+    it('should format distances less than 1km in meters', async () => {
       expect(LocationService.formatDistance(0.5)).toBe('500m away');
       expect(LocationService.formatDistance(0.123)).toBe('123m away');
       expect(LocationService.formatDistance(0.999)).toBe('999m away');
     });
 
-    it('should format distances between 1-10km with one decimal', () => {
+    it('should format distances between 1-10km with one decimal', async () => {
       expect(LocationService.formatDistance(1.0)).toBe('1.0km away');
       expect(LocationService.formatDistance(5.5)).toBe('5.5km away');
       expect(LocationService.formatDistance(9.9)).toBe('9.9km away');
     });
 
-    it('should format distances over 10km as rounded integers', () => {
+    it('should format distances over 10km as rounded integers', async () => {
       expect(LocationService.formatDistance(10)).toBe('10km away');
       expect(LocationService.formatDistance(15.7)).toBe('16km away');
       expect(LocationService.formatDistance(100.4)).toBe('100km away');
       expect(LocationService.formatDistance(1000)).toBe('1000km away');
     });
 
-    it('should handle very small distances', () => {
+    it('should handle very small distances', async () => {
       expect(LocationService.formatDistance(0.001)).toBe('1m away');
       expect(LocationService.formatDistance(0.0001)).toBe('0m away');
     });
 
-    it('should handle edge cases around boundaries', () => {
+    it('should handle edge cases around boundaries', async () => {
       expect(LocationService.formatDistance(0.9999)).toBe('1000m away');
       expect(LocationService.formatDistance(1.0001)).toBe('1.0km away');
       expect(LocationService.formatDistance(9.9999)).toBe('10.0km away');
       expect(LocationService.formatDistance(10.001)).toBe('10km away');
     });
 
-    it('should handle zero distance', () => {
+    it('should handle zero distance', async () => {
       expect(LocationService.formatDistance(0)).toBe('0m away');
     });
   });
@@ -420,7 +431,7 @@ describe('LocationService', () => {
   });
 
   describe('Edge Cases', () => {
-    it('should handle coordinates at poles', () => {
+    it('should handle coordinates at poles', async () => {
       // North Pole to South Pole
       const distance = LocationService.calculateDistance(90, 0, -90, 0);
 
@@ -429,7 +440,7 @@ describe('LocationService', () => {
       expect(distance).toBeLessThan(21000);
     });
 
-    it('should handle coordinates at date line', () => {
+    it('should handle coordinates at date line', async () => {
       // International Date Line crossing
       const distance = LocationService.calculateDistance(0, 179, 0, -179);
 
@@ -438,7 +449,7 @@ describe('LocationService', () => {
       expect(distance).toBeLessThan(250);
     });
 
-    it('should handle very precise coordinates', () => {
+    it('should handle very precise coordinates', async () => {
       const distance = LocationService.calculateDistance(
         40.712776123456,
         -74.005974123456,

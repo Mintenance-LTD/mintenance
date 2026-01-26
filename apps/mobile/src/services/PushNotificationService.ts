@@ -9,8 +9,8 @@ import { logger } from '../utils/logger';
 import { NotificationBehavior } from '@mintenance/types';
 
 // Conditional imports for Expo modules
-let Notifications: any;
-let Device: any;
+let Notifications: unknown;
+let Device: unknown;
 
 try {
   Notifications = require('expo-notifications');
@@ -31,7 +31,7 @@ interface NotificationData {
   type: 'job_created' | 'job_updated' | 'bid_received' | 'bid_accepted' | 'message_received' | 'payment_received';
   title: string;
   body: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 interface NotificationPermission {
@@ -200,7 +200,7 @@ export class PushNotificationService {
   }
 
   // Convenience methods for specific notification types
-  async notifyJobCreated(jobTitle: string, data?: Record<string, any>): Promise<void> {
+  async notifyJobCreated(jobTitle: string, data?: Record<string, unknown>): Promise<void> {
     await this.sendLocalNotification({
       type: 'job_created',
       title: 'New Job Posted',
@@ -209,7 +209,7 @@ export class PushNotificationService {
     });
   }
 
-  async notifyBidReceived(jobTitle: string, bidAmount: number, data?: Record<string, any>): Promise<void> {
+  async notifyBidReceived(jobTitle: string, bidAmount: number, data?: Record<string, unknown>): Promise<void> {
     await this.sendLocalNotification({
       type: 'bid_received',
       title: 'New Bid Received',
@@ -218,7 +218,7 @@ export class PushNotificationService {
     });
   }
 
-  async notifyBidAccepted(jobTitle: string, data?: Record<string, any>): Promise<void> {
+  async notifyBidAccepted(jobTitle: string, data?: Record<string, unknown>): Promise<void> {
     await this.sendLocalNotification({
       type: 'bid_accepted',
       title: 'Bid Accepted!',
@@ -227,7 +227,7 @@ export class PushNotificationService {
     });
   }
 
-  async notifyNewMessage(senderName: string, jobTitle: string, data?: Record<string, any>): Promise<void> {
+  async notifyNewMessage(senderName: string, jobTitle: string, data?: Record<string, unknown>): Promise<void> {
     await this.sendLocalNotification({
       type: 'message_received',
       title: `New message from ${senderName}`,
@@ -236,7 +236,7 @@ export class PushNotificationService {
     });
   }
 
-  async notifyPaymentReceived(amount: number, jobTitle: string, data?: Record<string, any>): Promise<void> {
+  async notifyPaymentReceived(amount: number, jobTitle: string, data?: Record<string, unknown>): Promise<void> {
     await this.sendLocalNotification({
       type: 'payment_received',
       title: 'Payment Received',

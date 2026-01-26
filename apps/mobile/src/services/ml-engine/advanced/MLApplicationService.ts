@@ -8,6 +8,80 @@ import { logger } from '../../../utils/logger';
 import { MLFeature } from './types';
 import { MLInferenceEngine } from './MLInferenceEngine';
 
+// Type definitions for ML predictions
+interface ContractorData {
+  skills: string[];
+  location: { lat: number; lng: number };
+  hourlyRate: number;
+  rating: number;
+  availability: number;
+  responseTime: number;
+  experience: {
+    level: number;
+    years: number;
+  };
+}
+
+interface JobData {
+  requiredSkills: string[];
+  location: { lat: number; lng: number };
+  budget: number;
+  complexity: number;
+  category: string;
+  schedule: {
+    startDate: number;
+    endDate?: number;
+    flexible: boolean;
+  };
+}
+
+interface ContractorProfile {
+  skills: string[];
+  preferredAreas: Array<{ lat: number; lng: number; radius: number }>;
+  hourlyRate: number;
+  experience: {
+    level: number;
+    years: number;
+  };
+  availability: {
+    weekdays: boolean[];
+    hours: { start: number; end: number };
+  };
+  jobHistory: Array<{
+    category: string;
+    rating: number;
+    completedAt: number;
+  }>;
+}
+
+interface LocationData {
+  lat: number;
+  lng: number;
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+interface DeviceInfo {
+  deviceId: string;
+  platform: string;
+  osVersion: string;
+  appVersion: string;
+  isRooted?: boolean;
+  isEmulator?: boolean;
+}
+
+interface PredictionOutput {
+  score?: number;
+  price?: number;
+  riskScore?: number;
+  value?: number;
+  class?: string;
+  probability?: number;
+  rank?: number;
+  items?: unknown[];
+}
+
 export class MLApplicationService {
   private inferenceEngine: MLInferenceEngine;
   private featureStore: Map<string, MLFeature[]> = new Map();
@@ -27,12 +101,12 @@ export class MLApplicationService {
       urgency: 'low' | 'medium' | 'high';
       complexity: number;
     },
-    contractors: any[],
+    contractors: ContractorData[],
     limit: number = 10
-  ): Promise<Array<{ contractor: any; score: number; explanation: string }>> {
+  ): Promise<Array<{ contractor: ContractorData; score: number; explanation: string }>> {
 
     try {
-      const results = [];
+      const results: Array<{ contractor: ContractorData; score: number; explanation: string }> = [];
 
       for (const contractor of contractors) {
         // Prepare features for ML model
@@ -48,7 +122,8 @@ export class MLApplicationService {
 
         // Get ML prediction
         const prediction = await this.inferenceEngine.predict('contractor_matching_v2', features);
-        const score = prediction.output.score || prediction.confidence;
+        const output = prediction.output as PredictionOutput;
+        const score = output.score || prediction.confidence;
 
         // Generate explanation
         const explanation = this.generateMatchingExplanation(features, score);
@@ -66,7 +141,7 @@ export class MLApplicationService {
         .slice(0, limit);
 
     } catch (error) {
-      logger.error('MLApplicationService', 'Contractor matching failed', error);
+      logger.error('MLApplicationService', 'Contractor matching failed', this.toLogContext(error));
       return [];
     }
   }
@@ -76,13 +151,13 @@ export class MLApplicationService {
    */
   async getJobRecommendations(
     contractorId: string,
-    contractorProfile: any,
-    availableJobs: any[],
+    contractorProfile: ContractorProfile,
+    availableJobs: JobData[],
     limit: number = 20
-  ): Promise<Array<{ job: any; score: number; reasons: string[] }>> {
+  ): Promise<Array<{ job: JobData; score: number; reasons: string[] }>> {
 
     try {
-      const results = [];
+      const results: Array<{ job: JobData; score: number; reasons: string[] }> = [];
 
       for (const job of availableJobs) {
         // Prepare features
@@ -97,7 +172,8 @@ export class MLApplicationService {
 
         // Get recommendation score
         const prediction = await this.inferenceEngine.predict('job_recommendation_v1', features);
-        const score = prediction.output.score || prediction.confidence;
+        const output = prediction.output as PredictionOutput;
+        const score = output.score || prediction.confidence;
 
         // Generate reasons
         const reasons = this.generateRecommendationReasons(features, score);
@@ -114,7 +190,7 @@ export class MLApplicationService {
         .slice(0, limit);
 
     } catch (error) {
-      logger.error('MLApplicationService', 'Job recommendations failed', error);
+      logger.error('MLApplicationService', 'Job recommendations failed', this.toLogContext(error));
       return [];
     }
   }
@@ -126,7 +202,7 @@ export class MLApplicationService {
     jobDetails: {
       category: string;
       description: string;
-      location: any;
+      location: LocationData;
       complexity: number;
       materials: string[];
       timeEstimate: number;
@@ -152,7 +228,8 @@ export class MLApplicationService {
 
       // Get price prediction
       const prediction = await this.inferenceEngine.predict('price_prediction_v1', features);
-      const estimatedPrice = prediction.output.price || 0;
+      const output = prediction.output as PredictionOutput;
+      const estimatedPrice = output.price || 0;
       const confidence = prediction.confidence;
 
       // Calculate price range based on confidence
@@ -176,7 +253,7 @@ export class MLApplicationService {
       };
 
     } catch (error) {
-      logger.error('MLApplicationService', 'Price prediction failed', error);
+      logger.error('MLApplicationService', 'Price prediction failed', this.toLogContext(error));
       return {
         estimatedPrice: 0,
         priceRange: { min: 0, max: 0 },
@@ -194,8 +271,8 @@ export class MLApplicationService {
       userId: string;
       amount: number;
       paymentMethod: string;
-      deviceInfo: any;
-      location: any;
+      deviceInfo: DeviceInfo;
+      location: LocationData;
       timestamp: number;
     }
   ): Promise<{
@@ -219,7 +296,8 @@ export class MLApplicationService {
 
       // Get fraud prediction
       const prediction = await this.inferenceEngine.predict('fraud_detection_v1', features);
-      const riskScore = prediction.output.riskScore || prediction.confidence;
+      const output = prediction.output as PredictionOutput;
+      const riskScore = output.riskScore || prediction.confidence;
 
       // Determine risk level
       let riskLevel: 'low' | 'medium' | 'high' | 'critical';
@@ -242,7 +320,7 @@ export class MLApplicationService {
       };
 
     } catch (error) {
-      logger.error('MLApplicationService', 'Fraud detection failed', error);
+      logger.error('MLApplicationService', 'Fraud detection failed', this.toLogContext(error));
       return {
         riskScore: 0,
         riskLevel: 'low',
@@ -285,9 +363,9 @@ export class MLApplicationService {
     return urgencyWeight * responseScore;
   }
 
-  private calculateComplexityCapability(jobComplexity: number, experience: any): number {
-    const experienceLevel = experience?.level || 1;
-    const experienceYears = experience?.years || 0;
+  private calculateComplexityCapability(jobComplexity: number, experience: { level: number; years: number }): number {
+    const experienceLevel = experience.level || 1;
+    const experienceYears = experience.years || 0;
     const capability = (experienceLevel * 0.6) + (Math.min(experienceYears / 10, 1) * 0.4);
     return Math.min(1, capability / jobComplexity);
   }
@@ -322,20 +400,96 @@ export class MLApplicationService {
   }
 
   // Placeholder calculation methods
-  private calculateLocationPreference(jobLocation: any, preferredAreas: any[]): number { return Math.random(); }
-  private calculateBudgetAttractiveness(budget: number, hourlyRate: number): number { return Math.random(); }
-  private calculateComplexityFit(jobComplexity: number, experience: any): number { return Math.random(); }
-  private calculateHistoricalSuccess(jobHistory: any[], category: string): number { return Math.random(); }
-  private calculateTimePreference(schedule: any, availability: any): number { return Math.random(); }
-  private estimateMaterialsCost(materials: string[]): number { return Math.random() * 500; }
-  private getLocationPriceFactor(location: any): number { return Math.random() * 0.5 + 0.75; }
-  private getSeasonFactor(): number { return Math.random() * 0.3 + 0.85; }
-  private getCategoryBaseRate(category: string): number { return Math.random() * 100 + 50; }
-  private analyzeDescriptionComplexity(description: string): number { return description.length / 100; }
-  private calculateFeatureImpact(feature: MLFeature, price: number): number { return Math.random() * 20 - 10; }
-  private calculateUserVelocity(userId: string): number { return Math.random(); }
-  private calculateDeviceRisk(deviceInfo: any): number { return Math.random() * 0.3; }
-  private calculateLocationRisk(location: any, userId: string): number { return Math.random() * 0.4; }
-  private calculatePaymentMethodRisk(paymentMethod: string): number { return Math.random() * 0.2; }
-  private calculateAmountDeviation(userId: string, amount: number): number { return Math.random() * 0.5; }
+  private calculateLocationPreference(
+    jobLocation: { lat: number; lng: number },
+    preferredAreas: Array<{ lat: number; lng: number; radius: number }>
+  ): number {
+    return Math.random();
+  }
+
+  private calculateBudgetAttractiveness(budget: number, hourlyRate: number): number {
+    return Math.random();
+  }
+
+  private calculateComplexityFit(
+    jobComplexity: number,
+    experience: { level: number; years: number }
+  ): number {
+    return Math.random();
+  }
+
+  private calculateHistoricalSuccess(
+    jobHistory: Array<{ category: string; rating: number; completedAt: number }>,
+    category: string
+  ): number {
+    return Math.random();
+  }
+
+  private calculateTimePreference(
+    schedule: { startDate: number; endDate?: number; flexible: boolean },
+    availability: { weekdays: boolean[]; hours: { start: number; end: number } }
+  ): number {
+    return Math.random();
+  }
+
+  private estimateMaterialsCost(materials: string[]): number {
+    return Math.random() * 500;
+  }
+
+  private getLocationPriceFactor(location: LocationData): number {
+    return Math.random() * 0.5 + 0.75;
+  }
+
+  private getSeasonFactor(): number {
+    return Math.random() * 0.3 + 0.85;
+  }
+
+  private getCategoryBaseRate(category: string): number {
+    return Math.random() * 100 + 50;
+  }
+
+  private analyzeDescriptionComplexity(description: string): number {
+    return description.length / 100;
+  }
+
+  private calculateFeatureImpact(feature: MLFeature, price: number): number {
+    return Math.random() * 20 - 10;
+  }
+
+  private calculateUserVelocity(userId: string): number {
+    return Math.random();
+  }
+
+  private calculateDeviceRisk(deviceInfo: DeviceInfo): number {
+    return Math.random() * 0.3;
+  }
+
+  private calculateLocationRisk(location: LocationData, userId: string): number {
+    return Math.random() * 0.4;
+  }
+
+  private calculatePaymentMethodRisk(paymentMethod: string): number {
+    return Math.random() * 0.2;
+  }
+
+  private calculateAmountDeviation(userId: string, amount: number): number {
+    return Math.random() * 0.5;
+  }
+
+  /**
+   * Convert error to LogContext for logger
+   */
+  private toLogContext(error: unknown): { error: string; message?: string; stack?: string } {
+    if (error instanceof Error) {
+      return {
+        error: error.name,
+        message: error.message,
+        stack: error.stack
+      };
+    }
+    if (typeof error === 'string') {
+      return { error };
+    }
+    return { error: String(error) };
+  }
 }

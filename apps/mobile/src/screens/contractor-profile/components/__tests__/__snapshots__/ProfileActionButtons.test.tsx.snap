@@ -1,0 +1,196 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProfileActionButtons Component Snapshot Stability renders consistently for default props 1`] = `
+<View
+  style={
+    {
+      "flexDirection": "row",
+      "gap": 12,
+      "justifyContent": "space-between",
+      "paddingHorizontal": 24,
+      "paddingVertical": 16,
+    }
+  }
+>
+  <TouchableOpacity
+    onPress={[MockFunction]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#10B981",
+        "borderRadius": 8,
+        "elevation": 2,
+        "flex": 1,
+        "flexDirection": "row",
+        "gap": 6,
+        "justifyContent": "center",
+        "paddingVertical": 12,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 4,
+      }
+    }
+    testID="message-button"
+  >
+    <Text
+      testID="icon-chatbubble-outline"
+    >
+      chatbubble-outline
+      -
+      18
+      -
+      #FFFFFF
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontSize": 14,
+          "fontWeight": "600",
+        }
+      }
+    >
+      Message
+    </Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    onPress={[MockFunction]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#10B981",
+        "borderRadius": 8,
+        "elevation": 2,
+        "flex": 1,
+        "flexDirection": "row",
+        "gap": 6,
+        "justifyContent": "center",
+        "paddingVertical": 12,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 4,
+      }
+    }
+    testID="call-button"
+  >
+    <Text
+      testID="icon-call-outline"
+    >
+      call-outline
+      -
+      18
+      -
+      #FFFFFF
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontSize": 14,
+          "fontWeight": "600",
+        }
+      }
+    >
+      Call
+    </Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    onPress={[MockFunction]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#10B981",
+        "borderRadius": 8,
+        "elevation": 2,
+        "flex": 1,
+        "flexDirection": "row",
+        "gap": 6,
+        "justifyContent": "center",
+        "paddingVertical": 12,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 4,
+      }
+    }
+    testID="video-button"
+  >
+    <Text
+      testID="icon-videocam-outline"
+    >
+      videocam-outline
+      -
+      18
+      -
+      #FFFFFF
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontSize": 14,
+          "fontWeight": "600",
+        }
+      }
+    >
+      Video
+    </Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    onPress={[MockFunction]}
+    style={
+      {
+        "alignItems": "center",
+        "backgroundColor": "#10B981",
+        "borderRadius": 8,
+        "elevation": 2,
+        "flex": 1,
+        "flexDirection": "row",
+        "gap": 6,
+        "justifyContent": "center",
+        "paddingVertical": 12,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 4,
+      }
+    }
+    testID="share-button"
+  >
+    <Text
+      testID="icon-share-social-outline"
+    >
+      share-social-outline
+      -
+      18
+      -
+      #FFFFFF
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontSize": 14,
+          "fontWeight": "600",
+        }
+      }
+    >
+      Share
+    </Text>
+  </TouchableOpacity>
+</View>
+`;

@@ -1,0 +1,58 @@
+﻿
+ RUN  v4.0.16 C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/packages/api-services
+
+node.exe : stderr | 
+src/jobs/__tests__/JobStatusService.test.ts > 
+JobStatusService > handleStatusChangeNotifications > 
+should call getNearbyContractors when job is posted
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (stderr  
+   | src/jo...n job is posted:String) [], RemoteExc  
+  eption
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[vitest] The vi.fn() mock did not use 'function' or 
+'class' in its implementation, see 
+https://vitest.dev/api/vi#vi-spyon for examples.
+
+ ÔØ» src/jobs/__tests__/JobStatusService.test.ts (7 tests | 1 failed | 6 skipped) 8ms
+       Ôåô should allow draft -> posted
+       Ôåô should NOT allow draft -> completed
+       Ôåô should successfully update status from draft to posted for owner
+       Ôåô should throw error if job not found
+       Ôåô should enforce business rules: cannot post without title
+       Ôåô should allow contractor to mark as completed if assigned
+       ├ù should call getNearbyContractors when job is posted 7ms
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/jobs/__tests__/JobStatusService.test.ts > 
+JobStatusService > handleStatusChangeNotifications > 
+should call getNearbyContractors when job is posted
+TypeError: () => mockRepoInstance is not a 
+constructor
+ ÔØ» new JobStatusService 
+src/jobs/JobStatusService.ts:60:23
+     58|   constructor(config: 
+JobStatusServiceConfig) {
+     59|     this.config = config;
+     60|     this.repository = new 
+JobRepository(config.supabase);
+       |                       ^
+     61|   }
+     62| 
+ ÔØ» 
+src/jobs/__tests__/JobStatusService.test.ts:67:15
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ
+»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 skipped (7)
+   Start at  11:39:40
+   Duration  611ms (transform 175ms, setup 0ms, import 247ms, tests 8ms, environment 0ms)
+

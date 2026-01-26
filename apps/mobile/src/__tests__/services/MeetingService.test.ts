@@ -1,10 +1,23 @@
-import { MeetingService } from '../../services/MeetingService';
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
+
 import {
   ContractorMeeting,
   ContractorLocation,
   MeetingUpdate,
   LocationData,
-} from '@mintenance/types';
+} from '../../types';
+
+// Import the REAL MeetingService (not mocked) - we want to test the actual implementation
+import { MeetingService } from '../../services/MeetingService';
 
 // Mock data (defined first so it can be used in mocks)
 const mockMeetingData = {

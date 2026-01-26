@@ -3,10 +3,8 @@
  * 
  * Wraps Supabase client with consistent error handling and typed methods.
  */
-
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
 import { parseError, logError, ApiError } from './ErrorHandler';
-
 export interface SupabaseClientConfig {
   url: string;
   anonKey: string;
@@ -17,21 +15,17 @@ export interface SupabaseClientConfig {
     };
   };
 }
-
 export class SupabaseClientWrapper {
   private client: SupabaseClient;
-
   constructor(config: SupabaseClientConfig) {
     this.client = createClient(config.url, config.anonKey, config.options);
   }
-
   /**
    * Get underlying Supabase client
    */
   getClient(): SupabaseClient {
     return this.client;
   }
-
   /**
    * Execute query with error handling
    */
@@ -40,13 +34,11 @@ export class SupabaseClientWrapper {
   ): Promise<T> {
     try {
       const { data, error } = await queryFn(this.client);
-
       if (error) {
         const apiError = parseError(error);
         logError(apiError, 'Supabase query error');
         throw apiError;
       }
-
       if (data === null) {
         throw parseError({
           message: 'No data returned',
@@ -54,7 +46,6 @@ export class SupabaseClientWrapper {
           statusCode: 404,
         });
       }
-
       return data;
     } catch (error) {
       if (error instanceof ApiError) {
@@ -63,7 +54,6 @@ export class SupabaseClientWrapper {
       throw parseError(error);
     }
   }
-
   /**
    * Execute mutation with error handling
    */
@@ -72,13 +62,11 @@ export class SupabaseClientWrapper {
   ): Promise<T> {
     try {
       const { data, error } = await mutationFn(this.client);
-
       if (error) {
         const apiError = parseError(error);
         logError(apiError, 'Supabase mutation error');
         throw apiError;
       }
-
       if (data === null) {
         throw parseError({
           message: 'Mutation returned no data',
@@ -86,7 +74,6 @@ export class SupabaseClientWrapper {
           statusCode: 500,
         });
       }
-
       return data;
     } catch (error) {
       if (error instanceof ApiError) {
@@ -95,7 +82,6 @@ export class SupabaseClientWrapper {
       throw parseError(error);
     }
   }
-
   /**
    * Get current session
    */
@@ -106,7 +92,6 @@ export class SupabaseClientWrapper {
     }
     return data.session;
   }
-
   /**
    * Sign in
    */
@@ -120,7 +105,6 @@ export class SupabaseClientWrapper {
     }
     return data;
   }
-
   /**
    * Sign up
    */
@@ -137,7 +121,6 @@ export class SupabaseClientWrapper {
     }
     return data;
   }
-
   /**
    * Sign out
    */
@@ -148,4 +131,3 @@ export class SupabaseClientWrapper {
     }
   }
 }
-

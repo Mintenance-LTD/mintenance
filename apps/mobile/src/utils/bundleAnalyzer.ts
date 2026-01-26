@@ -344,8 +344,8 @@ export class BundleAnalyzer {
  * Handles lazy loading and module caching
  */
 export class DynamicImportManager {
-  private loadedModules = new Map<string, any>();
-  private loadingPromises = new Map<string, Promise<any>>();
+  private loadedModules = new Map<string, unknown>();
+  private loadingPromises = new Map<string, Promise<unknown>>();
 
   /**
    * Load module with caching and error handling

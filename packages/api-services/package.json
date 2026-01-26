@@ -1,0 +1,45 @@
+{
+  "name": "@mintenance/api-services",
+  "version": "1.0.0",
+  "description": "Business logic and services for Mintenance API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@mintenance/security": "^1.0.0",
+    "@mintenance/auth-unified": "^1.0.0",
+    "@mintenance/types": "^1.0.0",
+    "@mintenance/shared": "^1.0.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.16",
+    "@vitest/coverage-v8": "^4.0.16",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "@typescript-eslint/eslint-plugin": "^6.17.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "keywords": [
+    "api",
+    "services",
+    "business-logic"
+  ],
+  "author": "Mintenance Team",
+  "license": "UNLICENSED"
+}

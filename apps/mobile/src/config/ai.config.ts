@@ -134,7 +134,7 @@ try {
   }
 } catch (error) {
   // Fatal error if API keys detected in mobile bundle
-  logger.error('FATAL SECURITY ERROR:', error', [object Object], { service: 'mobile' });
+  logger.error('FATAL SECURITY ERROR:', error, { service: 'mobile' });
   throw error;
 }
 

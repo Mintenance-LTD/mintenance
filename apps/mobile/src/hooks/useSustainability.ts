@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { Job } from '@/types';
 import {
   sustainabilityEngine,
   ESGScore,
@@ -17,7 +18,7 @@ export const SUSTAINABILITY_KEYS = {
   jobAnalysis: (jobId: string) => ['sustainability', 'job', jobId] as const,
   materialAlternatives: (materials: string[]) =>
     ['sustainability', 'materials', materials] as const,
-  carbonFootprint: (jobDetails: any) =>
+  carbonFootprint: (jobDetails: unknown) =>
     ['sustainability', 'carbon', jobDetails] as const,
   ranking: (location: string, category?: string) =>
     ['sustainability', 'ranking', location, category] as const,
@@ -325,7 +326,7 @@ export const useSustainabilityFormatters = () => {
     return insights;
   };
 
-  const getProgressInsights = (progress: any) => {
+  const getProgressInsights = (progress: unknown) => {
     const insights = [];
 
     if (progress.trend === 'improving') {

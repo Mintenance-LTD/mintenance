@@ -79,7 +79,7 @@ export class MockDataGenerator {
     { city: 'Phoenix', state: 'AZ', lat: 33.4484, lng: -112.0740 }
   ];
 
-  static generateUsers(count: number): any[] {
+  static generateUsers(count: number): unknown[] {
     return Array.from({ length: count }, (_, i) => ({
       id: `user_${i + 1}`,
       email: `user${i + 1}@example.com`,
@@ -97,7 +97,7 @@ export class MockDataGenerator {
     }));
   }
 
-  static generateJobs(count: number): any[] {
+  static generateJobs(count: number): unknown[] {
     return Array.from({ length: count }, (_, i) => {
       const location = this.locations[Math.floor(Math.random() * this.locations.length)];
       const category = this.jobCategories[Math.floor(Math.random() * this.jobCategories.length)];
@@ -127,7 +127,7 @@ export class MockDataGenerator {
     });
   }
 
-  static generateBids(count: number, jobs: any[], contractors: any[]): any[] {
+  static generateBids(count: number, jobs: unknown[], contractors: unknown[]): unknown[] {
     if (jobs.length === 0 || contractors.length === 0) {
       // If no contractors provided, generate some temporary ones for the bids
       if (contractors.length === 0 && jobs.length > 0) {
@@ -164,7 +164,7 @@ export class MockDataGenerator {
     });
   }
 
-  static generateMessages(count: number, users: any[], jobs: any[]): any[] {
+  static generateMessages(count: number, users: unknown[], jobs: unknown[]): unknown[] {
     if (users.length === 0) {
       return [];
     }

@@ -26,6 +26,7 @@ import {
   SSOSecurityAudit,
   UserSSOAccount,
   SSOSession,
+  SSOEvent,
 } from './types';
 
 export class SSOIntegrationService {
@@ -47,6 +48,13 @@ export class SSOIntegrationService {
    * Create a new SSO provider
    */
   async createSSOProvider(request: CreateSSOProviderRequest): Promise<SSOProvider> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'createSSOProvider',
+      userId: undefined,
+      params: { provider_name: request.provider_name, provider_type: request.provider_type },
+    };
+
     try {
       // Validate the provider configuration
       await this.validationService.validateCreateSSOProviderRequest(request);
@@ -62,7 +70,7 @@ export class SSOIntegrationService {
 
       return provider;
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to create SSO provider');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -73,10 +81,17 @@ export class SSOIntegrationService {
     contractorId: string,
     params?: SSOSearchParams
   ): Promise<{ providers: SSOProvider[]; total: number }> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'getSSOProviders',
+      userId: undefined,
+      params: { contractorId },
+    };
+
     try {
       return await this.providerRepository.getSSOProviders(contractorId, params);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to fetch SSO providers');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -84,10 +99,17 @@ export class SSOIntegrationService {
    * Get a specific SSO provider by ID
    */
   async getSSOProviderById(providerId: string): Promise<SSOProvider> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'getSSOProviderById',
+      userId: undefined,
+      params: { providerId },
+    };
+
     try {
       return await this.providerRepository.getSSOProviderById(providerId);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to fetch SSO provider');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -95,6 +117,13 @@ export class SSOIntegrationService {
    * Update an existing SSO provider
    */
   async updateSSOProvider(request: UpdateSSOProviderRequest): Promise<SSOProvider> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'updateSSOProvider',
+      userId: undefined,
+      params: { providerId: request.id },
+    };
+
     try {
       // Validate the update request
       await this.validationService.validateUpdateSSOProviderRequest(request);
@@ -109,7 +138,7 @@ export class SSOIntegrationService {
 
       return updatedProvider;
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to update SSO provider');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -117,6 +146,13 @@ export class SSOIntegrationService {
    * Delete an SSO provider
    */
   async deleteSSOProvider(providerId: string): Promise<void> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'deleteSSOProvider',
+      userId: undefined,
+      params: { providerId },
+    };
+
     try {
       // Get provider before deletion for cleanup
       const provider = await this.providerRepository.getSSOProviderById(providerId);
@@ -130,7 +166,7 @@ export class SSOIntegrationService {
       // Clean up associated sessions
       await this.sessionService.cleanupProviderSessions(providerId);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to delete SSO provider');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -138,6 +174,13 @@ export class SSOIntegrationService {
    * Initiate SSO login flow
    */
   async initiateSSOLogin(request: SSOLoginRequest): Promise<SSOLoginResponse> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'initiateSSOLogin',
+      userId: undefined,
+      params: { provider_id: request.provider_id },
+    };
+
     try {
       // Validate the login request
       await this.validationService.validateSSOLoginRequest(request);
@@ -150,7 +193,7 @@ export class SSOIntegrationService {
 
       return authResponse;
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to initiate SSO login');
+      throw ServiceErrorHandler.handleNetworkError(error, context);
     }
   }
 
@@ -162,6 +205,13 @@ export class SSOIntegrationService {
     authCode: string,
     state?: string
   ): Promise<SSOLoginResponse> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'completeSSOLogin',
+      userId: undefined,
+      params: { providerId },
+    };
+
     try {
       // Get provider configuration
       const provider = await this.providerRepository.getSSOProviderById(providerId);
@@ -182,7 +232,7 @@ export class SSOIntegrationService {
 
       return authResponse;
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to complete SSO login');
+      throw ServiceErrorHandler.handleNetworkError(error, context);
     }
   }
 
@@ -193,12 +243,19 @@ export class SSOIntegrationService {
     userId: string,
     providerId: string,
     externalUserId: string,
-    profileData: any
+    profileData: unknown
   ): Promise<UserSSOAccount> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'linkUserAccount',
+      userId,
+      params: { providerId, externalUserId },
+    };
+
     try {
       return await this.authService.linkUserAccount(userId, providerId, externalUserId, profileData);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to link user account');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -206,13 +263,20 @@ export class SSOIntegrationService {
    * Unlink user account from SSO provider
    */
   async unlinkUserAccount(userId: string, providerId: string): Promise<void> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'unlinkUserAccount',
+      userId,
+      params: { providerId },
+    };
+
     try {
       await this.authService.unlinkUserAccount(userId, providerId);
 
       // Update analytics
       await this.analyticsService.recordUnlinkEvent(providerId, userId);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to unlink user account');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -220,10 +284,17 @@ export class SSOIntegrationService {
    * Get user's linked SSO accounts
    */
   async getUserSSOAccounts(userId: string): Promise<UserSSOAccount[]> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'getUserSSOAccounts',
+      userId,
+      params: { userId },
+    };
+
     try {
       return await this.authService.getUserSSOAccounts(userId);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to fetch user SSO accounts');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -234,10 +305,17 @@ export class SSOIntegrationService {
     userId: string,
     providerId: string
   ): Promise<{ access_token: string; expires_in: number }> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'refreshSSOToken',
+      userId,
+      params: { providerId },
+    };
+
     try {
       return await this.authService.refreshToken(userId, providerId);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to refresh SSO token');
+      throw ServiceErrorHandler.handleNetworkError(error, context);
     }
   }
 
@@ -248,6 +326,13 @@ export class SSOIntegrationService {
     providerId: string,
     testType: 'connection' | 'authentication' | 'user_lookup' | 'group_sync'
   ): Promise<SSOTestResult> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'testSSOProvider',
+      userId: undefined,
+      params: { providerId, testType },
+    };
+
     try {
       const provider = await this.providerRepository.getSSOProviderById(providerId);
       const testResult = await this.authService.testProvider(provider, testType);
@@ -257,7 +342,7 @@ export class SSOIntegrationService {
 
       return testResult;
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to test SSO provider');
+      throw ServiceErrorHandler.handleNetworkError(error, context);
     }
   }
 
@@ -265,11 +350,18 @@ export class SSOIntegrationService {
    * Perform health check on SSO provider
    */
   async performHealthCheck(providerId: string): Promise<SSOHealthCheck> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'performHealthCheck',
+      userId: undefined,
+      params: { providerId },
+    };
+
     try {
       const provider = await this.providerRepository.getSSOProviderById(providerId);
       return await this.authService.performHealthCheck(provider);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to perform health check');
+      throw ServiceErrorHandler.handleNetworkError(error, context);
     }
   }
 
@@ -277,11 +369,18 @@ export class SSOIntegrationService {
    * Get SSO analytics dashboard
    */
   async getSSOAnalytics(contractorId: string): Promise<SSOAnalytics> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'getSSOAnalytics',
+      userId: undefined,
+      params: { contractorId },
+    };
+
     try {
       const providers = await this.providerRepository.getSSOProviders(contractorId);
       return await this.analyticsService.generateAnalytics(contractorId, providers.providers);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to fetch SSO analytics');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -289,10 +388,17 @@ export class SSOIntegrationService {
    * Get active SSO sessions
    */
   async getActiveSSOSessions(userId?: string): Promise<SSOSession[]> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'getActiveSSOSessions',
+      userId,
+      params: { userId },
+    };
+
     try {
       return await this.sessionService.getActiveSessions(userId);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to fetch SSO sessions');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -300,10 +406,17 @@ export class SSOIntegrationService {
    * Terminate SSO session
    */
   async terminateSSOSession(sessionId: string): Promise<void> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'terminateSSOSession',
+      userId: undefined,
+      params: { sessionId },
+    };
+
     try {
       await this.sessionService.terminateSession(sessionId);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to terminate SSO session');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -311,10 +424,17 @@ export class SSOIntegrationService {
    * Terminate all user sessions
    */
   async terminateAllUserSessions(userId: string): Promise<void> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'terminateAllUserSessions',
+      userId,
+      params: { userId },
+    };
+
     try {
       await this.sessionService.terminateAllUserSessions(userId);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to terminate all user sessions');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -322,11 +442,18 @@ export class SSOIntegrationService {
    * Perform security audit on SSO provider
    */
   async performSecurityAudit(providerId: string): Promise<SSOSecurityAudit> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'performSecurityAudit',
+      userId: undefined,
+      params: { providerId },
+    };
+
     try {
       const provider = await this.providerRepository.getSSOProviderById(providerId);
       return await this.authService.performSecurityAudit(provider);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to perform security audit');
+      throw ServiceErrorHandler.handleNetworkError(error, context);
     }
   }
 
@@ -343,11 +470,18 @@ export class SSOIntegrationService {
       page?: number;
       limit?: number;
     }
-  ): Promise<{ events: any[]; total: number }> {
+  ): Promise<{ events: SSOEvent[]; total: number }> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'getSSOEvents',
+      userId: undefined,
+      params: { contractorId },
+    };
+
     try {
       return await this.analyticsService.getSSOEvents(contractorId, filters);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to fetch SSO events');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -355,13 +489,20 @@ export class SSOIntegrationService {
    * Enable/disable SSO provider
    */
   async toggleSSOProviderStatus(providerId: string, enabled: boolean): Promise<SSOProvider> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'toggleSSOProviderStatus',
+      userId: undefined,
+      params: { providerId, enabled },
+    };
+
     try {
       return await this.providerRepository.updateSSOProvider({
         id: providerId,
         updates: { is_enabled: enabled },
       });
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to toggle SSO provider status');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 
@@ -369,10 +510,17 @@ export class SSOIntegrationService {
    * Set default SSO provider
    */
   async setDefaultSSOProvider(providerId: string): Promise<void> {
+    const context = {
+      service: 'SSOIntegrationService',
+      method: 'setDefaultSSOProvider',
+      userId: undefined,
+      params: { providerId },
+    };
+
     try {
       await this.providerRepository.setDefaultProvider(providerId);
     } catch (error) {
-      throw ServiceErrorHandler.handleError(error, 'Failed to set default SSO provider');
+      throw ServiceErrorHandler.handleDatabaseError(error, context);
     }
   }
 }

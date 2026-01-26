@@ -308,7 +308,8 @@ export class ClientRepository {
 
         results.imported++;
       } catch (error) {
-        results.errors.push(`Failed to import client ${clientData.email}: ${error.message}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        results.errors.push(`Failed to import client ${clientData.email}: ${errorMessage}`);
       }
     }
 
@@ -337,20 +338,20 @@ export class ClientRepository {
     }
 
     // Format data based on export options
-    const exportData = filteredClients.map(client => {
-      const baseData = {
+    const exportData = filteredClients.map((client: Client) => {
+      const baseData: Record<string, unknown> = {
         id: client.id,
-        firstName: client.first_name,
-        lastName: client.last_name,
+        firstName: client.firstName,
+        lastName: client.lastName,
         email: client.email,
         phone: client.phone,
-        companyName: client.company_name,
+        companyName: client.companyName,
         status: client.status,
         priority: client.priority,
         source: client.source,
         tags: client.tags.join(', '),
         notes: client.notes,
-        createdAt: client.created_at,
+        createdAt: client.createdAt,
       };
 
       if (options.includeProperties) {
@@ -456,10 +457,13 @@ export class ClientRepository {
   /**
    * Convert data to CSV format
    */
-  private convertToCSV(data: any[]): string {
+  private convertToCSV(data: Array<Record<string, unknown>>): string {
     if (data.length === 0) return '';
 
-    const headers = Object.keys(data[0]);
+    const firstRow = data[0];
+    if (!firstRow || typeof firstRow !== 'object') return '';
+
+    const headers = Object.keys(firstRow);
     const csvRows = [headers.join(',')];
 
     for (const row of data) {
@@ -476,7 +480,7 @@ export class ClientRepository {
   /**
    * Convert data to XLSX format (simplified - would use a proper library in production)
    */
-  private convertToXLSX(data: any[]): string {
+  private convertToXLSX(data: Array<Record<string, unknown>>): string {
     // This is a simplified implementation
     // In production, you would use a library like 'xlsx' or 'exceljs'
     return JSON.stringify(data, null, 2);

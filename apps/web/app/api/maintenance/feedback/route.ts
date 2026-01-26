@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Feedback error:', error', [object Object], { service: 'api' });
+    logger.error('Feedback error:', error, { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to submit feedback' },
       { status: 500 }
@@ -227,7 +227,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Get feedback stats error:', error', [object Object], { service: 'api' });
+    logger.error('Get feedback stats error:', error, { service: 'api' });
     return NextResponse.json(
       { error: 'Failed to retrieve feedback statistics' },
       { status: 500 }
@@ -268,7 +268,7 @@ async function createCorrection(
     });
 
   } catch (error) {
-    logger.error('Failed to create correction:', error', [object Object], { service: 'api' });
+    logger.error('Failed to create correction:', error, { service: 'api' });
     // Don't throw - correction is not critical for feedback
   }
 }
@@ -313,7 +313,7 @@ async function updateContributorStats(
     await updateContributorLevel(contractorId);
 
   } catch (error) {
-    logger.error('Failed to update contributor stats:', error', [object Object], { service: 'api' });
+    logger.error('Failed to update contributor stats:', error, { service: 'api' });
   }
 }
 

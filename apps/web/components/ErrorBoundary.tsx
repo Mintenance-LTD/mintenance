@@ -1,8 +1,8 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { colors, typography, spacing, borderRadius, shadows, components } from '@/lib/design-tokens';
 import { logger } from '@mintenance/shared';
+import { colors, typography, spacing, borderRadius, shadows, components } from '@/lib/design-tokens';
 // import { focusRing } from '@/lib/a11y'; // Module not found
 // import * as Sentry from '@sentry/nextjs'; // Optional dependency
 
@@ -89,7 +89,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
-      logger.error('ErrorBoundary caught an error:', error, errorInfo', [object Object], { service: 'ui' });
+      logger.error('ErrorBoundary caught an error:', error, errorInfo);
     }
 
     // Call custom error handler if provided

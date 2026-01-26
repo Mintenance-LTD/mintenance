@@ -1,0 +1,788 @@
+
+> @mintenance/monorepo@1.2.4 test
+> npm run test -w @mintenance/web && npm run test -w @mintenance/mobile apps/mobile/src/screens/home/__tests__/QuickServices.test.tsx --coverage --collectCoverageFrom=apps/mobile/src/screens/home/QuickServices.tsx --verbose
+
+
+> @mintenance/web@1.2.3 test
+> vitest
+
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/apps/web[39m
+
+ [31m×[39m app/components/landing/hero-animation/__tests__/SuccessNotification.test.tsx[2m > [22mSuccessNotification[2m > [22mshould render without crashing[32m 124[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/SuccessNotification.test.tsx[2m > [22mSuccessNotification[2m > [22mshould handle user interactions[32m 14[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/SuccessNotification.test.tsx[2m > [22mSuccessNotification[2m > [22mshould display correct data[32m 9[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/SuccessNotification.test.tsx[2m > [22mSuccessNotification[2m > [22mshould handle edge cases[32m 17[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [32m✓[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22mrenders with empty requirements[32m 284[2mms[22m[39m
+ [31m×[39m app/components/landing/__tests__/HowItWorksSection2025.test.tsx[2m > [22mHowItWorksSection2025[2m > [22mshould render without crashing[32m 224[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/__tests__/HowItWorksSection2025.test.tsx[2m > [22mHowItWorksSection2025[2m > [22mshould handle user interactions[32m 93[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ContractorCharacter.test.tsx[2m > [22mContractorCharacter[2m > [22mshould render without crashing[32m 281[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ContractorCharacter.test.tsx[2m > [22mContractorCharacter[2m > [22mshould handle user interactions[32m 20[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/HowItWorksSection2025.test.tsx[2m > [22mHowItWorksSection2025[2m > [22mshould display correct data[32m 91[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/HowItWorksSection2025.test.tsx[2m > [22mHowItWorksSection2025[2m > [22mshould handle edge cases[32m 13[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [32m✓[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22mrenders existing requirements[32m 60[2mms[22m[39m
+ [31m×[39m app/components/landing/__tests__/PricingSection2025.test.tsx[2m > [22mPricingSection2025[2m > [22mshould render without crashing[33m 338[2mms[22m[39m
+[31m   → [39m
+ [32m✓[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22madds a new requirement[32m 139[2mms[22m[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ContractorCharacter.test.tsx[2m > [22mContractorCharacter[2m > [22mshould display correct data[32m 85[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ContractorCharacter.test.tsx[2m > [22mContractorCharacter[2m > [22mshould handle edge cases[32m 31[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/PricingSection2025.test.tsx[2m > [22mPricingSection2025[2m > [22mshould handle user interactions[32m 113[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/PricingSection2025.test.tsx[2m > [22mPricingSection2025[2m > [22mshould display correct data[32m 139[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/PricingSection2025.test.tsx[2m > [22mPricingSection2025[2m > [22mshould handle edge cases[32m 94[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ContractorDashboardProfessional.test.tsx[2m > [22mContractorDashboardProfessional[2m > [22mshould render without crashing[32m 120[2mms[22m[39m
+[31m   → Cannot destructure property 'contractor' of 'data' as it is undefined.[39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ContractorDashboardProfessional.test.tsx[2m > [22mContractorDashboardProfessional[2m > [22mshould handle user interactions[32m 6[2mms[22m[39m
+[31m   → Cannot destructure property 'contractor' of 'data' as it is undefined.[39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ContractorDashboardProfessional.test.tsx[2m > [22mContractorDashboardProfessional[2m > [22mshould display correct data[32m 8[2mms[22m[39m
+[31m   → Cannot destructure property 'contractor' of 'data' as it is undefined.[39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ContractorDashboardProfessional.test.tsx[2m > [22mContractorDashboardProfessional[2m > [22mshould handle edge cases[32m 6[2mms[22m[39m
+[31m   → Cannot destructure property 'contractor' of 'data' as it is undefined.[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/HeroAnimation.test.tsx[2m > [22mHeroAnimation[2m > [22mshould render without crashing[32m 192[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22madds requirement on Enter key[33m 1183[2mms[22m[39m
+[31m   → expected "vi.fn()" to be called with arguments: [ [ 'Enter key requirement' ] ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"space-y-4"[31m
+      [36m>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"flex items-center justify-between"[31m
+        [36m>[31m
+          [36m<label[31m
+            [33mclass[31m=[32m"block text-sm font-medium text-gray-700"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-file-text inline-block h-4 w-4 mr-2"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M14 2v4a2 2 0 0 0 2 2h4"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M10 9H8"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M16 13H8"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M16 17H8"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [0mSpecial Requirements[0m
+          [36m</label>[31m
+          [36m<span[31m
+            [33mclass[31m=[32m"text-sm text-gray-500"[31m
+          [36m>[31m
+            [0m0[0m
+            [0m/[0m
+            [0m10[0m
+            [0m requirements[0m
+          [36m</span>[31m
+        [36m</div>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"space-y-2"[31m
+        [36m/>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"flex space-x-2"[31m
+        [36m>[31m
+          [36m<input[31m
+            [33mclass[31m=[32m"flex-1 px-3 py-2 border border-gray-300 rounded-lg
+                     focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                     placeholder-gray-400 text-sm"[31m
+            [33mmaxlength[31m=[32m"200"[31m
+            [33mplaceholder[31m=[32m"Enter a special requirement..."[31m
+            [33mtype[31m=[32m"text"[31m
+            [33mvalue[31m=[32m"Enter key requirement"[31m
+          [36m/>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"px-4 py-2 bg-indigo-600 text-white rounded-lg
+                     hover:bg-indigo-700 focus:outline-none focus:ring-2
+                     focus:ring-indigo-500 disabled:bg-gray-300
+                     disabled:cursor-not-allowed transition-colors
+                     flex items-center space-x-2"[31m
+            [33mtype[31m=[32m"button"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-plus h-4 w-4"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M5 12h14"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M12 5v14"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [36m<span>[31m
+              [0mAdd[0m
+            [36m</span>[31m
+          [36m</button>[31m
+        [36m</div>[31m
+        [36m<p[31m
+          [33mclass[31m=[32m"text-sm text-gray-500 text-center py-4"[31m
+        [36m>[31m
+          [0mNo special requirements added. Add requirements to help contractors understand specific needs for this job.[0m
+        [36m</p>[31m
+      [36m</div>[31m
+    [36m</div>[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/HeroAnimation.test.tsx[2m > [22mHeroAnimation[2m > [22mshould handle user interactions[33m 397[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/HeroAnimation.test.tsx[2m > [22mHeroAnimation[2m > [22mshould display correct data[32m 71[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/HeroAnimation.test.tsx[2m > [22mHeroAnimation[2m > [22mshould handle edge cases[32m 170[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/StoryBubbles.test.tsx[2m > [22mStoryBubbles[2m > [22mshould render without crashing[32m 212[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/StoryBubbles.test.tsx[2m > [22mStoryBubbles[2m > [22mshould handle user interactions[32m 125[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/HomeownerCharacter.test.tsx[2m > [22mHomeownerCharacter[2m > [22mshould render without crashing[33m 410[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/HomeownerCharacter.test.tsx[2m > [22mHomeownerCharacter[2m > [22mshould handle user interactions[32m 18[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/HomeownerCharacter.test.tsx[2m > [22mHomeownerCharacter[2m > [22mshould display correct data[32m 21[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/HomeownerCharacter.test.tsx[2m > [22mHomeownerCharacter[2m > [22mshould handle edge cases[32m 16[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/StoryBubbles.test.tsx[2m > [22mStoryBubbles[2m > [22mshould display correct data[32m 167[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/StoryBubbles.test.tsx[2m > [22mStoryBubbles[2m > [22mshould handle edge cases[32m 240[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/FeaturesSection2025.test.tsx[2m > [22mFeaturesSection2025[2m > [22mshould render without crashing[32m 114[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/__tests__/FeaturesSection2025.test.tsx[2m > [22mFeaturesSection2025[2m > [22mshould handle user interactions[32m 38[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22mshows error for empty requirement[33m 1138[2mms[22m[39m
+[31m   → expected "vi.fn()" to be called with arguments: [ 'Please enter a requirement' ][90m
+
+Number of calls: [1m0[22m
+[31m
+
+Ignored nodes: comments, script, style
+[36m<html>[31m
+  [36m<head />[31m
+  [36m<body>[31m
+    [36m<div>[31m
+      [36m<div[31m
+        [33mclass[31m=[32m"space-y-4"[31m
+      [36m>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"flex items-center justify-between"[31m
+        [36m>[31m
+          [36m<label[31m
+            [33mclass[31m=[32m"block text-sm font-medium text-gray-700"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-file-text inline-block h-4 w-4 mr-2"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M14 2v4a2 2 0 0 0 2 2h4"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M10 9H8"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M16 13H8"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M16 17H8"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [0mSpecial Requirements[0m
+          [36m</label>[31m
+          [36m<span[31m
+            [33mclass[31m=[32m"text-sm text-gray-500"[31m
+          [36m>[31m
+            [0m0[0m
+            [0m/[0m
+            [0m10[0m
+            [0m requirements[0m
+          [36m</span>[31m
+        [36m</div>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"space-y-2"[31m
+        [36m/>[31m
+        [36m<div[31m
+          [33mclass[31m=[32m"flex space-x-2"[31m
+        [36m>[31m
+          [36m<input[31m
+            [33mclass[31m=[32m"flex-1 px-3 py-2 border border-gray-300 rounded-lg
+                     focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                     placeholder-gray-400 text-sm"[31m
+            [33mmaxlength[31m=[32m"200"[31m
+            [33mplaceholder[31m=[32m"Enter a special requirement..."[31m
+            [33mtype[31m=[32m"text"[31m
+            [33mvalue[31m=[32m""[31m
+          [36m/>[31m
+          [36m<button[31m
+            [33mclass[31m=[32m"px-4 py-2 bg-indigo-600 text-white rounded-lg
+                     hover:bg-indigo-700 focus:outline-none focus:ring-2
+                     focus:ring-indigo-500 disabled:bg-gray-300
+                     disabled:cursor-not-allowed transition-colors
+                     flex items-center space-x-2"[31m
+            [33mdisabled[31m=[32m""[31m
+            [33mtype[31m=[32m"button"[31m
+          [36m>[31m
+            [36m<svg[31m
+              [33mclass[31m=[32m"lucide lucide-plus h-4 w-4"[31m
+              [33mfill[31m=[32m"none"[31m
+              [33mheight[31m=[32m"24"[31m
+              [33mstroke[31m=[32m"currentColor"[31m
+              [33mstroke-linecap[31m=[32m"round"[31m
+              [33mstroke-linejoin[31m=[32m"round"[31m
+              [33mstroke-width[31m=[32m"2"[31m
+              [33mviewBox[31m=[32m"0 0 24 24"[31m
+              [33mwidth[31m=[32m"24"[31m
+              [33mxmlns[31m=[32m"http://www.w3.org/2000/svg"[31m
+            [36m>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M5 12h14"[31m
+              [36m/>[31m
+              [36m<path[31m
+                [33md[31m=[32m"M12 5v14"[31m
+              [36m/>[31m
+            [36m</svg>[31m
+            [36m<span>[31m
+              [0mAdd[0m
+            [36m</span>[31m
+          [36m</button>[31m
+        [36m</div>[31m
+        [36m<p[31m
+          [33mclass[31m=[32m"text-sm text-gray-500 text-center py-4"[31m
+        [36m>[31m
+          [0mNo special requirements added. Add requirements to help contractors understand specific needs for this job.[0m
+        [36m</p>[31m
+      [36m</div>[31m
+    [36m</div>[31m
+  [36m</body>[31m
+[36m</html>[31m[39m
+ [32m✓[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22mprevents duplicate requirements[32m 149[2mms[22m[39m
+ [31m×[39m app/components/landing/__tests__/FeaturesSection2025.test.tsx[2m > [22mFeaturesSection2025[2m > [22mshould display correct data[32m 173[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/FeaturesSection2025.test.tsx[2m > [22mFeaturesSection2025[2m > [22mshould handle edge cases[32m 130[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [32m✓[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22menforces maximum requirements limit[32m 108[2mms[22m[39m
+ [32m✓[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22mremoves a requirement[32m 53[2mms[22m[39m
+ [32m✓[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22mshows character count warning[32m 11[2mms[22m[39m
+ [32m✓[39m app/jobs/[id]/edit/components/__tests__/RequirementsManager.test.tsx[2m > [22mRequirementsManager[2m > [22mtrims whitespace from requirements[33m 337[2mms[22m[39m
+ [31m×[39m app/components/landing/__tests__/SocialProofSection2025.test.tsx[2m > [22mSocialProofSection2025[2m > [22mshould render without crashing[32m 277[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/__tests__/SocialProofSection2025.test.tsx[2m > [22mSocialProofSection2025[2m > [22mshould handle user interactions[32m 21[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+[90mstderr[2m | app/components/landing/__tests__/CTASection2025.test.tsx[2m > [22m[2mCTASection2025[2m > [22m[2mshould render without crashing
+[22m[39mReceived `true` for a non-boolean attribute `jsx`.
+
+If you want to write it to the DOM, pass a string instead: jsx="true" or jsx={value.toString()}.
+
+ [31m×[39m app/components/landing/__tests__/SocialProofSection2025.test.tsx[2m > [22mSocialProofSection2025[2m > [22mshould display correct data[32m 116[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/SocialProofSection2025.test.tsx[2m > [22mSocialProofSection2025[2m > [22mshould handle edge cases[32m 21[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/CTASection2025.test.tsx[2m > [22mCTASection2025[2m > [22mshould render without crashing[32m 181[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/__tests__/CTASection2025.test.tsx[2m > [22mCTASection2025[2m > [22mshould handle user interactions[32m 113[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/CTASection2025.test.tsx[2m > [22mCTASection2025[2m > [22mshould display correct data[32m 21[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ContractorPhone.test.tsx[2m > [22mContractorPhone[2m > [22mshould render without crashing[32m 271[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ContractorPhone.test.tsx[2m > [22mContractorPhone[2m > [22mshould handle user interactions[32m 32[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ContractorPhone.test.tsx[2m > [22mContractorPhone[2m > [22mshould display correct data[32m 15[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/__tests__/CTASection2025.test.tsx[2m > [22mCTASection2025[2m > [22mshould handle edge cases[32m 105[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ContractorPhone.test.tsx[2m > [22mContractorPhone[2m > [22mshould handle edge cases[32m 107[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/scheduling/components/__tests__/PageContent.test.tsx[2m > [22mPageContent[2m > [22mshould render without crashing[33m 332[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'filter')[39m
+ [31m×[39m app/scheduling/components/__tests__/PageContent.test.tsx[2m > [22mPageContent[2m > [22mshould handle user interactions[32m 45[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'filter')[39m
+ [31m×[39m app/scheduling/components/__tests__/PageContent.test.tsx[2m > [22mPageContent[2m > [22mshould display correct data[32m 31[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'filter')[39m
+ [31m×[39m app/scheduling/components/__tests__/PageContent.test.tsx[2m > [22mPageContent[2m > [22mshould handle edge cases[32m 131[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'filter')[39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ArticleCard.test.tsx[2m > [22mArticleCard[2m > [22mshould render without crashing[32m 72[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ArticleCard.test.tsx[2m > [22mArticleCard[2m > [22mshould handle user interactions[32m 6[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ArticleCard.test.tsx[2m > [22mArticleCard[2m > [22mshould display correct data[32m 6[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ArticleCard.test.tsx[2m > [22mArticleCard[2m > [22mshould handle edge cases[32m 4[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/jobs/[id]/components/__tests__/ContractManagement.test.tsx[2m > [22mContractManagement[2m > [22mshould initialize with default values[32m 239[2mms[22m[39m
+[31m   → Cannot destructure property 'jobId' of 'undefined' as it is undefined.[39m
+ [31m×[39m app/jobs/[id]/components/__tests__/ContractManagement.test.tsx[2m > [22mContractManagement[2m > [22mshould handle updates correctly[32m 11[2mms[22m[39m
+[31m   → Cannot destructure property 'jobId' of 'undefined' as it is undefined.[39m
+ [31m×[39m app/jobs/[id]/components/__tests__/ContractManagement.test.tsx[2m > [22mContractManagement[2m > [22mshould clean up on unmount[32m 6[2mms[22m[39m
+[31m   → Cannot destructure property 'jobId' of 'undefined' as it is undefined.[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ConnectionLine.test.tsx[2m > [22mConnectionLine[2m > [22mshould render without crashing[32m 244[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ConnectionLine.test.tsx[2m > [22mConnectionLine[2m > [22mshould handle user interactions[32m 84[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ConnectionLine.test.tsx[2m > [22mConnectionLine[2m > [22mshould display correct data[32m 19[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/components/landing/hero-animation/__tests__/ConnectionLine.test.tsx[2m > [22mConnectionLine[2m > [22mshould handle edge cases[32m 17[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m components/dashboard/__tests__/EmptyStateCard.test.tsx[2m > [22mEmptyStateCard[2m > [22mshould render without crashing[32m 87[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m components/dashboard/__tests__/EmptyStateCard.test.tsx[2m > [22mEmptyStateCard[2m > [22mshould handle user interactions[32m 15[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m components/dashboard/__tests__/EmptyStateCard.test.tsx[2m > [22mEmptyStateCard[2m > [22mshould display correct data[32m 30[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m components/dashboard/__tests__/EmptyStateCard.test.tsx[2m > [22mEmptyStateCard[2m > [22mshould handle edge cases[32m 7[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m app/properties/components/__tests__/AddPropertyModal.test.tsx[2m > [22mAddPropertyModal[2m > [22mshould initialize with default values[32m 44[2mms[22m[39m
+[31m   → Cannot destructure property 'isOpen' of 'undefined' as it is undefined.[39m
+ [31m×[39m app/properties/components/__tests__/AddPropertyModal.test.tsx[2m > [22mAddPropertyModal[2m > [22mshould handle updates correctly[32m 74[2mms[22m[39m
+[31m   → Cannot destructure property 'isOpen' of 'undefined' as it is undefined.[39m
+ [31m×[39m app/properties/components/__tests__/AddPropertyModal.test.tsx[2m > [22mAddPropertyModal[2m > [22mshould clean up on unmount[32m 6[2mms[22m[39m
+[31m   → Cannot destructure property 'isOpen' of 'undefined' as it is undefined.[39m
+ [31m×[39m app/dashboard/components/__tests__/FeaturedArticle.test.tsx[2m > [22mFeaturedArticle[2m > [22mshould render without crashing[32m 129[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/dashboard/components/__tests__/FeaturedArticle.test.tsx[2m > [22mFeaturedArticle[2m > [22mshould handle user interactions[32m 6[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/dashboard/components/__tests__/FeaturedArticle.test.tsx[2m > [22mFeaturedArticle[2m > [22mshould display correct data[32m 6[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/dashboard/components/__tests__/FeaturedArticle.test.tsx[2m > [22mFeaturedArticle[2m > [22mshould handle edge cases[32m 41[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/dashboard/components/__tests__/ArticleCard.test.tsx[2m > [22mArticleCard[2m > [22mshould render without crashing[32m 74[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/dashboard/components/__tests__/ArticleCard.test.tsx[2m > [22mArticleCard[2m > [22mshould handle user interactions[32m 6[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/dashboard/components/__tests__/ArticleCard.test.tsx[2m > [22mArticleCard[2m > [22mshould display correct data[32m 8[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+ [31m×[39m app/dashboard/components/__tests__/ArticleCard.test.tsx[2m > [22mArticleCard[2m > [22mshould handle edge cases[32m 4[2mms[22m[39m
+[31m   → Failed prop type: The prop `href` expects a `string` or `object` in `<Link>`, but got `undefined` instead.
+Open your browser's console to view the Component stack trace.[39m
+
+
+Source path: C:/Users/Djodjo.Nkouka.ERICCOLE/Downloads/mintenance-clean/apps/web/styles/airbnb-system.css
+Setting up new context...
+JIT TOTAL: 588.48ms
+
+
+ [31m×[39m app/contractors/components/__tests__/ContractorsBrowseAirbnb.test.tsx[2m > [22mContractorsBrowseAirbnb[2m > [22mshould initialize with default values[32m 28[2mms[22m[39m
+[31m   → (0 , __vite_ssr_import_1__.ContractorsBrowseAirbnb) is not a function[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorsBrowseAirbnb.test.tsx[2m > [22mContractorsBrowseAirbnb[2m > [22mshould handle updates correctly[32m 4[2mms[22m[39m
+[31m   → (0 , __vite_ssr_import_1__.ContractorsBrowseAirbnb) is not a function[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorsBrowseAirbnb.test.tsx[2m > [22mContractorsBrowseAirbnb[2m > [22mshould clean up on unmount[32m 4[2mms[22m[39m
+[31m   → (0 , __vite_ssr_import_1__.ContractorsBrowseAirbnb) is not a function[39m
+ [31m×[39m app/jobs/components/__tests__/SmartJobFilters2025.test.tsx[2m > [22mSmartJobFilters2025[2m > [22mshould render without crashing[32m 157[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/jobs/components/__tests__/SmartJobFilters2025.test.tsx[2m > [22mSmartJobFilters2025[2m > [22mshould handle user interactions[32m 110[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/jobs/components/__tests__/SmartJobFilters2025.test.tsx[2m > [22mSmartJobFilters2025[2m > [22mshould display correct data[32m 15[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/jobs/components/__tests__/SmartJobFilters2025.test.tsx[2m > [22mSmartJobFilters2025[2m > [22mshould handle edge cases[32m 8[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPricingAgent - Edge Cases[2m > [22mgetPricingRecommendation - Error Handling[2m > [22mshould handle null job ID[32m 8[2mms[22m[39m
+[31m   → __vi_import_0__.PricingAgent.getPricingRecommendation is not a function[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPricingAgent - Edge Cases[2m > [22mgetPricingRecommendation - Error Handling[2m > [22mshould handle empty job ID[32m 2[2mms[22m[39m
+[31m   → __vi_import_0__.PricingAgent.getPricingRecommendation is not a function[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPricingAgent - Edge Cases[2m > [22mgetPricingRecommendation - Error Handling[2m > [22mshould handle invalid job ID format[32m 1[2mms[22m[39m
+[31m   → __vi_import_0__.PricingAgent.getPricingRecommendation is not a function[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPricingAgent - Edge Cases[2m > [22mgetPricingRecommendation - Error Handling[2m > [22mshould handle database query failure[32m 5[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPricingAgent - Edge Cases[2m > [22mgetPricingRecommendation - Error Handling[2m > [22mshould handle missing job data[32m 4[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPricingAgent - Edge Cases[2m > [22mgetPricingRecommendation - Boundary Conditions[2m > [22mshould handle job with zero budget[32m 6[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPricingAgent - Edge Cases[2m > [22mgetPricingRecommendation - Boundary Conditions[2m > [22mshould handle job with very high budget[32m 4[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPricingAgent - Edge Cases[2m > [22mgetPricingRecommendation - Boundary Conditions[2m > [22mshould handle job with no market data[32m 4[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mJobStatusAgent - Edge Cases[2m > [22mupdateJobStatus - Error Handling[2m > [22mshould handle null job ID[32m 1[2mms[22m[39m
+[31m   → __vi_import_1__.JobStatusAgent.updateJobStatus is not a function[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mJobStatusAgent - Edge Cases[2m > [22mupdateJobStatus - Error Handling[2m > [22mshould handle invalid status transition[32m 1[2mms[22m[39m
+[31m   → __vi_import_1__.JobStatusAgent.updateJobStatus is not a function[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mJobStatusAgent - Edge Cases[2m > [22mupdateJobStatus - Error Handling[2m > [22mshould handle database update failure[32m 4[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mJobStatusAgent - Edge Cases[2m > [22mupdateJobStatus - Boundary Conditions[2m > [22mshould handle status update to same status[32m 6[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mJobStatusAgent - Edge Cases[2m > [22mupdateJobStatus - Boundary Conditions[2m > [22mshould handle rapid status transitions[32m 3[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mEscrowReleaseAgent - Edge Cases[2m > [22mreleaseEscrow - Error Handling[2m > [22mshould handle null escrow ID[32m 1[2mms[22m[39m
+[31m   → __vi_import_2__.EscrowReleaseAgent.releaseEscrow is not a function[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mEscrowReleaseAgent - Edge Cases[2m > [22mreleaseEscrow - Error Handling[2m > [22mshould handle non-existent escrow[32m 100[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mEscrowReleaseAgent - Edge Cases[2m > [22mreleaseEscrow - Error Handling[2m > [22mshould handle escrow already released[32m 4[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mEscrowReleaseAgent - Edge Cases[2m > [22mreleaseEscrow - Error Handling[2m > [22mshould handle payment processing failure[32m 4[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mEscrowReleaseAgent - Edge Cases[2m > [22mreleaseEscrow - Boundary Conditions[2m > [22mshould handle zero amount escrow[32m 5[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mEscrowReleaseAgent - Edge Cases[2m > [22mreleaseEscrow - Boundary Conditions[2m > [22mshould handle very large escrow amount[32m 3[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPredictiveAgent - Edge Cases[2m > [22mpredictJobOutcome - Error Handling[2m > [22mshould handle null job ID[32m 1[2mms[22m[39m
+[31m   → __vi_import_3__.PredictiveAgent.predictJobOutcome is not a function[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPredictiveAgent - Edge Cases[2m > [22mpredictJobOutcome - Error Handling[2m > [22mshould handle missing job data[32m 4[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPredictiveAgent - Edge Cases[2m > [22mpredictJobOutcome - Error Handling[2m > [22mshould handle prediction model failure[32m 2[2mms[22m[39m
+[31m   → Cannot find module '../ml-engine/memory/MemoryManager'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPredictiveAgent - Edge Cases[2m > [22mpredictJobOutcome - Boundary Conditions[2m > [22mshould handle job with minimal data[32m 5[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m lib/services/agents/__tests__/agents.edge-cases.test.ts[2m > [22mPredictiveAgent - Edge Cases[2m > [22mpredictJobOutcome - Boundary Conditions[2m > [22mshould handle job with maximum data points[32m 3[2mms[22m[39m
+[31m   → Cannot find module '@/lib/api/supabaseServer'
+Require stack:
+- C:\Users\Djodjo.Nkouka.ERICCOLE\Downloads\mintenance-clean\apps\web\lib\services\agents\__tests__\agents.edge-cases.test.ts[39m
+ [31m×[39m app/jobs/create/components/__tests__/JobCreationWizard2025.test.tsx[2m > [22mJobCreationWizard2025[2m > [22mshould render without crashing[32m 271[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/jobs/create/components/__tests__/JobCreationWizard2025.test.tsx[2m > [22mJobCreationWizard2025[2m > [22mshould handle user interactions[32m 30[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/jobs/create/components/__tests__/JobCreationWizard2025.test.tsx[2m > [22mJobCreationWizard2025[2m > [22mshould display correct data[32m 78[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/jobs/create/components/__tests__/JobCreationWizard2025.test.tsx[2m > [22mJobCreationWizard2025[2m > [22mshould handle edge cases[32m 14[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/jobs/[id]/components/__tests__/JobDetailsAirbnb.test.tsx[2m > [22mJobDetailsAirbnb[2m > [22mshould render without crashing[32m 42[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/jobs/[id]/components/__tests__/JobDetailsAirbnb.test.tsx[2m > [22mJobDetailsAirbnb[2m > [22mshould handle user interactions[32m 13[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/jobs/[id]/components/__tests__/JobDetailsAirbnb.test.tsx[2m > [22mJobDetailsAirbnb[2m > [22mshould display correct data[32m 6[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/jobs/[id]/components/__tests__/JobDetailsAirbnb.test.tsx[2m > [22mJobDetailsAirbnb[2m > [22mshould handle edge cases[32m 7[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractor/customers/components/__tests__/CustomerRow.test.tsx[2m > [22mCustomerRow[2m > [22mshould render without crashing[32m 132[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'first_name')[39m
+ [31m×[39m app/contractor/customers/components/__tests__/CustomerRow.test.tsx[2m > [22mCustomerRow[2m > [22mshould handle user interactions[32m 3[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'first_name')[39m
+ [31m×[39m app/contractor/customers/components/__tests__/CustomerRow.test.tsx[2m > [22mCustomerRow[2m > [22mshould display correct data[32m 84[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'first_name')[39m
+ [31m×[39m app/contractor/customers/components/__tests__/CustomerRow.test.tsx[2m > [22mCustomerRow[2m > [22mshould handle edge cases[32m 3[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'first_name')[39m
+ [31m×[39m app/contractor/quotes/[id]/components/__tests__/QuoteDetailsClient.test.tsx[2m > [22mQuoteDetailsClient[2m > [22mshould render without crashing[32m 42[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'status')[39m
+ [31m×[39m app/contractor/quotes/[id]/components/__tests__/QuoteDetailsClient.test.tsx[2m > [22mQuoteDetailsClient[2m > [22mshould handle user interactions[32m 6[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'status')[39m
+ [31m×[39m app/contractor/quotes/[id]/components/__tests__/QuoteDetailsClient.test.tsx[2m > [22mQuoteDetailsClient[2m > [22mshould display correct data[32m 7[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'status')[39m
+ [31m×[39m app/contractor/quotes/[id]/components/__tests__/QuoteDetailsClient.test.tsx[2m > [22mQuoteDetailsClient[2m > [22mshould handle edge cases[32m 4[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'status')[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mcreateToken[2m > [22mshould create a valid JWT token[32m 11[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'importKey')[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mcreateToken[2m > [22mshould include user data in token payload[32m 2[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'importKey')[39m
+ [32m✓[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mcreateToken[2m > [22mshould throw error for invalid user data[32m 6[2mms[22m[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mcreateTokenPair[2m > [22mshould create both access and refresh tokens[32m 2[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'importKey')[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mcreateTokenPair[2m > [22mshould create tokens with different expiry times[32m 1[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'importKey')[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mverifyToken[2m > [22mshould verify valid JWT token[32m 1[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'importKey')[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecast[2m > [22mshould fetch weather forecast successfully[32m 21[2mms[22m[39m
+[31m   → expected "vi.fn()" to be called at least once[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecast[2m > [22mshould return cached data on subsequent requests[32m 5[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecast[2m > [22mshould return fallback forecast when API key is missing[32m 3[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecast[2m > [22mshould return fallback forecast on API error[32m 3[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecast[2m > [22mshould handle invalid coordinates[32m 2[2mms[22m[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecast[2m > [22mshould enforce rate limiting between requests[32m 4[2mms[22m[39m
+[31m   → expected 0 to be greater than or equal to 900[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecast[2m > [22mshould retry on 429 rate limit response[32m 3[2mms[22m[39m
+[31m   → expectvi is not defined[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecast[2m > [22mshould handle API timeout[32m 2[2mms[22m[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecastByLocation[2m > [22mshould fetch forecast by location string[32m 61[2mms[22m[39m
+[31m   → expected "vi.fn()" to be called 2 times, but got 0 times[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecastByLocation[2m > [22mshould return fallback forecast when geocoding fails[32m 2[2mms[22m[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgetForecastByLocation[2m > [22mshould cache geocoding results[32m 2[2mms[22m[39m
+[31m   → expected "vi.fn()" to be called 3 times, but got 0 times[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgeocodeLocation[2m > [22mshould geocode location successfully[32m 10[2mms[22m[39m
+[31m   → expected null to deeply equal { lat: 51.5074, lon: -0.1278 }[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgeocodeLocation[2m > [22mshould return null when no results found[32m 3[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgeocodeLocation[2m > [22mshould return null when API key is missing[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mgeocodeLocation[2m > [22mshould handle API errors gracefully[32m 6[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22misSuitableForOutdoorWork[2m > [22mshould return true for good weather conditions[32m 3[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22misSuitableForOutdoorWork[2m > [22mshould return false for heavy rain[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22misSuitableForOutdoorWork[2m > [22mshould return false for storm conditions[32m 3[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22misSuitableForOutdoorWork[2m > [22mshould return false for high winds on roofing jobs[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22misSuitableForOutdoorWork[2m > [22mshould return true for moderate winds on non-roofing jobs[32m 1[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22misSuitableForOutdoorWork[2m > [22mshould return false for freezing temperatures[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22misSuitableForOutdoorWork[2m > [22mshould return false for heavy snow[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22misSuitableForOutdoorWork[2m > [22mshould return true for light snow[32m 47[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mCache Management[2m > [22mshould clear cache successfully[32m 2[2mms[22m[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mCache Management[2m > [22mshould provide cache statistics[32m 4[2mms[22m[39m
+[31m   → expected 0 to be greater than 0[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mCache Management[2m > [22mshould expire old cache entries[32m 2[2mms[22m[39m
+[31m   → expected "vi.fn()" to be called 1 times, but got 0 times[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mError Handling - Edge Cases[2m > [22mshould handle null API response[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mError Handling - Edge Cases[2m > [22mshould handle malformed API response[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mError Handling - Edge Cases[2m > [22mshould handle JSON parsing errors[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mError Handling - Edge Cases[2m > [22mshould handle network errors[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mError Handling - Edge Cases[2m > [22mshould handle boundary coordinates[32m 57[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mError Handling - Edge Cases[2m > [22mshould handle zero days request[32m 2[2mms[22m[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mError Handling - Edge Cases[2m > [22mshould handle very large days request[32m 2[2mms[22m[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mWeather Condition Mapping[2m > [22mshould map thunderstorm IDs correctly[32m 21[2mms[22m[39m
+[31m   → expected 'cloudy' to be 'storm' // Object.is equality[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mWeather Condition Mapping[2m > [22mshould map rain IDs correctly[32m 3[2mms[22m[39m
+[31m   → expected 'cloudy' to be 'rain' // Object.is equality[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mWeather Condition Mapping[2m > [22mshould map snow IDs correctly[32m 2[2mms[22m[39m
+[31m   → expected 'cloudy' to be 'snow' // Object.is equality[39m
+ [31m×[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mWeather Condition Mapping[2m > [22mshould map clear sky correctly[32m 3[2mms[22m[39m
+[31m   → expected 'cloudy' to be 'clear' // Object.is equality[39m
+ [32m✓[39m lib/services/weather/__tests__/WeatherService.test.ts[2m > [22mWeatherService[2m > [22mWeather Condition Mapping[2m > [22mshould map cloudy conditions correctly[32m 2[2mms[22m[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorsBrowseProfessional.test.tsx[2m > [22mContractorsBrowseProfessional[2m > [22mshould render without crashing[32m 134[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'flatMap')[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorsBrowseProfessional.test.tsx[2m > [22mContractorsBrowseProfessional[2m > [22mshould handle user interactions[32m 5[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'flatMap')[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorsBrowseProfessional.test.tsx[2m > [22mContractorsBrowseProfessional[2m > [22mshould display correct data[32m 3[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'flatMap')[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorsBrowseProfessional.test.tsx[2m > [22mContractorsBrowseProfessional[2m > [22mshould handle edge cases[32m 2[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'flatMap')[39m
+ [31m×[39m components/dashboard/__tests__/StatsCard.test.tsx[2m > [22mStatsCard[2m > [22mshould render without crashing[32m 55[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m components/dashboard/__tests__/StatsCard.test.tsx[2m > [22mStatsCard[2m > [22mshould handle user interactions[32m 13[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m components/dashboard/__tests__/StatsCard.test.tsx[2m > [22mStatsCard[2m > [22mshould display correct data[32m 7[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m components/dashboard/__tests__/StatsCard.test.tsx[2m > [22mStatsCard[2m > [22mshould handle edge cases[32m 8[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m components/dashboard/__tests__/KpiCard.test.tsx[2m > [22mKpiCard[2m > [22mshould render without crashing[32m 163[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m components/dashboard/__tests__/KpiCard.test.tsx[2m > [22mKpiCard[2m > [22mshould handle user interactions[32m 51[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m components/dashboard/__tests__/KpiCard.test.tsx[2m > [22mKpiCard[2m > [22mshould display correct data[32m 9[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m components/dashboard/__tests__/KpiCard.test.tsx[2m > [22mKpiCard[2m > [22mshould handle edge cases[32m 7[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/dashboard/components/__tests__/AirbnbActivityTimeline.test.tsx[2m > [22mAirbnbActivityTimeline[2m > [22mshould render without crashing[32m 164[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/dashboard/components/__tests__/AirbnbActivityTimeline.test.tsx[2m > [22mAirbnbActivityTimeline[2m > [22mshould handle user interactions[32m 10[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/dashboard/components/__tests__/AirbnbActivityTimeline.test.tsx[2m > [22mAirbnbActivityTimeline[2m > [22mshould display correct data[32m 5[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractor/profile/components/__tests__/SkillsManagementModal.test.tsx[2m > [22mSkillsManagementModal[2m > [22mshould render without crashing[32m 32[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'reduce')[39m
+ [31m×[39m app/contractor/profile/components/__tests__/SkillsManagementModal.test.tsx[2m > [22mSkillsManagementModal[2m > [22mshould handle user interactions[32m 5[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'reduce')[39m
+ [31m×[39m app/contractor/profile/components/__tests__/SkillsManagementModal.test.tsx[2m > [22mSkillsManagementModal[2m > [22mshould display correct data[32m 8[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'reduce')[39m
+ [31m×[39m app/contractor/profile/components/__tests__/SkillsManagementModal.test.tsx[2m > [22mSkillsManagementModal[2m > [22mshould handle edge cases[32m 4[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'reduce')[39m
+ [31m×[39m app/dashboard/components/__tests__/AirbnbActivityTimeline.test.tsx[2m > [22mAirbnbActivityTimeline[2m > [22mshould handle edge cases[32m 93[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ContractorMetricCard2025.test.tsx[2m > [22mContractorMetricCard2025[2m > [22mshould render without crashing[32m 102[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ContractorMetricCard2025.test.tsx[2m > [22mContractorMetricCard2025[2m > [22mshould handle user interactions[32m 10[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ContractorMetricCard2025.test.tsx[2m > [22mContractorMetricCard2025[2m > [22mshould display correct data[32m 8[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m app/contractor/dashboard-enhanced/components/__tests__/ContractorMetricCard2025.test.tsx[2m > [22mContractorMetricCard2025[2m > [22mshould handle edge cases[32m 9[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m components/admin/__tests__/AdminPageHeader.test.tsx[2m > [22mAdminPageHeader[2m > [22mshould initialize with default values[32m 55[2mms[22m[39m
+[31m   → Cannot destructure property 'title' of 'undefined' as it is undefined.[39m
+ [31m×[39m components/admin/__tests__/AdminPageHeader.test.tsx[2m > [22mAdminPageHeader[2m > [22mshould handle updates correctly[32m 5[2mms[22m[39m
+[31m   → Cannot destructure property 'title' of 'undefined' as it is undefined.[39m
+ [31m×[39m components/admin/__tests__/AdminPageHeader.test.tsx[2m > [22mAdminPageHeader[2m > [22mshould clean up on unmount[32m 4[2mms[22m[39m
+[31m   → Cannot destructure property 'title' of 'undefined' as it is undefined.[39m
+ [31m×[39m components/contractor/__tests__/VerificationBadges.test.tsx[2m > [22mVerificationBadges[2m > [22mshould render without crashing[32m 61[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'map')[39m
+ [31m×[39m components/contractor/__tests__/VerificationBadges.test.tsx[2m > [22mVerificationBadges[2m > [22mshould handle user interactions[32m 4[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'map')[39m
+ [31m×[39m components/contractor/__tests__/VerificationBadges.test.tsx[2m > [22mVerificationBadges[2m > [22mshould display correct data[32m 4[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'map')[39m
+ [31m×[39m components/contractor/__tests__/VerificationBadges.test.tsx[2m > [22mVerificationBadges[2m > [22mshould handle edge cases[32m 6[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'map')[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorSwipeView.test.tsx[2m > [22mContractorSwipeView[2m > [22mshould render without crashing[32m 69[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorSwipeView.test.tsx[2m > [22mContractorSwipeView[2m > [22mshould handle user interactions[32m 4[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorSwipeView.test.tsx[2m > [22mContractorSwipeView[2m > [22mshould display correct data[32m 7[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractors/components/__tests__/ContractorSwipeView.test.tsx[2m > [22mContractorSwipeView[2m > [22mshould handle edge cases[32m 5[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractor/customers/components/__tests__/CustomersTable.test.tsx[2m > [22mCustomersTable[2m > [22mshould render without crashing[32m 55[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractor/customers/components/__tests__/CustomersTable.test.tsx[2m > [22mCustomersTable[2m > [22mshould handle user interactions[32m 16[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractor/customers/components/__tests__/CustomersTable.test.tsx[2m > [22mCustomersTable[2m > [22mshould display correct data[32m 5[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m app/contractor/customers/components/__tests__/CustomersTable.test.tsx[2m > [22mCustomersTable[2m > [22mshould handle edge cases[32m 3[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'length')[39m
+ [31m×[39m components/ui/__tests__/FeatureGate.test.tsx[2m > [22mFeatureGate[2m > [22mshould initialize with default values[32m 67[2mms[22m[39m
+[31m   → Cannot destructure property 'featureId' of 'undefined' as it is undefined.[39m
+ [31m×[39m components/ui/__tests__/FeatureGate.test.tsx[2m > [22mFeatureGate[2m > [22mshould handle updates correctly[32m 6[2mms[22m[39m
+[31m   → Cannot destructure property 'featureId' of 'undefined' as it is undefined.[39m
+ [31m×[39m components/ui/__tests__/FeatureGate.test.tsx[2m > [22mFeatureGate[2m > [22mshould clean up on unmount[32m 7[2mms[22m[39m
+[31m   → Cannot destructure property 'featureId' of 'undefined' as it is undefined.[39m
+ [31m×[39m components/jobs/__tests__/JobActions.test.tsx[2m > [22mJobActions[2m > [22mshould render without crashing[32m 118[2mms[22m[39m
+[31m   → [39m
+ [31m×[39m components/jobs/__tests__/JobActions.test.tsx[2m > [22mJobActions[2m > [22mshould handle user interactions[32m 48[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m components/jobs/__tests__/JobActions.test.tsx[2m > [22mJobActions[2m > [22mshould display correct data[32m 18[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m components/jobs/__tests__/JobActions.test.tsx[2m > [22mJobActions[2m > [22mshould handle edge cases[32m 8[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'matches')[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mverifyToken[2m > [22mshould return null for invalid token[33m 49872[2mms[22m[39m
+[31m   → Test timed out in 10000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".[39m
+ [32m✓[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mverifyToken[2m > [22mshould return null for expired token[32m 1[2mms[22m[39m
+ [32m✓[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mverifyToken[2m > [22mshould return null for malformed token[32m 2[2mms[22m[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mrotateTokens[2m > [22mshould create new tokens and revoke old refresh token[32m 1[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'importKey')[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mrotateTokens[2m > [22mshould fail for invalid refresh token[32m 4[2mms[22m[39m
+[31m   → Refresh token hashing not available in Edge Runtime[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mrotateTokens[2m > [22mshould fail for expired refresh token[32m 1[2mms[22m[39m
+[31m   → Refresh token hashing not available in Edge Runtime[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mrevokeAllTokens[2m > [22mshould revoke all tokens for a user[32m 2[2mms[22m[39m
+[31m   → __vite_ssr_import_3__.serverSupabase.from(...).update(...).eq(...).is is not a function[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mrevokeAllTokens[2m > [22mshould handle invalid user ID[32m 1[2mms[22m[39m
+[31m   → __vite_ssr_import_3__.serverSupabase.from(...).update(...).eq(...).is is not a function[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mCookie Management[2m > [22mshould set auth cookie with correct options[32m 1[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'importKey')[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mCookie Management[2m > [22mshould clear auth cookie[32m 3[2mms[22m[39m
+[31m   → expected "vi.fn()" to be called with arguments: [ '__Host-mintenance-auth' ][90m
+
+Number of calls: [1m0[22m
+[31m[39m
+ [31m×[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mgetCurrentUserFromCookies[2m > [22mshould return user data from valid cookie[32m 4[2mms[22m[39m
+[31m   → Cannot read properties of undefined (reading 'importKey')[39m
+ [32m✓[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mgetCurrentUserFromCookies[2m > [22mshould return null for missing cookie[32m 1[2mms[22m[39m
+ [32m✓[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mgetCurrentUserFromCookies[2m > [22mshould return null for invalid cookie[32m 2[2mms[22m[39m
+ [32m✓[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mError Handling[2m > [22mshould handle missing JWT_SECRET gracefully[32m 1[2mms[22m[39m
+ [32m✓[39m lib/__tests__/auth.test.ts[2m > [22mAuth Library[2m > [22mError Handling[2m > [22mshould handle weak JWT_SECRET[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting Configuration[2m > [22mshould return correct config for login endpoint[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting Configuration[2m > [22mshould return correct config for payment endpoints[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting Configuration[2m > [22mshould return correct config for AI endpoints[32m 3[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting Configuration[2m > [22mshould match wildcard patterns[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting Configuration[2m > [22mshould return default config for unknown paths[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mUser Tier Detection[2m > [22mshould return anonymous for no user[32m 1[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mUser Tier Detection[2m > [22mshould return admin for admin users[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mUser Tier Detection[2m > [22mshould return premium for premium users[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mUser Tier Detection[2m > [22mshould return authenticated for regular users[32m 0[2mms[22m[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limit Bypass Rules[2m > [22mshould bypass for health check user agents[32m 4[2mms[22m[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limit Bypass Rules[2m > [22mshould bypass for whitelisted IPs[32m 170[2mms[22m[39m
+[31m   → expected false to be true // Object.is equality[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limit Bypass Rules[2m > [22mshould bypass for internal service tokens[32m 3[2mms[22m[39m
+[31m   → expected false to be true // Object.is equality[39m
+ [32m✓[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limit Bypass Rules[2m > [22mshould not bypass for regular requests[32m 2[2mms[22m[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mEnhanced Rate Limiter[2m > [22mshould allow requests within limit[33m 57114[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mEnhanced Rate Limiter[2m > [22mshould block requests over limit[33m 47019[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mEnhanced Rate Limiter[2m > [22mshould apply different limits for different tiers[33m 42776[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mEnhanced Rate Limiter[2m > [22mshould create proper rate limit headers[33m 43798[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mEnhanced Rate Limiter[2m > [22mshould include Retry-After header when rate limited[33m 49474[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould enforce strict limits on authentication endpoints[33m 44243[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould prevent anonymous access to payment endpoints[33m 37577[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould allow higher limits for read-only endpoints[33m 43202[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould have special handling for webhooks[33m 32736[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould have relaxed limits for health checks[33m 32448[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mSecurity Event Logging[2m > [22mshould log rate limit violations[33m 33648[2mms[22m[39m
+[31m   → Invalid string length[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiter Reset Functionality[2m > [22mshould reset rate limits for specific identifier[33m 28635[2mms[22m[39m
+[31m   → Invalid string length[39m

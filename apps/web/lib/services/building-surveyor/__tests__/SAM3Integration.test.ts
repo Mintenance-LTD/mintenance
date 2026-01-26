@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 /**
  * SAM 3 Integration Tests
  * Tests the complete SAM 3 integration including:
@@ -14,22 +15,22 @@ import { BayesianFusionService } from '../BayesianFusionService';
 import { formatSAM3EvidenceForFusion } from '../evidence-formatter';
 
 // Mock fetch globally
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 // Mock logger
-jest.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 describe('SAM3Service', () => {
   beforeEach(() => {
     // Reset mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Reset environment variables
     process.env.SAM3_SERVICE_URL = 'http://localhost:8001';
     process.env.SAM3_ROLLOUT_PERCENTAGE = '100';
@@ -40,7 +41,7 @@ describe('SAM3Service', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Health Check', () => {
@@ -49,7 +50,7 @@ describe('SAM3Service', () => {
         ok: true,
         json: async () => ({ status: 'healthy', model_loaded: true, service: 'sam3' }),
       };
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValueOnce(mockResponse);
 
       const result = await SAM3Service.healthCheck();
       expect(result).toBe(true);
@@ -66,7 +67,7 @@ describe('SAM3Service', () => {
         ok: true,
         json: async () => ({ status: 'healthy', model_loaded: true, service: 'sam3' }),
       };
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValueOnce(mockResponse);
 
       // First call - should hit the service
       await SAM3Service.healthCheck();
@@ -82,7 +83,7 @@ describe('SAM3Service', () => {
         ok: true,
         json: async () => ({ status: 'unhealthy', model_loaded: false }),
       };
-      (global.fetch as jest.Mock).mockResolvedValueOnce(mockResponse);
+      vi.mocked(global.fetch).mockResolvedValueOnce(mockResponse);
 
       const result = await SAM3Service.healthCheck();
       expect(result).toBe(false);
@@ -92,7 +93,7 @@ describe('SAM3Service', () => {
   describe('Circuit Breaker', () => {
     it('should open circuit breaker after threshold failures', async () => {
       // Mock failures
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Connection failed'));
+      vi.mocked(global.fetch).mockRejectedValue(new Error('Connection failed'));
 
       // Fail 3 times (threshold)
       for (let i = 0; i < 3; i++) {
@@ -139,7 +140,7 @@ describe('SAM3Service', () => {
       };
 
       // Mock image fetch
-      (global.fetch as jest.Mock)
+      vi.mocked(global.fetch)
         .mockResolvedValueOnce(mockImageResponse) // Image fetch
         .mockRejectedValueOnce(new Error('Temporary failure')) // First attempt fails
         .mockResolvedValueOnce(mockImageResponse) // Image fetch for retry
@@ -166,7 +167,7 @@ describe('SAM3Service', () => {
       const mockImage = 'https://example.com/image.jpg';
 
       // Mock all attempts to fail
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Persistent failure'));
+      vi.mocked(global.fetch).mockRejectedValue(new Error('Persistent failure'));
 
       const result = await SAM3Service.segment(mockImage, 'crack', 0.5);
       expect(result).toBeNull();
@@ -211,7 +212,7 @@ describe('SAM3Service', () => {
         }),
       };
 
-      (global.fetch as jest.Mock)
+      vi.mocked(global.fetch)
         .mockResolvedValueOnce(mockImageResponse)
         .mockResolvedValueOnce(mockSegmentationResponse);
 
@@ -338,7 +339,7 @@ describe('Performance and Monitoring', () => {
     const mockImage = 'https://example.com/image.jpg';
 
     // Mock a slow response
-    (global.fetch as jest.Mock).mockImplementation(
+    vi.mocked(global.fetch).mockImplementation(
       () => new Promise(resolve => setTimeout(resolve, 200))
     );
 

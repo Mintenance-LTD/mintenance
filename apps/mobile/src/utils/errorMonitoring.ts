@@ -27,8 +27,8 @@ export interface ErrorContext {
   screen?: string;
   action?: string;
   component?: string;
-  props?: Record<string, any>;
-  state?: Record<string, any>;
+  props?: Record<string, unknown>;
+  state?: Record<string, unknown>;
   networkStatus?: 'online' | 'offline';
   memoryUsage?: number;
   buildVersion?: string;
@@ -144,7 +144,7 @@ class ErrorMonitoringSystem {
   private setupGlobalErrorHandlers(): void {
     // JavaScript errors
     const originalConsoleError = console.error;
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       originalConsoleError(...args);
 
       const error = args[0];
@@ -152,7 +152,7 @@ class ErrorMonitoringSystem {
         this.reportError(error, {
           type: 'javascript',
           severity: 'high',
-          context: { source: 'console.error' } as any,
+          context: { source: 'console.error' } as unknown,
         });
       }
     };
@@ -167,7 +167,7 @@ class ErrorMonitoringSystem {
         this.reportError(error, {
           type: 'javascript',
           severity: 'high',
-          context: { source: 'unhandledrejection' } as any,
+          context: { source: 'unhandledrejection' } as unknown,
         });
       });
     }
@@ -256,7 +256,8 @@ class ErrorMonitoringSystem {
       hash = hash & hash; // Convert to 32-bit integer
     }
 
-    return `error_${Math.abs(hash).toString(36)}_${Date.now().toString(36)}`;
+    const hashString = Math.abs(hash).toString(36);
+    return `error_${hashString}_${hashString.length.toString(36)}`;
   }
 
   /**
@@ -603,7 +604,7 @@ export const withErrorMonitoring = <P extends object>(
         severity: 'high',
         context: {
           component: name,
-          props: this.props as any,
+          props: this.props as unknown,
           componentStack: errorInfo.componentStack || '',
         },
       });

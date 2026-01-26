@@ -19,6 +19,16 @@ const EXCLUDE_PATTERNS = [
   /playwright-report/,
   /jest\.setup\.js/,
   /jest\.config\.js/,
+  /\.next/,          // Next.js build output
+  /dist/,            // Build output
+  /build/,           // Build output
+  /\.turbo/,         // Turbo cache
+  /\.expo/,          // Expo cache
+  /scripts/,         // CLI scripts legitimately use console
+  /logger\.ts$/,     // Logger implementation uses console internally
+  /setup\.ts$/,      // Test setup mocks console
+  /migration-runner\.ts$/, // CLI migration tool
+  /redis-validator\.ts$/,  // CLI validation tool
 ];
 
 const INCLUDE_PATTERNS = [

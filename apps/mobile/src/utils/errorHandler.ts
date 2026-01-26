@@ -8,7 +8,7 @@ export interface AppError extends Error {
 }
 
 export class ErrorHandler {
-  static handle(error: any, context?: string): void {
+  static handle(error: Error | unknown, context?: string): void {
     logger.error(`Error in ${context || 'unknown context'}:`, error);
 
     // Extract user-friendly message
@@ -23,7 +23,7 @@ export class ErrorHandler {
     }
   }
 
-  static getUserMessage(error: any): string {
+  static getUserMessage(error: unknown): string {
     // Custom user message
     if (error.userMessage) {
       return error.userMessage;
@@ -133,7 +133,7 @@ export class ErrorHandler {
     return 'An unexpected error occurred. Please try again.';
   }
 
-  static reportError(error: any, context?: string): void {
+  static reportError(error: Error | unknown, context?: string): void {
     // Import Sentry dynamically to avoid circular dependencies
     import('../config/sentry')
       .then(({ captureException }) => {
@@ -172,9 +172,9 @@ export class ErrorHandler {
     return error;
   }
 
-  static isNetworkError(error: any): boolean {
+  static isNetworkError(error: unknown): boolean {
     const offline =
-      typeof navigator !== 'undefined' && (navigator as any).onLine === false;
+      typeof navigator !== 'undefined' && (navigator as unknown).onLine === false;
     return (
       error.code === 'NETWORK_ERROR' ||
       error.message?.toLowerCase?.().includes('network') ||
@@ -182,7 +182,7 @@ export class ErrorHandler {
     );
   }
 
-  static isAuthError(error: any): boolean {
+  static isAuthError(error: unknown): boolean {
     return (
       error.statusCode === 401 ||
       error.code === '42501' ||
@@ -190,7 +190,7 @@ export class ErrorHandler {
     );
   }
 
-  static isValidationError(error: any): boolean {
+  static isValidationError(error: unknown): boolean {
     return (
       error.statusCode === 400 ||
       error.statusCode === 422 ||
@@ -219,7 +219,7 @@ export class ErrorHandler {
     }
   }
 
-  static validateRequired(value: any, fieldName: string): void {
+  static validateRequired(value: unknown, fieldName: string): void {
     if (!value || (typeof value === 'string' && !value.trim())) {
       throw this.createError(
         `${fieldName} is required`,
@@ -230,7 +230,7 @@ export class ErrorHandler {
   }
 
   static validateRequiredFields(
-    data: Record<string, any>,
+    data: Record<string, unknown>,
     requiredFields: string[]
   ): void {
     for (const field of requiredFields) {
@@ -250,7 +250,7 @@ export class ErrorHandler {
   ): Promise<T> {
     const { maxAttempts = 3, delay = 1000, backoff = true, context } = options;
 
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
@@ -274,7 +274,7 @@ export class ErrorHandler {
         const retryDelay = backoff ? delay * Math.pow(2, attempt - 1) : delay;
         logger.warn(
           `Retrying operation in ${retryDelay}ms (attempt ${attempt}/${maxAttempts})`,
-          { context, error: (error as any)?.message || String(error) }
+          { context, error: (error as unknown)?.message || String(error) }
         );
 
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
@@ -284,7 +284,7 @@ export class ErrorHandler {
     throw lastError;
   }
 
-  static shouldRetry(error: any): boolean {
+  static shouldRetry(error: unknown): boolean {
     // Retry network errors and server errors
     if (this.isNetworkError(error)) return true;
     if (error.statusCode >= 500) return true;
@@ -298,7 +298,7 @@ export class ErrorHandler {
 }
 
 // Utility function for component error handling
-export const handleError = (error: any, context?: string) => {
+export const handleError = (error: Error | unknown, context?: string) => {
   ErrorHandler.handle(error, context);
 };
 

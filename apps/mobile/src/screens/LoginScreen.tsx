@@ -68,7 +68,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
       haptics.formSubmit();
       await signIn(email, password);
       haptics.loginSuccess();
-    } catch (error: any) {
+    } catch (error) {
       haptics.loginFailed();
       setErrorMessage(String(getErrorMessage('loginFailed', error.message)));
     }
@@ -194,7 +194,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               }
               fullWidth
               style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 32 }}
-              textStyle={buttonText.textStyle as any}
+              textStyle={buttonText.textStyle as unknown}
             />
 
             {/* Development Test Login Notice */}

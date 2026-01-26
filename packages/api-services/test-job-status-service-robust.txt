@@ -1,0 +1,35 @@
+﻿node.exe : node:internal/modules/cjs/loader:1404
+At C:\Program Files\nodejs\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+(node:inte    rnal/modules/cjs/loader:1404:String) 
+[], RemoteExc    eption
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  throw err;
+  ^
+
+Error: Cannot find module 'C:\Users\Djodjo.Nkouka.ERI
+CCOLE\Downloads\mintenance-clean\node_modules\@minten
+ance\api-services\node_modules\vitest\vitest.mjs'
+    at Function._resolveFilename 
+(node:internal/modules/cjs/loader:1401:15)
+    at defaultResolveImpl 
+(node:internal/modules/cjs/loader:1057:19)
+    at resolveForCJSWithHooks 
+(node:internal/modules/cjs/loader:1062:22)
+    at Function._load 
+(node:internal/modules/cjs/loader:1211:37)
+    at TracingChannel.traceSync 
+(node:diagnostics_channel:322:14)
+    at wrapModuleLoad 
+(node:internal/modules/cjs/loader:235:24)
+    at Function.executeUserEntryPoint [as runMain] 
+(node:internal/modules/run_main:170:5)
+    at node:internal/main/run_main_module:36:49 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v22.15.0

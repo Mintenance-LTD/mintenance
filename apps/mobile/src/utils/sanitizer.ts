@@ -181,9 +181,9 @@ export function sanitizeRating(input: string | number): number {
 /**
  * Sanitize object by applying sanitization to all string fields
  */
-export function sanitizeObject<T extends Record<string, any>>(
+export function sanitizeObject<T extends Record<string, unknown>>(
   obj: T,
-  fieldSanitizers?: Partial<Record<keyof T, (value: any) => any>>
+  fieldSanitizers?: Partial<Record<keyof T, (value: unknown) => any>>
 ): T {
   const sanitized = { ...obj };
 
@@ -196,7 +196,7 @@ export function sanitizeObject<T extends Record<string, any>>(
     }
     // Default: sanitize strings
     else if (typeof value === 'string') {
-      sanitized[key] = sanitizeText(value) as any;
+      sanitized[key] = sanitizeText(value) as unknown;
     }
   }
 

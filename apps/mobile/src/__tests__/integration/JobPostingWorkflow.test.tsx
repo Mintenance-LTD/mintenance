@@ -1,5 +1,13 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, act } from '../test-utils';
 import { Text, TouchableOpacity, View, TextInput } from 'react-native';
 import { QueryClientProvider } from '@tanstack/react-query';
 
@@ -71,7 +79,7 @@ const mockJobService = JobService as jest.Mocked<typeof JobService>;
 const MockJobPostingScreen = ({
   onJobPosted,
 }: {
-  onJobPosted?: (job: any) => void;
+  onJobPosted?: (job: unknown) => void;
 }) => {
   // Use mock user directly instead of auth context to avoid complexity
   const mockUser = {
@@ -186,7 +194,7 @@ const MockJobsListScreen = ({
   jobs,
 }: {
   userRole: 'homeowner' | 'contractor';
-  jobs?: any[];
+  jobs?: unknown[];
 }) => {
   const [jobsList, setJobsList] = React.useState(jobs || []);
 
@@ -330,8 +338,8 @@ const TestNavigator = ({
   screen: 'posting' | 'list' | 'details';
   userRole: 'homeowner' | 'contractor';
   job?: any;
-  jobs?: any[];
-  onJobPosted?: (job: any) => void;
+  jobs?: unknown[];
+  onJobPosted?: (job: unknown) => void;
 }) => {
   if (screen === 'posting') {
     return <MockJobPostingScreen onJobPosted={onJobPosted} />;
@@ -344,7 +352,7 @@ const TestNavigator = ({
   return <MockJobsListScreen userRole={userRole} jobs={jobs} />;
 };
 
-const TestWrapper = (props: any) => (
+const TestWrapper = (props: unknown) => (
   <QueryClientProvider client={createTestQueryClient()}>
     <AuthProvider>
       <TestNavigator {...props} />
@@ -395,7 +403,7 @@ describe('Job Posting and Discovery Workflow Integration', () => {
         <TestWrapper
           screen='posting'
           userRole='homeowner'
-          onJobPosted={(job: any) => {
+          onJobPosted={(job: unknown) => {
             postedJob = job;
           }}
         />
@@ -411,26 +419,26 @@ describe('Job Posting and Discovery Workflow Integration', () => {
       const budgetInput = getByTestId('job-budget-input');
 
       await act(async () => {
-        fireEvent.changeText(titleInput, 'Kitchen Faucet Repair');
-        fireEvent.changeText(
+        act(() => fireEvent.changeText(titleInput, 'Kitchen Faucet Repair'));
+        act(() => fireEvent.changeText(
           descriptionInput,
           'My kitchen faucet is leaking and needs repair'
-        );
-        fireEvent.changeText(locationInput, '123 Main St, Anytown, USA');
-        fireEvent.changeText(budgetInput, '200');
+        ));
+        act(() => fireEvent.changeText(locationInput, '123 Main St, Anytown, USA'));
+        act(() => fireEvent.changeText(budgetInput, '200'));
       });
 
       // Select category and priority
       const plumbingCategory = getByTestId('category-plumbing');
       const highPriority = getByTestId('priority-high');
 
-      fireEvent.press(plumbingCategory);
-      fireEvent.press(highPriority);
+      act(() => fireEvent.press(plumbingCategory));
+      act(() => fireEvent.press(highPriority));
 
       // Submit job posting
       const postJobButton = getByTestId('post-job-button');
       await act(async () => {
-        fireEvent.press(postJobButton);
+        act(() => fireEvent.press(postJobButton));
       });
 
       // Verify job creation was called with correct data
@@ -462,7 +470,7 @@ describe('Job Posting and Discovery Workflow Integration', () => {
       // Try to post job without required fields
       const postJobButton = getByTestId('post-job-button');
       await act(async () => {
-        fireEvent.press(postJobButton);
+        act(() => fireEvent.press(postJobButton));
       });
 
       // Should remain on posting screen (error handling would show error message)
@@ -635,7 +643,7 @@ describe('Job Posting and Discovery Workflow Integration', () => {
 
       // Submit bid
       await act(async () => {
-        fireEvent.press(submitBidButton);
+        act(() => fireEvent.press(submitBidButton));
       });
 
       // Verify bid submission
@@ -702,7 +710,7 @@ describe('Job Posting and Discovery Workflow Integration', () => {
       // Accept first bid
       const acceptBidButton = getByTestId('accept-bid-button-0');
       await act(async () => {
-        fireEvent.press(acceptBidButton);
+        act(() => fireEvent.press(acceptBidButton));
       });
 
       // Verify bid acceptance

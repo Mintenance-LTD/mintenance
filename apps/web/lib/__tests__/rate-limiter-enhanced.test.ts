@@ -5,29 +5,29 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 // Mock dependencies
-jest.mock('@/lib/redis', () => ({
+vi.mock('@/lib/redis', () => ({
   redis: {
-    incr: jest.fn(),
-    expire: jest.fn(),
-    get: jest.fn(),
-    set: jest.fn(),
-    del: jest.fn(),
+    incr: vi.fn(),
+    expire: vi.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
   },
-  isRedisAvailable: jest.fn(),
+  isRedisAvailable: vi.fn(),
 }));
 
-jest.mock('@/lib/logger', () => ({
+vi.mock('@/lib/logger', () => ({
   logger: {
-    warn: jest.fn(),
-    error: jest.fn(),
-    info: jest.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
   },
 }));
 
-jest.mock('@/lib/monitoring', () => ({
+vi.mock('@/lib/monitoring', () => ({
   monitoring: {
-    recordMetric: jest.fn(),
-    sendAlert: jest.fn(),
+    recordMetric: vi.fn(),
+    sendAlert: vi.fn(),
   },
 }));
 
@@ -43,7 +43,7 @@ describe('Rate Limiter Enhanced', () => {
   const HARD_CAP = 1000; // Hard cap per IP
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     fallbackState = new Map();
 
     // Rate limiter implementation
@@ -158,16 +158,16 @@ describe('Rate Limiter Enhanced', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Redis available - normal rate limiting', () => {
     beforeEach(() => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(true);
+      vi.mocked(isRedisAvailable).mockResolvedValue(true);
     });
 
     it('should allow requests under limit', async () => {
-      (redis.incr as jest.Mock).mockResolvedValue(50);
+      vi.mocked(redis.incr).mockResolvedValue(50);
 
       const result = await rateLimiter('user:123', 100);
 
@@ -181,7 +181,7 @@ describe('Rate Limiter Enhanced', () => {
     });
 
     it('should deny requests over limit', async () => {
-      (redis.incr as jest.Mock).mockResolvedValue(101);
+      vi.mocked(redis.incr).mockResolvedValue(101);
 
       const result = await rateLimiter('user:123', 100);
 
@@ -194,7 +194,7 @@ describe('Rate Limiter Enhanced', () => {
     });
 
     it('should set expiry on first request', async () => {
-      (redis.incr as jest.Mock).mockResolvedValue(1);
+      vi.mocked(redis.incr).mockResolvedValue(1);
 
       await rateLimiter('user:456', 100, 60000);
 
@@ -202,7 +202,7 @@ describe('Rate Limiter Enhanced', () => {
     });
 
     it('should not set expiry on subsequent requests', async () => {
-      (redis.incr as jest.Mock).mockResolvedValue(5);
+      vi.mocked(redis.incr).mockResolvedValue(5);
 
       await rateLimiter('user:456', 100, 60000);
 
@@ -210,7 +210,7 @@ describe('Rate Limiter Enhanced', () => {
     });
 
     it('should handle custom limits and windows', async () => {
-      (redis.incr as jest.Mock).mockResolvedValue(10);
+      vi.mocked(redis.incr).mockResolvedValue(10);
 
       const result = await rateLimiter('user:789', 50, 30000);
 
@@ -224,7 +224,7 @@ describe('Rate Limiter Enhanced', () => {
 
   describe('Redis down in development - 10% fallback', () => {
     beforeEach(() => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(false);
+      vi.mocked(isRedisAvailable).mockResolvedValue(false);
       process.env.NODE_ENV = 'development';
     });
 
@@ -308,7 +308,7 @@ describe('Rate Limiter Enhanced', () => {
 
   describe('Redis down in production - 5% fallback with hard cap', () => {
     beforeEach(() => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(false);
+      vi.mocked(isRedisAvailable).mockResolvedValue(false);
       process.env.NODE_ENV = 'production';
     });
 
@@ -403,7 +403,7 @@ describe('Rate Limiter Enhanced', () => {
 
   describe('Fallback logging and alerts', () => {
     beforeEach(() => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(false);
+      vi.mocked(isRedisAvailable).mockResolvedValue(false);
     });
 
     it('should log every fallback request', async () => {
@@ -454,7 +454,7 @@ describe('Rate Limiter Enhanced', () => {
 
   describe('Cross-instance synchronization concerns', () => {
     beforeEach(() => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(false);
+      vi.mocked(isRedisAvailable).mockResolvedValue(false);
       process.env.NODE_ENV = 'production';
     });
 
@@ -514,15 +514,15 @@ describe('Rate Limiter Enhanced', () => {
       const identifier = 'user:recovery';
 
       // Start in fallback mode
-      (isRedisAvailable as jest.Mock).mockResolvedValue(false);
+      vi.mocked(isRedisAvailable).mockResolvedValue(false);
       process.env.NODE_ENV = 'development';
 
       const fallbackResult = await rateLimiter(identifier, 100);
       expect(fallbackResult.fallbackMode).toBe(true);
 
       // Redis recovers
-      (isRedisAvailable as jest.Mock).mockResolvedValue(true);
-      (redis.incr as jest.Mock).mockResolvedValue(1);
+      vi.mocked(isRedisAvailable).mockResolvedValue(true);
+      vi.mocked(redis.incr).mockResolvedValue(1);
 
       const normalResult = await rateLimiter(identifier, 100);
       expect(normalResult.fallbackMode).toBe(false);
@@ -530,7 +530,7 @@ describe('Rate Limiter Enhanced', () => {
     });
 
     it('should clear fallback state on recovery', async () => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(false);
+      vi.mocked(isRedisAvailable).mockResolvedValue(false);
 
       await rateLimiter('user:clear-1', 100);
       await rateLimiter('user:clear-2', 100);
@@ -545,8 +545,8 @@ describe('Rate Limiter Enhanced', () => {
 
   describe('Edge cases', () => {
     it('should handle Redis error during normal operation', async () => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(true);
-      (redis.incr as jest.Mock).mockRejectedValue(new Error('Redis connection lost'));
+      vi.mocked(isRedisAvailable).mockResolvedValue(true);
+      vi.mocked(redis.incr).mockRejectedValue(new Error('Redis connection lost'));
 
       process.env.NODE_ENV = 'development';
 
@@ -562,7 +562,7 @@ describe('Rate Limiter Enhanced', () => {
     });
 
     it('should handle very short time windows', async () => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(false);
+      vi.mocked(isRedisAvailable).mockResolvedValue(false);
 
       const result = await rateLimiter('user:short-window', 100, 1000);
 
@@ -570,7 +570,7 @@ describe('Rate Limiter Enhanced', () => {
     });
 
     it('should handle concurrent requests in fallback mode', async () => {
-      (isRedisAvailable as jest.Mock).mockResolvedValue(false);
+      vi.mocked(isRedisAvailable).mockResolvedValue(false);
       process.env.NODE_ENV = 'development';
 
       const identifier = 'user:concurrent';

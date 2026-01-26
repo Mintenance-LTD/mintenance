@@ -1,15 +1,81 @@
-import React from 'react';
+import type { Job } from '@/types';
 /**
  * End-to-End User Journey Tests
  * Tests complete user workflows from start to finish
  */
 
 import { JobService } from '../../services/JobService';
+
+jest.mock('../../services/JobService', () => ({
+  JobService: {
+    getJobs: jest.fn(),
+    getAvailableJobs: jest.fn(),
+    getJobsByHomeowner: jest.fn(),
+    getJobsByStatus: jest.fn(),
+    getJobById: jest.fn(),
+    getBidsByJob: jest.fn(),
+    searchJobs: jest.fn(),
+    createJob: jest.fn(),
+    updateJobStatus: jest.fn(),
+    startJob: jest.fn(),
+    completeJob: jest.fn(),
+    submitBid: jest.fn(),
+    acceptBid: jest.fn(),
+  }
+}));
 import { PaymentService } from '../../services/PaymentService';
+
+jest.mock('../../services/PaymentService', () => ({
+  PaymentService: {
+    createPaymentIntent: jest.fn(),
+    confirmPayment: jest.fn(),
+    refundPayment: jest.fn(),
+    getPaymentHistory: jest.fn(),
+    savePaymentMethod: jest.fn(),
+    getPaymentMethods: jest.fn(),
+    deletePaymentMethod: jest.fn(),
+  }
+}));
 import { MessagingService } from '../../services/MessagingService';
+
+jest.mock('../../services/MessagingService', () => ({
+  MessagingService: {
+    sendMessage: jest.fn(),
+    getMessages: jest.fn(),
+    getConversations: jest.fn(),
+    markAsRead: jest.fn(),
+    deleteMessage: jest.fn(),
+    deleteConversation: jest.fn(),
+  }
+}));
 import { NotificationService } from '../../services/NotificationService';
+
+jest.mock('../../services/NotificationService', () => ({
+  NotificationService: {
+    sendNotification: jest.fn(),
+    getNotifications: jest.fn(),
+    markAsRead: jest.fn(),
+    markAllAsRead: jest.fn(),
+    deleteNotification: jest.fn(),
+    updateSettings: jest.fn(),
+  }
+}));
 import { RealAIAnalysisService } from '../../services/RealAIAnalysisService';
 import { AuthService } from '../../services/AuthService';
+
+jest.mock('../../services/AuthService', () => ({
+  AuthService: {
+    signIn: jest.fn(),
+    signUp: jest.fn(),
+    signOut: jest.fn(),
+    getCurrentSession: jest.fn(),
+    getCurrentUser: jest.fn(),
+    updateProfile: jest.fn(),
+    resetPassword: jest.fn(),
+    verifyEmail: jest.fn(),
+    onAuthStateChange: jest.fn(),
+  }
+}));
 import { logger } from '../../utils/logger';
 
 // Mock all external services
@@ -307,7 +373,7 @@ describe('End-to-End User Journeys', () => {
       try {
         await PaymentService.createPaymentIntent(testAmount, 'usd', { jobId: testJobId });
         fail('Expected payment to fail');
-      } catch (error: any) {
+      } catch (error) {
         expect(error.message).toBe('Payment method declined');
       }
 
@@ -329,7 +395,7 @@ describe('End-to-End User Journeys', () => {
           'sender-id'
         );
         fail('Expected message to fail');
-      } catch (error: any) {
+      } catch (error) {
         expect(error.message).toBe('Database connection failed');
       }
     });

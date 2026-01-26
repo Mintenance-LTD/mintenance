@@ -86,7 +86,7 @@ export class MLEvaluationService {
    * Analyze A/B test results
    */
   analyzeABTest(testId: string): {
-    results: Record<string, Record<string, any>>;
+    results: Record<string, Record<string, unknown>>;
     significance: Record<string, boolean>;
     recommendations: string[];
   } {
@@ -96,14 +96,14 @@ export class MLEvaluationService {
     }
 
     const testResults = this.abTestResults.filter(r => r.testId === testId);
-    const results: Record<string, Record<string, any>> = {};
+    const results: Record<string, Record<string, unknown>> = {};
     const significance: Record<string, boolean> = {};
     const recommendations: string[] = [];
 
     // Analyze each metric
     for (const metric of test.successMetrics) {
       const metricResults = testResults.filter(r => r.metric === metric);
-      const variantStats: Record<string, any> = {};
+      const variantStats: Record<string, unknown> = {};
 
       // Calculate statistics for each variant
       for (const variant of test.variants) {

@@ -9,19 +9,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { middleware } from '../middleware';
 
 // Mock dependencies
-jest.mock('@mintenance/auth', () => ({
-  verifyJWT: jest.fn(),
-  ConfigManager: jest.fn(() => ({
-    getRequired: jest.fn(() => 'test-jwt-secret'),
-    isProduction: jest.fn(() => false),
+vi.mock('@mintenance/auth', () => ({
+  verifyJWT: vi.fn(),
+  ConfigManager: vi.fn(() => ({
+    getRequired: vi.fn(() => 'test-jwt-secret'),
+    isProduction: vi.fn(() => false),
   })),
 }));
 
-jest.mock('@mintenance/shared', () => ({
+vi.mock('@mintenance/shared', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -30,11 +30,11 @@ describe('Middleware Security', () => {
   const mockLogger = require('@mintenance/shared').logger;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('Authentication', () => {
@@ -321,10 +321,10 @@ describe('Middleware Security', () => {
     it('should handle missing configuration gracefully', async () => {
       const ConfigManager = require('@mintenance/auth').ConfigManager;
       ConfigManager.mockImplementation(() => ({
-        getRequired: jest.fn(() => {
+        getRequired: vi.fn(() => {
           throw new Error('Missing JWT_SECRET');
         }),
-        isProduction: jest.fn(() => false),
+        isProduction: vi.fn(() => false),
       }));
 
       const request = new NextRequest('https://example.com/dashboard', {

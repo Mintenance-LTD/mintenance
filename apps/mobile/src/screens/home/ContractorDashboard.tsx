@@ -29,7 +29,7 @@ import { QuickActions } from './QuickActions';
 
 export const ContractorDashboard: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<unknown>();
   const haptics = useHaptics();
 
   const [contractorStats, setContractorStats] = useState<ContractorStats | null>(null);

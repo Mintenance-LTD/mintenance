@@ -81,7 +81,7 @@ export const ServiceSelectionGrid: React.FC<ServiceSelectionGridProps> = ({
 interface ServiceCardProps {
   service: ServiceCategory;
   onPress: () => void;
-  style?: any;
+  style?: import('react-native').ViewStyle;
 }
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ service, onPress, style }) => {

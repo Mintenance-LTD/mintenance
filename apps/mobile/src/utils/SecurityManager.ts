@@ -13,7 +13,7 @@ import InputValidationMiddleware from '../middleware/InputValidationMiddleware';
 import { logger } from './logger';
 
 // Conditional import for FileSystem to handle test environments
-let FileSystem: any;
+let FileSystem: unknown;
 try {
   FileSystem = require('expo-file-system');
 } catch (error) {
@@ -37,7 +37,7 @@ const SECURITY_CONFIG = {
 interface ValidationResult {
   isValid: boolean;
   errors: string[];
-  sanitized?: any;
+  sanitized?: unknown;
 }
 
 interface FileValidationResult extends ValidationResult {
@@ -122,17 +122,31 @@ class SecurityManagerService {
   /**
    * ⚠️ SECURITY CRITICAL: Sanitize data for logging (remove sensitive info)
    */
-  public static sanitizeForLogging(data: any): any {
+  public static sanitizeForLogging(data: unknown): unknown {
     if (typeof data !== 'object' || data === null) {
       return data;
     }
 
-    const sanitized = { ...data };
-    const sensitiveKeys = ['password', 'token', 'secret', 'key', 'creditCard', 'ssn', 'apiKey'];
+    // Handle arrays
+    if (Array.isArray(data)) {
+      return data.map(item => this.sanitizeForLogging(item));
+    }
 
-    for (const key of Object.keys(sanitized)) {
-      if (sensitiveKeys.some(sensitive => key.toLowerCase().includes(sensitive))) {
+    const sanitized: Record<string, unknown> = {};
+    const sensitiveKeys = ['password', 'token', 'secret', 'key', 'creditcard', 'ssn', 'apikey', 'credit'];
+
+    for (const key of Object.keys(data as Record<string, unknown>)) {
+      const value = (data as Record<string, unknown>)[key];
+      const keyLower = key.toLowerCase();
+
+      // Check if key matches any sensitive pattern (case-insensitive)
+      if (sensitiveKeys.some(sensitive => keyLower.includes(sensitive))) {
         sanitized[key] = '[REDACTED]';
+      } else if (typeof value === 'object' && value !== null) {
+        // Recursively sanitize nested objects
+        sanitized[key] = this.sanitizeForLogging(value);
+      } else {
+        sanitized[key] = value;
       }
     }
 
@@ -166,7 +180,7 @@ class SecurityManagerService {
     }
 
     // Check against common passwords
-    const commonPasswords = ['password', '123456', 'qwerty', 'abc123'];
+    const commonPasswords = ['password', '123456', 'qwerty', 'abc123', 'abc'];
     if (commonPasswords.includes(password.toLowerCase())) {
       errors.push('Password is too common. Please choose a stronger password');
     }
@@ -185,7 +199,7 @@ class SecurityManagerService {
 
     try {
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      
+
       if (!fileInfo.exists) {
         errors.push('File does not exist');
         return { isValid: false, errors };
@@ -198,9 +212,12 @@ class SecurityManagerService {
 
       // Extract file extension and validate type
       const fileName = fileUri.split('/').pop() || '';
-      const fileExtension = fileName.split('.').pop()?.toLowerCase();
-      
-      if (!fileExtension) {
+      const fileParts = fileName.split('.');
+      // File must have at least 2 parts (name and extension) to have a valid extension
+      const hasExtension = fileParts.length > 1 && fileParts[fileParts.length - 1].length > 0;
+      const fileExtension = hasExtension ? fileParts.pop()?.toLowerCase() : undefined;
+
+      if (!hasExtension) {
         errors.push('File must have a valid extension');
       }
 
@@ -216,8 +233,8 @@ class SecurityManagerService {
         errors.push('Filename is too long');
       }
 
-      // Check for suspicious filenames
-      if (this.hasSuspiciousFilename(fileName)) {
+      // Check for suspicious filenames (check both path and filename)
+      if (this.hasSuspiciousFilename(fileName, fileUri)) {
         errors.push('Invalid filename detected');
       }
 
@@ -267,7 +284,7 @@ class SecurityManagerService {
    * Sanitize object for logging (remove sensitive data)
    * Note: Duplicate sanitizeForLogging removed - use static method instead
    */
-  public sanitizeForLogging(obj: any): any {
+  public sanitizeForLogging(obj: unknown): unknown {
     return SecurityManagerService.sanitizeForLogging(obj);
   }
 
@@ -309,7 +326,7 @@ class SecurityManagerService {
    */
   private async saveRateLimitData(): Promise<void> {
     try {
-      const data: Record<string, any> = {};
+      const data: Record<string, unknown> = {};
       this.rateLimitMap.forEach((value, key) => {
         data[key] = value;
       });
@@ -357,12 +374,22 @@ class SecurityManagerService {
       .replace(/\//g, '&#x2F;');
   }
 
-  private hasSuspiciousFilename(filename: string): boolean {
+  private hasSuspiciousFilename(filename: string, fullPath?: string): boolean {
+    // Check for directory traversal in the full path
+    if (fullPath && /\.\./.test(fullPath)) {
+      return true;
+    }
+
     const suspiciousPatterns = [
-      /\.\./,  // Directory traversal
       /[<>:"\\|?*]/,  // Invalid characters
-      /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i,  // Reserved names
     ];
+
+    // Check for reserved Windows filenames (with or without extension)
+    const nameWithoutExtension = filename.split('.')[0].toLowerCase();
+    const reservedNames = ['con', 'prn', 'aux', 'nul', 'com1', 'com2', 'com3', 'com4', 'com5', 'com6', 'com7', 'com8', 'com9', 'lpt1', 'lpt2', 'lpt3', 'lpt4', 'lpt5', 'lpt6', 'lpt7', 'lpt8', 'lpt9'];
+    if (reservedNames.includes(nameWithoutExtension)) {
+      return true;
+    }
 
     return suspiciousPatterns.some(pattern => pattern.test(filename));
   }

@@ -3,7 +3,6 @@
  * 
  * Standardizes error types and messages across web and mobile platforms.
  */
-
 export enum ErrorType {
   NETWORK = 'NETWORK',
   API = 'API',
@@ -14,7 +13,6 @@ export enum ErrorType {
   SERVER = 'SERVER',
   UNKNOWN = 'UNKNOWN',
 }
-
 export interface ApiError {
   type: ErrorType;
   message: string;
@@ -23,28 +21,24 @@ export interface ApiError {
   details?: unknown;
   originalError?: unknown;
 }
-
 export class NetworkError extends Error implements ApiError {
   type = ErrorType.NETWORK;
   code = 'NETWORK_ERROR';
   statusCode = 0;
   details?: unknown;
   originalError?: unknown;
-
   constructor(message: string, originalError?: unknown) {
     super(message);
     this.name = 'NetworkError';
     this.originalError = originalError;
   }
 }
-
 export class ApiError extends Error implements ApiError {
   type: ErrorType;
   code: string;
   statusCode: number;
   details?: unknown;
   originalError?: unknown;
-
   constructor(
     message: string,
     type: ErrorType,
@@ -62,14 +56,12 @@ export class ApiError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-
 export class ValidationError extends Error implements ApiError {
   type = ErrorType.VALIDATION;
   code = 'VALIDATION_ERROR';
   statusCode = 400;
   details?: unknown;
   originalError?: unknown;
-
   constructor(message: string, details?: unknown, originalError?: unknown) {
     super(message);
     this.name = 'ValidationError';
@@ -77,14 +69,12 @@ export class ValidationError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-
 export class AuthenticationError extends Error implements ApiError {
   type = ErrorType.AUTHENTICATION;
   code = 'AUTHENTICATION_ERROR';
   statusCode = 401;
   details?: unknown;
   originalError?: unknown;
-
   constructor(message: string, details?: unknown, originalError?: unknown) {
     super(message);
     this.name = 'AuthenticationError';
@@ -92,14 +82,12 @@ export class AuthenticationError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-
 export class AuthorizationError extends Error implements ApiError {
   type = ErrorType.AUTHORIZATION;
   code = 'AUTHORIZATION_ERROR';
   statusCode = 403;
   details?: unknown;
   originalError?: unknown;
-
   constructor(message: string, details?: unknown, originalError?: unknown) {
     super(message);
     this.name = 'AuthorizationError';
@@ -107,14 +95,12 @@ export class AuthorizationError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-
 export class NotFoundError extends Error implements ApiError {
   type = ErrorType.NOT_FOUND;
   code = 'NOT_FOUND';
   statusCode = 404;
   details?: unknown;
   originalError?: unknown;
-
   constructor(message: string, details?: unknown, originalError?: unknown) {
     super(message);
     this.name = 'NotFoundError';
@@ -122,14 +108,12 @@ export class NotFoundError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-
 export class ServerError extends Error implements ApiError {
   type = ErrorType.SERVER;
   code = 'SERVER_ERROR';
   statusCode = 500;
   details?: unknown;
   originalError?: unknown;
-
   constructor(message: string, details?: unknown, originalError?: unknown) {
     super(message);
     this.name = 'ServerError';
@@ -137,7 +121,6 @@ export class ServerError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-
 /**
  * User-friendly error messages
  */
@@ -151,14 +134,12 @@ const USER_FRIENDLY_MESSAGES: Record<ErrorType, string> = {
   [ErrorType.SERVER]: 'Server error. Please try again later.',
   [ErrorType.UNKNOWN]: 'An unexpected error occurred. Please try again.',
 };
-
 /**
  * Convert error to user-friendly message
  */
 export function getUserFriendlyMessage(error: ApiError): string {
   return USER_FRIENDLY_MESSAGES[error.type] || USER_FRIENDLY_MESSAGES[ErrorType.UNKNOWN];
 }
-
 /**
  * Parse error from various sources
  */
@@ -170,11 +151,9 @@ export function parseError(error: unknown): ApiError {
       error instanceof ServerError) {
     return error;
   }
-
   // Supabase error
   if (error && typeof error === 'object' && 'message' in error) {
     const supabaseError = error as { message: string; code?: string; statusCode?: number };
-    
     if (supabaseError.statusCode === 401) {
       return new AuthenticationError(supabaseError.message, error);
     }
@@ -190,7 +169,6 @@ export function parseError(error: unknown): ApiError {
     if (supabaseError.statusCode && supabaseError.statusCode >= 400) {
       return new ValidationError(supabaseError.message, error);
     }
-    
     return new ApiError(
       supabaseError.message,
       ErrorType.API,
@@ -199,12 +177,10 @@ export function parseError(error: unknown): ApiError {
       error
     );
   }
-
   // Fetch/Network error
   if (error instanceof TypeError && error.message.includes('fetch')) {
     return new NetworkError('Network request failed', error);
   }
-
   // Generic Error
   if (error instanceof Error) {
     return new ApiError(
@@ -215,7 +191,6 @@ export function parseError(error: unknown): ApiError {
       error
     );
   }
-
   // Unknown error
   return new ApiError(
     'An unexpected error occurred',
@@ -225,13 +200,11 @@ export function parseError(error: unknown): ApiError {
     error
   );
 }
-
 /**
  * Log error for debugging
  */
 export function logError(error: ApiError, context?: string): void {
   const logger = require('@mintenance/shared').logger;
-  
   logger.error({
     type: error.type,
     code: error.code,
@@ -241,4 +214,3 @@ export function logError(error: ApiError, context?: string): void {
     context,
   }, 'API Error');
 }
-

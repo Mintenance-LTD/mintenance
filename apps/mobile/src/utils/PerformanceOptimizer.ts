@@ -45,7 +45,7 @@ class PerformanceOptimizerService {
   /**
    * Debounce function calls
    */
-  public debounce<T extends (...args: any[]) => any>(
+  public debounce<T extends (...args: unknown[]) => any>(
     func: T,
     delay: number
   ): (...args: Parameters<T>) => void {
@@ -60,7 +60,7 @@ class PerformanceOptimizerService {
   /**
    * Throttle function calls
    */
-  public throttle<T extends (...args: any[]) => any>(
+  public throttle<T extends (...args: unknown[]) => any>(
     func: T,
     limit: number
   ): (...args: Parameters<T>) => void {
@@ -113,7 +113,7 @@ export function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export function useThrottle<T extends (...args: any[]) => any>(
+export function useThrottle<T extends (...args: unknown[]) => any>(
   callback: T,
   delay: number
 ): T {

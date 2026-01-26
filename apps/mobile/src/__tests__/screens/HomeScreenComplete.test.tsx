@@ -1,9 +1,36 @@
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor } from '../test-utils';
 import HomeScreen from '../../screens/HomeScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
 import { UserService } from '../../services/UserService';
+
+const mockNavigation = {
+  navigate: jest.fn(),
+  goBack: jest.fn(),
+  dispatch: jest.fn(),
+  reset: jest.fn(),
+  setParams: jest.fn(),
+  addListener: jest.fn(),
+  removeListener: jest.fn(),
+  canGoBack: jest.fn(() => true),
+  isFocused: jest.fn(() => true),
+  setOptions: jest.fn(),
+};
+
+const mockRoute = {
+  params: {},
+  key: 'test-route',
+  name: 'TestScreen',
+};
 
 // Mock dependencies
 jest.mock('../../contexts/AuthContext');
@@ -148,7 +175,7 @@ describe('HomeScreen', () => {
   it('navigates to contractor discovery screen when clicking service category', () => {
     const { getByText } = render(<HomeScreen />);
 
-    fireEvent.press(getByText('Plumbing'));
+    act(() => fireEvent.press(getByText('Plumbing')));
 
     expect(jest.requireMock('@react-navigation/native').useNavigation().navigate).toHaveBeenCalledWith('ContractorDiscovery', {
       filter: { skills: ['Plumbing', 'Pipe Repair', 'Leak Repair'] },
@@ -159,7 +186,7 @@ describe('HomeScreen', () => {
   it('navigates to find contractors screen', () => {
     const { getByText } = render(<HomeScreen />);
 
-    fireEvent.press(getByText('Find Contractors'));
+    act(() => fireEvent.press(getByText('Find Contractors')));
 
     expect(jest.requireMock('@react-navigation/native').useNavigation().navigate).toHaveBeenCalledWith('FindContractors');
   });

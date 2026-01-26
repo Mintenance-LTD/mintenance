@@ -28,7 +28,7 @@ export interface ErrorContext {
   userId?: string;
   screen?: string;
   action?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ErrorRecoveryOptions {
@@ -72,7 +72,7 @@ export class AppError extends Error {
       this.context,
       this.recoveryOptions
     );
-    (error as any).retryCount = count;
+    (error as unknown).retryCount = count;
     return error;
   }
 }
@@ -96,7 +96,7 @@ export class ErrorHandler {
   private setupNetworkMonitoring(): void {
     // Monitor network status for error context
     const NetInfo = require('@react-native-community/netinfo');
-    NetInfo.addEventListener((state: any) => {
+    NetInfo.addEventListener((state: unknown) => {
       this.isOnline = state.isConnected && state.isInternetReachable;
     });
   }

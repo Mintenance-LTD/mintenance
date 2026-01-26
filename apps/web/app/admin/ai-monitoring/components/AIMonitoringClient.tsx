@@ -105,7 +105,7 @@ export function AIMonitoringClient() {
 
       setLastUpdated(new Date());
     } catch (error) {
-      logger.error('Error fetching AI monitoring data:', error', [object Object], { service: 'ui' });
+      logger.error('Error fetching AI monitoring data:', error, { service: 'ui' });
     } finally {
       setIsLoading(false);
     }

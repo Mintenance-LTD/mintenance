@@ -57,7 +57,7 @@ export const PerformanceDashboard: React.FC = () => {
 
   const [refreshing, setRefreshing] = useState(false);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
-  const [reportData, setReportData] = useState<any>(null);
+  const [reportData, setReportData] = useState<unknown>(null);
   const [budgetStatus, setBudgetStatus] = useState<any[]>([]);
   const [componentMetrics, setComponentMetrics] = useState<any[]>([]);
 
@@ -250,7 +250,7 @@ export const PerformanceDashboard: React.FC = () => {
             <H2 style={{ color: theme.colors.text.primary, marginBottom: 16 }}>Recent Violations</H2>
             <Card>
               <CardBody>
-                {reportData.violations.slice(0, 5).map((violation: any, index: number) => (
+                {reportData.violations.slice(0, 5).map((violation: unknown, index: number) => (
                   <ViolationRow key={index} violation={violation} />
                 ))}
               </CardBody>
@@ -323,7 +323,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
     <Card style={styles.metricCard}>
       <CardBody>
         <View style={styles.metricHeader}>
-          <Ionicons name={icon as any} size={24} color={getStatusColor()} />
+          <Ionicons name={icon as unknown} size={24} color={getStatusColor()} />
           {trend && (
             <Ionicons
               name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'remove'}
@@ -386,7 +386,7 @@ const BudgetStatusRow: React.FC<BudgetStatusProps> = ({ metric, current, budget,
 // COMPONENT METRIC ROW
 // ============================================================================
 
-const ComponentMetricRow: React.FC<{ component: any; rank: number }> = ({ component, rank }) => {
+const ComponentMetricRow: React.FC<{ component: unknown; rank: number }> = ({ component, rank }) => {
   const { theme } = useTheme();
 
   return (
@@ -413,7 +413,7 @@ const ComponentMetricRow: React.FC<{ component: any; rank: number }> = ({ compon
 // VIOLATION ROW
 // ============================================================================
 
-const ViolationRow: React.FC<{ violation: any }> = ({ violation }) => {
+const ViolationRow: React.FC<{ violation: unknown }> = ({ violation }) => {
   const { theme } = useTheme();
 
   const getSeverityColor = () => {
