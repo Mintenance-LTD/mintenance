@@ -88,19 +88,7 @@ echo "Step 3: Creating list of sensitive strings to replace..."
 echo "================================================"
 
 cat > sensitive-strings.txt << EOF
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-sb_secret_AMoaugS1OiiCYsvyXtRJNw_uVUJwLan
-SLnnjgPA6j/1jrLF7OcU/RrK79lku8cp3OH7QD08r3VmQE/Pr53ngXW8OKnUM6fjp0n4YL7OA6sl1Ty8GeztIg==
-sk_test_51SDXwQJmZpzAEZO8
-sk-proj-tz834m3iYjCQNcei4sQJ
-SG.XMmXbHPxTYe_ZANuECPDIg
-b522cdde15c6893bf3ca4345409cbf61
-Iambald1995!
-AIzaSyB82hZxnV3NV5huFpfPjcaz0nASCcSerwY
-AC9b7ee5b9ad6a9e61bc0ba387c93ae11e
-ukrjudtlvapiajkjbcrd
-sb_ukrjudtlvapiajkjbcrd
-EOF
+
 
 echo "✅ Created sensitive-strings.txt"
 
