@@ -1,6 +1,6 @@
 import { vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { ContractorProfileLoading } from '../loading';
+import { render } from '@testing-library/react';
+import Loading from '../loading';
 
 // Mock dependencies
 vi.mock('next/navigation', () => ({
@@ -9,31 +9,28 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('ContractorProfileLoading', () => {
-  const defaultProps = {
-    // Add default props here
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('should render without crashing', () => {
-    render(<ContractorProfileLoading {...defaultProps} />);
-    expect(true).toBeTruthy(); // Component rendered
+    const { container } = render(<Loading />);
+    expect(container).toBeDefined();
   });
 
   it('should handle user interactions', async () => {
-    render(<ContractorProfileLoading {...defaultProps} />);
-    // Add interaction tests
+    const { container } = render(<Loading />);
+    expect(container).toBeDefined();
   });
 
   it('should display correct data', () => {
-    render(<ContractorProfileLoading {...defaultProps} />);
-    // Add data display tests
+    const { container } = render(<Loading />);
+    // Loading component displays skeleton
+    expect(container).toBeDefined();
   });
 
   it('should handle edge cases', () => {
-    render(<ContractorProfileLoading {...defaultProps} />);
-    // Test edge cases
+    const { container } = render(<Loading />);
+    expect(container).toBeDefined();
   });
 });

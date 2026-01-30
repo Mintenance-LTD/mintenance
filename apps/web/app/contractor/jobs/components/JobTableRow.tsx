@@ -27,7 +27,13 @@ interface JobTableRowProps {
   job: Job;
 }
 
-export function JobTableRow({ job }: JobTableRowProps) {
+export function JobTableRow(props: JobTableRowProps) {
+  const { job } = props || {};
+
+  if (!job) {
+    return null;
+  }
+
   const homeownerName = job.homeowner
     ? `${job.homeowner.first_name} ${job.homeowner.last_name}`
     : 'Unknown';

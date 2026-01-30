@@ -1,14 +1,13 @@
-import { logger } from '@mintenance/shared';
-
 // Logger implementation - uses console directly to avoid circular dependencies
 /**
  * Production-Safe Logger
- * 
+ *
  * Centralized logging utility that:
  * - Sanitizes sensitive data in production
  * - Supports log levels
  * - Provides structured logging
  * - Never exposes PII, auth tokens, or payment data
+ * - Safely handles large objects and circular references
  */
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -97,15 +96,83 @@ class Logger {
     return sanitized;
   }
 
+  private safeStringify(obj: unknown, maxDepth = 3): string {
+    const seen = new WeakSet();
+
+    const replacer = (depth: number) => (_key: string, value: unknown) => {
+      // Handle null/undefined
+      if (value === null || value === undefined) {
+        return value;
+      }
+
+      // Handle primitives
+      if (typeof value !== 'object') {
+        return value;
+      }
+
+      // Prevent circular references
+      if (seen.has(value as object)) {
+        return '[Circular]';
+      }
+      seen.add(value as object);
+
+      // Limit depth to prevent stack overflow
+      if (depth > maxDepth) {
+        return '[Max Depth Reached]';
+      }
+
+      // Handle arrays
+      if (Array.isArray(value)) {
+        // Limit array size in logs
+        if (value.length > 50) {
+          return `[Array(${value.length})] ${JSON.stringify(value.slice(0, 10), replacer(depth + 1))}...`;
+        }
+        return value;
+      }
+
+      // Handle Error objects
+      if (value instanceof Error) {
+        return {
+          name: value.name,
+          message: value.message,
+          stack: this.isDevelopment ? value.stack : undefined,
+        };
+      }
+
+      // Handle objects with too many properties
+      const keys = Object.keys(value as object);
+      if (keys.length > 100) {
+        return `[Object with ${keys.length} properties]`;
+      }
+
+      return value;
+    };
+
+    try {
+      return JSON.stringify(obj, replacer(0));
+    } catch (error) {
+      return '[Unable to stringify object]';
+    }
+  }
+
   private formatMessage(level: LogLevel, message: string, context?: LogContext): string {
     const timestamp = new Date().toISOString();
     const levelStr = level.toUpperCase().padEnd(5);
-    
+
     let formatted = `[${timestamp}] ${levelStr} ${message}`;
-    
-    if (context && Object.keys(context).length > 0) {
-      const sanitizedContext = this.sanitize(context);
-      formatted += ` ${JSON.stringify(sanitizedContext)}`;
+
+    if (context) {
+      try {
+        const keys = Object.keys(context);
+        if (keys.length > 0 && keys.length < 100) {
+          const sanitizedContext = this.sanitize(context);
+          formatted += ` ${this.safeStringify(sanitizedContext)}`;
+        } else if (keys.length >= 100) {
+          formatted += ` [Context with ${keys.length} properties - too large to log]`;
+        }
+      } catch (error) {
+        formatted += ' [Context unavailable]';
+      }
     }
 
     return formatted;
@@ -118,22 +185,27 @@ class Logger {
 
     const formattedMessage = this.formatMessage(level, message, context);
 
+    // Use console directly to avoid circular dependency
     switch (level) {
       case 'debug':
         if (this.isDevelopment) {
-          logger.debug(formattedMessage);
+          console.debug(formattedMessage);
         }
         break;
       case 'info':
-        logger.info('[INFO]', formattedMessage);
+        console.info(formattedMessage);
         break;
       case 'warn':
-        logger.warn('[WARN]', formattedMessage);
+        console.warn(formattedMessage);
         break;
       case 'error':
-        logger.error('[ERROR]', formattedMessage);
+        console.error(formattedMessage);
         if (error) {
-          logger.error('[ERROR] Details:', error);
+          console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: this.isDevelopment ? error.stack : undefined,
+          });
         }
         break;
     }

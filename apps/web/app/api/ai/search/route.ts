@@ -4,7 +4,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
-import type { SearchFilters } from '@/lib/services/AISearchService';
+import type { SearchFilters } from '@mintenance/ai-core';
 
 interface SearchResult {
   id: string;

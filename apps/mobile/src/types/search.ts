@@ -174,7 +174,7 @@ export interface SearchAnalytics {
 // Real-time Search Types
 export interface SearchFiltersUpdate {
   field: keyof SearchFilters;
-  value: any;
+  value: unknown;
   timestamp: number;
 }
 
@@ -198,7 +198,7 @@ export interface SmartSearchRecommendation {
   description: string;
   action: {
     type: 'add_filter' | 'modify_filter' | 'search_query';
-    payload: any;
+    payload: unknown;
   };
   confidence: number; // 0-1 confidence score
 }

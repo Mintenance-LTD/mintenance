@@ -244,16 +244,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching platform statistics', error, { service: 'stats' });
 
-    // Return fallback values on error
-    return NextResponse.json({
-      activeContractors: 2847,
-      activeContractorsGrowth: 12,
-      completedJobs: 12456,
-      completedJobsGrowth: 23,
-      totalSaved: 1250000,
-      totalSavedGrowth: 18,
-      avgResponseTimeHours: 2.4,
-      responseTimeImprovement: 15,
-    }, { status: 200 }); // Return 200 with fallback data
+    // Return 503 so clients know stats are unavailable; do not send fallback as "real" data.
+    return NextResponse.json(
+      { error: 'Platform statistics temporarily unavailable' },
+      { status: 503 }
+    );
   }
 }

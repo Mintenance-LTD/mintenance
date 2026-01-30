@@ -3,8 +3,8 @@
  * Provides all AI functionality to mobile app using the unified service
  */
 
-import { UnifiedAIService } from '@mintenance/ai-core/services/UnifiedAIService';
 import {
+  UnifiedAIService,
   BuildingAssessment,
   PricingRecommendation,
   AgentDecision,
@@ -15,7 +15,7 @@ import {
   AgentContext,
   AIServiceResponse,
   AIServiceConfig
-} from '@mintenance/ai-core/types';
+} from '@mintenance/ai-core';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '../config/environment';
 import { logger } from '@mintenance/shared';

@@ -1,6 +1,7 @@
 /**
  * Video Capture Screen with Guidance
  * Provides step-by-step guidance for property video capture
+ * Uses expo-camera for cross-platform camera access
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
@@ -16,14 +17,7 @@ import {
   ScrollView,
   Animated,
 } from 'react-native';
-import {
-  Camera,
-  useCameraDevice,
-  useCameraFormat,
-  useFrameProcessor,
-  VideoFile,
-  CameraPermissionStatus,
-} from 'react-native-vision-camera';
+import { CameraView, CameraType, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -38,6 +32,10 @@ import Reanimated, {
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+interface CapturedVideo {
+  uri: string;
+}
 
 interface Props {
   navigation: unknown;
@@ -54,10 +52,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   const { assessmentId, propertyId, onComplete } = route.params || {};
 
   // Camera setup
-  const camera = useRef<Camera>(null);
-  const device = useCameraDevice('back');
-  const [hasPermission, setHasPermission] = useState<boolean>(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const cameraRef = useRef<CameraView>(null);
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [micPermission, requestMicPermission] = useMicrophonePermissions();
   const isFocused = useIsFocused();
 
   // Recording state
@@ -65,13 +62,14 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [phaseProgress, setPhaseProgress] = useState(0);
-  const [capturedVideo, setCapturedVideo] = useState<VideoFile | null>(null);
+  const [capturedVideo, setCapturedVideo] = useState<CapturedVideo | null>(null);
 
   // UI state
   const [showGuidance, setShowGuidance] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [torchOn, setTorchOn] = useState(false);
 
   // Animation values
   const recordingPulse = useSharedValue(1);
@@ -85,14 +83,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   // Get current guidance phase
   const currentPhase = VideoService.guidancePhases[currentPhaseIndex];
 
-  // Camera format with proper video settings
-  const format = useCameraFormat(device, [
-    { videoResolution: { width: 1280, height: 720 } },
-    { fps: 30 },
-  ]);
+  const hasPermission = cameraPermission?.granted && micPermission?.granted;
 
   useEffect(() => {
-    checkPermissions();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (phaseTimerRef.current) clearInterval(phaseTimerRef.current);
@@ -101,7 +94,6 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
   useEffect(() => {
     if (isRecording) {
-      // Start recording animation
       recordingPulse.value = withRepeat(
         withSequence(
           withTiming(1.2, { duration: 500 }),
@@ -114,23 +106,13 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [isRecording]);
 
-  const checkPermissions = async () => {
-    const status = await Camera.getCameraPermissionStatus();
-    const micStatus = await Camera.getMicrophonePermissionStatus();
-
-    if (status === 'not-determined' || micStatus === 'not-determined') {
-      const newCameraStatus = await Camera.requestCameraPermission();
-      const newMicStatus = await Camera.requestMicrophonePermission();
-      setHasPermission(
-        newCameraStatus === 'granted' && newMicStatus === 'granted'
-      );
-    } else {
-      setHasPermission(status === 'granted' && micStatus === 'granted');
-    }
+  const requestPermissions = async () => {
+    await requestCameraPermission();
+    await requestMicPermission();
   };
 
   const startRecording = async () => {
-    if (!camera.current || isRecording) return;
+    if (!cameraRef.current || isRecording) return;
 
     try {
       setIsRecording(true);
@@ -142,12 +124,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
       timerRef.current = setInterval(() => {
         setRecordingDuration(prev => {
           const newDuration = prev + 1;
-
-          // Check if we've exceeded max duration
           if (newDuration >= VideoService.MAX_DURATION) {
             stopRecording();
           }
-
           return newDuration;
         });
       }, 1000);
@@ -156,21 +135,17 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
       updatePhaseProgress();
 
       // Start camera recording
-      const video = await camera.current.startRecording({
-        onRecordingFinished: (video) => {
-          logger.info('Recording finished', { video });
-          setCapturedVideo(video);
-          setShowPreview(true);
-        },
-        onRecordingError: (error) => {
-          logger.error('Recording error', { error });
-          Alert.alert('Recording Error', 'Failed to record video. Please try again.');
-          setIsRecording(false);
-        },
-        fileType: 'mp4',
-        videoCodec: 'h264',
+      const video = await cameraRef.current.recordAsync({
+        maxDuration: VideoService.MAX_DURATION,
       });
 
+      if (video) {
+        setCapturedVideo({ uri: video.uri });
+        setShowPreview(true);
+      }
+      setIsRecording(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (phaseTimerRef.current) clearInterval(phaseTimerRef.current);
     } catch (error) {
       logger.error('Failed to start recording', { error });
       Alert.alert('Error', 'Failed to start recording');
@@ -179,11 +154,10 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const stopRecording = async () => {
-    if (!camera.current || !isRecording) return;
+    if (!cameraRef.current || !isRecording) return;
 
     try {
-      await camera.current.stopRecording();
-      setIsRecording(false);
+      cameraRef.current.stopRecording();
 
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -212,11 +186,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
         const phaseDuration = VideoService.guidancePhases[currentPhaseIndex].duration;
 
         if (newProgress >= phaseDuration) {
-          // Move to next phase
           const nextIndex = currentPhaseIndex + 1;
           if (nextIndex < VideoService.guidancePhases.length) {
             setCurrentPhaseIndex(nextIndex);
-            // Flash guidance for new phase
             guidanceOpacity.value = withSequence(
               withTiming(0, { duration: 200 }),
               withTiming(1, { duration: 200 })
@@ -225,7 +197,6 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
           }
         }
 
-        // Update progress animation
         phaseProgressAnim.value = withTiming(newProgress / phaseDuration, {
           duration: 1000,
         });
@@ -242,10 +213,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     setUploadProgress(0);
 
     try {
-      // Compress video
-      const compressedPath = capturedVideo.path.replace('.mp4', '_compressed.mp4');
+      const compressedPath = capturedVideo.uri.replace('.mp4', '_compressed.mp4');
       const compressionResult = await VideoService.compressVideo(
-        capturedVideo.path,
+        capturedVideo.uri,
         compressedPath
       );
 
@@ -253,7 +223,6 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
         throw new Error('Video compression failed');
       }
 
-      // Queue for upload and processing
       const videoId = await VideoService.queueVideo(
         compressionResult.outputPath,
         compressionResult.metadata,
@@ -265,8 +234,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
       logger.info('Video queued for processing', { videoId });
 
-      // Navigate to processing status screen
-      navigation.navigate('VideoProcessingStatus', {
+      (navigation as { navigate: (screen: string, params: Record<string, unknown>) => void }).navigate('VideoProcessingStatus', {
         videoId,
         assessmentId,
         propertyId,
@@ -317,7 +285,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
           <Text style={styles.permissionText}>Camera permission required</Text>
           <TouchableOpacity
             style={styles.permissionButton}
-            onPress={checkPermissions}
+            onPress={requestPermissions}
           >
             <Text style={styles.permissionButtonText}>Grant Permission</Text>
           </TouchableOpacity>
@@ -326,30 +294,15 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  if (!device) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.permissionContainer}>
-          <Text style={styles.permissionText}>No camera device found</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <View style={styles.container}>
       {isFocused && !showPreview && (
-        <Camera
-          ref={camera}
+        <CameraView
+          ref={cameraRef}
           style={StyleSheet.absoluteFill}
-          device={device}
-          format={format}
-          isActive={true}
-          video={true}
-          audio={true}
-          enableZoomGesture={true}
-          orientation="portrait"
-          onInitialized={() => setIsInitialized(true)}
+          facing="back"
+          mode="video"
+          enableTorch={torchOn}
         />
       )}
 
@@ -357,7 +310,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
       <SafeAreaView style={styles.header}>
         <TouchableOpacity
           style={styles.closeButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => (navigation as { goBack: () => void }).goBack()}
         >
           <Icon name="close" size={28} color="white" />
         </TouchableOpacity>
@@ -445,9 +398,9 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
             <TouchableOpacity
               style={styles.secondaryButton}
-              onPress={() => camera.current?.toggleTorch()}
+              onPress={() => setTorchOn(!torchOn)}
             >
-              <Icon name="flash-on" size={28} color="white" />
+              <Icon name={torchOn ? 'flash-on' : 'flash-off'} size={28} color="white" />
             </TouchableOpacity>
           </>
         ) : (
@@ -482,7 +435,6 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
           </SafeAreaView>
 
           <View style={styles.videoPreviewContainer}>
-            {/* Video player would go here */}
             <View style={styles.videoPlaceholder}>
               <Icon name="play-circle-outline" size={64} color="#666" />
               <Text style={styles.videoInfo}>

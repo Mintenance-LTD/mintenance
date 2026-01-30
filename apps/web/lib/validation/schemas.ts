@@ -1,11 +1,12 @@
 /**
  * Input Validation Schemas
- * 
+ *
  * Zod schemas for validating all API inputs to prevent
  * injection attacks and ensure data integrity.
  */
 
 import { z } from 'zod';
+import { sanitizeText, sanitizeEmail } from '@/lib/sanitizer';
 
 // ============================================================================
 // Auth Schemas
@@ -13,8 +14,7 @@ import { z } from 'zod';
 
 export const loginSchema = z.object({
   email: z.string()
-    .transform(val => val.toLowerCase().trim())
-    .pipe(z.string().email('Invalid email address').max(255, 'Email too long')),
+    .transform(val => sanitizeEmail(val)),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .max(128, 'Password too long'),
@@ -23,8 +23,7 @@ export const loginSchema = z.object({
 
 export const registerSchema = z.object({
   email: z.string()
-    .transform(val => val.toLowerCase().trim())
-    .pipe(z.string().email('Invalid email address').max(255, 'Email too long')),
+    .transform(val => sanitizeEmail(val)),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .max(128, 'Password too long')
@@ -35,11 +34,13 @@ export const registerSchema = z.object({
   firstName: z.string()
     .min(1, 'First name required')
     .max(100, 'First name too long')
-    .regex(/^[a-zA-Z\s-']+$/, 'First name contains invalid characters'),
+    .regex(/^[a-zA-Z\s-']+$/, 'First name contains invalid characters')
+    .transform(val => sanitizeText(val, 100)),
   lastName: z.string()
     .min(1, 'Last name required')
     .max(100, 'Last name too long')
-    .regex(/^[a-zA-Z\s-']+$/, 'Last name contains invalid characters'),
+    .regex(/^[a-zA-Z\s-']+$/, 'Last name contains invalid characters')
+    .transform(val => sanitizeText(val, 100)),
   role: z.enum(['homeowner', 'contractor', 'admin']),
   phone: z.preprocess(
     (val) => {
@@ -72,8 +73,7 @@ export const registerSchema = z.object({
 
 export const passwordResetSchema = z.object({
   email: z.string()
-    .transform(val => val.toLowerCase().trim())
-    .pipe(z.string().email('Invalid email address').max(255, 'Email too long')),
+    .transform(val => sanitizeEmail(val)),
 });
 
 export const passwordUpdateSchema = z.object({
@@ -214,11 +214,13 @@ export const updateProfileSchema = z.object({
     .min(1, 'First name required')
     .max(100, 'First name too long')
     .regex(/^[a-zA-Z\s-']+$/, 'First name contains invalid characters')
+    .transform(val => sanitizeText(val, 100))
     .optional(),
   lastName: z.string()
     .min(1, 'Last name required')
     .max(100, 'Last name too long')
     .regex(/^[a-zA-Z\s-']+$/, 'Last name contains invalid characters')
+    .transform(val => sanitizeText(val, 100))
     .optional(),
   phone: z.string()
     .transform(val => val.replace(/[\s\-()]/g, '')) // Strip spaces, dashes, and parentheses
@@ -226,6 +228,7 @@ export const updateProfileSchema = z.object({
     .optional(),
   bio: z.string()
     .max(1000, 'Bio too long')
+    .transform(val => sanitizeText(val, 1000))
     .optional(),
   profileImageUrl: z.string()
     .url('Invalid profile image URL')

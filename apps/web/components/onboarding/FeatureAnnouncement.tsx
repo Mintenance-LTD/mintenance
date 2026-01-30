@@ -83,11 +83,13 @@ export function shouldShowAnnouncement(
   return true;
 }
 
-export function FeatureAnnouncement({
-  announcement,
-  onDismiss,
-  onLearnMore,
-}: FeatureAnnouncementProps) {
+export function FeatureAnnouncement(props: FeatureAnnouncementProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    announcement = { id: '', version: '', title: '', description: '', features: [], releaseDate: '' },
+    onDismiss = () => {},
+    onLearnMore,
+  } = props || {};
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   const handleDismiss = () => {

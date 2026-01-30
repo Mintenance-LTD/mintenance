@@ -10,10 +10,11 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { sanitizeText, sanitizeMessage, sanitizeEmail } from '@/lib/sanitizer';
 
 // Invoice line item schema
 const lineItemSchema = z.object({
-  description: z.string().min(1, 'Description is required'),
+  description: z.string().min(1, 'Description is required').transform(val => sanitizeText(val, 500)),
   quantity: z.number().positive('Quantity must be positive'),
   unit_price: z.number().min(0, 'Unit price cannot be negative'),
   amount: z.number().optional(), // Calculated: quantity * unit_price
@@ -23,16 +24,16 @@ const lineItemSchema = z.object({
 const createInvoiceSchema = z.object({
   jobId: z.string().uuid().optional(),
   quoteId: z.string().uuid().optional(),
-  clientName: z.string().min(1, 'Client name is required'),
-  clientEmail: z.string().email('Invalid email address'),
+  clientName: z.string().min(1, 'Client name is required').transform(val => sanitizeText(val, 200)),
+  clientEmail: z.string().email('Invalid email address').transform(val => sanitizeEmail(val)),
   clientPhone: z.string().optional(),
-  clientAddress: z.string().optional(),
-  title: z.string().min(1, 'Invoice title is required'),
-  description: z.string().optional(),
+  clientAddress: z.string().optional().transform(val => val ? sanitizeText(val, 500) : val),
+  title: z.string().min(1, 'Invoice title is required').transform(val => sanitizeText(val, 200)),
+  description: z.string().optional().transform(val => val ? sanitizeMessage(val) : val),
   lineItems: z.array(lineItemSchema).min(1, 'At least one line item is required'),
   taxRate: z.number().min(0).max(100).default(20), // Default 20% VAT
-  paymentTerms: z.string().optional().default('Payment due within 30 days'),
-  notes: z.string().optional(),
+  paymentTerms: z.string().optional().default('Payment due within 30 days').transform(val => sanitizeText(val, 500)),
+  notes: z.string().optional().transform(val => val ? sanitizeMessage(val) : val),
   dueDate: z.string().optional(), // ISO date string
   status: z.enum(['draft', 'sent']).default('draft'),
 });

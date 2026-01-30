@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
+import { getFeatureLimit } from '@/lib/feature-access-config';
+import type { SubscriptionPlan } from '@/lib/services/subscription/SubscriptionService';
 import { logger } from '@mintenance/shared';
 
 export interface SubscriptionCheckResult {
@@ -135,29 +137,21 @@ export async function checkSubscriptionLimits(
     const features = await SubscriptionService.getSubscriptionFeatures(contractorId);
     const subscription = await SubscriptionService.getContractorSubscription(contractorId);
 
-    // Free tier always allowed
-    if (subscription && subscription.status === 'free') {
-      return { allowed: true };
-    }
-
-    if (!features || !subscription) {
-      return {
-        allowed: false,
-        reason: 'No active subscription found',
-      };
-    }
+    const planType: SubscriptionPlan = subscription?.planType ?? 'free';
 
     switch (action) {
       case 'post_job':
+        if (!features || !subscription) {
+          return { allowed: false, reason: 'No active subscription found' };
+        }
         if (features.maxJobs !== null) {
-          // Check current job count
           const { serverSupabase } = await import('@/lib/api/supabaseServer');
           const { count } = await serverSupabase
             .from('jobs')
             .select('*', { count: 'exact', head: true })
             .eq('contractor_id', contractorId);
 
-          if (count && count >= features.maxJobs) {
+          if (count !== null && count >= features.maxJobs) {
             return {
               allowed: false,
               reason: `You have reached your plan limit of ${features.maxJobs} jobs. Please upgrade to continue.`,
@@ -167,6 +161,9 @@ export async function checkSubscriptionLimits(
         break;
 
       case 'view_analytics':
+        if (!features || !subscription) {
+          return { allowed: false, reason: 'No active subscription found' };
+        }
         if (!features.advancedAnalytics) {
           return {
             allowed: false,
@@ -176,6 +173,9 @@ export async function checkSubscriptionLimits(
         break;
 
       case 'use_api':
+        if (!features || !subscription) {
+          return { allowed: false, reason: 'No active subscription found' };
+        }
         if (!features.apiAccess) {
           return {
             allowed: false,
@@ -184,9 +184,39 @@ export async function checkSubscriptionLimits(
         }
         break;
 
-      case 'submit_bid':
-        // Always allowed if subscription is active
+      case 'submit_bid': {
+        const limit = getFeatureLimit('CONTRACTOR_BID_LIMIT', 'contractor', planType);
+        if (limit === 'unlimited') {
+          break;
+        }
+        const numericLimit = typeof limit === 'number' ? limit : 0;
+        const { serverSupabase } = await import('@/lib/api/supabaseServer');
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+        const { count, error } = await serverSupabase
+          .from('bids')
+          .select('*', { count: 'exact', head: true })
+          .eq('contractor_id', contractorId)
+          .gte('created_at', startOfMonth)
+          .lte('created_at', endOfMonth);
+
+        if (error) {
+          logger.warn('Failed to count bids for limit check', {
+            service: 'subscription-check',
+            contractorId,
+            error: error.message,
+          });
+          break;
+        }
+        if (count !== null && count >= numericLimit) {
+          return {
+            allowed: false,
+            reason: `You have reached your plan limit of ${numericLimit} bids per month. Upgrade to submit more bids.`,
+          };
+        }
         break;
+      }
     }
 
     return { allowed: true };
@@ -198,7 +228,6 @@ export async function checkSubscriptionLimits(
       error: err instanceof Error ? err.message : String(err),
     });
 
-    // On error, allow the action
     return { allowed: true };
   }
 }

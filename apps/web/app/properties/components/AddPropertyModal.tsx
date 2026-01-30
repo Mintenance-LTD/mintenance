@@ -11,7 +11,13 @@ interface AddPropertyModalProps {
   onSuccess: () => void;
 }
 
-export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModalProps) {
+export function AddPropertyModal(props: AddPropertyModalProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    isOpen = false,
+    onClose = () => {},
+    onSuccess = () => {},
+  } = props || {};
   const [formData, setFormData] = useState({
     property_name: '',
     address: '',

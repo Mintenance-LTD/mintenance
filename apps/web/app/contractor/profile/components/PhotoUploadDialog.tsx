@@ -47,7 +47,13 @@ const photoUploadSchema = z.object({
 
 type PhotoUploadFormData = z.infer<typeof photoUploadSchema>;
 
-export function PhotoUploadDialog({ open, onOpenChange, onUpload }: PhotoUploadDialogProps) {
+export function PhotoUploadDialog(props: PhotoUploadDialogProps) {
+  const {
+    open = false,
+    onOpenChange = () => {},
+    onUpload = async () => {},
+  } = props || {};
+
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);

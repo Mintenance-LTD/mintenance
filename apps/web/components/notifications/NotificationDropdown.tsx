@@ -21,7 +21,12 @@ interface NotificationDropdownProps {
   userId: string;
 }
 
-export function NotificationDropdown({ userId }: NotificationDropdownProps) {
+export function NotificationDropdown(props: NotificationDropdownProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    userId = '',
+  } = props || {};
+
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);

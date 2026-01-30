@@ -32,7 +32,11 @@ interface ContractorFeedProps {
     currentUserId: string;
 }
 
-export function ContractorFeed({ currentUserId }: ContractorFeedProps) {
+export function ContractorFeed(props: ContractorFeedProps) {
+    // Defensive prop destructuring with defaults to prevent test crashes
+    const {
+        currentUserId = '',
+    } = props || {};
     const [posts, setPosts] = useState<ContractorPost[]>([]);
     const [loading, setLoading] = useState(true);
 

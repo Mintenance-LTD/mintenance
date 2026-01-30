@@ -7,6 +7,7 @@ import { vi } from 'vitest';
 
 import { PricingAgent } from '../PricingAgent';
 import { LocationPricingService } from '../../location/LocationPricingService';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 // Mock dependencies
 vi.mock('@/lib/api/supabaseServer', () => ({
@@ -73,8 +74,7 @@ describe('PricingAgent - Location Integration', () => {
         { amount: 500 },
       ];
 
-      const { serverSupabase } = require('@/lib/api/supabaseServer');
-      serverSupabase.from.mockImplementation((table: string) => {
+      vi.mocked(serverSupabase.from).mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
             select: vi.fn(() => ({
@@ -176,8 +176,7 @@ describe('PricingAgent - Location Integration', () => {
         { amount: 300 },
       ];
 
-      const { serverSupabase } = require('@/lib/api/supabaseServer');
-      serverSupabase.from.mockImplementation((table: string) => {
+      vi.mocked(serverSupabase.from).mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
             select: vi.fn(() => ({
@@ -285,8 +284,7 @@ describe('PricingAgent - Location Integration', () => {
           { amount: 500 },
         ];
 
-        const { serverSupabase } = require('@/lib/api/supabaseServer');
-        serverSupabase.from.mockImplementation((table: string) => {
+        vi.mocked(serverSupabase.from).mockImplementation((table: string) => {
           if (table === 'jobs') {
             return {
               select: vi.fn(() => ({
@@ -378,8 +376,7 @@ describe('PricingAgent - Location Integration', () => {
         { amount: 500 },
       ];
 
-      const { serverSupabase } = require('@/lib/api/supabaseServer');
-      serverSupabase.from.mockImplementation((table: string) => {
+      vi.mocked(serverSupabase.from).mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
             select: vi.fn(() => ({
@@ -450,8 +447,7 @@ describe('PricingAgent - Location Integration', () => {
         { amount: 500 },
       ];
 
-      const { serverSupabase } = require('@/lib/api/supabaseServer');
-      serverSupabase.from.mockImplementation((table: string) => {
+      vi.mocked(serverSupabase.from).mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
             select: vi.fn(() => ({
@@ -528,8 +524,7 @@ describe('PricingAgent - Location Integration', () => {
         { amount: 500 },
       ];
 
-      const { serverSupabase } = require('@/lib/api/supabaseServer');
-      serverSupabase.from.mockImplementation((table: string) => {
+      vi.mocked(serverSupabase.from).mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
             select: vi.fn(() => ({
@@ -603,8 +598,7 @@ describe('PricingAgent - Location Integration', () => {
         { amount: 500 },
       ];
 
-      const { serverSupabase } = require('@/lib/api/supabaseServer');
-      serverSupabase.from.mockImplementation((table: string) => {
+      vi.mocked(serverSupabase.from).mockImplementation((table: string) => {
         if (table === 'jobs') {
           return {
             select: vi.fn(() => ({

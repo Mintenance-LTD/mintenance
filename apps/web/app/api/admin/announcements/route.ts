@@ -6,6 +6,8 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { sanitizeText, sanitizeMessage } from '@/lib/sanitizer';
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,11 +85,26 @@ export async function POST(request: NextRequest) {
     const user = auth.user;
 
     const body = await request.json();
-    const { title, content, announcement_type, target_audience, priority, is_published, expires_at, created_by } = body;
 
-    if (!title || !content || !created_by) {
-      throw new BadRequestError('Title, content, and created_by are required');
+    // Create validation schema with sanitization
+    const announcementSchema = z.object({
+      title: z.string().min(1).max(200).transform(val => sanitizeText(val, 200)),
+      content: z.string().min(1).max(5000).transform(val => sanitizeMessage(val)),
+      announcement_type: z.enum(['general', 'maintenance', 'security', 'feature']).optional(),
+      target_audience: z.enum(['all', 'homeowners', 'contractors', 'admins']).optional(),
+      priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+      is_published: z.boolean().optional(),
+      expires_at: z.string().nullable().optional(),
+      created_by: z.string().uuid(),
+    });
+
+    const parsed = announcementSchema.safeParse(body);
+
+    if (!parsed.success) {
+      throw new BadRequestError('Invalid announcement data: ' + parsed.error.message);
     }
+
+    const { title, content, announcement_type, target_audience, priority, is_published, expires_at, created_by } = parsed.data;
 
     const announcement = await AdminCommunicationService.createAnnouncement({
       title,

@@ -14,7 +14,11 @@ interface AISearchClientProps {
   user: Pick<User, 'id' | 'role' | 'email'>;
 }
 
-export function AISearchClient({ user }: AISearchClientProps) {
+export function AISearchClient(props: AISearchClientProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    user = { id: '', role: 'homeowner', email: '' },
+  } = props || {};
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);

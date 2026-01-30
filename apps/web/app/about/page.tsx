@@ -97,8 +97,8 @@ export default function AboutPage2025() {
 
   const milestones = [
     { year: '2025', title: 'Company Founded', description: 'Mintenance was born from a vision to revolutionise home maintenance' },
-    { year: '2025', title: 'Platform Launch', description: 'Officially launched our platform connecting homeowners and contractors' },
-    { year: '2025', title: 'AI Integration', description: 'Introduced AI-powered matching and intelligent job recommendations' },
+    { year: '2026', title: 'Platform Launch', description: 'Officially launched our platform connecting homeowners and contractors' },
+    { year: '2027', title: 'AI Integration', description: 'AI-powered matching and intelligent job recommendations will be introduced' },
   ];
 
   return (

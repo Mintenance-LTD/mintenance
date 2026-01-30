@@ -32,13 +32,15 @@ interface AdvancedFiltersProps {
   onClear?: () => void;
 }
 
-export function AdvancedFilters({
-  filters,
-  values,
-  onChange,
-  onApply,
-  onClear,
-}: AdvancedFiltersProps) {
+export function AdvancedFilters(props: AdvancedFiltersProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    filters = [],
+    values = {},
+    onChange = () => {},
+    onApply,
+    onClear,
+  } = props || {};
   const [isOpen, setIsOpen] = useState(false);
   const [localValues, setLocalValues] = useState<FilterValues>(values);
   const containerRef = useRef<HTMLDivElement>(null);

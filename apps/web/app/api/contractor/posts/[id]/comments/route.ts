@@ -5,6 +5,8 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { sanitizeMessage } from '@/lib/sanitizer';
 
 // Type definitions for comments
 interface CommentContractor {
@@ -201,15 +203,20 @@ export async function POST(
 
     const postId = id;
     const body = await request.json();
-    const { comment_text, parent_comment_id } = body;
 
-    if (!comment_text || comment_text.trim().length === 0) {
-      throw new BadRequestError('Comment text is required');
+    // Create validation schema with sanitization
+    const commentSchema = z.object({
+      comment_text: z.string().min(1).max(2000).transform(val => sanitizeMessage(val)),
+      parent_comment_id: z.string().uuid().optional(),
+    });
+
+    const parsed = commentSchema.safeParse(body);
+
+    if (!parsed.success) {
+      throw new BadRequestError('Invalid comment data: ' + parsed.error.message);
     }
 
-    if (comment_text.length > 2000) {
-      throw new BadRequestError('Comment text must be 2000 characters or less');
-    }
+    const { comment_text, parent_comment_id } = parsed.data;
 
     // Verify post exists and is active
     const { data: post, error: postError } = await supabase
@@ -243,7 +250,7 @@ export async function POST(
       .insert({
         post_id: postId,
         contractor_id: user.id,
-        comment_text: comment_text.trim(),
+        comment_text,
         parent_comment_id: parent_comment_id || null,
         likes_count: 0,
         is_flagged: false,

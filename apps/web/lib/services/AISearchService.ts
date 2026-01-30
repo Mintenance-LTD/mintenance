@@ -1,54 +1,14 @@
 /**
  * AISearchService for Web
  *
- * Provides AI-powered semantic search capabilities for jobs, contractors, and content.
- * Uses OpenAI embeddings for intelligent matching and natural language processing.
+ * Thin HTTP client for AI-powered semantic search.
+ * Types are shared from @mintenance/ai-core.
  */
 
 import { logger } from '@mintenance/shared';
+import type { SearchResult, SearchFilters, SearchSuggestion } from '@mintenance/ai-core';
 
-export interface SearchResult {
-  id: string;
-  type: 'job' | 'contractor' | 'service';
-  title: string;
-  description: string;
-  relevanceScore: number;
-  metadata: {
-    location?: string;
-    category?: string;
-    price?: number;
-    rating?: number;
-    availability?: string;
-    [key: string]: unknown;
-  };
-}
-
-export interface SearchFilters {
-  category?: string;
-  location?: string;
-  priceRange?: {
-    min: number;
-    max: number;
-  };
-  rating?: number;
-  availability?: string;
-  distance?: number; // in miles
-}
-
-export interface SearchSuggestion {
-  text: string;
-  type: 'query' | 'category' | 'location';
-  popularity: number;
-}
-
-export interface SearchAnalytics {
-  query: string;
-  resultsCount: number;
-  clickThroughRate: number;
-  averageRelevanceScore: number;
-  searchTime: number;
-  filters: SearchFilters;
-}
+export type { SearchResult, SearchFilters, SearchSuggestion } from '@mintenance/ai-core';
 
 export class AISearchService {
   private static readonly MAX_RESULTS = 50;

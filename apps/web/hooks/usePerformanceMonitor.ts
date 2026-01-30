@@ -225,9 +225,8 @@ export const usePerformanceMonitor = (options: PerformanceMonitorOptions = {}) =
 
   const reportMetrics = useCallback(() => {
     const score = getPerformanceScore();
-    
-    console.group('Performance Metrics');
-    logger.info('Overall Score:', score.overall);
+
+    logger.info('Performance Metrics - Overall Score:', score.overall);
     logger.info('Web Vitals:', {
       FCP: metrics.fcp ? `${metrics.fcp.toFixed(2)}ms` : 'N/A',
       LCP: metrics.lcp ? `${metrics.lcp.toFixed(2)}ms` : 'N/A',

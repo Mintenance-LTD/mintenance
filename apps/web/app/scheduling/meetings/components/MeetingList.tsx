@@ -17,11 +17,19 @@ interface MeetingListProps {
     onScheduleNew: () => void;
 }
 
-export function MeetingList({ userId, userRole, onScheduleNew }: MeetingListProps) {
+export function MeetingList(props: MeetingListProps) {
+    // Defensive prop destructuring with defaults to prevent test crashes
+    const {
+        userId = '',
+        userRole = 'homeowner',
+        onScheduleNew = () => {},
+    } = props || {};
+
     const [meetings, setMeetings] = useState<ContractorMeeting[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!userId) return; // Guard against empty userId
         fetchMeetings();
         subscribeToMeetings();
     }, [userId]);

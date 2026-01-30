@@ -13,6 +13,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@mintenance/ai-core": "^1.0.0",
     "@mintenance/security": "^1.0.0",
     "@mintenance/auth-unified": "^1.0.0",
     "@mintenance/types": "^1.0.0",

@@ -11,7 +11,6 @@ import { ChunkLoadErrorBoundary } from '../components/ChunkLoadErrorBoundary'
 import { Providers } from './providers'
 import { WebVitalsMonitor } from '../components/monitoring/WebVitalsMonitor'
 import { ChunkRetryHandler } from './chunk-retry-handler'
-import { VersionChecker } from './version-checker'
 
 // Material Symbols font for enhanced icon support
 const materialSymbolsLink = (
@@ -52,7 +51,6 @@ export default function RootLayout({
         <ChunkLoadErrorBoundary>
           <Providers>
             <ChunkRetryHandler />
-            <VersionChecker />
             <ErrorBoundary>
               {children}
               <CookieConsent />

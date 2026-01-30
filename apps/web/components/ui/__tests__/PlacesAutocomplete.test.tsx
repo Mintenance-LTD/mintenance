@@ -1,20 +1,32 @@
-import { renderHook, act } from '@testing-library/react';
+import React from 'react';
+import { vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { PlacesAutocomplete } from '../PlacesAutocomplete';
 
+vi.mock('@mintenance/shared', () => ({
+  logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+}));
+
 describe('PlacesAutocomplete', () => {
-  it('should initialize with default values', () => {
-    const { result } = renderHook(() => PlacesAutocomplete());
-    expect(result.current).toBeDefined();
+  it('should render an input', () => {
+    render(<PlacesAutocomplete value="" onChange={vi.fn()} />);
+    expect(screen.getByPlaceholderText('Enter address')).toBeInTheDocument();
   });
 
-  it('should handle updates correctly', () => {
-    const { result } = renderHook(() => PlacesAutocomplete());
-    // Add specific test logic based on hook functionality
+  it('should render custom placeholder', () => {
+    render(<PlacesAutocomplete value="" onChange={vi.fn()} placeholder="Search location" />);
+    expect(screen.getByPlaceholderText('Search location')).toBeInTheDocument();
   });
 
-  it('should clean up on unmount', () => {
-    const { result, unmount } = renderHook(() => PlacesAutocomplete());
-    unmount();
-    // Verify cleanup
+  it('should call onChange when typing', () => {
+    const onChange = vi.fn();
+    render(<PlacesAutocomplete value="" onChange={onChange} />);
+    fireEvent.change(screen.getByPlaceholderText('Enter address'), { target: { value: 'London' } });
+    expect(onChange).toHaveBeenCalledWith('London');
+  });
+
+  it('should display value', () => {
+    render(<PlacesAutocomplete value="123 Main St" onChange={vi.fn()} />);
+    expect(screen.getByDisplayValue('123 Main St')).toBeInTheDocument();
   });
 });

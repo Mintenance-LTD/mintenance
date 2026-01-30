@@ -60,12 +60,14 @@ const navigation = [
   { name: 'Settings', href: '/contractor/settings', icon: Settings },
 ];
 
-export function ModernContractorLayout({
-  children,
-  contractor,
-  email,
-  userId,
-}: ModernContractorLayoutProps) {
+export function ModernContractorLayout(props: ModernContractorLayoutProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    children,
+    contractor,
+    email,
+    userId,
+  } = props || {};
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

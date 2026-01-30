@@ -18,7 +18,12 @@ interface LocationTrackingProps {
   contractorId: string | null;
 }
 
-export function LocationTracking({ jobId, contractorId }: LocationTrackingProps) {
+export function LocationTracking(props: LocationTrackingProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    jobId = '',
+    contractorId = null,
+  } = props || {};
   const [location, setLocation] = useState<Location | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

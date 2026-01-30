@@ -6,7 +6,7 @@
  */
 
 import { logger } from '../../logger';
-import { supabase } from '../../database';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 
 interface CostEstimate {
   service: string;
@@ -38,6 +38,7 @@ export class CostControlService {
   // Cost rates per model (in USD)
   private static readonly COST_RATES = {
     'gpt-4o': { input: 0.005, output: 0.015 }, // per 1K tokens
+    'mint-ai-vlm': { input: 0.005, output: 0.015 }, // Phase 4: same as gpt-4o until in-house VLM
     'gpt-4-vision-preview': { input: 0.01, output: 0.03 }, // per 1K tokens
     'gpt-4': { input: 0.03, output: 0.06 }, // per 1K tokens
     'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 }, // per 1K tokens
@@ -161,7 +162,7 @@ export class CostControlService {
       this.currentMonthSpend += actualCost;
 
       // Store in database for tracking
-      const { error } = await supabase
+      const { error } = await serverSupabase
         .from('ai_service_costs')
         .insert({
           service,
@@ -305,7 +306,7 @@ export class CostControlService {
   private static async getTodaySpendFromDB(): Promise<number> {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase
+      const { data, error } = await serverSupabase
         .from('ai_service_costs')
         .select('cost')
         .gte('timestamp', `${today}T00:00:00`)
@@ -329,7 +330,7 @@ export class CostControlService {
   private static async getMonthSpendFromDB(): Promise<number> {
     try {
       const thisMonth = new Date().toISOString().slice(0, 7);
-      const { data, error } = await supabase
+      const { data, error } = await serverSupabase
         .from('ai_service_costs')
         .select('cost')
         .gte('timestamp', `${thisMonth}-01T00:00:00`)

@@ -101,6 +101,8 @@ export default function QuickJobPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [primaryProperty, setPrimaryProperty] = useState<unknown>(null);
+  const [propertiesLoading, setPropertiesLoading] = useState(true);
+  const [propertiesError, setPropertiesError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -111,38 +113,47 @@ export default function QuickJobPage() {
     property_id: '',
   });
 
-  // Fetch user's primary property
+  const fetchProperties = React.useCallback(() => {
+    if (!user || user.role !== 'homeowner') return;
+    setPropertiesLoading(true);
+    setPropertiesError(null);
+    fetch('/api/properties')
+      .then(res => {
+        if (res.status === 429) {
+          throw new Error('RATE_LIMITED');
+        }
+        if (!res.ok) {
+          throw new Error(`Failed to fetch properties: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data.properties && data.properties.length > 0) {
+          const primary = data.properties[0];
+          setPrimaryProperty(primary);
+          setFormData(prev => ({ ...prev, property_id: primary.id }));
+        } else {
+          logger.warn('No properties found for user', { service: 'app' });
+        }
+      })
+      .catch(err => {
+        const message = err instanceof Error && err.message === 'RATE_LIMITED'
+          ? 'Too many requests. Please wait a moment and try again.'
+          : 'Failed to load your properties. Please try again.';
+        setPropertiesError(message);
+        logger.error('Error fetching properties:', err, { service: 'app' });
+        toast.error(message);
+      })
+      .finally(() => setPropertiesLoading(false));
+  }, [user]);
+
   useEffect(() => {
     if (user && user.role === 'homeowner') {
-      // logger.info('Fetching properties for user:', user.id, { service: 'app' });
-      fetch('/api/properties')
-        .then(res => {
-          if (!res.ok) {
-            throw new Error(`Failed to fetch properties: ${res.status}`);
-          }
-          return res.json();
-        })
-        .then(data => {
-          // logger.info('Properties response:', data, { service: 'app' });
-          if (data.properties && data.properties.length > 0) {
-            // Select first property as primary
-            const primary = data.properties[0];
-            // logger.info('Setting primary property:', primary, { service: 'app' });
-            setPrimaryProperty(primary);
-            setFormData(prev => ({
-              ...prev,
-              property_id: primary.id,
-            }));
-          } else {
-            logger.warn('No properties found for user', { service: 'app' });
-          }
-        })
-        .catch(err => {
-          logger.error('Error fetching properties:', err, { service: 'app' });
-          toast.error('Failed to load your properties. Please try again.');
-        });
+      fetchProperties();
+    } else {
+      setPropertiesLoading(false);
     }
-  }, [user]);
+  }, [user, fetchProperties]);
 
   // Redirect if not authorized
   useEffect(() => {
@@ -183,7 +194,7 @@ export default function QuickJobPage() {
 
     if (!isFormValid(errors)) {
       const firstError = Object.values(errors)[0];
-      logger.error(`Validation failed: ${firstError}`, { service: 'app', errors });
+      logger.warn('Quick job validation failed', { service: 'app', errors });
       toast.error(firstError);
       return;
     }
@@ -367,6 +378,28 @@ export default function QuickJobPage() {
             )}
 
             {/* Property Info */}
+            {propertiesLoading && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-3 text-gray-600">
+                  <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  <p>Loading your property…</p>
+                </div>
+              </div>
+            )}
+            {propertiesError && !primaryProperty && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <p className="text-amber-900">{propertiesError}</p>
+                  <button
+                    type="button"
+                    onClick={fetchProperties}
+                    className="shrink-0 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-medium rounded-lg transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            )}
             {primaryProperty && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <div className="flex items-center gap-3">
@@ -421,8 +454,19 @@ export default function QuickJobPage() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g., Leaking kitchen tap"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
+                    formData.title.length > 0 && formData.title.trim().length < 5
+                      ? 'border-amber-500 bg-amber-50/50'
+                      : 'border-gray-300'
+                  }`}
+                  aria-invalid={formData.title.length > 0 && formData.title.trim().length < 5}
+                  aria-describedby={formData.title.length > 0 && formData.title.trim().length < 5 ? 'title-hint' : undefined}
                 />
+                {formData.title.length > 0 && formData.title.trim().length < 5 && (
+                  <p id="title-hint" className="mt-1 text-sm text-amber-700">
+                    Use at least 5 characters (e.g. &quot;Leaking kitchen tap&quot;)
+                  </p>
+                )}
               </div>
 
               {/* Description */}
@@ -483,13 +527,25 @@ export default function QuickJobPage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
+              {/* Submit Button - require title with at least 5 chars (matches validation) */}
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !formData.title}
+                disabled={
+                  isSubmitting ||
+                  !formData.title ||
+                  formData.title.trim().length < 5 ||
+                  propertiesLoading ||
+                  (!primaryProperty && !!propertiesError)
+                }
                 className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Posting Job...' : 'Post Job'}
+                {isSubmitting
+                  ? 'Posting Job...'
+                  : propertiesLoading
+                    ? 'Loading property…'
+                    : !primaryProperty && propertiesError
+                      ? 'Load your property first'
+                      : 'Post Job'}
               </button>
 
               {/* Alternative */}

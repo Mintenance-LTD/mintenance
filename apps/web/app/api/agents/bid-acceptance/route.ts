@@ -8,7 +8,7 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { AgentLogger } from '@/lib/services/agents/AgentLogger';
-import { rateLimit } from '@/lib/rate-limiter';
+import { rateLimiter } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    identifier: `${req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'anonymous'}:${req.url}`,
     windowMs: 60000,
     maxRequests: 30
   });
@@ -50,22 +50,6 @@ export async function POST(req: Request) {
       }
     );
   }
-
-    // Rate limiting
-    const identifier = req.headers.get('x-forwarded-for') || 'anonymous';
-    const rateLimitResult = await rateLimit(identifier, 20); // 20 requests per minute
-
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: 'Too many requests' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': rateLimitResult.reset.toString(),
-          }
-        }
-      );
-    }
 
     const supabase = createRouteHandlerClient({ cookies });
 

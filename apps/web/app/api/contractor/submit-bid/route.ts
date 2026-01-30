@@ -47,10 +47,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Check subscription requirement
-    const { requireSubscriptionForAction } = await import('@/lib/middleware/subscription-check');
+    const { requireSubscriptionForAction, checkSubscriptionLimits } = await import('@/lib/middleware/subscription-check');
     const subscriptionCheck = await requireSubscriptionForAction(request, 'submit_bid');
     if (subscriptionCheck) {
       return subscriptionCheck;
+    }
+
+    // Enforce monthly bid limit by plan (Basic 10, Professional 50, Business unlimited)
+    const limitResult = await checkSubscriptionLimits(user.id, 'submit_bid');
+    if (!limitResult.allowed) {
+      return NextResponse.json(
+        {
+          error: 'Bid limit reached',
+          message: limitResult.reason || 'You have reached your monthly bid limit. Upgrade to submit more bids.',
+        },
+        { status: 402 }
+      );
     }
 
     // Parse and validate request body

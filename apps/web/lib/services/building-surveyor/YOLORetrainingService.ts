@@ -12,6 +12,7 @@
 
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getRoboflowConfig } from '@/lib/config/roboflow.config';
 import { YOLOCorrectionService } from './YOLOCorrectionService';
 import { YOLOTrainingDataService } from './YOLOTrainingDataService';
 import { exec } from 'child_process';
@@ -46,6 +47,9 @@ export interface RetrainingJob {
     mAP50_95?: number;
     precision?: number;
     recall?: number;
+    /** Base Roboflow model used for inference before this retrain (e.g. Building Defect Detection 7 4) */
+    baseRoboflowModelId?: string;
+    baseRoboflowVersion?: string;
   };
   startedAt?: Date;
   completedAt?: Date;
@@ -151,11 +155,14 @@ export class YOLORetrainingService {
 
     this.isRetraining = true;
     const jobId = `retrain-${Date.now()}`;
+    const roboflowConfig = getRoboflowConfig();
 
     try {
       logger.info('Starting YOLO retraining', {
         service: 'YOLORetrainingService',
         jobId,
+        baseModel: roboflowConfig.modelId,
+        baseVersion: roboflowConfig.modelVersion,
       });
 
       // 1. Get approved corrections
@@ -200,7 +207,12 @@ export class YOLORetrainingService {
       // 4. Parse results from stdout or metadata file
       const modelVersion = this.extractModelVersion(stdout);
       const onnxPath = this.findLatestONNXModel();
-      const metrics = await this.loadModelMetrics(modelVersion);
+      const loadedMetrics = await this.loadModelMetrics(modelVersion);
+      const metrics = {
+        ...loadedMetrics,
+        baseRoboflowModelId: roboflowConfig.modelId,
+        baseRoboflowVersion: roboflowConfig.modelVersion,
+      };
 
       // 5. Mark corrections as used
       const correctionIds = corrections.map(c => c.id!).filter(Boolean);
@@ -209,7 +221,7 @@ export class YOLORetrainingService {
         modelVersion || 'unknown'
       );
 
-      // 6. Save retraining job record
+      // 7. Save retraining job record
       const job: RetrainingJob = {
         id: jobId,
         status: 'completed',
@@ -237,6 +249,10 @@ export class YOLORetrainingService {
         id: jobId,
         status: 'failed',
         correctionsCount: 0,
+        metrics: {
+          baseRoboflowModelId: roboflowConfig.modelId,
+          baseRoboflowVersion: roboflowConfig.modelVersion,
+        },
         startedAt: new Date(),
         error: error instanceof Error ? error.message : 'Unknown error',
       };

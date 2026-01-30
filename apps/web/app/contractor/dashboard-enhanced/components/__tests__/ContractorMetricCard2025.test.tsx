@@ -1,16 +1,32 @@
 import { vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { ContractorMetricCard2025 } from '../ContractorMetricCard2025';
 
 // Mock dependencies
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-  useParams: () => ({ id: 'test-id' }),
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
+vi.mock('@/components/charts', () => ({
+  DynamicAreaChart: ({ children }: { children: React.ReactNode }) => <div data-testid="area-chart">{children}</div>,
+  Area: () => <div data-testid="area" />,
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('@/components/ui/MotionDiv', () => ({
+  MotionDiv: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 describe('ContractorMetricCard2025', () => {
-  const defaultProps = {
-    // Add default props here
+  const mockProps = {
+    title: 'Total Revenue',
+    value: '£120,000',
+    subtitle: 'This month',
+    trend: {
+      value: '+15%',
+      direction: 'up' as const,
+    },
+    color: 'teal' as const,
   };
 
   beforeEach(() => {
@@ -18,22 +34,28 @@ describe('ContractorMetricCard2025', () => {
   });
 
   it('should render without crashing', () => {
-    render(<ContractorMetricCard2025 {...defaultProps} />);
-    expect(true).toBeTruthy(); // Component rendered
+    const { container } = render(<ContractorMetricCard2025 {...mockProps} />);
+    expect(container).toBeDefined();
   });
 
-  it('should handle user interactions', async () => {
-    render(<ContractorMetricCard2025 {...defaultProps} />);
-    // Add interaction tests
+  it('should display title and value', () => {
+    render(<ContractorMetricCard2025 {...mockProps} />);
+    expect(screen.getByText('Total Revenue')).toBeInTheDocument();
+    expect(screen.getByText('£120,000')).toBeInTheDocument();
   });
 
-  it('should display correct data', () => {
-    render(<ContractorMetricCard2025 {...defaultProps} />);
-    // Add data display tests
+  it('should display trend information', () => {
+    const { container } = render(<ContractorMetricCard2025 {...mockProps} />);
+    expect(container.textContent).toContain('+15%');
   });
 
-  it('should handle edge cases', () => {
-    render(<ContractorMetricCard2025 {...defaultProps} />);
-    // Test edge cases
+  it('should render with minimal props', () => {
+    const minimalProps = {
+      title: 'Active Jobs',
+      value: 5,
+    };
+    const { container } = render(<ContractorMetricCard2025 {...minimalProps} />);
+    expect(container.textContent).toContain('Active Jobs');
+    expect(container.textContent).toContain('5');
   });
 });

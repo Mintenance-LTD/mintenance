@@ -1,4 +1,4 @@
-import NetInfo from '@react-native-community/netinfo';
+import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
 
 export const isOnline = async (): Promise<boolean> => {
   const state = await NetInfo.fetch();
@@ -10,7 +10,7 @@ export const getConnectionType = async (): Promise<string> => {
   return state.type;
 };
 
-export const onNetworkChange = (callback: (state: any) => void): (() => void) => {
+export const onNetworkChange = (callback: (state: NetInfoState) => void): (() => void) => {
   return NetInfo.addEventListener(callback);
 };
 

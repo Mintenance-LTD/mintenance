@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { logger } from '@mintenance/shared';
 import Link from 'next/link';
+import { HeroSection } from './components/landing/HeroSection';
 import { Footer2025 } from './components/landing/Footer2025';
 
 /**
@@ -19,7 +20,7 @@ function useCountUp(end: number, duration: number = 2000) {
   useEffect(() => {
     let startTime: number | null = null;
     let animationFrameId: number | null = null;
-    
+
     const step = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
@@ -28,9 +29,9 @@ function useCountUp(end: number, duration: number = 2000) {
         animationFrameId = window.requestAnimationFrame(step);
       }
     };
-    
+
     animationFrameId = window.requestAnimationFrame(step);
-    
+
     // Cleanup: cancel animation frame on unmount
     return () => {
       if (animationFrameId !== null) {
@@ -58,8 +59,9 @@ export default function LandingPage() {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [hasRealStats, setHasRealStats] = useState(false);
 
-  // Fetch platform statistics from API
+  // Fetch platform statistics from API (real contractor/user data only)
   useEffect(() => {
     async function fetchStats() {
       try {
@@ -67,8 +69,8 @@ export default function LandingPage() {
         if (response.ok) {
           const data = await response.json();
           setStats(data);
+          setHasRealStats(true);
         } else {
-          // Use fallback values if API fails
           setStats({
             activeContractors: 2847,
             activeContractorsGrowth: 12,
@@ -79,6 +81,7 @@ export default function LandingPage() {
             avgResponseTimeHours: 2.4,
             responseTimeImprovement: 15,
           });
+          setHasRealStats(false);
         }
       } catch (error) {
         logger.error('Failed to fetch platform statistics:', error);
@@ -93,6 +96,7 @@ export default function LandingPage() {
           avgResponseTimeHours: 2.4,
           responseTimeImprovement: 15,
         });
+        setHasRealStats(false);
       } finally {
         setLoading(false);
       }
@@ -257,74 +261,12 @@ export default function LandingPage() {
       {/* MAIN CONTENT */}
       <main id="main-content" className="pt-16">
 
-        {/* HERO SECTION - Navy to Teal Gradient */}
-        <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900 min-h-[90vh] flex items-center">
-          {/* Decorative gradient overlays */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(20,184,166,0.4),transparent_60%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(20,184,166,0.3),transparent_60%)]" />
-          </div>
-
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-sm text-sm font-medium text-white/90 mb-8 border border-white/20">
-              <span className="text-xl">🏠</span>
-              <span>Trusted Home Maintenance Platform</span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-8 leading-tight max-w-5xl mx-auto">
-              Connect with vetted contractors in{' '}
-              <span className="bg-gradient-to-r from-teal-400 to-teal-300 bg-clip-text text-transparent">
-                minutes, not days
-              </span>
-            </h1>
-
-            {/* Description */}
-            <p className="text-xl md:text-2xl text-white/80 mb-14 max-w-3xl mx-auto leading-relaxed">
-              Post your job, receive competitive bids, and hire trusted professionals with confidence. From plumbing to electrical, we've got you covered.
-            </p>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 mb-20">
-              <Link
-                href="/jobs/create"
-                className="group px-10 py-5 bg-amber-500 text-white text-lg font-bold rounded-2xl hover:bg-amber-600 hover:shadow-2xl transition-all transform hover:scale-105 shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-900"
-              >
-                Post a Job for Free
-                <span className="inline-block ml-2 transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
-              </Link>
-              <Link
-                href="/contractors"
-                className="px-10 py-5 bg-white/10 backdrop-blur-sm text-white text-lg font-bold rounded-2xl border-2 border-white/30 hover:bg-white/20 hover:border-white/50 transition-all focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-slate-900"
-              >
-                Browse Contractors
-              </Link>
-            </div>
-
-            {/* Trust Indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-10 text-white/70 text-sm font-medium">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                <span>4.8/5 average rating</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>100% verified contractors</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <span>Secure payments</span>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* HERO SECTION - Uses real contractor count only when API data available */}
+        <HeroSection
+          activeContractors={stats?.activeContractors ?? null}
+          hasRealStats={hasRealStats}
+          statsLoading={loading}
+        />
 
         {/* STATS SECTION */}
         <section className="py-24 bg-gradient-to-b from-white to-gray-50">

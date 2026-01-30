@@ -18,9 +18,9 @@ const navigation = {
   contractors: [
     { name: 'Join as Pro', href: '/register?role=contractor' },
     { name: 'Browse Jobs', href: '/contractor/discover' },
-    { name: 'Resources', href: '/contractor/resources' },
-    { name: 'Subscription Plans', href: '/contractor/subscription' },
-    { name: 'Verification', href: '/contractor/verification' },
+    { name: 'Resources', href: '/resources' },
+    { name: 'Subscription Plans', href: '/subscription-plans' },
+    { name: 'Verification', href: '/verification' },
   ],
   company: [
     { name: 'About Us', href: '/about' },
@@ -41,7 +41,7 @@ const navigation = {
 const socialLinks = [
   { name: 'Facebook', icon: Facebook, href: 'https://facebook.com/mintenance', ariaLabel: 'Follow us on Facebook' },
   { name: 'Twitter', icon: Twitter, href: 'https://twitter.com/mintenance', ariaLabel: 'Follow us on Twitter' },
-  { name: 'Instagram', icon: Instagram, href: 'https://instagram.com/mintenance', ariaLabel: 'Follow us on Instagram' },
+  { name: 'Instagram', icon: Instagram, href: 'https://www.instagram.com/mintenanceltd/', ariaLabel: 'Follow us on Instagram' },
   { name: 'LinkedIn', icon: Linkedin, href: 'https://linkedin.com/company/mintenance', ariaLabel: 'Follow us on LinkedIn' },
 ];
 
@@ -92,8 +92,14 @@ export function Footer2025() {
           {/* Logo & Description */}
           <div className="col-span-2 lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-[#0066CC] to-[#0052A3] rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-xl">M</span>
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white shrink-0">
+                <Image
+                  src="/assets/icon.png"
+                  alt="Mintenance"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
               </div>
               <span className="text-2xl font-bold text-white">Mintenance</span>
             </Link>

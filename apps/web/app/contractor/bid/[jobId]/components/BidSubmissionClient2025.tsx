@@ -51,7 +51,12 @@ interface LineItem {
   total: number;
 }
 
-export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClient2025Props) {
+export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    job,
+    existingBid,
+  } = props || {};
   const router = useRouter();
   const { user } = useCurrentUser();
   const [amount, setAmount] = useState(existingBid?.amount?.toString() || '');
@@ -71,9 +76,9 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
   const [pricingSuggestion, setPricingSuggestion] = useState<unknown>(null);
   const [showPricingSuggestion, setShowPricingSuggestion] = useState(false);
 
-  const homeownerName = job.homeowner?.first_name && job.homeowner?.last_name
+  const homeownerName = job?.homeowner?.first_name && job?.homeowner?.last_name
     ? `${job.homeowner.first_name} ${job.homeowner.last_name}`.trim()
-    : job.homeowner?.email || 'Homeowner';
+    : job?.homeowner?.email || 'Homeowner';
 
   const userDisplayName = user?.first_name && user?.last_name
     ? `${user.first_name} ${user.last_name}`.trim()
@@ -391,7 +396,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Job Details</h2>
 
                 {/* Job Images */}
-                {job.photos && job.photos.length > 0 && (
+                {job?.photos && job.photos.length > 0 && (
                   <div className="mb-4 grid grid-cols-2 gap-2">
                     {job.photos.slice(0, 4).map((photo, index) => (
                       <div key={index} className="relative h-32 rounded-lg overflow-hidden">
@@ -401,27 +406,27 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                   </div>
                 )}
 
-                <h3 className="font-bold text-gray-900 mb-2">{job.title}</h3>
-                <p className="text-sm text-gray-600 mb-4">{job.description}</p>
+                <h3 className="font-bold text-gray-900 mb-2">{job?.title}</h3>
+                <p className="text-sm text-gray-600 mb-4">{job?.description}</p>
 
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     </svg>
-                    {job.location || 'Location not specified'}
+                    {job?.location || 'Location not specified'}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
-                    {job.category || 'General'}
+                    {job?.category || 'General'}
                   </div>
                   <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Budget: {job.budget ? `£${job.budget}` : 'TBD'}
+                    Budget: {job?.budget ? `£${job.budget}` : 'TBD'}
                   </div>
                 </div>
 
@@ -430,7 +435,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                   <p className="text-xs text-gray-500 mb-2">Posted by</p>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-                      {job.homeowner?.profile_image_url ? (
+                      {job?.homeowner?.profile_image_url ? (
                         <Image
                           src={job.homeowner.profile_image_url}
                           alt={homeownerName}
@@ -440,14 +445,14 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                         />
                       ) : (
                         <span className="text-teal-600 font-semibold">
-                          {homeownerName.charAt(0).toUpperCase()}
+                          {homeownerName?.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{homeownerName}</p>
                       <p className="text-xs text-gray-500">
-                        {job.createdAt
+                        {job?.createdAt
                           ? new Date(job.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',

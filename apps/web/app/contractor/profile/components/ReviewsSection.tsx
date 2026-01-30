@@ -183,7 +183,8 @@ function calculateRatingDistribution(reviews: ContractorReview[]) {
   };
   reviews.forEach((review) => {
     if (review.rating >= 1 && review.rating <= 5) {
-      distribution?.[Math.round(review?.rating)] += 1;
+      const rating = Math.round(review.rating);
+      distribution[rating] += 1;
     }
   });
   return distribution;

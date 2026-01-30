@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { rateLimit } from '@/lib/rate-limiter';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
  * Secure Static Maps Proxy
@@ -33,29 +33,6 @@ interface StaticMapParams {
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // 1. Authentication Check
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
       return NextResponse.json(
@@ -64,17 +41,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 2. Rate Limiting (20 map images per minute per user)
-    const rateLimitResult = await rateLimit({
+    const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `maps-static:${user.id}`,
-      limit: 20,
-      windowMs: 60 * 1000,
+      windowMs: 60000,
+      maxRequests: 20,
     });
 
-    if (!rateLimitResult.success) {
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded' },
-        { status: 429 }
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter ?? 60),
+          },
+        }
       );
     }
 

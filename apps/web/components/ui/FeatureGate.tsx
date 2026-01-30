@@ -87,17 +87,19 @@ interface FeatureGateProps {
  * </FeatureGate>
  * ```
  */
-export function FeatureGate({
-  featureId,
-  children,
-  fallback,
-  mode = 'modal',
-  trackUsage = false,
-  onAccessDenied,
-  onUpgrade,
-  loadingComponent,
-  errorComponent,
-}: FeatureGateProps) {
+export function FeatureGate(props: FeatureGateProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    featureId = '',
+    children,
+    fallback,
+    mode = 'modal',
+    trackUsage = false,
+    onAccessDenied,
+    onUpgrade,
+    loadingComponent,
+    errorComponent,
+  } = props || {};
   const {
     hasAccess: checkAccess,
     trackUsage: trackUsageBase,

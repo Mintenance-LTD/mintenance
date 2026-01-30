@@ -11,7 +11,15 @@ const subscribeSchema = z.object({
 
 /**
  * POST /api/newsletter/subscribe
- * Subscribe email to newsletter
+ * Subscribe email to newsletter.
+ *
+ * Saves to Supabase table `public.newsletter_subscriptions`. Columns used:
+ * - email, source ('footer'), is_active, subscribed_at, unsubscribed_at.
+ *
+ * View saved emails: Supabase Dashboard → Table Editor → newsletter_subscriptions.
+ *
+ * Store-only: no newsletter emails are sent. Use a campaign tool or cron job
+ * to send actual newsletters.
  */
 export async function POST(request: NextRequest) {
   try {

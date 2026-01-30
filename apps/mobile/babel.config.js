@@ -3,13 +3,11 @@ module.exports = function(api) {
 
   const isTest = process.env.NODE_ENV === 'test';
 
-  // Don't use reanimated plugin in test environment
+  // Reanimated plugin must be last. Do not add react-native-worklets/plugin -
+  // Reanimated 4.x includes worklets; both plugins cause "Duplicate plugin" on EAS.
   const plugins = isTest
     ? []
-    : [
-        'react-native-worklets/plugin',
-        'react-native-reanimated/plugin'
-      ];
+    : ['react-native-reanimated/plugin'];
 
   return {
     presets: [

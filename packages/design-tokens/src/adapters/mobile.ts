@@ -59,7 +59,7 @@ export const mobileTokens = {
     let value: unknown = colors;
     for (const key of keys) {
       if (value && typeof value === 'object' && key in value) {
-        value = value[key];
+        value = (value as Record<string, unknown>)[key];
       } else {
         return undefined;
       }

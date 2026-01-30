@@ -35,7 +35,7 @@ export const toKebabCase = (str: string): string => {
     .replace(/[_\s]+/g, '-');
 };
 
-export const isEmpty = (str: any): boolean => {
+export const isEmpty = (str: unknown): boolean => {
   return !str || (typeof str === 'string' && str.trim().length === 0);
 };
 

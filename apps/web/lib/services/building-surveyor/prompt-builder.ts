@@ -6,16 +6,23 @@
 import type { AssessmentContext } from './types';
 
 /**
- * Build system prompt for GPT-4 Vision API
+ * Build system prompt for GPT-4 Vision API.
+ * When damageTypes are provided (from damage_taxonomy), they are injected so new types appear without code change (Phase 6).
  */
-export function buildSystemPrompt(): string {
+export function buildSystemPrompt(damageTypes?: string[]): string {
+  const damageTypeGuidance =
+    damageTypes && damageTypes.length > 0
+      ? `\nRecognized damage types (use one of these for damageType when applicable): ${damageTypes.join(', ')}.`
+      : '';
+
   return `You are an expert UK building surveyor with decades of experience in property damage assessment, safety compliance, and insurance risk evaluation.
 
 Your task is to analyze building damage photos and provide comprehensive assessments that help homeowners understand issues and contractors plan repairs.
+${damageTypeGuidance}
 
 You must respond with valid JSON matching this exact structure:
 {
-  "damageType": "string (e.g., 'water damage', 'structural crack', 'mold growth')",
+  "damageType": "string (e.g., 'water damage', 'structural crack', 'mold growth'${damageTypes?.length ? ` or one of: ${damageTypes.slice(0, 5).join(', ')}` : ''})",
   "severity": "early" | "midway" | "full",
   "confidence": number (0-100),
   "location": "string (specific location in property)",

@@ -2,6 +2,8 @@
  * Validation utilities for job creation form
  */
 
+import { VALIDATION } from '../constants';
+
 export interface JobFormData {
   title: string;
   description: string;
@@ -42,7 +44,9 @@ export function validateField(
     case 'description':
       if (!value || typeof value !== 'string') return 'Description is required';
       if (value.trim().length === 0) return 'Description is required';
-      if (value.trim().length < 50) return 'Description must be at least 50 characters (currently ' + value.trim().length + ')';
+      if (value.trim().length < VALIDATION.MIN_DESCRIPTION_LENGTH) {
+        return `Description must be at least ${VALIDATION.MIN_DESCRIPTION_LENGTH} characters (currently ${value.trim().length})`;
+      }
       if (value.trim().length > 5000) return 'Description cannot exceed 5000 characters';
       return undefined;
 
@@ -62,10 +66,12 @@ export function validateField(
       const budgetNum = parseFloat(value);
       if (isNaN(budgetNum) || budgetNum <= 0) return 'Please enter a valid budget amount';
       if (budgetNum < 50) return 'Minimum budget is £50';
-      if (budgetNum > 50000) return 'Budget cannot exceed £50,000';
+      if (budgetNum > VALIDATION.MAX_BUDGET) return `Budget cannot exceed £${VALIDATION.MAX_BUDGET.toLocaleString()}`;
       // Check both uploaded images and selected images (previews)
       const totalImages = uploadedImages.length + selectedImages;
-      if (budgetNum > 500 && totalImages === 0) return 'Photos required for jobs over £500';
+      if (budgetNum > VALIDATION.BUDGET_PHOTO_THRESHOLD && totalImages === 0) {
+        return `Photos required for jobs over £${VALIDATION.BUDGET_PHOTO_THRESHOLD}`;
+      }
       return undefined;
 
     default:

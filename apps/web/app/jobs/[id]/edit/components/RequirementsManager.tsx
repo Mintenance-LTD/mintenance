@@ -40,7 +40,7 @@ export function RequirementsManager({
     onRequirementsChange(newRequirements);
     toast.success('Requirement removed');
   };
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddRequirement();
@@ -87,7 +87,7 @@ export function RequirementsManager({
             type="text"
             value={newRequirement}
             onChange={(e) => setNewRequirement(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             placeholder="Enter a special requirement..."
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg
                      focus:ring-2 focus:ring-indigo-500 focus:border-transparent
@@ -97,11 +97,9 @@ export function RequirementsManager({
           <button
             type="button"
             onClick={handleAddRequirement}
-            disabled={!newRequirement.trim()}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg
                      hover:bg-indigo-700 focus:outline-none focus:ring-2
-                     focus:ring-indigo-500 disabled:bg-gray-300
-                     disabled:cursor-not-allowed transition-colors
+                     focus:ring-indigo-500 transition-colors
                      flex items-center space-x-2"
           >
             <Plus className="h-4 w-4" />

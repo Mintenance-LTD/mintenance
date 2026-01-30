@@ -4,12 +4,16 @@ interface JosePayload extends JoseJWTPayload {
   email: string;
   role: string;
 }
+/** Minimal crypto interface for refresh token (Node.js only) */
+interface CryptoLike {
+  randomBytes(size: number): { toString(encoding: 'hex'): string };
+  createHash(algorithm: string): { update(data: string): { digest(encoding: 'hex'): string } };
+}
 // Conditional import for crypto (Node.js only, not Edge Runtime compatible)
-let crypto: unknown = null;
+let crypto: CryptoLike | null = null;
 try {
-  // Check if we're in a Node.js environment
   if (typeof window === 'undefined' && typeof process !== 'undefined') {
-    crypto = require('crypto');
+    crypto = require('crypto') as CryptoLike;
   }
 } catch {
   // crypto not available in Edge Runtime or other environments
@@ -43,7 +47,7 @@ export function generateRefreshToken(): string {
   if (!crypto) {
     throw new Error('Refresh token generation not available in Edge Runtime');
   }
-  return crypto.randomBytes(32).toString('hex');
+  return crypto!.randomBytes(32).toString('hex');
 }
 /**
  * Hash refresh token for storage
@@ -52,7 +56,7 @@ export function hashRefreshToken(token: string): string {
   if (!crypto) {
     throw new Error('Refresh token hashing not available in Edge Runtime');
   }
-  return crypto.createHash('sha256').update(token).digest('hex');
+  return crypto!.createHash('sha256').update(token).digest('hex');
 }
 /**
  * Generate token pair (access + refresh)

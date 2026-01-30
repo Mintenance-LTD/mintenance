@@ -17,14 +17,16 @@ interface BulkActionDialogProps {
   loading?: boolean;
 }
 
-export function BulkActionDialog({ 
-  open, 
-  onOpenChange, 
-  action, 
-  selectedCount, 
-  onConfirm, 
-  loading = false 
-}: BulkActionDialogProps) {
+export function BulkActionDialog(props: BulkActionDialogProps) {
+  const {
+    open = false,
+    onOpenChange = () => {},
+    action = null,
+    selectedCount = 0,
+    onConfirm = async () => {},
+    loading = false,
+  } = props || {};
+
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 

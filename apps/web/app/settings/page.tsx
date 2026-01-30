@@ -8,8 +8,9 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { ArrowLeft, Shield } from 'lucide-react';
+import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
 
-type SectionKey = 'profile' | 'account' | 'notifications' | 'payments' | 'privacy';
+type SectionKey = 'profile' | 'account' | 'notifications' | 'payments' | 'automation' | 'privacy';
 
 export default function SettingsPage2025({
   params,
@@ -37,6 +38,8 @@ export default function SettingsPage2025({
     const tab = urlParams.get('tab');
     if (tab === 'verification' || tab === 'account') {
       setActiveSection('account');
+    } else if (tab === 'automation') {
+      setActiveSection('automation');
     }
   }, []);
 
@@ -244,6 +247,7 @@ export default function SettingsPage2025({
     { key: 'account' as SectionKey, label: 'Account & Security' },
     { key: 'notifications' as SectionKey, label: 'Notifications' },
     { key: 'payments' as SectionKey, label: 'Payments' },
+    { key: 'automation' as SectionKey, label: 'AI & Automation' },
     { key: 'privacy' as SectionKey, label: 'Privacy' },
   ];
 
@@ -882,6 +886,17 @@ export default function SettingsPage2025({
                     Cancel
                   </button>
                 </div>
+              </div>
+            )}
+
+            {/* AI & Automation Section */}
+            {activeSection === 'automation' && (
+              <div className="space-y-6">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">AI & Automation</h1>
+                <p className="text-gray-600 mb-6">
+                  Control how AI agents assist you with bids, pricing, scheduling, and more.
+                </p>
+                <AgentAutomationPanel />
               </div>
             )}
 

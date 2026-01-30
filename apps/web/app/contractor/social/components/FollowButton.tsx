@@ -15,7 +15,14 @@ interface FollowButtonProps {
   variant?: 'default' | 'small' | 'minimal';
 }
 
-export function FollowButton({ contractorId, currentUserId, onFollowChange, variant = 'default' }: FollowButtonProps) {
+export function FollowButton(props: FollowButtonProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    contractorId = '',
+    currentUserId,
+    onFollowChange,
+    variant = 'default',
+  } = props || {};
   const [following, setFollowing] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

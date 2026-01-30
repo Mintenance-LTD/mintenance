@@ -33,12 +33,14 @@ interface GeolocationError {
 // LOCATION PROMPT MODAL COMPONENT
 // ============================================
 
-export function LocationPromptModal({
-  isOpen,
-  onClose,
-  onLocationSet,
-  contractorId,
-}: LocationPromptModalProps) {
+export function LocationPromptModal(props: LocationPromptModalProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    isOpen = false,
+    onClose = () => {},
+    onLocationSet = () => {},
+    contractorId = '',
+  } = props || {};
   const [isLoadingGeo, setIsLoadingGeo] = useState(false);
   const [isLoadingManual, setIsLoadingManual] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);

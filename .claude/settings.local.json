@@ -96,7 +96,22 @@
       "Bash(cut:*)",
       "Bash(git stash:*)",
       "Bash(do echo \"Checking: $file\")",
-      "Bash(xargs npx tsc:*)"
+      "Bash(xargs npx tsc:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npx ts-prune:*)",
+      "Bash(while read file)",
+      "Bash(do target=\"test-backups/false-positives/$file\")",
+      "Bash(tar:*)",
+      "Bash(xargs rm:*)",
+      "Bash(npx next lint:*)",
+      "Bash(pkill:*)",
+      "Bash(npx vitest:*)",
+      "Bash(echo:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(do echo \"=== $f ===\")",
+      "Bash(npm view:*)",
+      "Bash(script -q -c 'npx vitest run --reporter=verbose __tests__/integration/hybrid-inference.integration.test.ts' /dev/null)",
+      "Bash(del \"c:\\\\Users\\\\Djodjo.Nkouka.ERICCOLE\\\\Downloads\\\\mintenance-clean\\\\PLAN.md\")"
     ],
     "deny": [],
     "ask": []

@@ -102,7 +102,13 @@ export function PerformanceSnapshot({ metrics }: { metrics: MetricsProps }) {
   );
 }
 
-export function ProfileStats({ metrics, skills, onManageSkills }: ProfileStatsProps) {
+export function ProfileStats(props: ProfileStatsProps) {
+  const { metrics, skills = [], onManageSkills } = props || {};
+
+  if (!metrics) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <div

@@ -1,0 +1,146 @@
+/**
+ * Assessment generator: GPT-4o or Mint AI in-house VLM (feature-flagged / endpoint).
+ * Phase 4: MINT_AI_VLM_ENDPOINT set -> in-house VLM; USE_MINT_AI_VLM=true -> stub (GPT-4o); else -> GPT-4o.
+ */
+
+import { logger } from '@mintenance/shared';
+import { fetchWithOpenAIRetry } from '@/lib/utils/openai-rate-limit';
+
+export const USE_MINT_AI_VLM = process.env.USE_MINT_AI_VLM === 'true';
+const MINT_AI_VLM_ENDPOINT = process.env.MINT_AI_VLM_ENDPOINT?.trim() || '';
+const MINT_AI_VLM_API_KEY = process.env.MINT_AI_VLM_API_KEY?.trim() || '';
+
+export interface GeneratorMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'high' | 'low' | 'auto' } }>;
+}
+
+export interface GeneratorResult {
+  content: string;
+  model: 'gpt-4o' | 'mint-ai-vlm';
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+}
+
+/**
+ * Call GPT-4o and return raw content + usage.
+ */
+async function callGPT4o(messages: GeneratorMessage[], apiKey: string): Promise<GeneratorResult> {
+  const response = await fetchWithOpenAIRetry(
+    'https://api.openai.com/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages,
+        max_tokens: 2000,
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+      }),
+    },
+    {
+      maxAttempts: 5,
+      baseDelayMs: 2000,
+      maxDelayMs: 60000,
+      backoffMultiplier: 2,
+    }
+  );
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  };
+  const content = data.choices?.[0]?.message?.content ?? '{}';
+  return {
+    content,
+    model: 'gpt-4o',
+    usage: data.usage,
+  };
+}
+
+/**
+ * Call in-house Mint AI VLM at MINT_AI_VLM_ENDPOINT (OpenAI-compatible chat completions).
+ * Uses MINT_AI_VLM_API_KEY if set, else apiKey (e.g. gateway).
+ */
+async function callMintAiVLM(
+  messages: GeneratorMessage[],
+  apiKey: string
+): Promise<GeneratorResult> {
+  const endpoint = MINT_AI_VLM_ENDPOINT;
+  const token = MINT_AI_VLM_API_KEY || apiKey;
+
+  const response = await fetchWithOpenAIRetry(
+    endpoint,
+    {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'mint-ai-vlm',
+        messages,
+        max_tokens: 2000,
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+      }),
+    },
+    {
+      maxAttempts: 3,
+      baseDelayMs: 1000,
+      maxDelayMs: 30000,
+      backoffMultiplier: 2,
+    }
+  );
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  };
+  const content = data.choices?.[0]?.message?.content ?? '{}';
+  return {
+    content,
+    model: 'mint-ai-vlm',
+    usage: data.usage,
+  };
+}
+
+/**
+ * Mint AI VLM stub when USE_MINT_AI_VLM=true but no endpoint: delegates to GPT-4o.
+ */
+async function mintAiStub(
+  messages: GeneratorMessage[],
+  apiKey: string
+): Promise<GeneratorResult> {
+  logger.info('Mint AI VLM enabled (stub: using GPT-4o)', { service: 'AssessmentGenerator' });
+  const result = await callGPT4o(messages, apiKey);
+  return { ...result, model: 'mint-ai-vlm' };
+}
+
+/**
+ * Get assessment JSON content from the configured generator (GPT-4o or Mint AI in-house VLM).
+ * Priority: MINT_AI_VLM_ENDPOINT -> USE_MINT_AI_VLM (stub) -> GPT-4o.
+ */
+export async function getGeneratorContent(
+  messages: GeneratorMessage[],
+  apiKey: string
+): Promise<GeneratorResult> {
+  if (MINT_AI_VLM_ENDPOINT) {
+    try {
+      return await callMintAiVLM(messages, apiKey);
+    } catch (err) {
+      logger.warn('Mint AI VLM endpoint failed, falling back to GPT-4o', {
+        service: 'AssessmentGenerator',
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return callGPT4o(messages, apiKey);
+    }
+  }
+  if (USE_MINT_AI_VLM) {
+    return mintAiStub(messages, apiKey);
+  }
+  return callGPT4o(messages, apiKey);
+}

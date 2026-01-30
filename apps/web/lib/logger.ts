@@ -145,7 +145,7 @@ class Logger {
       maybeContext
     );
     if (this.isDevelopment) {
-      logger.info(
+      console.info(
         this.formatMessage('info', message, this.toContext(context))
       );
     }
@@ -166,7 +166,7 @@ class Logger {
       maybeContext
     );
     if (this.isDevelopment) {
-      logger.warn(
+      console.warn(
         this.formatMessage('warn', message, this.toContext(context))
       );
     }
@@ -232,7 +232,7 @@ class Logger {
     );
 
     if (this.isDevelopment) {
-      logger.error(formattedMessage, err);
+      console.error(formattedMessage, err);
     }
 
     sentryFunctions.addBreadcrumb({

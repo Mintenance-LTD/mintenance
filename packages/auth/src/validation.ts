@@ -1,9 +1,13 @@
+/** Minimal bcrypt interface for password hashing (Node.js only) */
+interface BcryptLike {
+  hash(s: string, rounds: number): Promise<string>;
+  compare(s: string, hash: string): Promise<boolean>;
+}
 // Conditional import for bcryptjs (Node.js only, not Edge Runtime compatible)
-let bcrypt: unknown = null;
+let bcrypt: BcryptLike | null = null;
 try {
-  // Check if we're in a Node.js environment
   if (typeof window === 'undefined' && typeof process !== 'undefined') {
-    bcrypt = require('bcryptjs');
+    bcrypt = require('bcryptjs') as BcryptLike;
   }
 } catch {
   // bcryptjs not available in Edge Runtime or other environments
@@ -44,7 +48,7 @@ export async function hashPassword(password: string): Promise<string> {
     throw new Error('Password hashing not available in Edge Runtime');
   }
   const saltRounds = 12;
-  return bcrypt.hash(password, saltRounds);
+  return bcrypt!.hash(password, saltRounds);
 }
 /**
  * Compare password with hash
@@ -53,5 +57,5 @@ export async function comparePassword(password: string, hash: string): Promise<b
   if (!bcrypt) {
     throw new Error('Password comparison not available in Edge Runtime');
   }
-  return bcrypt.compare(password, hash);
+  return bcrypt!.compare(password, hash);
 }

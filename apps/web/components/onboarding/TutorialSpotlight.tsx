@@ -22,24 +22,26 @@ interface TutorialSpotlightProps {
   isLastStep: boolean;
 }
 
-export function TutorialSpotlight({
-  step,
-  stepIndex,
-  totalSteps,
-  onNext,
-  onPrevious,
-  onSkip,
-  onComplete,
-  isFirstStep,
-  isLastStep,
-}: TutorialSpotlightProps) {
+export function TutorialSpotlight(props: TutorialSpotlightProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    step,
+    stepIndex = 0,
+    totalSteps = 1,
+    onNext = () => {},
+    onPrevious,
+    onSkip = () => {},
+    onComplete = () => {},
+    isFirstStep = true,
+    isLastStep = false,
+  } = props || {};
   const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
 
   // Find and track target element
   useEffect(() => {
-    if (!step.targetSelector) return;
+    if (!step?.targetSelector) return;
 
     const findElement = () => {
       const element = document.querySelector(
@@ -72,7 +74,7 @@ export function TutorialSpotlight({
       window.removeEventListener('scroll', handleUpdate, true);
       window.removeEventListener('resize', handleUpdate);
     };
-  }, [step.targetSelector]);
+  }, [step?.targetSelector]);
 
   // Calculate positions for tooltip and highlight
   const updatePositions = useCallback((element: HTMLElement) => {
@@ -80,7 +82,7 @@ export function TutorialSpotlight({
     setHighlightRect(rect);
 
     // Calculate tooltip position based on preferred position
-    const position = step.position || 'bottom';
+    const position = step?.position || 'bottom';
     const spacing = 20;
     const tooltipWidth = 400;
     const tooltipHeight = 200; // Approximate
@@ -121,7 +123,7 @@ export function TutorialSpotlight({
     }
 
     setTooltipPosition({ top, left });
-  }, [step.position]);
+  }, [step?.position]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -223,9 +225,9 @@ export function TutorialSpotlight({
           transition={{ duration: 0.3, delay: 0.1 }}
           className="absolute bg-white rounded-2xl shadow-2xl p-6 max-w-md"
           style={{
-            top: step.targetSelector ? tooltipPosition.top : '50%',
-            left: step.targetSelector ? tooltipPosition.left : '50%',
-            transform: step.targetSelector ? 'none' : 'translate(-50%, -50%)',
+            top: step?.targetSelector ? tooltipPosition.top : '50%',
+            left: step?.targetSelector ? tooltipPosition.left : '50%',
+            transform: step?.targetSelector ? 'none' : 'translate(-50%, -50%)',
             maxHeight: 'calc(100vh - 40px)',
             overflowY: 'auto',
           }}
@@ -267,12 +269,12 @@ export function TutorialSpotlight({
 
           {/* Title */}
           <h2 id="tutorial-title" className="text-2xl font-bold text-gray-900 mb-3">
-            {step.title}
+            {step?.title || 'Tutorial Step'}
           </h2>
 
           {/* Description */}
           <p className="text-gray-700 mb-6 leading-relaxed">
-            {step.description}
+            {step?.description || 'Follow the tutorial steps to get started.'}
           </p>
 
           {/* Action buttons */}
@@ -288,7 +290,7 @@ export function TutorialSpotlight({
                 </button>
               )}
 
-              {step.skippable && !isLastStep && (
+              {step?.skippable && !isLastStep && (
                 <button
                   onClick={onSkip}
                   className="px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
@@ -309,7 +311,7 @@ export function TutorialSpotlight({
                 </>
               ) : (
                 <>
-                  {step.nextLabel || 'Next'}
+                  {step?.nextLabel || 'Next'}
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

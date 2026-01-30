@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { sanitizeText } from '@/lib/sanitizer';
 
 // Type definition for property insert data
 interface PropertyInsertData {
@@ -19,34 +20,35 @@ interface PropertyInsertData {
 /**
  * Get all properties for the current user
  * GET /api/properties
+ * Rate limit is per-user so one user cannot exhaust the bucket for others (e.g. same IP/localhost).
  */
 export async function GET(request: NextRequest) {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
     const user = await getCurrentUserFromCookies();
     if (!user) {
       throw new UnauthorizedError('Authentication required to view properties');
+    }
+
+    // Per-user rate limit: 60 GETs per minute per user (avoids 429 on quick-create when session + properties load)
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `properties:get:${user.id}`,
+      windowMs: 60000,
+      maxRequests: 60,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again in a moment.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(60),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
     }
 
     const { data: properties, error } = await serverSupabase
@@ -133,11 +135,11 @@ export async function POST(request: NextRequest) {
         .eq('is_primary', true);
     }
 
-    // Create the property
+    // Create the property with sanitized data
     const insertData: PropertyInsertData = {
       owner_id: user.id,
-      property_name: property_name.trim(),
-      address: address.trim(),
+      property_name: sanitizeText(property_name.trim(), 255),
+      address: sanitizeText(address.trim(), 500),
       property_type: property_type,
       is_primary: is_primary || false,
     };

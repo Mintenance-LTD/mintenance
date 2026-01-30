@@ -5,6 +5,8 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { sanitizeText, sanitizeMessage } from '@/lib/sanitizer';
 
 export async function GET(request: NextRequest) {
   try {
@@ -250,11 +252,34 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
 
     const body = await request.json();
-    const { 
-      title, 
-      content, 
-      images = [], 
-      post_type = 'work_showcase',
+
+    // Create validation schema with sanitization
+    const postSchema = z.object({
+      title: z.string().min(1).max(200).transform(val => sanitizeText(val, 200)),
+      content: z.string().min(1).max(5000).transform(val => sanitizeMessage(val)),
+      images: z.array(z.string().url()).max(10).optional().default([]),
+      post_type: z.enum(['work_showcase', 'help_request', 'tip_share', 'equipment_share', 'referral_request']).optional().default('work_showcase'),
+      job_id: z.string().uuid().optional(),
+      skills_used: z.array(z.string()).optional(),
+      materials_used: z.array(z.string()).optional(),
+      project_duration: z.string().optional(),
+      project_cost: z.number().optional(),
+      latitude: z.number().optional(),
+      longitude: z.number().optional(),
+      location_radius: z.number().optional().default(50),
+    });
+
+    const parsed = postSchema.safeParse(body);
+
+    if (!parsed.success) {
+      throw new BadRequestError('Invalid post data: ' + parsed.error.message);
+    }
+
+    const {
+      title,
+      content,
+      images,
+      post_type,
       job_id,
       skills_used,
       materials_used,
@@ -262,31 +287,21 @@ export async function POST(request: NextRequest) {
       project_cost,
       latitude,
       longitude,
-      location_radius = 50
-    } = body;
-
-    if (!title || !content) {
-      throw new BadRequestError('Title and content are required');
-    }
-
-    // Validate post_type
-    const validPostTypes = ['work_showcase', 'help_request', 'tip_share', 'equipment_share', 'referral_request'];
-    if (!validPostTypes.includes(post_type)) {
-      throw new BadRequestError(`Invalid post_type. Must be one of: ${validPostTypes.join(', ')}`);
-    }
+      location_radius
+    } = parsed.data;
 
     // Create post
     const { data: post, error: postError } = await supabase
       .from('contractor_posts')
       .insert({
         contractor_id: user.id,
-        title: title.trim(),
-        content: content.trim(),
+        title,
+        content,
         post_type,
-        images: Array.isArray(images) ? images : [],
+        images,
         job_id: job_id || null,
-        skills_used: Array.isArray(skills_used) ? skills_used : null,
-        materials_used: Array.isArray(materials_used) ? materials_used : null,
+        skills_used: skills_used || null,
+        materials_used: materials_used || null,
         project_duration: project_duration || null,
         project_cost: project_cost || null,
         latitude: latitude || null,

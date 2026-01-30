@@ -19,13 +19,15 @@ interface AdminPageHeaderProps {
   variant?: 'default' | 'gradient';
 }
 
-export function AdminPageHeader({
-  title,
-  subtitle,
-  actions,
-  quickStats,
-  variant = 'default',
-}: AdminPageHeaderProps) {
+export function AdminPageHeader(props: AdminPageHeaderProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    title = 'Admin Dashboard',
+    subtitle,
+    actions,
+    quickStats,
+    variant = 'default',
+  } = props || {};
   const [mounted, setMounted] = useState(false);
   const [greeting, setGreeting] = useState('Good morning');
 

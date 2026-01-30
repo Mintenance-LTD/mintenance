@@ -21,13 +21,19 @@ interface AdminNotificationBellProps {
   userId: string;
 }
 
-export function AdminNotificationBell({ userId }: AdminNotificationBellProps) {
+export function AdminNotificationBell(props: AdminNotificationBellProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    userId = '',
+  } = props || {};
+
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!userId) return;
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
     return () => clearInterval(interval);

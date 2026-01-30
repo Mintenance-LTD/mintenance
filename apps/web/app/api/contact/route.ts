@@ -6,13 +6,14 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, RateLimitError, ValidationError, InternalServerError } from '@/lib/errors/api-error';
+import { sanitizeText, sanitizeMessage, sanitizeEmail } from '@/lib/sanitizer';
 
 const contactFormSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  subject: z.string().min(5, 'Subject must be at least 5 characters'),
+  name: z.string().min(2, 'Name must be at least 2 characters').transform(val => sanitizeText(val, 100)),
+  email: z.string().email('Invalid email address').transform(val => sanitizeEmail(val)),
+  subject: z.string().min(5, 'Subject must be at least 5 characters').transform(val => sanitizeText(val, 200)),
   category: z.enum(['general', 'technical', 'billing', 'partnerships', 'press', 'feedback']),
-  message: z.string().min(10, 'Message must be at least 10 characters'),
+  message: z.string().min(10, 'Message must be at least 10 characters').transform(val => sanitizeMessage(val)),
   consent: z.boolean().refine((val) => val === true, {
     message: 'You must agree to the Privacy Policy',
   }),

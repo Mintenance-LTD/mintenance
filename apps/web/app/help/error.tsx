@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { AlertCircle } from 'lucide-react';
 import { Button, Card } from '../../components/ui';
 import { theme } from '@/lib/theme';
 
@@ -31,8 +32,10 @@ export default function Error({ error, reset }: ErrorPageProps) {
           fontSize: '64px',
           marginBottom: '1rem',
           color: theme.colors.error || '#ef4444',
+          display: 'flex',
+          justifyContent: 'center',
         }}>
-           
+          <AlertCircle size={64} strokeWidth={1.5} />
         </div>
 
         <h1 style={{

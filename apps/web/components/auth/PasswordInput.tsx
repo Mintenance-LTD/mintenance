@@ -52,18 +52,18 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
 
     return (
       <div className="space-y-2">
-        <Label htmlFor={inputId} className="text-sm font-medium text-gray-700">
+        <Label htmlFor={inputId} className="text-sm font-medium text-[#111827]">
           {label}
         </Label>
         <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-500 pointer-events-none">
             <Lock className="w-5 h-5" />
           </div>
           <Input
             ref={ref}
             id={inputId}
             type={showPassword ? 'text' : 'password'}
-            className={cn('pl-10 pr-10', className)}
+            className={cn('pl-10 pr-10 focus:ring-teal-500 focus:border-teal-500', className)}
             error={!!error}
             errorText={error}
             value={value}
@@ -72,7 +72,7 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors focus:outline-none focus:text-gray-700"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-teal-600 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 rounded"
             tabIndex={-1}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
           >
@@ -81,7 +81,7 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
         </div>
 
         {helperText && !error && !showStrengthMeter && !showRequirements && (
-          <p className="text-xs text-gray-500">{helperText}</p>
+          <p className="text-xs text-[#6B7280]">{helperText}</p>
         )}
 
         {showStrengthMeter && password && !error && (

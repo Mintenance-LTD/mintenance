@@ -95,19 +95,24 @@ export function LandingNavigation() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Image 
-              src="/assets/icon.png" 
-              alt="Mintenance Logo" 
-              width={40} 
-              height={40} 
-              className="w-10 h-10" 
+          {/* Logo - links to landing page */}
+          <Link
+            href="/"
+            className="flex items-center gap-3 hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded-lg"
+            aria-label="Mintenance – go to home"
+          >
+            <Image
+              src="/assets/icon.png"
+              alt=""
+              width={40}
+              height={40}
+              className="w-10 h-10 flex-shrink-0"
+              priority
             />
-            <span className="ml-3 text-xl font-bold text-primary">
+            <span className="text-xl font-bold text-primary">
               Mintenance
             </span>
-          </div>
+          </Link>
 
           {/* Navigation Links */}
           <div className="flex items-center space-x-8">

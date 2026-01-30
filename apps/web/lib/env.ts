@@ -105,12 +105,12 @@ const envSchema = z.object({
   ROBOFLOW_MODEL_ID: z
     .string()
     .default('building-defect-detection-7-ks0im')
-    .describe('Roboflow model ID'),
+    .describe('Roboflow model ID (Building Defect Detection 7)'),
 
   ROBOFLOW_MODEL_VERSION: z
     .string()
-    .default('1')
-    .describe('Roboflow model version'),
+    .default('4')
+    .describe('Roboflow model version; use 4 for Building Defect Detection 7 4 (YOLOv11 Accurate)'),
 
   ROBOFLOW_TIMEOUT_MS: z
     .string()

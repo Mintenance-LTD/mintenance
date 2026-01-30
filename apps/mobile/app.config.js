@@ -1,9 +1,10 @@
-import { logger } from '@mintenance/shared';
-// Simple logger for config file
+const path = require('path');
+
+// Simple console logger for config file
 const logger = {
-  info: (...args) => logger.info('[INFO]', ...args, { service: 'mobile' }),
-  warn: (...args) => logger.warn('[WARN]', ...args, { service: 'mobile' }),
-  error: (...args) => logger.error('[ERROR]', ...args, { service: 'mobile' }),
+  info: (...args) => console.log('[INFO]', ...args),
+  warn: (...args) => console.warn('[WARN]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args),
 };
 
 // Load shared environment variables from web app or root .env files
@@ -96,10 +97,10 @@ module.exports = {
     owner: "mintanance-ltd",
     version: "1.2.4",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: path.join(__dirname, "assets/icon.png"),
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./assets/splash.png",
+      image: path.join(__dirname, "assets/splash.png"),
       resizeMode: "contain",
       backgroundColor: "#0EA5E9"
     },
@@ -110,7 +111,7 @@ module.exports = {
       supportsTablet: true,
       bundleIdentifier: "com.mintenance.app",
       buildNumber: "16",
-      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./GoogleService-Info.plist" : undefined,
+      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? path.join(__dirname, "GoogleService-Info.plist") : undefined,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "This app needs location access to find nearby contractors and show job locations.",
         ITSAppUsesNonExemptEncryption: false,
@@ -122,7 +123,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
+        foregroundImage: path.join(__dirname, "assets/adaptive-icon.png"),
         backgroundColor: "#0EA5E9"
       },
       config: { 
@@ -132,7 +133,7 @@ module.exports = {
       },
       package: "com.mintenance.app",
       versionCode: 16,
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./google-services.json" : undefined,
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? path.join(__dirname, "google-services.json") : undefined,
       intentFilters: [
         {
           action: "VIEW",
@@ -220,12 +221,7 @@ module.exports = {
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "@react-native-community/datetimepicker",
-      ["react-native-vision-camera", {
-        "cameraPermissionText": "This app needs camera access to record property assessment videos.",
-        "enableMicrophonePermission": true,
-        "microphonePermissionText": "This app needs microphone access to capture audio with property videos."
-      }]
+      "@react-native-community/datetimepicker"
     ],
     extra: {
       eas: {

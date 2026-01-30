@@ -6,6 +6,7 @@ interface CheckoutPageProps {
   searchParams: {
     priceId?: string;
     jobId?: string;
+    bidId?: string;
     contractorId?: string;
     quantity?: string;
   };
@@ -19,7 +20,7 @@ interface CheckoutPageProps {
  * /checkout?priceId=price_1234567890&jobId=xxx&contractorId=yyy&quantity=2
  */
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<CheckoutPageProps['searchParams']> }): Promise<JSX.Element> {
-  const { priceId, jobId, contractorId, quantity } = await searchParams;
+  const { priceId, jobId, bidId, contractorId, quantity } = await searchParams;
 
   if (!priceId) {
     return (
@@ -50,6 +51,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           <EmbeddedCheckoutComponent
             priceId={priceId}
             jobId={jobId}
+            bidId={bidId}
             contractorId={contractorId}
             quantity={quantity ? parseInt(quantity, 10) : 1}
             onSuccess={() => {

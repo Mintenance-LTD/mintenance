@@ -56,7 +56,11 @@ interface SecurityDashboardProps {
   className?: string;
 }
 
-export function SecurityDashboard({ className }: SecurityDashboardProps) {
+export function SecurityDashboard(props: SecurityDashboardProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    className = '',
+  } = props || {};
   const [metrics, setMetrics] = useState<SecurityMetrics | null>(null);
   const [recentEvents, setRecentEvents] = useState<SecurityEvent[]>([]);
   const [topIPs, setTopIPs] = useState<Array<{ ip: string; count: number }>>([]);

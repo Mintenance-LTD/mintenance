@@ -33,15 +33,17 @@ interface ChatInterface2025Props {
 
 const EMOJI_QUICK_REACTIONS = ['👍', '❤️', '😊', '🎉', '👏', '🔥'];
 
-export function ChatInterface2025({
-  messages,
-  currentUserId,
-  otherUser,
-  jobTitle,
-  onSendMessage,
-  onAddReaction,
-  isTyping = false,
-}: ChatInterface2025Props) {
+export function ChatInterface2025(props: ChatInterface2025Props) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    messages = [],
+    currentUserId = '',
+    otherUser = { id: '', name: 'Unknown User' },
+    jobTitle = '',
+    onSendMessage = async () => {},
+    onAddReaction = () => {},
+    isTyping = false,
+  } = props || {};
   const [messageInput, setMessageInput] = useState('');
   const [sending, setSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);

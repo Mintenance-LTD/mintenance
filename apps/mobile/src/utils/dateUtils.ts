@@ -57,7 +57,7 @@ export const endOfDay = (date: Date): Date => {
   return result;
 };
 
-export const isValidDate = (date: any): boolean => {
+export const isValidDate = (date: unknown): boolean => {
   return date instanceof Date && !isNaN(date.getTime());
 };
 

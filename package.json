@@ -31,6 +31,7 @@
     "clean": "npm run clean -w @mintenance/web && npm run clean -w @mintenance/mobile",
     "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules",
     "reset": "npm run clean:all && npm install",
+    "install:online": "npm install --no-offline",
     "deploy:verify": "node scripts/verify-deployment.js",
     "test:payment": "tsx scripts/test-payment-flow.ts",
     "verify:database": "tsx scripts/verify-database.ts",
@@ -129,6 +130,8 @@
     "@react-native/codegen": "0.81.5",
     "@react-native/debugger-frontend": "0.81.5",
     "@react-native/dev-middleware": "0.81.5",
-    "@react-native/normalize-colors": "0.81.5"
+    "@react-native/normalize-colors": "0.81.5",
+    "@sentry/browser": ">=7.119.1",
+    "@sentry/react": ">=7.119.1"
   }
 }

@@ -6,7 +6,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { sanitizeJobDescription, sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
-import { checkJobCreationRateLimit } from '@/lib/rate-limiter';
+import { checkJobCreationRateLimit, rateLimiter } from '@/lib/rate-limiter';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
 import { BUSINESS_RULES } from '@mintenance/shared';

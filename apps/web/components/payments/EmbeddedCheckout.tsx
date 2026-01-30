@@ -13,6 +13,10 @@ const getStripe = () => {
   if (!stripePromise) {
     const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     if (!publishableKey) {
+      // In test/development without Stripe keys, return null to allow graceful degradation
+      if (process.env.NODE_ENV === 'test' || process.env.PLAYWRIGHT_TEST) {
+        return null;
+      }
       throw new Error('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set');
     }
     stripePromise = loadStripe(publishableKey);
@@ -23,6 +27,7 @@ const getStripe = () => {
 interface EmbeddedCheckoutProps {
   priceId: string;
   jobId?: string;
+  bidId?: string;
   contractorId?: string;
   quantity?: number;
   onSuccess?: () => void;
@@ -38,6 +43,7 @@ interface EmbeddedCheckoutProps {
 export function EmbeddedCheckoutComponent({
   priceId,
   jobId,
+  bidId,
   contractorId,
   quantity = 1,
   onSuccess,
@@ -49,6 +55,17 @@ export function EmbeddedCheckoutComponent({
 
   useEffect(() => {
     async function fetchClientSecret(): Promise<void> {
+      // Check if Stripe is available in test environment
+      const isTestMode = process.env.NODE_ENV === 'test' || process.env.PLAYWRIGHT_TEST;
+      const hasStripeKey = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+
+      if (isTestMode && !hasStripeKey) {
+        // Test mode without Stripe keys - show helpful message
+        setError('Stripe Test Mode: Configure NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY to test payment flow');
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
@@ -61,6 +78,7 @@ export function EmbeddedCheckoutComponent({
           body: JSON.stringify({
             priceId,
             jobId,
+            bidId,
             contractorId,
             quantity,
           }),
@@ -83,7 +101,7 @@ export function EmbeddedCheckoutComponent({
     }
 
     fetchClientSecret();
-  }, [priceId, jobId, contractorId, quantity, onError]);
+  }, [priceId, jobId, contractorId, quantity, onError, bidId]);
 
   if (isLoading) {
     return (

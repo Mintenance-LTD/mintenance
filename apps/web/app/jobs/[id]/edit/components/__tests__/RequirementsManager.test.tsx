@@ -83,7 +83,7 @@ describe('RequirementsManager', () => {
     const input = screen.getByPlaceholderText('Enter a special requirement...');
 
     fireEvent.change(input, { target: { value: 'Enter key requirement' } });
-    fireEvent.keyPress(input, { key: 'Enter', code: 'Enter', charCode: 13 });
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter', keyCode: 13 });
 
     await waitFor(() => {
       expect(mockOnRequirementsChange).toHaveBeenCalledWith(['Enter key requirement']);

@@ -12,8 +12,7 @@ import { EnhancedHybridInferenceService } from '@/lib/services/building-surveyor
 import { EnhancedBayesianFusionService } from '@/lib/services/building-surveyor/EnhancedBayesianFusionService';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getCurrentUserFromCookies } from '@/lib/auth';
 import { rateLimiter } from '@/lib/rate-limiter';
 import type { AssessmentContext } from '@/lib/services/building-surveyor/types';
 
@@ -73,8 +72,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Authentication check
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized - Please login' },
         { status: 401 }
@@ -99,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     logger.info('Processing fusion assessment request', {
       endpoint: '/api/building-surveyor/assess-with-fusion',
-      userId: session.user?.id,
+      userId: user.id,
       imageCount: imageUrls.length,
       context
     });

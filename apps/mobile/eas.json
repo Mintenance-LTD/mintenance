@@ -115,6 +115,35 @@
       },
       "channel": "preview"
     },
+    "internal": {
+      "distribution": "internal",
+      "node": "20.19.4",
+      "cache": {
+        "key": "internal",
+        "disabled": false,
+        "paths": ["node_modules"]
+      },
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease",
+        "image": "ubuntu-22.04-jdk-17-ndk-r26b"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_USE_FAST_RESOLVER": "1",
+        "EXPO_USE_HERMES": "1",
+        "EXPO_OPTIMIZE": "1",
+        "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64",
+        "EXPO_PUBLIC_SUPABASE_URL": "${EXPO_PUBLIC_SUPABASE_URL}",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "${EXPO_PUBLIC_SUPABASE_ANON_KEY}",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "${EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY}",
+        "EXPO_PUBLIC_USE_MOCK": "false"
+      },
+      "channel": "internal"
+    },
     "production": {
       "node": "20.19.4",
       "cache": {

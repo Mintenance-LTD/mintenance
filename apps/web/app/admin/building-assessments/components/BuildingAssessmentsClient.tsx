@@ -96,10 +96,20 @@ interface BuildingAssessmentsClientProps {
   initialStatistics: Statistics;
 }
 
-export function BuildingAssessmentsClient({
-  initialAssessments,
-  initialStatistics,
-}: BuildingAssessmentsClientProps) {
+export function BuildingAssessmentsClient(props: BuildingAssessmentsClientProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    initialAssessments = [],
+    initialStatistics = {
+      total: 0,
+      pending: 0,
+      validated: 0,
+      rejected: 0,
+      bySeverity: { early: 0, midway: 0, full: 0 },
+      byDamageType: {},
+      canAutoValidate: false,
+    },
+  } = props || {};
   const [assessments, setAssessments] = useState<Assessment[]>(initialAssessments);
   const [statistics, setStatistics] = useState<Statistics>(initialStatistics);
   const [loading, setLoading] = useState(false);

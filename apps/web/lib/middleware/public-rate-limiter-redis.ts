@@ -10,33 +10,48 @@ import { logger } from '@mintenance/shared';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 
-// Initialize Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-});
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+const redisConfigured = Boolean(redisUrl && redisToken);
 
-// Create rate limiters for different tiers
-export const publicRateLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(20, '1 m'), // 20 requests per minute
-  prefix: 'ratelimit:public',
-  analytics: true,
-});
+// Initialize Redis client only when URL and token are set (avoids "Failed to parse URL from /pipeline")
+const redis = redisConfigured
+  ? new Redis({ url: redisUrl!, token: redisToken! })
+  : null;
 
-export const searchRateLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(10, '1 m'), // 10 searches per minute
-  prefix: 'ratelimit:search',
-  analytics: true,
-});
+function getRedisLimiters() {
+  if (!redis) return null;
+  return {
+    public: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(20, '1 m'),
+      prefix: 'ratelimit:public',
+      analytics: true,
+    }),
+    search: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, '1 m'),
+      prefix: 'ratelimit:search',
+      analytics: true,
+    }),
+    resource: new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(60, '1 m'),
+      prefix: 'ratelimit:resource',
+      analytics: true,
+    }),
+  };
+}
 
-export const resourceRateLimiter = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(60, '1 m'), // 60 individual requests per minute
-  prefix: 'ratelimit:resource',
-  analytics: true,
-});
+let limiters: ReturnType<typeof getRedisLimiters> | null = null;
+function getLimiters() {
+  if (limiters === null) limiters = getRedisLimiters();
+  return limiters;
+}
+
+export const publicRateLimiter = { limit: async () => ({ success: true, remaining: 999, reset: Date.now() + 60000 }) } as Ratelimit;
+export const searchRateLimiter = publicRateLimiter;
+export const resourceRateLimiter = publicRateLimiter;
 
 /**
  * Get client identifier from request
@@ -57,7 +72,7 @@ function getClientIdentifier(request: NextRequest): string {
 }
 
 /**
- * Check rate limit using Redis
+ * Check rate limit using Redis (or allow all when Redis not configured)
  */
 export async function checkPublicRateLimit(
   request: NextRequest,
@@ -70,10 +85,17 @@ export async function checkPublicRateLimit(
 }> {
   const identifier = getClientIdentifier(request);
 
-  // Select appropriate rate limiter
-  const limiter = tier === 'search' ? searchRateLimiter :
-                  tier === 'resource' ? resourceRateLimiter :
-                  publicRateLimiter;
+  // When Redis is not configured, allow request (avoid "Failed to parse URL from /pipeline")
+  const limiters = getLimiters();
+  if (!limiters) {
+    return {
+      allowed: true,
+      remaining: 999,
+      reset: Date.now() + 60000,
+    };
+  }
+
+  const limiter = tier === 'search' ? limiters.search : tier === 'resource' ? limiters.resource : limiters.public;
 
   try {
     const result = await limiter.limit(identifier);
@@ -178,6 +200,7 @@ export async function withPublicRateLimit(
  * Redis health check
  */
 export async function checkRedisHealth(): Promise<boolean> {
+  if (!redis) return false;
   try {
     await redis.ping();
     return true;

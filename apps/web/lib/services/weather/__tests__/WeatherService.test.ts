@@ -168,7 +168,7 @@ describe('WeatherService', () => {
       const result = await WeatherService.getForecast(51.5074, -0.1278, 7);
 
       expect(result).toBeDefined();
-      expectvi.mocked((global.fetch).mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(vi.mocked(global.fetch).mock.calls.length).toBeGreaterThanOrEqual(2);
     });
 
     it('should handle API timeout', async () => {

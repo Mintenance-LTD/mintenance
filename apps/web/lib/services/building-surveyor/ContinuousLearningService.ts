@@ -573,7 +573,7 @@ export class ContinuousLearningService {
     logger.info('Feedback quality metrics updated', { metrics });
   }
 
-  private static async calculateConsistencyScore(corrections: any[]): Promise<number> {
+  private static async calculateConsistencyScore(corrections: unknown[]): Promise<number> {
     // Simplified consistency calculation
     // In production, would compare corrections on similar images
     // and check for consistency in labeling

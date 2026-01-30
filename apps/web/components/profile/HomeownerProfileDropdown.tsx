@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface HomeownerProfileDropdownProps {
@@ -13,7 +14,13 @@ interface HomeownerProfileDropdownProps {
   initials: string;
 }
 
-export function HomeownerProfileDropdown({ userName, profileImageUrl, initials }: HomeownerProfileDropdownProps) {
+export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    userName = '',
+    profileImageUrl,
+    initials = '',
+  } = props || {};
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -146,7 +153,7 @@ export function HomeownerProfileDropdown({ userName, profileImageUrl, initials }
             </span>
           </div>
         )}
-        <Icon name="chevronDown" size={16} color="#94A3B8" />
+        <ChevronDown className="shrink-0" size={16} color="#94A3B8" strokeWidth={2} aria-hidden />
       </button>
 
       {/* Dropdown Menu - Only render when mounted to prevent hydration issues */}

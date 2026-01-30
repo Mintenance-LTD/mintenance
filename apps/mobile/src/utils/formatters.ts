@@ -1,4 +1,4 @@
-export const formatCurrency = (amount: any, currency = 'USD'): string => {
+export const formatCurrency = (amount: string | number, currency = 'USD'): string => {
   const value = Number(amount) || 0;
   const symbols: Record<string, string> = { USD: '$', EUR: '€', GBP: '£' };
   const symbol = symbols[currency] || '$';
@@ -7,7 +7,7 @@ export const formatCurrency = (amount: any, currency = 'USD'): string => {
 };
 
 export const formatDate = (date: Date, format = 'default'): string => {
-  const options: any = format === 'short' ? { year: '2-digit', month: 'numeric', day: 'numeric' } :
+  const options: Intl.DateTimeFormatOptions = format === 'short' ? { year: '2-digit', month: 'numeric', day: 'numeric' } :
                        format === 'long' ? { year: 'numeric', month: 'long', day: 'numeric' } :
                        { year: 'numeric', month: 'short', day: 'numeric' };
   return date.toLocaleDateString('en-US', options);
@@ -78,7 +78,15 @@ export const getInitials = (name: string): string => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-export const formatAddress = (address: any): string => {
+interface Address {
+  street?: string;
+  apt?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+}
+
+export const formatAddress = (address: Address | null | undefined): string => {
   if (!address) return '';
   const parts = [];
   if (address.street) parts.push(address.street);

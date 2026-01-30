@@ -9,31 +9,45 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('CustomerRow', () => {
+  const mockCustomer = {
+    id: 'customer-123',
+    first_name: 'John',
+    last_name: 'Doe',
+    email: 'john.doe@example.com',
+    profile_image_url: null,
+  };
+
   const defaultProps = {
-    // Add default props here
+    customer: mockCustomer,
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should render without crashing', () => {
+  it('should render customer information', () => {
     render(<CustomerRow {...defaultProps} />);
-    expect(true).toBeTruthy(); // Component rendered
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
+    expect(screen.getByText('JD')).toBeInTheDocument(); // initials
   });
 
-  it('should handle user interactions', async () => {
+  it('should display customer email', () => {
     render(<CustomerRow {...defaultProps} />);
-    // Add interaction tests
+    expect(screen.getByText('john.doe@example.com')).toBeInTheDocument();
   });
 
-  it('should display correct data', () => {
-    render(<CustomerRow {...defaultProps} />);
-    // Add data display tests
+  it('should handle customer with profile image', () => {
+    const propsWithImage = {
+      customer: { ...mockCustomer, profile_image_url: 'https://example.com/avatar.jpg' },
+    };
+    render(<CustomerRow {...propsWithImage} />);
+    const img = screen.getByRole('img', { hidden: true });
+    expect(img).toBeInTheDocument();
   });
 
-  it('should handle edge cases', () => {
+  it('should render link to customer detail page', () => {
     render(<CustomerRow {...defaultProps} />);
-    // Test edge cases
+    const link = screen.getByRole('link');
+    expect(link).toHaveAttribute('href', '/contractor/customers/customer-123');
   });
 });

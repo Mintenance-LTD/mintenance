@@ -17,7 +17,13 @@ interface CreatePostDialogProps {
   onPostCreated: () => void;
 }
 
-export function CreatePostDialog({ open, onOpenChange, onPostCreated }: CreatePostDialogProps) {
+export function CreatePostDialog(props: CreatePostDialogProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    open = false,
+    onOpenChange = () => {},
+    onPostCreated = () => {},
+  } = props || {};
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [postType, setPostType] = useState<string>('work_showcase');

@@ -23,7 +23,11 @@ interface ContractorViewersListProps {
   jobId: string;
 }
 
-export function ContractorViewersList({ jobId }: ContractorViewersListProps) {
+export function ContractorViewersList(props: ContractorViewersListProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    jobId = '',
+  } = props || {};
   const [viewers, setViewers] = useState<ContractorViewer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

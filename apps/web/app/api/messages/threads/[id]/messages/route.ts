@@ -7,6 +7,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { sanitizeMessage } from '@/lib/sanitizer';
 import {
   mapMessageRow,
   MESSAGE_TYPES,
@@ -16,8 +17,8 @@ import {
 } from '@/app/api/messages/utils';
 
 const bodySchema = z.object({
-  content: z.string().trim().min(1).optional(),
-  messageText: z.string().trim().min(1).optional(),
+  content: z.string().trim().min(1).optional().transform(val => val ? sanitizeMessage(val) : val),
+  messageText: z.string().trim().min(1).optional().transform(val => val ? sanitizeMessage(val) : val),
   receiverId: z.string().uuid().optional(),
   messageType: z.enum(MESSAGE_TYPES).optional(),
   attachments: z.array(z.string().trim().min(1)).optional(),

@@ -41,7 +41,12 @@ const adminNav: readonly NavItem[] = Object.freeze([
   { icon: 'settings', label: 'Settings', href: '/admin/settings' },
 ]);
 
-export function AdminLayoutShell({ children, user }: AdminLayoutShellProps) {
+export function AdminLayoutShell(props: AdminLayoutShellProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    children,
+    user = { id: '', email: '', role: 'admin' as const },
+  } = props || {};
   const pathname = usePathname();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);

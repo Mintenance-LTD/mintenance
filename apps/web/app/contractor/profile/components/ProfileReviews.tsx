@@ -34,7 +34,9 @@ function StarIcon() {
   );
 }
 
-export function ProfileReviews({ reviews }: ProfileReviewsProps) {
+export function ProfileReviews(props: ProfileReviewsProps) {
+  const { reviews = [] } = props || {};
+
   return (
     <div
       style={{
