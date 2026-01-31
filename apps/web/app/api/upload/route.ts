@@ -4,7 +4,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { validateImageUpload, createValidationErrorResponse, generateSecureFilename } from '@/lib/security/file-validator';
 import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter-enhanced';
 
 /**
  * POST /api/upload
@@ -13,27 +13,21 @@ import { rateLimiter } from '@/lib/rate-limiter';
  */
 export async function POST(request: NextRequest) {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+    // SECURITY: Enhanced rate limiting with user-tier based limits
+    // Uses configuration from rate-limits.ts: authenticated=10, premium=25, admin=50
+    const rateLimitResult = await checkRateLimit(request, {
+      path: '/api/upload'
+    });
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Upload rate limit exceeded. Please wait before uploading more files.' },
+        {
+          status: 429,
+          headers: createRateLimitHeaders(rateLimitResult)
         }
-      }
-    );
-  }
+      );
+    }
 
     // Get authenticated user
     const user = await getCurrentUserFromCookies();
