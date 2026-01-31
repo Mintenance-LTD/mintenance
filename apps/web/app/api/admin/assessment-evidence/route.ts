@@ -31,10 +31,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .order('step_index', { ascending: true });
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch evidence', details: error.message },
-        { status: 500 }
-      );
+      // SECURITY: Use centralized error handler (sanitizes database errors)
+      return handleAPIError(new Error(`Failed to fetch evidence: ${error.message}`));
     }
 
     return NextResponse.json({

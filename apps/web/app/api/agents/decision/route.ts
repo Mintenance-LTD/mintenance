@@ -20,6 +20,7 @@ import { rateLimit } from '@/lib/rate-limiter';
 import { withErrorHandler } from '@/lib/error-handler';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 const requestSchema = z.object({
   agentName: z.string(),
@@ -282,26 +283,25 @@ export const POST = withErrorHandler(async (req: Request) => {
   } catch (error: unknown) {
     logger.error('Agent decision error:', error, { service: 'api' });
 
-    // Log error
+    // SECURITY: Log error to agent decision logs WITHOUT sensitive details
     await AgentLogger.logDecision({
       agentName: 'error',
       decisionType: 'error',
       actionTaken: 'failed',
       confidence: 0,
-      reasoning: error.message,
-      metadata: { error: error.stack }
+      reasoning: 'Agent decision processing failed',  // Generic message, no error details
+      metadata: {
+        errorType: error instanceof Error ? error.name : 'UnknownError',
+        timestamp: new Date().toISOString()
+      }
     });
 
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      );
+    // SECURITY: Handle Zod validation errors without exposing internal details
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      throw new BadRequestError('Invalid request data. Please check your input and try again.');
     }
 
-    return NextResponse.json(
-      { error: 'Failed to process agent decision', details: error.message },
-      { status: 500 }
-    );
+    // SECURITY: Use centralized error handler (sanitizes all errors)
+    return handleAPIError(error);
   }
 });

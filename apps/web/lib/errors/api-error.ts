@@ -192,28 +192,25 @@ export function handleAPIError(
 
   // Handle standard Error objects
   if (error instanceof Error) {
+    // SECURITY: Always log full details internally (for debugging)
+    // NEVER expose stack traces or detailed error messages to client
     logger.error('Unexpected Error', {
       name: error.name,
       message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      stack: error.stack,  // Always log full stack internally
       requestId,
       ...context,
     });
 
+    // Always return generic message to client (no conditional development exposure)
     return NextResponse.json(
       {
         error: {
           code: 'INTERNAL_SERVER_ERROR',
-          message:
-            process.env.NODE_ENV === 'development'
-              ? error.message
-              : 'An unexpected error occurred',
-          ...(process.env.NODE_ENV === 'development' && {
-            details: { stack: error.stack },
-          }),
+          message: 'An unexpected error occurred',  // Generic message always
         },
         timestamp: new Date().toISOString(),
-        ...(requestId && { requestId }),
+        ...(requestId && { requestId }),  // Include request ID for support correlation
       },
       { status: 500 }
     );

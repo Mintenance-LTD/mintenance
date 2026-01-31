@@ -11,6 +11,7 @@ import { AgentLogger } from '@/lib/services/agents/AgentLogger';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 
 const requestSchema = z.object({
   action: z.enum(['evaluate', 'auto-accept', 'recommend']),
@@ -350,16 +351,12 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     logger.error('Bid acceptance agent error:', error, { service: 'api' });
 
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      );
+    // SECURITY: Handle Zod validation errors without exposing internal details
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      throw new BadRequestError('Invalid request data. Please check your input and try again.');
     }
 
-    return NextResponse.json(
-      { error: 'Failed to process bid acceptance', details: error.message },
-      { status: 500 }
-    );
+    // SECURITY: Use centralized error handler (sanitizes all errors)
+    return handleAPIError(error);
   }
 }

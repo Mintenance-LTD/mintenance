@@ -27,10 +27,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .gte('created_at', since);
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch verification stats', details: error.message },
-        { status: 500 }
-      );
+      // SECURITY: Use centralized error handler (sanitizes database errors)
+      return handleAPIError(new Error(`Failed to fetch verification stats: ${error.message}`));
     }
 
     const byStatus: Record<string, number> = {};
