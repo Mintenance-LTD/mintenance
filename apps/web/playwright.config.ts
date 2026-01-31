@@ -6,9 +6,6 @@ import path from 'path';
 // This ensures Supabase credentials are available for test data seeding
 dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
-// Set PLAYWRIGHT_TEST env var so middleware recognizes E2E test mode
-process.env.PLAYWRIGHT_TEST = 'true';
-
 /**
  * Playwright Configuration for Mintenance Web App
  * E2E testing for Next.js App Router pages
@@ -74,17 +71,8 @@ export default defineConfig({
       testMatch: /authenticated-job-posting\.spec\.ts|job-posting-flow\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
-        // Load pre-authenticated homeowner state
+        // Load pre-authenticated homeowner state from global setup
         storageState: 'e2e/.auth/homeowner.json',
-        // Add E2E test header for middleware bypass (middleware.ts lines 152-167)
-        // This header allows tests to bypass cookie-based auth and use direct user injection
-        extraHTTPHeaders: {
-          'x-e2e-test-user': JSON.stringify({
-            id: '62b92aaf-f4ea-485c-9ef9-b016d4d1ee29', // Test homeowner user ID
-            email: 'test-homeowner@example.com',
-            role: 'homeowner',
-          }),
-        },
       },
     },
 

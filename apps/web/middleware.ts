@@ -149,62 +149,6 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // SECURITY: E2E Test Mode Kill Switch
-    // Fail immediately if E2E bypass is enabled in production
-    if (process.env.NODE_ENV === 'production' && process.env.PLAYWRIGHT_TEST === 'true') {
-      logger.error('CRITICAL SECURITY: PLAYWRIGHT_TEST enabled in production - failing startup', {
-        service: 'middleware',
-        severity: 'critical',
-        action: 'deployment_aborted'
-      });
-      throw new Error('E2E test bypass detected in production - deployment aborted for security');
-    }
-
-    // SECURITY: Runtime monitoring for bypass attempts in production
-    const testAuthHeader = request.headers.get('x-e2e-test-user');
-    if (testAuthHeader && process.env.NODE_ENV === 'production') {
-      logger.error('SECURITY ALERT: E2E bypass attempt detected in production', {
-        service: 'security',
-        severity: 'critical',
-        ip: request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip'),
-        userAgent: request.headers.get('user-agent'),
-        path: pathname,
-        timestamp: new Date().toISOString()
-      });
-      // Block the request with 403 Forbidden
-      return new NextResponse('Forbidden', { status: 403 });
-    }
-
-    // E2E Test Mode: Bypass auth if test header is present
-    // ONLY allowed in development OR when PLAYWRIGHT_TEST env var is explicitly set
-    // WARNING: This should NEVER be enabled in production (kill switch above prevents this)
-    const isTestEnv = process.env.NODE_ENV === 'development' || process.env.PLAYWRIGHT_TEST === 'true';
-
-    if (testAuthHeader && isTestEnv) {
-      try {
-        const testUser = JSON.parse(testAuthHeader);
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set('x-user-id', testUser.id);
-        requestHeaders.set('x-user-email', testUser.email);
-        requestHeaders.set('x-user-role', testUser.role);
-        requestHeaders.set('x-pathname', pathname);
-
-        logger.debug('E2E Test Mode: Auth bypass active', {
-          service: 'middleware',
-          userId: testUser.id,
-          environment: process.env.NODE_ENV
-        });
-
-        return NextResponse.next({ request: { headers: requestHeaders } });
-      } catch (e) {
-        // Invalid test header, continue with normal auth
-        logger.warn('E2E Test Mode: Invalid test header format', {
-          service: 'middleware',
-          error: e instanceof Error ? e.message : 'Unknown error'
-        });
-      }
-    }
-
     // Get JWT token from cookies
     const isDevelopment = process.env.NODE_ENV === 'development';
     const authCookieName = isDevelopment ? 'mintenance-auth' : '__Host-mintenance-auth';

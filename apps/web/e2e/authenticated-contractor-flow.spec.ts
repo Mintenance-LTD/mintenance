@@ -16,18 +16,6 @@ import { test, expect } from '@playwright/test';
 import { createTestBid, waitForNetworkIdle } from './helpers/test-data';
 
 test.describe('Authenticated Contractor Flow', () => {
-  // Use test header to bypass middleware auth in E2E tests
-  test.beforeEach(async ({ page }) => {
-    // Set test user header for middleware bypass (development only)
-    await page.setExtraHTTPHeaders({
-      'x-e2e-test-user': JSON.stringify({
-        id: '120aeb15-e261-4749-ad0e-8aad08ba0b04',
-        email: 'test-contractor@example.com',
-        role: 'contractor'
-      })
-    });
-  });
-
   test('contractor can access job discovery page', async ({ page }) => {
     await page.goto('/contractor/discover');
 
@@ -212,17 +200,6 @@ test.describe('Authenticated Contractor Flow', () => {
 });
 
 test.describe('Contractor Job Filtering', () => {
-  // Use test header to bypass middleware auth in E2E tests
-  test.beforeEach(async ({ page }) => {
-    await page.setExtraHTTPHeaders({
-      'x-e2e-test-user': JSON.stringify({
-        id: '120aeb15-e261-4749-ad0e-8aad08ba0b04',
-        email: 'test-contractor@example.com',
-        role: 'contractor'
-      })
-    });
-  });
-
   test('contractor can filter jobs by category', async ({ page }) => {
     // Look for category filter
     const categoryFilter = page.getByLabel(/category|type/i);
