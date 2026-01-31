@@ -33,9 +33,11 @@ export const createMockDOMPurify = () => {
       });
     }
 
-    // Truncate if needed
+    // Truncate if needed (but don't cut in the middle of tags)
     if (config?.maxLength && result.length > config.maxLength) {
       result = result.substring(0, config.maxLength);
+      // If we cut in the middle of a tag, remove the incomplete tag
+      result = result.replace(/<[^>]*$/, '');
     }
 
     return result.trim();
