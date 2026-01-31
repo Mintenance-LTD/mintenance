@@ -5,10 +5,23 @@ import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 export async function GET(request: NextRequest) {
+  // SECURITY: Block E2E bypass attempts in production
+  const e2eTestHeader = request.headers.get('x-e2e-test-user');
+  if (e2eTestHeader && process.env.NODE_ENV === 'production') {
+    logger.error('SECURITY ALERT: E2E bypass attempt on session endpoint', {
+      service: 'security',
+      severity: 'critical',
+      ip: request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip'),
+      userAgent: request.headers.get('user-agent'),
+      timestamp: new Date().toISOString()
+    });
+    return new NextResponse('Forbidden', { status: 403 });
+  }
+
   // E2E Test Mode: Return mock user ONLY when Playwright sends the E2E header.
   // This prevents real users from seeing test-homeowner@example.com when PLAYWRIGHT_TEST
   // is left true in .env.local (e.g. after running playwright test).
-  const e2eTestHeader = request.headers.get('x-e2e-test-user');
+  // WARNING: This should NEVER be enabled in production (middleware kill switch prevents this)
   const isPlaywrightRequest = process.env.PLAYWRIGHT_TEST === 'true' && e2eTestHeader;
 
   if (isPlaywrightRequest) {
@@ -25,10 +38,15 @@ export async function GET(request: NextRequest) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      logger.debug('E2E Test Mode: Returning mock user', { service: 'auth', userId: mockUser.id });
+      logger.debug('E2E Test Mode: Returning mock user', {
+        service: 'auth',
+        userId: mockUser.id,
+        environment: process.env.NODE_ENV
+      });
       return NextResponse.json({ user: mockUser });
     } catch {
       // Invalid header, fall through to real session
+      logger.warn('E2E Test Mode: Invalid test header in session endpoint', { service: 'auth' });
     }
   }
 
