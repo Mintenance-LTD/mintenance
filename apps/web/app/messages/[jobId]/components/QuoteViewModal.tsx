@@ -36,7 +36,8 @@ interface QuoteViewModalProps {
   jobId: string;
 }
 
-export function QuoteViewModal({ isOpen, onClose, jobId }: QuoteViewModalProps) {
+export function QuoteViewModal(props: QuoteViewModalProps) {
+  const { isOpen, onClose, jobId } = props || {};
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);

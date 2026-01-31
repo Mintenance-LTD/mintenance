@@ -149,18 +149,15 @@ function CheckoutForm({ subscriptionId, planType }: { subscriptionId: string; pl
   );
 }
 
-export function SubscriptionCheckoutClient({
-  clientSecret,
-  subscriptionId,
-  planType,
-}: SubscriptionCheckoutClientProps) {
+export function SubscriptionCheckoutClient(props: SubscriptionCheckoutClientProps) {
+  const { clientSecret, subscriptionId, planType } = props || {};
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  if (!mounted || !clientSecret || !subscriptionId || !planType) {
     return (
       <div style={{
         minHeight: '100vh',
