@@ -97,10 +97,10 @@ module.exports = {
     owner: "mintanance-ltd",
     version: "1.2.4",
     orientation: "portrait",
-    icon: path.join(__dirname, "assets/icon.png"),
+    icon: "./apps/mobile/assets/icon.png",
     userInterfaceStyle: "automatic",
     splash: {
-      image: path.join(__dirname, "assets/splash.png"),
+      image: "./apps/mobile/assets/splash.png",
       resizeMode: "contain",
       backgroundColor: "#0EA5E9"
     },
@@ -111,7 +111,7 @@ module.exports = {
       supportsTablet: true,
       bundleIdentifier: "com.mintenance.app",
       buildNumber: "16",
-      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? path.join(__dirname, "GoogleService-Info.plist") : undefined,
+      googleServicesFile: process.env.GOOGLE_SERVICES_PLIST ? "./apps/mobile/GoogleService-Info.plist" : undefined,
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "This app needs location access to find nearby contractors and show job locations.",
         ITSAppUsesNonExemptEncryption: false,
@@ -123,7 +123,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: path.join(__dirname, "assets/adaptive-icon.png"),
+        foregroundImage: "./apps/mobile/assets/adaptive-icon.png",
         backgroundColor: "#0EA5E9"
       },
       config: { 
@@ -133,7 +133,7 @@ module.exports = {
       },
       package: "com.mintenance.app",
       versionCode: 16,
-      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? path.join(__dirname, "google-services.json") : undefined,
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ? "./apps/mobile/google-services.json" : undefined,
       intentFilters: [
         {
           action: "VIEW",
