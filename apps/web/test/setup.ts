@@ -60,7 +60,15 @@ vi.mock('next/navigation', () => ({
   }),
   usePathname: () => '/test-path',
   useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({
+    id: 'test-id',
+    jobId: 'test-job-id',
+    contractorId: 'test-contractor-id',
+    featureId: 'test-feature-id',
+    slug: 'test-slug',
+  }),
   redirect: vi.fn(),
+  notFound: vi.fn(),
 }));
 
 vi.mock('next/headers', () => ({
@@ -279,10 +287,10 @@ Object.defineProperty(global, 'crypto', {
   writable: true,
 });
 
-// Mock window.matchMedia
+// Mock window.matchMedia (direct implementation to survive vi.clearAllMocks())
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query) => ({
+  value: (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -291,7 +299,7 @@ Object.defineProperty(window, 'matchMedia', {
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
-  })),
+  }),
 });
 
 // Mock IntersectionObserver
@@ -584,6 +592,42 @@ vi.mock('framer-motion', () => ({
     stop: vi.fn(),
     set: vi.fn(),
   }),
+}));
+
+// Mock service classes and agents
+vi.mock('@/lib/services/building-surveyor/HybridInferenceService', () => ({
+  HybridInferenceService: {
+    resetYoloSavingsMetrics: vi.fn().mockResolvedValue(undefined),
+    analyzeImage: vi.fn().mockResolvedValue({ success: true, results: [] }),
+    getStats: vi.fn().mockResolvedValue({ totalAnalyses: 0, savings: 0 }),
+  },
+}));
+
+vi.mock('@/lib/services/agents/PricingAgent', () => ({
+  PricingAgent: {
+    getPricingRecommendation: vi.fn().mockResolvedValue({
+      suggestedPrice: 1000,
+      confidence: 0.85,
+      factors: [],
+    }),
+    analyzePricing: vi.fn().mockResolvedValue({ isCompetitive: true }),
+  },
+}));
+
+vi.mock('@/lib/services/agents/JobStatusAgent', () => ({
+  JobStatusAgent: {
+    updateJobStatus: vi.fn().mockResolvedValue({ success: true }),
+    getJobStatus: vi.fn().mockResolvedValue({ status: 'pending' }),
+  },
+}));
+
+vi.mock('@/lib/services/MeetingService', () => ({
+  MeetingService: {
+    createMeeting: vi.fn().mockResolvedValue({ id: 'meeting-1', url: 'https://example.com' }),
+    getMeeting: vi.fn().mockResolvedValue({ id: 'meeting-1', status: 'scheduled' }),
+    updateMeeting: vi.fn().mockResolvedValue({ success: true }),
+    deleteMeeting: vi.fn().mockResolvedValue({ success: true }),
+  },
 }));
 
 // Suppress console errors in tests (unless debugging)
