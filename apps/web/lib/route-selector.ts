@@ -158,6 +158,11 @@ export async function getVersionContext(): Promise<VersionContext> {
  * Check if a route has a 2025 version available
  */
 export function hasVersion2025(path: string): boolean {
+  // Handle null/undefined input
+  if (!path) {
+    return false;
+  }
+
   // Normalize path (remove trailing slash, handle dynamic segments)
   const normalizedPath = normalizePath(path);
   return ROUTES_WITH_2025.includes(normalizedPath);
@@ -225,6 +230,11 @@ export function getRolloutPercentageClient(): number {
  * - Converts dynamic segments to [param] format
  */
 function normalizePath(path: string): string {
+  // Handle null/undefined input
+  if (!path) {
+    return '/';
+  }
+
   // Remove trailing slash
   let normalized = path.replace(/\/$/, '') || '/';
 

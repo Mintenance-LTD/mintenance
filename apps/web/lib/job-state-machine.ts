@@ -28,13 +28,18 @@ export function isValidStatusTransition(
   currentStatus: JobStatus,
   newStatus: JobStatus
 ): boolean {
+  // Handle null/undefined inputs
+  if (!currentStatus || !newStatus) {
+    return false;
+  }
+
   // Same status is always allowed (no-op)
   if (currentStatus === newStatus) {
     return true;
   }
 
   const allowedTransitions = JOB_STATE_TRANSITIONS[currentStatus];
-  return allowedTransitions.includes(newStatus);
+  return allowedTransitions ? allowedTransitions.includes(newStatus) : false;
 }
 
 /**
