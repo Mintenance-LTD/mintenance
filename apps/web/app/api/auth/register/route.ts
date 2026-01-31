@@ -6,6 +6,7 @@ import { registerSchema } from '@/lib/validation/schemas';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
+import { checkPasswordBreach } from '@mintenance/auth/password-security';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +32,21 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password, firstName, lastName, role, phone } = validation.data;
+
+    // SECURITY: Check if password has been exposed in data breaches
+    const breachResult = await checkPasswordBreach(password);
+    if (breachResult.isBreached) {
+      logger.warn('[SECURITY] Registration blocked - breached password detected', {
+        service: 'auth',
+        email,
+        occurrences: breachResult.occurrences,
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      throw new BadRequestError(
+        `This password has been exposed in ${breachResult.occurrences?.toLocaleString()} data breaches. ` +
+        `Please choose a different, more secure password.`
+      );
+    }
 
     // Validate admin email domain
     if (role === 'admin' && !email.endsWith('@mintenance.co.uk')) {
