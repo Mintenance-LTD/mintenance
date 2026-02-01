@@ -1,15 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@12.18.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { handleCorsPreflight, createCorsResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
+  // SECURITY: Handle CORS preflight with whitelist-based origin validation
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflight(req);
   }
 
   let contractorId: string | undefined;
@@ -91,14 +88,15 @@ serve(async (req) => {
           type: existingAccount.details_submitted ? 'account_onboarding' : 'account_onboarding',
         });
 
-        return new Response(
+        return createCorsResponse(
+          req,
           JSON.stringify({
             accountId: existingAccount.id,
             accountUrl: accountLink.url,
             existing: true,
           }),
           {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             status: 200,
           }
         );
@@ -187,13 +185,14 @@ serve(async (req) => {
       // Don't fail the whole request, but log the error
     }
 
-    return new Response(
+    return createCorsResponse(
+      req,
       JSON.stringify({
         accountId: account.id,
         accountUrl: accountLink.url,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 200,
       }
     );
@@ -204,14 +203,15 @@ serve(async (req) => {
       error: error,
       contractorId: contractorId || 'unknown',
     });
-    
-    return new Response(
-      JSON.stringify({ 
+
+    return createCorsResponse(
+      req,
+      JSON.stringify({
         error: errorMessage,
         details: Deno.env.get('ENVIRONMENT') === 'development' ? String(error) : undefined,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 400,
       }
     );

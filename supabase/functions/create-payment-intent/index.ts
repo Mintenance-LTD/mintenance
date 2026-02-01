@@ -1,16 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@12.18.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { handleCorsPreflight, createCorsResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // SECURITY: Handle CORS preflight with whitelist-based origin validation
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflight(req);
   }
 
   try {
@@ -31,7 +27,8 @@ serve(async (req) => {
       description: `Mintenance Job Payment - Job ID: ${metadata?.jobId}`,
     });
 
-    return new Response(
+    return createCorsResponse(
+      req,
       JSON.stringify({
         id: paymentIntent.id,
         client_secret: paymentIntent.client_secret,
@@ -40,16 +37,17 @@ serve(async (req) => {
         status: paymentIntent.status,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 200,
       }
     );
   } catch (error) {
     console.error('Error creating payment intent:', error);
-    return new Response(
+    return createCorsResponse(
+      req,
       JSON.stringify({ error: error.message }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 400,
       }
     );

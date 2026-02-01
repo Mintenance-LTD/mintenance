@@ -1,13 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { handleCorsPreflight, createCorsResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
+  // SECURITY: Handle CORS preflight with whitelist-based origin validation
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflight(req);
   }
 
   try {
@@ -24,7 +21,8 @@ serve(async (req) => {
     console.log('🔵 Has APP_URL:', !!appUrl);
     console.log('🔵 APP_URL value:', appUrl);
 
-    return new Response(
+    return createCorsResponse(
+      req,
       JSON.stringify({
         success: true,
         message: 'Test function works!',
@@ -33,16 +31,17 @@ serve(async (req) => {
         appUrl: appUrl,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 200,
       }
     );
   } catch (error) {
     console.error('🔴 Error in test function:', error);
-    return new Response(
+    return createCorsResponse(
+      req,
       JSON.stringify({ error: String(error) }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 500,
       }
     );
