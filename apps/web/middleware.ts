@@ -3,6 +3,7 @@ import { verifyJWT, ConfigManager } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter-enhanced';
+import { handlePreflightRequest, addCorsHeaders, shouldSkipCors } from '@/lib/cors';
 
 // CRITICAL FIX: Fail-fast initialization to prevent silent failures
 // If ConfigManager fails to initialize, the entire middleware should fail immediately
@@ -91,9 +92,18 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================================================
-  // RATE LIMITING FOR ALL API ROUTES
+  // CORS HANDLING FOR ALL API ROUTES (VULN-007 Security Fix)
   // ============================================================================
   if (pathname.startsWith('/api/')) {
+    // Skip CORS for certain endpoints (webhooks, health checks)
+    const skipCors = shouldSkipCors(pathname);
+
+    // Handle CORS preflight (OPTIONS) requests
+    // SECURITY: This must happen BEFORE rate limiting to avoid counting preflight requests
+    if (request.method === 'OPTIONS' && !skipCors) {
+      return handlePreflightRequest(request);
+    }
+
     try {
       // Perform rate limit check
       const rateLimitResult = await checkRateLimit(request);
@@ -131,8 +141,15 @@ export async function middleware(request: NextRequest) {
 
       // Special handling for webhook endpoints (skip auth but apply rate limiting)
       if (pathname.startsWith('/api/webhooks')) {
-        return NextResponse.next({ request: { headers: requestHeaders } });
+        const response = NextResponse.next({ request: { headers: requestHeaders } });
+        // Add CORS headers to webhook responses (if not skipped)
+        return skipCors ? response : addCorsHeaders(response, request);
       }
+
+      // For other API routes, continue with normal processing
+      // CORS headers will be added by the API route handler or error handler
+      // We set a marker header to indicate CORS has been processed
+      requestHeaders.set('x-cors-processed', 'true');
 
       // Continue with normal API processing (auth will be checked below for non-public routes)
     } catch (error) {
