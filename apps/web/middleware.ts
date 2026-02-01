@@ -268,9 +268,10 @@ export async function middleware(request: NextRequest) {
       return redirectToLogin(request);
     }
 
-    // VULN-009: Check session timeouts (soft enforcement - Phase 2)
+    // VULN-009: Check session timeouts (Phase 3: hard enforcement mode)
     // Validates absolute session timeout (12 hours) and idle timeout (30 minutes)
-    // In Phase 2, violations are logged but don't force logout (soft enforcement)
+    // - Soft enforcement (default): Violations logged but requests proceed
+    // - Hard enforcement (ENFORCE_SESSION_TIMEOUTS=true): Force logout on violation
     if (jwtPayload.sessionStart && jwtPayload.lastActivity) {
       const sessionValidation = SessionValidator.validateSession({
         sessionStart: jwtPayload.sessionStart,
@@ -278,8 +279,10 @@ export async function middleware(request: NextRequest) {
       });
 
       if (!sessionValidation.isValid) {
-        // Log violation but don't block request (soft enforcement)
-        // Use fire-and-forget to avoid blocking the request
+        // Determine enforcement mode from environment variable
+        const enforceTimeouts = process.env.ENFORCE_SESSION_TIMEOUTS === 'true';
+
+        // Log violation (both soft and hard enforcement)
         securityMonitor.logSuspiciousActivity(
           request,
           `Session timeout violation: ${sessionValidation.reason}`,
@@ -288,7 +291,7 @@ export async function middleware(request: NextRequest) {
             violations: sessionValidation.violations,
             sessionAgeMs: sessionValidation.metadata.sessionAgeMs,
             idleTimeMs: sessionValidation.metadata.idleTimeMs,
-            softEnforcement: true,  // Marker for Phase 2 (logging only)
+            hardEnforcement: enforceTimeouts,  // Phase 3: track enforcement mode
             timeoutMessage: SessionValidator.getTimeoutMessage(sessionValidation),
           }
         ).catch((err) => {
@@ -298,6 +301,46 @@ export async function middleware(request: NextRequest) {
             userId: jwtPayload.sub,
           });
         });
+
+        // Hard enforcement: force logout on timeout violation
+        if (enforceTimeouts) {
+          // Blacklist token to prevent reuse (defense in depth)
+          try {
+            await tokenBlacklist.blacklistToken(token);
+            logger.info('Token blacklisted on session timeout', {
+              service: 'middleware',
+              userId: jwtPayload.sub,
+              violations: sessionValidation.violations.join(', '),
+            });
+          } catch (error) {
+            logger.error('CRITICAL: Token blacklist failed on forced logout', error, {
+              service: 'middleware',
+              userId: jwtPayload.sub,
+              securityRisk: 'Token may be reused until JWT expiry (max 1 hour)',
+            });
+            // Continue with logout anyway (user experience > blacklist failure)
+          }
+
+          // Differentiate response based on request type
+          if (pathname.startsWith('/api/')) {
+            // API request: Return JSON 401 with timeout details
+            return NextResponse.json(
+              {
+                error: 'Session Timeout',
+                code: 'SESSION_TIMEOUT',
+                message: SessionValidator.getTimeoutMessage(sessionValidation),
+                violations: sessionValidation.violations,
+                sessionAgeHours: Math.floor((sessionValidation.metadata.sessionAgeMs || 0) / (60 * 60 * 1000)),
+                idleMinutes: Math.floor((sessionValidation.metadata.idleTimeMs || 0) / (60 * 1000)),
+              },
+              { status: 401 }
+            );
+          } else {
+            // Page request: Redirect to login (preserves admin routes)
+            return redirectToLogin(request);
+          }
+        }
+        // Soft enforcement (default): Continue with request
       }
     }
 
