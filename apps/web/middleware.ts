@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyJWT, ConfigManager } from '@mintenance/auth';
+import { verifyJWT, ConfigManager, SessionValidator } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter-enhanced';
 import { handlePreflightRequest, addCorsHeaders, shouldSkipCors } from '@/lib/cors';
+import { securityMonitor } from '@/lib/security-monitor';
 
 // CRITICAL FIX: Fail-fast initialization to prevent silent failures
 // If ConfigManager fails to initialize, the entire middleware should fail immediately
@@ -265,6 +266,39 @@ export async function middleware(request: NextRequest) {
     if (jwtPayload.exp && jwtPayload.exp < now) {
       // Token expired, redirect to login
       return redirectToLogin(request);
+    }
+
+    // VULN-009: Check session timeouts (soft enforcement - Phase 2)
+    // Validates absolute session timeout (12 hours) and idle timeout (30 minutes)
+    // In Phase 2, violations are logged but don't force logout (soft enforcement)
+    if (jwtPayload.sessionStart && jwtPayload.lastActivity) {
+      const sessionValidation = SessionValidator.validateSession({
+        sessionStart: jwtPayload.sessionStart,
+        lastActivity: jwtPayload.lastActivity,
+      });
+
+      if (!sessionValidation.isValid) {
+        // Log violation but don't block request (soft enforcement)
+        // Use fire-and-forget to avoid blocking the request
+        securityMonitor.logSuspiciousActivity(
+          request,
+          `Session timeout violation: ${sessionValidation.reason}`,
+          jwtPayload.sub,
+          {
+            violations: sessionValidation.violations,
+            sessionAgeMs: sessionValidation.metadata.sessionAgeMs,
+            idleTimeMs: sessionValidation.metadata.idleTimeMs,
+            softEnforcement: true,  // Marker for Phase 2 (logging only)
+            timeoutMessage: SessionValidator.getTimeoutMessage(sessionValidation),
+          }
+        ).catch((err) => {
+          // Catch logging errors to prevent middleware failures
+          logger.error('Failed to log session timeout violation', err, {
+            service: 'middleware',
+            userId: jwtPayload.sub,
+          });
+        });
+      }
     }
 
     // Validate CSRF token for state-changing requests
