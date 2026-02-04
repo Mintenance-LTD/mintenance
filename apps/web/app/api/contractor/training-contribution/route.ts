@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(fileName);
 
     // Process with SAM3 for segmentation
-    let segmentationData = null;
+    let segmentationData: any = null;
     try {
       if (process.env.ENABLE_SAM3_SEGMENTATION === 'true') {
         segmentationData = await processWithSAM3(publicUrl);
@@ -364,7 +364,11 @@ async function checkAndAwardRewards(contractorId: string): Promise<{
     return { creditsEarned: 5 };
   }
 
-  const response: unknown = {
+  const response: {
+    creditsEarned: number;
+    milestone?: string;
+    bonus?: number;
+  } = {
     creditsEarned: 5
   };
 

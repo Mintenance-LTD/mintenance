@@ -197,3 +197,59 @@ yolo11n.pt
 
 # Exclude markdown files from git
 *.md
+
+# Development artifacts that shouldn't be in root
+*.sql
+!supabase/migrations/**/*.sql
+!migrations/**/*.sql
+*.py
+!scripts/**/*.py
+!apps/**/*.py
+*.ps1
+!scripts/**/*.ps1
+*.txt
+!README.txt
+*.tmp
+*.msi
+*.bat
+!scripts/**/*.bat
+*.sh
+!scripts/**/*.sh
+!infrastructure/**/*.sh
+*.json
+!package*.json
+!tsconfig*.json
+!*.config.json
+!class_mapping*.json
+*.html
+!index.html
+*.js
+!scripts/**/*.js
+!*.config.js
+!jest*.js
+!playwright*.js
+!lighthouserc.js
+!mcp-server.js
+!mcp-server.ts
+
+# Test files and debug artifacts in root
+test-*.js
+test-*.ts
+*-test.js
+*-test.ts
+debug-*.png
+debug-*.jpg
+*-result.png
+*-result.jpg
+*-test-result.png
+*-test-result.jpg
+
+# Jupyter notebooks (should be in notebooks/ or docs/)
+*.ipynb
+!docs/**/*.ipynb
+
+# Config files that should be in specific directories
+security-*.config.js
+security-*.cron
+performance-*.config.js
+auth-*.html

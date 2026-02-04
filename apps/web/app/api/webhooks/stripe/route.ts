@@ -20,7 +20,7 @@ const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
 // Ensure Node.js runtime for Stripe SDK and raw body access
 export const runtime = 'nodejs';
 
-import { checkWebhookRateLimit } from '@/lib/rate-limiter';
+import { checkWebhookRateLimit, rateLimiter } from '@/lib/rate-limiter';
 
 /**
  * Stripe Webhook Handler
@@ -45,19 +45,6 @@ import { checkWebhookRateLimit } from '@/lib/rate-limiter';
  * - invoice.payment_failed - Subscription payment failed
  */
 export async function POST(request: NextRequest) {
-  // Rate limiting
-  const clientIp = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                   request.headers.get('x-real-ip') ||
-                   'unknown';
-
-  const rateLimitResult = await checkWebhookRateLimit(clientIp);
-  if (!rateLimitResult.allowed) {
-    logger.warn('Webhook rate limit exceeded', {
-      service: 'stripe-webhook',
-      clientIp
-    });
-    throw new RateLimitError('Too many webhook requests. Please try again later.');
-  }
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

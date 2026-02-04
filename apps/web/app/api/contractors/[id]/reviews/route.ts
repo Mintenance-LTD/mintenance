@@ -10,7 +10,7 @@ interface Params { params: Promise<{ id: string }> }
 export async function GET(req: NextRequest, context: Params) {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    identifier: `${req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'anonymous'}:${req.url}`,
     windowMs: 60000,
     maxRequests: 30
   });
@@ -78,7 +78,7 @@ async function getContractorReviews(context: Params) {
     }
 
     // Transform reviews to match frontend interface
-    const transformedReviews = (reviews || []).map((review: unknown) => ({
+    const transformedReviews = (reviews || []).map((review: any) => ({
       id: review.id,
       author: review.reviewer
         ? `${review.reviewer.first_name || ''} ${review.reviewer.last_name || ''}`.trim() || 'Anonymous'

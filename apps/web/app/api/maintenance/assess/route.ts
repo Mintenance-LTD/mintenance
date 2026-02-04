@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { MaintenanceAssessmentService } from '@/lib/services/maintenance/MaintenanceAssessmentService';
+import { MaintenanceAssessmentService, type MaintenanceAssessment } from '@/lib/services/maintenance/MaintenanceAssessmentService';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/auth';
 import { z } from 'zod';
@@ -211,7 +211,7 @@ async function checkRateLimit(userId: string): Promise<boolean> {
 /**
  * Track usage metrics
  */
-async function trackUsageMetrics(userId: string, assessment: unknown): Promise<void> {
+async function trackUsageMetrics(userId: string, assessment: MaintenanceAssessment): Promise<void> {
   const supabase = await createServerSupabaseClient();
 
   try {
@@ -237,9 +237,9 @@ async function trackUsageMetrics(userId: string, assessment: unknown): Promise<v
 /**
  * Generate user-friendly message
  */
-function generateUserMessage(assessment: unknown): string {
+function generateUserMessage(assessment: MaintenanceAssessment): string {
   if (assessment.status === 'identified') {
-    const issue = assessment.issue_detected.replace('_', ' ');
+    const issue = (assessment.issue_detected || 'issue').replace('_', ' ');
     const severity = assessment.severity;
     const urgency = assessment.urgency;
 
