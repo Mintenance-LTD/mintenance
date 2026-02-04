@@ -17,6 +17,8 @@ concurrency:
 jobs:
   security-scan:
     runs-on: ubuntu-latest
+    env:
+      HAS_SNYK: ${{ secrets.SNYK_TOKEN != '' }}
     
     steps:
     - name: Checkout code
@@ -40,7 +42,7 @@ jobs:
       continue-on-error: true
 
     - name: Run Snyk security scan
-      if: ${{ secrets.SNYK_TOKEN != '' }}
+      if: ${{ env.HAS_SNYK == 'true' }}
       uses: snyk/actions/node@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

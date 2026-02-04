@@ -21,6 +21,8 @@ jobs:
   unit-tests:
     name: Mobile Unit Tests
     runs-on: ubuntu-latest
+    env:
+      HAS_CODECOV: ${{ secrets.CODECOV_TOKEN != '' }}
 
     steps:
       - name: Checkout code
@@ -53,7 +55,7 @@ jobs:
           cat coverage-output.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload coverage to Codecov
-        if: ${{ secrets.CODECOV_TOKEN != '' }}
+        if: ${{ env.HAS_CODECOV == 'true' }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
