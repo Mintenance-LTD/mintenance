@@ -18,6 +18,13 @@ import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRe
 
 interface Params { params: Promise<{ id: string }> }
 
+interface JobAttachment {
+  id: string;
+  file_url: string;
+  file_type: string;
+  uploaded_at: string;
+}
+
 // Cache AI analysis results for 24 hours
 const aiAnalysisCache = new Map<string, { timestamp: number; data: unknown }>();
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -142,7 +149,7 @@ export async function GET(_req: NextRequest, context: Params) {
     });
 
     // Format comprehensive job data for frontend
-    const formattedJob: unknown = {
+    const formattedJob = {
       id: row.id,
       title: row.title,
       description: row.description,
@@ -166,8 +173,8 @@ export async function GET(_req: NextRequest, context: Params) {
       propertyType: row.property?.property_type || 'house',
       accessInfo: row.access_info || '',
       images: row.job_attachments
-        ?.filter((att: unknown) => att.file_type === 'image')
-        .map((att: unknown) => att.file_url) || [],
+        ?.filter((att: JobAttachment) => att.file_type === 'image')
+        .map((att: JobAttachment) => att.file_url) || [],
       requirements: row.requirements || [],
       latitude: row.latitude,
       longitude: row.longitude,
@@ -176,7 +183,7 @@ export async function GET(_req: NextRequest, context: Params) {
       bidCount: row.bids?.[0]?.count || 0,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-    };
+    } as any;
 
     // Check if we have cached AI analysis
     const cacheKey = getCacheKey(id, formattedJob.images);
@@ -233,7 +240,7 @@ export async function PUT(request: NextRequest, context: Params) {
     });
 
     if (!rateLimitResult.allowed) {
-      throw new RateLimitError('Too many AI analysis requests. Please try again later');
+      throw new RateLimitError(rateLimitResult.retryAfter);
     }
 
     const body = await request.json();
@@ -351,7 +358,7 @@ export async function PUT(request: NextRequest, context: Params) {
     }
 
     // Update job in database
-    const updatePayload: unknown = {
+    const updatePayload: any = {
       updated_at: new Date().toISOString(),
     };
 
