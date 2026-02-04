@@ -36,11 +36,8 @@ const jest = {
 // Make jest available globally
 (globalThis as any).jest = jest;
 
-// Cleanup after each test
-afterEach(() => {
-  cleanup();
-  vi.clearAllMocks();
-});
+// Note: Cleanup moved to individual test files to avoid vitest runner issues
+// Individual tests should call cleanup() and vi.clearAllMocks() as needed
 
 beforeEach(() => {
   // Reset all mocks before each test

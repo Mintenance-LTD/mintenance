@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 /**
  * @jest-environment node
  */
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Mock dependencies
