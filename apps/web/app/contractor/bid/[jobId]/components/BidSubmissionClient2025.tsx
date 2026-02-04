@@ -46,6 +46,7 @@ interface BidSubmissionClient2025Props {
 interface LineItem {
   id: string;
   description: string;
+  type: 'labor' | 'material' | 'equipment';
   quantity: number;
   unitPrice: number;
   total: number;
@@ -89,6 +90,25 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
     return lineItems.reduce((sum, item) => sum + item.total, 0);
   }, [lineItems, amount]);
 
+  // Calculate labor vs. material breakdown
+  const laborTotal = useMemo(() => {
+    return lineItems
+      .filter(item => item.type === 'labor')
+      .reduce((sum, item) => sum + item.total, 0);
+  }, [lineItems]);
+
+  const materialTotal = useMemo(() => {
+    return lineItems
+      .filter(item => item.type === 'material')
+      .reduce((sum, item) => sum + item.total, 0);
+  }, [lineItems]);
+
+  const equipmentTotal = useMemo(() => {
+    return lineItems
+      .filter(item => item.type === 'equipment')
+      .reduce((sum, item) => sum + item.total, 0);
+  }, [lineItems]);
+
   const taxAmount = (subtotal * taxRate) / 100;
   const totalAmount = subtotal + taxAmount;
 
@@ -121,7 +141,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   const addLineItem = () => {
     setLineItems([
       ...lineItems,
-      { id: Math.random().toString(), description: '', quantity: 1, unitPrice: 0, total: 0 },
+      { id: Math.random().toString(), description: '', type: 'labor', quantity: 1, unitPrice: 0, total: 0 },
     ]);
   };
 
@@ -622,12 +642,21 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                         <div className="space-y-3">
                           {lineItems.map((item) => (
                             <div key={item.id} className="grid grid-cols-12 gap-2 p-3 bg-gray-50 rounded-lg">
+                              <select
+                                value={item.type}
+                                onChange={(e) => updateLineItem(item.id, 'type', e.target.value as 'labor' | 'material' | 'equipment')}
+                                className="col-span-2 px-2 py-2 border border-gray-300 rounded-lg text-sm font-medium"
+                              >
+                                <option value="labor">Labor</option>
+                                <option value="material">Material</option>
+                                <option value="equipment">Equipment</option>
+                              </select>
                               <input
                                 type="text"
                                 value={item.description}
                                 onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
                                 placeholder="Description"
-                                className="col-span-5 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                className="col-span-4 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                               />
                               <input
                                 type="number"
@@ -646,7 +675,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                                 step="0.01"
                                 min="0"
                               />
-                              <div className="col-span-2 px-3 py-2 bg-white rounded-lg text-sm font-medium flex items-center">
+                              <div className="col-span-1 px-2 py-2 bg-white rounded-lg text-sm font-medium flex items-center justify-end">
                                 £{item.total.toFixed(2)}
                               </div>
                               <button
@@ -660,6 +689,51 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                             </div>
                           ))}
                         </div>
+
+                        {/* Cost Breakdown: Labor vs. Materials */}
+                        {lineItems.length > 0 && (
+                          <div className="bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-200 rounded-xl p-5 mt-4">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                              <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                              Cost Breakdown
+                            </h4>
+                            <div className="space-y-2">
+                              {laborTotal > 0 && (
+                                <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    <span className="text-sm text-gray-700">Labor</span>
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-900">£{laborTotal.toFixed(2)}</span>
+                                </div>
+                              )}
+                              {materialTotal > 0 && (
+                                <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                                    <span className="text-sm text-gray-700">Materials</span>
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-900">£{materialTotal.toFixed(2)}</span>
+                                </div>
+                              )}
+                              {equipmentTotal > 0 && (
+                                <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                    <span className="text-sm text-gray-700">Equipment</span>
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-900">£{equipmentTotal.toFixed(2)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center pt-2 border-t-2 border-teal-200">
+                                <span className="text-sm font-semibold text-gray-900">Subtotal</span>
+                                <span className="text-base font-bold text-teal-600">£{subtotal.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Tax Rate */}

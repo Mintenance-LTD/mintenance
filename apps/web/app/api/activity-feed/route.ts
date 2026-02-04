@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { handleAPIError } from '@/lib/errors/api-error';
@@ -35,7 +35,7 @@ interface UserRecord {
  * Public API endpoint to fetch live activity feed for the landing page
  * Returns recent job activities: completed jobs, hired contractors, quotes received
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
     try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

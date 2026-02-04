@@ -178,6 +178,9 @@ const nextConfig = {
       config.externals.push('@google-cloud/vision');
       config.externals.push('@google-cloud/storage');
       config.externals.push('@google-cloud/aiplatform');
+      // Externalize argon2 (optional password hashing library)
+      config.externals.push('argon2');
+      config.externals.push({ 'argon2': 'commonjs argon2' });
     } else {
       // Client-side: Configure for onnxruntime-web
       config.resolve.alias = {
@@ -186,6 +189,7 @@ const nextConfig = {
         '@google-cloud/vision': false,
         '@google-cloud/storage': false,
         '@google-cloud/aiplatform': false,
+        'argon2': false,
       };
     }
 

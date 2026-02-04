@@ -147,8 +147,15 @@ export default function LoginPage() {
         if (response.status === 429) {
           throw new Error('Too many login attempts. Please wait a few minutes and try again.');
         } else if (response.status === 401) {
-          const errorMsg = responseData.error || responseData.message || '';
-          if (errorMsg.toLowerCase().includes('email') || errorMsg.toLowerCase().includes('not found')) {
+          // Ensure errorMsg is always a string
+          let errorMsg = responseData.error || responseData.message || '';
+          if (typeof errorMsg !== 'string') {
+            errorMsg = typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : String(errorMsg);
+          }
+          // Check for email verification requirement FIRST (before generic email check)
+          if (errorMsg.toLowerCase().includes('verify') || errorMsg.toLowerCase().includes('confirm') || errorMsg.toLowerCase().includes('email_not_confirmed')) {
+            throw new Error('Please verify your email address before signing in. Check your inbox for a confirmation email.');
+          } else if (errorMsg.toLowerCase().includes('not found')) {
             throw new Error('No account found with this email address. Please check your email or sign up for a new account.');
           } else if (errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('invalid')) {
             throw new Error('Incorrect password. Please check your password or use "Forgot password" to reset it.');

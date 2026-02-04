@@ -1,39 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BuildingSurveyorService } from '@/lib/services/building-surveyor';
-import type { Phase1BuildingAssessment, SafetyHazard } from '@/lib/services/building-surveyor/types';
-import { validateImageForOpenAI } from '@/lib/utils/image-validation';
-import { shouldCompressImage, compressImageServerSide } from '@/lib/utils/image-compression';
-import { logger } from '@/lib/logger';
+import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
+import { logger } from '@mintenance/shared';
 import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import * as crypto from 'crypto';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const demoRequestSchema = z.object({
+  imageUrls: z.array(z.string()).min(1).max(3),
+  context: z.object({
+    propertyType: z.enum(['residential', 'commercial', 'industrial']).optional(),
+    ageOfProperty: z.number().optional(),
+    location: z.string().optional(),
+  }).optional(),
+});
+
 /**
  * PUBLIC API endpoint for Building Surveyor damage assessment demo
- * This is a simplified version for the landing page showcase
+ * This is a simplified version for the /try-mint-ai page
  * Does NOT require authentication (for demo purposes only)
  */
 export async function POST(request: NextRequest) {
-    logger.info('[API] Building Surveyor Demo: Request received');
+    console.log('=== DEMO ROUTE CALLED ===');
+    logger.info('Building Surveyor Demo: Request received', {
+      service: 'mint-ai-demo',
+    });
 
     try {
-  // Rate limiting check
+  // Strict rate limiting for public endpoint
+  const identifier = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+                     request.headers.get('x-real-ip') ||
+                     'anonymous';
+
   const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
+    identifier: `mint-ai-demo:${identifier}`,
+    windowMs: 60000, // 1 minute
+    maxRequests: 3, // Only 3 demo requests per minute
   });
 
   if (!rateLimitResult.allowed) {
+    logger.warn('Mint AI demo rate limit exceeded', {
+      service: 'mint-ai-demo',
+      identifier,
+    });
+
     return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
+      { error: 'Too many requests. Please wait a moment and try again.' },
       {
         status: 429,
         headers: {
           'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Limit': '3',
           'X-RateLimit-Remaining': String(rateLimitResult.remaining),
           'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
         }
@@ -41,99 +63,153 @@ export async function POST(request: NextRequest) {
     );
   }
 
-        // Check for API key availability
-        const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
-        logger.debug('[API] Environment check', { hasOpenAIKey });
+        // Parse and validate request
+        const body = await request.json();
+        const validationResult = demoRequestSchema.safeParse(body);
 
-        // Parse form data
-        const formData = await request.formData();
-        const imageFile = formData.get('image') as File;
-
-        if (!imageFile) {
-            logger.warn('[API] Error: No image provided');
-            throw new BadRequestError('No image provided');
+        if (!validationResult.success) {
+          throw new BadRequestError('Invalid request data');
         }
 
-        logger.info('[API] Image received', {
-            type: imageFile.type,
-            size: imageFile.size
+        const { imageUrls, context } = validationResult.data;
+
+        logger.info('Demo assessment starting', {
+          service: 'mint-ai-demo',
+          imageCount: imageUrls.length,
+          identifier,
         });
 
-        // Validate image using OpenAI requirements
-        const validation = validateImageForOpenAI(imageFile, {
-            maxSizeMB: 20, // OpenAI allows 50MB, but we use 20MB for safety
+        // Generate cache key for deduplication
+        const cacheKey = crypto
+          .createHash('sha256')
+          .update(imageUrls.sort().join('|'))
+          .digest('hex');
+
+        console.log('=== ABOUT TO CREATE ASSESSMENT RECORD ===');
+        logger.info('About to create demo assessment record', {
+          service: 'mint-ai-demo',
+          cacheKey,
         });
 
-        if (!validation.isValid) {
-            throw new BadRequestError(`Image validation failed: ${validation.errors.join('; ')}`);
-        }
+        // Create placeholder assessment record (shadow_mode = true, user_id = null)
+        // This enables training data capture for demo assessments
+        const { data: placeholderRow, error: insertError } = await serverSupabase
+          .from('building_assessments')
+          .insert({
+            user_id: null,  // NULL allowed when shadow_mode = true
+            shadow_mode: true,  // Demo assessments run in shadow mode
+            cache_key: cacheKey,
+            damage_type: 'pending',  // Will be updated after assessment
+            severity: 'midway',  // Placeholder
+            confidence: 0,
+            safety_score: 50,
+            compliance_score: 50,
+            insurance_risk_score: 50,
+            urgency: 'monitor',
+            assessment_data: {},
+            validation_status: 'pending',
+          })
+          .select('id')
+          .single();
 
-        // Log warnings if any
-        if (validation.warnings.length > 0) {
-            logger.warn('[API] Image validation warnings', { warnings: validation.warnings });
-        }
-
-        logger.info('[API] Image validated', {
-            sizeMB: validation.sizeMB.toFixed(2),
-            format: validation.format,
-            mimeType: validation.mimeType,
+        logger.info('Database insert completed', {
+          service: 'mint-ai-demo',
+          hasError: !!insertError,
+          hasPlaceholder: !!placeholderRow,
+          placeholderId: placeholderRow?.id,
         });
 
-        // Convert File to Buffer
-        const bytes = await imageFile.arrayBuffer();
-        let buffer: Buffer = Buffer.from(bytes);
+        const assessmentId = placeholderRow?.id;
 
-        // Compress if image is large (reduces token usage and costs)
-        if (shouldCompressImage(imageFile, 5)) {
-            logger.info('[API] Compressing large image...');
-            try {
-                const compressed = await compressImageServerSide(buffer, {
-                    maxWidth: 2048,
-                    maxHeight: 2048,
-                    quality: 0.85,
-                });
-                buffer = compressed;
-                logger.info('[API] Image compressed successfully');
-            } catch (compressionError) {
-                logger.warn('[API] Compression failed, using original image', compressionError);
-                // Continue with original image if compression fails
-            }
+        if (insertError || !assessmentId) {
+          logger.error('Failed to create demo assessment record', {
+            service: 'mint-ai-demo',
+            error: insertError,
+            errorMessage: insertError?.message,
+            errorCode: insertError?.code,
+            errorDetails: insertError?.details,
+            placeholderRowExists: !!placeholderRow,
+            assessmentIdValue: assessmentId,
+          });
+          // Continue without assessmentId (training data won't be captured but assessment will work)
+        } else {
+          logger.info('Demo assessment record created successfully', {
+            service: 'mint-ai-demo',
+            assessmentId,
+            shadowMode: true,
+          });
         }
 
-        // Convert to base64 for the Building Surveyor service
-        const base64Image = buffer.toString('base64');
-        const imageUrl = `data:${imageFile.type};base64,${base64Image}`;
-
-        logger.info('[API] Calling BuildingSurveyorService.assessDamage...');
-
-        // Perform assessment using the static method
+        // Perform assessment using the Building Surveyor service
+        // Pass assessmentId through context to enable training data capture
         const assessment: Phase1BuildingAssessment = await BuildingSurveyorService.assessDamage(
-            [imageUrl],
+            imageUrls,
             {
-                propertyType: 'residential', // Default for demo
+                propertyType: context?.propertyType || 'residential',
+                ageOfProperty: context?.ageOfProperty,
+                location: context?.location,
+                assessmentId,  // Enable training data capture for demo
             }
         );
 
-        logger.info('[API] Assessment completed successfully');
+        // Update assessment record with actual results
+        if (assessmentId) {
+          await serverSupabase
+            .from('building_assessments')
+            .update({
+              damage_type: assessment.damageAssessment?.damageType || 'unknown',
+              severity: assessment.damageAssessment?.severity || 'midway',
+              confidence: assessment.damageAssessment?.confidence || 0,
+              safety_score: assessment.safetyHazards?.overallSafetyScore || 50,
+              compliance_score: assessment.compliance?.complianceScore || 50,
+              insurance_risk_score: assessment.insuranceRisk?.riskScore || 50,
+              urgency: assessment.urgency?.urgency || 'monitor',
+              assessment_data: assessment as unknown as Record<string, unknown>,
+            })
+            .eq('id', assessmentId);
+        }
 
-        // Transform assessment to frontend format
-        const response = {
-            damageType: assessment.damageAssessment?.damageType || 'Unknown',
-            severity: assessment.damageAssessment?.severity || 'Unknown',
-            confidence: assessment.damageAssessment?.confidence || 0,
-            estimatedCost: formatCostRange(assessment.contractorAdvice?.estimatedCost),
-            urgency: formatUrgency(assessment.urgency?.urgency || 'moderate'),
-            recommendation: assessment.homeownerExplanation?.whatToDo || 'Contact a specialist for detailed assessment',
-            safetyHazards: assessment.safetyHazards?.hazards?.map((h: SafetyHazard) => h.description) || [],
-            detectionDetails: {
-                detectedObjects: assessment.evidence?.roboflowDetections?.length || 0,
-                analysisMethod: 'GPT-4 Vision',
-            },
+        logger.info('Demo assessment completed', {
+          service: 'mint-ai-demo',
+          identifier,
+          assessmentId,
+          damageType: assessment.damageAssessment?.damageType,
+        });
+
+        // Build response payload
+        const responsePayload = {
+          damageAssessment: assessment.damageAssessment,
+          costEstimate: assessment.contractorAdvice?.estimatedCost,
+          urgency: assessment.urgency,
+          safetyHazards: assessment.safetyHazards,
+          compliance: assessment.compliance,
+          insuranceRisk: assessment.insuranceRisk,
+          recommendations: [
+            assessment.homeownerExplanation?.whatToDo,
+            ...(assessment.contractorAdvice?.repairNeeded || []),
+          ].filter(Boolean),
+          decisionResult: assessment.decisionResult,
+          // Include materials (enriched with database pricing)
+          materials: assessment.contractorAdvice?.materials || [],
+          // Include assessmentId for training feedback (Phase 2)
+          assessmentId: assessmentId || null,
         };
 
-        return NextResponse.json(response);
+        // Log what we're returning to help debug frontend issues
+        logger.info('Demo API response payload', {
+          service: 'mint-ai-demo',
+          hasAssessmentId: !!responsePayload.assessmentId,
+          assessmentId: responsePayload.assessmentId,
+          materialsCount: responsePayload.materials?.length || 0,
+        });
+
+        // Return full assessment for the demo page
+        return NextResponse.json(responsePayload);
 
     } catch (error) {
+        logger.error('Demo assessment error', error, {
+          service: 'mint-ai-demo',
+        });
         return handleAPIError(error);
     }
 }

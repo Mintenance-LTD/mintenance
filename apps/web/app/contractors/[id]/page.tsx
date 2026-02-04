@@ -187,8 +187,26 @@ function ContractorPublicProfilePage2025() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount, URL params are read synchronously in initializer
 
+  interface RawContractorData {
+    id: string;
+    name?: string;
+    company_name?: string;
+    city?: string;
+    country?: string;
+    created_at?: string;
+    avatarUrl?: string;
+    rating?: number;
+    reviewCount?: number;
+    total_jobs_completed?: number;
+    skills?: string[];
+    bio?: string;
+    phone?: string;
+    email?: string;
+    verified?: boolean;
+  }
+
   // Transform API response to Contractor interface
-  const transformContractorData = (contractorData: unknown, id: string): Contractor => {
+  const transformContractorData = (contractorData: RawContractorData, id: string): Contractor => {
     const location = contractorData.city && contractorData.country
       ? `${contractorData.city}, ${contractorData.country}`
       : contractorData.city || contractorData.country || 'Location not specified';
@@ -253,7 +271,7 @@ function ContractorPublicProfilePage2025() {
         }
 
         const contractorData = await contractorResponse.json();
-        const contractor = contractorData.contractor;
+        const contractor = contractorData.contractor as RawContractorData;
 
         if (!contractor) {
           throw new Error('Contractor data not found in response');
@@ -392,7 +410,7 @@ function ContractorPublicProfilePage2025() {
                   }
                   const data = await response.json();
                   if (data.contractor) {
-                    setContractor(transformContractorData(data.contractor, contractorId));
+                    setContractor(transformContractorData(data.contractor as RawContractorData, contractorId));
                     setError(null);
                   } else {
                     setError('Contractor data not found');

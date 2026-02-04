@@ -674,18 +674,54 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
       </div>
 
       {/* Description */}
-      {bid.description && 
+      {bid.description &&
        !bid.description.toLowerCase().includes('ffff') &&
        !bid.description.toLowerCase().includes('lorem') &&
        bid.description.trim().length > 5 && (
         <p className="text-gray-700 text-sm mb-4 line-clamp-3">{bid.description}</p>
       )}
-      {(!bid.description || 
+      {(!bid.description ||
         bid.description.toLowerCase().includes('ffff') ||
         bid.description.toLowerCase().includes('lorem') ||
         bid.description.trim().length <= 5) && (
         <p className="text-gray-500 text-sm mb-4 italic">No description provided</p>
       )}
+
+      {/* Cost Breakdown - Labor vs Materials vs Equipment */}
+      {(bid as any).lineItems && (bid as any).lineItems.length > 0 && (() => {
+        const laborTotal = (bid as any).lineItems
+          .filter((item: any) => item.type === 'labor')
+          .reduce((sum: number, item: any) => sum + item.total, 0);
+        const materialTotal = (bid as any).lineItems
+          .filter((item: any) => item.type === 'material')
+          .reduce((sum: number, item: any) => sum + item.total, 0);
+        const equipmentTotal = (bid as any).lineItems
+          .filter((item: any) => item.type === 'equipment')
+          .reduce((sum: number, item: any) => sum + item.total, 0);
+
+        return (laborTotal > 0 || materialTotal > 0 || equipmentTotal > 0) ? (
+          <div className="mb-4 flex gap-4 flex-wrap text-sm text-gray-600">
+            {laborTotal > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                <span>Labor: £{laborTotal.toFixed(2)}</span>
+              </div>
+            )}
+            {materialTotal > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-500" />
+                <span>Materials: £{materialTotal.toFixed(2)}</span>
+              </div>
+            )}
+            {equipmentTotal > 0 && (
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                <span>Equipment: £{equipmentTotal.toFixed(2)}</span>
+              </div>
+            )}
+          </div>
+        ) : null;
+      })()}
 
       {/* Actions */}
       <div className="flex gap-3">

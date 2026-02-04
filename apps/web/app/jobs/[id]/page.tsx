@@ -48,8 +48,8 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     .eq('id', job.contractor_id)
     .single() : { data: null };
 
-  // Fetch bids with contractor info
-  const { data: bids } = await serverSupabase
+  // Fetch bids with contractor info and quote line items
+  const { data: bids, error: bidsError } = await serverSupabase
     .from('bids')
     .select(`
       id,
@@ -69,6 +69,10 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
         admin_verified,
         company_name,
         license_number
+      ),
+      quote:contractor_quotes!quote_id (
+        id,
+        line_items
       )
     `)
     .eq('job_id', resolvedParams.id);
@@ -105,9 +109,14 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     const contractor = Array.isArray(bid.contractor) ? bid.contractor[0] : bid.contractor;
     const portfolioImages = bid.contractor_id ? (portfolioMap.get(bid.contractor_id) || []).slice(0, 12) : [];
 
+    // Extract line items from quote if available
+    const quote = Array.isArray(bid.quote) ? bid.quote[0] : bid.quote;
+    const lineItems = quote?.line_items || [];
+
     return {
       ...bid,
       contractor: contractor ? { ...contractor, portfolioImages } : null,
+      lineItems,
     };
   }) : [];
 
@@ -134,6 +143,14 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     description?: string;
     created_at: string;
     contractor_id: string;
+    lineItems?: Array<{
+      id: string;
+      description: string;
+      type?: 'labor' | 'material' | 'equipment';
+      quantity: number;
+      unitPrice: number;
+      total: number;
+    }>;
     contractor?: {
       id: string;
       first_name?: string;
@@ -178,6 +195,8 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     description: bid.description,
     status: bid.status,
     created_at: bid.created_at,
+    quote_id: bid.quote_id,
+    lineItems: bid.lineItems,
     contractor: {
       id: bid.contractor?.id || '',
       first_name: bid.contractor?.first_name,

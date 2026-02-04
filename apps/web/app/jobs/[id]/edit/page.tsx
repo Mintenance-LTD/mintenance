@@ -61,6 +61,29 @@ interface JobFormData {
   requirements: string[];
 }
 
+interface BuildingSurvey {
+  damageAssessment?: {
+    damageType?: string;
+    severity?: 'early' | 'midway' | 'full';
+    costEstimate?: {
+      min: number;
+      max: number;
+    };
+  };
+  safetyHazards?: Array<{
+    description: string;
+  }>;
+  decisionResult?: {
+    fusionMean?: number;
+  };
+}
+
+interface GeocodeData {
+  latitude: number;
+  longitude: number;
+  formatted_address?: string;
+}
+
 export default function JobEditPage2025() {
   const params = useParams();
   const router = useRouter();
@@ -96,8 +119,8 @@ export default function JobEditPage2025() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<unknown>(null);
-  const [buildingSurvey, setBuildingSurvey] = useState<unknown>(null);
-  const [geocodeData, setGeocodeData] = useState<unknown>(null);
+  const [buildingSurvey, setBuildingSurvey] = useState<BuildingSurvey | null>(null);
+  const [geocodeData, setGeocodeData] = useState<GeocodeData | null>(null);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [runBuildingSurvey, setRunBuildingSurvey] = useState(false);
   const [analyzeWithAI, setAnalyzeWithAI] = useState(true);
@@ -1007,7 +1030,7 @@ export default function JobEditPage2025() {
                 </div>
 
                 {/* Smart Job Analysis Integration */}
-                {showAIInsights && aiAnalysis && (
+                {showAIInsights && aiAnalysis ? (
                   <div className="space-y-4">
                     <SmartJobAnalysis
                       title={formData.title}
@@ -1022,7 +1045,7 @@ export default function JobEditPage2025() {
                       onUrgencySelect={(urgency) => handleInputChange('urgency', urgency)}
                     />
                   </div>
-                )}
+                ) : null}
 
                 {/* Building Survey Results */}
                 {buildingSurvey && (
@@ -1065,16 +1088,16 @@ export default function JobEditPage2025() {
                           </div>
                         )}
 
-                        {buildingSurvey.safetyHazards?.length > 0 && (
+                        {buildingSurvey.safetyHazards && buildingSurvey.safetyHazards.length > 0 ? (
                           <div className="bg-red-50 rounded-lg p-3">
                             <p className="text-sm font-medium text-red-800 mb-2">Safety Hazards:</p>
                             <ul className="list-disc list-inside text-sm text-red-700">
-                              {buildingSurvey.safetyHazards.map((hazard: unknown, index: number) => (
+                              {buildingSurvey.safetyHazards.map((hazard, index: number) => (
                                 <li key={index}>{hazard.description}</li>
                               ))}
                             </ul>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     )}
 

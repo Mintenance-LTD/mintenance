@@ -5,11 +5,26 @@ import { Upload, Camera, AlertCircle, CheckCircle, Loader2, Home, Wrench, Clock,
 import { useDropzone } from 'react-dropzone';
 import Image from 'next/image';
 
+interface Assessment {
+  issue_type?: string;
+  confidence?: number;
+  severity?: 'critical' | 'major' | 'moderate' | 'minor';
+  contractor_type?: string;
+  estimated_cost?: {
+    min: number;
+    max: number;
+  };
+  estimated_hours?: number;
+  materials_needed?: string[];
+  tools_required?: string[];
+  safety_notes?: string[];
+}
+
 export default function MaintenanceAIPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [assessment, setAssessment] = useState<unknown>(null);
+  const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [urgency, setUrgency] = useState('normal');

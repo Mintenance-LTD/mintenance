@@ -7,6 +7,16 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { VerificationBadge } from './VerificationBadge';
 
+interface User {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  created_at: string;
+  [key: string]: any;
+}
+
 interface VerificationCheck {
   name: string;
   passed: boolean;
@@ -48,7 +58,7 @@ interface UserDetailModalProps {
 
 export function UserDetailModal({ isOpen, onClose, userId, onVerificationUpdate }: UserDetailModalProps) {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<unknown>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [verification, setVerification] = useState<VerificationData | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);
@@ -193,7 +203,7 @@ export function UserDetailModal({ isOpen, onClose, userId, onVerificationUpdate 
           </div>
         )}
 
-        {error && (
+        {error ? (
           <div style={{
             padding: theme.spacing[3],
             backgroundColor: '#FEE2E2',
@@ -204,9 +214,9 @@ export function UserDetailModal({ isOpen, onClose, userId, onVerificationUpdate 
           }}>
             {error}
           </div>
-        )}
+        ) : null}
 
-        {!loading && user && (
+        {!loading && user ? (
           <>
             {/* User Info */}
             <div>
@@ -569,7 +579,7 @@ export function UserDetailModal({ isOpen, onClose, userId, onVerificationUpdate 
               </>
             )}
           </>
-        )}
+        ) : null}
 
         {/* Footer */}
         <div style={{

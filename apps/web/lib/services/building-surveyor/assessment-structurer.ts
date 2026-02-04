@@ -10,11 +10,13 @@ import { ComplianceService } from './ComplianceService';
 import { InsuranceRiskService } from './InsuranceRiskService';
 import { normalizeSeverity, normalizeUrgency } from './normalization-utils';
 import { processUrgency } from './urgency-processor';
+import { enrichMaterialsWithDatabase } from './material-enrichment';
 
 /**
  * Structure AI response into Phase1BuildingAssessment
+ * NOW ASYNC: Enriches materials with database pricing
  */
-export function structureAssessment(
+export async function structureAssessment(
   aiResponse: AiAssessmentPayload,
   evidence?: {
     roboflowDetections?: import('./types').RoboflowDetection[];
@@ -22,7 +24,7 @@ export function structureAssessment(
     sam3Segmentation?: import('./SAM3Service').DamageTypeSegmentation | import('./types').SAM3SegmentationData | null | undefined;
     sceneGraphFeatures?: import('./scene_graph_features').SceneGraphFeatures | null | undefined;
   },
-): Phase1BuildingAssessment {
+): Promise<Phase1BuildingAssessment> {
   // Validate and normalize severity
   const severity = normalizeSeverity(aiResponse.severity);
   const urgency = normalizeUrgency(aiResponse.urgency);
@@ -63,7 +65,35 @@ export function structureAssessment(
     name: material.name || 'unspecified material',
     quantity: material.quantity || 'quantity not provided',
     estimatedCost: material.estimatedCost ?? 0,
+    source: 'ai' as const,  // Always set source initially
   }));
+
+  logger.info('BEFORE material enrichment call', {
+    service: 'building-surveyor',
+    materialsLength: normalizedMaterials.length,
+    materialsSample: normalizedMaterials.length > 0 ? normalizedMaterials[0] : null
+  });
+
+  // NEW: Enrich materials with database pricing (with error handling)
+  let enrichedMaterials = normalizedMaterials;  // Default to AI materials
+  try {
+    if (normalizedMaterials.length > 0) {
+      enrichedMaterials = await enrichMaterialsWithDatabase(normalizedMaterials);
+    }
+    logger.info('AFTER material enrichment call', {
+      service: 'building-surveyor',
+      enrichedLength: enrichedMaterials.length,
+      hasDbMaterials: enrichedMaterials.some(m => m.source === 'database')
+    });
+  } catch (err) {
+    logger.error('Material database enrichment failed', err, {
+      service: 'building-surveyor',
+      materialCount: normalizedMaterials.length,
+      errorName: err instanceof Error ? err.name : 'unknown',
+      errorMessage: err instanceof Error ? err.message : String(err)
+    });
+    // enrichedMaterials already set to normalizedMaterials above
+  }
 
   const contractorAdvice = {
     repairNeeded:
@@ -71,7 +101,7 @@ export function structureAssessment(
       aiResponse.contractorAdvice.repairNeeded.length > 0
         ? aiResponse.contractorAdvice.repairNeeded
         : ['Professional inspection required', 'Determine root cause', 'Plan repair approach'],
-    materials: normalizedMaterials,
+    materials: enrichedMaterials,
     tools: aiResponse.contractorAdvice?.tools || [],
     estimatedTime: aiResponse.contractorAdvice?.estimatedTime || 'TBD',
     estimatedCost: {

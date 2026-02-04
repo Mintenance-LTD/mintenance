@@ -44,6 +44,16 @@ interface VerificationData {
   adminVerified: boolean;
 }
 
+interface User {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  created_at: string;
+  [key: string]: any;
+}
+
 interface UserDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,7 +63,7 @@ interface UserDetailDialogProps {
 
 export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpdate }: UserDetailDialogProps) {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<unknown>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [verification, setVerification] = useState<VerificationData | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [action, setAction] = useState<'approve' | 'reject' | null>(null);
@@ -164,7 +174,7 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
             </Alert>
           )}
 
-          {!loading && user && (
+          {!loading && user ? (
             <>
               {/* User Info */}
               <div>
@@ -438,7 +448,7 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
                 </>
               )}
             </>
-          )}
+          ) : null}
         </div>
 
         {/* Footer */}

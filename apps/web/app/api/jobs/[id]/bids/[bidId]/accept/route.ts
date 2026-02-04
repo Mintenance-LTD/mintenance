@@ -7,7 +7,7 @@ import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, ConflictError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 /** Type for bid data from Supabase query */
@@ -27,9 +27,10 @@ export async function POST(
   let bidId: string | undefined;
 
   try {
-  // Rate limiting check
+  // Rate limiting check - use IP only, not URL (job/bid IDs in URL make each request unique)
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous';
   const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    identifier: `accept-bid:${ip}`,
     windowMs: 60000,
     maxRequests: 30
   });

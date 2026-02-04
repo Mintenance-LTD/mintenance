@@ -11,6 +11,17 @@ import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
 import { BUSINESS_RULES } from '@mintenance/shared';
 
+interface AssessmentData {
+  job_id?: string;
+  id: string;
+  severity?: string;
+  damage_type?: string;
+  confidence?: number;
+  urgency?: string;
+  assessment_data?: any;
+  created_at: string;
+}
+
 const listQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
   cursor: z.string().optional(),
@@ -290,14 +301,14 @@ export async function GET(request: NextRequest) {
 
           if (assessmentsData) {
             // Group by job_id and take the most recent
-            assessmentsData.forEach((assessment: unknown) => {
+            assessmentsData.forEach((assessment: AssessmentData) => {
               if (assessment.job_id && !assessmentsByJobId.has(assessment.job_id)) {
                 assessmentsByJobId.set(assessment.job_id, {
                   id: assessment.id,
-                  severity: assessment.severity,
-                  damage_type: assessment.damage_type,
-                  confidence: assessment.confidence,
-                  urgency: assessment.urgency,
+                  severity: (assessment.severity as 'early' | 'midway' | 'full') || 'midway',
+                  damage_type: assessment.damage_type || '',
+                  confidence: assessment.confidence || 0,
+                  urgency: (assessment.urgency as 'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor') || 'monitor',
                   assessment_data: assessment.assessment_data,
                   created_at: assessment.created_at,
                 });
@@ -388,7 +399,7 @@ export async function POST(request: NextRequest) {
           retryAfter: rateLimitResult.retryAfter,
         });
 
-        throw new RateLimitError('Too many job creation requests. Please try again later.');
+        throw new RateLimitError(rateLimitResult.retryAfter);
       }
     }
 
@@ -418,7 +429,7 @@ export async function POST(request: NextRequest) {
       throw new BadRequestError('Validation failed');
     }
 
-    const payload = parsed.data;
+    const payload: z.infer<typeof createJobSchema> = parsed.data;
 
     // BUSINESS RULE: High-budget jobs MUST have images
     const budgetThreshold = BUSINESS_RULES.BUDGET_REQUIRES_PHOTOS_THRESHOLD;
@@ -445,7 +456,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           invalidUrls: urlValidation.invalid,
         });
-        throw new BadRequestError(`Invalid photo URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}`);
+        throw new BadRequestError(`Invalid photo URLs: ${urlValidation.invalid.map((i: { error: string }) => i.error).join(', ')}`);
       }
       // Replace with validated URLs
       payload.photoUrls = urlValidation.valid;
@@ -458,6 +469,10 @@ export async function POST(request: NextRequest) {
       description?: string;
       category?: string | null;
       budget?: number;
+      budget_min?: number;
+      budget_max?: number;
+      show_budget_to_contractors?: boolean;
+      require_itemized_bids?: boolean;
       location?: string | null;
       required_skills?: string[] | null;
       property_id?: string | null;

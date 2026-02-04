@@ -1,1838 +1,2962 @@
 {
   "summary": {
-    "largeFiles": 173,
-    "warningFiles": 103
+    "largeFiles": 289,
+    "warningFiles": 155
   },
   "largeFiles": [
     {
       "file": "app\\help\\lib\\categories.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\help\\lib\\categories.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\help\\lib\\categories.ts",
       "lines": 2044,
       "app": "Web App",
       "exceedsBy": 1544
     },
     {
-      "file": "app\\jobs\\create\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\create\\page.tsx",
+      "file": "app\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\page.tsx",
+      "lines": 1511,
+      "app": "Web App",
+      "exceedsBy": 1011
+    },
+    {
+      "file": "src\\services\\NotificationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\NotificationService.ts",
+      "lines": 1414,
+      "app": "Mobile App",
+      "exceedsBy": 914
+    },
+    {
+      "file": "app\\_archive\\pre-2025\\jobs-create-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\jobs-create-page.tsx",
       "lines": 1341,
       "app": "Web App",
       "exceedsBy": 841
     },
     {
-      "file": "app\\contractor\\profile\\components\\EditProfileModal.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\profile\\components\\EditProfileModal.tsx",
-      "lines": 1136,
+      "file": "components\\professional\\index.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\professional\\index.tsx",
+      "lines": 1201,
       "app": "Web App",
-      "exceedsBy": 636
+      "exceedsBy": 701
+    },
+    {
+      "file": "app\\contractor\\profile\\components\\EditProfileModal.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\profile\\components\\EditProfileModal.tsx",
+      "lines": 1179,
+      "app": "Web App",
+      "exceedsBy": 679
+    },
+    {
+      "file": "app\\jobs\\[id]\\edit\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\edit\\page.tsx",
+      "lines": 1172,
+      "app": "Web App",
+      "exceedsBy": 672
     },
     {
       "file": "app\\contractor\\jobs-near-you\\components\\JobsNearYouClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\jobs-near-you\\components\\JobsNearYouClient.tsx",
-      "lines": 1128,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\jobs-near-you\\components\\JobsNearYouClient.tsx",
+      "lines": 1123,
       "app": "Web App",
-      "exceedsBy": 628
+      "exceedsBy": 623
+    },
+    {
+      "file": "app\\contractors\\components\\ContractorsBrowseProfessional.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\components\\ContractorsBrowseProfessional.tsx",
+      "lines": 1109,
+      "app": "Web App",
+      "exceedsBy": 609
+    },
+    {
+      "file": "app\\contractor\\discover\\components\\ContractorDiscoverClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\discover\\components\\ContractorDiscoverClient.tsx",
+      "lines": 1096,
+      "app": "Web App",
+      "exceedsBy": 596
+    },
+    {
+      "file": "app\\settings\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\settings\\page.tsx",
+      "lines": 1093,
+      "app": "Web App",
+      "exceedsBy": 593
+    },
+    {
+      "file": "app\\contractor\\profile\\components\\ContractorProfileClient2025.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\profile\\components\\ContractorProfileClient2025.tsx",
+      "lines": 1092,
+      "app": "Web App",
+      "exceedsBy": 592
+    },
+    {
+      "file": "src\\services\\OfflineManager.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\OfflineManager.ts",
+      "lines": 1091,
+      "app": "Mobile App",
+      "exceedsBy": 591
     },
     {
       "file": "app\\admin\\building-assessments\\components\\BuildingAssessmentsClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\building-assessments\\components\\BuildingAssessmentsClient.tsx",
-      "lines": 1068,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\building-assessments\\components\\BuildingAssessmentsClient.tsx",
+      "lines": 1085,
       "app": "Web App",
-      "exceedsBy": 568
-    },
-    {
-      "file": "lib\\services\\building-surveyor\\ab_test_harness.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\ab_test_harness.ts",
-      "lines": 1024,
-      "app": "Web App",
-      "exceedsBy": 524
-    },
-    {
-      "file": "lib\\services\\building-surveyor\\DataCollectionService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\DataCollectionService.ts",
-      "lines": 995,
-      "app": "Web App",
-      "exceedsBy": 495
-    },
-    {
-      "file": "lib\\services\\building-surveyor\\BuildingSurveyorService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BuildingSurveyorService.ts",
-      "lines": 986,
-      "app": "Web App",
-      "exceedsBy": 486
-    },
-    {
-      "file": "src\\services\\PaymentGateway.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\PaymentGateway.ts",
-      "lines": 973,
-      "app": "Mobile App",
-      "exceedsBy": 473
-    },
-    {
-      "file": "lib\\services\\agents\\PricingAgent.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\PricingAgent.ts",
-      "lines": 951,
-      "app": "Web App",
-      "exceedsBy": 451
-    },
-    {
-      "file": "src\\services\\SustainabilityEngine.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\SustainabilityEngine.ts",
-      "lines": 919,
-      "app": "Mobile App",
-      "exceedsBy": 419
-    },
-    {
-      "file": "app\\api\\webhooks\\stripe\\route.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\webhooks\\stripe\\route.ts",
-      "lines": 871,
-      "app": "Web App",
-      "exceedsBy": 371
+      "exceedsBy": 585
     },
     {
       "file": "lib\\services\\building-surveyor\\critic.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\critic.ts",
-      "lines": 860,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\critic.ts",
+      "lines": 1082,
       "app": "Web App",
-      "exceedsBy": 360
+      "exceedsBy": 582
     },
     {
-      "file": "app\\components\\landing\\HeroStoryAnimation.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\components\\landing\\HeroStoryAnimation.tsx",
+      "file": "components\\ui\\MotionDiv.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\MotionDiv.tsx",
+      "lines": 1066,
+      "app": "Web App",
+      "exceedsBy": 566
+    },
+    {
+      "file": "lib\\services\\agents\\PricingAgent.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\PricingAgent.ts",
+      "lines": 1021,
+      "app": "Web App",
+      "exceedsBy": 521
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\DataCollectionService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\DataCollectionService.ts",
+      "lines": 1000,
+      "app": "Web App",
+      "exceedsBy": 500
+    },
+    {
+      "file": "app\\contractors\\[id]\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\[id]\\page.tsx",
+      "lines": 982,
+      "app": "Web App",
+      "exceedsBy": 482
+    },
+    {
+      "file": "src\\services\\contractor-business\\ResourceManagementService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\contractor-business\\ResourceManagementService.ts",
+      "lines": 979,
+      "app": "Mobile App",
+      "exceedsBy": 479
+    },
+    {
+      "file": "app\\contractor\\settings\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\settings\\page.tsx",
+      "lines": 946,
+      "app": "Web App",
+      "exceedsBy": 446
+    },
+    {
+      "file": "src\\services\\SustainabilityEngine.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\SustainabilityEngine.ts",
+      "lines": 946,
+      "app": "Mobile App",
+      "exceedsBy": 446
+    },
+    {
+      "file": "app\\jobs\\create\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\create\\page.tsx",
+      "lines": 928,
+      "app": "Web App",
+      "exceedsBy": 428
+    },
+    {
+      "file": "scripts\\load-test-ai-cache.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\load-test-ai-cache.ts",
+      "lines": 913,
+      "app": "Web App",
+      "exceedsBy": 413
+    },
+    {
+      "file": "app\\api\\webhooks\\stripe\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\webhooks\\stripe\\route.ts",
+      "lines": 910,
+      "app": "Web App",
+      "exceedsBy": 410
+    },
+    {
+      "file": "app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient2025.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient2025.tsx",
+      "lines": 898,
+      "app": "Web App",
+      "exceedsBy": 398
+    },
+    {
+      "file": "app\\admin\\api-documentation\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\api-documentation\\page.tsx",
+      "lines": 889,
+      "app": "Web App",
+      "exceedsBy": 389
+    },
+    {
+      "file": "lib\\services\\agents\\EscrowReleaseAgent.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\EscrowReleaseAgent.ts",
+      "lines": 887,
+      "app": "Web App",
+      "exceedsBy": 387
+    },
+    {
+      "file": "app\\contractor\\messages\\components\\MessagesClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\messages\\components\\MessagesClient.tsx",
+      "lines": 876,
+      "app": "Web App",
+      "exceedsBy": 376
+    },
+    {
+      "file": "app\\contractor\\social\\components\\CreatePostModal.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\components\\CreatePostModal.tsx",
+      "lines": 869,
+      "app": "Web App",
+      "exceedsBy": 369
+    },
+    {
+      "file": "src\\screens\\JobPostingScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\JobPostingScreen.tsx",
+      "lines": 867,
+      "app": "Mobile App",
+      "exceedsBy": 367
+    },
+    {
+      "file": "app\\jobs\\[id]\\components\\JobDetailsProfessional.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\JobDetailsProfessional.tsx",
+      "lines": 865,
+      "app": "Web App",
+      "exceedsBy": 365
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\orchestration\\AssessmentOrchestrator.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\orchestration\\AssessmentOrchestrator.ts",
       "lines": 856,
       "app": "Web App",
       "exceedsBy": 356
     },
     {
-      "file": "app\\contractor\\social\\components\\CreatePostModal.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\components\\CreatePostModal.tsx",
-      "lines": 854,
+      "file": "app\\api\\jobs\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\jobs\\route.ts",
+      "lines": 855,
       "app": "Web App",
-      "exceedsBy": 354
+      "exceedsBy": 355
     },
     {
-      "file": "lib\\services\\agents\\EscrowReleaseAgent.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\EscrowReleaseAgent.ts",
-      "lines": 854,
+      "file": "lib\\services\\building-surveyor\\EnhancedBayesianFusionService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\EnhancedBayesianFusionService.ts",
+      "lines": 855,
       "app": "Web App",
-      "exceedsBy": 354
+      "exceedsBy": 355
+    },
+    {
+      "file": "src\\services\\PaymentService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\PaymentService.ts",
+      "lines": 853,
+      "app": "Mobile App",
+      "exceedsBy": 353
     },
     {
       "file": "src\\components\\video-call\\VideoCallInterface.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\video-call\\VideoCallInterface.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\video-call\\VideoCallInterface.tsx",
       "lines": 850,
       "app": "Mobile App",
       "exceedsBy": 350
     },
     {
-      "file": "src\\screens\\ProfileScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\ProfileScreen.tsx",
-      "lines": 840,
-      "app": "Mobile App",
-      "exceedsBy": 340
+      "file": "app\\jobs\\tracking\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\tracking\\page.tsx",
+      "lines": 846,
+      "app": "Web App",
+      "exceedsBy": 346
     },
     {
-      "file": "app\\contractor\\bid\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\bid\\page.tsx",
+      "file": "src\\screens\\MeetingDetailsScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\MeetingDetailsScreen.tsx",
+      "lines": 846,
+      "app": "Mobile App",
+      "exceedsBy": 346
+    },
+    {
+      "file": "app\\_archive\\pre-2025\\contractor-bid-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\contractor-bid-page.tsx",
       "lines": 838,
       "app": "Web App",
       "exceedsBy": 338
     },
     {
-      "file": "src\\screens\\JobPostingScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\JobPostingScreen.tsx",
-      "lines": 830,
-      "app": "Mobile App",
-      "exceedsBy": 330
+      "file": "lib\\services\\agents\\PredictiveAgent.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\PredictiveAgent.ts",
+      "lines": 835,
+      "app": "Web App",
+      "exceedsBy": 335
     },
     {
-      "file": "lib\\services\\agents\\PredictiveAgent.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\PredictiveAgent.ts",
+      "file": "src\\utils\\monitoringAndAlerting.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\monitoringAndAlerting.ts",
+      "lines": 831,
+      "app": "Mobile App",
+      "exceedsBy": 331
+    },
+    {
+      "file": "src\\services\\contractor-business\\FinancialManagementService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\contractor-business\\FinancialManagementService.ts",
+      "lines": 824,
+      "app": "Mobile App",
+      "exceedsBy": 324
+    },
+    {
+      "file": "app\\jobs\\[id]\\components\\JobDetailsAirbnb.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\JobDetailsAirbnb.tsx",
       "lines": 823,
       "app": "Web App",
       "exceedsBy": 323
     },
     {
-      "file": "app\\jobs\\tracking\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\tracking\\page.tsx",
-      "lines": 822,
-      "app": "Web App",
-      "exceedsBy": 322
+      "file": "src\\screens\\ProfileScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\ProfileScreen.tsx",
+      "lines": 823,
+      "app": "Mobile App",
+      "exceedsBy": 323
     },
     {
-      "file": "src\\utils\\monitoringAndAlerting.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\monitoringAndAlerting.ts",
-      "lines": 798,
+      "file": "lib\\services\\building-surveyor\\AlertingService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\AlertingService.ts",
+      "lines": 821,
+      "app": "Web App",
+      "exceedsBy": 321
+    },
+    {
+      "file": "src\\services\\AdvancedSearchService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\AdvancedSearchService.ts",
+      "lines": 821,
       "app": "Mobile App",
-      "exceedsBy": 298
+      "exceedsBy": 321
+    },
+    {
+      "file": "app\\components\\landing\\ProductionLandingPage.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\components\\landing\\ProductionLandingPage.tsx",
+      "lines": 806,
+      "app": "Web App",
+      "exceedsBy": 306
     },
     {
       "file": "src\\components\\booking\\BookingInterface.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\booking\\BookingInterface.tsx",
-      "lines": 797,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\booking\\BookingInterface.tsx",
+      "lines": 806,
       "app": "Mobile App",
-      "exceedsBy": 297
+      "exceedsBy": 306
     },
     {
       "file": "src\\components\\SustainabilityScoreWidget.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\SustainabilityScoreWidget.tsx",
-      "lines": 796,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\SustainabilityScoreWidget.tsx",
+      "lines": 801,
       "app": "Mobile App",
-      "exceedsBy": 296
+      "exceedsBy": 301
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\ModelABTestingService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\ModelABTestingService.ts",
+      "lines": 795,
+      "app": "Web App",
+      "exceedsBy": 295
+    },
+    {
+      "file": "lib\\cache.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\cache.ts",
+      "lines": 794,
+      "app": "Web App",
+      "exceedsBy": 294
+    },
+    {
+      "file": "src\\services\\VideoCallService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\VideoCallService.ts",
+      "lines": 793,
+      "app": "Mobile App",
+      "exceedsBy": 293
     },
     {
       "file": "src\\services\\QuoteBuilderService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\QuoteBuilderService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\QuoteBuilderService.ts",
       "lines": 792,
       "app": "Mobile App",
       "exceedsBy": 292
     },
     {
-      "file": "app\\contractor\\messages\\components\\MessagesClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\messages\\components\\MessagesClient.tsx",
-      "lines": 789,
-      "app": "Web App",
-      "exceedsBy": 289
-    },
-    {
-      "file": "src\\services\\contractor-business\\ResourceManagementService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\contractor-business\\ResourceManagementService.ts",
+      "file": "app\\contractors\\components\\ContractorsBrowseClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\components\\ContractorsBrowseClient.tsx",
       "lines": 788,
-      "app": "Mobile App",
+      "app": "Web App",
       "exceedsBy": 288
     },
     {
       "file": "src\\components\\MeetingCommunicationPanel.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\MeetingCommunicationPanel.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\MeetingCommunicationPanel.tsx",
       "lines": 786,
       "app": "Mobile App",
       "exceedsBy": 286
     },
     {
+      "file": "lib\\services\\ml-engine\\memory\\ContinuumMemorySystem.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ml-engine\\memory\\ContinuumMemorySystem.ts",
+      "lines": 782,
+      "app": "Web App",
+      "exceedsBy": 282
+    },
+    {
+      "file": "lib\\mfa\\mfa-service.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\mfa\\mfa-service.ts",
+      "lines": 781,
+      "app": "Web App",
+      "exceedsBy": 281
+    },
+    {
+      "file": "src\\services\\ContractorService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ContractorService.ts",
+      "lines": 777,
+      "app": "Mobile App",
+      "exceedsBy": 277
+    },
+    {
+      "file": "app\\api\\jobs\\[id]\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\jobs\\[id]\\route.ts",
+      "lines": 774,
+      "app": "Web App",
+      "exceedsBy": 274
+    },
+    {
+      "file": "app\\contractor\\certifications\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\certifications\\page.tsx",
+      "lines": 774,
+      "app": "Web App",
+      "exceedsBy": 274
+    },
+    {
       "file": "lib\\services\\VideoCallService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\VideoCallService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\VideoCallService.ts",
       "lines": 774,
       "app": "Web App",
       "exceedsBy": 274
     },
     {
       "file": "app\\admin\\users\\components\\UserManagementClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\users\\components\\UserManagementClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\users\\components\\UserManagementClient.tsx",
+      "lines": 773,
+      "app": "Web App",
+      "exceedsBy": 273
+    },
+    {
+      "file": "components\\airbnb-system\\index.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\airbnb-system\\index.tsx",
       "lines": 772,
       "app": "Web App",
       "exceedsBy": 272
     },
     {
       "file": "src\\components\\NeighborhoodLeaderboard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\NeighborhoodLeaderboard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\NeighborhoodLeaderboard.tsx",
       "lines": 772,
       "app": "Mobile App",
       "exceedsBy": 272
     },
     {
-      "file": "lib\\services\\building-surveyor\\scene_graph.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\scene_graph.ts",
-      "lines": 755,
+      "file": "app\\contractor\\scheduling\\components\\SchedulingClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\scheduling\\components\\SchedulingClient.tsx",
+      "lines": 769,
       "app": "Web App",
-      "exceedsBy": 255
+      "exceedsBy": 269
     },
     {
-      "file": "src\\services\\contractor-business\\FinancialManagementService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\contractor-business\\FinancialManagementService.ts",
+      "file": "lib\\services\\building-surveyor\\scene_graph.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\scene_graph.ts",
+      "lines": 766,
+      "app": "Web App",
+      "exceedsBy": 266
+    },
+    {
+      "file": "app\\_archive\\pre-2025\\jobs-[id]-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\jobs-[id]-page.tsx",
+      "lines": 765,
+      "app": "Web App",
+      "exceedsBy": 265
+    },
+    {
+      "file": "src\\screens\\video-capture\\VideoProcessingStatusScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\video-capture\\VideoProcessingStatusScreen.tsx",
+      "lines": 765,
+      "app": "Mobile App",
+      "exceedsBy": 265
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\ModelEvaluationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\ModelEvaluationService.ts",
+      "lines": 760,
+      "app": "Web App",
+      "exceedsBy": 260
+    },
+    {
+      "file": "app\\contractors\\components\\ContractorMapView.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\components\\ContractorMapView.tsx",
+      "lines": 757,
+      "app": "Web App",
+      "exceedsBy": 257
+    },
+    {
+      "file": "src\\screens\\video-capture\\VideoCaptureScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\video-capture\\VideoCaptureScreen.tsx",
       "lines": 753,
       "app": "Mobile App",
       "exceedsBy": 253
     },
     {
-      "file": "app\\jobs\\[id]\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\page.tsx",
-      "lines": 752,
-      "app": "Web App",
-      "exceedsBy": 252
-    },
-    {
-      "file": "lib\\cache.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\cache.ts",
-      "lines": 747,
-      "app": "Web App",
-      "exceedsBy": 247
-    },
-    {
-      "file": "src\\services\\VideoCallService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\VideoCallService.ts",
-      "lines": 739,
+      "file": "src\\services\\MeetingService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\MeetingService.ts",
+      "lines": 744,
       "app": "Mobile App",
-      "exceedsBy": 239
+      "exceedsBy": 244
+    },
+    {
+      "file": "components\\layouts\\UnifiedSidebar.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\layouts\\UnifiedSidebar.tsx",
+      "lines": 742,
+      "app": "Web App",
+      "exceedsBy": 242
+    },
+    {
+      "file": "app\\api\\payments\\release-escrow\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\payments\\release-escrow\\route.ts",
+      "lines": 741,
+      "app": "Web App",
+      "exceedsBy": 241
+    },
+    {
+      "file": "lib\\feature-access-config.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\feature-access-config.ts",
+      "lines": 740,
+      "app": "Web App",
+      "exceedsBy": 240
     },
     {
       "file": "app\\admin\\revenue\\components\\RevenueDashboardClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\revenue\\components\\RevenueDashboardClient.tsx",
-      "lines": 738,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\revenue\\components\\RevenueDashboardClient.tsx",
+      "lines": 739,
       "app": "Web App",
+      "exceedsBy": 239
+    },
+    {
+      "file": "src\\services\\ImageCompressionService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ImageCompressionService.ts",
+      "lines": 738,
+      "app": "Mobile App",
       "exceedsBy": 238
     },
     {
       "file": "src\\screens\\MessagingScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\MessagingScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\MessagingScreen.tsx",
       "lines": 735,
       "app": "Mobile App",
       "exceedsBy": 235
     },
     {
-      "file": "app\\contractors\\components\\ContractorMapView.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\components\\ContractorMapView.tsx",
-      "lines": 728,
-      "app": "Web App",
-      "exceedsBy": 228
+      "file": "src\\utils\\productionReadinessOrchestrator.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\productionReadinessOrchestrator.ts",
+      "lines": 734,
+      "app": "Mobile App",
+      "exceedsBy": 234
+    },
+    {
+      "file": "src\\services\\MessagingService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\MessagingService.ts",
+      "lines": 729,
+      "app": "Mobile App",
+      "exceedsBy": 229
     },
     {
       "file": "src\\components\\BusinessDashboard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\BusinessDashboard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\BusinessDashboard.tsx",
       "lines": 728,
       "app": "Mobile App",
       "exceedsBy": 228
     },
     {
+      "file": "app\\contractor\\invoices\\components\\InvoiceManagementClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\invoices\\components\\InvoiceManagementClient.tsx",
+      "lines": 719,
+      "app": "Web App",
+      "exceedsBy": 219
+    },
+    {
+      "file": "src\\components\\ai\\BuildingAssessmentCard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ai\\BuildingAssessmentCard.tsx",
+      "lines": 719,
+      "app": "Mobile App",
+      "exceedsBy": 219
+    },
+    {
+      "file": "app\\contractor\\reporting\\components\\ReportingDashboard2025Client.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\reporting\\components\\ReportingDashboard2025Client.tsx",
+      "lines": 717,
+      "app": "Web App",
+      "exceedsBy": 217
+    },
+    {
       "file": "src\\screens\\ServiceRequestScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\ServiceRequestScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\ServiceRequestScreen.tsx",
       "lines": 716,
       "app": "Mobile App",
       "exceedsBy": 216
     },
     {
       "file": "src\\services\\EmailTemplatesService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\EmailTemplatesService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\EmailTemplatesService.ts",
       "lines": 716,
       "app": "Mobile App",
       "exceedsBy": 216
     },
     {
       "file": "src\\hooks\\useBusinessSuite.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useBusinessSuite.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useBusinessSuite.ts",
       "lines": 712,
       "app": "Mobile App",
       "exceedsBy": 212
     },
     {
       "file": "app\\search\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\search\\page.tsx",
-      "lines": 711,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\search\\page.tsx",
+      "lines": 709,
       "app": "Web App",
-      "exceedsBy": 211
+      "exceedsBy": 209
     },
     {
-      "file": "lib\\services\\ml-engine\\memory\\ContinuumMemorySystem.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ml-engine\\memory\\ContinuumMemorySystem.ts",
-      "lines": 711,
+      "file": "app\\properties\\components\\AddPropertyModal.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\properties\\components\\AddPropertyModal.tsx",
+      "lines": 707,
       "app": "Web App",
-      "exceedsBy": 211
-    },
-    {
-      "file": "src\\screens\\MeetingDetailsScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\MeetingDetailsScreen.tsx",
-      "lines": 706,
-      "app": "Mobile App",
-      "exceedsBy": 206
+      "exceedsBy": 207
     },
     {
       "file": "src\\components\\patterns\\CompoundComponents.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\patterns\\CompoundComponents.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\patterns\\CompoundComponents.tsx",
       "lines": 703,
       "app": "Mobile App",
       "exceedsBy": 203
     },
     {
       "file": "src\\screens\\PaymentMethodScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\PaymentMethodScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\PaymentMethodScreen.tsx",
       "lines": 703,
       "app": "Mobile App",
       "exceedsBy": 203
     },
     {
-      "file": "src\\utils\\productionReadinessOrchestrator.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\productionReadinessOrchestrator.ts",
-      "lines": 698,
+      "file": "src\\services\\ml-engine\\matching\\ContractorMatchingMLService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\matching\\ContractorMatchingMLService.ts",
+      "lines": 703,
       "app": "Mobile App",
-      "exceedsBy": 198
+      "exceedsBy": 203
     },
     {
-      "file": "src\\screens\\ContractorGalleryScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\ContractorGalleryScreen.tsx",
-      "lines": 694,
-      "app": "Mobile App",
-      "exceedsBy": 194
-    },
-    {
-      "file": "src\\services\\MessagingService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\MessagingService.ts",
-      "lines": 694,
-      "app": "Mobile App",
-      "exceedsBy": 194
-    },
-    {
-      "file": "src\\services\\AdvancedSearchService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\AdvancedSearchService.ts",
-      "lines": 693,
-      "app": "Mobile App",
-      "exceedsBy": 193
-    },
-    {
-      "file": "app\\properties\\components\\AddPropertyModal.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\properties\\components\\AddPropertyModal.tsx",
-      "lines": 691,
+      "file": "scripts\\prepare-test-data.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\prepare-test-data.ts",
+      "lines": 701,
       "app": "Web App",
-      "exceedsBy": 191
+      "exceedsBy": 201
+    },
+    {
+      "file": "app\\profile\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\profile\\page.tsx",
+      "lines": 700,
+      "app": "Web App",
+      "exceedsBy": 200
+    },
+    {
+      "file": "components\\building-surveyor\\ModelMonitoringDashboard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\building-surveyor\\ModelMonitoringDashboard.tsx",
+      "lines": 697,
+      "app": "Web App",
+      "exceedsBy": 197
+    },
+    {
+      "file": "app\\admin\\system-settings\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\system-settings\\page.tsx",
+      "lines": 694,
+      "app": "Web App",
+      "exceedsBy": 194
     },
     {
       "file": "components\\admin\\SecurityDashboard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\admin\\SecurityDashboard.tsx",
-      "lines": 687,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\admin\\SecurityDashboard.tsx",
+      "lines": 692,
       "app": "Web App",
+      "exceedsBy": 192
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\ContinuousLearningService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\ContinuousLearningService.ts",
+      "lines": 688,
+      "app": "Web App",
+      "exceedsBy": 188
+    },
+    {
+      "file": "src\\services\\LocalDatabase.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\LocalDatabase.ts",
+      "lines": 687,
+      "app": "Mobile App",
       "exceedsBy": 187
     },
     {
       "file": "src\\utils\\ApiProtection.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\ApiProtection.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\ApiProtection.ts",
       "lines": 682,
       "app": "Mobile App",
       "exceedsBy": 182
     },
     {
       "file": "src\\services\\ml-training\\MLTrainingPipelineService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\MLTrainingPipelineService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\MLTrainingPipelineService.ts",
       "lines": 681,
       "app": "Mobile App",
       "exceedsBy": 181
     },
     {
-      "file": "src\\services\\ml-engine\\matching\\ContractorMatchingMLService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\matching\\ContractorMatchingMLService.ts",
-      "lines": 678,
-      "app": "Mobile App",
-      "exceedsBy": 178
+      "file": "lib\\services\\building-surveyor\\KnowledgeDistillationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\KnowledgeDistillationService.ts",
+      "lines": 675,
+      "app": "Web App",
+      "exceedsBy": 175
     },
     {
-      "file": "app\\payments\\[transactionId]\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\payments\\[transactionId]\\page.tsx",
+      "file": "app\\_archive\\pre-2025\\payments-[transactionId]-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\payments-[transactionId]-page.tsx",
       "lines": 674,
       "app": "Web App",
       "exceedsBy": 174
     },
     {
-      "file": "src\\services\\ContractorService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ContractorService.ts",
+      "file": "app\\payment-methods\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\payment-methods\\page.tsx",
+      "lines": 673,
+      "app": "Web App",
+      "exceedsBy": 173
+    },
+    {
+      "file": "src\\components\\accessibility\\AccessibleComponents.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\accessibility\\AccessibleComponents.tsx",
       "lines": 673,
       "app": "Mobile App",
       "exceedsBy": 173
     },
     {
+      "file": "app\\contractor\\quotes\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\quotes\\page.tsx",
+      "lines": 672,
+      "app": "Web App",
+      "exceedsBy": 172
+    },
+    {
       "file": "app\\messages\\[jobId]\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\messages\\[jobId]\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\messages\\[jobId]\\page.tsx",
       "lines": 671,
       "app": "Web App",
       "exceedsBy": 171
     },
     {
-      "file": "src\\components\\accessibility\\AccessibleComponents.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\accessibility\\AccessibleComponents.tsx",
-      "lines": 671,
-      "app": "Mobile App",
-      "exceedsBy": 171
-    },
-    {
       "file": "src\\components\\ContractorCard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorCard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorCard.tsx",
       "lines": 669,
       "app": "Mobile App",
       "exceedsBy": 169
     },
     {
-      "file": "src\\components\\ContractorPost.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorPost.tsx",
+      "file": "lib\\services\\location\\LocationPricingService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\location\\LocationPricingService.ts",
+      "lines": 668,
+      "app": "Web App",
+      "exceedsBy": 168
+    },
+    {
+      "file": "__tests__\\security\\penetration-test.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\__tests__\\security\\penetration-test.ts",
+      "lines": 666,
+      "app": "Web App",
+      "exceedsBy": 166
+    },
+    {
+      "file": "lib\\services\\ImageAnalysisService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ImageAnalysisService.ts",
       "lines": 665,
-      "app": "Mobile App",
+      "app": "Web App",
       "exceedsBy": 165
     },
     {
+      "file": "components\\notifications\\NotificationDropdown.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\notifications\\NotificationDropdown.tsx",
+      "lines": 664,
+      "app": "Web App",
+      "exceedsBy": 164
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\SAM3TrainingDataService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\SAM3TrainingDataService.ts",
+      "lines": 664,
+      "app": "Web App",
+      "exceedsBy": 164
+    },
+    {
+      "file": "src\\components\\advanced-search\\AdvancedSearchFilters.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\advanced-search\\AdvancedSearchFilters.tsx",
+      "lines": 664,
+      "app": "Mobile App",
+      "exceedsBy": 164
+    },
+    {
       "file": "src\\services\\ml-engine\\analytics\\PerformanceAnalyticsMLService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\analytics\\PerformanceAnalyticsMLService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\analytics\\PerformanceAnalyticsMLService.ts",
       "lines": 662,
       "app": "Mobile App",
       "exceedsBy": 162
     },
     {
       "file": "src\\services\\ml-training\\ModelValidationService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\ModelValidationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\ModelValidationService.ts",
       "lines": 661,
       "app": "Mobile App",
       "exceedsBy": 161
     },
     {
-      "file": "src\\services\\RealAIAnalysisService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\RealAIAnalysisService.ts",
-      "lines": 659,
-      "app": "Mobile App",
-      "exceedsBy": 159
-    },
-    {
-      "file": "src\\components\\advanced-search\\AdvancedSearchFilters.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\advanced-search\\AdvancedSearchFilters.tsx",
-      "lines": 655,
-      "app": "Mobile App",
-      "exceedsBy": 155
+      "file": "app\\payments\\[transactionId]\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\payments\\[transactionId]\\page.tsx",
+      "lines": 660,
+      "app": "Web App",
+      "exceedsBy": 160
     },
     {
       "file": "app\\jobs\\[id]\\components\\IntelligentMatching.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\IntelligentMatching.tsx",
-      "lines": 654,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\IntelligentMatching.tsx",
+      "lines": 659,
       "app": "Web App",
-      "exceedsBy": 154
+      "exceedsBy": 159
     },
     {
-      "file": "app\\scheduling\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\scheduling\\page.tsx",
-      "lines": 652,
+      "file": "test\\setup.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\test\\setup.ts",
+      "lines": 650,
       "app": "Web App",
-      "exceedsBy": 152
+      "exceedsBy": 150
     },
     {
-      "file": "components\\notifications\\NotificationDropdown.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\notifications\\NotificationDropdown.tsx",
-      "lines": 651,
-      "app": "Web App",
-      "exceedsBy": 151
-    },
-    {
-      "file": "app\\financials\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\financials\\page.tsx",
+      "file": "app\\contractor\\dashboard-enhanced\\components\\ContractorDashboard2025Client.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboard2025Client.tsx",
       "lines": 649,
       "app": "Web App",
       "exceedsBy": 149
     },
     {
-      "file": "src\\utils\\errorMonitoring.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorMonitoring.ts",
-      "lines": 644,
-      "app": "Mobile App",
-      "exceedsBy": 144
+      "file": "app\\contractor\\components\\COMPONENT_EXAMPLES.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\components\\COMPONENT_EXAMPLES.tsx",
+      "lines": 648,
+      "app": "Web App",
+      "exceedsBy": 148
     },
     {
-      "file": "lib\\services\\ContractorAnalyticsService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ContractorAnalyticsService.ts",
+      "file": "src\\utils\\errorMonitoring.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorMonitoring.ts",
+      "lines": 645,
+      "app": "Mobile App",
+      "exceedsBy": 145
+    },
+    {
+      "file": "app\\contractor\\documents\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\documents\\page.tsx",
+      "lines": 643,
+      "app": "Web App",
+      "exceedsBy": 143
+    },
+    {
+      "file": "app\\contractor\\jobs\\[id]\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\jobs\\[id]\\page.tsx",
       "lines": 641,
       "app": "Web App",
       "exceedsBy": 141
     },
     {
+      "file": "components\\ui\\EmptyStateEducational.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\EmptyStateEducational.tsx",
+      "lines": 641,
+      "app": "Web App",
+      "exceedsBy": 141
+    },
+    {
+      "file": "lib\\services\\ContractorAnalyticsService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ContractorAnalyticsService.ts",
+      "lines": 641,
+      "app": "Web App",
+      "exceedsBy": 141
+    },
+    {
+      "file": "src\\services\\SyncManager.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\SyncManager.ts",
+      "lines": 640,
+      "app": "Mobile App",
+      "exceedsBy": 140
+    },
+    {
+      "file": "lib\\services\\escrow\\PhotoVerificationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\escrow\\PhotoVerificationService.ts",
+      "lines": 639,
+      "app": "Web App",
+      "exceedsBy": 139
+    },
+    {
+      "file": "scripts\\run-shadow-mode-batch.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\run-shadow-mode-batch.ts",
+      "lines": 639,
+      "app": "Web App",
+      "exceedsBy": 139
+    },
+    {
+      "file": "app\\contractor\\social\\components\\ContractorSocialClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\components\\ContractorSocialClient.tsx",
+      "lines": 638,
+      "app": "Web App",
+      "exceedsBy": 138
+    },
+    {
       "file": "lib\\auth-manager.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\auth-manager.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\auth-manager.ts",
       "lines": 638,
       "app": "Web App",
       "exceedsBy": 138
     },
     {
       "file": "src\\services\\contractor-business\\ScheduleManagementService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\contractor-business\\ScheduleManagementService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\contractor-business\\ScheduleManagementService.ts",
       "lines": 638,
       "app": "Mobile App",
       "exceedsBy": 138
     },
     {
-      "file": "app\\contractor\\social\\components\\ContractorSocialClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\components\\ContractorSocialClient.tsx",
-      "lines": 632,
+      "file": "app\\contractor\\components\\ProfessionalContractorLayout.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\components\\ProfessionalContractorLayout.tsx",
+      "lines": 635,
       "app": "Web App",
-      "exceedsBy": 132
+      "exceedsBy": 135
+    },
+    {
+      "file": "lib\\services\\ai\\ModelDriftDetectionService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ai\\ModelDriftDetectionService.ts",
+      "lines": 631,
+      "app": "Web App",
+      "exceedsBy": 131
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\InternalDamageClassifier.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\InternalDamageClassifier.ts",
+      "lines": 631,
+      "app": "Web App",
+      "exceedsBy": 131
+    },
+    {
+      "file": "app\\contractor\\messages\\components\\CreateContractModal.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\messages\\components\\CreateContractModal.tsx",
+      "lines": 629,
+      "app": "Web App",
+      "exceedsBy": 129
+    },
+    {
+      "file": "app\\payments\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\payments\\page.tsx",
+      "lines": 629,
+      "app": "Web App",
+      "exceedsBy": 129
     },
     {
       "file": "src\\components\\specialists\\SpecialistProfileCard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\specialists\\SpecialistProfileCard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\specialists\\SpecialistProfileCard.tsx",
       "lines": 628,
       "app": "Mobile App",
       "exceedsBy": 128
     },
     {
-      "file": "app\\contractor\\messages\\components\\CreateContractModal.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\messages\\components\\CreateContractModal.tsx",
-      "lines": 626,
-      "app": "Web App",
-      "exceedsBy": 126
-    },
-    {
-      "file": "lib\\services\\building-surveyor\\orchestration\\AssessmentOrchestrator.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\orchestration\\AssessmentOrchestrator.ts",
-      "lines": 624,
-      "app": "Web App",
-      "exceedsBy": 124
-    },
-    {
       "file": "src\\pricing\\complexity\\ComplexityAnalyzer.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\pricing\\complexity\\ComplexityAnalyzer.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\pricing\\complexity\\ComplexityAnalyzer.ts",
       "lines": 624,
       "app": "Mobile App",
       "exceedsBy": 124
     },
     {
-      "file": "lib\\services\\escrow\\PhotoVerificationService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\escrow\\PhotoVerificationService.ts",
-      "lines": 622,
+      "file": "lib\\services\\escrow\\HomeownerApprovalService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\escrow\\HomeownerApprovalService.ts",
+      "lines": 623,
       "app": "Web App",
-      "exceedsBy": 122
+      "exceedsBy": 123
+    },
+    {
+      "file": "src\\screens\\assessment\\PropertyAssessmentScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\assessment\\PropertyAssessmentScreen.tsx",
+      "lines": 623,
+      "app": "Mobile App",
+      "exceedsBy": 123
+    },
+    {
+      "file": "lib\\services\\agents\\AgentAnalytics.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\AgentAnalytics.ts",
+      "lines": 621,
+      "app": "Web App",
+      "exceedsBy": 121
     },
     {
       "file": "src\\services\\ml-training\\ModelTrainingEngine.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\ModelTrainingEngine.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\ModelTrainingEngine.ts",
       "lines": 621,
       "app": "Mobile App",
       "exceedsBy": 121
     },
     {
       "file": "app\\contractor\\reporting\\components\\ReportingDashboard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\reporting\\components\\ReportingDashboard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\reporting\\components\\ReportingDashboard.tsx",
+      "lines": 618,
+      "app": "Web App",
+      "exceedsBy": 118
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\YOLOTrainingDataEnhanced.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\YOLOTrainingDataEnhanced.ts",
+      "lines": 618,
+      "app": "Web App",
+      "exceedsBy": 118
+    },
+    {
+      "file": "app\\contact\\components\\ContactPageClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contact\\components\\ContactPageClient.tsx",
       "lines": 617,
       "app": "Web App",
       "exceedsBy": 117
     },
     {
-      "file": "app\\dashboard\\lib\\data-processing.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\dashboard\\lib\\data-processing.ts",
-      "lines": 617,
+      "file": "app\\api\\admin\\ml-monitoring\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\admin\\ml-monitoring\\route.ts",
+      "lines": 615,
       "app": "Web App",
-      "exceedsBy": 117
+      "exceedsBy": 115
     },
     {
-      "file": "app\\api\\jobs\\route.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\jobs\\route.ts",
-      "lines": 616,
+      "file": "app\\contractor\\discover\\components\\JobCard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\discover\\components\\JobCard.tsx",
+      "lines": 614,
       "app": "Web App",
-      "exceedsBy": 116
+      "exceedsBy": 114
     },
     {
-      "file": "app\\payments\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\payments\\page.tsx",
+      "file": "app\\_archive\\pre-2025\\payments-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\payments-page.tsx",
       "lines": 614,
       "app": "Web App",
       "exceedsBy": 114
     },
     {
       "file": "src\\services\\ApiClient.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ApiClient.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ApiClient.ts",
       "lines": 614,
       "app": "Mobile App",
       "exceedsBy": 114
     },
     {
+      "file": "app\\contractor\\tools\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\tools\\page.tsx",
+      "lines": 613,
+      "app": "Web App",
+      "exceedsBy": 113
+    },
+    {
       "file": "src\\components\\video-call\\VideoCallScheduler.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\video-call\\VideoCallScheduler.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\video-call\\VideoCallScheduler.tsx",
       "lines": 613,
       "app": "Mobile App",
       "exceedsBy": 113
     },
     {
       "file": "src\\services\\NeighborhoodService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\NeighborhoodService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\NeighborhoodService.ts",
       "lines": 613,
       "app": "Mobile App",
       "exceedsBy": 113
     },
     {
-      "file": "app\\api\\payments\\release-escrow\\route.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\payments\\release-escrow\\route.ts",
+      "file": "app\\contractor\\finance\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\finance\\page.tsx",
+      "lines": 611,
+      "app": "Web App",
+      "exceedsBy": 111
+    },
+    {
+      "file": "app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardProfessional.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardProfessional.tsx",
       "lines": 610,
       "app": "Web App",
       "exceedsBy": 110
     },
     {
       "file": "lib\\services\\RecommendationsService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\RecommendationsService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\RecommendationsService.ts",
       "lines": 610,
       "app": "Web App",
       "exceedsBy": 110
     },
     {
-      "file": "src\\services\\LocalDatabase.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\LocalDatabase.ts",
-      "lines": 606,
-      "app": "Mobile App",
-      "exceedsBy": 106
+      "file": "app\\api\\ai\\search\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\ai\\search\\route.ts",
+      "lines": 605,
+      "app": "Web App",
+      "exceedsBy": 105
+    },
+    {
+      "file": "lib\\monitoring\\payment-monitor.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\monitoring\\payment-monitor.ts",
+      "lines": 602,
+      "app": "Web App",
+      "exceedsBy": 102
+    },
+    {
+      "file": "lib\\services\\subscription\\SubscriptionService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\subscription\\SubscriptionService.ts",
+      "lines": 602,
+      "app": "Web App",
+      "exceedsBy": 102
     },
     {
       "file": "src\\screens\\ContractorCardEditorScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\ContractorCardEditorScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\ContractorCardEditorScreen.tsx",
       "lines": 602,
       "app": "Mobile App",
       "exceedsBy": 102
     },
     {
+      "file": "app\\contractor\\team\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\team\\page.tsx",
+      "lines": 601,
+      "app": "Web App",
+      "exceedsBy": 101
+    },
+    {
       "file": "lib\\services\\AdvancedSearchService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\AdvancedSearchService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\AdvancedSearchService.ts",
       "lines": 601,
       "app": "Web App",
       "exceedsBy": 101
     },
     {
-      "file": "src\\utils\\errorTracking.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorTracking.ts",
-      "lines": 601,
+      "file": "src\\services\\ServiceAreasService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ServiceAreasService.ts",
+      "lines": 599,
       "app": "Mobile App",
-      "exceedsBy": 101
+      "exceedsBy": 99
     },
     {
-      "file": "lib\\services\\subscription\\SubscriptionService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\subscription\\SubscriptionService.ts",
-      "lines": 600,
+      "file": "app\\api\\feature-flags\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\feature-flags\\route.ts",
+      "lines": 597,
       "app": "Web App",
-      "exceedsBy": 100
+      "exceedsBy": 97
+    },
+    {
+      "file": "app\\admin\\communications\\components\\CommunicationsClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\communications\\components\\CommunicationsClient.tsx",
+      "lines": 596,
+      "app": "Web App",
+      "exceedsBy": 96
     },
     {
       "file": "src\\services\\ml-engine\\pricing\\PricingMLService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\pricing\\PricingMLService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\pricing\\PricingMLService.ts",
       "lines": 596,
       "app": "Mobile App",
       "exceedsBy": 96
     },
     {
-      "file": "app\\admin\\communications\\components\\CommunicationsClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\communications\\components\\CommunicationsClient.tsx",
+      "file": "src\\utils\\errorTracking.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorTracking.ts",
+      "lines": 596,
+      "app": "Mobile App",
+      "exceedsBy": 96
+    },
+    {
+      "file": "app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient.tsx",
+      "lines": 595,
+      "app": "Web App",
+      "exceedsBy": 95
+    },
+    {
+      "file": "lib\\animations\\motion-config.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\animations\\motion-config.ts",
       "lines": 595,
       "app": "Web App",
       "exceedsBy": 95
     },
     {
       "file": "src\\services\\MLMemoryFixes.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\MLMemoryFixes.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\MLMemoryFixes.ts",
       "lines": 594,
       "app": "Mobile App",
       "exceedsBy": 94
     },
     {
-      "file": "app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\bid\\[jobId]\\components\\BidSubmissionClient.tsx",
-      "lines": 592,
-      "app": "Web App",
-      "exceedsBy": 92
-    },
-    {
-      "file": "src\\services\\ServiceAreasService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ServiceAreasService.ts",
-      "lines": 592,
-      "app": "Mobile App",
-      "exceedsBy": 92
-    },
-    {
       "file": "app\\admin\\users\\components\\UserDetailModal.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\users\\components\\UserDetailModal.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\users\\components\\UserDetailModal.tsx",
       "lines": 590,
       "app": "Web App",
       "exceedsBy": 90
     },
     {
       "file": "src\\components\\LoadingStates.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\LoadingStates.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\LoadingStates.tsx",
       "lines": 590,
       "app": "Mobile App",
       "exceedsBy": 90
     },
     {
-      "file": "src\\screens\\PerformanceDashboard\\PerformanceDashboard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\PerformanceDashboard\\PerformanceDashboard.tsx",
-      "lines": 588,
-      "app": "Mobile App",
-      "exceedsBy": 88
-    },
-    {
-      "file": "src\\services\\ContractorSocialService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ContractorSocialService.ts",
-      "lines": 588,
-      "app": "Mobile App",
-      "exceedsBy": 88
-    },
-    {
-      "file": "lib\\services\\escrow\\HomeownerApprovalService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\escrow\\HomeownerApprovalService.ts",
-      "lines": 587,
+      "file": "app\\contractor\\profile\\components\\EditProfileDialog.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\profile\\components\\EditProfileDialog.tsx",
+      "lines": 589,
       "app": "Web App",
-      "exceedsBy": 87
+      "exceedsBy": 89
+    },
+    {
+      "file": "src\\services\\UserService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\UserService.ts",
+      "lines": 589,
+      "app": "Mobile App",
+      "exceedsBy": 89
+    },
+    {
+      "file": "src\\screens\\PerformanceDashboard\\PerformanceDashboard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\PerformanceDashboard\\PerformanceDashboard.tsx",
+      "lines": 588,
+      "app": "Mobile App",
+      "exceedsBy": 88
+    },
+    {
+      "file": "src\\services\\RealtimeService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\RealtimeService.ts",
+      "lines": 585,
+      "app": "Mobile App",
+      "exceedsBy": 85
     },
     {
       "file": "src\\services\\ml-engine\\MLServiceCoordinator.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\MLServiceCoordinator.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\MLServiceCoordinator.ts",
       "lines": 584,
       "app": "Mobile App",
       "exceedsBy": 84
     },
     {
       "file": "src\\screens\\RegisterScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\RegisterScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\RegisterScreen.tsx",
       "lines": 583,
       "app": "Mobile App",
       "exceedsBy": 83
     },
     {
-      "file": "src\\utils\\cache.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\cache.ts",
+      "file": "app\\jobs\\[id]\\components\\BidSwipeCard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\BidSwipeCard.tsx",
+      "lines": 579,
+      "app": "Web App",
+      "exceedsBy": 79
+    },
+    {
+      "file": "lib\\services\\weather\\WeatherService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\weather\\WeatherService.ts",
+      "lines": 578,
+      "app": "Web App",
+      "exceedsBy": 78
+    },
+    {
+      "file": "app\\pricing\\components\\PricingClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\pricing\\components\\PricingClient.tsx",
+      "lines": 577,
+      "app": "Web App",
+      "exceedsBy": 77
+    },
+    {
+      "file": "src\\services\\contractor-business\\BusinessAnalyticsService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\contractor-business\\BusinessAnalyticsService.ts",
       "lines": 577,
       "app": "Mobile App",
       "exceedsBy": 77
     },
     {
-      "file": "app\\contractor\\dashboard-enhanced\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\dashboard-enhanced\\page.tsx",
-      "lines": 573,
-      "app": "Web App",
-      "exceedsBy": 73
+      "file": "src\\utils\\cache.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\cache.ts",
+      "lines": 577,
+      "app": "Mobile App",
+      "exceedsBy": 77
     },
     {
-      "file": "app\\contractor\\jobs\\[id]\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\jobs\\[id]\\page.tsx",
+      "file": "components\\building-surveyor\\BuildingAssessmentDisplay.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\building-surveyor\\BuildingAssessmentDisplay.tsx",
+      "lines": 576,
+      "app": "Web App",
+      "exceedsBy": 76
+    },
+    {
+      "file": "src\\services\\VideoService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\VideoService.ts",
+      "lines": 576,
+      "app": "Mobile App",
+      "exceedsBy": 76
+    },
+    {
+      "file": "app\\admin\\security\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\security\\page.tsx",
+      "lines": 575,
+      "app": "Web App",
+      "exceedsBy": 75
+    },
+    {
+      "file": "app\\_archive\\pre-2025\\contractor-dashboard-enhanced-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\contractor-dashboard-enhanced-page.tsx",
       "lines": 573,
       "app": "Web App",
       "exceedsBy": 73
     },
     {
       "file": "src\\components\\CommunityEndorsement.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\CommunityEndorsement.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\CommunityEndorsement.tsx",
       "lines": 572,
       "app": "Mobile App",
       "exceedsBy": 72
     },
     {
-      "file": "src\\services\\AISearchService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\AISearchService.ts",
+      "file": "app\\dashboard\\lib\\data-processing.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\dashboard\\lib\\data-processing.ts",
       "lines": 571,
-      "app": "Mobile App",
+      "app": "Web App",
       "exceedsBy": 71
     },
     {
-      "file": "src\\services\\NotificationService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\NotificationService.ts",
+      "file": "lib\\animations\\variants.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\animations\\variants.ts",
       "lines": 570,
-      "app": "Mobile App",
+      "app": "Web App",
       "exceedsBy": 70
     },
     {
-      "file": "src\\screens\\AddPaymentMethodScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\AddPaymentMethodScreen.tsx",
+      "file": "scripts\\monitor-ab-test-metrics.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\monitor-ab-test-metrics.ts",
+      "lines": 570,
+      "app": "Web App",
+      "exceedsBy": 70
+    },
+    {
+      "file": "app\\contractor\\expenses\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\expenses\\page.tsx",
+      "lines": 569,
+      "app": "Web App",
+      "exceedsBy": 69
+    },
+    {
+      "file": "app\\contractor\\portfolio\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\portfolio\\page.tsx",
+      "lines": 569,
+      "app": "Web App",
+      "exceedsBy": 69
+    },
+    {
+      "file": "app\\jobs\\quick-create\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\quick-create\\page.tsx",
+      "lines": 569,
+      "app": "Web App",
+      "exceedsBy": 69
+    },
+    {
+      "file": "scripts\\adjust-rollout.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\adjust-rollout.ts",
+      "lines": 568,
+      "app": "Web App",
+      "exceedsBy": 68
+    },
+    {
+      "file": "scripts\\sam3-auto-label.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\sam3-auto-label.ts",
+      "lines": 568,
+      "app": "Web App",
+      "exceedsBy": 68
+    },
+    {
+      "file": "lib\\services\\maintenance\\MaintenanceAssessmentService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\maintenance\\MaintenanceAssessmentService.ts",
       "lines": 567,
-      "app": "Mobile App",
+      "app": "Web App",
       "exceedsBy": 67
     },
     {
-      "file": "components\\building-surveyor\\BuildingAssessmentDisplay.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\building-surveyor\\BuildingAssessmentDisplay.tsx",
-      "lines": 563,
+      "file": "app\\messages\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\messages\\page.tsx",
+      "lines": 566,
       "app": "Web App",
-      "exceedsBy": 63
+      "exceedsBy": 66
     },
     {
-      "file": "lib\\services\\ImageAnalysisService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ImageAnalysisService.ts",
-      "lines": 563,
+      "file": "lib\\services\\building-surveyor\\SAM2VideoService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\SAM2VideoService.ts",
+      "lines": 566,
       "app": "Web App",
-      "exceedsBy": 63
-    },
-    {
-      "file": "app\\contractor\\discover\\components\\JobCard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\discover\\components\\JobCard.tsx",
-      "lines": 562,
-      "app": "Web App",
-      "exceedsBy": 62
+      "exceedsBy": 66
     },
     {
       "file": "app\\discover\\components\\JobCard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\discover\\components\\JobCard.tsx",
-      "lines": 562,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\discover\\components\\JobCard.tsx",
+      "lines": 563,
       "app": "Web App",
-      "exceedsBy": 62
-    },
-    {
-      "file": "src\\screens\\JobsScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\JobsScreen.tsx",
-      "lines": 562,
-      "app": "Mobile App",
-      "exceedsBy": 62
+      "exceedsBy": 63
     },
     {
       "file": "src\\utils\\memoryManager.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\memoryManager.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\memoryManager.ts",
       "lines": 562,
       "app": "Mobile App",
       "exceedsBy": 62
     },
     {
-      "file": "lib\\services\\agents\\NotificationAgent.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\NotificationAgent.ts",
+      "file": "scripts\\run-yolo-training-pipeline.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\run-yolo-training-pipeline.ts",
+      "lines": 561,
+      "app": "Web App",
+      "exceedsBy": 61
+    },
+    {
+      "file": "app\\contractor\\insurance\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\insurance\\page.tsx",
       "lines": 558,
       "app": "Web App",
       "exceedsBy": 58
     },
     {
+      "file": "lib\\services\\agents\\NotificationAgent.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\NotificationAgent.ts",
+      "lines": 558,
+      "app": "Web App",
+      "exceedsBy": 58
+    },
+    {
+      "file": "src\\screens\\JobsScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\JobsScreen.tsx",
+      "lines": 558,
+      "app": "Mobile App",
+      "exceedsBy": 58
+    },
+    {
+      "file": "app\\contractor\\social\\components\\CreatePostDialog.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\components\\CreatePostDialog.tsx",
+      "lines": 557,
+      "app": "Web App",
+      "exceedsBy": 57
+    },
+    {
       "file": "src\\design-system\\tokens.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\design-system\\tokens.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\design-system\\tokens.ts",
       "lines": 557,
       "app": "Mobile App",
       "exceedsBy": 57
     },
     {
       "file": "src\\services\\ProtectedServices.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ProtectedServices.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ProtectedServices.ts",
       "lines": 557,
       "app": "Mobile App",
       "exceedsBy": 57
     },
     {
+      "file": "src\\utils\\accessibility.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\accessibility.ts",
+      "lines": 555,
+      "app": "Mobile App",
+      "exceedsBy": 55
+    },
+    {
+      "file": "app\\admin\\ai-monitoring\\components\\AIMonitoringClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\ai-monitoring\\components\\AIMonitoringClient.tsx",
+      "lines": 554,
+      "app": "Web App",
+      "exceedsBy": 54
+    },
+    {
       "file": "src\\components\\ContractorDiscoverView.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorDiscoverView.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorDiscoverView.tsx",
       "lines": 553,
       "app": "Mobile App",
       "exceedsBy": 53
     },
     {
-      "file": "app\\contractor\\profile\\components\\EditProfileDialog.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\profile\\components\\EditProfileDialog.tsx",
-      "lines": 547,
+      "file": "app\\_archive\\pre-2025\\find-contractors-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\find-contractors-page.tsx",
+      "lines": 551,
       "app": "Web App",
-      "exceedsBy": 47
+      "exceedsBy": 51
+    },
+    {
+      "file": "app\\dashboard\\components\\AirbnbSearchBar.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\dashboard\\components\\AirbnbSearchBar.tsx",
+      "lines": 550,
+      "app": "Web App",
+      "exceedsBy": 50
+    },
+    {
+      "file": "lib\\services\\revenue\\RevenueAnalytics.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\revenue\\RevenueAnalytics.ts",
+      "lines": 549,
+      "app": "Web App",
+      "exceedsBy": 49
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\YOLOCorrectionService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\YOLOCorrectionService.ts",
+      "lines": 548,
+      "app": "Web App",
+      "exceedsBy": 48
     },
     {
       "file": "components\\navigation\\TopNavigationBar.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\navigation\\TopNavigationBar.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\navigation\\TopNavigationBar.tsx",
       "lines": 547,
       "app": "Web App",
       "exceedsBy": 47
     },
     {
+      "file": "components\\examples\\FeatureAccessExamples.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\examples\\FeatureAccessExamples.tsx",
+      "lines": 546,
+      "app": "Web App",
+      "exceedsBy": 46
+    },
+    {
       "file": "lib\\services\\JobAnalysisService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\JobAnalysisService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\JobAnalysisService.ts",
       "lines": 546,
       "app": "Web App",
       "exceedsBy": 46
     },
     {
       "file": "src\\components\\ui\\Toast\\Toast.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Toast\\Toast.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Toast\\Toast.tsx",
       "lines": 546,
       "app": "Mobile App",
       "exceedsBy": 46
     },
     {
-      "file": "app\\find-contractors\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\find-contractors\\page.tsx",
-      "lines": 544,
+      "file": "app\\contractor\\social\\post\\[id]\\components\\PostDetailClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\post\\[id]\\components\\PostDetailClient.tsx",
+      "lines": 543,
       "app": "Web App",
-      "exceedsBy": 44
+      "exceedsBy": 43
     },
     {
       "file": "src\\utils\\ErrorRecoveryManager.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\ErrorRecoveryManager.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\ErrorRecoveryManager.ts",
       "lines": 543,
       "app": "Mobile App",
       "exceedsBy": 43
     },
     {
-      "file": "app\\jobs\\[id]\\components\\BidSwipeCard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\BidSwipeCard.tsx",
+      "file": "app\\api\\cron\\model-retraining\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\cron\\model-retraining\\route.ts",
+      "lines": 542,
+      "app": "Web App",
+      "exceedsBy": 42
+    },
+    {
+      "file": "app\\contractor\\calendar\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\calendar\\page.tsx",
       "lines": 542,
       "app": "Web App",
       "exceedsBy": 42
     },
     {
       "file": "src\\pricing\\core\\RiskAssessment.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\pricing\\core\\RiskAssessment.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\pricing\\core\\RiskAssessment.ts",
       "lines": 542,
       "app": "Mobile App",
       "exceedsBy": 42
     },
     {
       "file": "components\\project-timeline\\TimelineView.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\project-timeline\\TimelineView.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\project-timeline\\TimelineView.tsx",
       "lines": 540,
       "app": "Web App",
       "exceedsBy": 40
     },
     {
-      "file": "src\\services\\SyncManager.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\SyncManager.ts",
-      "lines": 540,
-      "app": "Mobile App",
-      "exceedsBy": 40
+      "file": "app\\admin\\payments\\fees\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\payments\\fees\\page.tsx",
+      "lines": 539,
+      "app": "Web App",
+      "exceedsBy": 39
+    },
+    {
+      "file": "app\\contractor\\notifications\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\notifications\\page.tsx",
+      "lines": 539,
+      "app": "Web App",
+      "exceedsBy": 39
     },
     {
       "file": "src\\components\\ContractorMapView.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorMapView.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorMapView.tsx",
       "lines": 539,
       "app": "Mobile App",
       "exceedsBy": 39
     },
     {
-      "file": "app\\contractor\\social\\post\\[id]\\components\\PostDetailClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\post\\[id]\\components\\PostDetailClient.tsx",
+      "file": "components\\search\\AdvancedSearchFilters.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\search\\AdvancedSearchFilters.tsx",
       "lines": 538,
       "app": "Web App",
       "exceedsBy": 38
     },
     {
-      "file": "components\\search\\AdvancedSearchFilters.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\search\\AdvancedSearchFilters.tsx",
+      "file": "lib\\constants\\rate-limits.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\constants\\rate-limits.ts",
       "lines": 538,
       "app": "Web App",
       "exceedsBy": 38
+    },
+    {
+      "file": "lib\\rate-limiter-enhanced.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\rate-limiter-enhanced.ts",
+      "lines": 537,
+      "app": "Web App",
+      "exceedsBy": 37
     },
     {
       "file": "src\\components\\ContractorMapView.web.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorMapView.web.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorMapView.web.tsx",
       "lines": 537,
       "app": "Mobile App",
       "exceedsBy": 37
     },
     {
       "file": "app\\admin\\escrow\\reviews\\components\\EscrowReviewDashboardClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\escrow\\reviews\\components\\EscrowReviewDashboardClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\escrow\\reviews\\components\\EscrowReviewDashboardClient.tsx",
       "lines": 536,
       "app": "Web App",
       "exceedsBy": 36
     },
     {
-      "file": "app\\contractor\\social\\components\\CreatePostDialog.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\components\\CreatePostDialog.tsx",
-      "lines": 535,
+      "file": "src\\contexts\\AuthContext.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\contexts\\AuthContext.tsx",
+      "lines": 536,
+      "app": "Mobile App",
+      "exceedsBy": 36
+    },
+    {
+      "file": "components\\payments\\PaymentForm.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\payments\\PaymentForm.tsx",
+      "lines": 534,
       "app": "Web App",
-      "exceedsBy": 35
+      "exceedsBy": 34
+    },
+    {
+      "file": "app\\ai-search\\components\\AISearchClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\ai-search\\components\\AISearchClient.tsx",
+      "lines": 532,
+      "app": "Web App",
+      "exceedsBy": 32
     },
     {
       "file": "src\\screens\\AISearchScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\AISearchScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\AISearchScreen.tsx",
       "lines": 532,
       "app": "Mobile App",
       "exceedsBy": 32
     },
     {
       "file": "src\\services\\ml-training\\BiasDetectionService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\BiasDetectionService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\BiasDetectionService.ts",
       "lines": 532,
       "app": "Mobile App",
       "exceedsBy": 32
     },
     {
+      "file": "lib\\services\\verification\\DBSCheckService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\verification\\DBSCheckService.ts",
+      "lines": 531,
+      "app": "Web App",
+      "exceedsBy": 31
+    },
+    {
       "file": "src\\screens\\PerformanceDashboardScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\PerformanceDashboardScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\PerformanceDashboardScreen.tsx",
       "lines": 530,
       "app": "Mobile App",
       "exceedsBy": 30
     },
     {
-      "file": "lib\\services\\building-surveyor\\LearnedFeatureExtractor.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\LearnedFeatureExtractor.ts",
+      "file": "lib\\design-tokens.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\design-tokens.ts",
       "lines": 529,
       "app": "Web App",
       "exceedsBy": 29
     },
     {
+      "file": "lib\\services\\building-surveyor\\LearnedFeatureExtractor.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\LearnedFeatureExtractor.ts",
+      "lines": 529,
+      "app": "Web App",
+      "exceedsBy": 29
+    },
+    {
+      "file": "lib\\services\\verification\\PersonalityAssessmentService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\verification\\PersonalityAssessmentService.ts",
+      "lines": 528,
+      "app": "Web App",
+      "exceedsBy": 28
+    },
+    {
       "file": "src\\components\\ContractorAssignment.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorAssignment.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ContractorAssignment.tsx",
       "lines": 528,
       "app": "Mobile App",
       "exceedsBy": 28
     },
     {
       "file": "src\\types\\standardized.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\types\\standardized.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\types\\standardized.ts",
       "lines": 528,
       "app": "Mobile App",
       "exceedsBy": 28
     },
     {
-      "file": "app\\ai-search\\components\\AISearchClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\ai-search\\components\\AISearchClient.tsx",
+      "file": "src\\services\\sso-integration\\SSOIntegrationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\sso-integration\\SSOIntegrationService.ts",
       "lines": 527,
-      "app": "Web App",
+      "app": "Mobile App",
       "exceedsBy": 27
     },
     {
-      "file": "components\\ui\\PlacesAutocomplete.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\PlacesAutocomplete.tsx",
-      "lines": 527,
+      "file": "app\\api\\building-surveyor\\assess\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\building-surveyor\\assess\\route.ts",
+      "lines": 526,
       "app": "Web App",
-      "exceedsBy": 27
+      "exceedsBy": 26
+    },
+    {
+      "file": "scripts\\monitor-migration-performance.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\monitor-migration-performance.ts",
+      "lines": 526,
+      "app": "Web App",
+      "exceedsBy": 26
+    },
+    {
+      "file": "app\\admin\\revenue\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\revenue\\page.tsx",
+      "lines": 525,
+      "app": "Web App",
+      "exceedsBy": 25
+    },
+    {
+      "file": "lib\\services\\verification\\PhoneVerificationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\verification\\PhoneVerificationService.ts",
+      "lines": 525,
+      "app": "Web App",
+      "exceedsBy": 25
+    },
+    {
+      "file": "src\\components\\AIPricingWidget.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\AIPricingWidget.tsx",
+      "lines": 525,
+      "app": "Mobile App",
+      "exceedsBy": 25
     },
     {
       "file": "src\\screens\\FindContractorsScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\FindContractorsScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\FindContractorsScreen.tsx",
       "lines": 525,
       "app": "Mobile App",
       "exceedsBy": 25
     },
     {
       "file": "src\\components\\JobStatusTracker.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\JobStatusTracker.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\JobStatusTracker.tsx",
       "lines": 524,
       "app": "Mobile App",
       "exceedsBy": 24
     },
     {
-      "file": "src\\components\\AIPricingWidget.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\AIPricingWidget.tsx",
+      "file": "app\\properties\\components\\AddPropertyDialog.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\properties\\components\\AddPropertyDialog.tsx",
+      "lines": 523,
+      "app": "Web App",
+      "exceedsBy": 23
+    },
+    {
+      "file": "lib\\payments\\high-risk-checks.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\payments\\high-risk-checks.ts",
+      "lines": 523,
+      "app": "Web App",
+      "exceedsBy": 23
+    },
+    {
+      "file": "app\\messages\\[jobId]\\components\\QuoteViewModal.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\messages\\[jobId]\\components\\QuoteViewModal.tsx",
+      "lines": 521,
+      "app": "Web App",
+      "exceedsBy": 21
+    },
+    {
+      "file": "src\\screens\\AddPaymentMethodScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\AddPaymentMethodScreen.tsx",
       "lines": 521,
       "app": "Mobile App",
       "exceedsBy": 21
     },
     {
-      "file": "components\\ui\\Card.unified.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\Card.unified.tsx",
+      "file": "app\\dashboard\\components\\HomeownerDashboardProfessional.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\dashboard\\components\\HomeownerDashboardProfessional.tsx",
       "lines": 520,
       "app": "Web App",
       "exceedsBy": 20
     },
     {
-      "file": "src\\services\\contractor-business\\BusinessAnalyticsService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\contractor-business\\BusinessAnalyticsService.ts",
-      "lines": 519,
-      "app": "Mobile App",
-      "exceedsBy": 19
+      "file": "components\\ui\\Card.unified.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\Card.unified.tsx",
+      "lines": 520,
+      "app": "Web App",
+      "exceedsBy": 20
     },
     {
-      "file": "src\\utils\\validation.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\validation.ts",
+      "file": "src\\services\\sso-integration\\SSOAuthenticationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\sso-integration\\SSOAuthenticationService.ts",
       "lines": 516,
       "app": "Mobile App",
       "exceedsBy": 16
     },
     {
-      "file": "app\\messages\\[jobId]\\components\\QuoteViewModal.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\messages\\[jobId]\\components\\QuoteViewModal.tsx",
-      "lines": 514,
-      "app": "Web App",
-      "exceedsBy": 14
-    },
-    {
-      "file": "src\\screens\\ConnectionsScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\ConnectionsScreen.tsx",
-      "lines": 514,
+      "file": "src\\utils\\validation.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\validation.ts",
+      "lines": 516,
       "app": "Mobile App",
-      "exceedsBy": 14
+      "exceedsBy": 16
     },
     {
       "file": "app\\contractor\\market-insights\\components\\MarketInsightsClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\market-insights\\components\\MarketInsightsClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\market-insights\\components\\MarketInsightsClient.tsx",
+      "lines": 512,
+      "app": "Web App",
+      "exceedsBy": 12
+    },
+    {
+      "file": "components\\project-timeline\\MilestoneEditor.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\project-timeline\\MilestoneEditor.tsx",
       "lines": 512,
       "app": "Web App",
       "exceedsBy": 12
     },
     {
       "file": "src\\components\\ui\\LoadingStates.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\LoadingStates.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\LoadingStates.tsx",
       "lines": 512,
       "app": "Mobile App",
       "exceedsBy": 12
     },
     {
       "file": "src\\screens\\QuoteBuilderScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\QuoteBuilderScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\QuoteBuilderScreen.tsx",
       "lines": 512,
       "app": "Mobile App",
       "exceedsBy": 12
     },
     {
-      "file": "components\\project-timeline\\MilestoneEditor.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\project-timeline\\MilestoneEditor.tsx",
+      "file": "app\\admin\\communications\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\communications\\page.tsx",
       "lines": 511,
       "app": "Web App",
       "exceedsBy": 11
     },
     {
-      "file": "app\\contact\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contact\\page.tsx",
+      "file": "app\\api\\jobs\\[id]\\bids\\[bidId]\\accept\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\jobs\\[id]\\bids\\[bidId]\\accept\\route.ts",
+      "lines": 511,
+      "app": "Web App",
+      "exceedsBy": 11
+    },
+    {
+      "file": "app\\admin\\building-assessments\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\building-assessments\\page.tsx",
+      "lines": 510,
+      "app": "Web App",
+      "exceedsBy": 10
+    },
+    {
+      "file": "app\\_archive\\pre-2025\\contact-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\contact-page.tsx",
+      "lines": 510,
+      "app": "Web App",
+      "exceedsBy": 10
+    },
+    {
+      "file": "lib\\services\\cache\\AIResponseCache.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\cache\\AIResponseCache.ts",
       "lines": 510,
       "app": "Web App",
       "exceedsBy": 10
     },
     {
       "file": "src\\components\\animations\\AnimationComponents.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\animations\\AnimationComponents.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\animations\\AnimationComponents.tsx",
       "lines": 510,
       "app": "Mobile App",
       "exceedsBy": 10
     },
     {
+      "file": "app\\contractor\\discover\\components\\LocationPromptModal.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\discover\\components\\LocationPromptModal.tsx",
+      "lines": 509,
+      "app": "Web App",
+      "exceedsBy": 9
+    },
+    {
       "file": "src\\components\\ui\\Animated\\Animated.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Animated\\Animated.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Animated\\Animated.tsx",
       "lines": 509,
       "app": "Mobile App",
       "exceedsBy": 9
     },
     {
-      "file": "app\\properties\\components\\AddPropertyDialog.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\properties\\components\\AddPropertyDialog.tsx",
+      "file": "app\\api\\contractor\\submit-bid\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractor\\submit-bid\\route.ts",
+      "lines": 508,
+      "app": "Web App",
+      "exceedsBy": 8
+    },
+    {
+      "file": "app\\dashboard\\components\\HomeownerDashboardWithSearch.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\dashboard\\components\\HomeownerDashboardWithSearch.tsx",
       "lines": 507,
       "app": "Web App",
       "exceedsBy": 7
     },
     {
-      "file": "src\\services\\sso-integration\\SSOAuthenticationService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\sso-integration\\SSOAuthenticationService.ts",
+      "file": "src\\hooks\\useSustainability.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useSustainability.ts",
       "lines": 507,
       "app": "Mobile App",
       "exceedsBy": 7
     },
     {
-      "file": "src\\hooks\\useSustainability.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useSustainability.ts",
+      "file": "lib\\formatters.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\formatters.ts",
       "lines": 506,
-      "app": "Mobile App",
+      "app": "Web App",
+      "exceedsBy": 6
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\ABTestMonitoringService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\ABTestMonitoringService.ts",
+      "lines": 506,
+      "app": "Web App",
       "exceedsBy": 6
     },
     {
       "file": "src\\hooks\\useAccessibility.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useAccessibility.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useAccessibility.ts",
       "lines": 505,
       "app": "Mobile App",
       "exceedsBy": 5
     },
     {
       "file": "src\\screens\\PaymentScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\PaymentScreen.tsx",
-      "lines": 505,
-      "app": "Mobile App",
-      "exceedsBy": 5
-    },
-    {
-      "file": "src\\services\\UserService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\UserService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\PaymentScreen.tsx",
       "lines": 505,
       "app": "Mobile App",
       "exceedsBy": 5
     },
     {
       "file": "app\\contractor\\quotes\\components\\QuoteBuilderClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\quotes\\components\\QuoteBuilderClient.tsx",
-      "lines": 502,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\quotes\\components\\QuoteBuilderClient.tsx",
+      "lines": 504,
       "app": "Web App",
-      "exceedsBy": 2
+      "exceedsBy": 4
     },
     {
       "file": "app\\jobs\\create\\components\\SmartJobAnalysis.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\create\\components\\SmartJobAnalysis.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\create\\components\\SmartJobAnalysis.tsx",
+      "lines": 504,
+      "app": "Web App",
+      "exceedsBy": 4
+    },
+    {
+      "file": "app\\notifications\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\notifications\\page.tsx",
+      "lines": 503,
+      "app": "Web App",
+      "exceedsBy": 3
+    },
+    {
+      "file": "app\\contractor\\contribute-training\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\contribute-training\\page.tsx",
       "lines": 501,
       "app": "Web App",
+      "exceedsBy": 1
+    },
+    {
+      "file": "app\\contractor\\payouts\\components\\PayoutsPageClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\payouts\\components\\PayoutsPageClient.tsx",
+      "lines": 501,
+      "app": "Web App",
+      "exceedsBy": 1
+    },
+    {
+      "file": "lib\\queries\\airbnb-optimized.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\queries\\airbnb-optimized.ts",
+      "lines": 501,
+      "app": "Web App",
+      "exceedsBy": 1
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\DriftMonitorService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\DriftMonitorService.ts",
+      "lines": 501,
+      "app": "Web App",
+      "exceedsBy": 1
+    },
+    {
+      "file": "src\\services\\ImageCompressionService.example.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ImageCompressionService.example.ts",
+      "lines": 501,
+      "app": "Mobile App",
       "exceedsBy": 1
     }
   ],
   "warningFiles": [
     {
+      "file": "app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardAirbnb.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardAirbnb.tsx",
+      "lines": 498,
+      "app": "Web App"
+    },
+    {
       "file": "src\\utils\\EnvironmentSecurity.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\EnvironmentSecurity.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\EnvironmentSecurity.ts",
       "lines": 498,
       "app": "Mobile App"
     },
     {
-      "file": "lib\\services\\building-surveyor\\ABTestMonitoringService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\ABTestMonitoringService.ts",
-      "lines": 497,
+      "file": "app\\invoices\\[invoiceId]\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\invoices\\[invoiceId]\\page.tsx",
+      "lines": 496,
+      "app": "Web App"
+    },
+    {
+      "file": "src\\services\\ml-engine\\advanced\\MLApplicationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\advanced\\MLApplicationService.ts",
+      "lines": 496,
+      "app": "Mobile App"
+    },
+    {
+      "file": "lib\\services\\ai\\GPT4CacheService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ai\\GPT4CacheService.ts",
+      "lines": 495,
       "app": "Web App"
     },
     {
       "file": "src\\screens\\booking\\components\\BookingCard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\booking\\components\\BookingCard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\booking\\components\\BookingCard.tsx",
       "lines": 495,
       "app": "Mobile App"
     },
     {
-      "file": "src\\services\\MeetingService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\MeetingService.ts",
-      "lines": 495,
-      "app": "Mobile App"
-    },
-    {
-      "file": "app\\jobs\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\page.tsx",
+      "file": "app\\api\\contracts\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contracts\\route.ts",
       "lines": 494,
       "app": "Web App"
     },
     {
       "file": "lib\\theme-enhancements.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\theme-enhancements.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\theme-enhancements.ts",
       "lines": 494,
       "app": "Web App"
     },
     {
       "file": "src\\services\\ml-training\\MLTrainingRepository.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\MLTrainingRepository.ts",
-      "lines": 494,
-      "app": "Mobile App"
-    },
-    {
-      "file": "src\\services\\RealtimeService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\RealtimeService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-training\\MLTrainingRepository.ts",
       "lines": 494,
       "app": "Mobile App"
     },
     {
       "file": "lib\\services\\building-surveyor\\scene_graph_features.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\scene_graph_features.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\scene_graph_features.ts",
       "lines": 493,
       "app": "Web App"
     },
     {
       "file": "components\\landing\\AIAssessmentShowcase.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\landing\\AIAssessmentShowcase.tsx",
-      "lines": 490,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\landing\\AIAssessmentShowcase.tsx",
+      "lines": 491,
       "app": "Web App"
     },
     {
+      "file": "src\\services\\NotificationServiceExample.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\NotificationServiceExample.tsx",
+      "lines": 491,
+      "app": "Mobile App"
+    },
+    {
+      "file": "src\\pricing\\PricingEngine.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\pricing\\PricingEngine.ts",
+      "lines": 490,
+      "app": "Mobile App"
+    },
+    {
       "file": "src\\components\\EnhancedErrorBoundary.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\EnhancedErrorBoundary.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\EnhancedErrorBoundary.tsx",
+      "lines": 489,
+      "app": "Mobile App"
+    },
+    {
+      "file": "src\\services\\client-management\\ClientRepository.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\client-management\\ClientRepository.ts",
       "lines": 489,
       "app": "Mobile App"
     },
     {
       "file": "components\\analytics\\PerformanceInsights.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\analytics\\PerformanceInsights.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\analytics\\PerformanceInsights.tsx",
       "lines": 487,
       "app": "Web App"
     },
     {
       "file": "src\\testing\\e2e-setup.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\testing\\e2e-setup.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\testing\\e2e-setup.ts",
       "lines": 487,
       "app": "Mobile App"
     },
     {
-      "file": "app\\contractor\\payouts\\components\\PayoutsPageClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\payouts\\components\\PayoutsPageClient.tsx",
+      "file": "app\\contractor\\time-tracking\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\time-tracking\\page.tsx",
       "lines": 486,
       "app": "Web App"
     },
     {
-      "file": "src\\services\\client-management\\ClientRepository.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\client-management\\ClientRepository.ts",
-      "lines": 485,
-      "app": "Mobile App"
+      "file": "lib\\advanced-cache-config.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\advanced-cache-config.ts",
+      "lines": 486,
+      "app": "Web App"
     },
     {
-      "file": "src\\pricing\\PricingEngine.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\pricing\\PricingEngine.ts",
-      "lines": 484,
-      "app": "Mobile App"
+      "file": "lib\\design-tokens\\index.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\design-tokens\\index.ts",
+      "lines": 486,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\agents\\SchedulingAgent.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\SchedulingAgent.ts",
+      "lines": 486,
+      "app": "Web App"
+    },
+    {
+      "file": "scripts\\bootstrap-maintenance-training.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\bootstrap-maintenance-training.ts",
+      "lines": 485,
+      "app": "Web App"
     },
     {
       "file": "src\\screens\\HelpCenterScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\HelpCenterScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\HelpCenterScreen.tsx",
       "lines": 484,
       "app": "Mobile App"
     },
     {
       "file": "src\\types\\schemas.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\types\\schemas.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\types\\schemas.ts",
       "lines": 483,
       "app": "Mobile App"
     },
     {
-      "file": "app\\contractor\\[id]\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\[id]\\page.tsx",
+      "file": "lib\\accessibility.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\accessibility.ts",
+      "lines": 481,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\admin\\audit-logs\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\audit-logs\\page.tsx",
       "lines": 479,
       "app": "Web App"
     },
     {
-      "file": "app\\contractors\\[id]\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\[id]\\page.tsx",
-      "lines": 478,
-      "app": "Web App"
-    },
-    {
-      "file": "app\\settings\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\settings\\page.tsx",
-      "lines": 478,
-      "app": "Web App"
-    },
-    {
-      "file": "lib\\services\\MarketInsightsService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\MarketInsightsService.ts",
-      "lines": 474,
+      "file": "app\\contractor\\[id]\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\[id]\\page.tsx",
+      "lines": 479,
       "app": "Web App"
     },
     {
       "file": "app\\contractor\\crm\\components\\CRMDashboardEnhanced.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\crm\\components\\CRMDashboardEnhanced.tsx",
-      "lines": 472,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\crm\\components\\CRMDashboardEnhanced.tsx",
+      "lines": 478,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\_archive\\pre-2025\\contractors-[id]-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\contractors-[id]-page.tsx",
+      "lines": 478,
+      "app": "Web App"
+    },
+    {
+      "file": "components\\profile\\HomeownerProfileDropdown.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\profile\\HomeownerProfileDropdown.tsx",
+      "lines": 478,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\verification\\ProfileBoostService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\verification\\ProfileBoostService.ts",
+      "lines": 477,
+      "app": "Web App"
+    },
+    {
+      "file": "scripts\\process-1000-training-images.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\process-1000-training-images.ts",
+      "lines": 477,
+      "app": "Web App"
+    },
+    {
+      "file": "components\\ErrorBoundary.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ErrorBoundary.tsx",
+      "lines": 476,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\contractor\\reviews\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\reviews\\page.tsx",
+      "lines": 475,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\agents\\LearningMatchingService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\LearningMatchingService.ts",
+      "lines": 474,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\MarketInsightsService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\MarketInsightsService.ts",
+      "lines": 474,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\ml-engine\\memory\\MLPBackpropagation.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ml-engine\\memory\\MLPBackpropagation.ts",
+      "lines": 473,
       "app": "Web App"
     },
     {
       "file": "src\\screens\\CRMDashboardScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\CRMDashboardScreen.tsx",
-      "lines": 472,
-      "app": "Mobile App"
-    },
-    {
-      "file": "src\\services\\OfflineManager.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\OfflineManager.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\CRMDashboardScreen.tsx",
       "lines": 472,
       "app": "Mobile App"
     },
     {
       "file": "src\\services\\ml-engine\\analysis\\JobAnalysisMLService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\analysis\\JobAnalysisMLService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ml-engine\\analysis\\JobAnalysisMLService.ts",
       "lines": 471,
       "app": "Mobile App"
     },
     {
+      "file": "app\\contractor\\jobs\\[id]\\components\\JobDetailsClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\jobs\\[id]\\components\\JobDetailsClient.tsx",
+      "lines": 469,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\api\\contractor\\update-profile\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractor\\update-profile\\route.ts",
+      "lines": 468,
+      "app": "Web App"
+    },
+    {
+      "file": "src\\services\\UnifiedAIServiceMobile.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\UnifiedAIServiceMobile.ts",
+      "lines": 466,
+      "app": "Mobile App"
+    },
+    {
       "file": "src\\components\\ui\\Badge\\Badge.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Badge\\Badge.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Badge\\Badge.tsx",
       "lines": 465,
       "app": "Mobile App"
     },
     {
       "file": "src\\hooks\\useForm.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useForm.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useForm.ts",
       "lines": 465,
       "app": "Mobile App"
     },
     {
-      "file": "src\\navigation\\AppNavigator.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\navigation\\AppNavigator.tsx",
+      "file": "src\\screens\\auth\\MFAVerificationScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\auth\\MFAVerificationScreen.tsx",
       "lines": 465,
       "app": "Mobile App"
+    },
+    {
+      "file": "lib\\services\\admin\\AdminEscrowHoldService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\admin\\AdminEscrowHoldService.ts",
+      "lines": 464,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\contractor\\quotes\\create\\components\\CreateQuoteClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\quotes\\create\\components\\CreateQuoteClient.tsx",
+      "lines": 463,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\dashboard\\components\\HomeownerDashboardAirbnb.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\dashboard\\components\\HomeownerDashboardAirbnb.tsx",
+      "lines": 463,
+      "app": "Web App"
+    },
+    {
+      "file": "scripts\\test-migration-staging.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\test-migration-staging.ts",
+      "lines": 463,
+      "app": "Web App"
+    },
+    {
+      "file": "src\\utils\\featureAccess.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\featureAccess.ts",
+      "lines": 463,
+      "app": "Mobile App"
+    },
+    {
+      "file": "app\\jobs\\[id]\\components\\ContractManagement.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\ContractManagement.tsx",
+      "lines": 462,
+      "app": "Web App"
+    },
+    {
+      "file": "components\\ui\\AccessibleInput.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\AccessibleInput.tsx",
+      "lines": 462,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\jobs\\[id]\\review\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\review\\page.tsx",
+      "lines": 461,
+      "app": "Web App"
+    },
+    {
+      "file": "middleware.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\middleware.ts",
+      "lines": 460,
+      "app": "Web App"
     },
     {
       "file": "src\\__tests__\\utils\\paymentTestUtils.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\__tests__\\utils\\paymentTestUtils.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\__tests__\\utils\\paymentTestUtils.ts",
       "lines": 460,
       "app": "Mobile App"
     },
     {
+      "file": "app\\contractor\\marketing\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\marketing\\page.tsx",
+      "lines": 459,
+      "app": "Web App"
+    },
+    {
       "file": "src\\screens\\InvoiceManagementScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\InvoiceManagementScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\InvoiceManagementScreen.tsx",
       "lines": 459,
       "app": "Mobile App"
     },
     {
       "file": "src\\services\\CacheService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\CacheService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\CacheService.ts",
       "lines": 459,
       "app": "Mobile App"
     },
     {
-      "file": "components\\Calendar\\Calendar.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\Calendar\\Calendar.tsx",
-      "lines": 458,
-      "app": "Web App"
-    },
-    {
-      "file": "lib\\services\\agents\\LearningMatchingService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\LearningMatchingService.ts",
-      "lines": 457,
-      "app": "Web App"
-    },
-    {
-      "file": "app\\jobs\\[id]\\components\\ContractManagement.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\ContractManagement.tsx",
+      "file": "app\\verify-phone\\components\\VerifyPhoneClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\verify-phone\\components\\VerifyPhoneClient.tsx",
       "lines": 456,
       "app": "Web App"
     },
     {
-      "file": "app\\verify-phone\\components\\VerifyPhoneClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\verify-phone\\components\\VerifyPhoneClient.tsx",
+      "file": "components\\video-call\\VideoCallInterface.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\video-call\\VideoCallInterface.tsx",
       "lines": 456,
       "app": "Web App"
     },
     {
       "file": "app\\admin\\users\\components\\UserDetailDialog.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\users\\components\\UserDetailDialog.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\users\\components\\UserDetailDialog.tsx",
       "lines": 455,
       "app": "Web App"
     },
     {
-      "file": "components\\video-call\\VideoCallInterface.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\video-call\\VideoCallInterface.tsx",
+      "file": "app\\api\\contractor\\invoices\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractor\\invoices\\route.ts",
       "lines": 455,
       "app": "Web App"
     },
     {
-      "file": "lib\\services\\agents\\SchedulingAgent.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\agents\\SchedulingAgent.ts",
+      "file": "app\\contractor\\social\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\page.tsx",
+      "lines": 455,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\notifications\\components\\NotificationsClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\notifications\\components\\NotificationsClient.tsx",
+      "lines": 455,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\_archive\\pre-2025\\jobs-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\jobs-page.tsx",
+      "lines": 455,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\YOLORetrainingService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\YOLORetrainingService.ts",
+      "lines": 455,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\_archive\\pre-2025\\profile-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\profile-page.tsx",
+      "lines": 454,
+      "app": "Web App"
+    },
+    {
+      "file": "src\\components\\ProductionMonitoringDashboard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ProductionMonitoringDashboard.tsx",
+      "lines": 453,
+      "app": "Mobile App"
+    },
+    {
+      "file": "app\\contractor\\jobs\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\jobs\\page.tsx",
+      "lines": 452,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\jobs\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\page.tsx",
       "lines": 452,
       "app": "Web App"
     },
     {
       "file": "app\\contractor\\profile\\components\\ContractorDataPrivacy.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\profile\\components\\ContractorDataPrivacy.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\profile\\components\\ContractorDataPrivacy.tsx",
       "lines": 451,
       "app": "Web App"
     },
     {
-      "file": "app\\jobs\\[id]\\payment\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\payment\\page.tsx",
+      "file": "components\\building-surveyor\\YOLOCorrectionEditor.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\building-surveyor\\YOLOCorrectionEditor.tsx",
       "lines": 451,
       "app": "Web App"
     },
     {
-      "file": "src\\utils\\performanceBudgets.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\performanceBudgets.ts",
+      "file": "components\\contractor\\PersonalityTestModal.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\contractor\\PersonalityTestModal.tsx",
       "lines": 451,
-      "app": "Mobile App"
-    },
-    {
-      "file": "lib\\services\\building-surveyor\\AssessmentAccuracyMetrics.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\AssessmentAccuracyMetrics.ts",
-      "lines": 450,
       "app": "Web App"
     },
     {
-      "file": "app\\notifications\\components\\NotificationsClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\notifications\\components\\NotificationsClient.tsx",
+      "file": "components\\ui\\DesignSystemExamples.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\DesignSystemExamples.tsx",
+      "lines": 451,
+      "app": "Web App"
+    },
+    {
+      "file": "components\\ui\\UnifiedCard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\UnifiedCard.tsx",
       "lines": 449,
       "app": "Web App"
     },
     {
       "file": "src\\pricing\\market\\MarketRateCalculator.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\pricing\\market\\MarketRateCalculator.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\pricing\\market\\MarketRateCalculator.ts",
       "lines": 449,
       "app": "Mobile App"
     },
     {
       "file": "app\\help\\lib\\categories\\payments.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\help\\lib\\categories\\payments.ts",
-      "lines": 448,
-      "app": "Web App"
-    },
-    {
-      "file": "components\\building-surveyor\\YOLOCorrectionEditor.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\building-surveyor\\YOLOCorrectionEditor.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\help\\lib\\categories\\payments.ts",
       "lines": 448,
       "app": "Web App"
     },
     {
       "file": "components\\settings\\GDPRSettings.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\settings\\GDPRSettings.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\settings\\GDPRSettings.tsx",
       "lines": 448,
       "app": "Web App"
     },
     {
       "file": "src\\services\\AIAnalysisService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\AIAnalysisService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\AIAnalysisService.ts",
       "lines": 448,
       "app": "Mobile App"
     },
     {
+      "file": "app\\financials\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\financials\\page.tsx",
+      "lines": 446,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\auth.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\auth.ts",
+      "lines": 445,
+      "app": "Web App"
+    },
+    {
       "file": "src\\screens\\EditProfileScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\EditProfileScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\EditProfileScreen.tsx",
       "lines": 445,
       "app": "Mobile App"
     },
     {
       "file": "app\\admin\\payments\\fees\\components\\FeeTransferManagementClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\payments\\fees\\components\\FeeTransferManagementClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\payments\\fees\\components\\FeeTransferManagementClient.tsx",
+      "lines": 444,
+      "app": "Web App"
+    },
+    {
+      "file": "src\\navigation\\AppNavigator.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\navigation\\AppNavigator.tsx",
+      "lines": 444,
+      "app": "Mobile App"
+    },
+    {
+      "file": "app\\dashboard\\components\\DashboardWithAirbnbSearch.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\dashboard\\components\\DashboardWithAirbnbSearch.tsx",
       "lines": 443,
       "app": "Web App"
     },
     {
       "file": "src\\contexts\\AppStateContext.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\contexts\\AppStateContext.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\contexts\\AppStateContext.tsx",
       "lines": 443,
       "app": "Mobile App"
     },
     {
+      "file": "lib\\queries\\airbnb-optimized-v2.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\queries\\airbnb-optimized-v2.ts",
+      "lines": 442,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\maintenance\\MaintenanceDetectionService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\maintenance\\MaintenanceDetectionService.ts",
+      "lines": 442,
+      "app": "Web App"
+    },
+    {
       "file": "src\\components\\JobListOffline.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\JobListOffline.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\JobListOffline.tsx",
       "lines": 442,
       "app": "Mobile App"
     },
     {
-      "file": "src\\components\\ProductionMonitoringDashboard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ProductionMonitoringDashboard.tsx",
+      "file": "app\\properties\\[id]\\components\\PropertyDetailsClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\properties\\[id]\\components\\PropertyDetailsClient.tsx",
       "lines": 441,
-      "app": "Mobile App"
-    },
-    {
-      "file": "src\\utils\\ApiMiddleware.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\ApiMiddleware.ts",
-      "lines": 441,
-      "app": "Mobile App"
-    },
-    {
-      "file": "app\\contractors\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\page.tsx",
-      "lines": 440,
       "app": "Web App"
     },
     {
+      "file": "src\\utils\\ApiMiddleware.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\ApiMiddleware.ts",
+      "lines": 441,
+      "app": "Mobile App"
+    },
+    {
       "file": "src\\hooks\\useOfflineQuery.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useOfflineQuery.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\hooks\\useOfflineQuery.ts",
       "lines": 440,
       "app": "Mobile App"
     },
     {
       "file": "src\\utils\\errorHandlingEnhanced.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorHandlingEnhanced.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorHandlingEnhanced.ts",
       "lines": 439,
       "app": "Mobile App"
     },
     {
+      "file": "app\\jobs\\[id]\\payment\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\payment\\page.tsx",
+      "lines": 437,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\monitoring\\FNRMonitoringService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\monitoring\\FNRMonitoringService.ts",
+      "lines": 437,
+      "app": "Web App"
+    },
+    {
       "file": "src\\utils\\errorHandling.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorHandling.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorHandling.ts",
       "lines": 437,
       "app": "Mobile App"
     },
     {
+      "file": "src\\services\\AuthService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\AuthService.ts",
+      "lines": 436,
+      "app": "Mobile App"
+    },
+    {
       "file": "src\\utils\\performance\\ReactNativePerformanceEnforcer.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\performance\\ReactNativePerformanceEnforcer.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\performance\\ReactNativePerformanceEnforcer.ts",
       "lines": 435,
       "app": "Mobile App"
     },
     {
-      "file": "components\\payments\\PaymentForm.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\payments\\PaymentForm.tsx",
-      "lines": 434,
-      "app": "Web App"
-    },
-    {
-      "file": "lib\\advanced-cache-config.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\advanced-cache-config.ts",
-      "lines": 433,
-      "app": "Web App"
-    },
-    {
-      "file": "lib\\services\\building-surveyor\\YOLORetrainingService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\YOLORetrainingService.ts",
+      "file": "app\\api\\contractor\\training-contribution\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractor\\training-contribution\\route.ts",
       "lines": 433,
       "app": "Web App"
     },
     {
       "file": "src\\utils\\bundleAnalyzer.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\bundleAnalyzer.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\bundleAnalyzer.ts",
       "lines": 433,
       "app": "Mobile App"
     },
     {
-      "file": "app\\contractors\\components\\ContractorsBrowseClient.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\components\\ContractorsBrowseClient.tsx",
+      "file": "app\\settings\\security\\mfa\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\settings\\security\\mfa\\page.tsx",
+      "lines": 431,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\building-surveyor\\learning-handler.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\learning-handler.ts",
+      "lines": 431,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\ml-engine\\memory\\SelfModifyingTitans.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ml-engine\\memory\\SelfModifyingTitans.ts",
       "lines": 431,
       "app": "Web App"
     },
     {
       "file": "lib\\services\\notifications\\TrialNotifications.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\notifications\\TrialNotifications.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\notifications\\TrialNotifications.ts",
       "lines": 431,
       "app": "Web App"
     },
     {
       "file": "src\\screens\\NotificationSettingsScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\NotificationSettingsScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\NotificationSettingsScreen.tsx",
       "lines": 431,
       "app": "Mobile App"
     },
     {
       "file": "src\\utils\\errorTracking\\ErrorAnalytics.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorTracking\\ErrorAnalytics.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\errorTracking\\ErrorAnalytics.ts",
       "lines": 431,
       "app": "Mobile App"
     },
     {
-      "file": "lib\\services\\ml-engine\\memory\\SelfModifyingTitans.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ml-engine\\memory\\SelfModifyingTitans.ts",
-      "lines": 430,
-      "app": "Web App"
-    },
-    {
       "file": "src\\types\\database\\social.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\types\\database\\social.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\types\\database\\social.ts",
       "lines": 430,
       "app": "Mobile App"
     },
     {
       "file": "src\\utils\\RateLimiter.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\RateLimiter.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\RateLimiter.ts",
       "lines": 430,
       "app": "Mobile App"
     },
     {
-      "file": "app\\help\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\help\\page.tsx",
+      "file": "app\\api\\contractor\\invoices\\pay\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractor\\invoices\\pay\\route.ts",
+      "lines": 429,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\_archive\\pre-2025\\help-page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\_archive\\pre-2025\\help-page.tsx",
       "lines": 429,
       "app": "Web App"
     },
     {
       "file": "lib\\services\\building-surveyor\\BayesianFusionService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BayesianFusionService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\BayesianFusionService.ts",
       "lines": 429,
       "app": "Web App"
     },
     {
-      "file": "app\\profile\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\profile\\page.tsx",
-      "lines": 426,
+      "file": "components\\ui\\FeatureGate.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\FeatureGate.tsx",
+      "lines": 427,
       "app": "Web App"
     },
     {
       "file": "components\\video-call\\VideoCallHistory.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\video-call\\VideoCallHistory.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\video-call\\VideoCallHistory.tsx",
+      "lines": 427,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\jobs\\[id]\\components\\JobScheduling.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\JobScheduling.tsx",
       "lines": 426,
       "app": "Web App"
     },
     {
+      "file": "components\\profile\\ProfileDropdown.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\profile\\ProfileDropdown.tsx",
+      "lines": 426,
+      "app": "Web App"
+    },
+    {
+      "file": "components\\ui\\DateRangePicker.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\DateRangePicker.tsx",
+      "lines": 426,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\api\\notifications\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\notifications\\route.ts",
+      "lines": 425,
+      "app": "Web App"
+    },
+    {
       "file": "src\\utils\\performance\\PerformanceBudgetService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\performance\\PerformanceBudgetService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\performance\\PerformanceBudgetService.ts",
       "lines": 425,
       "app": "Mobile App"
     },
     {
-      "file": "components\\ui\\DateRangePicker.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\DateRangePicker.tsx",
-      "lines": 424,
-      "app": "Web App"
-    },
-    {
-      "file": "app\\api\\jobs\\[id]\\bids\\[bidId]\\accept\\route.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\jobs\\[id]\\bids\\[bidId]\\accept\\route.ts",
+      "file": "app\\contractor\\components\\ContractorLayoutShell.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\components\\ContractorLayoutShell.tsx",
       "lines": 423,
       "app": "Web App"
     },
     {
-      "file": "app\\api\\jobs\\[id]\\route.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\jobs\\[id]\\route.ts",
-      "lines": 421,
+      "file": "lib\\logger.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\logger.ts",
+      "lines": 423,
       "app": "Web App"
     },
     {
-      "file": "lib\\logger.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\logger.ts",
-      "lines": 421,
+      "file": "app\\(public)\\landing\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\(public)\\landing\\page.tsx",
+      "lines": 422,
       "app": "Web App"
     },
     {
       "file": "lib\\pwa.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\pwa.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\pwa.ts",
       "lines": 421,
       "app": "Web App"
     },
     {
       "file": "lib\\services\\ContractorService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ContractorService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ContractorService.ts",
       "lines": 421,
       "app": "Web App"
     },
     {
-      "file": "app\\jobs\\[id]\\components\\JobScheduling.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\JobScheduling.tsx",
-      "lines": 420,
+      "file": "lib\\services\\maintenance\\MaintenanceKnowledgeBase.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\maintenance\\MaintenanceKnowledgeBase.ts",
+      "lines": 421,
       "app": "Web App"
     },
     {
-      "file": "app\\settings\\payment-methods\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\settings\\payment-methods\\page.tsx",
-      "lines": 420,
-      "app": "Web App"
-    },
-    {
-      "file": "src\\services\\AuthService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\AuthService.ts",
-      "lines": 420,
+      "file": "src\\services\\ModerationService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\ModerationService.ts",
+      "lines": 421,
       "app": "Mobile App"
     },
     {
-      "file": "app\\messages\\page.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\messages\\page.tsx",
-      "lines": 418,
+      "file": "src\\utils\\AccessibilityManager.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\AccessibilityManager.ts",
+      "lines": 421,
+      "app": "Mobile App"
+    },
+    {
+      "file": "lib\\api\\response.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\api\\response.ts",
+      "lines": 420,
       "app": "Web App"
     },
     {
       "file": "components\\video-call\\VideoCallScheduler.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\video-call\\VideoCallScheduler.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\video-call\\VideoCallScheduler.tsx",
+      "lines": 419,
+      "app": "Web App"
+    },
+    {
+      "file": "src\\utils\\SecurityManager.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\SecurityManager.ts",
       "lines": 418,
+      "app": "Mobile App"
+    },
+    {
+      "file": "lib\\utils\\openai-rate-limit.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\utils\\openai-rate-limit.ts",
+      "lines": 416,
       "app": "Web App"
     },
     {
       "file": "src\\components\\QuoteCard.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\QuoteCard.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\QuoteCard.tsx",
+      "lines": 416,
+      "app": "Mobile App"
+    },
+    {
+      "file": "src\\utils\\codeSplitting.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\codeSplitting.ts",
       "lines": 416,
       "app": "Mobile App"
     },
     {
       "file": "src\\utils\\serviceHealthMonitor.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\serviceHealthMonitor.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\serviceHealthMonitor.ts",
       "lines": 416,
       "app": "Mobile App"
     },
     {
       "file": "app\\contractor\\profile\\components\\SkillsManagementModal.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\profile\\components\\SkillsManagementModal.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\profile\\components\\SkillsManagementModal.tsx",
       "lines": 414,
       "app": "Web App"
     },
     {
-      "file": "src\\utils\\codeSplitting.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\codeSplitting.ts",
-      "lines": 414,
-      "app": "Mobile App"
-    },
-    {
-      "file": "app\\contractor\\components\\ContractorLayoutShell.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\components\\ContractorLayoutShell.tsx",
+      "file": "app\\jobs\\[id]\\components\\BidListClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\jobs\\[id]\\components\\BidListClient.tsx",
       "lines": 413,
       "app": "Web App"
     },
     {
       "file": "src\\components\\ui\\Input\\Input.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Input\\Input.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Input\\Input.tsx",
       "lines": 413,
       "app": "Mobile App"
     },
     {
       "file": "src\\design-system\\theme.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\design-system\\theme.tsx",
-      "lines": 412,
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\design-system\\theme.tsx",
+      "lines": 413,
       "app": "Mobile App"
     },
     {
-      "file": "lib\\services\\admin\\AdminEscrowHoldService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\admin\\AdminEscrowHoldService.ts",
-      "lines": 410,
-      "app": "Web App"
+      "file": "src\\__tests__\\mocks\\reactNativeMocks.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\__tests__\\mocks\\reactNativeMocks.ts",
+      "lines": 413,
+      "app": "Mobile App"
     },
     {
-      "file": "lib\\services\\building-surveyor\\FeatureExtractorABTest.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\FeatureExtractorABTest.ts",
-      "lines": 410,
+      "file": "scripts\\prepare-training-dataset.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\prepare-training-dataset.ts",
+      "lines": 412,
       "app": "Web App"
     },
     {
       "file": "src\\components\\ui\\Button\\Button.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Button\\Button.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\components\\ui\\Button\\Button.tsx",
       "lines": 410,
       "app": "Mobile App"
     },
     {
       "file": "src\\screens\\contractor-verification\\ContractorVerificationScreen.tsx",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\contractor-verification\\ContractorVerificationScreen.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\screens\\contractor-verification\\ContractorVerificationScreen.tsx",
       "lines": 410,
       "app": "Mobile App"
     },
     {
-      "file": "src\\services\\PaymentService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\PaymentService.ts",
-      "lines": 408,
-      "app": "Mobile App"
+      "file": "app\\api\\maintenance\\feedback\\route.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\maintenance\\feedback\\route.ts",
+      "lines": 409,
+      "app": "Web App"
     },
     {
-      "file": "lib\\services\\building-surveyor\\DriftMonitorService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\DriftMonitorService.ts",
+      "file": "app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardFixed.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\dashboard-enhanced\\components\\ContractorDashboardFixed.tsx",
+      "lines": 409,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\components\\landing\\AirbnbLandingPage.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\components\\landing\\AirbnbLandingPage.tsx",
+      "lines": 408,
+      "app": "Web App"
+    },
+    {
+      "file": "scripts\\seed-more-real-jobs.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\seed-more-real-jobs.ts",
+      "lines": 408,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\contractor\\social\\components\\CommentsSection.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractor\\social\\components\\CommentsSection.tsx",
       "lines": 407,
       "app": "Web App"
     },
     {
-      "file": "app\\api\\contractor\\submit-bid\\route.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\api\\contractor\\submit-bid\\route.ts",
+      "file": "components\\ui\\Paywall.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\components\\ui\\Paywall.tsx",
+      "lines": 407,
+      "app": "Web App"
+    },
+    {
+      "file": "lib\\services\\ml-engine\\memory\\examples\\performance-comparison.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\ml-engine\\memory\\examples\\performance-comparison.ts",
+      "lines": 406,
+      "app": "Web App"
+    },
+    {
+      "file": "scripts\\create-gcp-buckets.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\scripts\\create-gcp-buckets.ts",
+      "lines": 406,
+      "app": "Web App"
+    },
+    {
+      "file": "src\\services\\marketing-management\\MarketingAnalyticsService.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\services\\marketing-management\\MarketingAnalyticsService.ts",
+      "lines": 404,
+      "app": "Mobile App"
+    },
+    {
+      "file": "lib\\cache\\api-cache.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\cache\\api-cache.ts",
       "lines": 403,
       "app": "Web App"
     },
     {
-      "file": "src\\utils\\AccessibilityManager.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\mobile\\src\\utils\\AccessibilityManager.ts",
+      "file": "lib\\utils\\fileValidation.ts",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\utils\\fileValidation.ts",
       "lines": 403,
-      "app": "Mobile App"
+      "app": "Web App"
     },
     {
-      "file": "lib\\services\\building-surveyor\\YOLOCorrectionService.ts",
-      "fullPath": "C:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\services\\building-surveyor\\YOLOCorrectionService.ts",
+      "file": "app\\contractors\\components\\ContractorsBrowseAirbnb.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\contractors\\components\\ContractorsBrowseAirbnb.tsx",
       "lines": 402,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\settings\\payment-methods\\page.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\settings\\payment-methods\\page.tsx",
+      "lines": 402,
+      "app": "Web App"
+    },
+    {
+      "file": "app\\admin\\settings\\components\\SettingsClient.tsx",
+      "fullPath": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\admin\\settings\\components\\SettingsClient.tsx",
+      "lines": 401,
       "app": "Web App"
     }
   ]

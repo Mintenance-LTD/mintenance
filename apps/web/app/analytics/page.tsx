@@ -9,6 +9,20 @@ import { AreaChart, BarChart, DonutChart, LineChart } from '@tremor/react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { supabase } from '@/lib/supabase';
 
+interface Payment {
+  amount: number;
+  [key: string]: any;
+}
+
+interface Job {
+  id: string;
+  created_at: string;
+  status: string;
+  category?: string;
+  payments?: Payment[];
+  [key: string]: any;
+}
+
 export default function AnalyticsPage2025() {
   const { user } = useCurrentUser();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
@@ -59,14 +73,14 @@ export default function AnalyticsPage2025() {
         let completedJobs = 0;
         let activeJobs = 0;
 
-        jobs?.forEach((job: unknown) => {
+        (jobs as Job[] | null)?.forEach((job) => {
           const date = new Date(job.created_at);
           const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
 
           if (job.status === 'completed') completedJobs++;
           if (job.status === 'in_progress' || job.status === 'posted') activeJobs++;
 
-          job.payments?.forEach((payment: unknown) => {
+          job.payments?.forEach((payment) => {
             const amount = payment.amount || 0;
             totalSpent += amount;
 

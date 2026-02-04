@@ -23,10 +23,52 @@ import {
   Heart
 } from 'lucide-react';
 
+interface Job {
+  id: string;
+  title: string;
+  description?: string;
+  budget: string | number;
+  status: string;
+  category?: string;
+  created_at: string;
+  homeowner_id: string;
+  priority?: string;
+  location?: {
+    address?: string;
+    city?: string;
+    postcode?: string;
+  };
+  timeline?: {
+    start_date?: string;
+    end_date?: string;
+  };
+  requirements?: string[];
+  photos?: string[];
+  view_count?: number;
+  bid_count?: number;
+  save_count?: number;
+}
+
+interface Homeowner {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  profile_image_url?: string;
+  created_at: string;
+  phone?: string;
+}
+
+interface ExistingBid {
+  bid_amount?: number;
+  amount?: number;
+  status: string;
+}
+
 interface JobDetailsClientProps {
-  job: unknown;
-  homeowner: unknown;
-  existingBid: unknown;
+  job: Job;
+  homeowner: Homeowner;
+  existingBid: ExistingBid | null;
 }
 
 export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClientProps) {
@@ -193,14 +235,18 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                   <PoundSterling className="w-5 h-5 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-600">Budget</p>
-                    <p className="text-lg font-semibold text-gray-900">{formatCurrency(job.budget)}</p>
+                    <p className="text-lg font-semibold text-gray-900">{formatCurrency(typeof job.budget === 'number' ? job.budget : parseFloat(String(job.budget)))}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <MapPin className="w-5 h-5 text-gray-400" />
                   <div>
                     <p className="text-sm text-gray-600">Location</p>
-                    <p className="text-lg font-semibold text-gray-900">{job.location || 'Not specified'}</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {job.location && typeof job.location === 'object'
+                        ? [job.location.address, job.location.city, job.location.postcode].filter(Boolean).join(', ') || 'Not specified'
+                        : (job.location || 'Not specified')}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -215,7 +261,9 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                   <div>
                     <p className="text-sm text-gray-600">Timeline</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {job.timeline || 'Flexible'}
+                      {job.timeline && typeof job.timeline === 'object'
+                        ? [job.timeline.start_date, job.timeline.end_date].filter(Boolean).join(' - ') || 'Flexible'
+                        : (job.timeline || 'Flexible')}
                     </p>
                   </div>
                 </div>
@@ -381,7 +429,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                       <span className="font-semibold text-teal-900">You've Already Bid</span>
                     </div>
                     <p className="text-sm text-teal-700">
-                      Your bid: {formatCurrency(existingBid.bid_amount || existingBid.amount)}
+                      Your bid: {formatCurrency(existingBid.bid_amount || existingBid.amount || 0)}
                     </p>
                     <p className="text-sm text-teal-600 mt-1">
                       Status: {existingBid.status}

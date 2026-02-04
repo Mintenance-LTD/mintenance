@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Search, MapPin, ChevronDown, Star, Shield, Zap, TrendingUp } from 'lucide-react';
-import { HeroCardWith3D } from './HeroCardWith3D';
+import { HeroCard } from './HeroCard';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 /** Hero categories; values match jobs/create serviceCategories for query-param prefilling */
@@ -146,14 +146,14 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
             {/* Headline */}
             <motion.div variants={!prefersReducedMotion ? itemVariants : undefined}>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1] mb-6">
-                Find Trusted Tradespeople{' '}
+                Mint AI{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-teal-200">
-                  in Minutes
+                  in 60 Seconds
                 </span>
+                . Instant Cost Estimates.
               </h1>
               <p className="text-xl text-blue-100 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                AI-powered matching connects you with verified professionals. Secure payments,
-                guaranteed work, and instant damage assessment.
+                Upload photos. Mint AI detects 71 damage types and suggests verified contractors. Swipe to hire.
               </p>
             </motion.div>
 
@@ -283,9 +283,10 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
             className="relative lg:h-[600px] flex items-center justify-center"
           >
             {mounted ? (
-              <HeroCardWith3D
+              <HeroCard
                 activeContractors={activeContractors}
                 hasRealStats={hasRealStats}
+                variant="contractor-hero"  // ← Contractor with mint fresh smile + thumbs up
               />
             ) : (
               <div

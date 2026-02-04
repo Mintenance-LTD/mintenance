@@ -4,6 +4,7 @@ import React from 'react';
 import { cardHover } from '@/lib/animations/variants';
 import Link from 'next/link';
 import { MotionArticle, MotionDiv } from '@/components/ui/MotionDiv';
+import { JobCardQuickActions } from './JobCardQuickActions';
 
 interface AIAssessment {
   id: string;
@@ -47,9 +48,20 @@ interface JobCard2025Props {
     ai_assessment?: AIAssessment | null;
   };
   viewMode?: 'grid' | 'list';
+  prefersReducedMotion?: boolean;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }
 
-export function JobCard2025({ job, viewMode = 'grid' }: JobCard2025Props) {
+export const JobCard2025 = React.memo(function JobCard2025({
+  job,
+  viewMode = 'grid',
+  prefersReducedMotion = false,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelection
+}: JobCard2025Props) {
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       posted: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -136,17 +148,48 @@ export function JobCard2025({ job, viewMode = 'grid' }: JobCard2025Props) {
     return `£${cost.min.toLocaleString()}-${cost.max.toLocaleString()}`;
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (selectionMode && onToggleSelection) {
+      e.preventDefault();
+      onToggleSelection();
+    }
+  };
+
   return (
-    <Link href={`/jobs/${job.id}`}>
+    <Link href={selectionMode ? '#' : `/jobs/${job.id}`} onClick={handleCardClick}>
       <MotionArticle
-        className={`bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden cursor-pointer ${
+        className={`bg-white rounded-2xl border shadow-sm overflow-hidden cursor-pointer relative ${
           viewMode === 'list' ? 'flex flex-row' : ''
+        } ${
+          isSelected ? 'border-teal-500 border-2 ring-2 ring-teal-200' : 'border-gray-200'
+        } ${
+          selectionMode ? 'hover:border-teal-400' : ''
         }`}
-        variants={cardHover}
-        initial="rest"
-        whileHover="hover"
-        whileTap="tap"
+        variants={prefersReducedMotion ? {} : cardHover}
+        initial={prefersReducedMotion ? undefined : "rest"}
+        whileHover={prefersReducedMotion ? undefined : "hover"}
+        whileTap={prefersReducedMotion ? undefined : "tap"}
       >
+        {/* Selection Mode Checkbox */}
+        {selectionMode && (
+          <div className="absolute top-3 left-3 z-20">
+            <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${
+              isSelected
+                ? 'bg-teal-600 border-teal-600'
+                : 'bg-white border-gray-300 hover:border-teal-400'
+            }`}>
+              {isSelected && (
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Quick Actions Menu - Hidden in selection mode */}
+        {!selectionMode && <JobCardQuickActions jobId={job.id} status={job.status} />}
+
         {/* Image Section */}
         {job.photos && job.photos.length > 0 && (
           <div className={`relative bg-gray-100 ${viewMode === 'list' ? 'w-48 h-full' : 'h-48'}`}>
@@ -380,7 +423,7 @@ export function JobCard2025({ job, viewMode = 'grid' }: JobCard2025Props) {
 
             <MotionDiv
               className="flex items-center gap-1 text-teal-600 font-medium text-sm"
-              whileHover={{ x: 3 }}
+              whileHover={prefersReducedMotion ? undefined : { x: 3 }}
             >
               <span>View Details</span>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -392,4 +435,17 @@ export function JobCard2025({ job, viewMode = 'grid' }: JobCard2025Props) {
       </MotionArticle>
     </Link>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo
+  // Return true if props are equal (component should NOT re-render)
+  // Return false if props have changed (component should re-render)
+  return (
+    prevProps.job.id === nextProps.job.id &&
+    prevProps.job.status === nextProps.job.status &&
+    prevProps.job.budget === nextProps.job.budget &&
+    prevProps.viewMode === nextProps.viewMode &&
+    prevProps.prefersReducedMotion === nextProps.prefersReducedMotion &&
+    prevProps.selectionMode === nextProps.selectionMode &&
+    prevProps.isSelected === nextProps.isSelected
+  );
+});

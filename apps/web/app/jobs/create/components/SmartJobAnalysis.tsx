@@ -6,6 +6,13 @@ import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
 import { formatMoney } from '@/lib/utils/currency';
 
+interface DetectedMaterial {
+  name: string;
+  quantity?: number;
+  unit?: string;
+  confidence: number;
+}
+
 interface JobAnalysisResult {
   suggestedCategory: string;
   suggestedBudget: {
@@ -21,6 +28,8 @@ interface JobAnalysisResult {
   confidence: number;
   reasoning: string[];
   detectedKeywords: string[];
+  detectedMaterials?: DetectedMaterial[];
+  estimatedMaterialCost?: number;
   imageAnalysis?: {
     detectedFeatures: string[];
     propertyType?: string;
@@ -415,6 +424,145 @@ export function SmartJobAnalysis({
               </button>
             </div>
           </div>
+
+          {/* Detected Materials */}
+          {analysis.detectedMaterials && analysis.detectedMaterials.length > 0 && (
+            <div style={{
+              padding: theme.spacing[3],
+              backgroundColor: theme.colors.backgroundTertiary,
+              borderRadius: theme.borderRadius.md,
+              borderLeft: `3px solid ${theme.colors.secondary}`,
+              marginBottom: theme.spacing[2],
+            }}>
+              <div style={{
+                fontSize: theme.typography.fontSize.xs,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textSecondary,
+                marginBottom: theme.spacing[2],
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[1],
+              }}>
+                <Icon name="package" size={14} />
+                Detected Materials:
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: theme.spacing[2],
+              }}>
+                {analysis.detectedMaterials.map((material, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: theme.spacing[2],
+                      backgroundColor: theme.colors.surface,
+                      borderRadius: theme.borderRadius.md,
+                      border: `1px solid ${theme.colors.border}`,
+                      position: 'relative',
+                    }}
+                  >
+                    {/* Source Badge */}
+                    {material.source === 'database' && (
+                      <div style={{
+                        position: 'absolute',
+                        top: theme.spacing[1],
+                        right: theme.spacing[1],
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        backgroundColor: '#EBF5FF',
+                        color: '#1E40AF',
+                        borderRadius: theme.borderRadius.sm,
+                        fontWeight: theme.typography.fontWeight.semibold,
+                      }}>
+                        ✓ DB
+                      </div>
+                    )}
+
+                    <div style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.medium,
+                      color: theme.colors.textPrimary,
+                      marginBottom: theme.spacing[1],
+                      paddingRight: theme.spacing[4],
+                    }}>
+                      {material.name}
+                    </div>
+
+                    {/* Quantity */}
+                    {material.quantity && material.unit && (
+                      <div style={{
+                        fontSize: theme.typography.fontSize.xs,
+                        color: theme.colors.textSecondary,
+                      }}>
+                        {material.quantity} {material.unit}
+                      </div>
+                    )}
+
+                    {/* Unit Price & Total Cost */}
+                    {material.unit_price && (
+                      <div style={{
+                        fontSize: theme.typography.fontSize.xs,
+                        color: theme.colors.textSecondary,
+                        marginTop: theme.spacing[1],
+                      }}>
+                        £{material.unit_price.toFixed(2)}/{material.unit}
+                        {material.quantity && material.total_cost && (
+                          <div style={{
+                            fontWeight: theme.typography.fontWeight.semibold,
+                            color: '#059669',
+                            marginTop: '2px',
+                          }}>
+                            Total: £{material.total_cost.toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Supplier */}
+                    {material.supplier_name && (
+                      <div style={{
+                        fontSize: '10px',
+                        color: theme.colors.textTertiary,
+                        marginTop: theme.spacing[1],
+                      }}>
+                        {material.supplier_name}
+                      </div>
+                    )}
+
+                    {/* Confidence (only show for non-database materials) */}
+                    {!material.source || material.source !== 'database' ? (
+                      <div style={{
+                        fontSize: theme.typography.fontSize.xs,
+                        color: theme.colors.textTertiary,
+                        marginTop: theme.spacing[1],
+                      }}>
+                        {Math.round(material.confidence * 100)}% confidence
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              {analysis.estimatedMaterialCost && analysis.estimatedMaterialCost > 0 && (
+                <div style={{
+                  marginTop: theme.spacing[3],
+                  paddingTop: theme.spacing[3],
+                  borderTop: `1px solid ${theme.colors.border}`,
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                }}>
+                  <strong>Estimated material cost:</strong> {formatMoney(analysis.estimatedMaterialCost)}
+                  <div style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textTertiary,
+                    marginTop: theme.spacing[1],
+                  }}>
+                    This is included in the suggested budget above
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Image Analysis Insights */}
           {analysis.imageAnalysis && analysis.imageAnalysis.detectedFeatures.length > 0 && (

@@ -34,6 +34,32 @@ interface Job {
   matchScore?: number;
 }
 
+interface JobApiResponse {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  category?: string;
+  priority?: string;
+  budget: number;
+  status: string;
+  photos?: string[];
+  created_at: string;
+  homeowner_id: string;
+  homeowner_name?: string;
+  homeowner_avatar?: string;
+  distance?: number;
+  match_score?: number;
+}
+
+interface ViewWithJob {
+  job: JobApiResponse;
+}
+
+interface SavedJobWithJob {
+  job: JobApiResponse;
+}
+
 export default function ContractorJobsPage2025() {
   const router = useRouter();
   const { user, loading: loadingUser } = useCurrentUser();
@@ -63,10 +89,10 @@ export default function ContractorJobsPage2025() {
         const data = await response.json();
         const allJobs = data.jobs || [];
 
-        const active = allJobs.filter((j: unknown) => j.status === 'in_progress' || j.status === 'assigned').length;
-        const pending = allJobs.filter((j: unknown) => j.status === 'pending' || j.status === 'posted').length;
-        const completed = allJobs.filter((j: unknown) => j.status === 'completed').length;
-        const totalValue = allJobs.reduce((sum: number, j: unknown) => sum + (j.budget || 0), 0);
+        const active = allJobs.filter((j: JobApiResponse) => j.status === 'in_progress' || j.status === 'assigned').length;
+        const pending = allJobs.filter((j: JobApiResponse) => j.status === 'pending' || j.status === 'posted').length;
+        const completed = allJobs.filter((j: JobApiResponse) => j.status === 'completed').length;
+        const totalValue = allJobs.reduce((sum: number, j: JobApiResponse) => sum + (j.budget || 0), 0);
 
         setAllJobsStats({ active, pending, completed, totalValue });
       } catch (error) {
@@ -121,38 +147,20 @@ export default function ContractorJobsPage2025() {
 
         const data = await response.json();
 
-        interface JobApiResponse {
-          id: string;
-          title: string;
-          description: string;
-          location: string;
-          category: string;
-          priority?: string;
-          budget: number;
-          status: string;
-          photos?: string[];
-          created_at: string;
-          homeowner_id: string;
-          homeowner_name?: string;
-          homeowner_avatar?: string;
-          distance?: number;
-          match_score?: number;
-        }
-
         // Transform API data based on endpoint type
-        let jobsData: unknown[] = [];
+        let jobsData: JobApiResponse[] = [];
 
         if (filter === 'viewed' && data.views) {
-          jobsData = data.views.map((view: unknown) => view.job).filter(Boolean);
+          jobsData = data.views.map((view: ViewWithJob) => view.job).filter(Boolean);
         } else if (filter === 'saved' && data.savedJobs) {
-          jobsData = data.savedJobs.map((saved: unknown) => saved.job).filter(Boolean);
+          jobsData = data.savedJobs.map((saved: SavedJobWithJob) => saved.job).filter(Boolean);
         } else {
           jobsData = data.jobs || [];
         }
 
         // Apply category filter
         if (categoryFilter && categoryFilter !== 'all') {
-          jobsData = jobsData.filter((job: unknown) => 
+          jobsData = jobsData.filter((job: JobApiResponse) =>
             job.category?.toLowerCase() === categoryFilter.toLowerCase()
           );
         }
@@ -162,7 +170,7 @@ export default function ContractorJobsPage2025() {
           title: job.title,
           description: job.description,
           location: job.location,
-          category: job.category,
+          category: job.category || 'General',
           priority: job.priority || 'medium',
           budget: job.budget,
           status: job.status,
@@ -280,7 +288,7 @@ export default function ContractorJobsPage2025() {
                   ].map((tab) => (
                     <button
                       key={tab.value}
-                      onClick={() => setFilter(tab.value as unknown)}
+                      onClick={() => setFilter(tab.value)}
                       className={`px-6 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all flex items-center gap-2 ${
                         filter === tab.value
                           ? 'bg-teal-600 text-white shadow-sm'

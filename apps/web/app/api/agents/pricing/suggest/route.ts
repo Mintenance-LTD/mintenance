@@ -129,6 +129,9 @@ export async function POST(request: NextRequest) {
         // Additional metadata
         factors: recommendation.factors,
         recommendationId: recommendation.id,
+
+        // Cost breakdown (materials, labor, overhead, profit)
+        costBreakdown: recommendation.costBreakdown,
       },
     };
 

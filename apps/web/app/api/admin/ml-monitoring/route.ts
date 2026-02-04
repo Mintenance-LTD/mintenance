@@ -19,6 +19,30 @@ import { rateLimiter } from '@/lib/rate-limiter';
 // TYPE DEFINITIONS
 // ============================================================================
 
+interface ModelStatus {
+  pendingCorrections: number;
+  activeDrift?: {
+    score: number;
+  };
+  currentModelMetrics?: {
+    f1Score: number;
+  };
+  lastRetrainingDate?: string;
+}
+
+interface ExperimentHealthData {
+  automationRate: number;
+}
+
+interface ABTest {
+  status: string;
+  started_at?: string;
+  created_at: string;
+  config_jsonb?: {
+    maximum_duration_days?: number;
+  };
+}
+
 interface DashboardData {
   // Overall health
   pipelineHealth: {
@@ -554,7 +578,7 @@ async function getResourceUsage() {
   };
 }
 
-function calculateHealthScore(status: unknown): number {
+function calculateHealthScore(status: ModelStatus): number {
   let score = 100;
 
   // Deduct points for issues
@@ -577,14 +601,14 @@ function calculateHealthScore(status: unknown): number {
   return Math.max(0, Math.min(100, score));
 }
 
-function identifyIssues(status: unknown, experimentHealthData: unknown): string[] {
+function identifyIssues(status: ModelStatus, experimentHealthData: ExperimentHealthData): string[] {
   const issues: string[] = [];
 
   if (status.pendingCorrections > 500) {
     issues.push('High number of pending corrections');
   }
 
-  if (status.activeDrift?.score > 0.3) {
+  if (status.activeDrift && status.activeDrift.score > 0.3) {
     issues.push('Significant distribution drift detected');
   }
 
@@ -599,7 +623,7 @@ function identifyIssues(status: unknown, experimentHealthData: unknown): string[
   return issues;
 }
 
-function calculateTestProgress(test: unknown): number {
+function calculateTestProgress(test: ABTest): number {
   // Simplified progress calculation
   // In production, would calculate based on sample size and duration
   if (test.status === 'completed') return 100;

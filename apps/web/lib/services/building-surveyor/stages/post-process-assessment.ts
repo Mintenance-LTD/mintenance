@@ -48,8 +48,8 @@ export async function postProcessAssessment(
     context,
   } = input;
 
-  // Structure into Phase1BuildingAssessment
-  let assessment = structureAssessment(aiResponse, {
+  // Structure into Phase1BuildingAssessment (now includes material database enrichment)
+  let assessment = await structureAssessment(aiResponse, {
     roboflowDetections,
     visionAnalysis: visionAnalysis || undefined,
     sam3Segmentation: sam3Segmentation ? sam3Segmentation : undefined,

@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
     
     // Add jobs from messages query
     if (messageJobsData) {
-      for (const msgRow of messageJobsData as MessageJobRow[]) {
+      for (const msgRow of messageJobsData as unknown as MessageJobRow[]) {
         const job = msgRow.jobs;
         if (job && !allJobs.has(job.id)) {
           allJobs.set(job.id, job);

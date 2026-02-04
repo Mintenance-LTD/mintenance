@@ -14,6 +14,10 @@ interface PricingFactors {
   method?: string;
   budget?: number;
   category?: string;
+  // NEW: Material cost integration
+  estimatedMaterialCost?: number;
+  estimatedLaborCost?: number;
+  materialCostFactor?: number;
 }
 
 interface PricingRecommendation {
@@ -30,6 +34,14 @@ interface PricingRecommendation {
   confidenceScore: number; // 0-1
   reasoning: string;
   factors: PricingFactors;
+  // NEW: Cost breakdown
+  costBreakdown?: {
+    materials: number;
+    labor: number;
+    overhead: number;
+    profit: number;
+    total: number;
+  };
 }
 
 interface MarketAnalysis {
@@ -159,6 +171,67 @@ export class PricingAgent {
       // Continue with fallback behavior
     }
   }
+
+  /**
+   * Calculate estimated material costs for a job from JobAnalysisService data
+   * NEW: Integrates with materials database
+   */
+  private static async calculateMaterialCosts(jobId: string, jobDescription: string): Promise<{
+    estimatedMaterialCost: number;
+    estimatedLaborCost: number;
+    materialCostFactor: number;
+  }> {
+    try {
+      // Import JobAnalysisService dynamically to avoid circular dependencies
+      const { JobAnalysisService } = await import('../JobAnalysisService');
+
+      // Run job analysis to get material estimates
+      const analysis = await JobAnalysisService.analyzeJob({
+        description: jobDescription,
+        photos: [], // We don't need photos for cost estimation
+      });
+
+      const estimatedMaterialCost = analysis.estimatedMaterialCost || 0;
+
+      // Estimate labor cost as a percentage of recommended budget
+      // Typical construction: 40-60% labor, 30-50% materials, 10-20% overhead
+      const totalBudget = analysis.suggestedBudget.recommended;
+      const estimatedLaborCost = estimatedMaterialCost > 0
+        ? totalBudget - estimatedMaterialCost - (totalBudget * 0.15) // Subtract materials and 15% overhead
+        : totalBudget * 0.5; // Default to 50% if no material cost available
+
+      // Calculate material cost factor for complexity adjustment
+      // Higher material costs indicate more complex jobs
+      let materialCostFactor = 1.0;
+      if (estimatedMaterialCost > 2000) {
+        materialCostFactor = 1.3;
+      } else if (estimatedMaterialCost > 1000) {
+        materialCostFactor = 1.2;
+      } else if (estimatedMaterialCost > 500) {
+        materialCostFactor = 1.1;
+      }
+
+      return {
+        estimatedMaterialCost,
+        estimatedLaborCost: Math.max(0, estimatedLaborCost),
+        materialCostFactor,
+      };
+    } catch (error) {
+      logger.error('Failed to calculate material costs', {
+        service: 'PricingAgent',
+        jobId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      // Return zeros if calculation fails (graceful degradation)
+      return {
+        estimatedMaterialCost: 0,
+        estimatedLaborCost: 0,
+        materialCostFactor: 1.0,
+      };
+    }
+  }
+
   /**
    * Generate pricing recommendation for a job
    */
@@ -192,8 +265,15 @@ export class PricingAgent {
         return this.generateBudgetBasedRecommendation(job.budget || 0, job.category || '');
       }
 
+      // NEW: Calculate material costs from JobAnalysisService
+      const materialCosts = await this.calculateMaterialCosts(jobId, job.description || '');
+
       // Calculate factors
-      const complexityFactor = await this.calculateComplexityFactor(jobId, job.description || '');
+      const complexityFactor = await this.calculateComplexityFactor(
+        jobId,
+        job.description || '',
+        materialCosts.estimatedMaterialCost
+      );
       const locationFactor = await this.calculateLocationFactor(job.location || '');
       const contractorTierFactor = contractorId
         ? await this.calculateContractorTierFactor(contractorId)
@@ -261,6 +341,10 @@ export class PricingAgent {
           contractorTierFactor,
           marketDemandFactor,
           sampleSize: marketAnalysis.sampleSize,
+          // NEW: Material cost integration
+          estimatedMaterialCost: materialCosts.estimatedMaterialCost,
+          estimatedLaborCost: materialCosts.estimatedLaborCost,
+          materialCostFactor: materialCosts.materialCostFactor,
         },
       };
 
@@ -278,6 +362,22 @@ export class PricingAgent {
         });
       }
 
+      // NEW: Calculate cost breakdown
+      const costBreakdown = materialCosts.estimatedMaterialCost > 0
+        ? {
+            materials: materialCosts.estimatedMaterialCost,
+            labor: materialCosts.estimatedLaborCost,
+            overhead: Math.round(recommendedOptimalPrice * 0.15), // 15% overhead
+            profit: Math.round(
+              recommendedOptimalPrice -
+                materialCosts.estimatedMaterialCost -
+                materialCosts.estimatedLaborCost -
+                recommendedOptimalPrice * 0.15
+            ),
+            total: recommendedOptimalPrice,
+          }
+        : undefined;
+
       // Add recommendation ID to return value
       const result: PricingRecommendation = {
         recommendedMinPrice,
@@ -292,6 +392,7 @@ export class PricingAgent {
         confidenceScore,
         reasoning,
         factors: recommendationData.factors,
+        costBreakdown, // NEW: Include cost breakdown
       };
 
       if (recommendation?.id) {
@@ -478,7 +579,11 @@ export class PricingAgent {
   /**
    * Calculate job complexity factor
    */
-  private static async calculateComplexityFactor(jobId: string, description: string): Promise<number> {
+  private static async calculateComplexityFactor(
+    jobId: string,
+    description: string,
+    materialCost?: number
+  ): Promise<number> {
     // Simple heuristic - can be enhanced with ML
     const descriptionLength = description.length;
     const wordCount = description.split(/\s+/).length;
@@ -512,6 +617,22 @@ export class PricingAgent {
       factor += 0.3;
     } else if (keywordCount >= 1) {
       factor += 0.1;
+    }
+
+    // NEW: Adjust based on material costs (higher costs = more complex)
+    if (materialCost) {
+      if (materialCost > 2000) {
+        factor += 0.3;
+      } else if (materialCost > 1000) {
+        factor += 0.2;
+      } else if (materialCost > 500) {
+        factor += 0.1;
+      }
+
+      // Cap factor for very expensive jobs (less room for error)
+      if (materialCost > 5000) {
+        factor = Math.min(factor, 1.3);
+      }
     }
 
     return Math.min(1.5, Math.max(0.8, factor)); // Cap between 0.8 and 1.5

@@ -81,6 +81,15 @@ export interface Material {
   name: string;
   quantity: string;
   estimatedCost: number;
+
+  // Database enrichment fields (optional for backward compatibility)
+  material_id?: string;      // Database UUID
+  unit_price?: number;       // Per-unit price from database
+  total_cost?: number;       // Calculated: quantity × unit_price
+  source?: 'ai' | 'database'; // Enrichment source
+  sku?: string;              // Product SKU from database
+  supplier_name?: string;    // Supplier name from database
+  unit?: string;             // Unit type from database (meter, sqm, liter, etc.)
 }
 
 export interface ContractorAdvice {

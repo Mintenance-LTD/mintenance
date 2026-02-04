@@ -1,14 +1,34 @@
 'use client';
 import { Bookmark, TrendingUp, MapPin, Brain, Building2 } from 'lucide-react';
 import { formatMoney } from '@/lib/utils/currency';
+
+interface AIAnalysis {
+  suggestedPrice?: {
+    min: number;
+    max: number;
+  };
+  estimatedDuration?: string;
+}
+
+interface BuildingSurvey {
+  status?: string;
+  defectsFound?: number;
+  estimatedCost?: number;
+}
+
+interface GeocodeData {
+  verified?: boolean;
+  formattedAddress?: string;
+}
+
 interface JobMetadataProps {
   savedByContractors: number;
   isJobSaved: boolean;
   savingJob: boolean;
   userRole: string;
-  aiAnalysis: unknown;
-  buildingSurvey: unknown;
-  geocodeData: unknown;
+  aiAnalysis: AIAnalysis | null;
+  buildingSurvey: BuildingSurvey | null;
+  geocodeData: GeocodeData | null;
   onSaveJob: () => Promise<void>;
 }
 export function JobMetadata({
@@ -89,7 +109,7 @@ export function JobMetadata({
             <Building2 className="h-5 w-5 text-indigo-600 mt-0.5" />
             <div className="flex-1 space-y-2">
               <p className="text-sm font-medium text-gray-700">Building Survey</p>
-              {buildingSurvey.defectsFound > 0 && (
+              {buildingSurvey.defectsFound !== undefined && buildingSurvey.defectsFound > 0 && (
                 <p className="text-sm text-amber-600">
                   {buildingSurvey.defectsFound} potential issue{buildingSurvey.defectsFound !== 1 ? 's' : ''} detected
                 </p>

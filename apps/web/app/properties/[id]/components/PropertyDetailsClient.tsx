@@ -6,13 +6,9 @@ import {
   MapPin,
   Edit,
   Trash2,
-  FileText,
   Share2,
   Heart,
-  Upload,
-  Download,
   Plus,
-  Eye,
   CheckCircle,
   Clock,
 } from 'lucide-react';
@@ -21,6 +17,9 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { logger } from '@mintenance/shared';
+import { SpendingChart, aggregateSpendingByMonth } from '@/app/properties/components/SpendingChart';
+import { calculatePropertyHealthScore } from '@/lib/utils/property-health-score';
+import { PropertyHealthScoreCard } from '@/app/properties/components/PropertyHealthScore';
 
 interface Job {
   id: string;
@@ -46,14 +45,6 @@ interface Property {
   images: string[];
 }
 
-interface Document {
-  id: string;
-  name: string;
-  type: string;
-  size: string;
-  uploadDate: string;
-  category: 'certificate' | 'invoice' | 'warranty' | 'inspection' | 'other';
-}
 
 interface PropertyDetailsClientProps {
   property: Property;
@@ -67,28 +58,23 @@ interface PropertyDetailsClientProps {
 
 export default function PropertyDetailsClient({ property, jobs, stats }: PropertyDetailsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'documents'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'jobs'>('overview');
   const [isFavorited, setIsFavorited] = useState(false);
 
-  // Mock data for documents (until we have real documents API)
-  const documents: Document[] = [
-    {
-      id: 'DOC-001',
-      name: 'Gas Safety Certificate 2025',
-      type: 'PDF',
-      size: '2.4 MB',
-      uploadDate: '2025-01-15',
-      category: 'certificate',
-    },
-    {
-      id: 'DOC-002',
-      name: 'Kitchen Renovation Invoice',
-      type: 'PDF',
-      size: '1.8 MB',
-      uploadDate: '2024-12-20',
-      category: 'invoice',
-    },
-  ];
+  // Calculate property health score
+  const completedJobsList = jobs.filter(j => j.status === 'completed');
+  const lastCompletedJob = completedJobsList.sort((a, b) =>
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  )[0];
+
+  const healthScore = calculatePropertyHealthScore({
+    completedJobs: stats.completedJobs,
+    activeJobs: stats.activeJobs,
+    lastServiceDate: lastCompletedJob?.date || null,
+    totalSpent: stats.totalSpent,
+    propertyAge: property.yearBuilt ? new Date().getFullYear() - property.yearBuilt : undefined,
+    recentCategories: [...new Set(jobs.slice(0, 10).map(j => j.category).filter(Boolean))],
+  });
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -242,7 +228,6 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
                 {[
                   { id: 'overview', label: 'Overview' },
                   { id: 'jobs', label: `Jobs (${jobs.length})` },
-                  { id: 'documents', label: `Documents (${documents.length})` },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -285,6 +270,14 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
                       </div>
                     </div>
                   </div>
+
+                  {/* Spending Trend Chart */}
+                  {jobs.length > 0 && (
+                    <div className="p-6 bg-white border border-gray-200 rounded-xl">
+                      <h2 className="text-xl font-semibold text-gray-900 mb-4">Spending trend</h2>
+                      <SpendingChart data={aggregateSpendingByMonth(jobs)} height={300} />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -351,47 +344,6 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
                 </div>
               )}
 
-              {/* Documents Tab */}
-              {activeTab === 'documents' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-gray-900">Documents</h2>
-                    <button className="px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center gap-2">
-                      <Upload className="w-4 h-4" />
-                      Upload
-                    </button>
-                  </div>
-
-                  {documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="p-6 border border-gray-200 rounded-lg hover:border-gray-300 transition-all"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-                            <FileText className="w-6 h-6 text-teal-600" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{doc.name}</h3>
-                            <div className="text-sm text-gray-600">
-                              {doc.type} • {doc.size} • Uploaded {doc.uploadDate}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                            <Eye className="w-5 h-5 text-gray-600" />
-                          </button>
-                          <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                            <Download className="w-5 h-5 text-gray-600" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
@@ -424,6 +376,9 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
                   </div>
                 </div>
               </div>
+
+              {/* Property Health Score */}
+              <PropertyHealthScoreCard healthScore={healthScore} showRecommendations={true} />
 
               {/* Action Button */}
               <Link

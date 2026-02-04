@@ -106,8 +106,15 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      // Perform rate limit check
-      const rateLimitResult = await checkRateLimit(request);
+      // Skip middleware rate limiting for endpoints with their own rate limiters
+      // These endpoints implement more permissive, endpoint-specific rate limiting
+      const skipMiddlewareRateLimit = pathname === '/api/auth/session-status' ||
+                                       pathname === '/api/auth/extend-session';
+
+      // Perform rate limit check (unless explicitly skipped)
+      const rateLimitResult = skipMiddlewareRateLimit
+        ? { allowed: true, limit: 0, remaining: 0, tier: 'skip' }
+        : await checkRateLimit(request);
 
       if (!rateLimitResult.allowed) {
         logger.warn('API rate limit exceeded', {

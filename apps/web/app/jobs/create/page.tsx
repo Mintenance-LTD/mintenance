@@ -200,9 +200,17 @@ export default function CreateJobPage2025() {
           setIsSubmitting(false);
           return;
         }
-        logger.info('[Submit] Calling uploadImages with token');
-        imageUrls = await imageUpload.uploadImages(csrfToken);
-        logger.info('[Submit] Upload completed', { urlCount: imageUrls.length });
+
+        // Try to upload images, but continue without them if upload fails
+        try {
+          logger.info('[Submit] Calling uploadImages with token');
+          imageUrls = await imageUpload.uploadImages(csrfToken);
+          logger.info('[Submit] Upload completed', { urlCount: imageUrls.length });
+        } catch (uploadError) {
+          logger.error('[Submit] Image upload failed, continuing without images', uploadError);
+          toast.error('Image upload failed. Continuing to create job without images.');
+          imageUrls = []; // Continue with empty images
+        }
       }
 
       // logger.info('Submitting job with data:', {

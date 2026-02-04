@@ -121,7 +121,9 @@ function RegisterForm() {
         if (response.status === 429) {
           throw new Error('Too many registration attempts. Please try again later.');
         } else if (response.status === 400) {
-          throw new Error(responseData.error || 'Invalid registration data. Please check your information.');
+          // Check if it's a duplicate email error
+          const errorMsg = responseData.error || responseData.message || 'Invalid registration data. Please check your information.';
+          throw new Error(errorMsg);
         } else if (response.status === 403) {
           throw new Error(
             responseData.error === 'CSRF validation failed'
@@ -201,7 +203,20 @@ function RegisterForm() {
               <Alert variant="destructive" className="mb-6">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Registration Failed</AlertTitle>
-                <AlertDescription>{errorMessage}</AlertDescription>
+                <AlertDescription>
+                  {errorMessage}
+                  {errorMessage.toLowerCase().includes('already exists') && (
+                    <>
+                      {' '}
+                      <Link
+                        href="/login"
+                        className="font-semibold underline hover:no-underline"
+                      >
+                        Sign in instead
+                      </Link>
+                    </>
+                  )}
+                </AlertDescription>
               </Alert>
             )}
 

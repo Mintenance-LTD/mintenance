@@ -8,6 +8,29 @@ import { rateLimiter } from '@/lib/rate-limiter';
 
 const statusSchema = z.enum(['active', 'bid', 'completed', 'all']).optional();
 
+interface JobApiResponse {
+  id: string;
+  title: string;
+  description?: string;
+  location?: string;
+  category?: string;
+  priority?: string;
+  budget: number;
+  status: string;
+  photos?: string[];
+  created_at: string;
+  homeowner_id: string;
+  homeowner?: {
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+  } | Array<{
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+  }>;
+}
+
 /**
  * GET /api/contractor/my-jobs
  * Get jobs for the authenticated contractor
@@ -117,7 +140,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Transform to match expected format
-      const transformedJobs = (jobs || []).map((job: unknown) => ({
+      const transformedJobs = (jobs || []).map((job: JobApiResponse) => ({
         id: job.id,
         title: job.title,
         description: job.description,
@@ -130,9 +153,11 @@ export async function GET(request: NextRequest) {
         created_at: job.created_at,
         homeowner_id: job.homeowner_id,
         homeowner_name: job.homeowner
-          ? `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || 'Unknown'
+          ? Array.isArray(job.homeowner)
+            ? `${job.homeowner[0]?.first_name || ''} ${job.homeowner[0]?.last_name || ''}`.trim() || 'Unknown'
+            : `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || 'Unknown'
           : 'Unknown',
-        homeowner_avatar: job.homeowner?.profile_image_url,
+        homeowner_avatar: Array.isArray(job.homeowner) ? job.homeowner[0]?.profile_image_url : job.homeowner?.profile_image_url,
       }));
 
       return NextResponse.json({ jobs: transformedJobs });
@@ -183,7 +208,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Transform to match expected format
-      const transformedJobs = (jobs || []).map((job: unknown) => ({
+      const transformedJobs = (jobs || []).map((job: JobApiResponse) => ({
         id: job.id,
         title: job.title,
         description: job.description,
@@ -196,9 +221,11 @@ export async function GET(request: NextRequest) {
         created_at: job.created_at,
         homeowner_id: job.homeowner_id,
         homeowner_name: job.homeowner
-          ? `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || 'Unknown'
+          ? Array.isArray(job.homeowner)
+            ? `${job.homeowner[0]?.first_name || ''} ${job.homeowner[0]?.last_name || ''}`.trim() || 'Unknown'
+            : `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || 'Unknown'
           : 'Unknown',
-        homeowner_avatar: job.homeowner?.profile_image_url,
+        homeowner_avatar: Array.isArray(job.homeowner) ? job.homeowner[0]?.profile_image_url : job.homeowner?.profile_image_url,
       }));
 
       return NextResponse.json({ jobs: transformedJobs });

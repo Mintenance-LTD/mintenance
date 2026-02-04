@@ -38,6 +38,7 @@ export const submitBidSchema = z.object({
   // Quote fields with sanitization
   lineItems: z.array(z.object({
     description: z.string().transform(val => sanitizeText(val, 500)),
+    type: z.enum(['labor', 'material', 'equipment']).default('labor'),
     quantity: z.number().nonnegative(),
     unitPrice: z.number().nonnegative(),
     total: z.number().nonnegative(),

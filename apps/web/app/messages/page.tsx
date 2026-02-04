@@ -46,6 +46,38 @@ interface ApiMessage {
   is_read?: boolean;
 }
 
+// API Thread types
+interface Participant {
+  id: string;
+  name: string;
+  profile_image_url?: string;
+}
+
+interface ApiThread {
+  jobId: string;
+  participants: Participant[];
+  lastMessage?: {
+    content?: string;
+    messageText?: string;
+    createdAt: string;
+  };
+  jobTitle?: string;
+  unreadCount?: number;
+}
+
+interface ApiMessageResponse {
+  id: string;
+  senderId?: string;
+  sender_id?: string;
+  content?: string;
+  messageText?: string;
+  messageType?: string;
+  message_type?: string;
+  createdAt?: string;
+  created_at?: string;
+  read?: boolean;
+}
+
 export default function MessagesPage2025() {
   return (
     <ErrorBoundary componentName="MessagesPage">
@@ -80,8 +112,8 @@ function MessagesPageContent() {
         const data = await response.json();
 
         // Transform threads to conversations
-        const transformedConversations: Conversation[] = (data.threads || []).map((thread: unknown) => {
-          const otherParticipant = thread.participants.find((p: unknown) => p.id !== user.id);
+        const transformedConversations: Conversation[] = (data.threads || []).map((thread: ApiThread) => {
+          const otherParticipant = thread.participants.find((p: Participant) => p.id !== user.id);
           return {
             id: thread.jobId,
             otherUser: {
@@ -127,12 +159,12 @@ function MessagesPageContent() {
 
         const data = await response.json();
 
-        const transformedMessages = (data.messages || []).map((msg: unknown): Message => ({
+        const transformedMessages = (data.messages || []).map((msg: ApiMessageResponse): Message => ({
           id: msg.id,
-          sender_id: msg.senderId || msg.sender_id,
+          sender_id: msg.senderId || msg.sender_id || '',
           content: msg.content || msg.messageText || '',
           message_type: msg.messageType || msg.message_type || 'text',
-          created_at: msg.createdAt || msg.created_at,
+          created_at: msg.createdAt || msg.created_at || '',
           read: msg.read !== undefined ? msg.read : true,
         }));
 

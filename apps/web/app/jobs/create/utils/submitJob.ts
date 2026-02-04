@@ -187,8 +187,19 @@ export async function submitJob({
         contentType,
         error: errorData
       }, { service: 'app' });
-      
-      const errorMessage = errorData.error || errorData.message || errorData.details || `Failed to create job (${response.status})`;
+
+      // Safely extract error message from error data object
+      let errorMessage = `Failed to create job (${response.status})`;
+      if (errorData && typeof errorData === 'object') {
+        const errObj = errorData as Record<string, unknown>;
+        const errStr = errObj.error || errObj.message || errObj.details;
+        if (typeof errStr === 'string') {
+          errorMessage = errStr;
+        } else if (errStr && typeof errStr === 'object') {
+          errorMessage = JSON.stringify(errStr);
+        }
+      }
+
       return {
         success: false,
         error: errorMessage,

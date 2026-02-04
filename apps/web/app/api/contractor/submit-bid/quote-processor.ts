@@ -22,6 +22,7 @@ interface QuotePayload {
   total_amount: number;
   line_items: Array<{
     description: string;
+    type?: 'labor' | 'material' | 'equipment';
     quantity: number;
     unitPrice: number;
     total: number;

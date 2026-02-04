@@ -1,6 +1,20 @@
 import { logger } from '@mintenance/shared';
 import { ImageAnalysisService, ImageAnalysisResult } from './ImageAnalysisService';
 
+export interface DetectedMaterial {
+  name: string;
+  quantity?: number;
+  unit?: string;
+  confidence: number;
+  // NEW: Database integration fields
+  material_id?: string;
+  unit_price?: number;
+  total_cost?: number;
+  source?: 'database' | 'detected';
+  sku?: string;
+  supplier_name?: string;
+}
+
 export interface JobAnalysisResult {
   suggestedCategory: string;
   suggestedBudget: {
@@ -16,6 +30,8 @@ export interface JobAnalysisResult {
   confidence: number;
   reasoning: string[];
   detectedKeywords: string[];
+  detectedMaterials?: DetectedMaterial[];
+  estimatedMaterialCost?: number;
   imageAnalysis?: {
     detectedFeatures: string[];
     propertyType?: string;
@@ -166,19 +182,22 @@ export class JobAnalysisService {
       
       // Extract keywords
       const detectedKeywords = this.extractKeywords(text);
-      
+
+      // Extract materials (NOW WITH DATABASE LOOKUP)
+      const detectedMaterials = await this.extractMaterials(text);
+
       // Suggest category based on keywords
       const suggestedCategory = this.suggestCategory(text, detectedKeywords);
-      
+
       // Estimate budget based on category and description
       const suggestedBudget = this.estimateBudget(suggestedCategory, text, detectedKeywords);
-      
+
       // Estimate timeline based on complexity and urgency
       const suggestedTimeline = this.estimateTimeline(text, detectedKeywords, suggestedCategory);
-      
+
       // Calculate confidence based on keyword matches
       const confidence = this.calculateConfidence(detectedKeywords, suggestedCategory);
-      
+
       // Generate reasoning
       const reasoning = this.generateReasoning(
         suggestedCategory,
@@ -187,6 +206,11 @@ export class JobAnalysisService {
         detectedKeywords
       );
 
+      // Calculate total estimated material cost from database-matched materials
+      const estimatedMaterialCost = detectedMaterials
+        .filter(m => m.total_cost !== undefined)
+        .reduce((sum, m) => sum + (m.total_cost || 0), 0);
+
       return {
         suggestedCategory,
         suggestedBudget,
@@ -194,6 +218,8 @@ export class JobAnalysisService {
         confidence,
         reasoning,
         detectedKeywords: Array.from(new Set(detectedKeywords)), // Remove duplicates
+        detectedMaterials: detectedMaterials.length > 0 ? detectedMaterials : undefined,
+        estimatedMaterialCost: estimatedMaterialCost > 0 ? estimatedMaterialCost : undefined,
       };
     } catch (error) {
       logger.error('Job analysis failed', { error, service: 'job-analysis' });
@@ -285,6 +311,133 @@ export class JobAnalysisService {
     });
 
     return keywords;
+  }
+
+  /**
+   * Extract materials from job description using pattern matching
+   * NOW WITH DATABASE INTEGRATION: Looks up detected materials in materials database
+   */
+  private static async extractMaterials(text: string): Promise<DetectedMaterial[]> {
+    const detectedMaterials: DetectedMaterial[] = [];
+
+    // Pattern 1: "X meters/metres of Y"
+    const lengthPattern = /(\d+(?:\.\d+)?)\s*(meters?|metres?|m|feet|ft)\s+of\s+(\w+(?:\s+\w+){0,3})/gi;
+    let match;
+    while ((match = lengthPattern.exec(text)) !== null) {
+      detectedMaterials.push({
+        name: match[3].trim(),
+        quantity: parseFloat(match[1]),
+        unit: match[2],
+        confidence: 0.9,
+        source: 'detected',
+      });
+    }
+
+    // Pattern 2: "X gallons/liters of Y"
+    const volumePattern = /(\d+(?:\.\d+)?)\s*(gallons?|liters?|litres?|l)\s+of\s+(\w+(?:\s+\w+){0,3})/gi;
+    while ((match = volumePattern.exec(text)) !== null) {
+      detectedMaterials.push({
+        name: match[3].trim(),
+        quantity: parseFloat(match[1]),
+        unit: match[2],
+        confidence: 0.9,
+        source: 'detected',
+      });
+    }
+
+    // Pattern 3: "X square meters/feet of Y"
+    const areaPattern = /(\d+(?:\.\d+)?)\s*(square\s+meters?|square\s+metres?|sqm|m2|sq\s+ft)\s+of\s+(\w+(?:\s+\w+){0,3})/gi;
+    while ((match = areaPattern.exec(text)) !== null) {
+      detectedMaterials.push({
+        name: match[3].trim(),
+        quantity: parseFloat(match[1]),
+        unit: match[2],
+        confidence: 0.9,
+        source: 'detected',
+      });
+    }
+
+    // Pattern 4: Common materials mentioned without quantities
+    const commonMaterials = [
+      { name: 'paint', keywords: ['paint', 'emulsion'] },
+      { name: 'pipe', keywords: ['pipe', 'pipes'] },
+      { name: 'copper pipe', keywords: ['copper pipe'] },
+      { name: 'tile', keywords: ['tile', 'tiles'] },
+      { name: 'faucet', keywords: ['faucet', 'tap'] },
+      { name: 'sink', keywords: ['sink'] },
+      { name: 'toilet', keywords: ['toilet'] },
+      { name: 'cable', keywords: ['cable', 'wire'] },
+      { name: 'radiator', keywords: ['radiator'] },
+      { name: 'door', keywords: ['door'] },
+      { name: 'window', keywords: ['window'] },
+    ];
+
+    commonMaterials.forEach(material => {
+      if (material.keywords.some(keyword => text.includes(keyword))) {
+        const alreadyDetected = detectedMaterials.some(m =>
+          m.name.toLowerCase().includes(material.name.toLowerCase())
+        );
+        if (!alreadyDetected) {
+          detectedMaterials.push({
+            name: material.name,
+            confidence: 0.7,
+            source: 'detected',
+          });
+        }
+      }
+    });
+
+    // NEW: Database lookup for detected materials
+    try {
+      const { MaterialsService } = await import('./MaterialsService');
+      const materialsService = new MaterialsService();
+
+      // Lookup each detected material in the database
+      const materialsWithPricing = await Promise.all(
+        detectedMaterials.map(async (detected) => {
+          try {
+            // Search for similar materials in database
+            const matches = await materialsService.findSimilarMaterials(detected.name, {
+              limit: 1,
+            });
+
+            if (matches.length > 0 && matches[0].similarity > 0.6) {
+              const dbMaterial = matches[0];
+
+              // Calculate cost if quantity is known
+              const cost = detected.quantity
+                ? materialsService.calculateCost(dbMaterial, detected.quantity)
+                : undefined;
+
+              return {
+                ...detected,
+                material_id: dbMaterial.id,
+                name: dbMaterial.name, // Use database name for consistency
+                unit: dbMaterial.unit,
+                unit_price: dbMaterial.unit_price,
+                total_cost: cost?.total_cost,
+                source: 'database' as const,
+                sku: dbMaterial.sku || undefined,
+                supplier_name: dbMaterial.supplier_name || undefined,
+                confidence: Math.min(detected.confidence + 0.1, 1.0), // Boost confidence for database matches
+              };
+            }
+
+            // No database match found, return original detection
+            return detected;
+          } catch (err) {
+            console.error(`Error looking up material "${detected.name}":`, err);
+            return detected; // Return original on error
+          }
+        })
+      );
+
+      return materialsWithPricing;
+    } catch (err) {
+      console.error('Error in material database lookup:', err);
+      // Graceful degradation: return detected materials without pricing
+      return detectedMaterials;
+    }
   }
 
   /**

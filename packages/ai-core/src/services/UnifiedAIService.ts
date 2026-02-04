@@ -44,7 +44,7 @@ export class UnifiedAIService {
     // Add response interceptor for error handling
     this.apiClient.interceptors.response.use(
       (response) => response,
-      async (error: unknown) => {
+      async (error: AxiosError) => {
         if (error.response?.status === 429) {
           // Rate limited - wait and retry
           await this.handleRateLimit(error);
@@ -464,7 +464,7 @@ export class UnifiedAIService {
       metadata: this.createEmptyMetadata()
     };
   }
-  private async handleRateLimit(error: unknown): Promise<void> {
+  private async handleRateLimit(error: AxiosError): Promise<void> {
     const retryAfter = error.response?.headers?.['retry-after'];
     const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
     await new Promise(resolve => setTimeout(resolve, waitTime));

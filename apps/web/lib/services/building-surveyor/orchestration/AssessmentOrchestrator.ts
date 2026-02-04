@@ -713,6 +713,55 @@ export class AssessmentOrchestrator {
             complexity: 'medium',
         };
 
+        // NEW: Enrich materials with database pricing before returning assessment
+        let finalContractorAdvice: ContractorAdvice;
+        if (isValidContractorAdvice(aiAssessment.contractorAdvice)) {
+            const contractorAdvice = aiAssessment.contractorAdvice;
+
+            // Normalize and enrich materials
+            const normalizedMaterials = (contractorAdvice.materials || []).map((material) => ({
+                name: material.name || 'unspecified material',
+                quantity: material.quantity || 'quantity not provided',
+                estimatedCost: material.estimatedCost ?? 0,
+                source: 'ai' as const,  // Default to AI source
+            }));
+
+            logger.info('BEFORE material enrichment in AssessmentOrchestrator', {
+                service: 'AssessmentOrchestrator',
+                materialsLength: normalizedMaterials.length,
+                materialsSample: normalizedMaterials.length > 0 ? normalizedMaterials[0] : null
+            });
+
+            let enrichedMaterials = normalizedMaterials;  // Default to AI materials
+            try {
+                if (normalizedMaterials.length > 0) {
+                    // Dynamic import to avoid circular dependencies
+                    const { enrichMaterialsWithDatabase } = await import('../material-enrichment');
+                    enrichedMaterials = await enrichMaterialsWithDatabase(normalizedMaterials);
+                }
+                logger.info('AFTER material enrichment in AssessmentOrchestrator', {
+                    service: 'AssessmentOrchestrator',
+                    enrichedLength: enrichedMaterials.length,
+                    hasDbMaterials: enrichedMaterials.some(m => m.source === 'database')
+                });
+            } catch (err) {
+                logger.error('Material database enrichment failed in AssessmentOrchestrator', err, {
+                    service: 'AssessmentOrchestrator',
+                    materialCount: normalizedMaterials.length,
+                    errorName: err instanceof Error ? err.name : 'unknown',
+                    errorMessage: err instanceof Error ? err.message : String(err)
+                });
+                // enrichedMaterials already set to normalizedMaterials above
+            }
+
+            finalContractorAdvice = {
+                ...contractorAdvice,
+                materials: enrichedMaterials,
+            };
+        } else {
+            finalContractorAdvice = defaultContractorAdvice;
+        }
+
         return {
             damageAssessment: {
                 damageType: aiAssessment.damageType || 'unknown_damage',
@@ -739,9 +788,7 @@ export class AssessmentOrchestrator {
             homeownerExplanation: isValidHomeownerExplanation(aiAssessment.homeownerExplanation)
                 ? aiAssessment.homeownerExplanation
                 : defaultHomeownerExplanation,
-            contractorAdvice: isValidContractorAdvice(aiAssessment.contractorAdvice)
-                ? aiAssessment.contractorAdvice
-                : defaultContractorAdvice,
+            contractorAdvice: finalContractorAdvice,
             evidence: {
                 roboflowDetections,
                 visionAnalysis,

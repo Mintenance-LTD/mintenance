@@ -6,9 +6,10 @@ import { rateLimiter } from '@/lib/rate-limiter';
 
 export async function GET(request: NextRequest) {
   try {
-  // Rate limiting check - generous limit for session checks
+  // Rate limiting check - generous limit for session checks (IP-based, not per-URL)
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous';
   const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    identifier: `session:${ip}`,
     windowMs: 60000,
     maxRequests: 100
   });

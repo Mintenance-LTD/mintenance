@@ -111,7 +111,13 @@
       "Bash(do echo \"=== $f ===\")",
       "Bash(npm view:*)",
       "Bash(script -q -c 'npx vitest run --reporter=verbose __tests__/integration/hybrid-inference.integration.test.ts' /dev/null)",
-      "Bash(del \"c:\\\\Users\\\\Djodjo.Nkouka.ERICCOLE\\\\Downloads\\\\mintenance-clean\\\\PLAN.md\")"
+      "Bash(del \"c:\\\\Users\\\\Djodjo.Nkouka.ERICCOLE\\\\Downloads\\\\mintenance-clean\\\\PLAN.md\")",
+      "Bash(cmd.exe /c \"npm run test:run 2>&1\")",
+      "Bash(powershell.exe -Command \"& { npm run test:run | Tee-Object -FilePath test-output-ps.txt }\")",
+      "Bash(npx @anthropic-ai/claude-code:*)",
+      "Bash(git reset:*)",
+      "Bash(npm search:*)",
+      "Bash(npx ts-node:*)"
     ],
     "deny": [],
     "ask": []

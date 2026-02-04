@@ -17,16 +17,25 @@ import { logger } from '@mintenance/shared';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Rate limiting: 60 requests per hour per user
-    const rateLimitResult = await checkRateLimit(request, 'session-status', 60, 3600); // 60 per hour
-    if (!rateLimitResult.success) {
+    // Rate limiting: Configurable for development vs production
+    // Development (5s poll): 720/hour, Production (60s poll): 60/hour
+    const isDev = process.env.NODE_ENV === 'development';
+    const rateLimit = isDev ? 1000 : 60; // Very permissive in dev for testing
+
+    console.log('[session-status] Rate limit check:', { isDev, rateLimit, nodeEnv: process.env.NODE_ENV });
+
+    const rateLimitResult = await checkRateLimit(request, 'session-status', rateLimit, 3600);
+
+    console.log('[session-status] Rate limit result:', rateLimitResult);
+
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded. Please try again later.' },
         {
           status: 429,
           headers: {
             'Retry-After': '60',
-            'X-RateLimit-Limit': '60',
+            'X-RateLimit-Limit': String(rateLimit),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': new Date(Date.now() + 3600000).toISOString(),
           }

@@ -12,6 +12,20 @@ import { logger } from '@mintenance/shared';
 
 export type UploadState = 'idle' | 'uploading' | 'analyzing' | 'complete' | 'error';
 
+export interface Material {
+  name: string;
+  quantity: string;
+  estimatedCost: number;
+  // Database enrichment fields
+  material_id?: string;
+  unit_price?: number;
+  total_cost?: number;
+  source?: 'ai' | 'database';
+  sku?: string;
+  supplier_name?: string;
+  unit?: string;
+}
+
 export interface AssessmentResult {
   damageType: string;
   severity: 'Minor' | 'Moderate' | 'Severe';
@@ -20,11 +34,13 @@ export interface AssessmentResult {
     max: number;
   };
   confidence: number;
+  assessmentId?: string; // NEW: For training feedback
   details: {
     description: string;
     urgency: string;
     safetyRisk: string;
     recommendations: string[];
+    materials?: Material[]; // Materials needed for repair
   };
 }
 
@@ -104,6 +120,14 @@ export function TryMintAIClient() {
 
       const result = await response.json();
 
+      // Log received data for debugging
+      logger.info('Demo API response received', {
+        service: 'mint-ai-demo',
+        hasAssessmentId: !!result.assessmentId,
+        assessmentId: result.assessmentId,
+        materialsCount: result.materials?.length || 0,
+      });
+
       // Transform API response to our format
       const assessment: AssessmentResult = {
         damageType: result.damageAssessment?.damageType || 'Unknown',
@@ -113,6 +137,7 @@ export function TryMintAIClient() {
           max: result.costEstimate?.max || 500,
         },
         confidence: result.damageAssessment?.confidence || 75,
+        assessmentId: result.assessmentId || null, // NEW: Store for training feedback
         details: {
           description: result.damageAssessment?.description || 'Assessment completed',
           urgency: result.urgency?.urgency || 'monitor',
@@ -121,8 +146,16 @@ export function TryMintAIClient() {
             'Professional inspection recommended',
             'Monitor for changes',
           ],
+          materials: result.materials || [], // Materials from database-enriched assessment
         },
       };
+
+      // Log what we're setting in state
+      logger.info('Setting assessment result in state', {
+        service: 'mint-ai-demo',
+        hasAssessmentId: !!assessment.assessmentId,
+        assessmentId: assessment.assessmentId,
+      });
 
       setAssessmentResult(assessment);
       setUploadState('complete');
@@ -133,32 +166,90 @@ export function TryMintAIClient() {
     }
   };
 
-  const handleAccuracyFeedback = (isAccurate: boolean) => {
+  const handleAccuracyFeedback = async (isAccurate: boolean) => {
+    // Debug: Log current state when button is clicked
+    logger.info('Feedback button clicked', {
+      service: 'mint-ai-demo',
+      isAccurate,
+      hasAssessmentResult: !!assessmentResult,
+      assessmentId: assessmentResult?.assessmentId,
+    });
+
+    if (!assessmentResult?.assessmentId) {
+      logger.warn('No assessment ID available for feedback', { service: 'mint-ai-demo' });
+      alert('Unable to submit feedback at this time');
+      return;
+    }
+
     if (!isAccurate) {
+      // Open correction form for detailed feedback
       setCorrectionState({
         ...correctionState,
         isOpen: true,
       });
     } else {
-      // Log positive feedback
-      logger.info('User confirmed assessment accuracy', { service: 'mint-ai-demo' });
+      // Submit positive feedback to API
+      try {
+        const response = await fetch('/api/building-surveyor/demo-feedback', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            assessmentId: assessmentResult.assessmentId,
+            isAccurate: true,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to submit feedback');
+        }
+
+        const result = await response.json();
+        logger.info('User confirmed assessment accuracy', {
+          service: 'mint-ai-demo',
+          assessmentId: assessmentResult.assessmentId
+        });
+
+        alert(result.message || 'Thank you for confirming the accuracy!');
+      } catch (error) {
+        logger.error('Failed to submit positive feedback', { error, service: 'mint-ai-demo' });
+        alert('Failed to submit feedback. Please try again.');
+      }
     }
   };
 
   const handleCorrectionSubmit = async (corrections: CorrectionData['corrections']) => {
+    if (!assessmentResult?.assessmentId) {
+      logger.warn('No assessment ID available for corrections', { service: 'mint-ai-demo' });
+      alert('Unable to submit corrections at this time');
+      return;
+    }
+
     try {
-      // Submit corrections to the API for learning
-      await fetch('/api/building-surveyor/corrections', {
+      // Submit corrections to the training feedback API
+      const response = await fetch('/api/building-surveyor/demo-feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          assessmentId: 'demo',
-          corrections,
-          selectedIssues: correctionState.selectedIssues,
+          assessmentId: assessmentResult.assessmentId,
+          isAccurate: false,
+          correctedDamageType: corrections.damageType,
+          correctedSeverity: corrections.severity?.toLowerCase(), // Convert to backend format
+          correctedCostMin: corrections.costEstimate ? corrections.costEstimate * 0.8 : undefined,
+          correctedCostMax: corrections.costEstimate ? corrections.costEstimate * 1.2 : undefined,
+          correctionNotes: corrections.notes,
+          feedbackText: correctionState.selectedIssues.join(', '),
         }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit corrections');
+      }
+
+      const result = await response.json();
 
       // Close correction form
       setCorrectionState({
@@ -168,9 +259,15 @@ export function TryMintAIClient() {
       });
 
       // Show thank you message
-      alert('Thank you for helping improve Mint AI!');
+      alert(result.message || 'Thank you for helping improve Mint AI!');
+
+      logger.info('User submitted corrections', {
+        service: 'mint-ai-demo',
+        assessmentId: assessmentResult.assessmentId
+      });
     } catch (error) {
       logger.error('Failed to submit corrections', { error, service: 'mint-ai-demo' });
+      alert('Failed to submit corrections. Please try again.');
     }
   };
 

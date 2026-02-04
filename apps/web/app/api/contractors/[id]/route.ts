@@ -9,9 +9,10 @@ import { rateLimiter } from '@/lib/rate-limiter';
 interface Params { params: Promise<{ id: string }> }
 
 export async function GET(req: NextRequest, context: Params) {
-  // Rate limiting check
+  // Rate limiting check - use IP only, not URL (contractor ID in URL makes each request unique)
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'anonymous';
   const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    identifier: `contractor-profile:${ip}`,
     windowMs: 60000,
     maxRequests: 30
   });

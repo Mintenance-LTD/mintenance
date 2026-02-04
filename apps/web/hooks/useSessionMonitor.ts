@@ -105,6 +105,13 @@ export function useSessionMonitor() {
           isLoading: false,
           error: response.status === 401 ? null : 'Failed to fetch session status',
         }));
+
+        // Stop polling when not authenticated (login/register pages)
+        if (response.status === 401 && pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+
         return;
       }
 
@@ -230,7 +237,8 @@ export function useSessionMonitor() {
 
     // Start polling
     pollIntervalRef.current = setInterval(() => {
-      // Only poll if tab is visible
+      // Only poll if tab is visible and user is authenticated
+      // Skip polling on login/register pages to avoid wasteful API calls
       if (isVisibleRef.current) {
         fetchSessionStatus();
       }
