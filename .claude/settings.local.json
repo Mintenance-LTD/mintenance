@@ -117,7 +117,8 @@
       "Bash(npx @anthropic-ai/claude-code:*)",
       "Bash(git reset:*)",
       "Bash(npm search:*)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
