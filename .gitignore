@@ -253,3 +253,23 @@ security-*.config.js
 security-*.cron
 performance-*.config.js
 auth-*.html
+
+# Root-level test/debug/training artifacts (do not commit)
+/Screenshots/
+/batch_test_results/
+/beta-testing-data/
+/merged_dataset_test/
+/test_results/
+/test-results/
+/temp-supabase-mock/
+/runs/
+/components/
+/jest-setup.backup.js
+/metro.config.backup.js
+/app.json
+/index.html
+/create_class_mapping.py
+/class_mapping.json
+/class_mapping_dataset6.json
+# Malformed Windows path artifacts
+assets/c__*
