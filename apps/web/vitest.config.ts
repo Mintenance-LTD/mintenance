@@ -15,6 +15,10 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/.next/**',
+      // Exclude Playwright E2E tests (should run with playwright, not vitest)
+      '**/e2e/**/*.spec.ts',
+      '**/tests/e2e/**/*.spec.ts',
+      '**/*.spec.ts.old',
       // Temporarily skip problematic tests that need more work
       '**/__tests__/unit/job-creation.test.tsx', // 21 timeouts - needs better mocking
       '**/__tests__/rate-limiting.test.ts', // 5 timeouts - needs Redis mock

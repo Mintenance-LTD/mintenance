@@ -3,8 +3,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  * Middleware Security Tests
  * Tests critical security functionality in Next.js middleware
  */
-
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { NextRequest, NextResponse } from 'next/server';
 import { middleware } from '../middleware';
 

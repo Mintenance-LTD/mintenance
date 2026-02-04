@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 /**
  * RLS (Row Level Security) Policies Test Suite
  *
@@ -7,8 +7,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  *
  * @jest-environment node
  */
-
-import { describe, it, expect, jest, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Test user IDs
