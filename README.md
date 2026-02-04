@@ -45,24 +45,45 @@
 
 ### Current Status
 
-- **Version**: 1.2.4
+- **Version**: 1.2.4 (Monorepo) / 1.2.3 (Web App)
 - **Status**: Production Ready
 - **Test Coverage**: 87.7% (804/917 tests passing)
 - **Deployment**: Ready for mintenance.co.uk
 - **Location**: Greater Manchester, UK
+- **Latest Updates** (February 2026):
+  - Materials database system with UK supplier pricing
+  - Property favorites and health scoring
+  - Demo feedback collection for AI training
+  - Enhanced property-job linking
 
 ### Platform Statistics
 
 | Metric | Value |
 |--------|-------|
 | **Test Coverage** | 87.7% (804/917 tests passing) |
-| **Architecture** | Next.js 16 + React Native 0.82 |
-| **Database Migrations** | 120+ migrations |
-| **API Endpoints** | 200+ routes |
-| **Web Pages** | 514 TSX files |
+| **Architecture** | Next.js 16.0.4 + Expo SDK ~54 (React Native 0.82) |
+| **Database Migrations** | 140+ migrations (including recent materials, properties, demo feedback) |
+| **API Endpoints** | 200+ routes across 50+ feature areas |
+| **Web Pages** | 100+ pages and routes |
 | **Mobile Screens** | 100+ screens |
-| **AI Services** | 6 major flows |
+| **AI Services** | Building Surveyor AI + 6 major flows |
 | **Autonomous Agents** | 13 specialized agents |
+| **Materials Database** | UK supplier pricing catalog (12+ categories) |
+| **Properties System** | Multi-property management with favorites and health scoring |
+
+---
+
+## 🆕 Recent Features (February 2026)
+
+- **Materials Database System**: UK supplier pricing catalog integrated with AI damage assessments
+  - Real pricing from Screwfix, B&Q, Wickes, Travis Perkins
+  - Fuzzy search matching for AI-detected materials
+  - Cost breakdown with verified pricing badges (✓ DB)
+- **Property Favorites**: Bookmark and manage favorite properties
+- **Property Health Scoring**: Track property condition and spending analytics
+- **Demo Feedback Collection**: Public demo (`/try-mint-ai`) collects user corrections for AI training
+- **Enhanced Property-Job Linking**: Jobs can now be linked to specific properties for better tracking
+- **PostGIS Geography**: Service areas with spatial queries and distance calculations
 
 ---
 
@@ -72,44 +93,51 @@
 
 #### Homeowner Features
 - **Job Posting**: Create detailed job posts with photos, location, budget, and category
-- **AI Damage Assessment**: Upload photos to get AI-powered analysis of property damage, safety hazards, and repair estimates
-- **Bid Management**: Review, compare, and accept contractor bids
-- **Payment & Escrow**: Secure payments held in escrow until job completion
-- **Project Tracking**: Real-time updates on job progress with photo uploads
-- **Messaging**: Direct communication with contractors
-- **Property Management**: Manage multiple properties and job history
+- **AI Damage Assessment (MintAI)**: Upload photos to get AI-powered analysis of property damage, safety hazards, repair estimates, and material cost breakdowns
+- **Try MintAI Demo**: Free demo tool to test AI assessment with feedback collection for model training
+- **Bid Management**: Review, compare, and accept contractor bids with AI pricing suggestions
+- **Payment & Escrow**: Secure payments held in escrow until job completion via Stripe
+- **Project Tracking**: Real-time updates on job progress with photo uploads and milestones
+- **Messaging**: Direct communication with contractors via real-time chat
+- **Property Management**: Manage multiple properties, property favorites, health scores, and spending analytics
 - **Reviews & Ratings**: Rate contractors after job completion
+- **Video Calls**: Schedule and conduct video consultations with contractors
 
 #### Contractor Features
-- **Job Discovery**: Browse available jobs via map view or swipe interface
-- **Bid Submission**: Submit detailed bids with line items, materials, and timeline
+- **Job Discovery**: Browse available jobs via map view or Tinder-style swipe interface (`/discover`)
+- **Bid Submission**: Submit detailed bids with line items, materials database integration, and timeline
+- **Materials Database**: Access UK supplier pricing for accurate cost estimation (Screwfix, B&Q, Wickes, Travis Perkins)
 - **Portfolio Building**: Showcase completed work with photos and reviews
-- **Business Tools**: Invoicing, expense tracking, calendar scheduling, market insights
-- **Payment Processing**: Receive payments via Stripe Connect
-- **Service Areas**: Define and manage service coverage areas
-- **Verification**: Get verified credentials to build trust
+- **Business Tools**: Invoicing, expense tracking, calendar scheduling, market insights, subscription plans
+- **Payment Processing**: Receive payments via Stripe Connect with automated payouts
+- **Service Areas**: Define and manage service coverage areas with PostGIS geography support
+- **Verification**: Get verified credentials (license, insurance, background checks) to build trust
 - **Financial Dashboard**: Track earnings, payouts, and business metrics
+- **Professional Subscription Plans**: Tiered plans with platform fee savings and ROI calculator
 
 #### AI-Powered Features
-- **Building Surveyor AI**: Multi-model fusion (YOLO v11 + SAM3 + GPT-4 Vision) for comprehensive property damage analysis
+- **Building Surveyor AI (MintAI)**: Multi-model fusion (YOLO v11 + SAM3 + GPT-4 Vision) for comprehensive property damage analysis
+  - Material detection with UK supplier database integration
+  - Cost breakdown with verified pricing (✓ DB badges)
+  - Training feedback system for continuous model improvement
 - **Semantic Search**: AI-powered search for jobs and contractors using OpenAI embeddings
 - **Contractor Matching**: Intelligent matching based on skills, location, and past performance
-- **Pricing Intelligence**: AI-suggested pricing based on market data and job complexity
-- **Automated Workflows**: 13 specialized AI agents for bid acceptance, scheduling, notifications, and more
+- **Pricing Intelligence**: AI-suggested pricing based on market data, job complexity, and materials database
+- **Automated Workflows**: 13 specialized AI agents for bid acceptance, scheduling, notifications, escrow release, and more
 
 ---
 
 ## 🛠️ Tech Stack
 
 ### Web Application
-- **Framework**: Next.js 16 (App Router)
-- **UI Library**: React 19
-- **Language**: TypeScript 5.9 (strict mode)
-- **Styling**: Tailwind CSS 4.1 + Radix UI + Shadcn UI
-- **State Management**: TanStack Query 5.90
-- **Forms**: React Hook Form 7.66 + Zod 4.1
-- **Animations**: Framer Motion 12.23
-- **Testing**: Vitest 4.0 + Playwright
+- **Framework**: Next.js 16.0.4 (App Router)
+- **UI Library**: React 19.1.0
+- **Language**: TypeScript 5.4.5 (strict mode)
+- **Styling**: Tailwind CSS 3.4.18 + Radix UI + Shadcn UI
+- **State Management**: TanStack Query 5.32.0
+- **Forms**: React Hook Form 7.66.1 + Zod 3.23.4
+- **Animations**: Framer Motion 12.23.24
+- **Testing**: Vitest 4.0.15 + Playwright 1.58.0
 
 ### Mobile Application
 - **Framework**: Expo SDK ~54
@@ -123,27 +151,29 @@
 - **Monitoring**: Sentry React Native 7.6
 
 ### Backend & Infrastructure
-- **Database**: Supabase (PostgreSQL 17) with Row Level Security (RLS)
+- **Database**: Supabase (PostgreSQL) with Row Level Security (RLS) and PostGIS extension
 - **Authentication**: Supabase Auth + JWT tokens
 - **Storage**: Supabase Storage + Google Cloud Storage
-- **Payments**: Stripe 19.0 (Connect for contractors, Escrow for jobs)
+- **Payments**: Stripe 15.4.0 (Connect for contractors, Escrow for jobs)
 - **Real-time**: Supabase Realtime subscriptions
 - **Caching**: Upstash Redis
 - **AI/ML Services**:
-  - OpenAI GPT-4 Vision for image analysis
-  - YOLO v11 for damage detection (71 classes)
-  - SAM3 for pixel-perfect segmentation
+  - OpenAI GPT-4 Vision (4.73.0) for image analysis and semantic understanding
+  - YOLO v11 for damage detection (71 classes) via ONNX Runtime
+  - SAM3 for pixel-perfect segmentation (Python service)
   - Custom ML models for pricing and matching
-  - Google Cloud AI Platform for model deployment
+  - Google Cloud AI Platform (5.12.0) for model deployment
+  - Materials database with fuzzy search for cost enrichment
 
 ### Shared Packages (Monorepo)
-- `@mintenance/types` - TypeScript type definitions
+- `@mintenance/types` - TypeScript type definitions (single source of truth)
 - `@mintenance/auth` - Authentication utilities (JWT, password validation)
 - `@mintenance/shared` - Shared utilities and logger
 - `@mintenance/shared-ui` - Shared UI components (web/native)
 - `@mintenance/design-tokens` - Design system tokens
 - `@mintenance/api-client` - API client wrapper
 - `@mintenance/services` - Shared service layer (Auth, Payment, Job, Notification, etc.)
+- `@mintenance/ai-core` - AI/ML core utilities and model interfaces
 
 ---
 
@@ -383,7 +413,12 @@ The flagship AI feature that analyzes property damage photos using multiple mode
 - **Conformal Prediction**: Provides statistical confidence guarantees
 - **Hybrid Routing**: Intelligently routes between local and cloud models
 
-**Use Case**: Homeowners upload photos when creating jobs → AI analyzes damage → Provides assessment with safety concerns, repair estimates, and contractor recommendations.
+**Use Case**: Homeowners upload photos when creating jobs → AI analyzes damage → Provides assessment with safety concerns, repair estimates, material cost breakdowns (with UK supplier pricing), and contractor recommendations.
+
+**Recent Enhancements**:
+- **Material Database Integration**: AI-detected materials are enriched with real UK supplier pricing (Screwfix, B&Q, Wickes, Travis Perkins)
+- **Demo Feedback System**: Public demo at `/try-mint-ai` collects user feedback for continuous model training
+- **Cost Accuracy**: "✓ DB" badges indicate verified pricing from materials database vs AI estimates
 
 ### AI Agents
 
@@ -514,7 +549,12 @@ Before production deployment:
 
 - Migrations are in `supabase/migrations/`
 - Schema documentation in `docs/technical/database/`
-- Consolidated migrations: `001_core_tables.sql` through `005_ml_ai_system.sql`
+- Core migrations: `001_core_tables.sql` through `008_add_location_context_tracking.sql`
+- Recent additions (2026):
+  - `20260202120000_add_materials_system.sql` - Materials catalog with UK supplier pricing
+  - `20260202000001_add_demo_feedback_table.sql` - Training feedback collection
+  - `20260203000001_fix_properties_schema.sql` - Property schema enhancements
+  - `20260203000002_add_property_favorites.sql` - Property favorites system
 
 ---
 
