@@ -255,6 +255,7 @@ performance-*.config.js
 auth-*.html
 
 # Root-level test/debug/training artifacts (do not commit)
+/playwright-report/
 /Screenshots/
 /batch_test_results/
 /beta-testing-data/

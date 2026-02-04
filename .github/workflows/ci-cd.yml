@@ -40,9 +40,7 @@ jobs:
         run: npm test -- --coverage --watchAll=false
 
       - name: Upload coverage to Codecov
-        if: env.CODECOV_TOKEN != ''
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -143,11 +141,11 @@ jobs:
         run: npm run build:packages
 
       - name: Build staging Android
-        if: env.EXPO_TOKEN != ''
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        if: ${{ secrets.EXPO_TOKEN != '' }}
         run: eas build --platform android --profile staging --non-interactive
         working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         continue-on-error: true
 
       - name: Staging build status
@@ -187,19 +185,19 @@ jobs:
         run: npm run build:packages
 
       - name: Build production Android
-        if: env.EXPO_TOKEN != ''
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        if: ${{ secrets.EXPO_TOKEN != '' }}
         run: eas build --platform android --profile production --non-interactive
         working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         continue-on-error: true
 
       - name: Build production iOS
-        if: env.EXPO_TOKEN != ''
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        if: ${{ secrets.EXPO_TOKEN != '' }}
         run: eas build --platform ios --profile production --non-interactive
         working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         continue-on-error: true
 
       - name: Production build status
