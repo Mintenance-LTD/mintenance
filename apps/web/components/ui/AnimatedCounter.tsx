@@ -26,18 +26,20 @@ export interface AnimatedCounterProps {
  * <AnimatedCounter value={15000} prefix="£" duration={1000} />
  * <AnimatedCounter value={42} suffix="%" decimals={1} />
  */
-export function AnimatedCounter({
-  value,
-  duration = 1000,
-  decimals = 0,
-  prefix = '',
-  suffix = '',
-  className = '',
-  style = {},
-  formatType = 'number',
-  currency = 'GBP',
-  locale = 'en-GB',
-}: AnimatedCounterProps) {
+export function AnimatedCounter(props: AnimatedCounterProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    value = 0,
+    duration = 1000,
+    decimals = 0,
+    prefix = '',
+    suffix = '',
+    className = '',
+    style = {},
+    formatType = 'number',
+    currency = 'GBP',
+    locale = 'en-GB',
+  } = props || {};
   const [displayValue, setDisplayValue] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const startTimeRef = useRef<number | null>(null);

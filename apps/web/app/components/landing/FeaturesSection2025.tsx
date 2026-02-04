@@ -17,7 +17,7 @@ const features = [
     icon: Camera,
     title: 'AI Building Surveyor',
     description: 'Instant damage assessment from photos. Get cost estimates and severity analysis in seconds.',
-    link: '/ai-search',
+    link: '/try-mint-ai',
     gradient: 'from-[#0066CC] to-[#0052A3]',
   },
   {

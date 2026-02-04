@@ -108,7 +108,7 @@ export function LocalBusinessStructuredData({
       'https://www.facebook.com/mintenance',
       'https://twitter.com/mintenance',
       'https://www.linkedin.com/company/mintenance',
-      'https://www.instagram.com/mintenance',
+      'https://www.instagram.com/mintenanceltd/',
     ],
     hasOfferCatalog: {
       '@type': 'OfferCatalog',

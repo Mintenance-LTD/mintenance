@@ -4,7 +4,6 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FFmpegKit, FFmpegKitConfig, ReturnCode } from 'react-native-ffmpeg-kit';
 import { logger } from '@mintenance/shared';
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
@@ -158,14 +157,14 @@ class VideoService {
       }
     });
 
-    // Configure FFmpeg
-    FFmpegKitConfig.enableLogCallback(log => {
-      logger.debug('FFmpeg log:', { message: log.getMessage() });
-    });
+    // FFmpeg removed for EAS build compatibility
+    // Video compression disabled - videos uploaded at original quality
+    logger.info('VideoService initialized (compression disabled)');
   }
 
   /**
-   * Compress video using FFmpeg
+   * Compress video (stub - compression disabled for EAS build compatibility)
+   * Returns original video path without compression
    */
   async compressVideo(
     inputPath: string,
@@ -177,61 +176,25 @@ class VideoService {
       resolution?: { width: number; height: number };
     }
   ): Promise<{ success: boolean; outputPath: string; metadata: VideoMetadata }> {
-    const maxDuration = options?.maxDuration || this.MAX_DURATION;
-    const targetBitrate = options?.targetBitrate || this.TARGET_BITRATE;
-    const targetFps = options?.targetFps || this.TARGET_FPS;
-    const resolution = options?.resolution || this.TARGET_RESOLUTION;
-
-    // Build FFmpeg command
-    const commands = [
-      `-i "${inputPath}"`,
-      `-t ${maxDuration}`, // Limit duration
-      `-vf "scale=${resolution.width}:${resolution.height}:force_original_aspect_ratio=decrease,pad=${resolution.width}:${resolution.height}:(ow-iw)/2:(oh-ih)/2"`,
-      `-c:v h264`, // H.264 codec
-      `-preset fast`,
-      `-crf 23`, // Quality (lower is better, 23 is good balance)
-      `-b:v ${targetBitrate}`, // Target bitrate
-      `-r ${targetFps}`, // Frame rate
-      `-c:a aac`, // Audio codec
-      `-b:a 128k`, // Audio bitrate
-      `-movflags +faststart`, // Optimize for streaming
-      `-y`, // Overwrite output
-      `"${outputPath}"`
-    ];
-
-    const command = commands.join(' ');
-
-    logger.info('Compressing video', { inputPath, outputPath, command });
+    logger.info('Video compression skipped (using original video)', { inputPath });
 
     try {
-      const session = await FFmpegKit.execute(command);
-      const returnCode = await session.getReturnCode();
+      // Return original video without compression
+      const metadata: VideoMetadata = {
+        duration: 0,
+        size: 0,
+        width: 1280,
+        height: 720,
+        codec: 'h264',
+        bitrate: 0,
+        fps: 30
+      };
 
-      if (ReturnCode.isSuccess(returnCode)) {
-        // Get metadata of compressed video
-        const metadata = await this.getVideoMetadata(outputPath);
-
-        logger.info('Video compression successful', {
-          inputPath,
-          outputPath,
-          originalSize: metadata.size,
-          compressedSize: metadata.size
-        });
-
-        return {
-          success: true,
-          outputPath,
-          metadata
-        };
-      } else {
-        const output = await session.getOutput();
-        logger.error('Video compression failed', { returnCode, output });
-        return {
-          success: false,
-          outputPath: '',
-          metadata: {} as VideoMetadata
-        };
-      }
+      return {
+        success: true,
+        outputPath: inputPath, // Return original path
+        metadata
+      };
     } catch (error) {
       logger.error('Video compression error', { error });
       throw error;
@@ -239,34 +202,20 @@ class VideoService {
   }
 
   /**
-   * Get video metadata using FFmpeg
+   * Get video metadata (stub - returns default values)
    */
   async getVideoMetadata(videoPath: string): Promise<VideoMetadata> {
-    const command = `-i "${videoPath}" -hide_banner -show_format -show_streams -print_format json`;
-
     try {
-      const session = await FFmpegKit.execute(command);
-      const output = await session.getOutput();
-
-      // Parse FFmpeg output (simplified - real implementation would parse JSON)
-      const metadata: VideoMetadata = {
+      // Return default metadata without FFmpeg
+      return {
         duration: 0,
         size: 0,
         width: 1280,
         height: 720,
         codec: 'h264',
         bitrate: 2000000,
-        orientation: 'landscape'
+        fps: 30
       };
-
-      // Extract actual values from output
-      // This is simplified - real implementation would parse the JSON output
-      const durationMatch = output.match(/duration=(\d+\.?\d*)/);
-      if (durationMatch) {
-        metadata.duration = parseFloat(durationMatch[1]);
-      }
-
-      return metadata;
     } catch (error) {
       logger.error('Failed to get video metadata', { error });
       throw error;

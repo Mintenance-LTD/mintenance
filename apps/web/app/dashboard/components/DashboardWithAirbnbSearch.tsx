@@ -23,7 +23,6 @@ import {
   Wrench,
   Heart
 } from 'lucide-react';
-import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
 import { logger } from '@/lib/logger';
 
 // Category-based fallback images
@@ -427,8 +426,14 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
                 )}
               </div>
 
-              {/* AI Agent Automation */}
-              <AgentAutomationPanel />
+              <Link
+                href="/settings?tab=automation"
+                className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow border border-gray-200"
+              >
+                <Sparkles className="w-6 h-6 text-indigo-600" />
+                <span className="text-xs font-medium text-gray-700">AI & Automation</span>
+                <span className="text-xs text-gray-500">Settings</span>
+              </Link>
             </div>
           </div>
         </div>

@@ -4,9 +4,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  * Tests critical payment processing and webhook security
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { NextRequest, NextResponse } from 'next/server';
 import { POST } from '../app/api/webhooks/stripe/route';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import * as rateLimiterModule from '@/lib/rate-limiter';
+import { logger } from '@mintenance/shared';
+import Stripe from 'stripe';
 
 // Mock dependencies
 vi.mock('stripe', () => {
@@ -55,11 +58,6 @@ vi.mock('@mintenance/shared', () => ({
 }));
 
 describe('Stripe Webhook Security', () => {
-  const mockStripe = require('stripe');
-  const mockSupabase = require('@/lib/api/supabaseServer').serverSupabase;
-  const mockRateLimiter = require('@/lib/rate-limiter');
-  const mockLogger = require('@mintenance/shared').logger;
-
   beforeEach(() => {
     vi.clearAllMocks();
     

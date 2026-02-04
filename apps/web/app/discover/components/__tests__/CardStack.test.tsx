@@ -8,9 +8,38 @@ vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'test-id' }),
 }));
 
+vi.mock('@/components/SwipeableCard', () => ({
+  SwipeableCard: ({ children, onSwipeLeft, onSwipeRight, onSwipeUp, onSwipeDown, ...props }: any) => (
+    <div data-testid="swipeable-card" {...props}>
+      {children}
+    </div>
+  ),
+}));
+
+vi.mock('@/lib/theme', () => ({
+  theme: {
+    colors: {
+      surface: '#ffffff',
+      border: '#e5e7eb',
+    },
+  },
+}));
+
 describe('CardStack', () => {
+  const mockItems = [
+    { id: '1', title: 'Card 1' },
+    { id: '2', title: 'Card 2' },
+    { id: '3', title: 'Card 3' },
+  ];
+
   const defaultProps = {
-    // Add default props here
+    items: mockItems,
+    currentIndex: 0,
+    onSwipeLeft: vi.fn(),
+    onSwipeRight: vi.fn(),
+    onSwipeUp: vi.fn(),
+    onSwipeDown: vi.fn(),
+    renderCard: (item: any) => <div data-testid="card-content">{item.title}</div>,
   };
 
   beforeEach(() => {
@@ -18,22 +47,26 @@ describe('CardStack', () => {
   });
 
   it('should render without crashing', () => {
-    render(<CardStack {...defaultProps} />);
-    expect(true).toBeTruthy(); // Component rendered
+    const { container } = render(<CardStack {...defaultProps} />);
+    expect(container).toBeDefined();
   });
 
   it('should handle user interactions', async () => {
     render(<CardStack {...defaultProps} />);
-    // Add interaction tests
+    // CardStack renders SwipeableCard which handles interactions
+    expect(screen.getByTestId('swipeable-card')).toBeDefined();
   });
 
   it('should display correct data', () => {
     render(<CardStack {...defaultProps} />);
-    // Add data display tests
+    // Current card should be rendered
+    expect(screen.getByText('Card 1')).toBeDefined();
   });
 
   it('should handle edge cases', () => {
-    render(<CardStack {...defaultProps} />);
-    // Test edge cases
+    // Test with empty items
+    const emptyProps = { ...defaultProps, items: [] };
+    const { container } = render(<CardStack {...emptyProps} />);
+    expect(container).toBeDefined();
   });
 });

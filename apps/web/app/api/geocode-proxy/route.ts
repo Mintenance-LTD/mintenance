@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { rateLimit } from '@/lib/rate-limiter';
+import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
  * Secure Server-Side Geocoding Proxy
@@ -40,29 +40,6 @@ interface GeocodeResponse {
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // 1. Authentication Check
     const user = await getCurrentUserFromCookies();
     if (!user?.id) {
       logger.warn('Unauthorized geocoding attempt', {
@@ -75,14 +52,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 2. Rate Limiting (10 requests per minute per user)
-    const rateLimitResult = await rateLimit({
+    const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `geocode:${user.id}`,
-      limit: 10,
-      windowMs: 60 * 1000, // 1 minute
+      windowMs: 60000,
+      maxRequests: 10,
     });
 
-    if (!rateLimitResult.success) {
+    if (!rateLimitResult.allowed) {
       logger.warn('Rate limit exceeded for geocoding', {
         service: 'geocode-proxy',
         userId: user.id,
@@ -91,13 +67,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: 'Rate limit exceeded. Please try again later.',
-          retryAfter: rateLimitResult.resetMs,
+          retryAfter: rateLimitResult.retryAfter ?? 60,
         },
         {
           status: 429,
           headers: {
-            'Retry-After': String(Math.ceil(rateLimitResult.resetMs! / 1000)),
-            'X-RateLimit-Limit': String(rateLimitResult.limit),
+            'Retry-After': String(rateLimitResult.retryAfter ?? 60),
+            'X-RateLimit-Limit': '10',
             'X-RateLimit-Remaining': String(rateLimitResult.remaining),
           },
         }

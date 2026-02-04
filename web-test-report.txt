@@ -3843,3 +3843,34 @@ If this is a long-running hook, pass a timeout value as the last argument or con
  [31m×[39m app/api/testimonials/__tests__/route.test.ts[2m > [22mruntime[2m > [22mshould handle edge cases[32m 4[2mms[22m[39m
 [31m   → expected [Function] to not throw an error but 'TypeError: (0 , __vite_ssr_import_0__…' was thrown[39m
  [32m✓[39m app/api/testimonials/__tests__/route.test.ts[2m > [22mruntime[2m > [22mshould handle error cases[32m 0[2mms[22m[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mEnhanced Rate Limiter[2m > [22mshould block requests over limit[33m 28915[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mEnhanced Rate Limiter[2m > [22mshould apply different limits for different tiers[33m 21734[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mEnhanced Rate Limiter[2m > [22mshould create proper rate limit headers[33m 21521[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mEnhanced Rate Limiter[2m > [22mshould include Retry-After header when rate limited[33m 21548[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould enforce strict limits on authentication endpoints[33m 21986[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould prevent anonymous access to payment endpoints[33m 22705[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould allow higher limits for read-only endpoints[33m 22138[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould have special handling for webhooks[33m 22160[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiting for Specific Endpoints[2m > [22mshould have relaxed limits for health checks[33m 20511[2mms[22m[39m
+[31m   → Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mSecurity Event Logging[2m > [22mshould log rate limit violations[33m 22618[2mms[22m[39m
+[31m   → Invalid string length[39m
+ [31m×[39m __tests__/rate-limiting.test.ts[2m > [22mRate Limiter Reset Functionality[2m > [22mshould reset rate limits for specific identifier[33m 23107[2mms[22m[39m
+[31m   → Invalid string length[39m

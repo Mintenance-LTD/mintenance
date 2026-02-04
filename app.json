@@ -30,6 +30,11 @@
     "plugins": [
       "expo-router"
     ],
-    "scheme": "mintenance"
+    "scheme": "mintenance",
+    "extra": {
+      "eas": {
+        "projectId": "671d1323-6979-465f-91db-e61471746ab3"
+      }
+    }
   }
 }

@@ -27,7 +27,12 @@ interface NeighborhoodRecommendationsProps {
  * Neighborhood Recommendations Component
  * Shows contractors in the user's local area
  */
-export function NeighborhoodRecommendations({ userLocation, userCity }: NeighborhoodRecommendationsProps) {
+export function NeighborhoodRecommendations(props: NeighborhoodRecommendationsProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    userLocation,
+    userCity,
+  } = props || {};
   const [contractors, setContractors] = useState<NeighborhoodContractor[]>([]);
   const [loading, setLoading] = useState(true);
 

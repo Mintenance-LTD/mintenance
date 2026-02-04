@@ -119,8 +119,8 @@ export function useImageUpload({
       const headers: Record<string, string> = {
         'x-csrf-token': tokenToUse,
       };
-      logger.info('[Upload] CSRF token present:', tokenToUse.substring(0, 10) + '...');
-      logger.info('[Upload] Uploading', imagePreviews.length, 'photos with headers:', Object.keys(headers));
+      logger.info('[Upload] CSRF token present', { tokenPrefix: tokenToUse.substring(0, 10) + '...' });
+      logger.info('[Upload] Uploading photos', { photoCount: imagePreviews.length, headers: Object.keys(headers) });
 
       const response = await fetch('/api/jobs/upload-photos', {
         method: 'POST',

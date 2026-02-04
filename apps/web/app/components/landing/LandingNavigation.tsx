@@ -87,27 +87,41 @@ export function LandingNavigation() {
   ];
 
   return (
-    <nav 
-      id="navigation" 
-      className="block fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200" 
-      role="navigation" 
-      aria-label="Main navigation"
-    >
+    <>
+      {/* Skip to main content link for keyboard navigation */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-white focus:text-gray-900 focus:rounded focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+      >
+        Skip to main content
+      </a>
+
+      <nav
+        id="navigation"
+        className="block fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200"
+        role="navigation"
+        aria-label="Main navigation"
+      >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Image 
-              src="/assets/icon.png" 
-              alt="Mintenance Logo" 
-              width={40} 
-              height={40} 
-              className="w-10 h-10" 
+          {/* Logo - links to landing page */}
+          <Link
+            href="/"
+            className="flex items-center gap-3 hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded-lg"
+            aria-label="Mintenance – go to home"
+          >
+            <Image
+              src="/assets/icon.png"
+              alt=""
+              width={40}
+              height={40}
+              className="w-10 h-10 flex-shrink-0"
+              priority
             />
-            <span className="ml-3 text-xl font-bold text-primary">
+            <span className="text-xl font-bold text-primary">
               Mintenance
             </span>
-          </div>
+          </Link>
 
           {/* Navigation Links */}
           <div className="flex items-center space-x-8">
@@ -116,7 +130,7 @@ export function LandingNavigation() {
                 key={link.id}
                 href={link.href}
                 className={cn(
-                  "transition-colors",
+                  "transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded px-1",
                   activeSection === link.id
                     ? "text-secondary font-semibold"
                     : "text-gray-700 hover:text-secondary"
@@ -133,13 +147,13 @@ export function LandingNavigation() {
           <div className="flex items-center space-x-4">
             <Link
               href="/login"
-              className="text-primary hover:text-secondary font-medium transition-colors"
+              className="text-primary hover:text-secondary font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded px-2 py-1"
             >
               Log In
             </Link>
             <Link
               href="/register"
-              className="bg-secondary text-white px-6 py-2 rounded-lg font-medium hover:bg-secondary-dark transition-colors"
+              className="bg-secondary text-white px-6 py-2 rounded-lg font-medium hover:bg-secondary-dark transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
             >
               Get Started
             </Link>
@@ -147,5 +161,6 @@ export function LandingNavigation() {
         </div>
       </div>
     </nav>
+    </>
   );
 }

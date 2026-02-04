@@ -4,6 +4,17 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import PropertyDetailsClient from './components/PropertyDetailsClient';
 
+interface ContractorProfile {
+  first_name: string;
+  last_name: string;
+}
+
+interface ContractorBid {
+  contractor_id: string;
+  contractor?: ContractorProfile[];
+  status: string;
+}
+
 export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const user = await getCurrentUserFromCookies();
@@ -80,7 +91,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   // Format jobs data
   const formattedJobs = (jobs || []).map(job => {
     // Find an accepted bid if any
-    const acceptedBid = job.contractor_bids?.find((bid: unknown) => bid.status === 'accepted');
+    const acceptedBid = (job.contractor_bids as ContractorBid[] | undefined)?.find((bid) => bid.status === 'accepted');
     const contractor = acceptedBid?.contractor ?
       `${acceptedBid.contractor?.[0]?.first_name || ''} ${acceptedBid.contractor?.[0]?.last_name || ''}`.trim() :
       null;

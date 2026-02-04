@@ -8,8 +8,9 @@
  * Environment variables:
  * - ROBOFLOW_API_KEY: Your Roboflow API key
  * - ROBOFLOW_MODEL_ID: The model ID (e.g., "building-defect-detection-7-ks0im")
- * - ROBOFLOW_MODEL_VERSION: The model version number (e.g., "1", "2", "3")
+ * - ROBOFLOW_MODEL_VERSION: The model version number (e.g., "1", "2", "4")
  *   This corresponds to the version segment in the detect URL.
+ *   Recommended: use version "4" (Building Defect Detection 7 4, YOLOv11 Accurate) for best mAP@50.
  *   Update this when deploying a new trained model version.
  * - ROBOFLOW_TIMEOUT_MS: Request timeout in milliseconds (default: 10000)
  * - USE_LOCAL_YOLO: Set to "true" to use local YOLO model instead of API (default: false)
@@ -49,7 +50,7 @@ export interface RoboflowConfigValidation {
 }
 
 const DEFAULT_BASE_URL = 'https://detect.roboflow.com';
-const DEFAULT_TIMEOUT = 10_000;
+const DEFAULT_TIMEOUT = 10000; // Avoid numeric separator for broad runtime compatibility
 
 /**
  * Get Roboflow configuration from environment variables.
@@ -61,7 +62,8 @@ export function getRoboflowConfig(): RoboflowConfig {
     ? Number.parseInt(process.env.ROBOFLOW_TIMEOUT_MS, 10)
     : DEFAULT_TIMEOUT;
 
-  const useLocalYOLO = process.env.USE_LOCAL_YOLO === 'true';
+  const useLocalYOLO =
+    process.env.USE_LOCAL_YOLO === 'true' || process.env.ROBOFLOW_USE_LOCAL_YOLO === 'true';
   const confidenceThreshold = process.env.YOLO_CONFIDENCE_THRESHOLD
     ? Number.parseFloat(process.env.YOLO_CONFIDENCE_THRESHOLD)
     : 0.25;
@@ -72,7 +74,7 @@ export function getRoboflowConfig(): RoboflowConfig {
   return {
     apiKey: process.env.ROBOFLOW_API_KEY || '',
     modelId: process.env.ROBOFLOW_MODEL_ID || '',
-    modelVersion: process.env.ROBOFLOW_MODEL_VERSION || '1',
+    modelVersion: process.env.ROBOFLOW_MODEL_VERSION || '4',
     baseUrl: process.env.ROBOFLOW_BASE_URL || DEFAULT_BASE_URL,
     timeoutMs: Number.isNaN(timeoutMs) || timeoutMs <= 0 ? DEFAULT_TIMEOUT : timeoutMs,
     useLocalYOLO,

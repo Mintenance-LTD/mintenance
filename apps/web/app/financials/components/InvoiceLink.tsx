@@ -11,7 +11,13 @@ interface InvoiceLinkProps {
   isCard?: boolean;
 }
 
-export function InvoiceLink({ href, children, isCard = false }: InvoiceLinkProps) {
+export function InvoiceLink(props: InvoiceLinkProps) {
+  const { href = '#', children, isCard = false } = props || {};
+
+  if (!children) {
+    return null;
+  }
+
   return (
     <>
       <Link

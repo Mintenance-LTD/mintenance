@@ -45,7 +45,11 @@ interface IntelligentMatchingProps {
   jobId: string;
 }
 
-export function IntelligentMatching({ jobId }: IntelligentMatchingProps) {
+export function IntelligentMatching(props: IntelligentMatchingProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    jobId = '',
+  } = props || {};
   const [matches, setMatches] = useState<MatchedContractor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

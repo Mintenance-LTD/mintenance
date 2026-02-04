@@ -3,10 +3,13 @@
  *
  * Provides consistent error formatting across all API routes
  * with proper status codes, error codes, and optional debug info
+ *
+ * SECURITY (VULN-007): All error responses include CORS headers
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
+import { getCorsHeaders } from '@/lib/cors';
 
 /**
  * Standard error response format
@@ -119,16 +122,29 @@ export class InternalServerError extends APIError {
 /**
  * Handle any error and convert to standardized API response
  *
+ * SECURITY (VULN-007): Includes CORS headers in error responses
+ *
  * @param error - The error to handle
  * @param requestId - Optional request ID for tracing
  * @param context - Optional context for logging
- * @returns NextResponse with standardized error format
+ * @param request - Optional request object for CORS header generation
+ * @returns NextResponse with standardized error format and CORS headers
  */
 export function handleAPIError(
   error: unknown,
   requestId?: string,
-  context?: Record<string, unknown>
+  context?: Record<string, unknown>,
+  request?: NextRequest
 ): NextResponse {
+  // Helper to get headers with CORS support
+  const getResponseHeaders = (baseHeaders: Record<string, string> = {}): Record<string, string> => {
+    const corsHeaders = request ? getCorsHeaders(request) : {};
+    return {
+      ...baseHeaders,
+      ...corsHeaders,
+    };
+  };
+
   // If it's already an APIError, use it directly
   if (error instanceof APIError) {
     logger.warn('API Error', {
@@ -143,12 +159,12 @@ export function handleAPIError(
       error.toResponse(requestId),
       {
         status: error.statusCode,
-        headers: {
+        headers: getResponseHeaders({
           'Content-Type': 'application/json',
           ...(error instanceof RateLimitError && error.details?.retryAfter
             ? { 'Retry-After': String(error.details.retryAfter) }
             : {}),
-        },
+        }),
       }
     );
   }
@@ -192,30 +208,30 @@ export function handleAPIError(
 
   // Handle standard Error objects
   if (error instanceof Error) {
+    // SECURITY: Always log full details internally (for debugging)
+    // NEVER expose stack traces or detailed error messages to client
     logger.error('Unexpected Error', {
       name: error.name,
       message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      stack: error.stack,  // Always log full stack internally
       requestId,
       ...context,
     });
 
+    // Always return generic message to client (no conditional development exposure)
     return NextResponse.json(
       {
         error: {
           code: 'INTERNAL_SERVER_ERROR',
-          message:
-            process.env.NODE_ENV === 'development'
-              ? error.message
-              : 'An unexpected error occurred',
-          ...(process.env.NODE_ENV === 'development' && {
-            details: { stack: error.stack },
-          }),
+          message: 'An unexpected error occurred',  // Generic message always
         },
         timestamp: new Date().toISOString(),
-        ...(requestId && { requestId }),
+        ...(requestId && { requestId }),  // Include request ID for support correlation
       },
-      { status: 500 }
+      {
+        status: 500,
+        headers: getResponseHeaders({ 'Content-Type': 'application/json' }),
+      }
     );
   }
 
@@ -235,7 +251,10 @@ export function handleAPIError(
       timestamp: new Date().toISOString(),
       ...(requestId && { requestId }),
     },
-    { status: 500 }
+    {
+      status: 500,
+      headers: getResponseHeaders({ 'Content-Type': 'application/json' }),
+    }
   );
 }
 

@@ -218,7 +218,12 @@ function PaymentForm({ onSuccess, onCancel }: AddPaymentMethodFormProps) {
   );
 }
 
-export function AddPaymentMethodForm({ onSuccess, onCancel }: AddPaymentMethodFormProps) {
+export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    onSuccess = () => {},
+    onCancel = () => {},
+  } = props || {};
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

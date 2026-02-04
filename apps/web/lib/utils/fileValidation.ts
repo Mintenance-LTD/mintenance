@@ -1,5 +1,5 @@
 import { fromBuffer } from 'file-type';
-import { logger } from './logger';
+import { logger } from '@mintenance/shared';
 
 /**
  * Magic number signatures for allowed file types

@@ -77,9 +77,15 @@ interface ContractorDashboardAirbnbProps {
   };
 }
 
-export function ContractorDashboardAirbnb({ data }: ContractorDashboardAirbnbProps) {
-  const { contractor, metrics, recentJobs } = data;
+export function ContractorDashboardAirbnb(props: ContractorDashboardAirbnbProps) {
+  const { data } = props || {};
+  const { contractor, metrics, recentJobs } = data || {};
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed'>('all');
+
+  // Early return if required data is missing
+  if (!data || !contractor || !metrics || !recentJobs) {
+    return null;
+  }
 
   // Filter jobs based on active filter
   const filteredJobs = recentJobs.filter(job => {

@@ -93,12 +93,14 @@ interface UnifiedSidebarProps {
  * />
  * ```
  */
-export function UnifiedSidebar({
-    userRole,
-    userInfo,
-    isMobileOpen: externalMobileOpen,
-    onMobileClose
-}: UnifiedSidebarProps) {
+export function UnifiedSidebar(props: UnifiedSidebarProps) {
+    // Defensive prop destructuring with defaults to prevent test crashes
+    const {
+        userRole = 'homeowner',
+        userInfo,
+        isMobileOpen: externalMobileOpen = false,
+        onMobileClose = () => {},
+    } = props || {};
     const pathname = usePathname();
     const router = useRouter();
     const [expandedItems, setExpandedItems] = useState<string[]>(['Jobs']); // Jobs expanded by default

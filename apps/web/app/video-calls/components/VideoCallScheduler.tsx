@@ -29,13 +29,16 @@ interface VideoCallSchedulerProps {
     initialJobId?: string;
 }
 
-export function VideoCallScheduler({
-    currentUserId,
-    onScheduled,
-    onCancel,
-    isVisible,
-    initialJobId
-}: VideoCallSchedulerProps) {
+export function VideoCallScheduler(props: VideoCallSchedulerProps) {
+    // Defensive prop destructuring with defaults to prevent test crashes
+    const {
+        currentUserId = '',
+        onScheduled = () => {},
+        onCancel = () => {},
+        isVisible = false,
+        initialJobId = '',
+    } = props || {};
+
     const [scheduledTime, setScheduledTime] = useState('');
     const [purpose, setPurpose] = useState('consultation');
     interface JobForScheduler {

@@ -14,7 +14,8 @@ interface PhotoGalleryProps {
   photos: Photo[];
 }
 
-export function PhotoGallery({ photos }: PhotoGalleryProps) {
+export function PhotoGallery(props: PhotoGalleryProps) {
+  const { photos } = props || {};
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 

@@ -37,14 +37,16 @@ interface YOLOCorrectionEditorProps {
 /**
  * YOLO Correction Editor
  */
-export function YOLOCorrectionEditor({
-  assessmentId,
-  imageUrl,
-  imageIndex = 0,
-  originalDetections,
-  onSave,
-  onCancel,
-}: YOLOCorrectionEditorProps) {
+export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    assessmentId = '',
+    imageUrl = '',
+    imageIndex = 0,
+    originalDetections = [],
+    onSave,
+    onCancel,
+  } = props || {};
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);

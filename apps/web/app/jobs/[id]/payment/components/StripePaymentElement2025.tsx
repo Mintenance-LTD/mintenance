@@ -11,12 +11,14 @@ interface StripePaymentElement2025Props {
   onPaymentError: (error: string) => void;
 }
 
-export function StripePaymentElement2025({
-  amount,
-  jobTitle,
-  onPaymentSuccess,
-  onPaymentError,
-}: StripePaymentElement2025Props) {
+export function StripePaymentElement2025(props: StripePaymentElement2025Props) {
+  const {
+    amount = 0,
+    jobTitle = '',
+    onPaymentSuccess = () => {},
+    onPaymentError = () => {},
+  } = props || {};
+
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'link' | 'apple' | 'google'>('card');
 

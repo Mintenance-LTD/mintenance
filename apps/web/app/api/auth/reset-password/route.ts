@@ -8,32 +8,10 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
+import { PasswordValidator, checkPasswordBreach } from '@mintenance/auth';
 
 export async function POST(request: NextRequest) {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 5
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(5),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
     // CSRF protection
     await requireCSRF(request);
     // Check Supabase configuration early
@@ -65,23 +43,41 @@ export async function POST(request: NextRequest) {
     // Validate password - accept either password or newPassword from frontend
     const newPassword = password || body.newPassword;
 
-    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
-      throw new BadRequestError('Password must be at least 8 characters long');
+    if (!newPassword || typeof newPassword !== 'string') {
+      throw new BadRequestError('Password is required');
     }
 
-    // Use centralized password validation (matches registration validation)
-    const hasUppercase = /[A-Z]/.test(newPassword);
-    const hasLowercase = /[a-z]/.test(newPassword);
-    const hasNumber = /\d/.test(newPassword);
-    const hasSpecialChar = /[^A-Za-z0-9]/.test(newPassword);
+    // SECURITY: Use centralized PasswordValidator (same validation as registration)
+    const validationResult = PasswordValidator.validate(newPassword, {
+      minLength: 8,
+      requireUppercase: true,
+      requireLowercase: true,
+      requireNumbers: true,
+      requireSpecialChars: true,
+      maxLength: 128
+    });
 
-    if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecialChar) {
-      const missing = [];
-      if (!hasUppercase) missing.push('uppercase letter');
-      if (!hasLowercase) missing.push('lowercase letter');
-      if (!hasNumber) missing.push('number');
-      if (!hasSpecialChar) missing.push('special character');
-      throw new BadRequestError(`Password must contain at least one ${missing.join(', ')}`);
+    if (!validationResult.isValid) {
+      logger.warn('[SECURITY] Password reset blocked - validation failed', {
+        service: 'auth',
+        errors: validationResult.errors,
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      throw new BadRequestError(validationResult.errors.join(', '));
+    }
+
+    // SECURITY: Check if password has been exposed in data breaches
+    const breachResult = await checkPasswordBreach(newPassword);
+    if (breachResult.isBreached) {
+      logger.warn('[SECURITY] Password reset blocked - breached password detected', {
+        service: 'auth',
+        occurrences: breachResult.occurrences,
+        ip: request.headers.get('x-forwarded-for') || 'unknown'
+      });
+      throw new BadRequestError(
+        `This password has been exposed in ${breachResult.occurrences?.toLocaleString()} data breaches. ` +
+        `Please choose a different, more secure password.`
+      );
     }
 
     // Initialize Supabase client using validated environment variables

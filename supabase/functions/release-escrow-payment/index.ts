@@ -1,15 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@12.18.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { handleCorsPreflight, createCorsResponse } from '../_shared/cors.ts';
 
 serve(async (req) => {
+  // SECURITY: Handle CORS preflight with whitelist-based origin validation
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return handleCorsPreflight(req);
   }
 
   try {
@@ -152,7 +149,8 @@ serve(async (req) => {
       created_at: new Date().toISOString(),
     }]);
 
-    return new Response(
+    return createCorsResponse(
+      req,
       JSON.stringify({
         success: true,
         transferId: transfer.id,
@@ -164,16 +162,17 @@ serve(async (req) => {
         feeTransferId: feeTransfer?.id,
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 200,
       }
     );
   } catch (error) {
     console.error('Error releasing escrow payment:', error);
-    return new Response(
+    return createCorsResponse(
+      req,
       JSON.stringify({ error: error.message }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 400,
       }
     );

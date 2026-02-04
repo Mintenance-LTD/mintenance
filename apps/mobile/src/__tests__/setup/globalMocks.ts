@@ -233,7 +233,7 @@ jest.mock('@mintenance/shared/lib/logger-config', () => ({
 jest.mock('@mintenance/shared/enhanced-logger', () => ({}), { virtual: true });
 
 // Mock AI core service
-jest.mock('@mintenance/ai-core/services/UnifiedAIService', () => {
+jest.mock('@mintenance/ai-core', () => {
   class UnifiedAIService {
     assessBuilding() {
       return Promise.resolve({ success: true, data: {} });

@@ -28,6 +28,13 @@ interface PricingSuggestion {
     marketDemandFactor?: number;
     sampleSize?: number;
   };
+  costBreakdown?: {
+    materials: number;
+    labor: number;
+    overhead: number;
+    profit: number;
+    total: number;
+  };
 }
 
 interface PricingSuggestionCardProps {
@@ -196,6 +203,98 @@ export function PricingSuggestionCard({
           <span className="text-xs font-semibold text-gray-900">{confidenceScore}%</span>
         </div>
       </div>
+
+      {/* Cost Breakdown */}
+      {suggestion.costBreakdown && (
+        <div className="mb-6 bg-white rounded-xl p-4 border border-gray-200">
+          <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Cost Breakdown
+          </h4>
+
+          {/* Stacked Bar Visualization */}
+          <div className="mb-4 h-8 flex rounded-lg overflow-hidden" role="img" aria-label="Cost breakdown visualization">
+            {suggestion.costBreakdown.materials > 0 && (
+              <div
+                className="bg-blue-500 flex items-center justify-center text-xs text-white font-semibold transition-all hover:opacity-90"
+                style={{ width: `${(suggestion.costBreakdown.materials / suggestion.costBreakdown.total) * 100}%` }}
+                title={`Materials: £${suggestion.costBreakdown.materials.toFixed(2)}`}
+              >
+                {((suggestion.costBreakdown.materials / suggestion.costBreakdown.total) * 100) >= 10 &&
+                  `${((suggestion.costBreakdown.materials / suggestion.costBreakdown.total) * 100).toFixed(0)}%`
+                }
+              </div>
+            )}
+            {suggestion.costBreakdown.labor > 0 && (
+              <div
+                className="bg-emerald-500 flex items-center justify-center text-xs text-white font-semibold transition-all hover:opacity-90"
+                style={{ width: `${(suggestion.costBreakdown.labor / suggestion.costBreakdown.total) * 100}%` }}
+                title={`Labor: £${suggestion.costBreakdown.labor.toFixed(2)}`}
+              >
+                {((suggestion.costBreakdown.labor / suggestion.costBreakdown.total) * 100) >= 10 &&
+                  `${((suggestion.costBreakdown.labor / suggestion.costBreakdown.total) * 100).toFixed(0)}%`
+                }
+              </div>
+            )}
+            {suggestion.costBreakdown.overhead > 0 && (
+              <div
+                className="bg-amber-500 flex items-center justify-center text-xs text-white font-semibold transition-all hover:opacity-90"
+                style={{ width: `${(suggestion.costBreakdown.overhead / suggestion.costBreakdown.total) * 100}%` }}
+                title={`Overhead: £${suggestion.costBreakdown.overhead.toFixed(2)}`}
+              >
+                {((suggestion.costBreakdown.overhead / suggestion.costBreakdown.total) * 100) >= 10 &&
+                  `${((suggestion.costBreakdown.overhead / suggestion.costBreakdown.total) * 100).toFixed(0)}%`
+                }
+              </div>
+            )}
+            {suggestion.costBreakdown.profit > 0 && (
+              <div
+                className="bg-purple-500 flex items-center justify-center text-xs text-white font-semibold transition-all hover:opacity-90"
+                style={{ width: `${(suggestion.costBreakdown.profit / suggestion.costBreakdown.total) * 100}%` }}
+                title={`Profit: £${suggestion.costBreakdown.profit.toFixed(2)}`}
+              >
+                {((suggestion.costBreakdown.profit / suggestion.costBreakdown.total) * 100) >= 10 &&
+                  `${((suggestion.costBreakdown.profit / suggestion.costBreakdown.total) * 100).toFixed(0)}%`
+                }
+              </div>
+            )}
+          </div>
+
+          {/* Legend Grid */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-blue-500 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-500">Materials</p>
+                <p className="text-sm font-semibold text-gray-900">£{suggestion.costBreakdown.materials.toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-emerald-500 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-500">Labor</p>
+                <p className="text-sm font-semibold text-gray-900">£{suggestion.costBreakdown.labor.toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-amber-500 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-500">Overhead (15%)</p>
+                <p className="text-sm font-semibold text-gray-900">£{suggestion.costBreakdown.overhead.toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-purple-500 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-500">Profit</p>
+                <p className="text-sm font-semibold text-gray-900">£{suggestion.costBreakdown.profit.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3">

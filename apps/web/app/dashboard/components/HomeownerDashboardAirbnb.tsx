@@ -58,9 +58,15 @@ interface HomeownerDashboardAirbnbProps {
   };
 }
 
-export function HomeownerDashboardAirbnb({ data }: HomeownerDashboardAirbnbProps) {
-  const { homeowner, metrics, activeJobs, recentActivity } = data;
+export function HomeownerDashboardAirbnb(props: HomeownerDashboardAirbnbProps) {
+  const { data } = props || {};
+  const { homeowner, metrics, activeJobs, recentActivity } = data || {};
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed'>('all');
+
+  // Early return if required data is missing
+  if (!data || !homeowner || !metrics || !activeJobs || !recentActivity) {
+    return null;
+  }
 
   // Filter jobs
   const filteredJobs = activeJobs.filter(job => {

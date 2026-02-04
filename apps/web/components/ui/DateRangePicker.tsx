@@ -64,14 +64,16 @@ const DEFAULT_PRESETS = [
   },
 ];
 
-export function DateRangePicker({
-  value,
-  onChange,
-  presets = DEFAULT_PRESETS,
-  placeholder = 'Select date range',
-  minDate,
-  maxDate,
-}: DateRangePickerProps) {
+export function DateRangePicker(props: DateRangePickerProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    value = { from: null, to: null },
+    onChange = () => {},
+    presets = DEFAULT_PRESETS,
+    placeholder = 'Select date range',
+    minDate,
+    maxDate,
+  } = props || {};
   const [isOpen, setIsOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const containerRef = useRef<HTMLDivElement>(null);

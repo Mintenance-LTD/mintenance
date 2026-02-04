@@ -535,7 +535,7 @@ export class ModelABTestingService {
   // HELPER METHODS
   // ============================================================================
 
-  private static calculateVariantMetrics(data: any[]): unknown {
+  private static calculateVariantMetrics(data: unknown[]): unknown {
     if (data.length === 0) {
       return {
         mAP50: 0,
@@ -783,7 +783,7 @@ export async function recordModelPerformance(
   model: 'control' | 'treatment',
   latencyMs: number,
   success: boolean,
-  detections: any[]
+  detections: unknown[]
 ): Promise<void> {
   await ModelABTestingService.recordInference(testId, sessionId, model, {
     latency_ms: latencyMs,

@@ -64,8 +64,10 @@ export default function MigrationDashboard() {
         .limit(1000);
       if (!logsError && logs) {
         // Calculate success/error rates
-        const newControllerLogs = logs.filter((l: unknown) => l.is_new_controller);
-        const errorLogs = newControllerLogs.filter((l: unknown) =>
+        type LogEntry = { is_new_controller: boolean; module: string; metadata?: { error?: unknown } };
+        const typedLogs = logs as LogEntry[];
+        const newControllerLogs = typedLogs.filter((l) => l.is_new_controller);
+        const errorLogs = newControllerLogs.filter((l) =>
           l.metadata?.error || l.module.includes('fallback')
         );
         const errorRate = newControllerLogs.length > 0

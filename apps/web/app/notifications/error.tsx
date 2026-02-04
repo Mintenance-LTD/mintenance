@@ -32,7 +32,7 @@ export default function Error({ error, reset }: ErrorPageProps) {
           marginBottom: '1rem',
           color: theme.colors.error || '#ef4444',
         }}>
-           
+          !
         </div>
 
         <h1 style={{

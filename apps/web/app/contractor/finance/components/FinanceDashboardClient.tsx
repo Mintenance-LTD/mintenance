@@ -31,8 +31,14 @@ interface FinanceDashboardClientProps {
 
 const PERIODS: Array<'week' | 'month' | 'quarter' | 'year'> = ['week', 'month', 'quarter', 'year'];
 
-export function FinanceDashboardClient({ financialData }: FinanceDashboardClientProps) {
+export function FinanceDashboardClient(props: FinanceDashboardClientProps) {
+  const { financialData } = props || {};
   const [selectedPeriod, setSelectedPeriod] = useState<(typeof PERIODS)[number]>('month');
+
+  // Early return if required data is missing
+  if (!financialData || !financialData.payments || !financialData.jobs) {
+    return null;
+  }
 
   const avgJobValue = financialData.completedJobs
     ? financialData.totalRevenue / financialData.completedJobs

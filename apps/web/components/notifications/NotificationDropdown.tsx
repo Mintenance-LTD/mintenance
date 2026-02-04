@@ -21,7 +21,12 @@ interface NotificationDropdownProps {
   userId: string;
 }
 
-export function NotificationDropdown({ userId }: NotificationDropdownProps) {
+export function NotificationDropdown(props: NotificationDropdownProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    userId = '',
+  } = props || {};
+
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -66,25 +71,18 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
 
   const fetchNotifications = async () => {
     if (!userId) return;
-    
+
     setLoading(true);
     try {
-      // Fetch both regular notifications and social notifications
+      // Fetch contractor-relevant notifications only (bids, jobs, messages, payments)
+      // Social notifications are deprecated and available on dedicated /contractor/social page
       // Security fix: API now uses authenticated user, no userId param needed
-      const [regularResponse, socialResponse] = await Promise.all([
-        fetch('/api/notifications', {
-          credentials: 'include',
-        }).catch((err) => {
-          logger.error('Error fetching regular notifications', err, { service: 'NotificationDropdown', userId });
-          return null;
-        }),
-        fetch('/api/notifications/social?limit=20&unread_only=false', {
-          credentials: 'include',
-        }).catch((err) => {
-          logger.error('Error fetching social notifications', err, { service: 'NotificationDropdown', userId });
-          return null;
-        }),
-      ]);
+      const regularResponse = await fetch('/api/notifications', {
+        credentials: 'include',
+      }).catch((err) => {
+        logger.error('Error fetching notifications', err, { service: 'NotificationDropdown', userId });
+        return null;
+      });
 
       const notifications: Notification[] = [];
 
@@ -124,14 +122,6 @@ export function NotificationDropdown({ userId }: NotificationDropdownProps) {
           statusText: regularResponse.statusText,
           error: errorText,
         });
-      }
-
-      // Add social notifications
-      if (socialResponse?.ok) {
-        const socialData = await socialResponse.json();
-        if (Array.isArray(socialData.notifications)) {
-          notifications.push(...socialData.notifications);
-        }
       }
 
       // Sort by created_at (newest first) and remove duplicates

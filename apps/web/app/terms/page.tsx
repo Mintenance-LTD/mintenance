@@ -41,7 +41,7 @@ export default function TermsOfServicePage() {
 
             {/* Company Information */}
             <section className="mb-8 bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Company Details</h3>
+              <p className="font-semibold text-gray-900 mb-3">Company Details</p>
               <p className="text-gray-700 leading-relaxed">
                 <strong>MINTENANCE LTD</strong><br />
                 Registered Office: Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY<br />
@@ -324,7 +324,7 @@ export default function TermsOfServicePage() {
 
             {/* Acceptance */}
             <section className="mb-8 bg-blue-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Acceptance of Terms</h3>
+              <p className="font-semibold text-gray-900 mb-3">Acceptance of Terms</p>
               <p className="text-gray-700 leading-relaxed">
                 By clicking "I Accept" during registration or by using Mintenance, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.
               </p>

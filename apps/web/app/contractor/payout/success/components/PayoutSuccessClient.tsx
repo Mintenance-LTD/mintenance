@@ -10,7 +10,8 @@ interface PayoutSuccessClientProps {
   hasPaymentSetup: boolean;
 }
 
-export function PayoutSuccessClient({ hasPaymentSetup }: PayoutSuccessClientProps) {
+export function PayoutSuccessClient(props: PayoutSuccessClientProps) {
+  const { hasPaymentSetup = false } = props || {};
   const router = useRouter();
 
   const handleRefresh = () => {

@@ -5,7 +5,7 @@ import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

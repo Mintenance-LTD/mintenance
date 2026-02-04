@@ -5,7 +5,7 @@ declare module '@react-native-community/netinfo' {
     isConnected: boolean | null;
     isInternetReachable: boolean | null;
     type: string;
-    details: any;
+    details: unknown;
   }
 
   const NetInfo: {

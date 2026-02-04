@@ -7,7 +7,7 @@ import { logger } from '../logger';
  * before use, as the shared package doesn't have direct database access.
  */
 // Supabase client type - injected at runtime
-// Using 'any' for the response types to avoid complex generics
+// select() return type is unknown; use typed await via assertion when destructuring
 interface SupabaseClient {
   from(table: string): {
     select(columns?: string, options?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }): unknown;
@@ -126,7 +126,7 @@ export class ConformalPredictionService {
       // Fallback to simple threshold-based interval
       return this.getFallbackInterval(predictionScores, confidenceLevel);
     }
-    return data as ConformalPredictionInterval;
+    return (data as unknown) as ConformalPredictionInterval;
   }
   /**
    * Calculate nonconformity score for a prediction
@@ -145,36 +145,38 @@ export class ConformalPredictionService {
       logger.error('Error calculating nonconformity score:', error, { service: 'general' });
       return this.calculateLocalNonconformityScore(predictionScores, trueClass, scoreType);
     }
-    return data as number;
+    return (data as unknown) as number;
   }
   /**
    * Get active calibration sets
    */
   async getActiveCalibrationSets(): Promise<CalibrationSet[]> {
-    const { data, error } = await getSupabase()
+    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
+    const { data, error } = await (getSupabase()
       .from('conformal_calibration_sets')
       .select('*')
       .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as unknown as Promise<{ data: CalibrationSet[] | null; error: Error | null }>);
     if (error) {
       logger.error('Error fetching calibration sets:', error, { service: 'general' });
       return [];
     }
-    return data as CalibrationSet[];
+    return (data ?? []) as CalibrationSet[];
   }
   /**
    * Get calibration summary with performance metrics
    */
   async getCalibrationSummary(): Promise<any[]> {
-    const { data, error } = await getSupabase()
+    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
+    const { data, error } = await (getSupabase()
       .from('v_calibration_summary')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }) as unknown as Promise<{ data: unknown[] | null; error: Error | null }>);
     if (error) {
       logger.error('Error fetching calibration summary:', error, { service: 'general' });
       return [];
     }
-    return data;
+    return (data ?? []) as any[];
   }
   /**
    * Build a new calibration set (admin only)
@@ -197,7 +199,7 @@ export class ConformalPredictionService {
       logger.error('Error building calibration set:', error, { service: 'general' });
       return null;
     }
-    return data as string;
+    return (data as unknown) as string;
   }
   /**
    * Trigger recalibration (admin only)
@@ -218,25 +220,27 @@ export class ConformalPredictionService {
     calibrationSetId: string,
     daysBack: number = 7
   ): Promise<CalibrationMetrics | null> {
-    const { data, error } = await getSupabase()
+    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
+    const { data, error } = await (getSupabase()
       .from('conformal_performance_metrics')
       .select('*')
       .eq('calibration_set_id', calibrationSetId)
       .gte('evaluation_end', new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString())
       .order('evaluation_end', { ascending: false })
       .limit(1)
-      .single();
-    if (error) {
-      logger.error('Error fetching performance metrics:', error, { service: 'general' });
+      .single() as unknown as Promise<{ data: Record<string, unknown> | null; error: Error | null }>);
+    if (error || data == null) {
+      if (error) logger.error('Error fetching performance metrics:', error, { service: 'general' });
       return null;
     }
+    const row = data;
     return {
-      total_predictions: data.predictions_made,
-      correct_predictions: data.correct_predictions,
-      empirical_coverage: data.empirical_coverage,
-      target_coverage: 0.95, // Default target
-      avg_confidence: data.avg_interval_size,
-      calibration_error: Math.abs(data.empirical_coverage - 0.95)
+      total_predictions: (row['predictions_made'] as number) ?? 0,
+      correct_predictions: (row['correct_predictions'] as number) ?? 0,
+      empirical_coverage: (row['empirical_coverage'] as number) ?? 0,
+      target_coverage: 0.95,
+      avg_confidence: (row['avg_interval_size'] as number) ?? 0,
+      calibration_error: Math.abs(((row['empirical_coverage'] as number) ?? 0) - 0.95)
     };
   }
   /**
@@ -356,22 +360,23 @@ export class ConformalPredictionService {
    * Check if recalibration is needed
    */
   async isRecalibrationNeeded(calibrationSetId: string): Promise<boolean> {
-    const { data, error } = await getSupabase()
+    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
+    const { data, error } = await (getSupabase()
       .from('conformal_calibration_sets')
       .select('created_at, sample_count, valid_until')
       .eq('id', calibrationSetId)
-      .single();
+      .single() as unknown as Promise<{ data: Record<string, unknown> | null; error: Error | null }>);
     if (error || !data) return true;
-    // Check if expired
-    if (new Date(data.valid_until) < new Date()) {
-      return true;
-    }
-    // Check for significant new samples (20% increase)
-    const { count } = await getSupabase()
+    const validUntil = data['valid_until'] as string | undefined;
+    const createdAt = data['created_at'] as string | undefined;
+    const sampleCount = (data['sample_count'] as number) ?? 0;
+    if (validUntil && new Date(validUntil) < new Date()) return true;
+    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
+    const { count } = await (getSupabase()
       .from('building_assessment_outcomes')
       .select('*', { count: 'exact', head: true })
-      .gte('learned_at', data.created_at);
-    return (count || 0) > data.sample_count * 0.2;
+      .gte('learned_at', createdAt ?? '') as unknown as Promise<{ count: number | null }>);
+    return (count ?? 0) > sampleCount * 0.2;
   }
 }
 // ============================================================================

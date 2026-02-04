@@ -1,39 +1,34 @@
-import { vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React from 'react';
+import { render, screen } from '@testing-library/react';
 import { ResponsiveGrid } from '../ResponsiveGrid';
 
-// Mock dependencies
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-  useParams: () => ({ id: 'test-id' }),
-}));
-
 describe('ResponsiveGrid', () => {
-  const defaultProps = {
-    // Add default props here
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it('should render children', () => {
+    render(
+      <ResponsiveGrid areas={{ mobile: [['main']] }}>
+        <div style={{ gridArea: 'main' }}>Main content</div>
+      </ResponsiveGrid>
+    );
+    expect(screen.getByText('Main content')).toBeInTheDocument();
   });
 
-  it('should render without crashing', () => {
-    render(<ResponsiveGrid {...defaultProps} />);
-    expect(true).toBeTruthy(); // Component rendered
+  it('should render multiple children', () => {
+    render(
+      <ResponsiveGrid areas={{ mobile: [['header'], ['main']] }}>
+        <div style={{ gridArea: 'header' }}>Header</div>
+        <div style={{ gridArea: 'main' }}>Main</div>
+      </ResponsiveGrid>
+    );
+    expect(screen.getByText('Header')).toBeInTheDocument();
+    expect(screen.getByText('Main')).toBeInTheDocument();
   });
 
-  it('should handle user interactions', async () => {
-    render(<ResponsiveGrid {...defaultProps} />);
-    // Add interaction tests
-  });
-
-  it('should display correct data', () => {
-    render(<ResponsiveGrid {...defaultProps} />);
-    // Add data display tests
-  });
-
-  it('should handle edge cases', () => {
-    render(<ResponsiveGrid {...defaultProps} />);
-    // Test edge cases
+  it('should apply custom className', () => {
+    const { container } = render(
+      <ResponsiveGrid areas={{ mobile: [['main']] }} className="custom-grid">
+        <div>Content</div>
+      </ResponsiveGrid>
+    );
+    expect(container.firstChild).toBeInTheDocument();
   });
 });

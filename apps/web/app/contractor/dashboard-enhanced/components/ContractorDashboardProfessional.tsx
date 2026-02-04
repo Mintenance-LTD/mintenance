@@ -87,9 +87,16 @@ interface ContractorDashboardProfessionalProps {
   };
 }
 
-export function ContractorDashboardProfessional({ data }: ContractorDashboardProfessionalProps) {
-  const { contractor, metrics, progressTrendData, recentJobs } = data;
+export function ContractorDashboardProfessional(props: ContractorDashboardProfessionalProps) {
+  const { data } = props || {};
+  const { contractor, metrics, progressTrendData, recentJobs } = data || {};
+
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter'>('month');
+
+  // Early return if no data
+  if (!data || !contractor || !metrics) {
+    return null;
+  }
 
   // Calculate derived metrics
   const thisMonthRevenue = metrics.totalRevenue / 12;

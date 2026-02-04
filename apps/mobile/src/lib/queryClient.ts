@@ -149,7 +149,7 @@ export const persistQueryClient = async () => {
           }
           return acc;
         },
-        [] as Array<{ key: string; data: any; dataUpdatedAt: number }>
+        [] as Array<{ key: string; data: unknown; dataUpdatedAt: number }>
       );
 
     // Apply TTL filter
@@ -161,9 +161,9 @@ export const persistQueryClient = async () => {
 
     // Rehydrate to object shape for storage
     const payload = limited.reduce((obj, e) => {
-      (obj as any)[e.key] = { data: e.data, dataUpdatedAt: e.dataUpdatedAt };
+      (obj as Record<string, unknown>)[e.key] = { data: e.data, dataUpdatedAt: e.dataUpdatedAt };
       return obj;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
 
     await AsyncStorage.setItem('QUERY_CACHE', JSON.stringify(payload));
   } catch (error) {
@@ -175,7 +175,7 @@ export const restoreQueryClient = async () => {
   try {
     const cachedData = await AsyncStorage.getItem('QUERY_CACHE');
     if (cachedData) {
-      const parsedData = JSON.parse(cachedData) as Record<string, { data: any; dataUpdatedAt: number }>;
+      const parsedData = JSON.parse(cachedData) as Record<string, { data: unknown; dataUpdatedAt: number }>;
 
       const entries = Object.entries(parsedData)
         .map(([key, value]) => ({ key, ...value }))

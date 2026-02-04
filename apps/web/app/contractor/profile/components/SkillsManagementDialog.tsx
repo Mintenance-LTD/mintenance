@@ -27,7 +27,14 @@ interface SkillsManagementDialogProps {
  * Dialog for adding/removing contractor skills.
  * Following Single Responsibility Principle - only handles skills management.
  */
-export function SkillsManagementDialog({ open, onOpenChange, currentSkills, onSave }: SkillsManagementDialogProps) {
+export function SkillsManagementDialog(props: SkillsManagementDialogProps) {
+  const {
+    open = false,
+    onOpenChange = () => {},
+    currentSkills = [],
+    onSave = async () => {},
+  } = props || {};
+
   // Store skills with their icons
   const [skillIcons, setSkillIcons] = useState<Record<string, string>>(
     currentSkills.reduce((acc, skill) => {
@@ -35,7 +42,7 @@ export function SkillsManagementDialog({ open, onOpenChange, currentSkills, onSa
       return acc;
     }, {} as Record<string, string>)
   );
-  
+
   const [selectedSkills, setSelectedSkills] = useState<string[]>(
     currentSkills.map(s => s.skill_name)
   );

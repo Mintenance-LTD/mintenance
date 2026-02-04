@@ -3,6 +3,36 @@ export { logger } from './logger';
 export { formatDate, formatCurrency, formatPhone } from './formatters';
 export { debounce, throttle, hashString } from './utils';
 export { generateId, sanitizeString } from './helpers';
+
+// Materials types and utilities
+export type {
+  Material,
+  MaterialCategory,
+  MaterialUnit,
+  MaterialSpecifications,
+  CreateMaterialInput,
+  UpdateMaterialInput,
+  MaterialQueryFilters,
+  MaterialsListResponse,
+} from './types/materials';
+export {
+  MaterialCategoryLabels,
+  MaterialUnitLabels,
+  formatMaterialPrice,
+  formatMaterialUnitPrice,
+  getEffectiveUnitPrice,
+  calculateMaterialCost,
+} from './types/materials';
+
+// Property types
+export type {
+  Property,
+  PropertyType,
+  PropertyWithStats,
+  PropertyFavorite,
+  PropertyInput,
+  PropertyHealthScore,
+} from './types/property';
 // Application Configuration Constants
 export const APP_CONFIG = {
   DEFAULT_TIMEOUT: 30000,

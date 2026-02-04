@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
@@ -8,6 +8,12 @@ import toast from 'react-hot-toast';
 import { ArrowLeft, Heart, Home, MapPin, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import {
+  PropertiesToolbar,
+  PropertySortOption,
+  PropertyTypeFilter,
+} from './PropertiesToolbar';
+import { logger } from '@mintenance/shared';
 
 interface Property {
   id: string;
@@ -19,6 +25,7 @@ interface Property {
   square_footage?: number | null;
   year_built?: number | null;
   is_primary?: boolean;
+  is_favorited?: boolean;
   created_at: string;
   activeJobs: number;
   completedJobs: number;
@@ -38,21 +45,105 @@ interface PropertiesClient2025Props {
 
 export function PropertiesClient2025({ properties, userInfo }: PropertiesClient2025Props) {
   const router = useRouter();
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
-  const toggleFavorite = (propertyId: string) => {
+  // Initialize favorites from server data
+  const [favorites, setFavorites] = useState<Set<string>>(
+    new Set(properties.filter((p) => p.is_favorited).map((p) => p.id))
+  );
+
+  // Toolbar state
+  const [sortBy, setSortBy] = useState<PropertySortOption>('newest');
+  const [propertyTypeFilter, setPropertyTypeFilter] = useState<PropertyTypeFilter>('all');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  const toggleFavorite = async (propertyId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const isFavorited = favorites.has(propertyId);
+    const method = isFavorited ? 'DELETE' : 'POST';
+
+    // Optimistic update
     setFavorites((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(propertyId)) {
+      if (isFavorited) {
         newSet.delete(propertyId);
-        toast.success('Removed from favorites');
       } else {
         newSet.add(propertyId);
-        toast.success('Added to favorites');
       }
       return newSet;
     });
+
+    try {
+      const response = await fetch('/api/properties/favorites', {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (window as any).csrfToken || '',
+        },
+        body: JSON.stringify({ property_id: propertyId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorite');
+      }
+
+      toast.success(isFavorited ? 'Removed from favorites' : 'Added to favorites');
+    } catch (error) {
+      // Revert optimistic update on error
+      setFavorites((prev) => {
+        const newSet = new Set(prev);
+        if (isFavorited) {
+          newSet.add(propertyId);
+        } else {
+          newSet.delete(propertyId);
+        }
+        return newSet;
+      });
+
+      logger.error('Error toggling favorite', error, { service: 'properties' });
+      toast.error('Failed to update favorite');
+    }
   };
+
+  // Filter and sort properties
+  const filteredAndSortedProperties = useMemo(() => {
+    let result = [...properties];
+
+    // Apply property type filter
+    if (propertyTypeFilter !== 'all') {
+      result = result.filter((p) => p.property_type === propertyTypeFilter);
+    }
+
+    // Apply favorites filter
+    if (showFavoritesOnly) {
+      result = result.filter((p) => favorites.has(p.id));
+    }
+
+    // Apply sorting
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'spent-high':
+          return b.totalSpent - a.totalSpent;
+        case 'spent-low':
+          return a.totalSpent - b.totalSpent;
+        case 'name-az':
+          return (a.property_name || '').localeCompare(b.property_name || '');
+        case 'name-za':
+          return (b.property_name || '').localeCompare(a.property_name || '');
+        case 'active-jobs':
+          return b.activeJobs - a.activeJobs;
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [properties, propertyTypeFilter, showFavoritesOnly, sortBy, favorites]);
 
   return (
     <HomeownerPageWrapper>
@@ -71,8 +162,22 @@ export function PropertiesClient2025({ properties, userInfo }: PropertiesClient2
         <p className="text-gray-600">Manage your properties and maintenance</p>
       </div>
 
+      {/* Toolbar */}
+      {properties.length > 0 && (
+        <PropertiesToolbar
+          totalCount={properties.length}
+          displayedCount={filteredAndSortedProperties.length}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          propertyTypeFilter={propertyTypeFilter}
+          onPropertyTypeFilterChange={setPropertyTypeFilter}
+          showFavoritesOnly={showFavoritesOnly}
+          onToggleFavoritesOnly={() => setShowFavoritesOnly(!showFavoritesOnly)}
+        />
+      )}
+
       {/* Properties Grid */}
-      {properties.length === 0 ? (
+      {filteredAndSortedProperties.length === 0 && properties.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Home className="w-10 h-10 text-gray-400" />
@@ -89,11 +194,30 @@ export function PropertiesClient2025({ properties, userInfo }: PropertiesClient2
             Add Your First Property
           </Link>
         </div>
+      ) : filteredAndSortedProperties.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Home className="w-10 h-10 text-gray-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">No properties match your filters</h2>
+          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+            Try adjusting your filters or sort options to see more properties
+          </p>
+          <button
+            onClick={() => {
+              setPropertyTypeFilter('all');
+              setShowFavoritesOnly(false);
+            }}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+          >
+            Clear All Filters
+          </button>
+        </div>
       ) : (
         <>
           {/* Grid: 3 columns on desktop, responsive */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {properties.map((property) => (
+            {filteredAndSortedProperties.map((property) => (
               <Link
                 key={property.id}
                 href={`/properties/${property.id}`}
@@ -109,15 +233,11 @@ export function PropertiesClient2025({ properties, userInfo }: PropertiesClient2
                   />
                   {/* Heart Icon */}
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleFavorite(property.id);
-                    }}
+                    onClick={(e) => toggleFavorite(property.id, e)}
                     className="absolute top-3 right-3 bg-white/90 hover:bg-white rounded-full p-2 shadow-md transition-colors z-10"
                   >
                     <Heart
-                      className={`w-5 h-5 ${
+                      className={`w-5 h-5 transition-colors ${
                         favorites.has(property.id)
                           ? 'fill-red-500 text-red-500'
                           : 'text-gray-700'

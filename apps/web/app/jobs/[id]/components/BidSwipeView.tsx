@@ -37,13 +37,15 @@ interface BidSwipeViewProps {
 const SWIPE_THRESHOLD = 100;
 const SWIPE_VELOCITY_THRESHOLD = 500;
 
-export function BidSwipeView({
-  bids,
-  jobId,
-  onAcceptBid,
-  onRejectBid,
-  processingBid,
-}: BidSwipeViewProps) {
+export function BidSwipeView(props: BidSwipeViewProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    bids = [],
+    jobId = '',
+    onAcceptBid = () => {},
+    onRejectBid = () => {},
+    processingBid = null,
+  } = props || {};
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null);
   const [undoStack, setUndoStack] = useState<Array<{ bid: Bid; direction: 'left' | 'right' }>>([]);

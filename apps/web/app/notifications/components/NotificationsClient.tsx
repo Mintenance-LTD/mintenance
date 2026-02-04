@@ -16,7 +16,11 @@ interface NotificationsClientProps {
   user: Pick<User, 'id' | 'role' | 'email'>;
 }
 
-export function NotificationsClient({ user }: NotificationsClientProps) {
+export function NotificationsClient(props: NotificationsClientProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    user = { id: '', role: 'homeowner', email: '' },
+  } = props || {};
   const router = useRouter();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);

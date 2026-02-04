@@ -5,6 +5,7 @@
   "description": "Mintenance Web App (Next.js)",
   "scripts": {
     "dev": "next dev -p 3000 --webpack",
+    "dev:3001": "next dev -p 3001 --webpack",
     "dev:turbo": "next dev -p 3000 --turbo",
     "build": "npm run clean && next build --webpack",
     "build:analyze": "npm run clean && ANALYZE=true next build --webpack",
@@ -23,6 +24,8 @@
     "migrate:status": "npm run migrate status",
     "migrate:apply": "npm run migrate apply",
     "migrate:rollback": "npm run migrate rollback",
+    "seed:materials": "npx tsx scripts/seed-materials.ts",
+    "test:materials-api": "npx tsx scripts/test-materials-api.ts",
     "clean": "rimraf .next .turbo dist build",
     "clean:cache": "rimraf .next/cache",
     "analyze": "npm run build:analyze",
@@ -31,7 +34,13 @@
     "analyze:compare": "node scripts/measure-bundle-size.js --compare bundle-baseline.json",
     "type-check": "tsc --noEmit",
     "test:load": "k6 run load-tests/k6/critical-endpoints.js",
-    "test:load:api": "k6 run load-tests/k6/api-endpoints.js"
+    "test:load:api": "k6 run load-tests/k6/api-endpoints.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "playwright:codegen": "playwright codegen http://localhost:3000",
+    "install:hero3d": "npm install @react-three/fiber@9.0.0-alpha.0 three --save"
   },
   "dependencies": {
     "@chatscope/chat-ui-kit-react": "^2.1.1",
@@ -41,6 +50,7 @@
     "@googlemaps/markerclusterer": "^2.6.2",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.2",
+    "@mintenance/ai-core": "file:../../packages/ai-core",
     "@mintenance/auth": "file:../../packages/auth",
     "@mintenance/design-tokens": "file:../../packages/design-tokens",
     "@mintenance/services": "file:../../packages/services",
@@ -110,6 +120,7 @@
   "devDependencies": {
     "@googlemaps/js-api-loader": "^1.16.6",
     "@next/bundle-analyzer": "^16.0.7",
+    "@playwright/test": "^1.58.0",
     "@tailwindcss/container-queries": "^0.1.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -132,6 +143,7 @@
     "happy-dom": "^20.0.11",
     "jest": "^29.7.0",
     "msw": "^2.12.4",
+    "playwright": "^1.58.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.18",
     "ts-jest": "^29.1.2",

@@ -75,7 +75,15 @@ interface EditProfileDialogProps {
   onSave: (data: ProfileFormData) => Promise<void>;
 }
 
-export function EditProfileDialog({ open, onOpenChange, contractor, skills, onSave }: EditProfileDialogProps) {
+export function EditProfileDialog(props: EditProfileDialogProps) {
+  const {
+    open = false,
+    onOpenChange = () => {},
+    contractor = {},
+    skills = [],
+    onSave = async () => {},
+  } = props || {};
+
   const [formData, setFormData] = useState({
     firstName: contractor?.first_name || '',
     lastName: contractor?.last_name || '',

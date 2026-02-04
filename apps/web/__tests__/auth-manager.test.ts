@@ -4,8 +4,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  * Tests critical authentication and user management functionality
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { authManager } from '../lib/auth-manager';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import * as authModule from '@/lib/auth';
+import * as rateLimiterModule from '@/lib/rate-limiter';
+import { logger } from '@mintenance/shared';
 
 // Mock dependencies
 vi.mock('@/lib/api/supabaseServer', () => ({
@@ -63,11 +66,6 @@ vi.mock('@mintenance/shared', () => ({
 }));
 
 describe('Auth Manager', () => {
-  const mockSupabase = require('@/lib/api/supabaseServer');
-  const mockAuth = require('@/lib/auth');
-  const mockRateLimiter = require('@/lib/rate-limiter');
-  const mockLogger = require('@mintenance/shared').logger;
-
   beforeEach(() => {
     vi.clearAllMocks();
   });

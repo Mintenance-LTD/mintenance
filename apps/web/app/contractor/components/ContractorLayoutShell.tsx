@@ -31,7 +31,15 @@ interface ContractorLayoutShellProps {
 
 // UnifiedSidebar handles navigation sections internally
 
-export function ContractorLayoutShell({ children, contractor, email, userId, initialPathname }: ContractorLayoutShellProps) {
+export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    children,
+    contractor,
+    email,
+    userId,
+    initialPathname,
+  } = props || {};
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);

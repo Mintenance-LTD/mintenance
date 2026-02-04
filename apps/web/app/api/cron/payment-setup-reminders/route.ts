@@ -3,6 +3,7 @@ import { logger } from '@mintenance/shared';
 import { PaymentSetupNotificationService } from '@/lib/services/contractor/PaymentSetupNotificationService';
 import { requireCronAuth } from '@/lib/cron-auth';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { handleAPIError } from '@/lib/errors/api-error';
 
 /**
  * Cron endpoint for sending payment setup reminders
@@ -57,10 +58,8 @@ export async function GET(request: NextRequest) {
     logger.error('Error in payment setup reminder cron', error, {
       service: 'payment-setup-reminders',
     });
-    return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    // SECURITY: Use centralized error handler (sanitizes all errors)
+    return handleAPIError(error);
   }
 }
 

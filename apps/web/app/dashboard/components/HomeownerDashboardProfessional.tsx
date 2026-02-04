@@ -65,8 +65,14 @@ interface HomeownerDashboardProfessionalProps {
   };
 }
 
-export function HomeownerDashboardProfessional({ data }: HomeownerDashboardProfessionalProps) {
-  const { homeowner, metrics, activeJobs, recentActivity } = data;
+export function HomeownerDashboardProfessional(props: HomeownerDashboardProfessionalProps) {
+  const { data } = props || {};
+  const { homeowner, metrics, activeJobs, recentActivity } = data || {};
+
+  // Early return if required data is missing
+  if (!data || !homeowner || !metrics || !activeJobs || !recentActivity) {
+    return null;
+  }
 
   // Get upcoming appointments from scheduled jobs
   const upcomingAppointments = activeJobs

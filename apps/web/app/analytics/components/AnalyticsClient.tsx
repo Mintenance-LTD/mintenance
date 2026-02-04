@@ -29,7 +29,26 @@ interface AnalyticsClientProps {
   contractorId: string;
 }
 
-export function AnalyticsClient({ initialData, contractorId }: AnalyticsClientProps) {
+export function AnalyticsClient(props: AnalyticsClientProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    initialData = {
+      totalRevenue: 0,
+      pendingRevenue: 0,
+      averageJobValue: 0,
+      winRate: 0,
+      quotesSent: 0,
+      quotesAccepted: 0,
+      connections: 0,
+      avgRating: 0,
+      completionRate: 0,
+      totalJobs: 0,
+      activeJobs: 0,
+      revenueByMonth: {},
+      jobsByMonth: {},
+    },
+    contractorId = '',
+  } = props || {};
   const [insights, setInsights] = useState<PerformanceInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');

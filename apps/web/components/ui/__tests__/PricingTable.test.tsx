@@ -1,39 +1,40 @@
+import React from 'react';
 import { vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { PricingTable } from '../PricingTable';
 
-// Mock dependencies
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
-  useParams: () => ({ id: 'test-id' }),
+vi.mock('./Icon', () => ({
+  Icon: ({ name }: { name: string }) => <span data-testid={`icon-${name}`} />,
 }));
 
+const plans = [
+  { id: 'basic', name: 'Basic', price: 10, features: ['5 jobs', 'Email support'] },
+  { id: 'pro', name: 'Professional', price: 25, features: ['Unlimited jobs', 'Priority support'], recommended: true },
+];
+
 describe('PricingTable', () => {
-  const defaultProps = {
-    // Add default props here
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it('should render plan names', () => {
+    render(<PricingTable plans={plans} />);
+    expect(screen.getByText('Basic')).toBeInTheDocument();
+    expect(screen.getByText('Professional')).toBeInTheDocument();
   });
 
-  it('should render without crashing', () => {
-    render(<PricingTable {...defaultProps} />);
-    expect(true).toBeTruthy(); // Component rendered
+  it('should render features', () => {
+    render(<PricingTable plans={plans} />);
+    expect(screen.getByText('5 jobs')).toBeInTheDocument();
+    expect(screen.getByText('Unlimited jobs')).toBeInTheDocument();
   });
 
-  it('should handle user interactions', async () => {
-    render(<PricingTable {...defaultProps} />);
-    // Add interaction tests
+  it('should render recommended badge', () => {
+    render(<PricingTable plans={plans} />);
+    expect(screen.getByText('RECOMMENDED')).toBeInTheDocument();
   });
 
-  it('should display correct data', () => {
-    render(<PricingTable {...defaultProps} />);
-    // Add data display tests
-  });
-
-  it('should handle edge cases', () => {
-    render(<PricingTable {...defaultProps} />);
-    // Test edge cases
+  it('should call onSelectPlan when plan is selected', () => {
+    const onSelectPlan = vi.fn();
+    render(<PricingTable plans={plans} onSelectPlan={onSelectPlan} />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[0]);
+    expect(onSelectPlan).toHaveBeenCalled();
   });
 });

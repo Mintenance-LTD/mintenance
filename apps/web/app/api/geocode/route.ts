@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
-import { publicRateLimiter } from '@/lib/middleware/public-rate-limiter-redis';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { checkPublicRateLimit } from '@/lib/middleware/public-rate-limiter-redis';
 
 /**
  * Geocode an address to get latitude/longitude
@@ -15,49 +14,24 @@ import { rateLimiter } from '@/lib/rate-limiter';
  */
 export async function GET(request: NextRequest) {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+    const rateLimitResult = await checkPublicRateLimit(request, 'search');
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Apply rate limiting (10 req/min per IP)
-    const rateLimitResult = await publicRateLimiter(request, {
-      maxRequests: 10,
-      windowMs: 60 * 1000, // 1 minute
-    });
-
-    if (!rateLimitResult.success) {
+    if (!rateLimitResult.allowed) {
       logger.warn('Geocode rate limit exceeded', {
         service: 'geocoding',
         ip: request.headers.get('x-forwarded-for') || 'unknown',
         remaining: rateLimitResult.remaining,
       });
+      const retryAfterSec = rateLimitResult.retryAfter ?? Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
       return NextResponse.json(
         {
           error: 'Rate limit exceeded. Please try again later.',
-          retryAfter: Math.ceil(rateLimitResult.resetTime / 1000),
+          retryAfter: retryAfterSec,
         },
         {
           status: 429,
           headers: {
-            'Retry-After': String(Math.ceil(rateLimitResult.resetTime / 1000)),
+            'Retry-After': String(retryAfterSec),
             'X-RateLimit-Limit': '10',
             'X-RateLimit-Remaining': String(rateLimitResult.remaining),
           },

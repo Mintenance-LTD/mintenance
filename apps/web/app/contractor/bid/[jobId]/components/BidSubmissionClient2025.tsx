@@ -46,12 +46,18 @@ interface BidSubmissionClient2025Props {
 interface LineItem {
   id: string;
   description: string;
+  type: 'labor' | 'material' | 'equipment';
   quantity: number;
   unitPrice: number;
   total: number;
 }
 
-export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClient2025Props) {
+export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    job,
+    existingBid,
+  } = props || {};
   const router = useRouter();
   const { user } = useCurrentUser();
   const [amount, setAmount] = useState(existingBid?.amount?.toString() || '');
@@ -71,9 +77,9 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
   const [pricingSuggestion, setPricingSuggestion] = useState<unknown>(null);
   const [showPricingSuggestion, setShowPricingSuggestion] = useState(false);
 
-  const homeownerName = job.homeowner?.first_name && job.homeowner?.last_name
+  const homeownerName = job?.homeowner?.first_name && job?.homeowner?.last_name
     ? `${job.homeowner.first_name} ${job.homeowner.last_name}`.trim()
-    : job.homeowner?.email || 'Homeowner';
+    : job?.homeowner?.email || 'Homeowner';
 
   const userDisplayName = user?.first_name && user?.last_name
     ? `${user.first_name} ${user.last_name}`.trim()
@@ -83,6 +89,25 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
     if (lineItems.length === 0) return parseFloat(amount) || 0;
     return lineItems.reduce((sum, item) => sum + item.total, 0);
   }, [lineItems, amount]);
+
+  // Calculate labor vs. material breakdown
+  const laborTotal = useMemo(() => {
+    return lineItems
+      .filter(item => item.type === 'labor')
+      .reduce((sum, item) => sum + item.total, 0);
+  }, [lineItems]);
+
+  const materialTotal = useMemo(() => {
+    return lineItems
+      .filter(item => item.type === 'material')
+      .reduce((sum, item) => sum + item.total, 0);
+  }, [lineItems]);
+
+  const equipmentTotal = useMemo(() => {
+    return lineItems
+      .filter(item => item.type === 'equipment')
+      .reduce((sum, item) => sum + item.total, 0);
+  }, [lineItems]);
 
   const taxAmount = (subtotal * taxRate) / 100;
   const totalAmount = subtotal + taxAmount;
@@ -116,7 +141,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
   const addLineItem = () => {
     setLineItems([
       ...lineItems,
-      { id: Math.random().toString(), description: '', quantity: 1, unitPrice: 0, total: 0 },
+      { id: Math.random().toString(), description: '', type: 'labor', quantity: 1, unitPrice: 0, total: 0 },
     ]);
   };
 
@@ -391,7 +416,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                 <h2 className="text-xl font-bold text-gray-900 mb-4">Job Details</h2>
 
                 {/* Job Images */}
-                {job.photos && job.photos.length > 0 && (
+                {job?.photos && job.photos.length > 0 && (
                   <div className="mb-4 grid grid-cols-2 gap-2">
                     {job.photos.slice(0, 4).map((photo, index) => (
                       <div key={index} className="relative h-32 rounded-lg overflow-hidden">
@@ -401,27 +426,27 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                   </div>
                 )}
 
-                <h3 className="font-bold text-gray-900 mb-2">{job.title}</h3>
-                <p className="text-sm text-gray-600 mb-4">{job.description}</p>
+                <h3 className="font-bold text-gray-900 mb-2">{job?.title}</h3>
+                <p className="text-sm text-gray-600 mb-4">{job?.description}</p>
 
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     </svg>
-                    {job.location || 'Location not specified'}
+                    {job?.location || 'Location not specified'}
                   </div>
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                     </svg>
-                    {job.category || 'General'}
+                    {job?.category || 'General'}
                   </div>
                   <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Budget: {job.budget ? `£${job.budget}` : 'TBD'}
+                    Budget: {job?.budget ? `£${job.budget}` : 'TBD'}
                   </div>
                 </div>
 
@@ -430,7 +455,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                   <p className="text-xs text-gray-500 mb-2">Posted by</p>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-                      {job.homeowner?.profile_image_url ? (
+                      {job?.homeowner?.profile_image_url ? (
                         <Image
                           src={job.homeowner.profile_image_url}
                           alt={homeownerName}
@@ -440,14 +465,14 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                         />
                       ) : (
                         <span className="text-teal-600 font-semibold">
-                          {homeownerName.charAt(0).toUpperCase()}
+                          {homeownerName?.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{homeownerName}</p>
                       <p className="text-xs text-gray-500">
-                        {job.createdAt
+                        {job?.createdAt
                           ? new Date(job.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -617,12 +642,21 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                         <div className="space-y-3">
                           {lineItems.map((item) => (
                             <div key={item.id} className="grid grid-cols-12 gap-2 p-3 bg-gray-50 rounded-lg">
+                              <select
+                                value={item.type}
+                                onChange={(e) => updateLineItem(item.id, 'type', e.target.value as 'labor' | 'material' | 'equipment')}
+                                className="col-span-2 px-2 py-2 border border-gray-300 rounded-lg text-sm font-medium"
+                              >
+                                <option value="labor">Labor</option>
+                                <option value="material">Material</option>
+                                <option value="equipment">Equipment</option>
+                              </select>
                               <input
                                 type="text"
                                 value={item.description}
                                 onChange={(e) => updateLineItem(item.id, 'description', e.target.value)}
                                 placeholder="Description"
-                                className="col-span-5 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                className="col-span-4 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                               />
                               <input
                                 type="number"
@@ -641,7 +675,7 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                                 step="0.01"
                                 min="0"
                               />
-                              <div className="col-span-2 px-3 py-2 bg-white rounded-lg text-sm font-medium flex items-center">
+                              <div className="col-span-1 px-2 py-2 bg-white rounded-lg text-sm font-medium flex items-center justify-end">
                                 £{item.total.toFixed(2)}
                               </div>
                               <button
@@ -655,6 +689,51 @@ export function BidSubmissionClient2025({ job, existingBid }: BidSubmissionClien
                             </div>
                           ))}
                         </div>
+
+                        {/* Cost Breakdown: Labor vs. Materials */}
+                        {lineItems.length > 0 && (
+                          <div className="bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-200 rounded-xl p-5 mt-4">
+                            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                              <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                              Cost Breakdown
+                            </h4>
+                            <div className="space-y-2">
+                              {laborTotal > 0 && (
+                                <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                    <span className="text-sm text-gray-700">Labor</span>
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-900">£{laborTotal.toFixed(2)}</span>
+                                </div>
+                              )}
+                              {materialTotal > 0 && (
+                                <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                                    <span className="text-sm text-gray-700">Materials</span>
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-900">£{materialTotal.toFixed(2)}</span>
+                                </div>
+                              )}
+                              {equipmentTotal > 0 && (
+                                <div className="flex justify-between items-center p-2 bg-white rounded-lg">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                    <span className="text-sm text-gray-700">Equipment</span>
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-900">£{equipmentTotal.toFixed(2)}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center pt-2 border-t-2 border-teal-200">
+                                <span className="text-sm font-semibold text-gray-900">Subtotal</span>
+                                <span className="text-base font-bold text-teal-600">£{subtotal.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Tax Rate */}

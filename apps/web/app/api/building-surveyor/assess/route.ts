@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { BuildingSurveyorService } from '@/lib/services/building-surveyor/BuildingSurveyorService';
 import { HybridInferenceService } from '@/lib/services/building-surveyor/HybridInferenceService';
+import { runAgent } from '@/lib/services/building-surveyor/agent/AgentRunner';
 import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurveyorConfig';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 import { ABTestIntegration } from '@/lib/services/building-surveyor/ab_test_harness';
@@ -36,9 +37,13 @@ const assessmentCache = new LRUCache<string, Phase1BuildingAssessment>({
   allowStale: false,      // Don't return expired entries
 });
 
+const ASSESSMENT_DOMAINS = ['building', 'rail', 'infrastructure', 'general'] as const;
+
 const assessRequestSchema = z.object({
   imageUrls: z.array(z.string().url()).min(1).max(4),
-  jobId: z.string().uuid().optional(), // Add job_id support
+  jobId: z.string().uuid().optional(),
+  propertyId: z.string().uuid().optional(),
+  domain: z.enum(ASSESSMENT_DOMAINS).optional(), // Phase 6: extensibility (default building)
   context: z
     .object({
       location: z.string().optional(),
@@ -150,7 +155,7 @@ export async function POST(request: NextRequest) {
       throw new BadRequestError('Invalid request');
     }
 
-    const { imageUrls, context } = validationResult.data;
+    const { imageUrls, context, jobId: bodyJobId, propertyId: bodyPropertyId, domain: bodyDomain } = validationResult.data;
 
     // 3. Validate image URLs are accessible
     // (Basic check - in production, you might want to verify they're from your storage)
@@ -259,7 +264,7 @@ export async function POST(request: NextRequest) {
               const cacheKey = generateCacheKey(imageUrls);
               await serverSupabase.from('building_assessments').insert({
                 user_id: user.id,
-                job_id: validationResult.data.jobId, // Add job_id if provided
+                job_id: bodyJobId ?? null,
                 cache_key: cacheKey,
                 damage_type: abResult.aiResult.predictedDamageType,
                 severity: abResult.aiResult.predictedSeverity,
@@ -296,27 +301,108 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Standard flow (no A/B test or not enrolled)
-    // Check if hybrid inference is enabled
     const config = getConfig();
-    const assessment = config.useHybridInference
-      ? await HybridInferenceService.assessWithHybridRouting(imageUrls, context)
-      : await BuildingSurveyorService.assessDamage(imageUrls, context);
+    let assessment: Phase1BuildingAssessment;
+    let assessmentIdForImages: string | null = null;
 
-    // Log which service was used
-    logger.info('Assessment service used', {
-      service: 'building-surveyor-api',
-      inferenceType: config.useHybridInference ? 'hybrid' : 'gpt4-first',
-      userId: user.id,
-    });
+    if (config.useHybridInference) {
+      assessment = await HybridInferenceService.assessWithHybridRouting(imageUrls, context);
+      logger.info('Assessment service used', {
+        service: 'building-surveyor-api',
+        inferenceType: 'hybrid',
+        userId: user.id,
+      });
+    } else {
+      // Agent path: create placeholder row -> run agent -> update row
+      const domain = bodyDomain ?? 'building';
+      const { data: placeholderRow, error: insertError } = await serverSupabase
+        .from('building_assessments')
+        .insert({
+          user_id: user.id,
+          job_id: bodyJobId ?? null,
+          property_id: bodyPropertyId ?? null,
+          cache_key: cacheKey,
+          domain,
+          damage_type: 'general_damage',
+          severity: 0,
+          confidence: 0,
+          safety_score: 50,
+          compliance_score: 50,
+          insurance_risk_score: 50,
+          urgency: 'monitor',
+          assessment_data: {},
+          validation_status: 'pending',
+          created_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (insertError || !placeholderRow?.id) {
+        logger.error('Failed to create placeholder assessment row', {
+          service: 'building-surveyor-api',
+          error: insertError,
+        });
+        throw new Error('Failed to create assessment');
+      }
+
+      const assessmentId = placeholderRow.id;
+      assessmentIdForImages = assessmentId;
+      const agentResult = await runAgent({
+        assessmentId,
+        imageUrls,
+        userId: user.id,
+        context: context
+          ? {
+              propertyType: context.propertyType,
+              ageOfProperty: context.ageOfProperty,
+              location: context.location,
+              propertyDetails: context.propertyDetails,
+            }
+          : undefined,
+        jobId: bodyJobId,
+        propertyId: bodyPropertyId,
+        domain,
+      });
+      assessment = agentResult.assessment;
+
+      const validationStatus =
+        agentResult.needsReview === true
+          ? 'needs_review'
+          : assessment.decisionResult?.decision === 'automate' && process.env.SHADOW_MODE_ENABLED !== 'true'
+            ? 'validated'
+            : process.env.SHADOW_MODE_ENABLED === 'true' && assessment.decisionResult?.decision === 'automate'
+              ? 'pending_shadow'
+              : 'pending';
+
+      await serverSupabase
+        .from('building_assessments')
+        .update({
+          damage_type: assessment.damageAssessment.damageType,
+          severity: assessment.damageAssessment.severity,
+          confidence: assessment.damageAssessment.confidence,
+          safety_score: assessment.safetyHazards.overallSafetyScore,
+          compliance_score: assessment.compliance.complianceScore,
+          insurance_risk_score: assessment.insuranceRisk.riskScore,
+          urgency: assessment.urgency.urgency,
+          assessment_data: assessment as unknown as Record<string, unknown>,
+          validation_status: validationStatus,
+        })
+        .eq('id', assessmentId);
+
+      logger.info('Assessment service used', {
+        service: 'building-surveyor-api',
+        inferenceType: 'agent',
+        userId: user.id,
+        assessmentId,
+      });
+    }
 
     // 6a. Check decision result from Safe-LUCB Critic
     const shadowModeEnabled = process.env.SHADOW_MODE_ENABLED === 'true';
-    const shouldAutomate = 
-      assessment.decisionResult?.decision === 'automate' && 
-      !shadowModeEnabled;
+    const shouldAutomate =
+      assessment.decisionResult?.decision === 'automate' && !shadowModeEnabled;
 
     if (shouldAutomate && assessment.decisionResult) {
-      // Automated decision - return immediately
       logger.info('Automated assessment (Safe-LUCB)', {
         service: 'building-surveyor-api',
         userId: user.id,
@@ -325,31 +411,6 @@ export async function POST(request: NextRequest) {
         rewardUcb: assessment.decisionResult.rewardUcb,
       });
 
-      // Still save to database for tracking (marked as validated)
-      try {
-        await serverSupabase.from('building_assessments').insert({
-          user_id: user.id,
-          job_id: validationResult.data.jobId, // Add job_id if provided
-          cache_key: cacheKey,
-          damage_type: assessment.damageAssessment.damageType,
-          severity: assessment.damageAssessment.severity,
-          confidence: assessment.damageAssessment.confidence,
-          safety_score: assessment.safetyHazards.overallSafetyScore,
-          compliance_score: assessment.compliance.complianceScore,
-          insurance_risk_score: assessment.insuranceRisk.riskScore,
-          urgency: assessment.urgency.urgency,
-          assessment_data: assessment,
-          validation_status: 'validated', // Auto-validated by Safe-LUCB
-          created_at: new Date().toISOString(),
-        });
-      } catch (saveError) {
-        logger.warn('Failed to save automated assessment', {
-          service: 'building-surveyor-api',
-          error: saveError,
-        });
-      }
-
-      // Store in in-memory cache for fast subsequent lookups
       assessmentCache.set(cacheKey, assessment);
       logger.info('Building assessment cached (automated)', {
         service: 'building-surveyor-api',
@@ -360,73 +421,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(assessment);
     }
 
-    // 7. Save assessment to database (for training data collection)
-    // Decision is 'escalate' or shadow mode - requires human review
+    // 7. Save image associations (assessment row already created in agent path; hybrid path inserts here)
     try {
-      const { error: saveError } = await serverSupabase.from('building_assessments').insert({
-        user_id: user.id,
-        job_id: validationResult.data.jobId, // Add job_id if provided
-        cache_key: cacheKey,
-        damage_type: assessment.damageAssessment.damageType,
-        severity: assessment.damageAssessment.severity,
-        confidence: assessment.damageAssessment.confidence,
-        safety_score: assessment.safetyHazards.overallSafetyScore,
-        compliance_score: assessment.compliance.complianceScore,
-        insurance_risk_score: assessment.insuranceRisk.riskScore,
-        urgency: assessment.urgency.urgency,
-        assessment_data: assessment,
-        validation_status: shadowModeEnabled && assessment.decisionResult?.decision === 'automate'
-          ? 'pending_shadow' // Shadow mode: decision was automate but forced escalation
-          : 'pending', // Needs human review
-        created_at: new Date().toISOString(),
-      });
-
-      if (saveError) {
-        logger.warn('Failed to save assessment to database', {
-          service: 'building-surveyor-api',
-          error: saveError,
+      if (config.useHybridInference && !assessmentIdForImages) {
+        await serverSupabase.from('building_assessments').insert({
+          user_id: user.id,
+          job_id: bodyJobId ?? null,
+          property_id: bodyPropertyId ?? null,
+          cache_key: cacheKey,
+          domain: bodyDomain ?? 'building',
+          damage_type: assessment.damageAssessment.damageType,
+          severity: assessment.damageAssessment.severity,
+          confidence: assessment.damageAssessment.confidence,
+          safety_score: assessment.safetyHazards.overallSafetyScore,
+          compliance_score: assessment.compliance.complianceScore,
+          insurance_risk_score: assessment.insuranceRisk.riskScore,
+          urgency: assessment.urgency.urgency,
+          assessment_data: assessment as unknown as Record<string, unknown>,
+          validation_status:
+            shadowModeEnabled && assessment.decisionResult?.decision === 'automate' ? 'pending_shadow' : 'pending',
+          created_at: new Date().toISOString(),
         });
-        // Don't fail the request if save fails
       }
 
-      // Save image associations
-      if (!saveError) {
-        const { data: savedAssessment } = await serverSupabase
-          .from('building_assessments')
-          .select('id')
-          .eq('cache_key', cacheKey)
-          .single();
+      const savedAssessmentId =
+        assessmentIdForImages ??
+        (await serverSupabase.from('building_assessments').select('id').eq('cache_key', cacheKey).single()).data?.id;
 
-        if (savedAssessment) {
-          const imageInserts = imageUrls.map((url, index) => ({
-            assessment_id: savedAssessment.id,
-            image_url: url,
-            image_index: index,
-          }));
+      if (savedAssessmentId) {
+        const imageInserts = imageUrls.map((url, index) => ({
+          assessment_id: savedAssessmentId,
+          image_url: url,
+          image_index: index,
+        }));
 
-          await serverSupabase.from('assessment_images').insert(imageInserts);
+        await serverSupabase.from('assessment_images').insert(imageInserts);
 
-          // Attempt auto-validation for high-confidence assessments
-          const autoValidationResult = await DataCollectionService.autoValidateIfHighConfidence(
-            assessment,
-            savedAssessment.id
-          );
+        const autoValidationResult = await DataCollectionService.autoValidateIfHighConfidence(
+          assessment,
+          savedAssessmentId
+        );
 
-          if (autoValidationResult.autoValidated) {
-            logger.info('Assessment auto-validated', {
-              service: 'building-surveyor-api',
-              assessmentId: savedAssessment.id,
-              userId: user.id,
-              reason: autoValidationResult.reason,
-            });
-          } else {
-            logger.info('Assessment requires human review', {
-              service: 'building-surveyor-api',
-              assessmentId: savedAssessment.id,
-              userId: user.id,
-              reason: autoValidationResult.reason,
-            });
-          }
+        if (autoValidationResult.autoValidated) {
+          logger.info('Assessment auto-validated', {
+            service: 'building-surveyor-api',
+            assessmentId: savedAssessmentId,
+            userId: user.id,
+            reason: autoValidationResult.reason,
+          });
+        } else {
+          logger.info('Assessment requires human review', {
+            service: 'building-surveyor-api',
+            assessmentId: savedAssessmentId,
+            userId: user.id,
+            reason: autoValidationResult.reason,
+          });
         }
       }
     } catch (dbError) {

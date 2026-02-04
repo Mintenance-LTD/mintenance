@@ -15,13 +15,15 @@ interface ExportMenuProps {
   onExport?: (format: string) => void;
 }
 
-export function ExportMenu({
-  data,
-  filename = 'report',
-  exportElementId = 'export-content',
-  formats = ['csv', 'json', 'pdf'],
-  onExport,
-}: ExportMenuProps) {
+export function ExportMenu(props: ExportMenuProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    data = [],
+    filename = 'report',
+    exportElementId = 'export-content',
+    formats = ['csv', 'json', 'pdf'],
+    onExport,
+  } = props || {};
   const [isOpen, setIsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);

@@ -20,7 +20,11 @@ interface CalendarProps {
 
 export type CalendarView = 'month' | 'week' | 'day';
 
-export function Calendar({ events }: CalendarProps) {
+export function Calendar(props: CalendarProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    events = [],
+  } = props || {};
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<CalendarView>('month');
 

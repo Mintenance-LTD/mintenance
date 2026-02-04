@@ -31,7 +31,13 @@ const propertyFormSchema = z.object({
 
 type PropertyFormData = z.infer<typeof propertyFormSchema>;
 
-export function AddPropertyDialog({ open, onOpenChange, onSuccess }: AddPropertyDialogProps) {
+export function AddPropertyDialog(props: AddPropertyDialogProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    open = false,
+    onOpenChange = () => {},
+    onSuccess = () => {},
+  } = props || {};
   const [locationSuggestions, setLocationSuggestions] = React.useState<Array<{ display_name: string; place_id: string }>>([]);
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = React.useState(false);

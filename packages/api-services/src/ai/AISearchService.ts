@@ -1,24 +1,11 @@
 import { logger } from '@mintenance/shared';
+import type { SearchResult } from '@mintenance/ai-core';
+
+export type { SearchResult, SearchFilters, SearchSuggestion, SearchAnalytics } from '@mintenance/ai-core';
 
 /**
  * AI Search Service - Core search functionality with semantic and full-text search
  */
-interface SearchResult {
-  id: string;
-  type: 'job' | 'contractor' | 'property';
-  title: string;
-  description: string;
-  relevanceScore: number;
-  metadata: {
-    location?: string;
-    category?: string;
-    price?: number;
-    availability?: string;
-    rating?: number;
-    [key: string]: unknown;
-  };
-  highlights?: string[];
-}
 interface SearchParams {
   query: string;
   embedding?: number[];

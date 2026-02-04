@@ -175,9 +175,9 @@ const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     description: 'Number of bids you can submit per month',
     category: 'Bidding',
     limits: {
-      free: 5,
-      basic: 20,
-      professional: 100,
+      free: 10,
+      basic: 10,
+      professional: 50,
       enterprise: 'unlimited',
     },
     upgradeMessage: "You've reached your monthly bid limit. Upgrade to submit more bids.",

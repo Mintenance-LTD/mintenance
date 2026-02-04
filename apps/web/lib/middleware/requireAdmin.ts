@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import type { User } from '@mintenance/types';
 
 /**
  * Secure admin authorization middleware with database verification
@@ -15,7 +16,7 @@ import { logger } from '@/lib/logger';
  * Always verify against the database to prevent token forgery attacks
  */
 export async function requireAdmin(request: NextRequest): Promise<{
-  user: unknown;
+  user: Pick<User, 'id' | 'email' | 'role'> & { verified?: boolean; dbVerified?: boolean };
   error?: never;
 } | {
   error: NextResponse;

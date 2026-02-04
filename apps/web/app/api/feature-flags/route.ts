@@ -43,6 +43,11 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const flag = searchParams.get('flag');
         const includeMetrics = searchParams.get('metrics') === 'true';
+        const statusOnly = searchParams.get('status') === 'true';
+
+        if (statusOnly) {
+            return getStatusResponse(request);
+        }
 
         if (flag) {
             // Get specific flag status
@@ -142,9 +147,13 @@ export async function POST(request: NextRequest) {
   }
 
         const body = await request.json();
-        const { flag, metrics, userId, sessionId } = body;
+        const { flag, metrics, userId, sessionId, reason, automatic } = body;
 
-        // Validate input
+        if (flag && reason) {
+            return postRollbackResponse(request, body);
+        }
+
+        // Validate input (metrics)
         if (!flag || !metrics) {
             return NextResponse.json(
                 { error: 'Missing required fields: flag, metrics' },
@@ -191,87 +200,13 @@ export async function POST(request: NextRequest) {
     }
 }
 
-/**
- * POST /api/feature-flags/rollback
- * Trigger rollback for a feature flag
- */
-export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const { flag, reason, metrics, automatic = false } = body;
-
-        // Validate input
-        if (!flag || !reason) {
-            return NextResponse.json(
-                { error: 'Missing required fields: flag, reason' },
-                { status: 400 }
-            );
-        }
-
-        logger.warn('Feature flag rollback triggered', {
-            flag,
-            reason,
-            automatic,
-            metrics,
-        });
-
-        // Record rollback event
-        const { data: rollbackData, error: rollbackError } = await supabase
-            .from('feature_flag_rollbacks')
-            .insert({
-                flag_name: flag,
-                reason,
-                automatic,
-                metrics,
-                triggered_at: new Date().toISOString(),
-            })
-            .select('id')
-            .single();
-
-        if (rollbackError) {
-            throw rollbackError;
-        }
-
-        // Perform rollback based on flag
-        let rollbackResult;
-        switch (flag) {
-            case FeatureFlag.SAM3_PRESENCE_DETECTION:
-                rollbackResult = await rollbackSAM3();
-                break;
-            default:
-                // Generic rollback - disable the flag
-                rollbackResult = await genericRollback(flag);
-        }
-
-        // Send notifications
-        await sendRollbackNotifications(flag, reason, rollbackResult);
-
-        return NextResponse.json({
-            success: true,
-            rollbackId: rollbackData.id,
-            result: rollbackResult,
-            message: `Rollback completed for ${flag}`,
-        });
-    } catch (error) {
-        logger.error('Error triggering rollback', error);
-        return NextResponse.json(
-            { error: 'Failed to trigger rollback' },
-            { status: 500 }
-        );
-    }
-}
-
-/**
- * GET /api/feature-flags/status
- * Get detailed status for monitoring
- */
-export async function GET(request: NextRequest) {
+// Helper: GET /api/feature-flags?status=true
+async function getStatusResponse(request: NextRequest): Promise<NextResponse> {
     try {
         const searchParams = request.nextUrl.searchParams;
         const flag = searchParams.get('flag');
         const timeRange = searchParams.get('timeRange') || '1h';
 
-        // Get metrics from database
         const timeRangeMs = parseTimeRange(timeRange);
         const startTime = new Date(Date.now() - timeRangeMs).toISOString();
 
@@ -291,10 +226,8 @@ export async function GET(request: NextRequest) {
             throw metricsError;
         }
 
-        // Calculate aggregate metrics
         const aggregateMetrics = calculateAggregateMetrics(metricsData);
 
-        // Get rollback history
         const { data: rollbacks } = await supabase
             .from('feature_flag_rollbacks')
             .select('*')
@@ -302,7 +235,6 @@ export async function GET(request: NextRequest) {
             .order('triggered_at', { ascending: false })
             .limit(10);
 
-        // Get current configuration
         const currentConfig = flag
             ? featureFlags.getFlag(flag as FeatureFlag, null)
             : getAllFlagsConfig();
@@ -319,6 +251,67 @@ export async function GET(request: NextRequest) {
         logger.error('Error fetching feature flag status', error);
         return NextResponse.json(
             { error: 'Failed to fetch status' },
+            { status: 500 }
+        );
+    }
+}
+
+// Helper: POST /api/feature-flags with body { flag, reason, ... } for rollback
+async function postRollbackResponse(request: NextRequest, body: Record<string, unknown>): Promise<NextResponse> {
+    try {
+        const { flag, reason, metrics, automatic = false } = body;
+
+        if (!flag || !reason) {
+            return NextResponse.json(
+                { error: 'Missing required fields: flag, reason' },
+                { status: 400 }
+            );
+        }
+
+        logger.warn('Feature flag rollback triggered', {
+            flag,
+            reason,
+            automatic,
+            metrics,
+        });
+
+        const { data: rollbackData, error: rollbackError } = await supabase
+            .from('feature_flag_rollbacks')
+            .insert({
+                flag_name: flag,
+                reason,
+                automatic,
+                metrics,
+                triggered_at: new Date().toISOString(),
+            })
+            .select('id')
+            .single();
+
+        if (rollbackError) {
+            throw rollbackError;
+        }
+
+        let rollbackResult;
+        switch (flag) {
+            case FeatureFlag.SAM3_PRESENCE_DETECTION:
+                rollbackResult = await rollbackSAM3();
+                break;
+            default:
+                rollbackResult = await genericRollback(flag as string);
+        }
+
+        await sendRollbackNotifications(flag as string, reason as string, rollbackResult);
+
+        return NextResponse.json({
+            success: true,
+            rollbackId: rollbackData.id,
+            result: rollbackResult,
+            message: `Rollback completed for ${flag}`,
+        });
+    } catch (error) {
+        logger.error('Error triggering rollback', error);
+        return NextResponse.json(
+            { error: 'Failed to trigger rollback' },
             { status: 500 }
         );
     }

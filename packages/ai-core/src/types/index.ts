@@ -184,15 +184,38 @@ export interface SearchFilters {
   priceRange?: { min: number; max: number };
   dateRange?: { start: Date; end: Date };
   status?: string[];
+  rating?: number;
+  availability?: string;
+  distance?: number;
 }
 export interface SearchResult {
   id: string;
-  type: 'job' | 'contractor' | 'service';
+  type: 'job' | 'contractor' | 'service' | 'property';
   title: string;
   description: string;
   relevanceScore: number;
-  highlights: string[];
-  metadata: Record<string, unknown>;
+  highlights?: string[];
+  metadata: {
+    location?: string;
+    category?: string;
+    price?: number;
+    rating?: number;
+    availability?: string;
+    [key: string]: unknown;
+  };
+}
+export interface SearchSuggestion {
+  text: string;
+  type: 'query' | 'category' | 'location';
+  popularity: number;
+}
+export interface SearchAnalytics {
+  query: string;
+  resultsCount: number;
+  clickThroughRate: number;
+  averageRelevanceScore: number;
+  searchTime: number;
+  filters: SearchFilters;
 }
 // Sustainability Types (from mobile)
 export interface ESGScore {

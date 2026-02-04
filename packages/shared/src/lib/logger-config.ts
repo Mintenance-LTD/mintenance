@@ -312,34 +312,45 @@ export function getLogger(context: 'web' | 'mobile' | 'api' | 'jobs' | 'payments
   return loggers[context];
 }
 
+interface ReqLike {
+  headers?: Record<string, string | string[] | undefined>;
+  method?: string;
+  url?: string;
+  ip?: string;
+  connection?: { remoteAddress?: string };
+}
+interface ResLike {
+  setHeader(name: string, value: string): void;
+  statusCode?: number;
+  end: (...args: unknown[]) => void;
+  get?(name: string): string | undefined;
+}
+type NextLike = (err?: unknown) => void;
+
 /**
  * Express/Next.js middleware for request logging
  */
 export function requestLoggingMiddleware(logger?: EnhancedLogger) {
   const log = logger || loggers.api;
 
-  return (req: unknown, res: unknown, next: unknown) => {
+  return (req: ReqLike, res: ResLike, next: NextLike) => {
     const startTime = Date.now();
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-    // Add request ID to headers
-    req.headers['x-request-id'] = requestId;
+    if (req.headers) req.headers['x-request-id'] = requestId;
     res.setHeader('x-request-id', requestId);
 
-    // Log request
     log.info('Request received', {
       requestId,
       method: req.method,
       url: req.url,
       ip: req.ip || req.connection?.remoteAddress,
-      userAgent: req.headers['user-agent']
+      userAgent: req.headers?.['user-agent']
     });
 
-    // Override res.end to log response
     const originalEnd = res.end;
     res.end = function (...args: unknown[]) {
       const duration = Date.now() - startTime;
-
       log.info('Request completed', {
         requestId,
         method: req.method,
@@ -348,8 +359,6 @@ export function requestLoggingMiddleware(logger?: EnhancedLogger) {
         duration,
         responseSize: res.get?.('content-length')
       });
-
-      // Call original end
       originalEnd.apply(res, args);
     };
 
@@ -363,16 +372,17 @@ export function requestLoggingMiddleware(logger?: EnhancedLogger) {
 export function errorLoggingMiddleware(logger?: EnhancedLogger) {
   const log = logger || loggers.api;
 
-  return (err: unknown, req: unknown, res: unknown, next: unknown) => {
-    const requestId = req.headers['x-request-id'] || 'unknown';
+  return (err: unknown, req: ReqLike, _res: ResLike, next: NextLike) => {
+    const e = err as Record<string, unknown>;
+    const requestId = (req.headers?.['x-request-id'] as string) || 'unknown';
 
     log.error('Request error', err, {
       requestId,
       method: req.method,
       url: req.url,
-      statusCode: err.statusCode || 500,
-      errorCode: err.code,
-      errorType: err.constructor?.name
+      statusCode: (e['statusCode'] as number) || 500,
+      errorCode: e['code'],
+      errorType: e && typeof e === 'object' && e.constructor ? (e.constructor as { name?: string }).name : undefined
     });
 
     next(err);

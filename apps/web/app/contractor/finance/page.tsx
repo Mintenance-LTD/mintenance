@@ -41,6 +41,26 @@ interface Transaction {
   netAmount: number;
 }
 
+// API response type from escrow transactions endpoint
+interface EscrowTransaction {
+  id: string;
+  jobId?: string;
+  job_id?: string;
+  payerId: string;
+  payeeId: string;
+  amount: number;
+  status: 'pending' | 'held' | 'released' | 'refunded';
+  createdAt?: string;
+  created_at?: string;
+  job?: {
+    title: string;
+  };
+  payer?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
 export default function ContractorFinancePage2025() {
   const router = useRouter();
   const { user } = useCurrentUser();
@@ -63,7 +83,7 @@ export default function ContractorFinancePage2025() {
 
         // Transform to transactions
         // API returns EscrowTransaction: { id, jobId, payerId, payeeId, amount, status, createdAt, job: { title }, payer: { first_name, last_name } }
-        const transformed: Transaction[] = payments.map((p: unknown) => {
+        const transformed: Transaction[] = payments.map((p: EscrowTransaction) => {
           // Map API status to finance page status
           // API: 'pending', 'held', 'released', 'refunded'
           // Finance page expects: 'pending', 'held', 'released', 'completed'

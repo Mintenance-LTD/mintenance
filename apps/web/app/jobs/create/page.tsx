@@ -64,14 +64,14 @@ export default function CreateJobPage2025() {
   const [formData, setFormData] = useState<JobFormData>({
     title: '',
     description: '',
-    location: '',
-    category: '',
+    location: searchParams?.get('location') ?? '',
+    category: searchParams?.get('category') ?? '',
     urgency: 'medium',
     budget: '',
     budget_min: '',
     budget_max: '',
-    show_budget_to_contractors: false,  // Default: hide budget
-    require_itemized_bids: false,  // Will be auto-set based on budget
+    show_budget_to_contractors: false,
+    require_itemized_bids: false,
     requiredSkills: [],
     property_id: searchParams?.get('property_id') || '',
   });
@@ -93,6 +93,19 @@ export default function CreateJobPage2025() {
       toast.error(`AI Assessment unavailable: ${error}`, { duration: 5000 });
     },
   });
+
+  // Prefill category and location from URL (e.g. Hero search bar → /jobs/create?category=...&location=...)
+  useEffect(() => {
+    const qCategory = searchParams?.get('category');
+    const qLocation = searchParams?.get('location');
+    if (qCategory || qLocation) {
+      setFormData(prev => ({
+        ...prev,
+        ...(qCategory && { category: qCategory }),
+        ...(qLocation && { location: qLocation }),
+      }));
+    }
+  }, [searchParams]);
 
   // Fetch properties
   useEffect(() => {
@@ -181,15 +194,23 @@ export default function CreateJobPage2025() {
     try {
       let imageUrls = imageUpload.uploadedImages;
       if (imageUpload.imagePreviews.length > 0 && imageUrls.length === 0) {
-        logger.info('[Submit] Need to upload images. CSRF token available:', !!csrfToken);
+        logger.info('[Submit] Need to upload images', { csrfTokenAvailable: !!csrfToken });
         if (!csrfToken) {
           toast.error('Security token not available. Please refresh the page.');
           setIsSubmitting(false);
           return;
         }
-        logger.info('[Submit] Calling uploadImages with token');
-        imageUrls = await imageUpload.uploadImages(csrfToken);
-        logger.info('[Submit] Upload completed. URLs received:', imageUrls.length);
+
+        // Try to upload images, but continue without them if upload fails
+        try {
+          logger.info('[Submit] Calling uploadImages with token');
+          imageUrls = await imageUpload.uploadImages(csrfToken);
+          logger.info('[Submit] Upload completed', { urlCount: imageUrls.length });
+        } catch (uploadError) {
+          logger.error('[Submit] Image upload failed, continuing without images', uploadError);
+          toast.error('Image upload failed. Continuing to create job without images.');
+          imageUrls = []; // Continue with empty images
+        }
       }
 
       // logger.info('Submitting job with data:', {
@@ -308,10 +329,10 @@ export default function CreateJobPage2025() {
             </div>
 
             {/* Main Card */}
-            <div className="bg-white rounded-xl border border-gray-200 p-8 mb-6">
+            <div className="bg-white rounded-xl border border-gray-200 p-8 mb-6" data-testid="job-create-form">
               {/* Step 1: Details */}
               {currentStep === 1 && (
-                <div className="space-y-8">
+                <div className="space-y-8" data-testid="step-1-details">
                   <div>
                     <h1 className="text-3xl font-semibold text-gray-900 mb-2">What do you need done?</h1>
                     <p className="text-gray-600">Tell us about your project</p>
@@ -484,7 +505,7 @@ export default function CreateJobPage2025() {
 
               {/* Step 2: Photos */}
               {currentStep === 2 && (
-                <div className="space-y-8">
+                <div className="space-y-8" data-testid="step-2-photos">
                   <div>
                     <h1 className="text-3xl font-semibold text-gray-900 mb-2">Add photos of your project</h1>
                     <p className="text-gray-600">Help contractors understand the scope of work (optional)</p>
@@ -627,7 +648,7 @@ export default function CreateJobPage2025() {
 
               {/* Step 3: Budget */}
               {currentStep === 3 && (
-                <div className="space-y-8">
+                <div className="space-y-8" data-testid="step-3-budget">
                   <div>
                     <h1 className="text-3xl font-semibold text-gray-900 mb-2">Set your budget and timeline</h1>
                     <p className="text-gray-600">This helps contractors provide accurate quotes</p>
@@ -869,6 +890,7 @@ export default function CreateJobPage2025() {
                 <button
                   onClick={() => setCurrentStep(currentStep - 1)}
                   className="px-6 py-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                  data-testid="back-button"
                 >
                   Back
                 </button>
@@ -876,6 +898,7 @@ export default function CreateJobPage2025() {
                 <button
                   onClick={() => router.back()}
                   className="px-6 py-3 text-base font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                  data-testid="cancel-button"
                 >
                   Cancel
                 </button>
@@ -889,6 +912,7 @@ export default function CreateJobPage2025() {
                     (currentStep === 3 && !canProceedStep3)
                   }
                   className="px-8 py-3 text-base font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                  data-testid="next-button"
                 >
                   Next
                 </button>
@@ -897,6 +921,7 @@ export default function CreateJobPage2025() {
                   onClick={handleSubmit}
                   disabled={isSubmitting}
                   className="px-8 py-3 text-base font-semibold text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                  data-testid="submit-button"
                 >
                   {isSubmitting ? 'Posting...' : 'Post Job'}
                 </button>

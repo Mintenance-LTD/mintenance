@@ -39,7 +39,8 @@ interface QuoteViewDialogProps {
   jobId: string;
 }
 
-export function QuoteViewDialog({ open, onOpenChange, jobId }: QuoteViewDialogProps) {
+export function QuoteViewDialog(props: QuoteViewDialogProps) {
+  const { open, onOpenChange, jobId } = props || {};
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quoteData, setQuoteData] = useState<QuoteData | null>(null);

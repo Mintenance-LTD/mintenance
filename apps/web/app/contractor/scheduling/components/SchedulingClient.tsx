@@ -25,6 +25,19 @@ interface Appointment {
   jobTitle?: string;
 }
 
+interface AppointmentApiResponse {
+  id: string;
+  title: string;
+  client: string;
+  date: string;
+  time?: string;
+  duration?: string;
+  location?: string;
+  type?: 'onsite' | 'video' | 'phone';
+  status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  jobTitle?: string;
+}
+
 interface Stats {
   upcomingAppointments: number;
   completedThisWeek: number;
@@ -113,7 +126,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       if (!response.ok) throw new Error('Failed to fetch appointments');
 
       const data = await response.json();
-      const transformedAppointments: Appointment[] = (data.appointments || []).map((apt: unknown) => ({
+      const transformedAppointments: Appointment[] = (data.appointments || []).map((apt: AppointmentApiResponse) => ({
         id: apt.id,
         title: apt.title,
         client: apt.client,
@@ -250,7 +263,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       await loadData();
     } catch (error: unknown) {
       logger.error('Error creating appointment:', error, { service: 'ui' });
-      toast.error(error.message || 'Failed to create appointment');
+      toast.error(error instanceof Error ? error.message : 'Failed to create appointment');
     }
   };
 

@@ -7,7 +7,13 @@ interface PaymentSetupBannerProps {
   pendingEscrows?: number;
 }
 
-export function PaymentSetupBanner({ contractorId, pendingAmount = 0, pendingEscrows = 0 }: PaymentSetupBannerProps) {
+export function PaymentSetupBanner(props: PaymentSetupBannerProps) {
+  const { contractorId, pendingAmount = 0, pendingEscrows = 0 } = props || {};
+
+  if (!contractorId) {
+    return null;
+  }
+
   return (
     <div className="bg-gradient-to-r from-amber-50 to-emerald-50 border-l-4 border-amber-500 rounded-lg p-4 mb-6 shadow-sm">
       <div className="flex items-start justify-between">

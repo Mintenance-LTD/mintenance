@@ -5,7 +5,7 @@ import { logger } from '../utils/logger';
 
 type SupabaseLike = ReturnType<typeof createClient<Database>> | ReturnType<typeof createMockSupabase>;
 
-const extra: any = (Constants as any)?.expoConfig?.extra ?? {};
+const extra: Record<string, unknown> = (Constants as { expoConfig?: { extra?: Record<string, unknown> } })?.expoConfig?.extra ?? {};
 const useMockFlag = (process.env.EXPO_PUBLIC_USE_MOCK ?? '').toLowerCase() === 'true';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? extra.supabaseUrl;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? extra.supabaseAnonKey;
@@ -118,8 +118,8 @@ export { supabase };
 function createMockSupabase() {
   const mockError = new Error('Mock Supabase client - configure real credentials to enable data access');
 
-  const createQueryChain = () => {
-    const chain: any = {
+  const createQueryChain = (): unknown => {
+    const chain: Record<string, unknown> = {
       select: () => chain,
       eq: () => chain,
       not: () => chain,

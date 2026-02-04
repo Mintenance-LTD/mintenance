@@ -176,8 +176,14 @@ function InvoiceCard({ invoice }: InvoiceCardProps) {
   );
 }
 
-export function FinanceDashboardEnhanced({ financialData }: FinanceDashboardEnhancedProps) {
+export function FinanceDashboardEnhanced(props: FinanceDashboardEnhancedProps) {
+  const { financialData } = props || {};
   const [selectedPeriod, setSelectedPeriod] = useState<(typeof PERIODS)[number]>('Month');
+
+  // Early return if required data is missing
+  if (!financialData || !financialData.payments || !financialData.chartData || !financialData.invoices || !financialData.transactions) {
+    return null;
+  }
 
   // Calculate month-over-month revenue change
   const thisMonth = new Date();

@@ -147,8 +147,15 @@ export default function LoginPage() {
         if (response.status === 429) {
           throw new Error('Too many login attempts. Please wait a few minutes and try again.');
         } else if (response.status === 401) {
-          const errorMsg = responseData.error || responseData.message || '';
-          if (errorMsg.toLowerCase().includes('email') || errorMsg.toLowerCase().includes('not found')) {
+          // Ensure errorMsg is always a string
+          let errorMsg = responseData.error || responseData.message || '';
+          if (typeof errorMsg !== 'string') {
+            errorMsg = typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : String(errorMsg);
+          }
+          // Check for email verification requirement FIRST (before generic email check)
+          if (errorMsg.toLowerCase().includes('verify') || errorMsg.toLowerCase().includes('confirm') || errorMsg.toLowerCase().includes('email_not_confirmed')) {
+            throw new Error('Please verify your email address before signing in. Check your inbox for a confirmation email.');
+          } else if (errorMsg.toLowerCase().includes('not found')) {
             throw new Error('No account found with this email address. Please check your email or sign up for a new account.');
           } else if (errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('invalid')) {
             throw new Error('Incorrect password. Please check your password or use "Forgot password" to reset it.');
@@ -192,7 +199,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-[#F9FAFB]">
       {/* Left Side - Brand */}
       <AuthBrandSide
         title="Welcome Back!"
@@ -201,13 +208,13 @@ export default function LoginPage() {
       />
 
       {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-[#F9FAFB]">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8 text-center">
             <Link href="/" className="inline-flex items-center space-x-2 mb-4">
               <Logo width={32} height={32} />
-              <h1 className="text-2xl font-bold text-[#0066CC]">Mintenance</h1>
+              <h1 className="text-2xl font-bold text-[#1F2937]">Mintenance</h1>
             </Link>
           </div>
 
@@ -215,10 +222,10 @@ export default function LoginPage() {
           <AuthCard>
             {/* Header */}
             <div className="mb-8">
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 tracking-tight">
+              <h2 className="text-3xl sm:text-4xl font-bold text-[#111827] mb-3 tracking-tight">
                 Sign in
               </h2>
-              <p className="text-base text-gray-600">
+              <p className="text-base text-[#6B7280]">
                 New to Mintenance?{' '}
                 <AuthLink href="/register" variant="primary">
                   Create an account
@@ -228,10 +235,10 @@ export default function LoginPage() {
 
             {/* Success Alert */}
             {submitStatus === 'success' && (
-              <Alert className="mb-6 border-green-500 bg-green-50">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-800">Login Successful!</AlertTitle>
-                <AlertDescription className="text-green-700">
+              <Alert className="mb-6 border-teal-500 bg-teal-50">
+                <CheckCircle2 className="h-4 w-4 text-teal-600" />
+                <AlertTitle className="text-teal-800">Login Successful!</AlertTitle>
+                <AlertDescription className="text-teal-700">
                   Redirecting to your dashboard...
                 </AlertDescription>
               </Alert>
@@ -299,8 +306,9 @@ export default function LoginPage() {
                     id="remember-me"
                     {...register('rememberMe')}
                     checked={rememberMe}
+                    className="focus-visible:ring-teal-500 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
                   />
-                  <Label htmlFor="remember-me" className="font-normal cursor-pointer text-sm text-gray-600">
+                  <Label htmlFor="remember-me" className="font-normal cursor-pointer text-sm text-[#6B7280]">
                     Remember me
                   </Label>
                 </div>
@@ -317,14 +325,14 @@ export default function LoginPage() {
                 fullWidth
                 loading={isSubmitting || csrfLoading}
                 disabled={isSubmitting || csrfLoading || !csrfToken}
-                className="mt-6 bg-[#0066CC] hover:bg-[#0052A3] text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                className="mt-6 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white shadow-lg hover:shadow-xl transition-all duration-200 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 border-0"
               >
                 {isSubmitting ? 'Signing in...' : 'Sign in'}
               </Button>
 
               {mounted && !csrfToken && !isSubmitting && !csrfLoading && (
-                <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1">
-                  <span className="inline-block w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
+                <p className="text-xs text-[#6B7280] text-center mt-2 flex items-center justify-center gap-1">
+                  <span className="inline-block w-2 h-2 bg-teal-500 rounded-full animate-pulse" />
                   Loading security settings...
                 </p>
               )}
@@ -332,7 +340,7 @@ export default function LoginPage() {
 
             {/* Footer Links */}
             <div className="mt-8 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[#6B7280]">
                 Don't have an account?{' '}
                 <AuthLink href="/register" variant="primary">
                   Sign up for free
@@ -343,7 +351,7 @@ export default function LoginPage() {
 
           {/* Legal Links */}
           <div className="mt-6 text-center">
-            <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center justify-center gap-4 text-xs text-[#6B7280]">
               <AuthLink href="/terms" variant="muted">Terms</AuthLink>
               <span>•</span>
               <AuthLink href="/privacy" variant="muted">Privacy</AuthLink>

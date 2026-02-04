@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const user = auth.user;
 
     // Get cache statistics
-    const metrics = AIResponseCache.exportMetrics();
+    const metrics = AIResponseCache.exportMetrics() as CacheMetrics;
 
     logger.info('AI cache stats accessed', {
       service: 'ai_cache_stats',
@@ -63,10 +63,26 @@ export async function GET(request: NextRequest) {
   }
 }
 
+interface CacheMetrics {
+  aggregated: {
+    overallHitRate: number;
+    projectedMonthlySavings: number;
+  };
+  perService: Record<string, {
+    hitRate: number;
+    hits: number;
+    misses: number;
+    cacheSize: number;
+  }>;
+  configs: Record<string, {
+    maxSize: number;
+  }>;
+}
+
 /**
  * Generate cache optimization recommendations
  */
-function generateRecommendations(metrics: unknown): string[] {
+function generateRecommendations(metrics: CacheMetrics): string[] {
   const recommendations: string[] = [];
   const { aggregated, perService } = metrics;
 
@@ -93,7 +109,7 @@ function generateRecommendations(metrics: unknown): string[] {
   }
 
   // Per-service recommendations
-  for (const [service, stats] of Object.entries(perService as any)) {
+  for (const [service, stats] of Object.entries(perService)) {
     if (stats.hitRate < 0.2 && stats.hits + stats.misses > 10) {
       recommendations.push(
         `${service}: Low hit rate (${(stats.hitRate * 100).toFixed(1)}%). Consider increasing TTL or investigating cache key generation.`

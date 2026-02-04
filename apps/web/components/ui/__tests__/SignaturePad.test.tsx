@@ -1,20 +1,42 @@
-import { renderHook, act } from '@testing-library/react';
+import React from 'react';
+import { vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { SignaturePad } from '../SignaturePad';
 
+vi.mock('./Button', () => ({
+  Button: ({ children, onClick, ...props }: { children: React.ReactNode; onClick?: () => void }) => <button onClick={onClick} {...props}>{children}</button>,
+}));
+
+vi.mock('@/lib/theme', () => ({
+  theme: {
+    colors: { primary: '#0D9488', border: '#E5E7EB', textSecondary: '#9CA3AF', surface: '#FFF' },
+    spacing: { 2: '8px', 3: '12px', 4: '16px' },
+    borderRadius: { lg: '12px' },
+  },
+}));
+
 describe('SignaturePad', () => {
-  it('should initialize with default values', () => {
-    const { result } = renderHook(() => SignaturePad());
-    expect(result.current).toBeDefined();
+  beforeEach(() => {
+    HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
+      lineWidth: 2,
+      lineCap: 'round',
+      strokeStyle: '#000',
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
+      clearRect: vi.fn(),
+    });
   });
 
-  it('should handle updates correctly', () => {
-    const { result } = renderHook(() => SignaturePad());
-    // Add specific test logic based on hook functionality
+  it('should render a canvas', () => {
+    const { container } = render(<SignaturePad onSave={vi.fn()} />);
+    expect(container.querySelector('canvas')).toBeInTheDocument();
   });
 
-  it('should clean up on unmount', () => {
-    const { result, unmount } = renderHook(() => SignaturePad());
-    unmount();
-    // Verify cleanup
+  it('should render clear and save buttons', () => {
+    render(<SignaturePad onSave={vi.fn()} />);
+    expect(screen.getByText(/clear/i)).toBeInTheDocument();
+    expect(screen.getByText(/save/i)).toBeInTheDocument();
   });
 });

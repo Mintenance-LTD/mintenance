@@ -76,6 +76,10 @@ export interface JWTPayload {
   last_name?: string;
   iat: number;
   exp: number;
+
+  // VULN-009: Session timeout tracking
+  sessionStart?: number;   // Unix timestamp (ms) - Original login time, never changes across refreshes
+  lastActivity?: number;   // Unix timestamp (ms) - Last API request, updated on refreshes
 }
 // Job types
 export interface Job {

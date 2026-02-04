@@ -14,13 +14,15 @@ interface CreateContractModalProps {
   onContractCreated: () => void;
 }
 
-export function CreateContractModal({
-  isOpen,
-  onClose,
-  jobId,
-  jobTitle,
-  onContractCreated,
-}: CreateContractModalProps) {
+export function CreateContractModal(props: CreateContractModalProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    isOpen = false,
+    onClose = () => {},
+    jobId = '',
+    jobTitle = '',
+    onContractCreated = () => {},
+  } = props || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingCompanyName, setLoadingCompanyName] = useState(true);

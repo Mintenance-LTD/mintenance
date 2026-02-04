@@ -28,7 +28,13 @@ interface ContractManagementProps {
   userId: string;
 }
 
-export function ContractManagement({ jobId, userRole, userId }: ContractManagementProps) {
+export function ContractManagement(props: ContractManagementProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    jobId = '',
+    userRole = 'homeowner',
+    userId = '',
+  } = props || {};
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

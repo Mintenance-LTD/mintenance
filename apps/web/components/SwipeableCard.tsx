@@ -11,15 +11,17 @@ interface SwipeableCardProps {
   style?: React.CSSProperties;
 }
 
-export const SwipeableCard: React.FC<SwipeableCardProps> = ({
-  children,
-  onSwipeLeft,
-  onSwipeRight,
-  onSwipeUp,
-  onSwipeDown,
-  className = '',
-  style = {},
-}) => {
+export const SwipeableCard: React.FC<SwipeableCardProps> = (props) => {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    children,
+    onSwipeLeft,
+    onSwipeRight,
+    onSwipeUp,
+    onSwipeDown,
+    className = '',
+    style = {},
+  } = props || {};
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });

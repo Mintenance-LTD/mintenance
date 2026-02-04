@@ -17,18 +17,20 @@ interface FloatingActionButtonProps {
   'data-testid'?: string;
 }
 
-export const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
-  icon,
-  onClick,
-  position = 'bottom-right',
-  size = 'md',
-  color = 'primary',
-  disabled = false,
-  className = '',
-  style = {},
-  'aria-label': ariaLabel,
-  'data-testid': testId,
-}) => {
+export const FloatingActionButton: React.FC<FloatingActionButtonProps> = (props) => {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    icon,
+    onClick,
+    position = 'bottom-right',
+    size = 'md',
+    color = 'primary',
+    disabled = false,
+    className = '',
+    style = {},
+    'aria-label': ariaLabel,
+    'data-testid': testId,
+  } = props || {};
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {

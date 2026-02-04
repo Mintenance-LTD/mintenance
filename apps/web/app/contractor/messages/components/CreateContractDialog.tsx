@@ -46,13 +46,15 @@ const contractFormSchema = z.object({
 
 type ContractFormData = z.infer<typeof contractFormSchema>;
 
-export function CreateContractDialog({
-  open,
-  onOpenChange,
-  jobId,
-  jobTitle,
-  onContractCreated,
-}: CreateContractDialogProps) {
+export function CreateContractDialog(props: CreateContractDialogProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    open = false,
+    onOpenChange = () => {},
+    jobId = '',
+    jobTitle = '',
+    onContractCreated = () => {},
+  } = props || {};
   const [loadingCompanyName, setLoadingCompanyName] = React.useState(true);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 

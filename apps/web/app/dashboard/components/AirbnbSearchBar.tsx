@@ -51,7 +51,13 @@ const urgencyOptions = [
   { value: 'flexible', label: 'Flexible', color: 'bg-green-100 text-green-700' },
 ];
 
-export function AirbnbSearchBar({ properties, onQuickJobPost }: AirbnbSearchBarProps) {
+export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    properties = [],
+    onQuickJobPost = () => {},
+  } = props || {};
+
   const router = useRouter();
   const [activeMode, setActiveMode] = useState<SearchMode>(null);
   const [dateMode, setDateMode] = useState<DateMode>('dates');

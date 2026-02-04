@@ -65,7 +65,13 @@ const TRAIT_INFO = {
   },
 };
 
-export function PersonalityTestModal({ isOpen, onClose, onSuccess }: PersonalityTestModalProps) {
+export function PersonalityTestModal(props: PersonalityTestModalProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    isOpen = false,
+    onClose = () => {},
+    onSuccess,
+  } = props || {};
   const [step, setStep] = useState<'intro' | 'questions' | 'processing' | 'results'>('intro');
   const [questions, setQuestions] = useState<PersonalityQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);

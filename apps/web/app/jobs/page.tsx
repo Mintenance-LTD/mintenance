@@ -2,17 +2,24 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { JobService } from '@/lib/services/JobService';
 import { LoadingSpinner, ErrorView, UnifiedButton } from '@/components/ui';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
-import { ArrowLeft } from 'lucide-react';
-import { JobCard2025 } from './components/JobCard2025';
 import { SmartJobFilters2025, JobFilters } from './components/SmartJobFilters2025';
+import { JobsToolbar, SortOption } from './components/JobsToolbar';
+import { BulkActionsBar } from './components/BulkActionsBar';
+import { MobileFilterDrawer, MobileFilterButton } from './components/MobileFilterDrawer';
+import { JobsStatsSection } from './components/JobsStatsSection';
+import { JobsStatusTabs } from './components/JobsStatusTabs';
+import { JobsGrid } from './components/JobsGrid';
+import { ConfirmationModal } from './components/ConfirmationModal';
 import { MotionDiv, MotionButton, MotionSection } from '@/components/ui/MotionDiv';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import type { Job } from '@mintenance/types';
@@ -68,9 +75,16 @@ export default function JobsPage2025() {
 
 function JobsPageContent() {
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion();
   const [filters, setFilters] = useState<JobFilters>({});
   const [activeTab, setActiveTab] = useState<FilterStatus>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const { user, loading: loadingUser, error: currentUserError } = useCurrentUser();
 
   useEffect(() => {
@@ -162,8 +176,28 @@ function JobsPageContent() {
       );
     }
 
-    return data;
-  }, [allJobs, filters, activeTab]);
+    // Apply sorting
+    const sorted = [...data].sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case 'oldest':
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case 'budget-high':
+          return b.budget - a.budget;
+        case 'budget-low':
+          return a.budget - b.budget;
+        case 'most-views':
+          return (b.view_count || 0) - (a.view_count || 0);
+        case 'alphabetical':
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  }, [allJobs, filters, activeTab, sortBy]);
 
   useEffect(() => {
     if (user && user.role === 'contractor') {
@@ -222,33 +256,41 @@ function JobsPageContent() {
 
   return (
     <HomeownerPageWrapper>
-      {/* Back to Dashboard Button */}
-      <button
-        onClick={() => router.push('/dashboard')}
-        className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span className="font-medium">Back to Dashboard</span>
-      </button>
+      {/* Breadcrumb Navigation */}
+      <nav className="flex items-center gap-2 text-sm mb-6" aria-label="Breadcrumb">
+        <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors font-medium">
+          Dashboard
+        </Link>
+        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+        <span className="text-gray-900 font-semibold">Your Jobs</span>
+      </nav>
 
       {/* Hero Header */}
       <MotionDiv
-        className="bg-white border border-gray-200 rounded-xl p-6 mb-6"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-br from-teal-50 via-white to-emerald-50 border border-gray-200 rounded-2xl p-8 mb-6 relative overflow-hidden"
+        initial={prefersReducedMotion ? false : { opacity: 0, y: -20 }}
+        animate={prefersReducedMotion ? false : { opacity: 1, y: 0 }}
       >
-        <div className="max-w-full">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-semibold mb-1 text-gray-900">Your Jobs</h1>
-              <p className="text-gray-600">Manage your maintenance projects in one place</p>
+        {/* Background Pattern */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-100/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-100/20 rounded-full blur-3xl" />
+
+        <div className="max-w-full relative z-10">
+          <div className="flex items-start justify-between gap-6 mb-6">
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold mb-2 text-gray-900">Your Jobs</h1>
+              <p className="text-lg text-gray-600">
+                Manage maintenance projects and track contractor progress
+              </p>
             </div>
 
             <Button
               variant="primary"
               size="lg"
               onClick={() => router.push('/jobs/create')}
-              className="bg-teal-600 text-white hover:bg-teal-700 rounded-lg transition-all"
+              className="bg-gradient-to-r from-teal-600 to-emerald-600 text-white hover:shadow-xl hover:scale-105 transition-all duration-300 rounded-xl px-8 py-4 font-semibold flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -258,194 +300,217 @@ function JobsPageContent() {
           </div>
 
           {/* Stats Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-            {[
-              { label: 'Total Jobs', value: allJobs.length, icon: '📋' },
-              { label: 'Active', value: allJobs.filter(j => j.status === 'in_progress').length, icon: '⚡' },
-              { label: 'Posted', value: allJobs.filter(j => j.status === 'posted').length, icon: '📢' },
-              { label: 'Completed', value: allJobs.filter(j => j.status === 'completed').length, icon: '✅' },
-            ].map((stat, index) => (
-              <div
-                key={stat.label}
-                className="bg-gray-50 rounded-xl p-4 border border-gray-200"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{stat.icon}</span>
-                  <div>
-                    <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
-                    <div className="text-gray-600 text-sm font-medium">{stat.label}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <JobsStatsSection
+            totalJobs={allJobs.length}
+            activeJobs={allJobs.filter(j => j.status === 'in_progress').length}
+            postedJobs={allJobs.filter(j => j.status === 'posted').length}
+            completedJobs={allJobs.filter(j => j.status === 'completed').length}
+            prefersReducedMotion={prefersReducedMotion}
+          />
         </div>
       </MotionDiv>
 
       {/* Content */}
       <div className="w-full space-y-6">
           <div className="flex flex-col gap-6">
-            {/* Tabs and View Toggle */}
-            <MotionDiv
-              className="flex items-center justify-between gap-4 flex-wrap"
-              variants={fadeIn}
-              initial="initial"
-              animate="animate"
-            >
-              {/* Status Tabs */}
-              <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-2">
-                {[
-                  { value: 'all', label: 'All Jobs', count: allJobs.length },
-                  { value: 'posted', label: 'Posted', count: allJobs.filter(j => j.status === 'posted').length },
-                  { value: 'in_progress', label: 'Active', count: allJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned').length },
-                  { value: 'completed', label: 'Completed', count: allJobs.filter(j => j.status === 'completed').length },
-                  { value: 'draft', label: 'Drafts', count: allJobs.filter(j => j.status === 'draft').length },
-                ].map((tab) => (
-                  <MotionButton
-                    key={tab.value}
-                    onClick={() => setActiveTab(tab.value as FilterStatus)}
-                    className={`px-4 py-2.5 rounded-lg font-semibold text-sm transition-all ${
-                      activeTab === tab.value
-                        ? 'bg-teal-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    aria-label={`Filter by ${tab.label}`}
-                    aria-pressed={activeTab === tab.value}
-                  >
-                    {tab.label}
-                    {tab.count > 0 && (
-                      <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                        activeTab === tab.value
-                          ? 'bg-white/20 text-white'
-                          : 'bg-gray-200 text-gray-700'
-                      }`}>
-                        {tab.count}
-                      </span>
-                    )}
-                  </MotionButton>
-                ))}
-              </div>
-
-              {/* View Toggle */}
-              <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-2">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2.5 rounded-lg transition-all ${
-                    viewMode === 'grid'
-                      ? 'bg-teal-100 text-teal-600'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  aria-label="Grid view"
-                  aria-pressed={viewMode === 'grid'}
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2.5 rounded-lg transition-all ${
-                    viewMode === 'list'
-                      ? 'bg-teal-100 text-teal-600'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                  aria-label="List view"
-                  aria-pressed={viewMode === 'list'}
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-              </div>
-            </MotionDiv>
-
-            {/* Filters */}
-            <SmartJobFilters2025
-              onFilterChange={setFilters}
-              initialFilters={filters}
+            {/* JobsToolbar with sorting and view controls */}
+            <JobsToolbar
+              totalCount={allJobs.length}
+              activeCount={filteredJobs.length}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              selectionMode={selectionMode}
+              onToggleSelectionMode={() => {
+                setSelectionMode(!selectionMode);
+                if (selectionMode) {
+                  setSelectedJobs(new Set());
+                }
+              }}
             />
 
+            {/* Status Tabs */}
+            <JobsStatusTabs
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              jobCounts={{
+                all: allJobs.length,
+                posted: allJobs.filter(j => j.status === 'posted').length,
+                active: allJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned').length,
+                completed: allJobs.filter(j => j.status === 'completed').length,
+                draft: allJobs.filter(j => j.status === 'draft').length,
+              }}
+              prefersReducedMotion={prefersReducedMotion}
+            />
+
+            {/* Filters - Desktop */}
+            <div className="hidden lg:block">
+              <SmartJobFilters2025
+                onFilterChange={setFilters}
+                initialFilters={filters}
+              />
+            </div>
+
+            {/* Mobile Filter Drawer */}
+            <MobileFilterDrawer
+              isOpen={showMobileFilters}
+              onClose={() => setShowMobileFilters(false)}
+              activeFilterCount={Object.keys(filters).length}
+            >
+              <SmartJobFilters2025
+                onFilterChange={(newFilters) => {
+                  setFilters(newFilters);
+                }}
+                initialFilters={filters}
+              />
+            </MobileFilterDrawer>
+
             {/* Jobs Grid/List - ✅ ACCESSIBILITY: Accessible animations */}
-            {loading ? (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'flex flex-col gap-4'}>
-                <JobCardSkeleton count={6} />
-              </div>
-            ) : filteredJobs.length === 0 ? (
-              <MotionDiv
-                variants={fadeIn}
-                initial="initial"
-                animate="animate"
-              >
-                {allJobs.length === 0 ? (
-                  <EmptyState
-                    variant="illustrated"
-                    icon="briefcase"
-                    title="Post your first job"
-                    description="Bring vetted contractors to you by publishing clear, complete job briefs. We’ll match you with pros in minutes."
-                    actionLabel="Create Job"
-                    onAction={() => router.push('/jobs/create')}
-                    secondaryActionLabel="Browse contractors"
-                    onSecondaryAction={() => router.push('/contractors')}
-                    nextSteps={[
-                      {
-                        title: 'Complete your business profile',
-                        description: 'Add company details, licenses, and photos so homeowners trust your bids.',
-                        href: '/settings/profile',
-                      },
-                      {
-                        title: 'Enable Jobs Near You',
-                        description: 'Turn on location-based alerts to see urgent work in your service radius.',
-                        href: '/contractor/jobs-near-you',
-                      },
-                    ]}
-                    supportLink={{ label: 'Need help? support@mintenance.co.uk', href: 'mailto:support@mintenance.co.uk' }}
-                  />
-                ) : (
-                  <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No jobs match your filters</h3>
-                    <p className="text-gray-600 mb-6">Try adjusting your filters to see more results</p>
-                    <button
-                      onClick={() => setFilters({})}
-                      className="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
-                    >
-                      Clear All Filters
-                    </button>
-                  </div>
-                )}
-              </MotionDiv>
-            ) : (
-              <MotionDiv
-                className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'flex flex-col gap-4'}
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-              >
-                <AnimatePresence mode="popLayout">
-                  {filteredJobs.map((job, index) => (
-                    <MotionDiv
-                      key={job.id}
-                      variants={staggerItem}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <JobCard2025 job={job} viewMode={viewMode} />
-                    </MotionDiv>
-                  ))}
-                </AnimatePresence>
-              </MotionDiv>
-          )}
+            <JobsGrid
+              jobs={filteredJobs}
+              allJobsCount={allJobs.length}
+              loading={loading}
+              viewMode={viewMode}
+              prefersReducedMotion={prefersReducedMotion}
+              selectionMode={selectionMode}
+              selectedJobs={selectedJobs}
+              onToggleSelection={(jobId) => {
+                const newSelected = new Set(selectedJobs);
+                if (newSelected.has(jobId)) {
+                  newSelected.delete(jobId);
+                } else {
+                  newSelected.add(jobId);
+                }
+                setSelectedJobs(newSelected);
+              }}
+              onClearFilters={() => setFilters({})}
+            />
         </div>
       </div>
+
+      {/* Bulk Actions Bar */}
+      <AnimatePresence>
+        {selectionMode && selectedJobs.size > 0 && (
+          <BulkActionsBar
+            selectedCount={selectedJobs.size}
+            onArchive={async () => {
+              setBulkActionLoading(true);
+              try {
+                // Archive selected jobs
+                const archivePromises = Array.from(selectedJobs).map(jobId =>
+                  fetch(`/api/jobs/${jobId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'archived' })
+                  })
+                );
+                await Promise.all(archivePromises);
+
+                // Refresh jobs list
+                window.location.reload();
+              } catch (error) {
+                console.error('Error archiving jobs:', error);
+                alert('Failed to archive some jobs. Please try again.');
+              } finally {
+                setBulkActionLoading(false);
+                setSelectionMode(false);
+                setSelectedJobs(new Set());
+              }
+            }}
+            onExport={async () => {
+              setBulkActionLoading(true);
+              try {
+                // Get selected job details
+                const selectedJobDetails = filteredJobs.filter(job => selectedJobs.has(job.id));
+
+                // Create PDF export (basic implementation)
+                const exportData = selectedJobDetails.map(job => ({
+                  title: job.title,
+                  description: job.description,
+                  location: job.location,
+                  budget: `£${job.budget.toLocaleString()}`,
+                  status: job.status,
+                  created: new Date(job.created_at).toLocaleDateString()
+                }));
+
+                // Convert to CSV for now (PDF would require jsPDF library)
+                const csv = [
+                  ['Title', 'Description', 'Location', 'Budget', 'Status', 'Created'],
+                  ...exportData.map(job => [
+                    job.title,
+                    job.description,
+                    job.location,
+                    job.budget,
+                    job.status,
+                    job.created
+                  ])
+                ].map(row => row.join(',')).join('\n');
+
+                // Download CSV
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `jobs-export-${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch (error) {
+                console.error('Error exporting jobs:', error);
+                alert('Failed to export jobs. Please try again.');
+              } finally {
+                setBulkActionLoading(false);
+              }
+            }}
+            onDelete={() => {
+              setShowDeleteModal(true);
+            }}
+            onCancel={() => {
+              setSelectionMode(false);
+              setSelectedJobs(new Set());
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={async () => {
+          setBulkActionLoading(true);
+          try {
+            // Delete selected jobs
+            const deletePromises = Array.from(selectedJobs).map(jobId =>
+              fetch(`/api/jobs/${jobId}`, { method: 'DELETE' })
+            );
+            await Promise.all(deletePromises);
+
+            // Refresh jobs list
+            window.location.reload();
+          } catch (error) {
+            console.error('Error deleting jobs:', error);
+            alert('Failed to delete some jobs. Please try again.');
+          } finally {
+            setBulkActionLoading(false);
+            setShowDeleteModal(false);
+            setSelectionMode(false);
+            setSelectedJobs(new Set());
+          }
+        }}
+        title="Delete Jobs"
+        message={`Are you sure you want to delete ${selectedJobs.size} job(s)? This action cannot be undone and will permanently remove all job data, including bids and messages.`}
+        confirmLabel="Delete Jobs"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={bulkActionLoading}
+      />
+
+      {/* Mobile Filter Button */}
+      <MobileFilterButton
+        activeFilterCount={Object.keys(filters).length}
+        onClick={() => setShowMobileFilters(true)}
+      />
     </HomeownerPageWrapper>
   );
 }

@@ -3,9 +3,9 @@
  * Allows mobile to request decisions from any AI agent
  */
 
-import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/auth';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
@@ -16,10 +16,10 @@ import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 import { PredictiveAgent } from '@/lib/services/agents/PredictiveAgent';
 import { AgentOrchestrator } from '@/lib/services/agents/AgentOrchestrator';
 import { AgentLogger } from '@/lib/services/agents/AgentLogger';
-import { rateLimit } from '@/lib/rate-limiter';
-import { withErrorHandler } from '@/lib/error-handler';
+import { rateLimiter, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { handleAPIError, BadRequestError, UnauthorizedError } from '@/lib/errors/api-error';
 
 const requestSchema = z.object({
   agentName: z.string(),
@@ -52,36 +52,34 @@ const agents: { [key: string]: unknown } = {
   'PredictiveAgent': PredictiveAgent
 };
 
-export const POST = withErrorHandler(async (req: Request) => {
+export async function POST(req: NextRequest) {
   try {
     // Rate limiting
-    const identifier = req.headers.get('x-forwarded-for') || 'anonymous';
-    const rateLimitResult = await rateLimit(identifier, 30); // 30 requests per minute
+    const identifier = req.headers.get('x-forwarded-for')?.split(',')[0] || 'anonymous';
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `${identifier}:agent-decision`,
+      windowMs: 60000, // 1 minute
+      maxRequests: 30
+    });
 
-    if (!rateLimitResult.success) {
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { error: 'Too many requests' },
+        { error: 'Too many requests. Please try again later.' },
         {
           status: 429,
           headers: {
-            'Retry-After': rateLimitResult.reset.toString(),
-            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
-            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            ...createRateLimitHeaders(rateLimitResult),
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
           }
         }
       );
     }
 
-    const supabase = createRouteHandlerClient({ cookies });
-
     // Check authentication
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const user = await getCurrentUser();
 
-    if (authError || !session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!user) {
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Parse and validate request
@@ -100,10 +98,10 @@ export const POST = withErrorHandler(async (req: Request) => {
     }
 
     // Check user permissions for automation
-    const { data: userPrefs } = await supabase
+    const { data: userPrefs } = await serverSupabase
       .from('automation_preferences')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single();
 
     const automationEnabled = userPrefs?.enable_automation ?? false;
@@ -122,16 +120,14 @@ export const POST = withErrorHandler(async (req: Request) => {
         context.jobId,
         {
           ...context,
-          userId: session.user.id,
-          automationPreferences: {
-            enableAutomation: automationEnabled,
-            automationLevel: userPrefs?.automation_level || 'minimal',
-            requireApproval: requiresApproval,
-            notificationSettings: {
-              email: userPrefs?.notify_email ?? true,
-              push: userPrefs?.notify_push ?? true,
-              sms: userPrefs?.notify_sms ?? false
-            }
+          userId: user.id,
+          enableAutomation: automationEnabled,
+          automationLevel: userPrefs?.automation_level || 'minimal',
+          requireApproval: requiresApproval,
+          notificationSettings: {
+            email: userPrefs?.notify_email ?? true,
+            push: userPrefs?.notify_push ?? true,
+            sms: userPrefs?.notify_sms ?? false
           }
         }
       );
@@ -171,7 +167,7 @@ export const POST = withErrorHandler(async (req: Request) => {
         }
         decision = await PricingAgent.generateRecommendation(
           context.jobId,
-          context.contractorId || session.user.id
+          context.contractorId || user.id
         );
         break;
 
@@ -186,14 +182,14 @@ export const POST = withErrorHandler(async (req: Request) => {
       case 'SchedulingAgent':
         decision = await SchedulingAgent.optimizeSchedule(
           context.jobId!,
-          context.contractorId || session.user.id,
+          context.contractorId || user.id,
           context.historicalData?.preferredTimes
         );
         break;
 
       case 'NotificationAgent':
         decision = await NotificationAgent.determineNotificationStrategy(
-          session.user.id,
+          user.id,
           context.historicalData?.notificationType,
           context.historicalData
         );
@@ -243,13 +239,13 @@ export const POST = withErrorHandler(async (req: Request) => {
       reasoning: decision?.reasoning || 'API request processed',
       metadata: {
         ...decision,
-        userId: session.user.id,
+        userId: user.id,
         platform: req.headers.get('x-platform') || 'unknown'
       }
     });
 
     // Track metrics
-    await supabase
+    await serverSupabase
       .from('agent_analytics')
       .insert({
         agent_name: agentName,
@@ -282,26 +278,25 @@ export const POST = withErrorHandler(async (req: Request) => {
   } catch (error: unknown) {
     logger.error('Agent decision error:', error, { service: 'api' });
 
-    // Log error
+    // SECURITY: Log error to agent decision logs WITHOUT sensitive details
     await AgentLogger.logDecision({
       agentName: 'error',
       decisionType: 'error',
       actionTaken: 'failed',
       confidence: 0,
-      reasoning: error.message,
-      metadata: { error: error.stack }
+      reasoning: 'Agent decision processing failed',  // Generic message, no error details
+      metadata: {
+        errorType: error instanceof Error ? error.name : 'UnknownError',
+        timestamp: new Date().toISOString()
+      }
     });
 
-    if (error.name === 'ZodError') {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      );
+    // SECURITY: Handle Zod validation errors without exposing internal details
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      throw new BadRequestError('Invalid request data. Please check your input and try again.');
     }
 
-    return NextResponse.json(
-      { error: 'Failed to process agent decision', details: error.message },
-      { status: 500 }
-    );
+    // SECURITY: Use centralized error handler (sanitizes all errors)
+    return handleAPIError(error);
   }
-});
+}

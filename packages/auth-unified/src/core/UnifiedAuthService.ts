@@ -383,19 +383,31 @@ export class UnifiedAuthService {
     return hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
   }
   /**
-   * Store refresh token (stub - implement based on platform)
+   * Store refresh token with new family ID
+   * Creates a new token family for initial signup/signin
    */
   private async storeRefreshToken(token: string, userId: string): Promise<void> {
-    // This will be implemented by platform-specific adapters
-    // Web: Store in database
-    // Mobile: Store in SecureStore
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const familyId = crypto.randomUUID();
-    // Store token with family tracking
-    // Implementation depends on platform adapter
+
+    const { error } = await this.supabase.from('refresh_tokens').insert({
+      user_id: userId,
+      token_hash: tokenHash,
+      family_id: familyId,
+      generation: 0,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+    });
+
+    if (error) {
+      logger.error('Failed to store refresh token', { error, userId }, { service: 'auth' });
+      throw new CustomAuthError('Failed to store refresh token', 500);
+    }
+
+    logger.debug('Refresh token stored successfully', { userId, familyId, generation: 0 }, { service: 'auth' });
   }
   /**
    * Store refresh token in existing family
+   * Used for token rotation - preserves family_id and increments generation
    */
   private async storeRefreshTokenInFamily(
     token: string,
@@ -403,47 +415,147 @@ export class UnifiedAuthService {
     familyId: string,
     generation: number
   ): Promise<void> {
-    // Platform-specific implementation
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    // Store with family and generation info
+
+    const { error } = await this.supabase.from('refresh_tokens').insert({
+      user_id: userId,
+      token_hash: tokenHash,
+      family_id: familyId,
+      generation,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+    });
+
+    if (error) {
+      logger.error('Failed to store refresh token in family', { error, userId, familyId, generation }, { service: 'auth' });
+      throw new CustomAuthError('Failed to store refresh token', 500);
+    }
+
+    logger.debug('Refresh token rotated successfully', { userId, familyId, generation }, { service: 'auth' });
   }
   /**
-   * Validate refresh token (stub)
+   * Validate refresh token and detect breaches
+   * Uses database function for atomic validation with built-in breach detection
+   * @throws CustomAuthError if token is invalid, expired, revoked, or breach detected
    */
-  private async validateRefreshToken(token: string): Promise<unknown> {
-    // Platform-specific implementation
+  private async validateRefreshToken(token: string): Promise<{
+    userId: string;
+    familyId: string;
+    generation: number;
+  }> {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    // Validate against stored tokens
+
+    // Use database function for atomic validation with breach detection
+    const { data, error } = await this.supabase.rpc('validate_refresh_token', {
+      p_token_hash: tokenHash,
+    }).single();
+
+    if (error) {
+      logger.error('Refresh token validation query failed', { error }, { service: 'auth' });
+      throw new CustomAuthError('Token validation failed', 500);
+    }
+
+    // Database function returns: { is_valid, user_id, family_id, generation, reason }
+    if (!data.is_valid) {
+      logger.warn('Invalid refresh token', { reason: data.reason }, { service: 'auth' });
+
+      // If token was consumed and reused, family is already revoked by database function
+      if (data.reason.includes('consumed') || data.reason.includes('breach')) {
+        logger.error('[SECURITY ALERT] Token reuse breach detected', {
+          severity: 'CRITICAL',
+          reason: data.reason,
+          familyId: data.family_id,
+        }, { service: 'auth' });
+      }
+
+      throw new CustomAuthError(data.reason, 401);
+    }
+
     return {
-      userId: '',
-      familyId: '',
-      generation: 0,
-      consumedAt: null,
+      userId: data.user_id,
+      familyId: data.family_id,
+      generation: data.generation,
     };
   }
   /**
-   * Mark token as consumed (stub)
+   * Mark token as consumed during rotation
+   * Uses database function for atomic update
    */
   private async markTokenAsConsumed(token: string): Promise<void> {
-    // Platform-specific implementation
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-    // Update token status
+
+    const { data, error } = await this.supabase.rpc('consume_refresh_token', {
+      p_token_hash: tokenHash,
+    }).single();
+
+    if (error) {
+      logger.error('Failed to consume refresh token', { error }, { service: 'auth' });
+      throw new CustomAuthError('Failed to consume token', 500);
+    }
+
+    if (!data.success) {
+      logger.warn('Token consumption failed', { tokenHash: tokenHash.substring(0, 8) + '...' }, { service: 'auth' });
+    }
+
+    logger.debug('Refresh token consumed', { service: 'auth' });
   }
   /**
-   * Invalidate token family (breach detection)
+   * Invalidate entire token family (breach detection)
+   * Revokes all tokens in the same family - used when breach detected
+   * Uses database function for atomic revocation
    */
   protected async invalidateTokenFamily(token: string, reason: string): Promise<void> {
-    // Platform-specific implementation
-    logger.error('[SECURITY] Token family invalidated:', { reason }, { service: 'auth' });
-    // Invalidate all tokens in family
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    // First get the family_id from the token
+    const { data: tokenData } = await this.supabase
+      .from('refresh_tokens')
+      .select('family_id')
+      .eq('token_hash', tokenHash)
+      .single();
+
+    if (!tokenData?.family_id) {
+      logger.warn('Token family not found for invalidation', { reason }, { service: 'auth' });
+      return;
+    }
+
+    // Revoke entire family using database function
+    const { data, error } = await this.supabase.rpc('revoke_token_family', {
+      p_family_id: tokenData.family_id,
+      p_reason: reason,
+    }).single();
+
+    if (error) {
+      logger.error('Failed to invalidate token family', { error, reason }, { service: 'auth' });
+      throw new CustomAuthError('Failed to invalidate token family', 500);
+    }
+
+    logger.error('[SECURITY] Token family invalidated', {
+      severity: 'HIGH',
+      familyId: tokenData.family_id,
+      reason,
+      revokedCount: data.revoked_count,
+    }, { service: 'auth' });
   }
   /**
-   * Invalidate all user tokens
+   * Invalidate all user tokens (logout all devices)
+   * Uses database function for atomic revocation
    */
   private async invalidateAllUserTokens(userId: string, reason: string): Promise<void> {
-    // Platform-specific implementation
-    logger.info('[SECURITY] All user tokens invalidated:', { reason });
-    // Invalidate all tokens for user
+    const { data, error } = await this.supabase.rpc('revoke_user_tokens', {
+      p_user_id: userId,
+      p_reason: reason,
+    }).single();
+
+    if (error) {
+      logger.error('Failed to invalidate user tokens', { error, userId, reason }, { service: 'auth' });
+      throw new CustomAuthError('Failed to invalidate tokens', 500);
+    }
+
+    logger.info('[SECURITY] All user tokens invalidated', {
+      userId,
+      reason,
+      revokedCount: data.revoked_count,
+    }, { service: 'auth' });
   }
 }
 /**

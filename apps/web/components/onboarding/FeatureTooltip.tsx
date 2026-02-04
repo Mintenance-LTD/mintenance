@@ -23,18 +23,20 @@ interface FeatureTooltipProps {
   delay?: number; // Delay before showing (ms)
 }
 
-export function FeatureTooltip({
-  children,
-  feature,
-  title,
-  description,
-  placement = 'bottom',
-  actionLabel,
-  onAction,
-  requireCompletion,
-  maxDismissals = 2,
-  delay = 1000,
-}: FeatureTooltipProps) {
+export function FeatureTooltip(props: FeatureTooltipProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    children,
+    feature = '',
+    title = '',
+    description = '',
+    placement = 'bottom',
+    actionLabel,
+    onAction,
+    requireCompletion,
+    maxDismissals = 2,
+    delay = 1000,
+  } = props || {};
   const [isVisible, setIsVisible] = useState(false);
   const [hasShown, setHasShown] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

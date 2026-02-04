@@ -33,11 +33,14 @@ interface DeviceInfo {
 }
 
 // Supabase RPC result interface for rotate_refresh_token
+// VULN-009: Added session tracking fields
 interface RotateRefreshTokenResult {
   user_email: string;
   user_role: string;
   family_id?: string;
   next_generation?: number;
+  session_started_at?: string;   // VULN-009: Original login time (ISO timestamp)
+  last_activity_at?: string;      // VULN-009: Last activity time (ISO timestamp)
 }
 /**
  * Create a JWT token for a user
@@ -50,16 +53,33 @@ export async function createToken(user: Pick<User, 'id' | 'email' | 'role'>): Pr
 /**
  * Create token pair and store refresh token
  * Supports token family tracking for breach detection
+ *
+ * VULN-009: Added session timestamp tracking for absolute/idle timeout enforcement
+ *
+ * @param sessionStart - Unix timestamp (ms) of original login (preserved across refreshes)
+ * @param lastActivity - Unix timestamp (ms) of last user activity (updated on refreshes)
  */
 export async function createTokenPair(
   user: Pick<User, 'id' | 'email' | 'role'>,
   deviceInfo?: DeviceInfo,
   ipAddress?: string,
   familyId?: string,
-  generation?: number
+  generation?: number,
+  sessionStart?: number,
+  lastActivity?: number
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const secret = config.getRequired('JWT_SECRET');
-  const { accessToken, refreshToken } = await generateTokenPair(user, secret);
+
+  // VULN-009: If sessionStart not provided, this is a new session (login)
+  const actualSessionStart = sessionStart || Date.now();
+  const actualLastActivity = lastActivity || Date.now();
+
+  const { accessToken, refreshToken } = await generateTokenPair(
+    user,
+    secret,
+    actualSessionStart,
+    actualLastActivity
+  );
 
   // Store refresh token in database with family tracking
   interface RefreshTokenInsert {
@@ -70,6 +90,8 @@ export async function createTokenPair(
     ip_address?: string;
     family_id?: string;
     generation?: number;
+    session_started_at?: string;  // VULN-009
+    last_activity_at?: string;     // VULN-009
   }
 
   const insertData: RefreshTokenInsert = {
@@ -78,6 +100,9 @@ export async function createTokenPair(
     expires_at: new Date(Date.now() + REFRESH_TTL_SEC_SHORT * 1000).toISOString(), // 7 days
     device_info: deviceInfo,
     ip_address: ipAddress,
+    // VULN-009: Store session tracking timestamps
+    session_started_at: new Date(actualSessionStart).toISOString(),
+    last_activity_at: new Date(actualLastActivity).toISOString(),
   };
 
   // If family_id provided, this is a rotation - preserve the family
@@ -221,13 +246,22 @@ export async function rotateTokens(userId: string, oldRefreshToken: string, devi
     role: result.user_role as 'homeowner' | 'contractor' | 'admin',
   };
 
+  // VULN-009: Preserve sessionStart from old token, update lastActivity
+  const sessionStart = result.session_started_at
+    ? new Date(result.session_started_at).getTime()
+    : undefined;
+
+  const lastActivity = Date.now(); // Update to current time
+
   // Preserve family_id and increment generation for breach detection
   return createTokenPair(
     user,
     deviceInfo,
     ipAddress,
-    result.family_id, // Preserve family across rotations
-    result.next_generation // Increment generation
+    result.family_id,      // Preserve family across rotations
+    result.next_generation, // Increment generation
+    sessionStart,          // VULN-009: Preserve original session start
+    lastActivity           // VULN-009: Update last activity
   );
 }
 

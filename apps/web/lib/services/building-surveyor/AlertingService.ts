@@ -66,7 +66,7 @@ export interface AlertPayload {
     performanceScore?: number;
     correctionCount?: number;
     timestamp: string;
-    metrics?: Record<string, any>;
+    metrics?: Record<string, unknown>;
     recommendations?: string[];
     actionTaken?: string;
   };
@@ -374,7 +374,7 @@ export class AlertingService {
     fromVersion: string;
     toVersion: string;
     reason: string;
-    performanceMetrics: Record<string, any>;
+    performanceMetrics: Record<string, unknown>;
   }): Promise<void> {
     await this.sendAlert({
       type: AlertType.MODEL_ROLLBACK,
@@ -590,7 +590,7 @@ export class AlertingService {
   private static async escalateAlert(
     originalPayload: AlertPayload,
     escalationLevel: number,
-    rule: unknown
+    rule: { severity: AlertSeverity; initialDelay: number; escalationDelay: number; maxEscalations: number }
   ): Promise<void> {
     if (escalationLevel > rule.maxEscalations) {
       logger.warn('Max escalation level reached', {
@@ -680,8 +680,8 @@ export class AlertingService {
   /**
    * Format Slack blocks
    */
-  private static formatSlackBlocks(payload: AlertPayload): any[] {
-    const blocks: any[] = [
+  private static formatSlackBlocks(payload: AlertPayload): Array<Record<string, unknown>> {
+    const blocks: Array<Record<string, unknown>> = [
       {
         type: 'header',
         text: {

@@ -62,33 +62,32 @@ const DEFAULT_SETTINGS: AgentSettings = {
 // GET /api/agents/settings - Fetch current settings
 export async function GET(req: NextRequest) {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'anonymous'}:${req.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
     const user = await getCurrentUserFromCookies();
     if (!user) {
       throw new UnauthorizedError('Authentication required');
     }
 
+    // Per-user rate limiting (avoids 429 when multiple tabs or quick refresh)
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `agents:settings:get:${user.id}`,
+      windowMs: 60000,
+      maxRequests: 60,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(60),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
+    }
     // Try to fetch existing settings
     const { data: existingSettings, error: fetchError } = await serverSupabase
       .from('user_agent_settings')
@@ -137,31 +136,31 @@ export async function GET(req: NextRequest) {
 // POST /api/agents/settings - Update settings
 export async function POST(req: NextRequest) {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
     const user = await getCurrentUserFromCookies();
     if (!user) {
       throw new UnauthorizedError('Authentication required');
+    }
+
+    // Per-user rate limiting (avoids 429 when saving settings repeatedly)
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `agents:settings:post:${user.id}`,
+      windowMs: 60000,
+      maxRequests: 60,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(60),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
     }
 
     const settings: AgentSettings = await req.json();
@@ -191,6 +190,21 @@ export async function POST(req: NextRequest) {
       logger.error('Failed to update agent settings', upsertError);
       throw new InternalServerError('Failed to save settings');
     }
+
+    // Sync Bid Acceptance to automation_preferences so BidAcceptanceAgent (which reads that table) respects the panel
+    const bidAcceptEnabled =
+      settings.enableAutomation &&
+      settings.agents?.BidAcceptanceAgent?.enabled === true;
+    await serverSupabase
+      .from('automation_preferences')
+      .upsert(
+        {
+          user_id: user.id,
+          auto_accept_bids: bidAcceptEnabled,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
 
     // Log the change for audit
     await serverSupabase

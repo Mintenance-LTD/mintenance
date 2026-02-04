@@ -18,7 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { AIPricingWidget } from '../components/AIPricingWidget';
 import { BuildingAssessmentCard } from '../components/ai/BuildingAssessmentCard';
 import { PricingAnalysis } from '../services/AIPricingEngine';
-import { BuildingAssessment } from '@mintenance/ai-core/types';
+import { BuildingAssessment } from '@mintenance/ai-core';
 import { theme } from '../theme';
 import { useCreateJob } from '../hooks/useJobs';
 import { logger } from '../utils/logger';

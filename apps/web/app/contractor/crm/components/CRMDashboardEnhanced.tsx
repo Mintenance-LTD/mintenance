@@ -65,11 +65,17 @@ const formatDate = (dateString: string): string => {
   }
 };
 
-export function CRMDashboardEnhanced({ clients, analytics }: CRMDashboardEnhancedProps) {
+export function CRMDashboardEnhanced(props: CRMDashboardEnhancedProps) {
+  const { clients, analytics } = props || {};
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterKey>('all');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+
+  // Early return if required data is missing
+  if (!clients || !analytics) {
+    return null;
+  }
 
   const filteredClients = useMemo(() => {
     return clients.filter((client) => {

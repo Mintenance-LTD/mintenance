@@ -40,6 +40,22 @@ export default async function PropertiesPage2025() {
     { revalidate: 60 }
   )();
 
+  // Fetch user's favorites
+  const favorites = await unstable_cache(
+    async () => {
+      const { data } = await serverSupabase
+        .from('property_favorites')
+        .select('property_id')
+        .eq('user_id', user.id);
+      return data || [];
+    },
+    [`property-favorites-${user.id}`],
+    { revalidate: 60 }
+  )();
+
+  // Create a Set of favorited property IDs for efficient lookup
+  const favoritedPropertyIds = new Set(favorites.map(f => f.property_id));
+
   // Calculate stats for each property
   const propertiesWithStats = (properties || []).map(property => {
     const propertyJobs = jobs?.filter(job => job.property_id === property.id) || [];
@@ -69,6 +85,7 @@ export default async function PropertiesPage2025() {
       square_footage: property.square_footage,
       year_built: property.year_built,
       is_primary: property.is_primary,
+      is_favorited: favoritedPropertyIds.has(property.id),
       created_at: property.created_at,
       activeJobs,
       completedJobs,

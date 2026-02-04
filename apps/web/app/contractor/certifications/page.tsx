@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   Award,
   Plus,
@@ -80,6 +81,11 @@ export default function CertificationsPage2025() {
 
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [loadingCertifications, setLoadingCertifications] = useState(true);
+
+  // DBS check state
+  const [loadingDBS, setLoadingDBS] = useState(false);
+  const [dbsCheckStatus, setDbsCheckStatus] = useState<any>(null);
+  const [initiatingDBS, setInitiatingDBS] = useState(false);
 
   const [training, setTraining] = useState<Training[]>([
     {

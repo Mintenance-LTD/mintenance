@@ -9,7 +9,9 @@ interface ProfileQuickActionsProps {
   unreadMessagesCount?: number;
 }
 
-export function ProfileQuickActions({ unreadMessagesCount = 0 }: ProfileQuickActionsProps) {
+export function ProfileQuickActions(props: ProfileQuickActionsProps) {
+  const { unreadMessagesCount = 0 } = props || {};
+
   const actions = [
     {
       href: '/contractor/verification',

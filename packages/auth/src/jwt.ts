@@ -4,12 +4,16 @@ interface JosePayload extends JoseJWTPayload {
   email: string;
   role: string;
 }
+/** Minimal crypto interface for refresh token (Node.js only) */
+interface CryptoLike {
+  randomBytes(size: number): { toString(encoding: 'hex'): string };
+  createHash(algorithm: string): { update(data: string): { digest(encoding: 'hex'): string } };
+}
 // Conditional import for crypto (Node.js only, not Edge Runtime compatible)
-let crypto: unknown = null;
+let crypto: CryptoLike | null = null;
 try {
-  // Check if we're in a Node.js environment
   if (typeof window === 'undefined' && typeof process !== 'undefined') {
-    crypto = require('crypto');
+    crypto = require('crypto') as CryptoLike;
   }
 } catch {
   // crypto not available in Edge Runtime or other environments
@@ -17,18 +21,32 @@ try {
 import type { JWTPayload } from '@mintenance/types';
 /**
  * Generate JWT token
+ *
+ * VULN-009: Added session timestamp tracking for absolute/idle timeout enforcement
+ *
+ * @param sessionStart - Unix timestamp (ms) of original login (preserved across refreshes)
+ * @param lastActivity - Unix timestamp (ms) of last user activity (updated on refreshes)
  */
-export async function generateJWT(payload: {
-  id: string;
-  email: string;
-  role: string;
-}, secret: string, expiresIn: string = '1h'): Promise<string> {
+export async function generateJWT(
+  payload: {
+    id: string;
+    email: string;
+    role: string;
+  },
+  secret: string,
+  expiresIn: string = '1h',
+  sessionStart?: number,
+  lastActivity?: number
+): Promise<string> {
   const secretKey = new TextEncoder().encode(secret);
   const token = await new SignJWT({
     sub: payload.id,
     email: payload.email,
     role: payload.role,
-    type: 'access'
+    type: 'access',
+    // VULN-009: Add session tracking fields
+    ...(sessionStart && { sessionStart }),
+    ...(lastActivity && { lastActivity }),
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -43,7 +61,7 @@ export function generateRefreshToken(): string {
   if (!crypto) {
     throw new Error('Refresh token generation not available in Edge Runtime');
   }
-  return crypto.randomBytes(32).toString('hex');
+  return crypto!.randomBytes(32).toString('hex');
 }
 /**
  * Hash refresh token for storage
@@ -52,33 +70,45 @@ export function hashRefreshToken(token: string): string {
   if (!crypto) {
     throw new Error('Refresh token hashing not available in Edge Runtime');
   }
-  return crypto.createHash('sha256').update(token).digest('hex');
+  return crypto!.createHash('sha256').update(token).digest('hex');
 }
 /**
  * Generate token pair (access + refresh)
+ *
+ * VULN-009: Added session timestamp tracking
  */
-export async function generateTokenPair(payload: {
-  id: string;
-  email: string;
-  role: string;
-}, secret: string): Promise<{ accessToken: string; refreshToken: string }> {
-  const accessToken = await generateJWT(payload, secret, '1h');
+export async function generateTokenPair(
+  payload: {
+    id: string;
+    email: string;
+    role: string;
+  },
+  secret: string,
+  sessionStart?: number,
+  lastActivity?: number
+): Promise<{ accessToken: string; refreshToken: string }> {
+  const accessToken = await generateJWT(payload, secret, '1h', sessionStart, lastActivity);
   const refreshToken = generateRefreshToken();
   return { accessToken, refreshToken };
 }
 /**
  * Verify JWT token
+ *
+ * VULN-009: Returns session tracking fields if present
  */
 export async function verifyJWT(token: string, secret: string): Promise<JWTPayload | null> {
   try {
     const secretKey = new TextEncoder().encode(secret);
-    const { payload } = await jwtVerify<JosePayload>(token, secretKey);
+    const { payload } = await jwtVerify<JosePayload & { sessionStart?: number; lastActivity?: number }>(token, secretKey);
     return {
       sub: payload.sub!,
       email: payload.email,
       role: payload.role,
       iat: payload.iat!,
       exp: payload.exp!,
+      // VULN-009: Include session tracking fields if present
+      ...(payload.sessionStart && { sessionStart: payload.sessionStart }),
+      ...(payload.lastActivity && { lastActivity: payload.lastActivity }),
     };
   } catch (error) {
     return null;

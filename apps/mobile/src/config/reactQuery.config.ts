@@ -117,9 +117,9 @@ export const createQueryClient = () => {
         staleTime: STALE_TIMES.DYNAMIC,
 
         // Retry configuration
-        retry: (failureCount, error: any) => {
+        retry: (failureCount, error: unknown) => {
           // Don't retry on 4xx errors (client errors)
-          if (error?.status >= 400 && error?.status < 500) {
+          if ((error as { status?: number })?.status >= 400 && (error as { status?: number })?.status < 500) {
             return false;
           }
 

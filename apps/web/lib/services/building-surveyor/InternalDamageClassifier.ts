@@ -539,7 +539,7 @@ export class InternalDamageClassifier {
         let primaryDamage = detections[0]; // Default to highest confidence
         let severity: DamageSeverity = 'early';
         let urgency: UrgencyLevel = 'monitor';
-        const safetyHazards: any[] = [];
+        const safetyHazards: Array<{ type: string; description: string; recommendation: string }> = [];
 
         for (const detection of detections) {
             const className = detection.className.toLowerCase();

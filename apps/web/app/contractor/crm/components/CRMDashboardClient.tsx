@@ -43,9 +43,15 @@ const FILTERS = [
 
 type FilterKey = (typeof FILTERS)[number]['key'];
 
-export function CRMDashboardClient({ clients, analytics }: CRMDashboardClientProps) {
+export function CRMDashboardClient(props: CRMDashboardClientProps) {
+  const { clients, analytics } = props || {};
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterKey>('all');
+
+  // Early return if required data is missing
+  if (!clients || !analytics) {
+    return null;
+  }
 
   const filteredClients = useMemo(() => {
     return clients.filter((client) => {

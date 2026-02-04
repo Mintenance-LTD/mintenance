@@ -61,6 +61,29 @@ interface JobFormData {
   requirements: string[];
 }
 
+interface BuildingSurvey {
+  damageAssessment?: {
+    damageType?: string;
+    severity?: 'early' | 'midway' | 'full';
+    costEstimate?: {
+      min: number;
+      max: number;
+    };
+  };
+  safetyHazards?: Array<{
+    description: string;
+  }>;
+  decisionResult?: {
+    fusionMean?: number;
+  };
+}
+
+interface GeocodeData {
+  latitude: number;
+  longitude: number;
+  formatted_address?: string;
+}
+
 export default function JobEditPage2025() {
   const params = useParams();
   const router = useRouter();
@@ -96,8 +119,8 @@ export default function JobEditPage2025() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [aiAnalysis, setAiAnalysis] = useState<unknown>(null);
-  const [buildingSurvey, setBuildingSurvey] = useState<unknown>(null);
-  const [geocodeData, setGeocodeData] = useState<unknown>(null);
+  const [buildingSurvey, setBuildingSurvey] = useState<BuildingSurvey | null>(null);
+  const [geocodeData, setGeocodeData] = useState<GeocodeData | null>(null);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [runBuildingSurvey, setRunBuildingSurvey] = useState(false);
   const [analyzeWithAI, setAnalyzeWithAI] = useState(true);
@@ -105,6 +128,7 @@ export default function JobEditPage2025() {
   const [userRole, setUserRole] = useState<string>('homeowner');
   const [isJobSaved, setIsJobSaved] = useState(false);
   const [savingJob, setSavingJob] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch job data on mount
   useEffect(() => {
@@ -506,6 +530,33 @@ export default function JobEditPage2025() {
   const handleCancel = () => {
     if (confirm('Are you sure you want to discard your changes?')) {
       router.back();
+    }
+  };
+
+  const handleDeleteJob = async () => {
+    if (!confirm('Are you sure you want to delete this job? This cannot be undone.')) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      const csrfToken = await getCsrfToken();
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRF-Token': csrfToken || '',
+        },
+      });
+      const data = response.ok ? null : await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || `Failed to delete job (${response.status})`);
+      }
+      toast.success('Job deleted');
+      router.push('/dashboard');
+    } catch (error) {
+      logger.error('Error deleting job', error, { service: 'app' });
+      toast.error(error instanceof Error ? error.message : 'Failed to delete job');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -936,10 +987,13 @@ export default function JobEditPage2025() {
               className="bg-gradient-to-br from-teal-50 to-emerald-50 rounded-xl shadow-lg border border-teal-200 p-6"
             >
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-teal-600" />
-                  AI Assistant
-                </h2>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-teal-600" />
+                    AI Assistant
+                  </h2>
+                  <p className="text-xs text-teal-600 mt-0.5">Powered by Mint AI</p>
+                </div>
                 <button
                   type="button"
                   onClick={runAIAnalysis}
@@ -976,7 +1030,7 @@ export default function JobEditPage2025() {
                 </div>
 
                 {/* Smart Job Analysis Integration */}
-                {showAIInsights && aiAnalysis && (
+                {showAIInsights && aiAnalysis ? (
                   <div className="space-y-4">
                     <SmartJobAnalysis
                       title={formData.title}
@@ -991,7 +1045,7 @@ export default function JobEditPage2025() {
                       onUrgencySelect={(urgency) => handleInputChange('urgency', urgency)}
                     />
                   </div>
-                )}
+                ) : null}
 
                 {/* Building Survey Results */}
                 {buildingSurvey && (
@@ -1034,16 +1088,16 @@ export default function JobEditPage2025() {
                           </div>
                         )}
 
-                        {buildingSurvey.safetyHazards?.length > 0 && (
+                        {buildingSurvey.safetyHazards && buildingSurvey.safetyHazards.length > 0 ? (
                           <div className="bg-red-50 rounded-lg p-3">
                             <p className="text-sm font-medium text-red-800 mb-2">Safety Hazards:</p>
                             <ul className="list-disc list-inside text-sm text-red-700">
-                              {buildingSurvey.safetyHazards.map((hazard: unknown, index: number) => (
+                              {buildingSurvey.safetyHazards.map((hazard, index: number) => (
                                 <li key={index}>{hazard.description}</li>
                               ))}
                             </ul>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     )}
 
@@ -1083,19 +1137,41 @@ export default function JobEditPage2025() {
             {/* Actions */}
             <MotionDiv
               variants={fadeIn}
-              className="flex flex-col sm:flex-row gap-4 justify-end"
+              className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center"
             >
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-              >
-                Cancel
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4 order-2 sm:order-1">
+                {userRole === 'homeowner' && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteJob}
+                    disabled={isSubmitting || isDeleting}
+                    className="px-6 py-3 bg-white border border-red-200 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-5 h-5" />
+                        Delete Job
+                      </>
+                    )}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
               >
                 {isSubmitting ? (
                   <>

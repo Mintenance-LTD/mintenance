@@ -60,7 +60,15 @@ vi.mock('next/navigation', () => ({
   }),
   usePathname: () => '/test-path',
   useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({
+    id: 'test-id',
+    jobId: 'test-job-id',
+    contractorId: 'test-contractor-id',
+    featureId: 'test-feature-id',
+    slug: 'test-slug',
+  }),
   redirect: vi.fn(),
+  notFound: vi.fn(),
 }));
 
 vi.mock('next/headers', () => ({
@@ -73,6 +81,22 @@ vi.mock('next/headers', () => ({
     get: vi.fn(),
     set: vi.fn(),
   }),
+}));
+
+// Mock next/image to prevent image optimization errors
+vi.mock('next/image', () => ({
+  default: ({ src, alt, ...props }: any) => {
+    // eslint-disable-next-line @next/next/no-img-element
+    return React.createElement('img', { src, alt, ...props });
+  },
+}));
+
+// Mock Next.js dynamic imports
+vi.mock('next/dynamic', () => ({
+  default: (fn: () => Promise<any>) => {
+    const Component = React.lazy(fn);
+    return Component;
+  },
 }));
 
 // Mock @tanstack/react-query for components using React Query
@@ -101,6 +125,19 @@ vi.mock('@tanstack/react-query', async () => {
       status: 'idle',
       reset: vi.fn(),
     }),
+    useInfiniteQuery: vi.fn().mockReturnValue({
+      data: { pages: [], pageParams: [] },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+      isSuccess: true,
+      isFetching: false,
+      status: 'success',
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+    }),
     useQueryClient: vi.fn().mockReturnValue({
       invalidateQueries: vi.fn(),
       setQueryData: vi.fn(),
@@ -109,17 +146,99 @@ vi.mock('@tanstack/react-query', async () => {
       cancelQueries: vi.fn(),
       clear: vi.fn(),
     }),
-    QueryClient: vi.fn().mockImplementation(() => ({
-      invalidateQueries: vi.fn(),
-      setQueryData: vi.fn(),
-      getQueryData: vi.fn().mockReturnValue([]),
-      prefetchQuery: vi.fn(),
-      cancelQueries: vi.fn(),
-      clear: vi.fn(),
-    })),
+    QueryClient: class MockQueryClient {
+      defaultOptions: Record<string, unknown>;
+      constructor(opts?: Record<string, unknown>) {
+        this.defaultOptions = opts?.defaultOptions as Record<string, unknown> ?? {};
+      }
+      invalidateQueries = vi.fn();
+      setQueryData = vi.fn();
+      getQueryData = vi.fn().mockReturnValue([]);
+      prefetchQuery = vi.fn();
+      cancelQueries = vi.fn();
+      clear = vi.fn();
+      getDefaultOptions() { return this.defaultOptions; }
+    },
     QueryClientProvider: ({ children }: { children: React.ReactNode }) => children,
   };
 });
+
+// Mock @/lib/react-query-client so hook files importing queryKeys don't trigger real QueryClient
+vi.mock('@/lib/react-query-client', () => ({
+  queryClient: {
+    invalidateQueries: vi.fn(),
+    setQueryData: vi.fn(),
+    getQueryData: vi.fn().mockReturnValue([]),
+    prefetchQuery: vi.fn(),
+    cancelQueries: vi.fn(),
+    clear: vi.fn(),
+  },
+  queryKeys: {
+    user: {
+      profile: (id: string) => ['user', 'profile', id],
+      stats: (id: string) => ['user', 'stats', id],
+      preferences: (id: string) => ['user', 'preferences', id],
+      contractors: (id: string) => ['user', 'contractors', id],
+    },
+    jobs: {
+      all: ['jobs'],
+      lists: () => ['jobs', 'list'],
+      list: (f?: string) => ['jobs', 'list', f],
+      details: (id: string) => ['jobs', 'detail', id],
+      bids: (id: string) => ['jobs', 'bids', id],
+      payments: (id: string) => ['jobs', 'payments', id],
+    },
+    contractors: {
+      all: ['contractors'],
+      lists: () => ['contractors', 'list'],
+      list: (f?: string) => ['contractors', 'list', f],
+      details: (id: string) => ['contractors', 'detail', id],
+      reviews: (id: string) => ['contractors', 'reviews', id],
+      gallery: (id: string) => ['contractors', 'gallery', id],
+    },
+    messages: {
+      all: ['messages'],
+      conversations: () => ['messages', 'conversations'],
+      conversation: (id: string) => ['messages', 'conversation', id],
+      thread: (id: string) => ['messages', 'thread', id],
+    },
+    payments: {
+      all: ['payments'],
+      intents: (id: string) => ['payments', 'intents', id],
+      methods: (id: string) => ['payments', 'methods', id],
+      transactions: (id: string) => ['payments', 'transactions', id],
+    },
+    search: {
+      all: ['search'],
+      contractors: (q: string, f?: string) => ['search', 'contractors', q, f],
+      jobs: (q: string, f?: string) => ['search', 'jobs', q, f],
+      services: (q: string) => ['search', 'services', q],
+    },
+    analytics: {
+      all: ['analytics'],
+      dashboard: (id: string) => ['analytics', 'dashboard', id],
+      revenue: (id: string, p?: string) => ['analytics', 'revenue', id, p],
+      performance: (id: string) => ['analytics', 'performance', id],
+    },
+  },
+  queryUtils: {
+    invalidateUser: vi.fn(),
+    invalidateJobs: vi.fn(),
+    invalidateContractors: vi.fn(),
+    invalidatePayments: vi.fn(),
+    invalidateAll: vi.fn(),
+    prefetchUserProfile: vi.fn(),
+    setJobData: vi.fn(),
+  },
+  default: {
+    invalidateQueries: vi.fn(),
+    setQueryData: vi.fn(),
+    getQueryData: vi.fn().mockReturnValue([]),
+    prefetchQuery: vi.fn(),
+    cancelQueries: vi.fn(),
+    clear: vi.fn(),
+  },
+}));
 
 // Mock environment variables
 process.env.NODE_ENV = 'test';
@@ -168,10 +287,10 @@ Object.defineProperty(global, 'crypto', {
   writable: true,
 });
 
-// Mock window.matchMedia
+// Mock window.matchMedia (direct implementation to survive vi.clearAllMocks())
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query) => ({
+  value: (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
@@ -180,7 +299,7 @@ Object.defineProperty(window, 'matchMedia', {
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
-  })),
+  }),
 });
 
 // Mock IntersectionObserver
@@ -311,17 +430,205 @@ vi.mock('@supabase/supabase-js', () => ({
       functions: {
         invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
       },
-      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     };
 
     return supabaseClient;
   }),
 }));
 
+// Mock @/lib/api/supabaseServer for server-side Supabase usage
+vi.mock('@/lib/api/supabaseServer', () => ({
+  serverSupabase: {
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        insert: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        delete: vi.fn().mockReturnThis(),
+        upsert: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        neq: vi.fn().mockReturnThis(),
+        gt: vi.fn().mockReturnThis(),
+        lt: vi.fn().mockReturnThis(),
+        gte: vi.fn().mockReturnThis(),
+        lte: vi.fn().mockReturnThis(),
+        like: vi.fn().mockReturnThis(),
+        ilike: vi.fn().mockReturnThis(),
+        is: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        contains: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        range: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: null, error: null }),
+        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+        then: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+        getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+        signOut: vi.fn().mockResolvedValue({ error: null }),
+      },
+      storage: {
+        from: vi.fn().mockReturnValue({
+          upload: vi.fn().mockResolvedValue({ data: { path: 'test.jpg' }, error: null }),
+          download: vi.fn().mockResolvedValue({ data: new Blob(), error: null }),
+          remove: vi.fn().mockResolvedValue({ data: null, error: null }),
+          list: vi.fn().mockResolvedValue({ data: [], error: null }),
+          getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://example.com/test.jpg' } }),
+        }),
+      },
+      functions: {
+        invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
+      },
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    },
+  createServerSupabaseClient: vi.fn(() => ({
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      then: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }),
+  })),
+}));
+
 // Reset Supabase singleton after each test
 afterEach(() => {
   supabaseClient = null;
 });
+
+// Mock useReducedMotion hook to prevent matchMedia errors
+vi.mock('@/hooks/useReducedMotion', () => ({
+  useReducedMotion: () => false,
+}));
+
+// Mock framer-motion to strip animation props and prevent matchMedia errors
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: React.forwardRef(({ children, className, style, onClick, onMouseEnter, onMouseLeave, id, ...props }: any, ref: any) =>
+      React.createElement('div', { ref, className, style, onClick, onMouseEnter, onMouseLeave, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    button: React.forwardRef(({ children, className, style, onClick, type, disabled, id, ...props }: any, ref: any) =>
+      React.createElement('button', { ref, className, style, onClick, type, disabled, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    span: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('span', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    p: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('p', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    h1: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('h1', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    h2: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('h2', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    h3: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('h3', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    section: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('section', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    article: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('article', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    nav: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('nav', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    ul: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('ul', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    li: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('li', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    a: React.forwardRef(({ children, className, style, href, onClick, id, ...props }: any, ref: any) =>
+      React.createElement('a', { ref, className, style, href, onClick, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    img: React.forwardRef(({ src, alt, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('img', { ref, src, alt, className, style, id, 'data-testid': props['data-testid'] })
+    ),
+    form: React.forwardRef(({ children, className, style, onSubmit, id, ...props }: any, ref: any) =>
+      React.createElement('form', { ref, className, style, onSubmit, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    input: React.forwardRef(({ className, style, type, value, onChange, placeholder, id, ...props }: any, ref: any) =>
+      React.createElement('input', { ref, className, style, type, value, onChange, placeholder, id, 'data-testid': props['data-testid'] })
+    ),
+    svg: React.forwardRef(({ children, className, style, viewBox, id, ...props }: any, ref: any) =>
+      React.createElement('svg', { ref, className, style, viewBox, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    g: React.forwardRef(({ children, className, style, id, ...props }: any, ref: any) =>
+      React.createElement('g', { ref, className, style, id, 'data-testid': props['data-testid'] }, children)
+    ),
+    circle: React.forwardRef(({ cx, cy, r, fill, stroke, className, id, ...props }: any, ref: any) =>
+      React.createElement('circle', { ref, cx, cy, r, fill, stroke, className, id, 'data-testid': props['data-testid'] })
+    ),
+    path: React.forwardRef(({ d, fill, stroke, className, id, ...props }: any, ref: any) =>
+      React.createElement('path', { ref, d, fill, stroke, className, id, 'data-testid': props['data-testid'] })
+    ),
+  },
+  AnimatePresence: ({ children }: any) => children,
+  useAnimation: () => ({
+    start: vi.fn(),
+    stop: vi.fn(),
+    set: vi.fn(),
+  }),
+  useMotionValue: (initial: any) => ({
+    get: () => initial,
+    set: vi.fn(),
+    onChange: vi.fn(),
+  }),
+  useTransform: (value: any, input: any, output: any) => value,
+  useSpring: (value: any) => value,
+  useScroll: () => ({
+    scrollX: { get: () => 0, set: vi.fn() },
+    scrollY: { get: () => 0, set: vi.fn() },
+    scrollXProgress: { get: () => 0, set: vi.fn() },
+    scrollYProgress: { get: () => 0, set: vi.fn() },
+  }),
+  useInView: () => true,
+  useAnimationControls: () => ({
+    start: vi.fn(),
+    stop: vi.fn(),
+    set: vi.fn(),
+  }),
+}));
+
+// Mock service classes and agents
+vi.mock('@/lib/services/building-surveyor/HybridInferenceService', () => ({
+  HybridInferenceService: {
+    resetYoloSavingsMetrics: vi.fn().mockResolvedValue(undefined),
+    analyzeImage: vi.fn().mockResolvedValue({ success: true, results: [] }),
+    getStats: vi.fn().mockResolvedValue({ totalAnalyses: 0, savings: 0 }),
+  },
+}));
+
+vi.mock('@/lib/services/agents/PricingAgent', () => ({
+  PricingAgent: {
+    getPricingRecommendation: vi.fn().mockResolvedValue({
+      suggestedPrice: 1000,
+      confidence: 0.85,
+      factors: [],
+    }),
+    analyzePricing: vi.fn().mockResolvedValue({ isCompetitive: true }),
+  },
+}));
+
+vi.mock('@/lib/services/agents/JobStatusAgent', () => ({
+  JobStatusAgent: {
+    updateJobStatus: vi.fn().mockResolvedValue({ success: true }),
+    getJobStatus: vi.fn().mockResolvedValue({ status: 'pending' }),
+  },
+}));
+
+vi.mock('@/lib/services/MeetingService', () => ({
+  MeetingService: {
+    createMeeting: vi.fn().mockResolvedValue({ id: 'meeting-1', url: 'https://example.com' }),
+    getMeeting: vi.fn().mockResolvedValue({ id: 'meeting-1', status: 'scheduled' }),
+    updateMeeting: vi.fn().mockResolvedValue({ success: true }),
+    deleteMeeting: vi.fn().mockResolvedValue({ success: true }),
+  },
+}));
 
 // Suppress console errors in tests (unless debugging)
 const originalError = console.error;

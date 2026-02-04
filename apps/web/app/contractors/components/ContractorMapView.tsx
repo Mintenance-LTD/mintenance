@@ -63,7 +63,11 @@ interface ContractorMapViewProps {
  * Contractor Map View Component
  * Shows contractors on an interactive map with markers
  */
-export function ContractorMapView({ contractors: initialContractors }: ContractorMapViewProps) {
+export function ContractorMapView(props: ContractorMapViewProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    contractors: initialContractors = [],
+  } = props || {};
   const [loading, setLoading] = useState(false);
   const [contractors, setContractors] = useState<ContractorMarker[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);

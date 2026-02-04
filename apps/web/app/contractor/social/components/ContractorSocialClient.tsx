@@ -39,7 +39,12 @@ interface SocialPost {
   };
 }
 
-export function ContractorSocialClient({ posts: initialPosts, currentUserId }: { posts: SocialPost[]; currentUserId?: string }) {
+export function ContractorSocialClient(props: { posts: SocialPost[]; currentUserId?: string }) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    posts: initialPosts = [],
+    currentUserId,
+  } = props || {};
   const [posts, setPosts] = useState<SocialPost[]>(initialPosts);
   const [notification, setNotification] = useState<{ tone: 'info' | 'success' | 'warning'; message: string } | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);

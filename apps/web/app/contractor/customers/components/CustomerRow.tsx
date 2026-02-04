@@ -16,7 +16,13 @@ interface CustomerRowProps {
   customer: Customer;
 }
 
-export function CustomerRow({ customer }: CustomerRowProps) {
+export function CustomerRow(props: CustomerRowProps) {
+  const { customer } = props || {};
+
+  if (!customer) {
+    return null;
+  }
+
   const customerName = `${customer.first_name} ${customer.last_name}`;
   const initials = `${customer.first_name[0]}${customer.last_name[0]}`.toUpperCase();
 

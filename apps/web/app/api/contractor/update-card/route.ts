@@ -6,22 +6,23 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { sanitizeText, sanitizeContractorBio, sanitizeUrl, sanitizeEmail } from '@/lib/sanitizer';
 
-// Validation schema for business card
+// Validation schema for business card with sanitization
 const updateCardSchema = z.object({
-  businessName: z.string().min(1).max(255).optional(),
-  tagline: z.string().max(500).optional(),
-  phone: z.string().max(50).optional(),
-  email: z.string().email().optional(),
-  website: z.string().url().optional().nullable(),
-  address: z.string().max(500).optional(),
-  bio: z.string().max(2000).optional(),
-  specialties: z.array(z.string()).optional(),
+  businessName: z.string().min(1).max(255).optional().transform(val => val ? sanitizeText(val, 255) : val),
+  tagline: z.string().max(500).optional().transform(val => val ? sanitizeText(val, 500) : val),
+  phone: z.string().max(50).optional().transform(val => val ? sanitizeText(val, 50) : val),
+  email: z.string().email().optional().transform(val => val ? sanitizeEmail(val) : val),
+  website: z.string().url().optional().nullable().transform(val => val ? sanitizeUrl(val) : val),
+  address: z.string().max(500).optional().transform(val => val ? sanitizeText(val, 500) : val),
+  bio: z.string().max(2000).optional().transform(val => val ? sanitizeContractorBio(val) : val),
+  specialties: z.array(z.string().transform(s => sanitizeText(s, 100))).optional(),
   socialMedia: z.object({
-    facebook: z.string().optional(),
-    instagram: z.string().optional(),
-    linkedin: z.string().optional(),
-    twitter: z.string().optional(),
+    facebook: z.string().optional().transform(val => val ? sanitizeUrl(val) : val),
+    instagram: z.string().optional().transform(val => val ? sanitizeUrl(val) : val),
+    linkedin: z.string().optional().transform(val => val ? sanitizeUrl(val) : val),
+    twitter: z.string().optional().transform(val => val ? sanitizeUrl(val) : val),
   }).optional(),
 });
 

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyJWT, ConfigManager } from '@mintenance/auth';
+import { verifyJWT, ConfigManager, SessionValidator } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter-enhanced';
+import { handlePreflightRequest, addCorsHeaders, shouldSkipCors } from '@/lib/cors';
+import { securityMonitor } from '@/lib/security-monitor';
 
 // CRITICAL FIX: Fail-fast initialization to prevent silent failures
 // If ConfigManager fails to initialize, the entire middleware should fail immediately
@@ -91,12 +93,28 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================================================
-  // RATE LIMITING FOR ALL API ROUTES
+  // CORS HANDLING FOR ALL API ROUTES (VULN-007 Security Fix)
   // ============================================================================
   if (pathname.startsWith('/api/')) {
+    // Skip CORS for certain endpoints (webhooks, health checks)
+    const skipCors = shouldSkipCors(pathname);
+
+    // Handle CORS preflight (OPTIONS) requests
+    // SECURITY: This must happen BEFORE rate limiting to avoid counting preflight requests
+    if (request.method === 'OPTIONS' && !skipCors) {
+      return handlePreflightRequest(request);
+    }
+
     try {
-      // Perform rate limit check
-      const rateLimitResult = await checkRateLimit(request);
+      // Skip middleware rate limiting for endpoints with their own rate limiters
+      // These endpoints implement more permissive, endpoint-specific rate limiting
+      const skipMiddlewareRateLimit = pathname === '/api/auth/session-status' ||
+                                       pathname === '/api/auth/extend-session';
+
+      // Perform rate limit check (unless explicitly skipped)
+      const rateLimitResult = skipMiddlewareRateLimit
+        ? { allowed: true, limit: 0, remaining: 0, tier: 'skip' }
+        : await checkRateLimit(request);
 
       if (!rateLimitResult.allowed) {
         logger.warn('API rate limit exceeded', {
@@ -131,8 +149,15 @@ export async function middleware(request: NextRequest) {
 
       // Special handling for webhook endpoints (skip auth but apply rate limiting)
       if (pathname.startsWith('/api/webhooks')) {
-        return NextResponse.next({ request: { headers: requestHeaders } });
+        const response = NextResponse.next({ request: { headers: requestHeaders } });
+        // Add CORS headers to webhook responses (if not skipped)
+        return skipCors ? response : addCorsHeaders(response, request);
       }
+
+      // For other API routes, continue with normal processing
+      // CORS headers will be added by the API route handler or error handler
+      // We set a marker header to indicate CORS has been processed
+      requestHeaders.set('x-cors-processed', 'true');
 
       // Continue with normal API processing (auth will be checked below for non-public routes)
     } catch (error) {
@@ -154,9 +179,55 @@ export async function middleware(request: NextRequest) {
     const authCookieName = isDevelopment ? 'mintenance-auth' : '__Host-mintenance-auth';
     const token = request.cookies.get(authCookieName)?.value;
 
-    if (!token) {
+    // Also check for Supabase auth token (for E2E tests and Supabase-only auth)
+    const supabaseAuthCookie = request.cookies.get('sb-ukrjudtlvapiajkjbcrd-auth-token')?.value;
+
+    if (!token && !supabaseAuthCookie) {
       // No token found, redirect to login
       return redirectToLogin(request);
+    }
+
+    // If only Supabase token exists, validate it and extract user info
+    if (!token && supabaseAuthCookie) {
+      try {
+        const supabaseSession = JSON.parse(supabaseAuthCookie);
+        const accessToken = supabaseSession.access_token;
+        const user = supabaseSession.user;
+
+        if (!accessToken || !user) {
+          return redirectToLogin(request);
+        }
+
+        // Decode Supabase JWT to check expiration
+        const tokenParts = accessToken.split('.');
+        if (tokenParts.length !== 3) {
+          return redirectToLogin(request);
+        }
+
+        const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+        const now = Math.floor(Date.now() / 1000);
+
+        if (payload.exp && payload.exp < now) {
+          // Token expired
+          return redirectToLogin(request);
+        }
+
+        // Add user info to request headers from Supabase session
+        const requestHeaders = new Headers(request.headers);
+        requestHeaders.set('x-user-id', user.id);
+        requestHeaders.set('x-user-email', user.email);
+        requestHeaders.set('x-user-role', user.user_metadata?.role || 'homeowner');
+        requestHeaders.set('x-pathname', pathname);
+
+        const response = NextResponse.next({ request: { headers: requestHeaders } });
+        return response;
+      } catch (parseError) {
+        logger.error('Failed to parse Supabase auth token', parseError, {
+          service: 'middleware',
+          pathname,
+        });
+        return redirectToLogin(request);
+      }
     }
 
     // Verify the JWT token using shared auth package
@@ -202,6 +273,82 @@ export async function middleware(request: NextRequest) {
     if (jwtPayload.exp && jwtPayload.exp < now) {
       // Token expired, redirect to login
       return redirectToLogin(request);
+    }
+
+    // VULN-009: Check session timeouts (Phase 3: hard enforcement mode)
+    // Validates absolute session timeout (12 hours) and idle timeout (30 minutes)
+    // - Soft enforcement (default): Violations logged but requests proceed
+    // - Hard enforcement (ENFORCE_SESSION_TIMEOUTS=true): Force logout on violation
+    if (jwtPayload.sessionStart && jwtPayload.lastActivity) {
+      const sessionValidation = SessionValidator.validateSession({
+        sessionStart: jwtPayload.sessionStart,
+        lastActivity: jwtPayload.lastActivity,
+      });
+
+      if (!sessionValidation.isValid) {
+        // Determine enforcement mode from environment variable
+        const enforceTimeouts = process.env.ENFORCE_SESSION_TIMEOUTS === 'true';
+
+        // Log violation (both soft and hard enforcement)
+        securityMonitor.logSuspiciousActivity(
+          request,
+          `Session timeout violation: ${sessionValidation.reason}`,
+          jwtPayload.sub,
+          {
+            violations: sessionValidation.violations,
+            sessionAgeMs: sessionValidation.metadata.sessionAgeMs,
+            idleTimeMs: sessionValidation.metadata.idleTimeMs,
+            hardEnforcement: enforceTimeouts,  // Phase 3: track enforcement mode
+            timeoutMessage: SessionValidator.getTimeoutMessage(sessionValidation),
+          }
+        ).catch((err) => {
+          // Catch logging errors to prevent middleware failures
+          logger.error('Failed to log session timeout violation', err, {
+            service: 'middleware',
+            userId: jwtPayload.sub,
+          });
+        });
+
+        // Hard enforcement: force logout on timeout violation
+        if (enforceTimeouts) {
+          // Blacklist token to prevent reuse (defense in depth)
+          try {
+            await tokenBlacklist.blacklistToken(token);
+            logger.info('Token blacklisted on session timeout', {
+              service: 'middleware',
+              userId: jwtPayload.sub,
+              violations: sessionValidation.violations.join(', '),
+            });
+          } catch (error) {
+            logger.error('CRITICAL: Token blacklist failed on forced logout', error, {
+              service: 'middleware',
+              userId: jwtPayload.sub,
+              securityRisk: 'Token may be reused until JWT expiry (max 1 hour)',
+            });
+            // Continue with logout anyway (user experience > blacklist failure)
+          }
+
+          // Differentiate response based on request type
+          if (pathname.startsWith('/api/')) {
+            // API request: Return JSON 401 with timeout details
+            return NextResponse.json(
+              {
+                error: 'Session Timeout',
+                code: 'SESSION_TIMEOUT',
+                message: SessionValidator.getTimeoutMessage(sessionValidation),
+                violations: sessionValidation.violations,
+                sessionAgeHours: Math.floor((sessionValidation.metadata.sessionAgeMs || 0) / (60 * 60 * 1000)),
+                idleMinutes: Math.floor((sessionValidation.metadata.idleTimeMs || 0) / (60 * 1000)),
+              },
+              { status: 401 }
+            );
+          } else {
+            // Page request: Redirect to login (preserves admin routes)
+            return redirectToLogin(request);
+          }
+        }
+        // Soft enforcement (default): Continue with request
+      }
     }
 
     // Validate CSRF token for state-changing requests

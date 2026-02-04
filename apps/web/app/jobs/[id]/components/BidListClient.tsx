@@ -6,6 +6,8 @@ import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
 import { BidSwipeCard } from './BidSwipeCard';
 import { useRouter } from 'next/navigation';
+import { useCSRF } from '@/lib/hooks/useCSRF';
+import toast from 'react-hot-toast';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -16,6 +18,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+interface LineItem {
+  id: string;
+  description: string;
+  type?: 'labor' | 'material' | 'equipment';
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
 interface BidData {
   id: string;
   amount: number;
@@ -24,6 +35,7 @@ interface BidData {
   created_at: string;
   contractor_id: string;
   quote_id?: string;
+  lineItems?: LineItem[];
   contractor?: {
     id: string;
     first_name?: string;
@@ -44,6 +56,7 @@ interface BidListClientProps {
 
 export function BidListClient({ bids, jobId }: BidListClientProps) {
   const router = useRouter();
+  const { csrfToken } = useCSRF();
   const [selectedBidIndex, setSelectedBidIndex] = useState<number | null>(null);
   const [processingBid, setProcessingBid] = useState<string | null>(null);
   const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
@@ -60,14 +73,20 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
 
   const handleAcceptBid = async (bidId: string) => {
     if (processingBid) return;
-    
+
+    if (!csrfToken) {
+      toast.error('Security token not available. Please refresh the page.');
+      return;
+    }
+
     try {
       setProcessingBid(bidId);
-      
+
       const response = await fetch(`/api/jobs/${jobId}/bids/${bidId}/accept`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
       });
 
@@ -97,14 +116,20 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
 
   const handleRejectBid = async (bidId: string) => {
     if (processingBid) return;
-    
+
+    if (!csrfToken) {
+      toast.error('Security token not available. Please refresh the page.');
+      return;
+    }
+
     try {
       setProcessingBid(bidId);
-      
+
       const response = await fetch(`/api/jobs/${jobId}/bids/${bidId}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
       });
 
@@ -271,6 +296,64 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
                     }}>
                       £{Number(bid.amount).toLocaleString()}
                     </div>
+
+                    {/* Cost Breakdown: Labor vs. Materials */}
+                    {bid.lineItems && bid.lineItems.length > 0 && (() => {
+                      const laborTotal = bid.lineItems
+                        .filter(item => item.type === 'labor')
+                        .reduce((sum, item) => sum + item.total, 0);
+                      const materialTotal = bid.lineItems
+                        .filter(item => item.type === 'material')
+                        .reduce((sum, item) => sum + item.total, 0);
+                      const equipmentTotal = bid.lineItems
+                        .filter(item => item.type === 'equipment')
+                        .reduce((sum, item) => sum + item.total, 0);
+
+                      return (laborTotal > 0 || materialTotal > 0 || equipmentTotal > 0) ? (
+                        <div style={{
+                          marginTop: theme.spacing[2],
+                          fontSize: theme.typography.fontSize.sm,
+                          color: theme.colors.textSecondary,
+                          display: 'flex',
+                          gap: theme.spacing[3],
+                          flexWrap: 'wrap' as const,
+                        }}>
+                          {laborTotal > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+                              <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#3B82F6',
+                              }} />
+                              <span>Labor: £{laborTotal.toFixed(2)}</span>
+                            </div>
+                          )}
+                          {materialTotal > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+                              <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#F59E0B',
+                              }} />
+                              <span>Materials: £{materialTotal.toFixed(2)}</span>
+                            </div>
+                          )}
+                          {equipmentTotal > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+                              <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                backgroundColor: '#10B981',
+                              }} />
+                              <span>Equipment: £{equipmentTotal.toFixed(2)}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
 
                   {/* Quote Available Indicator */}

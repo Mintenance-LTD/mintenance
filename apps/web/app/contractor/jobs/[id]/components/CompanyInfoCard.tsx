@@ -16,12 +16,18 @@ interface CompanyInfoCardProps {
 /**
  * CompanyInfoCard - Company card with circular progress indicator
  */
-export function CompanyInfoCard({
-  contractorId,
-  profileCompletion,
-  skills,
-  portfolioImages = [],
-}: CompanyInfoCardProps) {
+export function CompanyInfoCard(props: CompanyInfoCardProps) {
+  const {
+    contractorId,
+    profileCompletion = 0,
+    skills = [],
+    portfolioImages = [],
+  } = props || {};
+
+  if (!contractorId) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
       <StandardCard>

@@ -13,12 +13,9 @@ interface PaymentSuccess2025Props {
   jobId: string;
 }
 
-export function PaymentSuccess2025({
-  amount,
-  jobTitle,
-  paymentIntentId,
-  jobId,
-}: PaymentSuccess2025Props) {
+export function PaymentSuccess2025(props: PaymentSuccess2025Props) {
+  const { amount = 0, jobTitle = '', paymentIntentId = '', jobId = '' } = props || {};
+
   // Trigger confetti on mount
   useEffect(() => {
     const duration = 3 * 1000;

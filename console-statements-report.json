@@ -1,35 +1,20 @@
 [
   {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\migration-runner.ts",
+    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\app\\try-mint-ai\\components\\TryMintAIClient.tsx",
     "matches": [
       {
-        "line": 381,
-        "content": "main().catch(console.error);",
-        "statement": "console.error"
-      }
-    ]
-  },
-  {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\lib\\redis-validator.ts",
-    "matches": [
-      {
-        "line": 221,
-        "content": "runRedisValidation().catch(console.error);",
-        "statement": "console.error"
-      }
-    ]
-  },
-  {
-    "file": "c:\\Users\\Djodjo.Nkouka.ERICCOLE\\Downloads\\mintenance-clean\\apps\\web\\test\\setup.ts",
-    "matches": [
-      {
-        "line": 216,
-        "content": "const originalError = console.error;",
+        "line": 129,
+        "content": "console.error('Assessment error:', error);",
         "statement": "console.error"
       },
       {
-        "line": 217,
-        "content": "console.error = (...args: unknown[]) => {",
+        "line": 143,
+        "content": "console.log('User confirmed assessment accuracy');",
+        "statement": "console.log"
+      },
+      {
+        "line": 172,
+        "content": "console.error('Failed to submit corrections:', error);",
         "statement": "console.error"
       }
     ]

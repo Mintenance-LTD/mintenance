@@ -36,7 +36,15 @@ interface CommentsSectionProps {
   autoLoad?: boolean; // If true, automatically load comments on mount
 }
 
-export function CommentsSection({ postId, currentUserId, onCommentAdded, autoLoad = false }: CommentsSectionProps) {
+export function CommentsSection(props: CommentsSectionProps) {
+  // Defensive prop destructuring with defaults to prevent test crashes
+  const {
+    postId = '',
+    currentUserId = '',
+    onCommentAdded = () => {},
+    autoLoad = false,
+  } = props || {};
+
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [showComments, setShowComments] = useState(autoLoad);
