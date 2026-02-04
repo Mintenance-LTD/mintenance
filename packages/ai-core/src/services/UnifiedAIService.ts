@@ -20,7 +20,8 @@ import {
   UserCorrection,
   UsageMetrics,
   ModelTrainingConfig,
-  TrainingProgress
+  TrainingProgress,
+  ResponseMetadata
 } from '../types';
 export class UnifiedAIService {
   private apiClient: AxiosInstance;
@@ -69,7 +70,7 @@ export class UnifiedAIService {
     const cacheKey = this.getCacheKey('assess', images, context);
     // Check cache first
     if (this.config.performance.cacheEnabled) {
-      const cached = this.getFromCache(cacheKey);
+      const cached = this.getFromCache<BuildingAssessment>(cacheKey);
       if (cached) {
         return {
           success: true,
@@ -121,12 +122,12 @@ export class UnifiedAIService {
         }
       };
     } catch (err: unknown) {
-      const error = err;
+      const error = err as AxiosError;
       return {
         success: false,
         error: {
           code: error.response?.status?.toString() || 'UNKNOWN',
-          message: error.message || 'Building assessment failed',
+          message: (error as Error).message || 'Building assessment failed',
           details: error.response?.data,
           retryable: error.response?.status !== 400,
           fallbackUsed: false
@@ -395,10 +396,10 @@ export class UnifiedAIService {
     }
   }
   // Helper methods
-  private getCacheKey(operation: string, ...params: Record<string, unknown>[]): string {
+  private getCacheKey(operation: string, ...params: unknown[]): string {
     return `${operation}:${JSON.stringify(params)}`;
   }
-  private getFromCache(key: string): unknown | null {
+  private getFromCache<T>(key: string): T | null {
     const cached = this.cache.get(key);
     if (!cached) return null;
     const age = Date.now() - cached.timestamp;
@@ -406,11 +407,11 @@ export class UnifiedAIService {
       this.cache.delete(key);
       return null;
     }
-    return cached.data;
+    return cached.data as T;
   }
-  private saveToCache(key: string, data: Record<string, unknown>): void {
+  private saveToCache<T>(key: string, data: T): void {
     this.cache.set(key, {
-      data,
+      data: data as Record<string, unknown>,
       timestamp: Date.now()
     });
   }
@@ -429,7 +430,7 @@ export class UnifiedAIService {
     // Server-side
     return 'server';
   }
-  private createMetadata(response: unknown): unknown {
+  private createMetadata(response: AxiosResponse): ResponseMetadata {
     return {
       requestId: response.headers?.['x-request-id'] || this.generateRequestId(),
       timestamp: new Date().toISOString(),
@@ -440,7 +441,7 @@ export class UnifiedAIService {
       modelVersion: response.headers?.['x-model-version'] || 'unknown'
     };
   }
-  private createEmptyMetadata(): unknown {
+  private createEmptyMetadata(): ResponseMetadata {
     return {
       requestId: this.generateRequestId(),
       timestamp: new Date().toISOString(),
@@ -451,14 +452,15 @@ export class UnifiedAIService {
       modelVersion: 'unknown'
     };
   }
-  private handleError(error: unknown, defaultMessage: string): AIServiceResponse<unknown> {
+  private handleError<T>(error: unknown, defaultMessage: string): AIServiceResponse<T> {
+    const axiosError = error as AxiosError;
     return {
       success: false,
       error: {
-        code: error.response?.status?.toString() || 'UNKNOWN',
-        message: error.message || defaultMessage,
-        details: error.response?.data,
-        retryable: error.response?.status !== 400 && error.response?.status !== 401,
+        code: axiosError.response?.status?.toString() || 'UNKNOWN',
+        message: (axiosError as Error).message || defaultMessage,
+        details: axiosError.response?.data,
+        retryable: axiosError.response?.status !== 400 && axiosError.response?.status !== 401,
         fallbackUsed: false
       },
       metadata: this.createEmptyMetadata()

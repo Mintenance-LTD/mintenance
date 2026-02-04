@@ -126,14 +126,14 @@ export function ModelMonitoringDashboard() {
         .limit(100);
 
       if (driftData) {
-        setDriftMetrics(driftData.map((d: unknown) => ({
+        setDriftMetrics(driftData.map((d: any) => ({
           timestamp: d.timestamp,
           driftScore: d.metrics?.driftScore || 0,
           driftType: d.metrics?.driftType || 'none',
           affectedFeatures: d.metrics?.affectedFeatures || []
         })));
 
-        setPerformanceMetrics(driftData.map((d: unknown) => ({
+        setPerformanceMetrics(driftData.map((d: any) => ({
           timestamp: d.timestamp,
           accuracy: d.metrics?.accuracy || 0,
           precision: d.metrics?.precision || 0,
@@ -219,7 +219,7 @@ export function ModelMonitoringDashboard() {
         .limit(10);
 
       if (alertData) {
-        setAlerts(alertData.map((a: unknown) => ({
+        setAlerts(alertData.map((a: any) => ({
           id: a.id,
           severity: a.severity,
           type: a.alerts?.type || 'drift_detected',
@@ -255,11 +255,11 @@ export function ModelMonitoringDashboard() {
     }
   };
 
-  const handleDriftUpdate = (payload: unknown) => {
+  const handleDriftUpdate = (payload: any) => {
     fetchDashboardData();
   };
 
-  const handleAlertUpdate = (payload: unknown) => {
+  const handleAlertUpdate = (payload: any) => {
     const newAlert: Alert = {
       id: payload.new.id,
       severity: payload.new.severity,
