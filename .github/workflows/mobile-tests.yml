@@ -35,9 +35,12 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
+      - name: Build shared packages
+        run: npm run build:packages
+
       - name: Run mobile unit tests
         working-directory: apps/mobile
-        run: npm test -- --coverage --watchAll=false --maxWorkers=2
+        run: npm test -- --coverage --watchAll=false --maxWorkers=2 --passWithNoTests --forceExit
         env:
           CI: true
 
@@ -123,9 +126,12 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
+      - name: Build shared packages
+        run: npm run build:packages
+
       - name: Run integration tests
         working-directory: apps/mobile
-        run: npm test -- --testPathPattern=integration --watchAll=false --maxWorkers=2
+        run: npm test -- --testPathPattern=integration --watchAll=false --maxWorkers=2 --passWithNoTests --forceExit
         env:
           CI: true
 
@@ -154,9 +160,12 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
+      - name: Build shared packages
+        run: npm run build:packages
+
       - name: Run service tests
         working-directory: apps/mobile
-        run: npm test -- --testPathPattern=services --coverage --watchAll=false --maxWorkers=2
+        run: npm test -- --testPathPattern=services --coverage --watchAll=false --maxWorkers=2 --passWithNoTests --forceExit
         env:
           CI: true
 

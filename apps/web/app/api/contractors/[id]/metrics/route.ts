@@ -10,7 +10,7 @@ interface Params { params: Promise<{ id: string }> }
 export async function GET(req: NextRequest, context: Params) {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+    identifier: `${req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'anonymous'}:${req.url}`,
     windowMs: 60000,
     maxRequests: 30
   });
@@ -110,7 +110,7 @@ async function getContractorMetrics(context: Params) {
 
     // Calculate repeat customers
     const homeownerCounts = new Map<string, number>();
-    homeownerIds.forEach((job: unknown) => {
+    homeownerIds.forEach((job: any) => {
       if (job.homeowner_id) {
         homeownerCounts.set(job.homeowner_id, (homeownerCounts.get(job.homeowner_id) || 0) + 1);
       }
@@ -135,21 +135,21 @@ async function getContractorMetrics(context: Params) {
 
     // Create maps for first bid/message times per job
     const firstBidMap = new Map<string, Date>();
-    firstBids.forEach((bid: unknown) => {
+    firstBids.forEach((bid: any) => {
       if (!firstBidMap.has(bid.job_id)) {
         firstBidMap.set(bid.job_id, new Date(bid.created_at));
       }
     });
 
     const firstMessageMap = new Map<string, Date>();
-    firstMessages.forEach((message: unknown) => {
+    firstMessages.forEach((message: any) => {
       if (!firstMessageMap.has(message.job_id)) {
         firstMessageMap.set(message.job_id, new Date(message.created_at));
       }
     });
 
     // Calculate response time for each completed job
-    completedJobs.forEach((job: unknown) => {
+    completedJobs.forEach((job: any) => {
       const jobCreatedAt = new Date(job.created_at).getTime();
       const firstBidTime = firstBidMap.get(job.id)?.getTime();
       const firstMessageTime = firstMessageMap.get(job.id)?.getTime();

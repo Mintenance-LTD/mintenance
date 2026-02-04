@@ -1,9 +1,0 @@
-﻿packages/security/src/core/RateLimiter.ts(198,81): error TS2345: Argument of type 'string' is not assignable to parameter of type 'LogContext'.
-packages/security/src/specialized/ContentSanitizers.ts(158,54): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
-  No index signature with a parameter of type 'string' was found on type '{}'.
-packages/security/src/specialized/ContentSanitizers.ts(225,54): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | null | undefined'.
-packages/security/src/specialized/ContentSanitizers.ts(228,54): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | null | undefined'.
-packages/security/src/specialized/ContentSanitizers.ts(230,55): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | null | undefined'.
-packages/security/src/specialized/ContentSanitizers.ts(232,55): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | null | undefined'.
-packages/security/src/specialized/ContentSanitizers.ts(234,53): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | null | undefined'.
-packages/security/src/specialized/ContentSanitizers.ts(238,54): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | null | undefined'.

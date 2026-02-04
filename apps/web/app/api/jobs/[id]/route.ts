@@ -250,7 +250,7 @@ export async function PUT(request: NextRequest, context: Params) {
       throw new BadRequestError('Validation failed');
     }
 
-    const payload = parsed.data;
+    const payload = parsed.data as any;
     let aiAnalysisResult = null;
     let buildingSurveyResult = null;
     let geocodeResult = null;
@@ -546,7 +546,7 @@ export async function PATCH(request: NextRequest, context: Params) {
       throw new ForbiddenError('You do not have permission to update this job');
     }
 
-    const payload = parsed.data;
+    const payload = parsed.data as any;
     const updatePayload: {
       title?: string;
       description?: string | null;

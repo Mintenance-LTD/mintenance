@@ -1,4 +1,0 @@
-
-> @mintenance/mobile@1.2.4 test
-> npx jest --testPathPattern=__tests__ --maxWorkers=4 --bail
-

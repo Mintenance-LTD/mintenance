@@ -4,8 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { AgentLogger } from '@/lib/services/agents/AgentLogger';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -52,7 +51,7 @@ export async function POST(req: Request) {
     );
   }
 
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = serverSupabase;
 
     // Check authentication
     const { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -121,8 +120,8 @@ export async function POST(req: Request) {
 
         // Evaluate each bid
         const evaluations = await Promise.all(
-          bids.map(async (bid) => {
-            const evaluation = await BidAcceptanceAgent.evaluateBid(
+          bids.map(async (bid: any) => {
+            const evaluation = await (BidAcceptanceAgent as any).evaluateBid(
               context.jobId,
               bid.contractor_id,
               {
@@ -143,7 +142,7 @@ export async function POST(req: Request) {
         );
 
         // Sort by recommendation score
-        evaluations.sort((a, b) => (b.score || 0) - (a.score || 0));
+        evaluations.sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
 
         result = {
           evaluations,
@@ -186,7 +185,7 @@ export async function POST(req: Request) {
         }
 
         // Evaluate the bid
-        const evaluation = await BidAcceptanceAgent.evaluateBid(
+        const evaluation = await (BidAcceptanceAgent as any).evaluateBid(
           context.jobId,
           bid.contractor_id,
           {
@@ -288,8 +287,8 @@ export async function POST(req: Request) {
         }
 
         const recommendations = await Promise.all(
-          allBids.map(async (bid) => {
-            const evaluation = await BidAcceptanceAgent.evaluateBid(
+          allBids.map(async (bid: any) => {
+            const evaluation = await (BidAcceptanceAgent as any).evaluateBid(
               context.jobId,
               bid.contractor_id,
               {
@@ -309,14 +308,14 @@ export async function POST(req: Request) {
           })
         );
 
-        const bestBid = recommendations.reduce((best, current) =>
+        const bestBid = recommendations.reduce((best: any, current: any) =>
           (current.score || 0) > (best.score || 0) ? current : best
         );
 
         result = {
           recommended: bestBid,
           alternativeCount: recommendations.length - 1,
-          averagePrice: recommendations.reduce((sum, r) => sum + r.amount, 0) / recommendations.length
+          averagePrice: recommendations.reduce((sum: any, r: any) => sum + r.amount, 0) / recommendations.length
         };
         break;
 
@@ -329,9 +328,9 @@ export async function POST(req: Request) {
 
     // Log the decision
     await AgentLogger.logDecision({
-      agentName: 'BidAcceptanceAgent',
-      decisionType: action,
-      actionTaken: action === 'auto-accept' && result.accepted ? 'accepted' : 'evaluated',
+      agentName: 'BidAcceptanceAgent' as any,
+      decisionType: action as any,
+      actionTaken: (action === 'auto-accept' && result.accepted ? 'accepted' : 'evaluated') as any,
       confidence: result.confidence || 0.75,
       reasoning: result.reason || 'Bid evaluation completed',
       metadata: {

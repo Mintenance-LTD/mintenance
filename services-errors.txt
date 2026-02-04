@@ -1,8 +1,0 @@
-﻿packages/services/src/base/BaseService.ts(26,13): error TS18046: 'error' is of type 'unknown'.
-packages/services/src/base/BaseService.ts(27,16): error TS18046: 'error' is of type 'unknown'.
-packages/services/src/base/BaseService.ts(28,16): error TS18046: 'error' is of type 'unknown'.
-packages/services/src/base/BaseService.ts(64,47): error TS2769: No overload matches this call.
-  Overload 1 of 2, '(o: { [s: string]: unknown; } | ArrayLike<unknown>): [string, unknown][]', gave the following error.
-    Argument of type 'unknown' is not assignable to parameter of type '{ [s: string]: unknown; } | ArrayLike<unknown>'.
-  Overload 2 of 2, '(o: {}): [string, any][]', gave the following error.
-    Argument of type 'unknown' is not assignable to parameter of type '{}'.

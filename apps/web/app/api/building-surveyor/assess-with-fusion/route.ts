@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     );
 
     // 4. Prepare response based on options
-    const response: unknown = {
+    const response: any = {
       success: true,
       assessment: result.assessment,
       route: result.route,
@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
     // 5. Log success
     logger.info('Fusion assessment completed', {
       endpoint: '/api/building-surveyor/assess-with-fusion',
-      userId: session.user?.id,
+      userId: user?.id,
       route: result.route,
       agreementScore: result.agreementScore,
       uncertaintyLevel: result.fusionOutput.uncertaintyLevel,
@@ -251,8 +251,8 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Authentication check
-    const session = await getServerSession(authOptions);
-    if (!session) {
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -263,7 +263,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'summary';
 
-    let response: unknown = {};
+    let response: any = {};
 
     switch (type) {
       case 'performance':

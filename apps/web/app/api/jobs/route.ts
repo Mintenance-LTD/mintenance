@@ -429,7 +429,7 @@ export async function POST(request: NextRequest) {
       throw new BadRequestError('Validation failed');
     }
 
-    const payload: z.infer<typeof createJobSchema> = parsed.data;
+    const payload = parsed.data as any;
 
     // BUSINESS RULE: High-budget jobs MUST have images
     const budgetThreshold = BUSINESS_RULES.BUDGET_REQUIRES_PHOTOS_THRESHOLD;

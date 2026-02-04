@@ -32,6 +32,53 @@ import type { JWTPayload } from '@mintenance/types';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // SECURITY: Validate request body size and content type for POST/PUT/PATCH requests
+  if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
+    const contentType = request.headers.get('content-type') || '';
+    const contentLength = request.headers.get('content-length');
+
+    // Reject requests without content-type for state-changing methods
+    if (!contentType && request.method !== 'GET') {
+      logger.warn('Request missing content-type header', {
+        service: 'middleware',
+        pathname,
+        method: request.method,
+      });
+      return new NextResponse(
+        JSON.stringify({ error: 'Content-Type header required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Reject requests with body size > 10MB (configurable)
+    const maxBodySize = 10 * 1024 * 1024; // 10MB
+    if (contentLength && parseInt(contentLength, 10) > maxBodySize) {
+      logger.warn('Request body size exceeds limit', {
+        service: 'middleware',
+        pathname,
+        contentLength,
+        maxSize: maxBodySize,
+      });
+      return new NextResponse(
+        JSON.stringify({ error: 'Request body too large' }),
+        { status: 413, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate content-type for JSON requests
+    if (contentType && !contentType.includes('application/json') && 
+        !contentType.includes('multipart/form-data') &&
+        !contentType.includes('application/x-www-form-urlencoded') &&
+        !contentType.includes('text/')) {
+      logger.warn('Invalid content-type for request', {
+        service: 'middleware',
+        pathname,
+        contentType,
+      });
+      // Allow through but log - some APIs may accept other content types
+    }
+  }
+
   // If configuration failed to load, fail closed for security
   if (!configManager) {
     logger.error('Middleware: Configuration unavailable - rejecting request', undefined, {
@@ -187,42 +234,53 @@ export async function middleware(request: NextRequest) {
       return redirectToLogin(request);
     }
 
-    // If only Supabase token exists, validate it and extract user info
+    // If only Supabase token exists, validate it using @supabase/ssr
     if (!token && supabaseAuthCookie) {
       try {
-        const supabaseSession = JSON.parse(supabaseAuthCookie);
-        const accessToken = supabaseSession.access_token;
-        const user = supabaseSession.user;
+        // Use @supabase/ssr createServerClient for proper token validation
+        const { createServerClient } = await import('@supabase/ssr');
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-        if (!accessToken || !user) {
+        if (!supabaseUrl || !supabaseAnonKey) {
+          logger.error('Supabase credentials not configured', undefined, {
+            service: 'middleware',
+            pathname,
+          });
           return redirectToLogin(request);
         }
 
-        // Decode Supabase JWT to check expiration
-        const tokenParts = accessToken.split('.');
-        if (tokenParts.length !== 3) {
-          return redirectToLogin(request);
-        }
+        const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+          cookies: {
+            get(name: string) {
+              return request.cookies.get(name)?.value;
+            },
+            set(name: string, value: string, options: any) {
+              // Not needed in middleware - cookies handled by response
+            },
+            remove(name: string, options: any) {
+              // Not needed in middleware - cookies handled by response
+            },
+          },
+        });
 
-        const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
-        const now = Math.floor(Date.now() / 1000);
+        const { data: { user }, error } = await supabase.auth.getUser();
 
-        if (payload.exp && payload.exp < now) {
-          // Token expired
+        if (error || !user) {
           return redirectToLogin(request);
         }
 
         // Add user info to request headers from Supabase session
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set('x-user-id', user.id);
-        requestHeaders.set('x-user-email', user.email);
+        requestHeaders.set('x-user-email', user.email || '');
         requestHeaders.set('x-user-role', user.user_metadata?.role || 'homeowner');
         requestHeaders.set('x-pathname', pathname);
 
         const response = NextResponse.next({ request: { headers: requestHeaders } });
         return response;
       } catch (parseError) {
-        logger.error('Failed to parse Supabase auth token', parseError, {
+        logger.error('Failed to validate Supabase auth token', parseError, {
           service: 'middleware',
           pathname,
         });
@@ -259,13 +317,15 @@ export async function middleware(request: NextRequest) {
         return redirectToLogin(request);
       }
     } catch (blacklistError) {
-      // If blacklist check fails, log but don't block (fail open for availability)
-      // This prevents Redis outages from blocking all users
-      logger.warn('Token blacklist check failed, allowing request', {
+      // SECURITY: Fail closed for payment platform - if blacklist check fails, reject token
+      // This prevents compromised tokens from being used if Redis is unavailable
+      logger.error('CRITICAL: Token blacklist check failed - rejecting request for security', {
         service: 'middleware',
         pathname,
         error: blacklistError,
+        securityRisk: 'Cannot verify token is not blacklisted - failing closed',
       });
+      return redirectToLogin(request);
     }
 
     // Check if token is expired (additional check)
@@ -529,12 +589,13 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder files
+     * 
+     * NOTE: API routes are NOT excluded - middleware handles rate limiting and CORS for /api/*
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

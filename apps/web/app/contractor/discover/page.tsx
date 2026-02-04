@@ -33,7 +33,7 @@ export const metadata = {
 
 // Calculate match score based on various factors
 function calculateMatchScore(
-  job: unknown,
+  job: any,
   contractorSkills: string[],
   contractorCity: string | null
 ): number {

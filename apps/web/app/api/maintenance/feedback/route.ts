@@ -239,8 +239,8 @@ export async function GET(request: NextRequest) {
  * Create correction record for wrong assessment
  */
 async function createCorrection(
-  assessment: unknown,
-  feedback: unknown,
+  assessment: any,
+  feedback: any,
   contractorId: string
 ): Promise<void> {
   const supabase = await createServerSupabaseClient();
@@ -384,7 +384,7 @@ async function checkRetrainingThreshold(): Promise<boolean> {
 /**
  * Calculate rewards for feedback
  */
-function calculateRewards(feedback: unknown): {
+function calculateRewards(feedback: any): {
   credits: number;
   message: string;
 } {
