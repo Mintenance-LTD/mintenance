@@ -132,6 +132,8 @@
     "@react-native/dev-middleware": "0.81.5",
     "@react-native/normalize-colors": "0.81.5",
     "@sentry/browser": ">=7.119.1",
-    "@sentry/react": ">=7.119.1"
+    "@sentry/react": ">=7.119.1",
+    "fast-xml-parser": ">=5.3.4",
+    "jspdf": ">=4.1.0"
   }
 }
