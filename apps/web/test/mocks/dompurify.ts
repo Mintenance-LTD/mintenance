@@ -20,7 +20,7 @@ export const createMockDOMPurify = () => {
 
     // Handle allowed tags if specified
     if (config?.ALLOWED_TAGS && Array.isArray(config.ALLOWED_TAGS)) {
-      const allowedTags = config.ALLOWED_TAGS.map(t => t.toLowerCase());
+      const allowedTags = config.ALLOWED_TAGS.map((t: string) => t.toLowerCase());
 
       // Remove tags not in allowed list
       result = result.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tagName) => {

@@ -27,7 +27,6 @@ const jest = {
   runAllTimers: vi.runAllTimers,
   runOnlyPendingTimers: vi.runOnlyPendingTimers,
   setSystemTime: vi.setSystemTime,
-  getMockName: vi.getMockName,
   isMockFunction: vi.isMockFunction,
   mocked: vi.mocked,
   requireActual: vi.importActual,
@@ -240,8 +239,7 @@ vi.mock('@/lib/react-query-client', () => ({
   },
 }));
 
-// Mock environment variables
-process.env.NODE_ENV = 'test';
+// Mock environment variables (NODE_ENV is already 'test' in test environment)
 // JWT_SECRET must be at least 64 characters and look random (no weak patterns like 'test-jwt', 'placeholder', etc.)
 process.env.JWT_SECRET = 'aB3cD4eF5gH6iJ7kL8mN9oP0qR1sT2uV3wX4yZ5aB6cD7eF8gH9iJ0kL1mN2oP3qR4s';
 process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://abcdefghijklmnop.supabase.co';

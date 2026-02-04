@@ -3,7 +3,8 @@
  * Provides standardized mock data for tests to prevent "Cannot destructure property of undefined" errors
  */
 
-import type { User, Job, Contractor, Bid, Profile } from '@mintenance/types';
+import { vi } from 'vitest';
+import type { User, Job, Contractor, Bid } from '@mintenance/types';
 
 /**
  * Creates a mock user object with all required fields
@@ -50,14 +51,11 @@ export const createMockJob = (overrides?: Partial<Job>): Job => ({
   homeowner_id: 'user-123',
   title: 'Fix leaking tap',
   description: 'Kitchen tap is dripping',
-  status: 'open',
+  status: 'posted',
   category: 'plumbing',
   location: 'London, SW1A 1AA',
   budget: 150,
-  budget_min: 100,
-  budget_max: 200,
-  show_budget_to_contractors: true,
-  urgency: 'normal',
+  priority: 'medium',
   photos: [],
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
@@ -69,14 +67,12 @@ export const createMockJob = (overrides?: Partial<Job>): Job => ({
  */
 export const createMockBid = (overrides?: Partial<Bid>): Bid => ({
   id: 'bid-123',
-  job_id: 'job-123',
-  contractor_id: 'contractor-123',
+  jobId: 'job-123',
+  contractorId: 'contractor-123',
   amount: 150,
-  message: 'I can fix this for you',
+  description: 'I can fix this for you',
   status: 'pending',
-  estimated_duration_hours: 2,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
   ...overrides,
 });
 
