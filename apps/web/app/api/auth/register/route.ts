@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         service: 'auth',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-      throw new RateLimitError('Too many registration attempts. Please try again later.');
+      throw new RateLimitError();
     }
 
     // Validate and sanitize input using Zod schema

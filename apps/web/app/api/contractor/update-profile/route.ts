@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
         service: 'contractor',
         endpoint: '/api/contractor/update-profile',
       });
-      throw new RateLimitError('Too many profile updates. Please try again later');
+      throw new RateLimitError();
     }
 
     // CSRF protection - prevent cross-site attacks

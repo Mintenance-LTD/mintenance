@@ -31,7 +31,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const rateLimitResult = await checkApiRateLimit(`submit-bid:${ip}`);
 
     if (!rateLimitResult.allowed) {
-      throw new RateLimitError('Too many bid submissions. Please try again later.');
+      throw new RateLimitError();
     }
 
     // Authenticate user

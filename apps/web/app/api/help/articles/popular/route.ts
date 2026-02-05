@@ -6,7 +6,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
 /**
  * Get popular help articles with view counts
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

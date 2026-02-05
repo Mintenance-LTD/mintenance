@@ -16,7 +16,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
  * GET /api/building-surveyor/retrain/status
  * Get YOLO learning status
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

@@ -5,6 +5,30 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+// Set JWT_SECRET BEFORE any imports (ConfigManager reads it at module load time)
+process.env.JWT_SECRET = 'test-secret-key-that-is-long-enough-for-security';
+
+// Mock ConfigManager to return test secret
+vi.mock('@mintenance/auth', async () => {
+  const actual = await vi.importActual('@mintenance/auth');
+  return {
+    ...actual,
+    ConfigManager: {
+      getInstance: vi.fn(() => ({
+        get: vi.fn((key: string) => {
+          if (key === 'JWT_SECRET') return 'test-secret-key-that-is-long-enough-for-security';
+          return undefined;
+        }),
+        getRequired: vi.fn((key: string) => {
+          if (key === 'JWT_SECRET') return 'test-secret-key-that-is-long-enough-for-security';
+          throw new Error(`Missing required config: ${key}`);
+        }),
+        isProduction: vi.fn(() => false),
+      })),
+    },
+  };
+});
+
 // Mock server-only modules before importing auth
 vi.mock('../database', () => ({
   supabase: {

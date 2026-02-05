@@ -117,7 +117,7 @@ const body = await request.json();
 /**
  * GET endpoint - returns empty array (use POST for actual data)
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: Request): Promise<NextResponse> {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({
     identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,

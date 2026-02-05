@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await checkApiRateLimit(`gdpr-delete:${ip}`);
 
     if (!rateLimitResult.allowed) {
-      throw new RateLimitError('Too many requests. Please try again later.');
+      throw new RateLimitError();
     }
 
     // Authenticate user

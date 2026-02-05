@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
  * Health check endpoint for Building Surveyor service
  * Returns configuration status without exposing sensitive data
  */
-export async function GET() {
+export async function GET(request: Request) {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({
     identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,

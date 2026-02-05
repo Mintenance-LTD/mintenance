@@ -56,7 +56,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         userId: user.id,
       });
 
-      throw new RateLimitError('Too many disable attempts. Please try again later.');
+      throw new RateLimitError();
     }
 
     // Parse and validate request body
