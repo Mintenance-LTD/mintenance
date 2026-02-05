@@ -164,10 +164,11 @@ export async function POST(request: NextRequest) {
     logger.error('🔍 Edge Function Response:', JSON.stringify({ data, error }, null, 2), { service: 'api' });
 
     if (error) {
+      const err = error as Error;
       const errorDetails = getErrorDetails(error);
       logger.error('Edge Function returned error', {
         service: 'contractor',
-        errorMessage: error?.message,
+        errorMessage: err?.message,
         errorCode: errorDetails.code,
         errorStatus: errorDetails.statusCode,
         hasData: !!data,
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
       // Edge Functions return errors in the data field when status is non-2xx
       // The error object may contain statusCode, message, and the data may contain error details
       // IMPORTANT: When Edge Function returns non-2xx, Supabase client puts the response body in 'data' field
-      let errorMessage = error.message || 'Failed to set up payout account';
+      let errorMessage = err.message || 'Failed to set up payout account';
       let responseErrorDetails: unknown = undefined;
       
       // Try to extract detailed error information from data
@@ -209,7 +210,7 @@ export async function POST(request: NextRequest) {
       // #region agent log
       try {
         const logPath = join(process.cwd(), '.cursor', 'debug.log');
-        appendFileSync(logPath, JSON.stringify({location:'route.ts:100',message:'After error extraction',data:{extractedErrorMessage:errorMessage,hasErrorDetails:!!responseErrorDetails,errorDetailsType:typeof responseErrorDetails,errorDetailsValue:responseErrorDetails ? JSON.stringify(responseErrorDetails).substring(0,1000) : null,originalErrorMessage:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})+'\n', 'utf8');
+        appendFileSync(logPath, JSON.stringify({location:'route.ts:100',message:'After error extraction',data:{extractedErrorMessage:errorMessage,hasErrorDetails:!!responseErrorDetails,errorDetailsType:typeof responseErrorDetails,errorDetailsValue:responseErrorDetails ? JSON.stringify(responseErrorDetails).substring(0,1000) : null,originalErrorMessage:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})+'\n', 'utf8');
       } catch (e) { /* ignore */ }
       // #endregion
       

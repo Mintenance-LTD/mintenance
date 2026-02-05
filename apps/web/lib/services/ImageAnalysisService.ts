@@ -191,9 +191,10 @@ export class ImageAnalysisService {
                   const [result] = await Promise.race([labelPromise, timeoutPromise]) as any;
                   return result;
                 } catch (error: unknown) {
+                  const err = error as Error;
                   logger.warn('Label detection failed for image', {
                     imageUrl,
-                    error: error?.message || 'Unknown error',
+                    error: err?.message || 'Unknown error',
                   });
                   return null;
                 }
@@ -212,9 +213,10 @@ export class ImageAnalysisService {
                   const objectLocalizationResult = await Promise.race([objectPromise, timeoutPromise]) as any;
                   return objectLocalizationResult ? objectLocalizationResult[0] : null;
                 } catch (error: unknown) {
+                  const err = error as Error;
                   logger.warn('Object localization failed for image', {
                     imageUrl,
-                    error: error?.message || 'Unknown error',
+                    error: err?.message || 'Unknown error',
                   });
                   return null;
                 }
@@ -230,9 +232,10 @@ export class ImageAnalysisService {
                   const [result] = await Promise.race([textPromise, timeoutPromise]) as any;
                   return result;
                 } catch (error: unknown) {
+                  const err = error as Error;
                   logger.warn('Text detection failed for image', {
                     imageUrl,
-                    error: error?.message || 'Unknown error',
+                    error: err?.message || 'Unknown error',
                   });
                   return null;
                 }
@@ -241,10 +244,11 @@ export class ImageAnalysisService {
 
             return { imageUrl, labelResult, objectResult, textResult };
           } catch (error: unknown) {
+            const err = error as Error;
             logger.warn('Failed to analyze image - continuing with next image', {
               imageUrl,
-              error: error?.message || 'Unknown error',
-              errorType: error?.constructor?.name,
+              error: err?.message || 'Unknown error',
+              errorType: err?.constructor?.name,
             });
             return { imageUrl, labelResult: null, objectResult: null, textResult: null };
           }

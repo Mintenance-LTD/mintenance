@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       title: z.string().min(1).max(200).transform(val => sanitizeText(val, 200)),
       content: z.string().min(1).max(5000).transform(val => sanitizeMessage(val)),
       announcement_type: z.enum(['general', 'maintenance', 'security', 'feature']).optional(),
-      target_audience: z.enum(['all', 'homeowners', 'contractors', 'admins']).optional(),
+      target_audience: z.enum(['all', 'homeowners', 'contractors', 'verified_contractors']).optional(),
       priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
       is_published: z.boolean().optional(),
       expires_at: z.string().nullable().optional(),
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
       target_audience: target_audience || 'all',
       priority: priority || 'normal',
       is_published: is_published || false,
-      expires_at: expires_at || null,
+      expires_at: expires_at ?? undefined,
       created_by,
     });
 
