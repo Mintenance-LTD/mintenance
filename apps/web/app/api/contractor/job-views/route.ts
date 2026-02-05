@@ -247,13 +247,13 @@ export async function GET(request: NextRequest) {
       }
 
       // Combine views with job data
-      const viewsWithJobs = views.map((view: unknown) => {
-        const job = jobs?.find((j: unknown) => j.id === view.job_id);
+      const viewsWithJobs = views.map((view: Record<string, unknown>) => {
+        const job = jobs?.find((j: Record<string, unknown>) => j.id === view.job_id);
         return {
           ...view,
           job: job || null,
         };
-      }).filter((view: unknown) => view.job !== null); // Filter out views where job was deleted
+      }).filter((view: Record<string, unknown>) => view.job !== null); // Filter out views where job was deleted
 
       return NextResponse.json({ views: viewsWithJobs });
     }

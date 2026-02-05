@@ -34,9 +34,9 @@ const REFRESH_COOKIE = `${COOKIE_PREFIX}mintenance-refresh`;
  */
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting: 5 extensions per 30 minutes (prevents infinite session abuse)
-    const rateLimitResult = await checkRateLimit(request, 'session-extension', 5, 1800); // 5 per 30 min
-    if (!rateLimitResult.success) {
+    // Rate limiting: uses default config (prevents infinite session abuse)
+    const rateLimitResult = await checkRateLimit(request);
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
         {
           success: false,

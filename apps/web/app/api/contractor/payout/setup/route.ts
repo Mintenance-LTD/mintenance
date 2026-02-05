@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     });
 
     // #region agent log
-    logger.debug('🔵 [DEBUG] Before Edge Function invoke:', { userId: user.id, hasServiceRoleKey: !!serviceRoleKey, functionName: 'setup-contractor-payout' }, { service: 'api' });
+    logger.debug('🔵 [DEBUG] Before Edge Function invoke:', { userId: user.id, hasServiceRoleKey: !!serviceRoleKey, functionName: 'setup-contractor-payout', service: 'api' });
     try {
       const logPath = join(process.cwd(), '.cursor', 'debug.log');
       const logDir = join(process.cwd(), '.cursor');
@@ -151,7 +151,8 @@ export async function POST(request: NextRequest) {
       dataKeys: data && typeof data === 'object' ? Object.keys(data) : null,
       errorKeys: error && typeof error === 'object' ? Object.keys(error) : null,
       rawError: error ? JSON.stringify(error, Object.getOwnPropertyNames(error)).substring(0, 1000) : null,
-    }, { service: 'api' });
+      service: 'api',
+    });
     try {
       const logPath = join(process.cwd(), '.cursor', 'debug.log');
       appendFileSync(logPath, JSON.stringify({location:'route.ts:68',message:'After Edge Function invoke',data:{hasData:!!data,hasError:!!error,errorType:error?.constructor?.name,errorName:errorObj?.name,errorMessage:errorObj?.message,errorContext:errorObj?.context,errorStatus:errorObj?.status || errorObj?.statusCode,dataType:typeof data,dataKeys:data && typeof data === 'object' ? Object.keys(data) : null,errorKeys:error && typeof error === 'object' ? Object.keys(error) : null,rawData:data ? JSON.stringify(data).substring(0,1000) : null,rawError:error ? JSON.stringify(error, Object.getOwnPropertyNames(error)).substring(0,1000) : null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})+'\n', 'utf8');
