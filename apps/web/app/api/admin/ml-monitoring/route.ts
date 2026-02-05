@@ -584,7 +584,7 @@ function calculateHealthScore(status: ModelStatus): number {
   // Deduct points for issues
   if (status.pendingCorrections > 500) score -= 10;
   if (status.pendingCorrections > 1000) score -= 10;
-  if (status.activeDrift?.score > 0.3) score -= 15;
+  if ((status.activeDrift?.score ?? 0) > 0.3) score -= 15;
   if (!status.currentModelMetrics || status.currentModelMetrics.f1Score < 0.7) score -= 20;
 
   // Check recency of training

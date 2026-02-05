@@ -113,7 +113,7 @@ export function ContractorProfileRefactored({
           contractor={contractor}
           isOwnProfile={isOwnProfile}
           onEditClick={() => setIsEditing(true)}
-          onImageUpload={async (file) => {
+          onImageUpload={async (file: File) => {
             if (csrfToken) {
               return await uploadProfileImage(file, csrfToken);
             }
