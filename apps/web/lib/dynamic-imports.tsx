@@ -265,9 +265,9 @@ export function reportBundleSize() {
       };
 
       // Send to analytics
-      logger.info('Bundle Performance Metrics:', metrics, { service: 'lib' });
+      logger.info('Bundle Performance Metrics:', { metrics, service: 'lib' });
     } catch (error) {
-      logger.error('Failed to collect bundle metrics:', error, { service: 'lib' });
+      logger.error('Failed to collect bundle metrics:', { error, service: 'lib' });
     }
   }
 }

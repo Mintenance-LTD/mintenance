@@ -111,9 +111,9 @@ export function PayoutsPageClient({
 
   const handleSetupStripeConnect = async () => {
     logger.info('🔵 Setup button clicked', { service: 'ui' });
-    logger.info('🔵 CSRF Token:', csrfToken, { service: 'ui' });
-    logger.info('🔵 CSRF Loading:', csrfLoading, { service: 'ui' });
-    logger.error('🔵 CSRF Error:', csrfError, { service: 'ui' });
+    logger.info('🔵 CSRF Token:', { csrfToken, service: 'ui' });
+    logger.info('🔵 CSRF Loading:', { csrfLoading, service: 'ui' });
+    logger.error('🔵 CSRF Error:', { csrfError, service: 'ui' });
 
     if (!csrfToken) {
       logger.info('🔴 No CSRF token available', { service: 'ui' });
@@ -136,19 +136,19 @@ export function PayoutsPageClient({
         credentials: 'include',
       });
 
-      logger.info('🔵 Response status:', response.status, { service: 'ui' });
+      logger.info('🔵 Response status:', { status: response.status, service: 'ui' });
       const data = await response.json();
-      logger.info('🔵 Response data:', data, { service: 'ui' });
+      logger.info('🔵 Response data:', { data, service: 'ui' });
 
       if (!response.ok) {
-        logger.error('🔴 Response not OK:', data.error, { service: 'ui' });
+        logger.error('🔴 Response not OK:', { error: data.error, service: 'ui' });
         const errorMessage = data.error?.message || data.error || 'Failed to set up payout account';
         throw new Error(errorMessage);
       }
 
       // Redirect to Stripe onboarding
       if (data.accountUrl) {
-        logger.info('🟢 Redirecting to:', data.accountUrl, { service: 'ui' });
+        logger.info('🟢 Redirecting to:', { accountUrl: data.accountUrl, service: 'ui' });
         window.location.href = data.accountUrl;
       } else {
         logger.info('🔴 No accountUrl in response', { service: 'ui' });

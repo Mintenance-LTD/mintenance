@@ -20,11 +20,10 @@ export async function GET(request: NextRequest) {
     // Rate limiting: Configurable for development vs production
     // Development (5s poll): 720/hour, Production (60s poll): 60/hour
     const isDev = process.env.NODE_ENV === 'development';
-    const rateLimit = isDev ? 1000 : 60; // Very permissive in dev for testing
 
-    console.log('[session-status] Rate limit check:', { isDev, rateLimit, nodeEnv: process.env.NODE_ENV });
+    console.log('[session-status] Rate limit check:', { isDev, nodeEnv: process.env.NODE_ENV });
 
-    const rateLimitResult = await checkRateLimit(request, 'session-status', rateLimit, 3600);
+    const rateLimitResult = await checkRateLimit(request);
 
     console.log('[session-status] Rate limit result:', rateLimitResult);
 

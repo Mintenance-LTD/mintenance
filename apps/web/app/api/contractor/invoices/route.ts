@@ -52,8 +52,8 @@ async function generateInvoiceNumber(contractorId: string): Promise<string> {
 }
 
 // Calculate invoice totals
-function calculateTotals(lineItems: unknown[], taxRate: number) {
-  const subtotal = lineItems.reduce((sum, item) => {
+function calculateTotals(lineItems: { quantity: number; unit_price: number }[], taxRate: number) {
+  const subtotal = lineItems.reduce((sum: number, item) => {
     const amount = item.quantity * item.unit_price;
     return sum + amount;
   }, 0);
@@ -382,7 +382,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Recalculate totals if line items changed
-    let updateData: unknown = { ...body };
+    let updateData: Record<string, unknown> = { ...body };
     if (body.lineItems && body.taxRate !== undefined) {
       const { subtotal, taxAmount, totalAmount } = calculateTotals(
         body.lineItems,
@@ -428,7 +428,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 // Helper function to send invoice email (implement with your email service)
-async function sendInvoiceEmail(invoice: unknown, contractor: unknown): Promise<void> {
+async function sendInvoiceEmail(invoice: Record<string, unknown>, contractor: Record<string, unknown>): Promise<void> {
   // TODO: Implement email sending logic
   // This could use SendGrid, AWS SES, or any other email service
 

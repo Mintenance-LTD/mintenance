@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
 /**
  * GET endpoint to check token status
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

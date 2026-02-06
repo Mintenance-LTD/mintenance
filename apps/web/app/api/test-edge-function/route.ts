@@ -3,7 +3,7 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { rateLimiter } from '@/lib/rate-limiter';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

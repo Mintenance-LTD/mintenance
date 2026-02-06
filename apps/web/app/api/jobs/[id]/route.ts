@@ -446,7 +446,7 @@ export async function PUT(request: NextRequest, context: Params) {
 
       // Insert new attachments
       if (payload.images && payload.images.length > 0) {
-        const attachments = payload.images.map(url => ({
+        const attachments = payload.images.map((url: string) => ({
           job_id: jobId,
           file_url: url,
           file_type: 'image',

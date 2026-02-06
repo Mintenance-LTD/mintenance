@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
         service: 'contractor',
         endpoint: '/api/contractor/update-profile',
       });
-      throw new RateLimitError('Too many profile updates. Please try again later');
+      throw new RateLimitError();
     }
 
     // CSRF protection - prevent cross-site attacks
@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
       throw new BadRequestError('Invalid phone number format. Please use UK format (e.g., +44 1234 567890 or 01234 567890)');
     }
 
-    const phone = normalizedPhone || null;
+    const phone = normalizedPhone ?? undefined;
     const isAvailable = validatedData.isAvailable;
     const profileImageFile = formData.get('profileImage') as File | null;
 

@@ -72,7 +72,7 @@ class LicenseValidator {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

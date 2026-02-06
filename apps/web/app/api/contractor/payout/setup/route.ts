@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     });
 
     // #region agent log
-    logger.debug('🔵 [DEBUG] Before Edge Function invoke:', { userId: user.id, hasServiceRoleKey: !!serviceRoleKey, functionName: 'setup-contractor-payout' }, { service: 'api' });
+    logger.debug('🔵 [DEBUG] Before Edge Function invoke:', { userId: user.id, hasServiceRoleKey: !!serviceRoleKey, functionName: 'setup-contractor-payout', service: 'api' });
     try {
       const logPath = join(process.cwd(), '.cursor', 'debug.log');
       const logDir = join(process.cwd(), '.cursor');
@@ -151,7 +151,8 @@ export async function POST(request: NextRequest) {
       dataKeys: data && typeof data === 'object' ? Object.keys(data) : null,
       errorKeys: error && typeof error === 'object' ? Object.keys(error) : null,
       rawError: error ? JSON.stringify(error, Object.getOwnPropertyNames(error)).substring(0, 1000) : null,
-    }, { service: 'api' });
+      service: 'api',
+    });
     try {
       const logPath = join(process.cwd(), '.cursor', 'debug.log');
       appendFileSync(logPath, JSON.stringify({location:'route.ts:68',message:'After Edge Function invoke',data:{hasData:!!data,hasError:!!error,errorType:error?.constructor?.name,errorName:errorObj?.name,errorMessage:errorObj?.message,errorContext:errorObj?.context,errorStatus:errorObj?.status || errorObj?.statusCode,dataType:typeof data,dataKeys:data && typeof data === 'object' ? Object.keys(data) : null,errorKeys:error && typeof error === 'object' ? Object.keys(error) : null,rawData:data ? JSON.stringify(data).substring(0,1000) : null,rawError:error ? JSON.stringify(error, Object.getOwnPropertyNames(error)).substring(0,1000) : null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})+'\n', 'utf8');
@@ -164,10 +165,11 @@ export async function POST(request: NextRequest) {
     logger.error('🔍 Edge Function Response:', JSON.stringify({ data, error }, null, 2), { service: 'api' });
 
     if (error) {
+      const err = error as Error;
       const errorDetails = getErrorDetails(error);
       logger.error('Edge Function returned error', {
         service: 'contractor',
-        errorMessage: error?.message,
+        errorMessage: err?.message,
         errorCode: errorDetails.code,
         errorStatus: errorDetails.statusCode,
         hasData: !!data,
@@ -177,7 +179,7 @@ export async function POST(request: NextRequest) {
       // Edge Functions return errors in the data field when status is non-2xx
       // The error object may contain statusCode, message, and the data may contain error details
       // IMPORTANT: When Edge Function returns non-2xx, Supabase client puts the response body in 'data' field
-      let errorMessage = error.message || 'Failed to set up payout account';
+      let errorMessage = err.message || 'Failed to set up payout account';
       let responseErrorDetails: unknown = undefined;
       
       // Try to extract detailed error information from data
@@ -209,7 +211,7 @@ export async function POST(request: NextRequest) {
       // #region agent log
       try {
         const logPath = join(process.cwd(), '.cursor', 'debug.log');
-        appendFileSync(logPath, JSON.stringify({location:'route.ts:100',message:'After error extraction',data:{extractedErrorMessage:errorMessage,hasErrorDetails:!!responseErrorDetails,errorDetailsType:typeof responseErrorDetails,errorDetailsValue:responseErrorDetails ? JSON.stringify(responseErrorDetails).substring(0,1000) : null,originalErrorMessage:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})+'\n', 'utf8');
+        appendFileSync(logPath, JSON.stringify({location:'route.ts:100',message:'After error extraction',data:{extractedErrorMessage:errorMessage,hasErrorDetails:!!responseErrorDetails,errorDetailsType:typeof responseErrorDetails,errorDetailsValue:responseErrorDetails ? JSON.stringify(responseErrorDetails).substring(0,1000) : null,originalErrorMessage:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E'})+'\n', 'utf8');
       } catch (e) { /* ignore */ }
       // #endregion
       

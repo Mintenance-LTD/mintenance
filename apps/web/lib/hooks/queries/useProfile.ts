@@ -111,7 +111,8 @@ export function useProfile() {
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (failureCount, error: unknown) => {
       // Don't retry if unauthorized
-      if (error?.message?.includes('Unauthorized') || error?.status === 401) {
+      const err = error as Error & { status?: number };
+      if (err?.message?.includes('Unauthorized') || err?.status === 401) {
         return false;
       }
       return failureCount < 2;

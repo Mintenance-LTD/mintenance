@@ -104,7 +104,7 @@ export class FeatureFlagService {
                 this.flags = this.ldClient.allFlags();
 
                 // Listen for flag changes
-                this.ldClient.on('change', (changes) => {
+                this.ldClient.on('change', (changes: Record<string, unknown>) => {
                     logger.info('Feature flags updated', { changes });
                     this.flags = this.ldClient!.allFlags();
                     this.handleFlagChanges(changes);

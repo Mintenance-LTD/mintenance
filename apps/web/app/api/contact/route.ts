@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const rateLimitResult = await checkApiRateLimit(`contact-form:${ip}`);
 
     if (!rateLimitResult.allowed) {
-      throw new RateLimitError('Too many contact form submissions. Please try again later.');
+      throw new RateLimitError();
     }
 
     // Parse and validate request body

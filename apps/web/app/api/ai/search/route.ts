@@ -118,11 +118,12 @@ const { query, filters, limit = 20 } = await request.json();
           resultsCount: jobResults.length + contractorResults.length,
         });
 
-      } catch (embeddingError: unknown) {
+      } catch (embeddingError) {
         clearTimeout(timeout);
+        const error = embeddingError as Error;
 
         // Handle timeout or embedding generation failure
-        if (embeddingError.name === 'AbortError') {
+        if (error.name === 'AbortError') {
           logger.warn('Embedding generation timeout, falling back to full-text search', {
             service: 'ai_search',
             query: query.substring(0, 100),
@@ -132,7 +133,7 @@ const { query, filters, limit = 20 } = await request.json();
           logger.warn('Embedding generation failed, falling back to full-text search', {
             service: 'ai_search',
             query: query.substring(0, 100),
-            error: embeddingError.message,
+            error: error.message,
           });
         }
 

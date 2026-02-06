@@ -129,7 +129,7 @@ export async function PUT(request: NextRequest, context: Params) {
     }
 
     // Build update object
-    const updateData: unknown = {};
+    const updateData: Record<string, unknown> = {};
     if (validatedData.name !== undefined) updateData.name = validatedData.name;
     if (validatedData.issuer !== undefined) updateData.issuer = validatedData.issuer;
     if (validatedData.issueDate !== undefined) updateData.issue_date = validatedData.issueDate;

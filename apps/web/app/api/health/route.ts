@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
  *
  * Security: Does not expose internal configuration details
  */
-export async function GET() {
+export async function GET(request: Request) {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({
     identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,

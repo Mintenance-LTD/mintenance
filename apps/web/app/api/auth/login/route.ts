@@ -37,7 +37,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         service: 'auth',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-      throw new RateLimitError('Too many login attempts. Please try again later.');
+      throw new RateLimitError();
     }
 
     // Validate and sanitize input using Zod schema

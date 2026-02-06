@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
         service: 'auth',
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-      throw new RateLimitError('Too many password reset requests. Please try again later.');
+      throw new RateLimitError();
     }
 
     // Validate and sanitize input using Zod schema

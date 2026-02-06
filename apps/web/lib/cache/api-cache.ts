@@ -348,7 +348,7 @@ export async function getCacheStats(): Promise<{
     const lines = info.split('\r\n');
     const stats: Record<string, string> = {};
 
-    lines.forEach(line => {
+    lines.forEach((line: string) => {
       const [key, value] = line.split(':');
       if (key && value) {
         stats[key] = value;

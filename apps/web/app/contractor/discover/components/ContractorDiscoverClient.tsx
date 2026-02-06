@@ -104,8 +104,9 @@ export function ContractorDiscoverClient({
       lat: (jobs[0] as any).latitude,
       lng: (jobs[0] as any).longitude,
       property: jobs[0].property
-    } : null
-  }, { service: 'ui' });
+    } : null,
+    service: 'ui',
+  });
 
   const router = useRouter();
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
@@ -171,8 +172,9 @@ export function ContractorDiscoverClient({
       logger.info('[CLIENT] Filtering (no contractor location)', {
         input: jobsWithCoordinates.length,
         output: filtered.length,
-        contractorHasLocation: false
-      }, { service: 'ui' });
+        contractorHasLocation: false,
+        service: 'ui',
+      });
       return filtered;
     }
 
@@ -190,8 +192,9 @@ export function ContractorDiscoverClient({
       contractorLocation: {
         lat: contractorLocation.latitude,
         lng: contractorLocation.longitude
-      }
-    }, { service: 'ui' });
+      },
+      service: 'ui',
+    });
 
     return filtered;
   }, [jobsWithCoordinates, selectedRadius, contractorLocation]);
@@ -318,8 +321,9 @@ export function ContractorDiscoverClient({
         lat: j.lat,
         lng: j.lng,
         distance: j.distance
-      }))
-    }, { service: 'ui' });
+      })),
+      service: 'ui',
+    });
 
     setJobsWithCoordinates(jobsWithCoords);
     setIsGeocoding(false);

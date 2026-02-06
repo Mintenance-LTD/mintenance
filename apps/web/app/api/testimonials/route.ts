@@ -38,7 +38,7 @@ export const dynamic = 'force-dynamic';
  * Public API endpoint to fetch featured testimonials for the landing page
  * Returns reviews that are marked as featured and visible
  */
-export async function GET() {
+export async function GET(request: Request) {
     try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({

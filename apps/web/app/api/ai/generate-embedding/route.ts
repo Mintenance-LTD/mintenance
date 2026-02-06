@@ -140,18 +140,19 @@ export async function POST(request: NextRequest) {
 
   } catch (error: unknown) {
     const duration = Date.now() - startTime;
+    const err = error as Error;
 
     logger.error('Embedding generation error', {
       service: 'ai_embedding',
-      error: error?.message || 'Unknown error',
-      errorType: error?.constructor?.name,
+      error: err?.message || 'Unknown error',
+      errorType: err?.constructor?.name,
       durationMs: duration,
     });
 
     return NextResponse.json(
       {
         error: 'Failed to generate embedding',
-        details: process.env.NODE_ENV === 'development' ? error?.message : undefined,
+        details: process.env.NODE_ENV === 'development' ? err?.message : undefined,
       },
       { status: 500 }
     );

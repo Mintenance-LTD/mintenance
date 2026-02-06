@@ -53,11 +53,11 @@ export class AccountHandler {
           user_id: contractorId,
           type: 'stripe_verification_required',
           title: 'Account Verification Required',
-          message: `Please provide additional information to complete your payment account setup. ${account?.requirements.currently_due.length} item(s) required.`,
+          message: `Please provide additional information to complete your payment account setup. ${account.requirements?.currently_due?.length ?? 0} item(s) required.`,
           priority: 'high',
           data: {
             account_id: account.id,
-            requirements: account?.requirements.currently_due,
+            requirements: account.requirements?.currently_due,
           },
           created_at: new Date().toISOString(),
         });

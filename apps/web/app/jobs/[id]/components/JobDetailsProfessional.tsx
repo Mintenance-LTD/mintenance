@@ -219,8 +219,9 @@ export function JobDetailsProfessional({
                   onCorrection={(assessmentId, corrections) => {
                     logger.info('Training data corrections submitted:', {
                       assessmentId,
-                      correctionsCount: corrections.length
-                    }, { service: 'ui' });
+                      correctionsCount: corrections.length,
+                      service: 'ui',
+                    });
                   }}
                 />
               </div>

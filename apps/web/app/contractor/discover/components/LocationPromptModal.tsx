@@ -81,7 +81,7 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
         }
       } catch (err) {
         // Permission API not fully supported, continue anyway
-        logger.warn('Permission API check failed', err, { service: 'ui' });
+        logger.warn('Permission API check failed', { error: err, service: 'ui' });
       }
     }
 
