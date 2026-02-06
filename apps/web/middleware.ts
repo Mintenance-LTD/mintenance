@@ -89,7 +89,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Define public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search'];
+  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search'];
+  // Auth API routes must be public (can't require auth to log in)
+  const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email'];
   // Admin auth routes (login, register, forgot-password) are also public
   const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
   // Public contractor profile pages (e.g., /contractor/[id] for viewing contractor profiles)
@@ -97,8 +99,9 @@ export async function middleware(request: NextRequest) {
   const isPublicContractorProfile = /^\/contractor\/[^\/]+$/.test(pathname);
   // Public contractor listing and detail pages (homeowner-facing)
   const isPublicContractorsPage = /^\/contractors(\/|$)/.test(pathname);
-  const isPublicRoute = pathname === '/' || 
-    publicRoutes.some(route => pathname.startsWith(route)) || 
+  const isPublicRoute = pathname === '/' ||
+    publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
+    publicApiRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
     isPublicContractorProfile ||
     isPublicContractorsPage ||
     adminAuthRoutes.includes(pathname);
@@ -111,7 +114,7 @@ export async function middleware(request: NextRequest) {
     const response = NextResponse.next({ request: { headers: requestHeaders } });
     
     // Generate CSRF token on first visit if not present
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isDevelopment = process.env.NODE_ENV !== 'production';
     const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
     
     if (!request.cookies.get(csrfCookieName)) {
@@ -222,7 +225,7 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Get JWT token from cookies
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isDevelopment = process.env.NODE_ENV !== 'production';
     const authCookieName = isDevelopment ? 'mintenance-auth' : '__Host-mintenance-auth';
     const token = request.cookies.get(authCookieName)?.value;
 
@@ -413,7 +416,7 @@ export async function middleware(request: NextRequest) {
 
     // Validate CSRF token for state-changing requests
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
-      const isDevelopment = process.env.NODE_ENV === 'development';
+      const isDevelopment = process.env.NODE_ENV !== 'production';
       const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
       
       const headerToken = request.headers.get('x-csrf-token');
