@@ -36,11 +36,22 @@ jobs:
         run: npm run build:packages
 
       - name: TypeScript compilation check
-        run: npm run type-check || echo "⚠️ Type errors found - non-blocking while we fix pre-existing errors"
+        run: npm run type-check
+
+      - name: Lint (web)
+        run: npm run lint:web
         continue-on-error: true
 
-      - name: Run unit tests
-        run: npm test -- --coverage --watchAll=false || echo "⚠️ Tests failing - non-blocking while we fix pre-existing issues"
+      - name: Lint (mobile)
+        run: npm run lint:mobile
+        continue-on-error: true
+
+      - name: Run web tests
+        run: npm run test:web -- run --coverage
+        continue-on-error: true
+
+      - name: Run mobile tests
+        run: npm run test:mobile -- --coverage --watchAll=false
         continue-on-error: true
 
       - name: Upload coverage to Codecov
@@ -51,12 +62,6 @@ jobs:
           file: ./coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
-        continue-on-error: true
-
-      - name: Bundle analysis
-        run: |
-          npm install -g @expo/cli
-          expo export --platform android --output-dir dist
         continue-on-error: true
 
       - name: Security audit
