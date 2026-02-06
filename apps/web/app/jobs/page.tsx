@@ -1,5 +1,12 @@
 'use client';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Your Jobs | Mintenance',
+  description: 'View and manage your maintenance jobs, track contractor progress, and post new projects.',
+};
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -24,6 +31,7 @@ import { MotionDiv, MotionButton, MotionSection } from '@/components/ui/MotionDi
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import type { Job } from '@mintenance/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { logger } from '@/lib/logger';
 import { JobCardSkeleton } from '@/components/ui/skeletons';
 
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'draft';
@@ -410,7 +418,7 @@ function JobsPageContent() {
                 // Refresh jobs list
                 window.location.reload();
               } catch (error) {
-                console.error('Error archiving jobs:', error);
+                logger.error('Error archiving jobs', error);
                 alert('Failed to archive some jobs. Please try again.');
               } finally {
                 setBulkActionLoading(false);
@@ -456,7 +464,7 @@ function JobsPageContent() {
                 a.click();
                 URL.revokeObjectURL(url);
               } catch (error) {
-                console.error('Error exporting jobs:', error);
+                logger.error('Error exporting jobs', error);
                 alert('Failed to export jobs. Please try again.');
               } finally {
                 setBulkActionLoading(false);
@@ -489,7 +497,7 @@ function JobsPageContent() {
             // Refresh jobs list
             window.location.reload();
           } catch (error) {
-            console.error('Error deleting jobs:', error);
+            logger.error('Error deleting jobs', error);
             alert('Failed to delete some jobs. Please try again.');
           } finally {
             setBulkActionLoading(false);

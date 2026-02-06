@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@12.18.0';
 import { handleCorsPreflight, createCorsResponse } from '../_shared/cors.ts';
+import { verifyAuth, AuthError, unauthorizedResponse } from '../_shared/auth.ts';
 
 serve(async (req) => {
   // SECURITY: Handle CORS preflight with whitelist-based origin validation
@@ -10,6 +11,9 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: Verify authentication before processing refund
+    const authUser = await verifyAuth(req);
+
     const { transactionId } = await req.json();
     if (!transactionId) throw new Error('transactionId is required');
 
@@ -47,6 +51,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    if (error instanceof AuthError) {
+      return unauthorizedResponse(req, error.message);
+    }
     console.error('Error refunding escrow payment:', error);
     return createCorsResponse(
       req,

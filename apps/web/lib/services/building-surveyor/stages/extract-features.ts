@@ -74,7 +74,7 @@ export async function extractAllFeatures(
     : features;
 
   // Memory adjustments
-  let memoryAdjustments: number[] = [0, 0, 0, 0, 0];
+  const memoryAdjustments: number[] = [0, 0, 0, 0, 0];
   try {
     const memorySystem = memoryManager.getMemorySystem(AGENT_NAME);
     const useTitans = process.env.USE_TITANS === 'true' || false;

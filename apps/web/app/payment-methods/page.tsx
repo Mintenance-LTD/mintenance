@@ -1,5 +1,12 @@
 'use client';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Payment Methods | Mintenance',
+  description: 'Manage your payment methods including credit cards, debit cards, and bank accounts.',
+};
+
 import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';;
 import {

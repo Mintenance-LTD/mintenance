@@ -14,6 +14,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { theme } from '../../theme';
+import { useI18n } from '../../hooks/useI18n';
+import { useHaptics } from '../../utils/haptics';
+import { SearchFilters, PriceRange, LocationRadius, ProjectType } from '../../types/search';
+
 // Temporary mock for Slider until @react-native-community/slider is installed
 interface SliderProps {
   value?: number;
@@ -30,11 +35,6 @@ const Slider: React.FC<SliderProps> = ({ value, onValueChange, minimumValue, max
     </Text>
   </View>
 );
-
-import { theme } from '../../theme';
-import { useI18n } from '../../hooks/useI18n';
-import { useHaptics } from '../../utils/haptics';
-import { SearchFilters, PriceRange, LocationRadius, ProjectType } from '../../types/search';
 
 interface AdvancedSearchFiltersProps {
   visible: boolean;

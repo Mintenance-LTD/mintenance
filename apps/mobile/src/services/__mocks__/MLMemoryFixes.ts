@@ -8,11 +8,11 @@ export interface MLMemoryTracker {
   tensors: unknown[];
   intervals: NodeJS.Timeout[];
   timeouts: NodeJS.Timeout[];
-  eventListeners: Array<{
+  eventListeners: {
     element: any;
     event: string;
     handler: Function;
-  }>;
+  }[];
   models: Map<string, any>;
   startTime: number;
   memoryUsage: number;

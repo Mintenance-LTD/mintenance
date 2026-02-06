@@ -346,7 +346,7 @@ export class PaymentService {
    * Get escrow transactions for a specific job
    */
   static async getJobEscrowTransactions(jobId: string): Promise<
-    Array<PaymentTables['escrow_transactions']['Row'] & { jobId: string }>
+    (PaymentTables['escrow_transactions']['Row'] & { jobId: string })[]
   > {
     const { data, error } = await supabase
       .from('escrow_transactions')

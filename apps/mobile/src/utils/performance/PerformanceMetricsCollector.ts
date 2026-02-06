@@ -208,11 +208,11 @@ export class PerformanceMetricsCollector {
   ): BudgetViolation[] {
     const violations: BudgetViolation[] = [];
 
-    const checks: Array<{
+    const checks: {
       metric: MetricType;
       actual: number;
       budget: number;
-    }> = [
+    }[] = [
       { metric: 'responseTime', actual: metrics.responseTime, budget: budget.budgets.responseTime },
       { metric: 'memoryUsage', actual: metrics.memoryUsage, budget: budget.budgets.memoryUsage },
       { metric: 'cpuUsage', actual: metrics.cpuUsage, budget: budget.budgets.cpuUsage },

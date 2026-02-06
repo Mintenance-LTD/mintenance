@@ -85,7 +85,7 @@ class PerformanceOptimizerService {
   /**
    * Batch multiple operations
    */
-  public batchOperations(operations: Array<() => void>): void {
+  public batchOperations(operations: (() => void)[]): void {
     InteractionManager.runAfterInteractions(() => {
       operations.forEach(op => op());
     });

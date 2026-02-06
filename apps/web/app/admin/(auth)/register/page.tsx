@@ -12,6 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Register | Mintenance Admin',
+  description: 'Create a new Mintenance admin account. Only @mintenance.co.uk email addresses are permitted.',
+};
 
 const adminRegisterSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),

@@ -4,6 +4,9 @@
  * Provides consolidated access to AR/VR visualization functionality
  */
 
+// Create and export singleton instance
+import { ARVRVisualizationService } from './core/ARVRVisualizationService';
+
 export { ARVRVisualizationService } from './core/ARVRVisualizationService';
 export { ARManager } from './managers/ARManager';
 export { VRManager } from './managers/VRManager';
@@ -37,8 +40,5 @@ export type {
   ARVRInteraction,
   ARVRPerformanceMetrics
 } from './types/SessionTypes';
-
-// Create and export singleton instance
-import { ARVRVisualizationService } from './core/ARVRVisualizationService';
 export const arvrVisualizationService = new ARVRVisualizationService();
 export default arvrVisualizationService;

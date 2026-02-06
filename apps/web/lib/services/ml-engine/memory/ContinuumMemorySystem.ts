@@ -197,7 +197,7 @@ export class ContinuumMemorySystem {
    */
   async processWithTitans(input: number[]): Promise<number[]> {
     // First, process through continuum memory (existing)
-    let processed = await this.process(input);
+    const processed = await this.process(input);
     
     if (!this.useTitans) {
       return processed;

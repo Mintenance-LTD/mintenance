@@ -398,7 +398,7 @@ class SecurityManagerService {
    * Generate security report
    */
   public generateSecurityReport(): {
-    rateLimitStatus: Array<{ identifier: string; count: number; resetTime: number }>;
+    rateLimitStatus: { identifier: string; count: number; resetTime: number }[];
     securityConfig: typeof SECURITY_CONFIG;
   } {
     const rateLimitStatus = Array.from(this.rateLimitMap.entries()).map(([identifier, data]) => ({

@@ -46,11 +46,11 @@ export interface MarketRateAnalysis {
 export interface CostOptimizationSuggestion {
   potentialSavings: number;
   recommendations: string[];
-  alternativeMaterials: Array<{
+  alternativeMaterials: {
     material: string;
     costDifference: number;
     qualityImpact: 'none' | 'minimal' | 'moderate' | 'significant';
-  }>;
+  }[];
   timingRecommendations: string[];
 }
 

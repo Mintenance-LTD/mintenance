@@ -1,6 +1,12 @@
+import type { Metadata } from 'next';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { theme } from '@/lib/theme';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+
+export const metadata: Metadata = {
+  title: 'Financials | Mintenance',
+  description: 'Manage your payments, subscriptions, invoices, and billing overview for property maintenance.',
+};
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';

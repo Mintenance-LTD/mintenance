@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { CRMDashboardEnhanced } from './components/CRMDashboardEnhanced';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+
+export const metadata: Metadata = {
+  title: 'Contractor CRM Dashboard | Mintenance',
+  description: 'Manage your client relationships, track jobs, and view analytics for your contracting business.',
+};
 
 export default async function CRMDashboardPage() {
   const user = await getCurrentUserFromCookies();

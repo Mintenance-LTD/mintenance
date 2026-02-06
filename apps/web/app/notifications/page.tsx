@@ -1,5 +1,12 @@
 'use client';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Notifications | Mintenance',
+  description: 'View your notifications for job updates, new bids, messages, and payment alerts.',
+};
+
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
 import { useRouter } from 'next/navigation';

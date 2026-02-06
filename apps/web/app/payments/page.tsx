@@ -1,5 +1,12 @@
 'use client';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Payments | Mintenance',
+  description: 'View your payment history, manage escrow transactions, and download receipts.',
+};
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';

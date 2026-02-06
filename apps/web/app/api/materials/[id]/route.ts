@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { materialsService } from '@/lib/services/MaterialsService';
+import { logger } from '@mintenance/shared';
 
 /**
  * GET /api/materials/[id] - Get a single material by ID
@@ -30,7 +31,7 @@ export async function GET(
 
     return NextResponse.json(material);
   } catch (error: any) {
-    console.error('GET /api/materials/[id] exception:', error);
+    logger.error('GET /api/materials/[id] exception', error);
     return NextResponse.json(
       { error: 'Failed to fetch material', details: error.message },
       { status: 500 }
@@ -73,7 +74,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedMaterial);
   } catch (error: any) {
-    console.error('PATCH /api/materials/[id] exception:', error);
+    logger.error('PATCH /api/materials/[id] exception', error);
     return NextResponse.json(
       { error: 'Failed to update material', details: error.message },
       { status: 500 }
@@ -112,7 +113,7 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('DELETE /api/materials/[id] exception:', error);
+    logger.error('DELETE /api/materials/[id] exception', error);
     return NextResponse.json(
       { error: 'Failed to delete material', details: error.message },
       { status: 500 }

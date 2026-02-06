@@ -8,7 +8,13 @@ import { logger } from '@mintenance/shared';
 // Configuration
 const CSRF_COOKIE_NAME = 'csrf-token';
 const CSRF_HEADER_NAME = 'X-CSRF-Token';
-const CSRF_SECRET_KEY = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('base64');
+const CSRF_SECRET_KEY = (() => {
+  const secret = process.env.CSRF_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('CSRF_SECRET environment variable is required in production');
+  }
+  return secret || crypto.randomBytes(32).toString('base64');
+})();
 const TOKEN_LENGTH = 32;
 const TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 // Methods that require CSRF protection
@@ -261,18 +267,6 @@ export function getClientCSRFToken(): string | null {
     .split('; ')
     .find(row => row.startsWith(`${CSRF_COOKIE_NAME}=`));
   return cookie ? cookie.split('=')[1] : null;
-}
-/**
- * Axios interceptor for automatic CSRF token injection
- */
-export function setupAxiosCSRF(axios: unknown): void {
-  axios.interceptors.request.use((config: Record<string, unknown>) => {
-    const token = getClientCSRFToken();
-    if (token && PROTECTED_METHODS.includes(config.method?.toUpperCase())) {
-      config.headers[CSRF_HEADER_NAME] = token;
-    }
-    return config;
-  });
 }
 // Export a singleton token manager
 class CSRFTokenManager {

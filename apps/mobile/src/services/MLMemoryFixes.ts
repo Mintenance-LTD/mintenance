@@ -12,11 +12,11 @@ export interface MLMemoryTracker {
   tensors: tf.Tensor[];
   intervals: NodeJS.Timeout[];
   timeouts: NodeJS.Timeout[];
-  eventListeners: Array<{
+  eventListeners: {
     element: unknown;
     event: string;
     handler: Function;
-  }>;
+  }[];
   models: Map<string, tf.LayersModel>;
   startTime: number;
   memoryUsage: number;
@@ -29,7 +29,7 @@ export interface MLMemoryTracker {
 export class MLMemoryManager {
   private static instance: MLMemoryManager;
   private componentTrackers = new Map<string, MLMemoryTracker>();
-  private globalCleanupTasks: Array<() => Promise<void>> = [];
+  private globalCleanupTasks: (() => Promise<void>)[] = [];
   private memoryCheckInterval?: NodeJS.Timeout;
   private tensorCountThreshold = 50;
   private memoryThreshold = 100 * 1024 * 1024; // 100MB

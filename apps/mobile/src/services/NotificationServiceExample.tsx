@@ -9,8 +9,8 @@ import React, { useEffect, useCallback } from 'react';
 import { NotificationService } from './NotificationService';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
-import { useNavigationContainerRef } from '@react-navigation/native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useNavigationContainerRef , useFocusEffect } from '@react-navigation/native';
+
 import * as Notifications from 'expo-notifications';
 
 // ============================================================================

@@ -141,7 +141,7 @@ export default function ContractorSettingsPage() {
     if (user && activeSection === 'payments') {
       loadPaymentMethods();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user, activeSection]);
 
   const loadPaymentMethods = async () => {

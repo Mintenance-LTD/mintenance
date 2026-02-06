@@ -304,13 +304,13 @@ export class FormAnalyticsService {
     dateRange: { start: string; end: string }
   ): Promise<{
     summary: JobSheetSummaryStats;
-    template_performance: Array<{
+    template_performance: {
       template_name: string;
       usage_count: number;
       average_completion_time: number;
       error_rate: number;
       completion_rate: number;
-    }>;
+    }[];
     trends: DatabaseFormTrendsRow[];
   }> {
     try {

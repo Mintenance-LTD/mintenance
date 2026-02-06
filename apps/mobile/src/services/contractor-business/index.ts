@@ -9,13 +9,6 @@
  */
 
 // Export all types
-export * from './types';
-
-// Export all domain services
-export { BusinessAnalyticsService } from './BusinessAnalyticsService';
-export { FinancialManagementService } from './FinancialManagementService';
-export { ScheduleManagementService } from './ScheduleManagementService';
-export { ResourceManagementService } from './ResourceManagementService';
 // Import all services for unified interface
 import { BusinessAnalyticsService } from './BusinessAnalyticsService';
 import { FinancialManagementService } from './FinancialManagementService';
@@ -24,6 +17,17 @@ import { ResourceManagementService } from './ResourceManagementService';
 import { MarketingManagementService } from '../marketing-management';
 import { ClientManagementService } from '../client-management';
 import { GoalManagementService } from '../goal-management';
+
+// Import types from their respective modules
+import type { Client } from '../client-management/types';
+import type { Invoice, ContractorSchedule } from './types';
+export * from './types';
+
+// Export all domain services
+export { BusinessAnalyticsService } from './BusinessAnalyticsService';
+export { FinancialManagementService } from './FinancialManagementService';
+export { ScheduleManagementService } from './ScheduleManagementService';
+export { ResourceManagementService } from './ResourceManagementService';
 
 // Re-export for backward compatibility
 export { MarketingManagementService } from '../marketing-management';
@@ -34,10 +38,6 @@ export { GoalManagementService } from '../goal-management';
 const marketingService = new MarketingManagementService();
 const clientService = new ClientManagementService();
 const goalService = new GoalManagementService();
-
-// Import types from their respective modules
-import type { Client } from '../client-management/types';
-import type { Invoice, ContractorSchedule } from './types';
 
 // InventoryItem type (matches ResourceManagementService internal type)
 interface InventoryItem {

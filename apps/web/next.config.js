@@ -19,7 +19,7 @@ if (process.env.NODE_ENV !== 'test') {
     if (error instanceof Error && error.message) {
       logger.error('Log output', error.message, { service: 'general' });
     }
-    logger.error('\n❌ Build failed: Environment validation error', error, { service: 'general' });
+    logger.error('Build failed: Environment validation error', error, { service: 'general' });
     process.exit(1);
   }
 }

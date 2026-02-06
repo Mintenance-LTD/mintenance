@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContractorLayoutShell } from '../../components/ContractorLayoutShell';
 import { PayoutSuccessClient } from './components/PayoutSuccessClient';
+
+export const metadata: Metadata = {
+  title: 'Contractor Payout Setup Complete | Mintenance',
+  description: 'Your payout account has been successfully configured. You are ready to receive payments.',
+};
 
 export default async function PayoutSuccessPage() {
   const user = await getCurrentUserFromCookies();

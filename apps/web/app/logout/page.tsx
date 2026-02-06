@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { authManager } from '@/lib/auth-manager';
 import { logger } from '@mintenance/shared';
 import { cookies } from 'next/headers';
+
+export const metadata: Metadata = {
+  title: 'Sign Out | Mintenance',
+  description: 'Sign out of your Mintenance account securely.',
+};
 
 // Mark as dynamic since we use cookies()
 export const dynamic = 'force-dynamic';

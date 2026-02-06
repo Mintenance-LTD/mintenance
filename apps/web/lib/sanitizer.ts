@@ -20,7 +20,7 @@ function getPurify(): typeof DOMPurify {
   // Server-side: Only executed in Node.js environment
   // This code path should never be reached in client bundles
   // Using string-based require to prevent static analysis by bundlers
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+   
   const requireFunc = typeof require !== 'undefined' ? require : null;
   if (!requireFunc) {
     throw new Error('require is not available - this should only run server-side');

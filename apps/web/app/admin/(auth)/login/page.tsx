@@ -13,6 +13,12 @@ import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Sign In | Mintenance Admin',
+  description: 'Sign in to the Mintenance admin portal to manage the property maintenance platform.',
+};
 
 const adminLoginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),

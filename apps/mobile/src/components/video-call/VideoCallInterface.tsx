@@ -13,6 +13,13 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { theme } from '../../theme';
+import { haptics } from '../../utils/haptics';
+import { VideoCallService, VideoCall, CallSession, CallParticipant } from '../../services/VideoCallService';
+import { useAuth } from '../../contexts/AuthContext';
+import { performanceMonitor } from '../../utils/performanceMonitor';
+import { logger } from '../../utils/logger';
 
 // Temporary mock for Camera until expo-camera is installed
 const Camera = {
@@ -30,13 +37,6 @@ const Audio = {
   requestPermissionsAsync: () => Promise.resolve({ granted: false }),
   setAudioModeAsync: () => Promise.resolve()
 };
-import { LinearGradient } from 'expo-linear-gradient';
-import { theme } from '../../theme';
-import { haptics } from '../../utils/haptics';
-import { VideoCallService, VideoCall, CallSession, CallParticipant } from '../../services/VideoCallService';
-import { useAuth } from '../../contexts/AuthContext';
-import { performanceMonitor } from '../../utils/performanceMonitor';
-import { logger } from '../../utils/logger';
 
 interface VideoCallInterfaceProps {
   callId: string;

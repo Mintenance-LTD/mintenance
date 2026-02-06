@@ -236,7 +236,7 @@ function demo4GradientClipping() {
 
   log('Demonstrating gradient clipping with large gradients', 'blue');
 
-  let { weights, biases } = initializeWeights([2, 1]);
+  const { weights, biases } = initializeWeights([2, 1]);
 
   // Create scenario with potentially large gradients
   const config: BackpropConfig = {

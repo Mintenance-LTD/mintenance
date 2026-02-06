@@ -4,10 +4,14 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { createClient, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
  * Payload for realtime database changes
@@ -147,7 +151,8 @@ export function useRealtime(config?: RealtimeConfig) {
     return () => {
       unsubscribe();
     };
-  }, [config?.table, config?.filter]); // Re-subscribe when table or filter changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- subscribe/unsubscribe are stable refs
+  }, [config?.table, config?.filter, subscribe, unsubscribe]);
 
   return {
     status,

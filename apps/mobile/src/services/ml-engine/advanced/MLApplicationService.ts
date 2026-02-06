@@ -37,7 +37,7 @@ interface JobData {
 
 interface ContractorProfile {
   skills: string[];
-  preferredAreas: Array<{ lat: number; lng: number; radius: number }>;
+  preferredAreas: { lat: number; lng: number; radius: number }[];
   hourlyRate: number;
   experience: {
     level: number;
@@ -47,11 +47,11 @@ interface ContractorProfile {
     weekdays: boolean[];
     hours: { start: number; end: number };
   };
-  jobHistory: Array<{
+  jobHistory: {
     category: string;
     rating: number;
     completedAt: number;
-  }>;
+  }[];
 }
 
 interface LocationData {
@@ -103,10 +103,10 @@ export class MLApplicationService {
     },
     contractors: ContractorData[],
     limit: number = 10
-  ): Promise<Array<{ contractor: ContractorData; score: number; explanation: string }>> {
+  ): Promise<{ contractor: ContractorData; score: number; explanation: string }[]> {
 
     try {
-      const results: Array<{ contractor: ContractorData; score: number; explanation: string }> = [];
+      const results: { contractor: ContractorData; score: number; explanation: string }[] = [];
 
       for (const contractor of contractors) {
         // Prepare features for ML model
@@ -154,10 +154,10 @@ export class MLApplicationService {
     contractorProfile: ContractorProfile,
     availableJobs: JobData[],
     limit: number = 20
-  ): Promise<Array<{ job: JobData; score: number; reasons: string[] }>> {
+  ): Promise<{ job: JobData; score: number; reasons: string[] }[]> {
 
     try {
-      const results: Array<{ job: JobData; score: number; reasons: string[] }> = [];
+      const results: { job: JobData; score: number; reasons: string[] }[] = [];
 
       for (const job of availableJobs) {
         // Prepare features
@@ -211,7 +211,7 @@ export class MLApplicationService {
     estimatedPrice: number;
     priceRange: { min: number; max: number };
     confidence: number;
-    factors: Array<{ factor: string; impact: number }>;
+    factors: { factor: string; impact: number }[];
   }> {
 
     try {
@@ -402,7 +402,7 @@ export class MLApplicationService {
   // Placeholder calculation methods
   private calculateLocationPreference(
     jobLocation: { lat: number; lng: number },
-    preferredAreas: Array<{ lat: number; lng: number; radius: number }>
+    preferredAreas: { lat: number; lng: number; radius: number }[]
   ): number {
     return Math.random();
   }
@@ -419,7 +419,7 @@ export class MLApplicationService {
   }
 
   private calculateHistoricalSuccess(
-    jobHistory: Array<{ category: string; rating: number; completedAt: number }>,
+    jobHistory: { category: string; rating: number; completedAt: number }[],
     category: string
   ): number {
     return Math.random();

@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import PropertyDetailsClient from './components/PropertyDetailsClient';
+
+export const metadata: Metadata = {
+  title: 'Property Details | Mintenance',
+  description: 'View property details, maintenance history, job stats, and manage upkeep for your property.',
+};
 
 interface ContractorProfile {
   first_name: string;

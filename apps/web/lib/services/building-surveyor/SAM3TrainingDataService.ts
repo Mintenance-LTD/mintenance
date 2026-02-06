@@ -524,10 +524,10 @@ export class SAM3TrainingDataService {
         baseDataset: 0,
       };
 
-      let totalConfidence = 0;
-      let humanVerifiedCount = 0;
-      let sam3EnhancedCount = 0;
-      let totalSamples = 0;
+      const totalConfidence = 0;
+      const humanVerifiedCount = 0;
+      const sam3EnhancedCount = 0;
+      const totalSamples = 0;
 
       // TODO: Implement actual export logic
       // This would involve:

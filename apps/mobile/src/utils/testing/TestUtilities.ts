@@ -174,11 +174,11 @@ export class IntegrationTester {
 
   async testUserFlow(
     name: string,
-    steps: Array<{
+    steps: {
       description: string;
       action: () => Promise<void> | void;
       assertions?: () => void;
-    }>
+    }[]
   ): Promise<void> {
     const endTest = this.performanceTester.startTest(`flow_${name}`);
 

@@ -134,7 +134,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
         setAmount(newAmount);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     // Intentionally excluding 'amount' from deps to prevent infinite loop
   }, [totalAmount, lineItems.length, subtotal]);
 

@@ -17,7 +17,7 @@ interface QuoteHeaderProps {
   setProjectTitle: (title: string) => void;
   onTemplatePress: () => void;
   selectedTemplate: string;
-  templates: Array<{ id: string; name: string }>;
+  templates: { id: string; name: string }[];
 }
 
 export const QuoteHeader: React.FC<QuoteHeaderProps> = ({

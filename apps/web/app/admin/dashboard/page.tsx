@@ -7,6 +7,12 @@ import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Dashboard | Mintenance Admin',
+  description: 'Admin dashboard overview with revenue trends, user distribution, job activity, and platform metrics.',
+};
 
 // Dynamic imports for Tremor charts - lazy load heavy charting library
 const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {

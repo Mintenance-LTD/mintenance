@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { JobSignOffClient } from './components/JobSignOffClient';
 import { redirect } from 'next/navigation';
 import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
+
+export const metadata: Metadata = {
+  title: 'Job Sign-Off | Mintenance',
+  description: 'Review and sign off on completed maintenance work. Finalize the job and release payment.',
+};
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

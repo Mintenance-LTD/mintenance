@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { JobDetailsClient } from '../components/JobDetailsClient';
 import { logger } from '@mintenance/shared';
+
+export const metadata: Metadata = {
+  title: 'View Job | Mintenance',
+  description: 'View detailed job information, homeowner details, and submit your bid on Mintenance.',
+};
 
 export default async function ContractorJobDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;

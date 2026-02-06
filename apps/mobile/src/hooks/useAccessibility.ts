@@ -38,10 +38,10 @@ export interface AccessibilityPreferences {
     now?: number;
     text?: string;
   };
-  accessibilityActions?: Array<{
+  accessibilityActions?: {
     name: string;
     label?: string;
-  }>;
+  }[];
 }
 
 // ============================================================================

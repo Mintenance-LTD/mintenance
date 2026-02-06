@@ -68,10 +68,11 @@ export async function GET(request: NextRequest) {
     // SECURITY: Sanitize search input to prevent SQL injection
     if (search) {
       // Escape SQL wildcards and limit input length
+      // SECURITY: Sanitize search input to prevent PostgREST filter injection
+      // Strip all characters except alphanumeric, spaces, hyphens, apostrophes, @, and periods for emails
       const sanitizedSearch = search
-        .replace(/[%_\\]/g, '\\$&') // Escape SQL wildcards (%, _, \)
-        .substring(0, 100) // Limit to 100 characters
-        .toLowerCase()
+        .replace(/[^a-zA-Z0-9\s\-'@.]/g, '') // Whitelist safe characters only
+        .substring(0, 100)
         .trim();
 
       if (sanitizedSearch.length > 0) {

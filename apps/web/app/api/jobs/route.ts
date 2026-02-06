@@ -282,7 +282,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Try to fetch building assessments (will silently fail if job_id column doesn't exist yet)
-    let assessmentsByJobId = new Map<string, AIAssessmentData>();
+    const assessmentsByJobId = new Map<string, AIAssessmentData>();
     if (jobIds.length > 0) {
       try {
         // Check if job_id column exists first

@@ -18,6 +18,8 @@ import { BookingError } from './BookingError';
 import { CancellationModal } from './CancellationModal';
 import { BookingService } from './BookingService';
 
+import { RootStackParamList } from '../../navigation/types';
+
 interface BookingStatusParams {
   jobId?: string;
 }
@@ -46,8 +48,6 @@ export interface Booking {
   estimatedDuration: string;
   specialInstructions?: string;
 }
-
-import { RootStackParamList } from '../../navigation/types';
 
 export const BookingStatusScreen: React.FC<{
   route?: RouteProp<{ params: BookingStatusParams }>;

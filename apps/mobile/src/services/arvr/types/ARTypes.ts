@@ -94,19 +94,19 @@ export interface ARLightingSetup {
     color: { r: number; g: number; b: number };
     intensity: number;
   };
-  directionalLights: Array<{
+  directionalLights: {
     direction: { x: number; y: number; z: number };
     color: { r: number; g: number; b: number };
     intensity: number;
     castShadows: boolean;
-  }>;
-  pointLights: Array<{
+  }[];
+  pointLights: {
     position: { x: number; y: number; z: number };
     color: { r: number; g: number; b: number };
     intensity: number;
     range: number;
     castShadows: boolean;
-  }>;
+  }[];
   environmentMap?: string;
   shadowSettings: {
     enabled: boolean;

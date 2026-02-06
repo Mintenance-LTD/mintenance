@@ -424,9 +424,9 @@ export class FinancialManagementService {
         throw ServiceErrorHandler.handleDatabaseError(outstandingError, context);
       }
 
-      const typedPaidInvoices = (paidInvoices || []) as Array<Pick<DatabaseInvoiceRow, 'total_amount'>>;
-      const typedExpenses = (expenses || []) as Array<Pick<DatabaseExpenseRow, 'amount'>>;
-      const typedOutstandingInvoices = (outstandingInvoices || []) as Array<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>>;
+      const typedPaidInvoices = (paidInvoices || []) as Pick<DatabaseInvoiceRow, 'total_amount'>[];
+      const typedExpenses = (expenses || []) as Pick<DatabaseExpenseRow, 'amount'>[];
+      const typedOutstandingInvoices = (outstandingInvoices || []) as Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date'>[];
 
       const totalRevenue = typedPaidInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
       const totalExpenses = typedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -540,19 +540,19 @@ export class FinancialManagementService {
     yearlyProjection: number;
     outstandingInvoices: number;
     overdueAmount: number;
-    profitTrends: Array<{
+    profitTrends: {
       month: string;
       revenue: number;
       expenses: number;
       profit: number;
-    }>;
+    }[];
     taxObligations: number;
-    cashFlowForecast: Array<{
+    cashFlowForecast: {
       week: string;
       projectedIncome: number;
       projectedExpenses: number;
       netFlow: number;
-    }>;
+    }[];
   }> {
     const context = {
       service: 'FinancialManagementService',
@@ -627,12 +627,12 @@ export class FinancialManagementService {
   /**
    * Get expense categories for reporting
    */
-  static async getExpenseCategories(contractorId: string): Promise<Array<{
+  static async getExpenseCategories(contractorId: string): Promise<{
     category: string;
     totalAmount: number;
     count: number;
     taxDeductibleAmount: number;
-  }>> {
+  }[]> {
     const context = {
       service: 'FinancialManagementService',
       method: 'getExpenseCategories',
@@ -659,7 +659,7 @@ export class FinancialManagementService {
         taxDeductibleAmount: number;
       }>();
 
-      const typedExpenses = (expenses || []) as Array<Pick<DatabaseExpenseRow, 'category' | 'amount' | 'tax_deductible'>>;
+      const typedExpenses = (expenses || []) as Pick<DatabaseExpenseRow, 'category' | 'amount' | 'tax_deductible'>[];
 
       typedExpenses.forEach((expense) => {
         const existing = categoryMap.get(expense.category) || {
@@ -731,7 +731,7 @@ export class FinancialManagementService {
         .gte('paid_date', startDate.toISOString())
         .lte('paid_date', endDate.toISOString());
 
-      const typedInvoices = (invoices || []) as Array<Pick<DatabaseInvoiceRow, 'total_amount'>>;
+      const typedInvoices = (invoices || []) as Pick<DatabaseInvoiceRow, 'total_amount'>[];
       const monthlyRev = typedInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
       results.push(monthlyRev);
     }
@@ -765,7 +765,7 @@ export class FinancialManagementService {
 
     if (error) return { outstandingInvoices: 0, overdueAmount: 0 };
 
-    const typedInvoices = (invoices || []) as Array<Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>>;
+    const typedInvoices = (invoices || []) as Pick<DatabaseInvoiceRow, 'total_amount' | 'due_date' | 'status'>[];
 
     const outstanding = typedInvoices.reduce((sum, inv) => sum + inv.total_amount, 0);
     const overdue = typedInvoices
@@ -775,12 +775,12 @@ export class FinancialManagementService {
     return { outstandingInvoices: outstanding, overdueAmount: overdue };
   }
 
-  private static async getProfitTrends(contractorId: string, months: number): Promise<Array<{
+  private static async getProfitTrends(contractorId: string, months: number): Promise<{
     month: string;
     revenue: number;
     expenses: number;
     profit: number;
-  }>> {
+  }[]> {
     return Array.from({ length: months }, (_, i) => {
       const month = new Date();
       month.setMonth(month.getMonth() - (months - 1 - i));
@@ -801,12 +801,12 @@ export class FinancialManagementService {
     return Math.floor(Math.random() * 2000) + 500;
   }
 
-  private static async generateCashFlowForecast(contractorId: string, weeks: number): Promise<Array<{
+  private static async generateCashFlowForecast(contractorId: string, weeks: number): Promise<{
     week: string;
     projectedIncome: number;
     projectedExpenses: number;
     netFlow: number;
-  }>> {
+  }[]> {
     return Array.from({ length: weeks }, (_, i) => {
       const week = new Date();
       week.setDate(week.getDate() + i * 7);

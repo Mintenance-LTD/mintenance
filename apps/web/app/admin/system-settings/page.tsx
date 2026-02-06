@@ -20,6 +20,12 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'System Settings | Mintenance Admin',
+  description: 'Configure platform settings including general options, email, payments, security, and API integrations.',
+};
 
 // Animation variants
 const fadeIn = {

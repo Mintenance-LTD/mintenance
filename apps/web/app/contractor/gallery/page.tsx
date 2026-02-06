@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 import { ContractorGalleryClient } from './components/ContractorGalleryClient';
+
+export const metadata: Metadata = {
+  title: 'Contractor Work Gallery | Mintenance',
+  description: 'Browse and manage your project photos and showcase your completed work to potential clients.',
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

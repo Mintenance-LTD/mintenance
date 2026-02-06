@@ -84,7 +84,7 @@ export class MonitoringAndAlerting {
 
   private monitoringInterval?: NodeJS.Timeout;
   private isInitialized = false;
-  private alertListeners: Array<(alert: Alert) => void> = [];
+  private alertListeners: ((alert: Alert) => void)[] = [];
 
   static getInstance(): MonitoringAndAlerting {
     if (!this.instance) {

@@ -84,13 +84,13 @@ export interface ErrorRecommendation {
 
 export interface ErrorTrend {
   period: '1h' | '6h' | '24h' | '7d' | '30d';
-  data: Array<{
+  data: {
     timestamp: number;
     count: number;
     uniqueUsers: number;
     severity: Record<ErrorSeverity, number>;
     category: Record<ErrorCategory, number>;
-  }>;
+  }[];
   summary: {
     totalErrors: number;
     uniqueUsers: number;

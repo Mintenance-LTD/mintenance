@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
@@ -14,6 +15,11 @@ import Link from 'next/link';
 import { JobProgressBar } from './components/JobProgressBar';
 import { JobPhotoUpload } from './components/JobPhotoUpload';
 import { CompanyInfoCard } from './components/CompanyInfoCard';
+
+export const metadata: Metadata = {
+  title: 'Job Details | Mintenance',
+  description: 'View and manage your assigned job details, progress, scheduling, and homeowner communication.',
+};
 
 // Helper function to get Lucide icon component from icon name
 function getStatusIconComponent(iconName: string): LucideIcon {

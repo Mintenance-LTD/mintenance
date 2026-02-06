@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { theme } from '@/lib/theme';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Contractor Support | Mintenance',
+  description: 'Get help with your Mintenance contractor account. Contact support, browse guides, and find answers.',
+};
 
 export default function ContractorSupportPage() {
   return (

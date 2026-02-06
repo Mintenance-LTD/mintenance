@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
     // Development (5s poll): 720/hour, Production (60s poll): 60/hour
     const isDev = process.env.NODE_ENV === 'development';
 
-    console.log('[session-status] Rate limit check:', { isDev, nodeEnv: process.env.NODE_ENV });
+    logger.debug('[session-status] Rate limit check', { isDev, nodeEnv: process.env.NODE_ENV });
 
     const rateLimitResult = await checkRateLimit(request);
 
-    console.log('[session-status] Rate limit result:', rateLimitResult);
+    logger.debug('[session-status] Rate limit result', { rateLimitResult });
 
     if (!rateLimitResult.allowed) {
       return NextResponse.json(

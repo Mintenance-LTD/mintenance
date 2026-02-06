@@ -100,7 +100,11 @@ class TokenBlacklist {
       }
     } catch (error) {
       logger.error('Failed to check token blacklist', error, { service: 'auth' });
-      // On error, assume token is not blacklisted (fail open for availability)
+      // SECURITY: Fail closed in production - treat as blacklisted when we can't verify
+      if (process.env.NODE_ENV === 'production') {
+        return true;
+      }
+      // In development, fail open for developer convenience
       return false;
     }
   }

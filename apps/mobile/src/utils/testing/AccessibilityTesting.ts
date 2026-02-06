@@ -6,12 +6,12 @@
 import { RenderResult } from '@testing-library/react-native';
 
 export interface TestAccessibilityResult {
-  violations: Array<{
+  violations: {
     type: 'missing_label' | 'low_contrast' | 'invalid_role' | 'missing_hint';
     element: string;
     severity: 'low' | 'medium' | 'high';
     suggestion: string;
-  }>;
+  }[];
   score: number; // 0-100
   passedChecks: number;
   totalChecks: number;

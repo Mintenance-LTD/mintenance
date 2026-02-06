@@ -413,7 +413,7 @@ export class ImageCompressionService {
   static async generateMultipleThumbnails(
     imageUri: string,
     sizes: number[] = [100, 200, 400]
-  ): Promise<Array<{ size: number; uri: string }>> {
+  ): Promise<{ size: number; uri: string }[]> {
     try {
       const thumbnails = await Promise.all(
         sizes.map(async (size) => ({

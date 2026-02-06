@@ -4,6 +4,13 @@
 // ============================================================================
 
 // Core classes
+// ============================================================================
+// HOOKS & UTILITIES
+// ============================================================================
+
+import { performanceMonitor } from './PerformanceMonitor';
+import { PerformanceMetric } from './types';
+
 export { PerformanceMonitor, performanceMonitor } from './PerformanceMonitor';
 export { MetricsCollector } from './MetricsCollector';
 export { BudgetEnforcer } from './BudgetEnforcer';
@@ -12,13 +19,6 @@ export { Reporter } from './Reporter';
 
 // All types
 export * from './types';
-
-// ============================================================================
-// HOOKS & UTILITIES
-// ============================================================================
-
-import { performanceMonitor } from './PerformanceMonitor';
-import { PerformanceMetric } from './types';
 
 // Decorator for measuring function performance
 export function measurePerformance(

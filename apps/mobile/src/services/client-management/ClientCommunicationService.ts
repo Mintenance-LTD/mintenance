@@ -168,7 +168,7 @@ export class ClientCommunicationService {
   /**
    * Get communication history for client
    */
-  async getClientCommunicationHistory(clientId: string): Promise<Array<Record<string, unknown>>> {
+  async getClientCommunicationHistory(clientId: string): Promise<Record<string, unknown>[]> {
     const { data, error } = await supabase
       .from('client_communications')
       .select('*')

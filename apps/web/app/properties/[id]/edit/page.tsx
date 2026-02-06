@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import PropertyEditClient from './components/PropertyEditClient';
+
+export const metadata: Metadata = {
+  title: 'Edit Property | Mintenance',
+  description: 'Update your property details including address, type, size, and photos.',
+};
 
 export default async function PropertyEditPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;

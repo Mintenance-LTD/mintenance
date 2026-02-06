@@ -1,5 +1,5 @@
 // Global type declarations for React Native and Expo
-declare var __DEV__: boolean;
+declare let __DEV__: boolean;
 
 // Extend global object for React Native specific properties
 declare global {

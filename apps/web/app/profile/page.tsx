@@ -1,5 +1,12 @@
 'use client';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Your Profile | Mintenance',
+  description: 'View and edit your personal profile, security settings, and notification preferences.',
+};
+
 import React, { useState } from 'react';
 import {
   User,

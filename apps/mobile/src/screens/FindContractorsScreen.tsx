@@ -12,6 +12,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { logger } from '../utils/logger';
+import * as Location from 'expo-location';
+import { useAuth } from '../contexts/AuthContext';
+import { ContractorService } from '../services/ContractorService';
+import { ContractorProfile, LocationData } from '@mintenance/types';
+import ContractorCard from '../components/ContractorCard';
+import SearchBar from '../components/SearchBar';
+import AdvancedSearchFilters from '../components/advanced-search/AdvancedSearchFilters';
+import { useAdvancedSearch } from '../hooks/useAdvancedSearch';
+import { ContractorSearchResult } from '../types/search';
+import { theme } from '../theme';
 
 // Platform-specific Map imports
 interface Region {
@@ -41,16 +51,6 @@ if (Platform.OS === 'web') {
   MapView = Maps.default;
   Marker = Maps.Marker;
 }
-import * as Location from 'expo-location';
-import { useAuth } from '../contexts/AuthContext';
-import { ContractorService } from '../services/ContractorService';
-import { ContractorProfile, LocationData } from '@mintenance/types';
-import ContractorCard from '../components/ContractorCard';
-import SearchBar from '../components/SearchBar';
-import AdvancedSearchFilters from '../components/advanced-search/AdvancedSearchFilters';
-import { useAdvancedSearch } from '../hooks/useAdvancedSearch';
-import { ContractorSearchResult } from '../types/search';
-import { theme } from '../theme';
 
 const { height: screenHeight } = Dimensions.get('window');
 const MAP_HEIGHT = screenHeight * 0.4;

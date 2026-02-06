@@ -1,5 +1,12 @@
 'use client';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Chat | Mintenance',
+  description: 'Real-time messaging with your contractor about a specific maintenance job.',
+};
+
 import React, { useState, useEffect, useRef, use, Suspense, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';

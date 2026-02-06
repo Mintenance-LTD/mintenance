@@ -1,5 +1,12 @@
 'use client';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Leave a Review | Mintenance',
+  description: 'Rate and review your contractor after a completed job. Help the community find great professionals.',
+};
+
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';

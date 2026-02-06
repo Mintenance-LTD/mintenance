@@ -1,5 +1,12 @@
 'use client';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Payment Methods | Mintenance',
+  description: 'Add, remove, and manage your saved payment methods for quick and secure transactions.',
+};
+
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -45,7 +52,7 @@ export default function PaymentMethodsPage() {
     if (user) {
       loadPaymentMethods();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user]);
 
   const loadPaymentMethods = async () => {

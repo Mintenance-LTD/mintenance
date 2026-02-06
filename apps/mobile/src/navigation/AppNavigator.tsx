@@ -16,9 +16,6 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 // Import navigation types
 import type { RootStackParamList, RootTabParamList, AuthStackParamList } from './types';
 
-// Export types for backward compatibility
-export type { RootStackParamList, AuthStackParamList } from './types';
-
 // Import feature navigators
 import AuthNavigator from './navigators/AuthNavigator';
 import JobsNavigator from './navigators/JobsNavigator';
@@ -41,6 +38,9 @@ import {
 
 // Import navigation components
 import { CustomTabBar } from './components/CustomTabBar';
+
+// Export types for backward compatibility
+export type { RootStackParamList, AuthStackParamList } from './types';
 
 // ============================================================================
 // WRAPPED SCREENS

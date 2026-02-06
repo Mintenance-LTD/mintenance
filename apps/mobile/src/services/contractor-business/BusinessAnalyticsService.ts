@@ -15,7 +15,7 @@ interface DatabaseJobRow {
   completed_at: string | null;
   homeowner_id: string;
   contractor_id: string;
-  reviews?: Array<{ rating: number }>;
+  reviews?: { rating: number }[];
 }
 
 interface DatabaseBidRow {

@@ -5,6 +5,16 @@
  * that are shared across the application.
  */
 
+// Import all table types
+import type { AuthTables } from './auth'
+import type { JobTables } from './jobs'
+import type { ContractorTables } from './contractors'
+import type { PaymentTables } from './payments'
+import type { LocationTables } from './locations'
+import type { SocialTables } from './social'
+import type { AnalyticsTables } from './analytics'
+import type { SystemTables } from './system'
+
 export type Json =
   | string
   | number
@@ -163,16 +173,6 @@ export type CompositeTypes = {
   }
   text: string
 }
-
-// Import all table types
-import type { AuthTables } from './auth'
-import type { JobTables } from './jobs'
-import type { ContractorTables } from './contractors'
-import type { PaymentTables } from './payments'
-import type { LocationTables } from './locations'
-import type { SocialTables } from './social'
-import type { AnalyticsTables } from './analytics'
-import type { SystemTables } from './system'
 
 // Individual table type exports for convenience
 export type UsersTable = Tables['users']

@@ -1,5 +1,12 @@
 'use client';
 
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Quick Job Post | Mintenance',
+  description: 'Quickly post a common repair job using templates. Get your maintenance issue fixed fast.',
+};
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';

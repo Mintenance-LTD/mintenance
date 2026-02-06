@@ -330,14 +330,14 @@ export class AccessibilityManager {
   public getAccessibilityReport(componentProps: unknown[]): {
     totalElements: number;
     accessibleElements: number;
-    issues: Array<{
+    issues: {
       element: string;
       issues: string[];
-    }>;
+    }[];
   } {
     let totalElements = 0;
     let accessibleElements = 0;
-    const issues: Array<{ element: string; issues: string[] }> = [];
+    const issues: { element: string; issues: string[] }[] = [];
 
     componentProps.forEach((props, index) => {
       totalElements++;

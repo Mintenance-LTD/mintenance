@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
+
+export const metadata: Metadata = {
+  title: 'Video Calls | Mintenance',
+  description: 'Connect with contractors via video calls for consultations and project discussions.',
+};
 
 export default function VideoCallsPage() {
   return (

@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@12.18.0';
 import { handleCorsPreflight, createCorsResponse } from '../_shared/cors.ts';
+import { verifyAuth, AuthError, unauthorizedResponse } from '../_shared/auth.ts';
 
 serve(async (req) => {
   // SECURITY: Handle CORS preflight with whitelist-based origin validation
@@ -12,23 +13,22 @@ serve(async (req) => {
   let contractorId: string | undefined;
 
   try {
-    console.log('🔵 Edge Function invoked');
+    // SECURITY: Verify authentication before setting up payout
+    const authUser = await verifyAuth(req);
+
     const body = await req.json();
     contractorId = body.contractorId;
-    console.log('🔵 Contractor ID:', contractorId);
+
+    // SECURITY: Only allow contractors to set up their own payout account
+    if (authUser.userId !== contractorId) {
+      return unauthorizedResponse(req, 'Not authorized to set up payout for another user');
+    }
 
     // Validate required environment variables
     const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
     const appUrl = Deno.env.get('APP_URL');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    console.log('🔵 Environment variables check:', {
-      hasStripeKey: !!stripeSecretKey,
-      hasAppUrl: !!appUrl,
-      hasSupabaseUrl: !!supabaseUrl,
-      hasServiceKey: !!supabaseServiceRoleKey,
-    });
     
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY environment variable is not set');
@@ -197,10 +197,12 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    if (error instanceof AuthError) {
+      return unauthorizedResponse(req, error.message);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error('Error setting up contractor payout:', {
       message: errorMessage,
-      error: error,
       contractorId: contractorId || 'unknown',
     });
 
@@ -208,7 +210,6 @@ serve(async (req) => {
       req,
       JSON.stringify({
         error: errorMessage,
-        details: Deno.env.get('ENVIRONMENT') === 'development' ? String(error) : undefined,
       }),
       {
         headers: { 'Content-Type': 'application/json' },

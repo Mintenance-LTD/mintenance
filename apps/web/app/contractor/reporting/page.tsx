@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { ReportingDashboard2025Client } from './components/ReportingDashboard2025Client';
 import { redirect } from 'next/navigation';
+
+export const metadata: Metadata = {
+  title: 'Reporting & Analytics | Mintenance',
+  description: 'View your business analytics, revenue trends, job statistics, and performance metrics on Mintenance.',
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

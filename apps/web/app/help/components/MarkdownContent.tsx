@@ -63,7 +63,7 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
   const renderInlineMarkdown = (text: string): React.ReactNode => {
     // Handle bold **text**
     const parts: React.ReactNode[] = [];
-    let remaining = text;
+    const remaining = text;
     let key = 0;
 
     // Split by ** for bold

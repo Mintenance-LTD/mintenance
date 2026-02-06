@@ -26,22 +26,22 @@ interface BuildingAssessment {
   urgencyLevel: string;
   structuralIntegrity: number;
   estimatedCost: number;
-  issues: Array<{
+  issues: {
     category: string;
     severity: string;
     description: string;
     location?: string;
-  }>;
-  recommendations: Array<{
+  }[];
+  recommendations: {
     priority: string;
     action: string;
     estimatedCost: number;
-  }>;
-  redFlags?: Array<{
+  }[];
+  redFlags?: {
     type: string;
     description: string;
     severity: string;
-  }>;
+  }[];
   materialAnalysis?: {
     primaryMaterial: string;
     condition: string;

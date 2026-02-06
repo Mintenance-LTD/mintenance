@@ -12,8 +12,6 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import crypto from 'crypto';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
-import fs from 'fs';
-import path from 'path';
 import { LRUCache } from 'lru-cache';
 import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, TooManyRequestsError } from '@/lib/errors/api-error';
 
@@ -508,16 +506,6 @@ export async function POST(request: NextRequest) {
     logger.error('Error in building surveyor assessment', error, {
       service: 'building-surveyor-api',
     });
-
-    // #region agent log
-    const logData = {location:'api/building-surveyor/assess/route.ts:323',message:'Error caught in API route',data:{errorType:error instanceof Error ? error.name : typeof error,errorMessage:error instanceof Error ? error.message : String(error),hasOpenaiErrorCode:!!(error as any)?.openaiErrorCode,openaiErrorCode:(error as any)?.openaiErrorCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'};
-    try {
-      const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
-      fs.appendFileSync(logPath, JSON.stringify(logData) + '\n');
-    } catch (e) {
-      // File write failed, that's ok - console.log is the fallback
-    }
-    // #endregion
 
     return handleAPIError(error);
   }

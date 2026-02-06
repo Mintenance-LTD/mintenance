@@ -149,7 +149,7 @@ export const persistQueryClient = async () => {
           }
           return acc;
         },
-        [] as Array<{ key: string; data: unknown; dataUpdatedAt: number }>
+        [] as { key: string; data: unknown; dataUpdatedAt: number }[]
       );
 
     // Apply TTL filter

@@ -22,6 +22,12 @@ import {
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Security | Mintenance Admin',
+  description: 'Real-time security monitoring, threat detection, event investigation, and platform security score overview.',
+};
 
 // Dynamic imports for Tremor charts - lazy load heavy charting library
 const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {

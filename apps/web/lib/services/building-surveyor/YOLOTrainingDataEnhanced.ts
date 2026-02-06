@@ -378,7 +378,7 @@ export class YOLOTrainingDataEnhanced {
         }
 
         // Get enhanced labels (with SAM3 if available)
-        let enhancedLabels = correction.correctedLabels;
+        const enhancedLabels = correction.correctedLabels;
 
         if (includeSAM3Masks && correction.id) {
           // Try to get SAM3 enhanced labels

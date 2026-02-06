@@ -276,7 +276,7 @@ export function JobsNearYouClient({
 
   // Filter and sort jobs
   const filteredAndSortedJobs = useMemo(() => {
-    let filtered = jobsWithDistance.filter(job => {
+    const filtered = jobsWithDistance.filter(job => {
       if (job.distance !== undefined && job.distance > filters.maxDistance) return false;
       if (job.budget) {
         const budget = parseFloat(job.budget);

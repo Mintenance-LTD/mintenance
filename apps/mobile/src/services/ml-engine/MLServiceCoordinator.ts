@@ -42,12 +42,12 @@ export interface ContractorRecommendationRequest {
   jobRequirements: JobRequirements;
   availableContractors: ContractorProfile[];
   clientHistory?: {
-    previousJobs: Array<{
+    previousJobs: {
       contractorId: string;
       rating: number;
       category: string;
       satisfaction: number;
-    }>;
+    }[];
     preferences: {
       preferredSkills: string[];
       budgetRange: [number, number];

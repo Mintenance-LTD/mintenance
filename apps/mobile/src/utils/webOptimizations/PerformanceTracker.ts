@@ -260,7 +260,7 @@ export class PerformanceTracker {
     });
 
     // Track user interactions
-    const interactionEvents: Array<keyof DocumentEventMap> = ['click', 'keydown', 'touchstart'];
+    const interactionEvents: (keyof DocumentEventMap)[] = ['click', 'keydown', 'touchstart'];
     interactionEvents.forEach((eventName) => {
       const handler = this.throttle(() => {
         this.trackEvent('user_interaction', { type: eventName });

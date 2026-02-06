@@ -9,8 +9,8 @@ interface FinanceChartProps {
   type: 'line' | 'bar' | 'pie';
   data: {
     labels?: string[];
-    datasets?: Array<{ data: number[] }>;
-    data?: Array<{ name: string; population: number; color: string; legendFontColor?: string; legendFontSize?: number }>;
+    datasets?: { data: number[] }[];
+    data?: { name: string; population: number; color: string; legendFontColor?: string; legendFontSize?: number }[];
   };
   title: string;
   subtitle?: string;
