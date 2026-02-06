@@ -460,7 +460,7 @@ describe('PeriodSelector', () => {
     });
 
     it('renders correctly with each period selection variant', () => {
-      const periods: Array<'3m' | '6m' | '12m'> = ['3m', '6m', '12m'];
+      const periods: ('3m' | '6m' | '12m')[] = ['3m', '6m', '12m'];
 
       periods.forEach((period) => {
         const { UNSAFE_root, unmount } = render(

@@ -1,3 +1,5 @@
+import ClientAnalyticsService from '../ClientAnalyticsService';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,8 +10,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-import ClientAnalyticsService from '../ClientAnalyticsService';
 
 describe('ClientAnalyticsService', () => {
   let service: ClientAnalyticsService;

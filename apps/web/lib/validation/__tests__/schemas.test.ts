@@ -39,8 +39,8 @@ describe('loginSchema', () => {
       password: 'password123',
     };
 
-    const result = loginSchema.safeParse(invalidData);
-    expect(result.success).toBe(false);
+    // sanitizeEmail throws for invalid emails before Zod validation completes
+    expect(() => loginSchema.parse(invalidData)).toThrow();
   });
 
   it('should reject short password', () => {

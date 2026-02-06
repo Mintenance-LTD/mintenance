@@ -1,4 +1,11 @@
 // Mock expo dependencies first
+import React from 'react';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import BiometricLoginButton from '../BiometricLoginButton';
+import { BiometricService } from '../../services/BiometricService';
+import { logger } from '../../utils/logger';
+
 jest.mock('expo-local-authentication', () => ({
   hasHardwareAsync: jest.fn(() => Promise.resolve(true)),
   isEnrolledAsync: jest.fn(() => Promise.resolve(true)),
@@ -88,13 +95,6 @@ jest.mock('../../utils/logger', () => ({
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
 }));
-
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
-import BiometricLoginButton from '../BiometricLoginButton';
-import { BiometricService } from '../../services/BiometricService';
-import { logger } from '../../utils/logger';
 
 // Create mock for AuthContext
 const mockSignInWithBiometrics = jest.fn();

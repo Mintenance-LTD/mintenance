@@ -1,7 +1,7 @@
 import { vi } from 'vitest';
 /**
  * Edge Case Unit Tests for BuildingSurveyorService
- * 
+ *
  * Tests error handling, boundary conditions, and async operation failures
  */
 
@@ -9,6 +9,13 @@ import { BuildingSurveyorService } from '../BuildingSurveyorService';
 import { RoboflowDetectionService } from '../RoboflowDetectionService';
 import { ImageAnalysisService } from '@/lib/services/ImageAnalysisService';
 import { memoryManager } from '../../ml-engine/memory/MemoryManager';
+import { validateURLs } from '@/lib/security/url-validation';
+import { getConfig } from '../config/BuildingSurveyorConfig';
+import { collectEvidence } from '../stages/collect-evidence';
+import { extractAllFeatures } from '../stages/extract-features';
+import { callGptAssessment } from '../stages/call-gpt-assessment';
+import { postProcessAssessment } from '../stages/post-process-assessment';
+import { initializeMemorySystem } from '../initialization/BuildingSurveyorInitializationService';
 
 // Mock dependencies
 vi.mock('../RoboflowDetectionService');
@@ -24,10 +31,122 @@ vi.mock('../config/BuildingSurveyorConfig', () => ({
     visionTimeoutMs: 9000,
   })),
 }));
+vi.mock('@mintenance/shared', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
+vi.mock('@/lib/api/supabaseServer', () => ({
+  serverSupabase: {
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      upsert: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      neq: vi.fn().mockReturnThis(),
+      gt: vi.fn().mockReturnThis(),
+      lt: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      lte: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      then: vi.fn().mockImplementation((cb: (val: { data: never[], error: null }) => unknown) =>
+        Promise.resolve(cb({ data: [], error: null }))
+      ),
+    }),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+  },
+}));
+vi.mock('@/lib/services/monitoring/MonitoringService', () => ({
+  MonitoringService: { record: vi.fn() },
+}));
+// Mock stage modules to prevent deep pipeline failures
+vi.mock('../stages/collect-evidence', () => ({
+  collectEvidence: vi.fn().mockResolvedValue({
+    roboflowDetections: [],
+    visionAnalysis: null,
+    sam3Segmentation: undefined,
+    hasMachineEvidence: false,
+  }),
+}));
+vi.mock('../stages/extract-features', () => ({
+  extractAllFeatures: vi.fn().mockResolvedValue({
+    sceneGraphFeatures: null,
+    memoryAdjustments: null,
+    imageQuality: null,
+  }),
+}));
+vi.mock('../stages/call-gpt-assessment', () => ({
+  callGptAssessment: vi.fn().mockResolvedValue('{"damageAssessment":{"damageType":"cosmetic","severity":"early","confidence":50,"location":"Unknown","description":"Test","detectedItems":[]},"safetyHazards":{"hazards":[],"hasCriticalHazards":false,"overallSafetyScore":100},"compliance":{"complianceIssues":[],"requiresProfessionalInspection":false,"complianceScore":100},"insuranceRisk":{"riskFactors":[],"riskScore":10,"premiumImpact":"low","mitigationSuggestions":[]},"urgency":{"urgency":"routine","recommendedActionTimeline":"No rush","reasoning":"Minor issue","priorityScore":20},"homeownerExplanation":{"whatIsIt":"Minor cosmetic issue","whyItHappened":"Normal wear","whatToDo":"Monitor"},"contractorAdvice":{"repairNeeded":[],"materials":[],"tools":[],"estimatedTime":"N/A","estimatedCost":{"min":0,"max":100,"recommended":50},"complexity":"low"}}'),
+}));
+vi.mock('../stages/post-process-assessment', () => ({
+  postProcessAssessment: vi.fn().mockResolvedValue({
+    damageAssessment: {
+      damageType: 'cosmetic',
+      severity: 'early',
+      confidence: 50,
+      location: 'Unknown',
+      description: 'Test assessment',
+      detectedItems: [],
+    },
+    safetyHazards: { hazards: [], hasCriticalHazards: false, overallSafetyScore: 100 },
+    compliance: { complianceIssues: [], requiresProfessionalInspection: false, complianceScore: 100 },
+    insuranceRisk: { riskFactors: [], riskScore: 10, premiumImpact: 'low', mitigationSuggestions: [] },
+    urgency: { urgency: 'routine', recommendedActionTimeline: 'No rush', reasoning: 'Minor', priorityScore: 20 },
+    homeownerExplanation: { whatIsIt: 'Minor issue', whyItHappened: 'Normal wear', whatToDo: 'Monitor' },
+    contractorAdvice: { repairNeeded: [], materials: [], tools: [], estimatedTime: 'N/A', estimatedCost: { min: 0, max: 100, recommended: 50 }, complexity: 'low' },
+  }),
+}));
+vi.mock('../initialization/BuildingSurveyorInitializationService', () => ({
+  initializeMemorySystem: vi.fn().mockResolvedValue(undefined),
+  isLearnedFeaturesEnabled: vi.fn().mockReturnValue(false),
+  getLearnedFeatureExtractor: vi.fn().mockReturnValue(null),
+}));
+
+const mockAssessment = {
+  damageAssessment: {
+    damageType: 'cosmetic',
+    severity: 'early',
+    confidence: 50,
+    location: 'Unknown',
+    description: 'Test assessment',
+    detectedItems: [],
+  },
+  safetyHazards: { hazards: [], hasCriticalHazards: false, overallSafetyScore: 100 },
+  compliance: { complianceIssues: [], requiresProfessionalInspection: false, complianceScore: 100 },
+  insuranceRisk: { riskFactors: [], riskScore: 10, premiumImpact: 'low', mitigationSuggestions: [] },
+  urgency: { urgency: 'routine', recommendedActionTimeline: 'No rush', reasoning: 'Minor', priorityScore: 20 },
+  homeownerExplanation: { whatIsIt: 'Minor issue', whyItHappened: 'Normal wear', whatToDo: 'Monitor' },
+  contractorAdvice: { repairNeeded: [], materials: [], tools: [], estimatedTime: 'N/A', estimatedCost: { min: 0, max: 100, recommended: 50 }, complexity: 'low' },
+};
 
 describe('BuildingSurveyorService - Edge Cases', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Re-setup stage mocks after mockReset clears them
+    vi.mocked(initializeMemorySystem).mockResolvedValue(undefined);
+    vi.mocked(collectEvidence).mockResolvedValue({
+      roboflowDetections: [],
+      visionAnalysis: null,
+      sam3Segmentation: undefined,
+      hasMachineEvidence: false,
+    });
+    vi.mocked(extractAllFeatures).mockResolvedValue({
+      sceneGraphFeatures: null,
+      memoryAdjustments: [],
+      imageQuality: null,
+    } as any);
+    vi.mocked(callGptAssessment).mockResolvedValue(JSON.stringify(mockAssessment));
+    vi.mocked(postProcessAssessment).mockResolvedValue(mockAssessment as any);
+    vi.mocked(getConfig).mockReturnValue({
+      openaiApiKey: 'test-key',
+      detectorTimeoutMs: 7000,
+      visionTimeoutMs: 9000,
+    } as any);
   });
 
   describe('assessDamage - Error Handling', () => {
@@ -50,8 +169,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
 
     it('should handle invalid image URLs', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: [],
         invalid: [{ url: 'invalid-url', error: 'Invalid URL format' }],
       });
@@ -62,8 +181,7 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
 
     it('should handle missing OpenAI API key', async () => {
-      const { getConfig } = require('../config/BuildingSurveyorConfig');
-      getConfig.mockReturnValue({
+      vi.mocked(getConfig).mockReturnValue({
         openaiApiKey: null,
         detectorTimeoutMs: 7000,
         visionTimeoutMs: 9000,
@@ -77,8 +195,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
 
   describe('assessDamage - Async Operation Failures', () => {
     it('should handle Roboflow detection timeout', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: ['https://example.com/image.jpg'],
         invalid: [],
       });
@@ -96,8 +214,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
 
     it('should handle Google Vision analysis timeout', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: ['https://example.com/image.jpg'],
         invalid: [],
       });
@@ -114,8 +232,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
 
     it('should handle Roboflow detection failure', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: ['https://example.com/image.jpg'],
         invalid: [],
       });
@@ -132,8 +250,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
 
     it('should handle Google Vision analysis failure', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: ['https://example.com/image.jpg'],
         invalid: [],
       });
@@ -150,8 +268,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
 
     it('should handle both detectors failing', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: ['https://example.com/image.jpg'],
         invalid: [],
       });
@@ -172,8 +290,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
 
   describe('assessDamage - Boundary Conditions', () => {
     it('should handle single image', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: ['https://example.com/image.jpg'],
         invalid: [],
       });
@@ -187,9 +305,9 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
 
     it('should handle maximum number of images', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
+      const mockedValidateURLs = vi.mocked(validateURLs);
       const manyImages = Array(20).fill('https://example.com/image.jpg');
-      validateURLs.mockResolvedValue({
+      mockedValidateURLs.mockResolvedValue({
         valid: manyImages,
         invalid: [],
       });
@@ -203,9 +321,9 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
 
     it('should handle very long image URLs', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
+      const mockedValidateURLs = vi.mocked(validateURLs);
       const longUrl = 'https://example.com/' + 'a'.repeat(2000) + '.jpg';
-      validateURLs.mockResolvedValue({
+      mockedValidateURLs.mockResolvedValue({
         valid: [longUrl],
         invalid: [],
       });
@@ -219,8 +337,8 @@ describe('BuildingSurveyorService - Edge Cases', () => {
     });
 
     it('should handle empty context', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: ['https://example.com/image.jpg'],
         invalid: [],
       });
@@ -236,25 +354,26 @@ describe('BuildingSurveyorService - Edge Cases', () => {
 
   describe('assessDamage - Memory System Edge Cases', () => {
     it('should handle memory system initialization failure', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: ['https://example.com/image.jpg'],
         invalid: [],
       });
 
-      memoryManager.initialize = vi.fn().mockRejectedValue(
+      // Mock initializeMemorySystem to reject (this is the function actually called by the service)
+      vi.mocked(initializeMemorySystem).mockRejectedValue(
         new Error('Memory initialization failed')
       );
 
-      // Should handle gracefully or throw appropriately
+      // The service calls initializeMemorySystem which throws, so it should propagate
       await expect(
         BuildingSurveyorService.assessDamage(['https://example.com/image.jpg'])
-      ).rejects.toThrow();
+      ).rejects.toThrow('Memory initialization failed');
     });
 
     it('should handle memory query returning null', async () => {
-      const { validateURLs } = require('@/lib/security/url-validation');
-      validateURLs.mockResolvedValue({
+      const mockedValidateURLs = vi.mocked(validateURLs);
+      mockedValidateURLs.mockResolvedValue({
         valid: ['https://example.com/image.jpg'],
         invalid: [],
       });

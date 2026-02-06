@@ -1,61 +1,120 @@
 import { vi } from 'vitest';
 /**
- * Integration tests for Conformal Prediction in HybridInferenceService
- * Tests the complete flow of using calibrated uncertainty for routing decisions
+ * Integration tests for Conformal Prediction Service
+ *
+ * Tests the ConformalPredictionService's actual API:
+ * - getPredictionInterval (via supabase rpc, with fallback)
+ * - calculateNonconformityScore
+ * - classifyPropertyAge
+ * - buildStratumIdentifier
+ * - isPredictionInInterval
+ * - getAdaptiveConfidenceLevel
+ * - calculateIntervalEfficiency
+ *
+ * The service uses a singleton pattern (getInstance()) and requires
+ * a Supabase client injected via setSupabaseClient().
  */
 
-import { HybridInferenceService } from '../HybridInferenceService';
-import { ConformalPredictionService } from '../conformal-prediction';
+import {
+  ConformalPredictionService,
+  setSupabaseClient,
+} from '@mintenance/shared/services/conformal-prediction';
+import type {
+  PropertyAgeCategory,
+  PredictionScores,
+  ConformalPredictionInterval,
+} from '@mintenance/shared/services/conformal-prediction';
 import type { AssessmentContext } from '../types';
-import type { PropertyAgeCategory } from '@mintenance/shared/src/services/conformal-prediction';
+
+// Mock the logger from shared
+vi.mock('@mintenance/shared', () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+// Create a mock Supabase client
+function createMockSupabaseClient(rpcResult?: { data: unknown; error: unknown }) {
+  const chainMethods = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    gte: vi.fn().mockReturnThis(),
+    order: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
+  };
+
+  return {
+    from: vi.fn().mockReturnValue(chainMethods),
+    rpc: vi.fn().mockResolvedValue(rpcResult ?? { data: null, error: null }),
+    _chainMethods: chainMethods,
+  };
+}
 
 describe('Conformal Prediction Integration', () => {
   let conformalService: ConformalPredictionService;
+  let mockSupabase: ReturnType<typeof createMockSupabaseClient>;
 
   beforeEach(() => {
-    conformalService = new ConformalPredictionService();
+    vi.clearAllMocks();
+    conformalService = ConformalPredictionService.getInstance();
+    mockSupabase = createMockSupabaseClient();
+    setSupabaseClient(mockSupabase as any);
   });
 
   describe('Property Age Classification', () => {
     it('should classify Victorian properties (pre-1900)', () => {
-      const context: AssessmentContext = {
-        ageOfProperty: 150, // Built in 1874
-        propertyType: 'residential',
-      };
-
-      // This would be tested through HybridInferenceService private method
-      const currentYear = new Date().getFullYear();
-      const constructionYear = currentYear - 150;
-      expect(constructionYear).toBeLessThan(1900);
+      const result = conformalService.classifyPropertyAge(1874);
+      expect(result).toBe('victorian');
     });
 
     it('should classify post-war properties (1900-1970)', () => {
-      const context: AssessmentContext = {
-        ageOfProperty: 70, // Built in 1954
-        propertyType: 'residential',
-      };
-
-      const currentYear = new Date().getFullYear();
-      const constructionYear = currentYear - 70;
-      expect(constructionYear).toBeGreaterThanOrEqual(1900);
-      expect(constructionYear).toBeLessThan(1970);
+      const result = conformalService.classifyPropertyAge(1954);
+      expect(result).toBe('post_war');
     });
 
     it('should classify modern properties (post-1970)', () => {
+      const result = conformalService.classifyPropertyAge(1994);
+      expect(result).toBe('modern');
+    });
+
+    it('should return unknown for undefined construction year', () => {
+      const result = conformalService.classifyPropertyAge(undefined);
+      expect(result).toBe('unknown');
+    });
+
+    it('should classify based on AssessmentContext age', () => {
       const context: AssessmentContext = {
-        ageOfProperty: 30, // Built in 1994
+        ageOfProperty: 150,
         propertyType: 'residential',
       };
 
       const currentYear = new Date().getFullYear();
-      const constructionYear = currentYear - 30;
-      expect(constructionYear).toBeGreaterThanOrEqual(1970);
+      const constructionYear = currentYear - (context.ageOfProperty ?? 0);
+      const result = conformalService.classifyPropertyAge(constructionYear);
+
+      expect(result).toBe('victorian');
+    });
+  });
+
+  describe('Stratum Identifier', () => {
+    it('should build correct stratum identifier', () => {
+      const result = conformalService.buildStratumIdentifier('victorian', 'water damage');
+      expect(result).toBe('victorian_water_damage');
+    });
+
+    it('should normalize damage type in stratum', () => {
+      const result = conformalService.buildStratumIdentifier('modern', 'Structural Minor');
+      expect(result).toBe('modern_structural_minor');
     });
   });
 
   describe('Routing Based on Prediction Intervals', () => {
-    it('should route to internal model when interval size is 1 (certain)', async () => {
-      const mockInterval = {
+    it('should route to internal model when interval size is 1 (certain)', () => {
+      const interval: ConformalPredictionInterval = {
         confidence_level: 0.90,
         prediction_set: ['early'],
         threshold_used: 0.10,
@@ -63,16 +122,14 @@ describe('Conformal Prediction Integration', () => {
         interval_size: 1,
       };
 
-      // Mock the conformal prediction response
-      vi.spyOn(conformalService, 'getPredictionInterval').mockResolvedValue(mockInterval);
-
-      // The routing logic would use interval size = 1 to route to internal
-      expect(mockInterval.interval_size).toBe(1);
-      expect(mockInterval.prediction_set.length).toBe(1);
+      // Interval size 1 means high certainty - route to internal
+      expect(interval.interval_size).toBe(1);
+      expect(interval.prediction_set.length).toBe(1);
+      expect(conformalService.calculateIntervalEfficiency(interval)).toBeCloseTo(1 / 3);
     });
 
-    it('should route to hybrid when interval size is 2 (moderate uncertainty)', async () => {
-      const mockInterval = {
+    it('should route to hybrid when interval size is 2 (moderate uncertainty)', () => {
+      const interval: ConformalPredictionInterval = {
         confidence_level: 0.90,
         prediction_set: ['early', 'midway'],
         threshold_used: 0.10,
@@ -80,14 +137,13 @@ describe('Conformal Prediction Integration', () => {
         interval_size: 2,
       };
 
-      vi.spyOn(conformalService, 'getPredictionInterval').mockResolvedValue(mockInterval);
-
-      expect(mockInterval.interval_size).toBe(2);
-      expect(mockInterval.prediction_set.length).toBe(2);
+      expect(interval.interval_size).toBe(2);
+      expect(interval.prediction_set.length).toBe(2);
+      expect(conformalService.calculateIntervalEfficiency(interval)).toBeCloseTo(2 / 3);
     });
 
-    it('should route to GPT-4 when interval size is 3+ (high uncertainty)', async () => {
-      const mockInterval = {
+    it('should route to GPT-4 when interval size is 3+ (high uncertainty)', () => {
+      const interval: ConformalPredictionInterval = {
         confidence_level: 0.90,
         prediction_set: ['early', 'midway', 'full'],
         threshold_used: 0.10,
@@ -95,173 +151,210 @@ describe('Conformal Prediction Integration', () => {
         interval_size: 3,
       };
 
-      vi.spyOn(conformalService, 'getPredictionInterval').mockResolvedValue(mockInterval);
-
-      expect(mockInterval.interval_size).toBe(3);
-      expect(mockInterval.prediction_set.length).toBe(3);
+      expect(interval.interval_size).toBe(3);
+      expect(interval.prediction_set.length).toBe(3);
+      expect(conformalService.calculateIntervalEfficiency(interval)).toBeCloseTo(1.0);
     });
   });
 
-  describe('Stratification Hierarchy', () => {
-    it('should use detailed stratum when sufficient calibration data exists', async () => {
-      const propertyAge: PropertyAgeCategory = 'victorian';
-      const damageType = 'water damage';
+  describe('Prediction Interval via RPC', () => {
+    it('should return interval from supabase rpc call', async () => {
+      const expectedInterval: ConformalPredictionInterval = {
+        confidence_level: 0.90,
+        prediction_set: ['early'],
+        threshold_used: 0.10,
+        stratum: 'victorian_water_damage',
+        interval_size: 1,
+      };
 
-      const expectedStratum = 'victorian_water_damage';
+      mockSupabase.rpc.mockResolvedValue({ data: expectedInterval, error: null });
 
-      const interval = await conformalService.getPredictionInterval(
+      const result = await conformalService.getPredictionInterval(
         { early: 0.7, midway: 0.2, full: 0.1 },
-        propertyAge,
-        damageType,
-        0.90
-      );
-
-      // Would check if stratum matches expected
-      expect(interval.stratum).toBeDefined();
-    });
-
-    it('should fall back to property age stratum when detailed data insufficient', async () => {
-      // Mock insufficient detailed calibration data
-      vi.spyOn(conformalService as any, 'getStratumCalibrationData')
-        .mockImplementation((stratum: string) => {
-          if (stratum.includes('_')) {
-            return Promise.resolve([]); // No data for detailed stratum
-          }
-          return Promise.resolve([
-            { trueClass: 'early', trueProbability: 0.8, nonconformityScore: 0.2, importanceWeight: 1 },
-            // ... more samples
-          ]);
-        });
-
-      const interval = await conformalService.getPredictionInterval(
-        { early: 0.6, midway: 0.3, full: 0.1 },
-        'modern',
-        'electrical',
-        0.90
-      );
-
-      // Should fall back to 'modern' stratum
-      expect(['modern', 'global', 'uncalibrated']).toContain(interval.stratum);
-    });
-
-    it('should fall back to global stratum when all specific strata insufficient', async () => {
-      vi.spyOn(conformalService as any, 'getStratumCalibrationData')
-        .mockResolvedValue([]); // No calibration data for any stratum
-
-      const interval = await conformalService.getPredictionInterval(
-        { early: 0.5, midway: 0.3, full: 0.2 },
-        'unknown',
-        'cosmetic',
-        0.90
-      );
-
-      expect(interval.stratum).toBe('uncalibrated');
-    });
-  });
-
-  describe('Small Sample Beta Correction', () => {
-    it('should apply SSBC when calibration samples < 100', async () => {
-      const smallCalibrationSet = Array(50).fill(null).map((_, i) => ({
-        trueClass: 'early',
-        trueProbability: 0.7 + i * 0.001,
-        nonconformityScore: 0.3 - i * 0.001,
-        importanceWeight: 1.0,
-      }));
-
-      vi.spyOn(conformalService as any, 'getStratumCalibrationData')
-        .mockResolvedValue(smallCalibrationSet);
-
-      const interval = await conformalService.getPredictionInterval(
-        { early: 0.8, midway: 0.15, full: 0.05 },
         'victorian',
-        'structural_minor',
+        'water damage',
         0.90
       );
 
-      // With SSBC, the interval should be slightly larger (more conservative)
-      expect(interval.interval_size).toBeGreaterThanOrEqual(1);
-    });
-
-    it('should not apply SSBC when calibration samples >= 100', async () => {
-      const largeCalibrationSet = Array(150).fill(null).map((_, i) => ({
-        trueClass: i % 3 === 0 ? 'early' : i % 3 === 1 ? 'midway' : 'full',
-        trueProbability: 0.6 + (i % 40) * 0.01,
-        nonconformityScore: 0.4 - (i % 40) * 0.01,
-        importanceWeight: 1.0,
-      }));
-
-      vi.spyOn(conformalService as any, 'getStratumCalibrationData')
-        .mockResolvedValue(largeCalibrationSet);
-
-      const interval = await conformalService.getPredictionInterval(
-        { early: 0.9, midway: 0.08, full: 0.02 },
-        'modern',
-        'cosmetic',
-        0.90
+      expect(result).toEqual(expectedInterval);
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'get_conformal_prediction_interval',
+        expect.objectContaining({
+          p_prediction_scores: { early: 0.7, midway: 0.2, full: 0.1 },
+          p_property_age_category: 'victorian',
+          p_damage_type: 'water damage',
+          p_confidence_level: 0.90,
+        })
       );
-
-      // With large sample, no correction needed
-      expect(interval.confidence_level).toBe(0.90);
     });
-  });
 
-  describe('Calibration Recording', () => {
-    it('should record calibration samples with multiple strata', async () => {
-      const mockSupabaseInsert = vi.fn().mockResolvedValue({ error: null });
-      vi.spyOn(conformalService as any, 'serverSupabase').mockResolvedValue({
-        from: () => ({
-          insert: mockSupabaseInsert,
-        }),
+    it('should fall back to local interval calculation on rpc error', async () => {
+      mockSupabase.rpc.mockResolvedValue({
+        data: null,
+        error: new Error('RPC unavailable'),
       });
 
-      await conformalService.recordCalibrationSample(
-        'assessment-123',
-        {
-          severity: 'early',
-          confidence: 85,
-          scores: { early: 0.85, midway: 0.10, full: 0.05 },
-        },
-        {
-          severity: 'midway',
-          damageType: 'water damage',
-          source: 'expert_validation',
-        },
-        'victorian'
+      const result = await conformalService.getPredictionInterval(
+        { early: 0.8, midway: 0.15, full: 0.05 },
+        'modern',
+        'cosmetic',
+        0.90
       );
 
-      expect(mockSupabaseInsert).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            stratum: 'victorian_water_damage',
-            nonconformity_score: 0.90, // 1 - 0.10 (midway score)
-          }),
-          expect.objectContaining({
-            stratum: 'victorian',
-            nonconformity_score: 0.90,
-          }),
-          expect.objectContaining({
-            stratum: 'global',
-            nonconformity_score: 0.90,
-          }),
-        ])
+      // Fallback: accumulates scores in descending order until >= confidenceLevel
+      // Sorted: early(0.8), midway(0.15), full(0.05)
+      // early alone = 0.8 < 0.90, so add midway: 0.8 + 0.15 = 0.95 >= 0.90
+      expect(result.prediction_set).toContain('early');
+      expect(result.prediction_set).toContain('midway');
+      expect(result.interval_size).toBe(2);
+      expect(result.confidence_level).toBe(0.90);
+    });
+
+    it('should return single-class fallback when top score exceeds confidence level', async () => {
+      mockSupabase.rpc.mockResolvedValue({
+        data: null,
+        error: new Error('RPC unavailable'),
+      });
+
+      const result = await conformalService.getPredictionInterval(
+        { early: 0.95, midway: 0.03, full: 0.02 },
+        'modern',
+        'cosmetic',
+        0.90
       );
+
+      // early(0.95) >= 0.90, so only 'early' in prediction set
+      expect(result.prediction_set).toEqual(['early']);
+      expect(result.interval_size).toBe(1);
     });
   });
 
-  describe('Performance Metrics', () => {
-    it('should track conformal prediction usage in routing decisions', async () => {
-      const mockStats = await HybridInferenceService.getConformalPredictionStatistics();
+  describe('Nonconformity Score', () => {
+    it('should calculate hinge nonconformity score via rpc', async () => {
+      mockSupabase.rpc.mockResolvedValue({ data: 0.3, error: null });
 
-      // Verify the structure of statistics
-      expect(mockStats).toHaveProperty('totalWithConformal');
-      expect(mockStats).toHaveProperty('totalWithoutConformal');
-      expect(mockStats).toHaveProperty('averageIntervalSize');
-      expect(mockStats).toHaveProperty('stratumDistribution');
-      expect(mockStats).toHaveProperty('routingByIntervalSize');
-      expect(mockStats).toHaveProperty('calibrationCoverage');
+      const result = await conformalService.calculateNonconformityScore(
+        { early: 0.8, midway: 0.15, full: 0.05 },
+        'early',
+        'hinge'
+      );
+
+      expect(result).toBe(0.3);
+      expect(mockSupabase.rpc).toHaveBeenCalledWith(
+        'calculate_nonconformity_score',
+        expect.objectContaining({
+          true_class: 'early',
+          score_type: 'hinge',
+        })
+      );
     });
 
-    it('should calculate correct routing distribution by interval size', () => {
+    it('should fall back to local hinge calculation on rpc error', async () => {
+      mockSupabase.rpc.mockResolvedValue({
+        data: null,
+        error: new Error('RPC failed'),
+      });
+
+      const scores: PredictionScores = { early: 0.8, midway: 0.15, full: 0.05 };
+      const result = await conformalService.calculateNonconformityScore(
+        scores,
+        'early',
+        'hinge'
+      );
+
+      // Hinge: max(0, 1 - (trueScore - maxOtherScore))
+      // = max(0, 1 - (0.8 - 0.15)) = max(0, 1 - 0.65) = 0.35
+      expect(result).toBeCloseTo(0.35, 2);
+    });
+
+    it('should fall back to local inverse_probability calculation on rpc error', async () => {
+      mockSupabase.rpc.mockResolvedValue({
+        data: null,
+        error: new Error('RPC failed'),
+      });
+
+      const result = await conformalService.calculateNonconformityScore(
+        { early: 0.8, midway: 0.15, full: 0.05 },
+        'early',
+        'inverse_probability'
+      );
+
+      // Inverse probability: max(0, 1 - trueScore) = max(0, 1 - 0.8) = 0.2
+      expect(result).toBeCloseTo(0.2, 2);
+    });
+  });
+
+  describe('Prediction Interval Membership', () => {
+    it('should return true when actual severity is in prediction set', () => {
+      const interval: ConformalPredictionInterval = {
+        confidence_level: 0.90,
+        prediction_set: ['early', 'midway'],
+        threshold_used: 0.10,
+        interval_size: 2,
+      };
+
+      expect(conformalService.isPredictionInInterval('early', interval)).toBe(true);
+      expect(conformalService.isPredictionInInterval('midway', interval)).toBe(true);
+    });
+
+    it('should return false when actual severity is not in prediction set', () => {
+      const interval: ConformalPredictionInterval = {
+        confidence_level: 0.90,
+        prediction_set: ['early'],
+        threshold_used: 0.10,
+        interval_size: 1,
+      };
+
+      expect(conformalService.isPredictionInInterval('full', interval)).toBe(false);
+    });
+  });
+
+  describe('Adaptive Confidence Levels', () => {
+    it('should return 0.99 for critical infrastructure', () => {
+      expect(conformalService.getAdaptiveConfidenceLevel('monitor', true)).toBe(0.99);
+    });
+
+    it('should return 0.99 for immediate urgency', () => {
+      expect(conformalService.getAdaptiveConfidenceLevel('immediate')).toBe(0.99);
+    });
+
+    it('should return 0.95 for urgent cases', () => {
+      expect(conformalService.getAdaptiveConfidenceLevel('urgent')).toBe(0.95);
+    });
+
+    it('should return 0.90 for soon cases', () => {
+      expect(conformalService.getAdaptiveConfidenceLevel('soon')).toBe(0.90);
+    });
+
+    it('should return 0.85 for planned cases', () => {
+      expect(conformalService.getAdaptiveConfidenceLevel('planned')).toBe(0.85);
+    });
+
+    it('should return 0.80 for monitor/default cases', () => {
+      expect(conformalService.getAdaptiveConfidenceLevel('monitor')).toBe(0.80);
+    });
+  });
+
+  describe('Interval Efficiency', () => {
+    it('should calculate efficiency as interval_size / 3', () => {
+      expect(conformalService.calculateIntervalEfficiency({
+        confidence_level: 0.90,
+        prediction_set: ['early'],
+        threshold_used: 0.10,
+        interval_size: 1,
+      })).toBeCloseTo(1 / 3);
+
+      expect(conformalService.calculateIntervalEfficiency({
+        confidence_level: 0.90,
+        prediction_set: ['early', 'midway', 'full'],
+        threshold_used: 0.10,
+        interval_size: 3,
+      })).toBeCloseTo(1.0);
+    });
+  });
+
+  describe('Routing Distribution by Interval Size', () => {
+    it('should calculate correct routing distribution', () => {
       const mockDecisions = [
         { conformal_interval_size: 1, route_selected: 'internal', conformal_calibration_used: true },
         { conformal_interval_size: 1, route_selected: 'internal', conformal_calibration_used: true },
@@ -269,7 +362,7 @@ describe('Conformal Prediction Integration', () => {
         { conformal_interval_size: 3, route_selected: 'gpt4_vision', conformal_calibration_used: true },
       ];
 
-      const routingBySize: Record<number, any> = {};
+      const routingBySize: Record<number, Record<string, number>> = {};
       for (const decision of mockDecisions) {
         const size = decision.conformal_interval_size;
         if (!routingBySize[size]) {
@@ -286,12 +379,8 @@ describe('Conformal Prediction Integration', () => {
   });
 
   describe('Fallback Behavior', () => {
-    it('should use raw confidence thresholds when calibration unavailable', async () => {
-      vi.spyOn(conformalService, 'getPredictionInterval').mockRejectedValue(
-        new Error('Calibration unavailable')
-      );
-
-      // The service should fall back to CONFIDENCE_THRESHOLDS
+    it('should use raw confidence thresholds when calibration unavailable', () => {
+      // When conformal prediction fails, the system falls back to CONFIDENCE_THRESHOLDS
       const CONFIDENCE_THRESHOLDS = {
         high: 0.75,
         medium: 0.55,

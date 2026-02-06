@@ -24,6 +24,25 @@ vi.mock('@/lib/job-state-machine', () => ({
   validateStatusTransition: vi.fn().mockReturnValue(true),
 }));
 
+// Override the global setup.ts mocks to use the REAL implementations
+// (the global setup replaces these with stub mocks that have wrong method names)
+vi.mock('@/lib/services/agents/AgentOrchestrator', async () => {
+  return await vi.importActual('@/lib/services/agents/AgentOrchestrator');
+});
+vi.mock('@/lib/services/agents/JobStatusAgent', async () => {
+  return await vi.importActual('@/lib/services/agents/JobStatusAgent');
+});
+vi.mock('@/lib/services/agents/NotificationAgent', async () => {
+  return await vi.importActual('@/lib/services/agents/NotificationAgent');
+});
+// AgentLogger and AutomationPreferencesService are imported by the agent modules
+vi.mock('@/lib/services/agents/AgentLogger', async () => {
+  return await vi.importActual('@/lib/services/agents/AgentLogger');
+});
+vi.mock('@/lib/services/agents/AutomationPreferencesService', async () => {
+  return await vi.importActual('@/lib/services/agents/AutomationPreferencesService');
+});
+
 import { AgentOrchestrator } from '@/lib/services/agents/AgentOrchestrator';
 import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 import { NotificationAgent } from '@/lib/services/agents/NotificationAgent';

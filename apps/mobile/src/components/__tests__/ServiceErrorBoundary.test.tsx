@@ -1,3 +1,10 @@
+import React from 'react';
+import { Text, View } from 'react-native';
+import { render, fireEvent, waitFor } from '../../__tests__/test-utils';
+import { ServiceErrorBoundary } from '../ServiceErrorBoundary';
+import { logger } from '../../utils/logger';
+import { handleError } from '../../utils/errorHandler';
+
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
@@ -21,13 +28,6 @@ jest.mock('../../utils/logger', () => ({
 jest.mock('../../utils/errorHandler', () => ({
   handleError: jest.fn(),
 }));
-
-import React from 'react';
-import { Text, View } from 'react-native';
-import { render, fireEvent, waitFor } from '../../__tests__/test-utils';
-import { ServiceErrorBoundary } from '../ServiceErrorBoundary';
-import { logger } from '../../utils/logger';
-import { handleError } from '../../utils/errorHandler';
 
 // Component that throws error
 const ThrowError = ({ message = 'Test error' }: { message?: string }) => {

@@ -1,3 +1,11 @@
+/**
+ * Tests for BidManagementService - Bid Management Operations
+ */
+
+import { BidManagementService } from '../BidManagementService';
+import { supabase } from '../../config/supabase';
+import { Bid } from '../../types';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,14 +16,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-/**
- * Tests for BidManagementService - Bid Management Operations
- */
-
-import { BidManagementService } from '../BidManagementService';
-import { supabase } from '../../config/supabase';
-import { Bid } from '../../types';
 
 // Mock Supabase
 jest.mock('../../config/supabase', () => ({

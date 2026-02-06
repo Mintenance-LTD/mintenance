@@ -2,7 +2,6 @@
  * AI Response Cache Service Tests
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
 import { AIResponseCache } from '../AIResponseCache';
 
 describe('AIResponseCache', () => {
@@ -132,38 +131,50 @@ describe('AIResponseCache', () => {
   describe('Cache Statistics', () => {
     it('should track hits and misses correctly', async () => {
       const fetchFn = async () => ({ result: 'test' });
-      const input = { text: 'test' };
+      const input = { text: 'test-stats' };
 
-      // Clear stats first
-      const initialStats = AIResponseCache.getStats('embeddings');
+      // Get initial stats (may have accumulated from prior tests in same suite)
+      const initialStats = AIResponseCache.getStats('embeddings') as { hits: number; misses: number; hitRate: number };
+      const initialMisses = initialStats.misses;
+      const initialHits = initialStats.hits;
 
       // First call - miss
       await AIResponseCache.get('embeddings', input, fetchFn);
 
-      let stats = AIResponseCache.getStats('embeddings');
-      expect(stats.misses).toBeGreaterThan(initialStats.misses);
+      let stats = AIResponseCache.getStats('embeddings') as { hits: number; misses: number; hitRate: number };
+      expect(stats.misses).toBe(initialMisses + 1);
       expect(stats.hitRate).toBeLessThanOrEqual(1);
 
       // Second call - hit
       await AIResponseCache.get('embeddings', input, fetchFn);
 
-      stats = AIResponseCache.getStats('embeddings');
-      expect(stats.hits).toBeGreaterThan(0);
+      stats = AIResponseCache.getStats('embeddings') as { hits: number; misses: number; hitRate: number };
+      expect(stats.hits).toBe(initialHits + 1);
       expect(stats.hitRate).toBeGreaterThan(0);
     });
 
     it('should calculate hit rate correctly', async () => {
       const fetchFn = async (val: number) => ({ result: val });
 
-      // Generate 10 requests, 7 duplicates
+      // Use a unique service to avoid stat pollution from other tests
+      // Generate 10 requests, 7 to same input (1 miss + 6 hits), 3 unique (3 misses)
+      // Total: 4 misses + 6 hits = 60% hit rate
+      // But stats accumulate across tests in the same suite, so we track relative hits/misses
+      const initialStats = AIResponseCache.getStats('gpt4-chat') as { hits: number; misses: number; hitRate: number };
+      const initialHits = initialStats.hits;
+      const initialMisses = initialStats.misses;
+
       for (let i = 0; i < 10; i++) {
-        const input = i < 7 ? { value: 1 } : { value: i };
+        const input = i < 7 ? { value: 'hitrate-test' } : { value: `hitrate-${i}` };
         await AIResponseCache.get('gpt4-chat', input, async () => fetchFn(i));
       }
 
-      const stats = AIResponseCache.getStats('gpt4-chat');
-      // 7 requests to same input = 1 miss + 6 hits = 60% hit rate
-      expect(stats.hitRate).toBeGreaterThan(0.5);
+      const stats = AIResponseCache.getStats('gpt4-chat') as { hits: number; misses: number; hitRate: number };
+      const newHits = stats.hits - initialHits;
+      const newMisses = stats.misses - initialMisses;
+      // 7 requests to same input = 1 miss + 6 hits; 3 unique = 3 misses => 6 hits, 4 misses
+      expect(newHits).toBe(6);
+      expect(newMisses).toBe(4);
     });
 
     it('should track cost savings', async () => {
@@ -207,14 +218,20 @@ describe('AIResponseCache', () => {
       const fetchFn = async (val: number) => ({ data: val });
 
       // Cache multiple entries
-      await AIResponseCache.get('embeddings', { text: 'test1' }, () => fetchFn(1));
-      await AIResponseCache.get('embeddings', { text: 'test2' }, () => fetchFn(2));
+      await AIResponseCache.get('embeddings', { text: 'clear-test1' }, () => fetchFn(1));
+      await AIResponseCache.get('embeddings', { text: 'clear-test2' }, () => fetchFn(2));
 
       // Clear service cache
       await AIResponseCache.clearService('embeddings');
 
-      const stats = AIResponseCache.getStats('embeddings');
-      expect(stats.cacheSize).toBe(0);
+      // Verify the cache is actually empty by checking that a new fetch is required
+      let callCount = 0;
+      await AIResponseCache.get('embeddings', { text: 'clear-test1' }, async () => {
+        callCount++;
+        return { data: 99 };
+      });
+      // If cache was cleared, fetchFn should be called (cache miss)
+      expect(callCount).toBe(1);
     });
 
     it('should clear all caches', async () => {

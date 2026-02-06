@@ -1,12 +1,4 @@
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }) => children,
-  SafeAreaView: ({ children }) => children,
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '../test-utils';
 import { Text, TouchableOpacity, View } from 'react-native';
@@ -16,6 +8,14 @@ import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/AuthService';
 import { BiometricService } from '../../services/BiometricService';
 import { createTestQueryClient } from '../utils/test-utils';
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 
 // Mock services
 jest.mock('../../services/AuthService', () => ({

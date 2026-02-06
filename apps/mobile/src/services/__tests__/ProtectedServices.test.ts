@@ -1,3 +1,6 @@
+import { ProtectedAuthService } from '../ProtectedServices';
+
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,9 +11,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-
-import { ProtectedAuthService } from '../ProtectedServices';
 
 describe('ProtectedAuthService', () => {
   let service: ProtectedAuthService;

@@ -16,7 +16,7 @@ jest.mock(
 let setupGlobalErrorHandler: any, logError: any, trackPerformance: any;
 
 // Mock global __DEV__
-// eslint-disable-next-line no-undef
+ 
 // @ts-ignore
 global.__DEV__ = false;
 
@@ -26,7 +26,7 @@ describe('GlobalErrorHandler', () => {
     jest.clearAllMocks();
     // Reset the mock
     mockErrorUtils.setGlobalHandler.mockClear();
-    // eslint-disable-next-line no-undef
+     
     // @ts-ignore
     global.__DEV__ = false;
     ({

@@ -1,10 +1,10 @@
-const logger = console;
 // Centralized Mock Factory Exports
 import { SupabaseMockFactory } from './supabaseMock';
 import { ExpoMockFactory } from './expoMocks';
 import { ReactNativeMockFactory } from './reactNativeMocks';
 import { NavigationMockFactory } from './navigationMocks';
 import { ServicesMockFactory } from './servicesMocks';
+const logger = console;
 
 export * from './supabaseMock';
 export * from './expoMocks';

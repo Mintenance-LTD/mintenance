@@ -4,6 +4,9 @@ import {
   validateRequired
 } from '../../utils/serviceHelper';
 
+import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
+import { serviceHealthMonitor } from '../../utils/serviceHealthMonitor';
+
 // Mock ServiceErrorHandler
 jest.mock('../../utils/serviceErrorHandler', () => ({
   ServiceErrorHandler: {
@@ -19,9 +22,6 @@ jest.mock('../../utils/serviceHealthMonitor', () => ({
     recordServiceOperation: jest.fn()
   }
 }));
-
-import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
-import { serviceHealthMonitor } from '../../utils/serviceHealthMonitor';
 
 const mockServiceErrorHandler = ServiceErrorHandler as jest.Mocked<typeof ServiceErrorHandler>;
 const mockServiceHealthMonitor = serviceHealthMonitor as jest.Mocked<typeof serviceHealthMonitor>;

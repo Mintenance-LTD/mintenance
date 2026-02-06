@@ -1,3 +1,10 @@
+/**
+ * Tests for BidService - Financial Transaction and Bidding Operations
+ */
+
+import { BidService, BidData, Bid } from '../BidService';
+import { supabase } from '../../config/supabase';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,13 +15,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-/**
- * Tests for BidService - Financial Transaction and Bidding Operations
- */
-
-import { BidService, BidData, Bid } from '../BidService';
-import { supabase } from '../../config/supabase';
 
 // Mock Supabase
 jest.mock('../../config/supabase', () => ({

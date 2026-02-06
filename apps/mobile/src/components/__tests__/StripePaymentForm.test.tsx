@@ -1,4 +1,10 @@
 // Mock React Native and dependencies first
+import React from 'react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import { StripePaymentForm } from '../StripePaymentForm';
+import { useConfirmPayment, CardField } from '@stripe/stripe-react-native';
+
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
   return {
@@ -11,12 +17,6 @@ jest.mock('react-native', () => {
 
 // Mock Stripe
 jest.mock('@stripe/stripe-react-native');
-
-import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { Alert } from 'react-native';
-import { StripePaymentForm } from '../StripePaymentForm';
-import { useConfirmPayment, CardField } from '@stripe/stripe-react-native';
 
 // Get mocked functions
 const mockConfirmPayment = jest.fn();

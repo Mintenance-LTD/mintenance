@@ -1,3 +1,9 @@
+import { EscrowService } from '../EscrowService';
+import type { EscrowStatus, EscrowTimeline } from '../EscrowService';
+import { mobileApiClient } from '../utils/mobileApiClient';
+import { logger } from '../utils/logger';
+import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -32,12 +38,6 @@ jest.mock('../utils/mobileApiClient', () => ({
     post: jest.fn(),
   },
 }));
-
-import { EscrowService } from '../EscrowService';
-import type { EscrowStatus, EscrowTimeline } from '../EscrowService';
-import { mobileApiClient } from '../utils/mobileApiClient';
-import { logger } from '../utils/logger';
-import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
 
 const mockGet = mobileApiClient.get as jest.Mock;
 const mockPost = mobileApiClient.post as jest.Mock;

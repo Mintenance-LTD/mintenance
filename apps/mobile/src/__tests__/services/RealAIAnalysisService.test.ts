@@ -1,3 +1,6 @@
+import { RealAIAnalysisService } from '../../services/RealAIAnalysisService';
+import { Job } from '../../types';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -17,9 +20,6 @@ jest.mock('../../services/RealAIAnalysisService', () => ({
     cleanup: jest.fn(),
   }
 }));
-
-import { RealAIAnalysisService } from '../../services/RealAIAnalysisService';
-import { Job } from '../../types';
 
 // Mock fetch globally
 global.fetch = jest.fn();

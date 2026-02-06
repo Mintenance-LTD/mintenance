@@ -5,6 +5,8 @@ import MeetingCommunicationPanel from '../MeetingCommunicationPanel';
 import { MeetingService } from '../../services/MeetingService';
 import { MessagingService } from '../../services/MessagingService';
 
+import { useAuth } from '../../contexts/AuthContext';
+
 // Mock dependencies
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
@@ -55,8 +57,6 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 jest.spyOn(Alert, 'alert');
-
-import { useAuth } from '../../contexts/AuthContext';
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 

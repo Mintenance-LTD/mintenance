@@ -3,9 +3,11 @@ import { render, waitFor, fireEvent, act } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { Text, View, TouchableOpacity } from 'react-native';
 import RootNavigator from '../../navigation/RootNavigator';
-import { AuthProvider } from '../../contexts/AuthContext';
+import { AuthProvider , useAuth } from '../../contexts/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+
 
 // Mock all required modules
 jest.mock('react-native', () => {
@@ -146,8 +148,6 @@ jest.mock('@mintenance/shared', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { useAuth } from '../../contexts/AuthContext';
 
 describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
   let queryClient: QueryClient;

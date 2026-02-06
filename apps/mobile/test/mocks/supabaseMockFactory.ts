@@ -298,7 +298,7 @@ export function setMockData(
  */
 export function queueMockData(
   supabase: MockSupabaseClient,
-  responses: Array<{ data: unknown; error: unknown }>
+  responses: { data: unknown; error: unknown }[]
 ): void {
   let callCount = 0;
   (supabase.from as jest.Mock).mockImplementation(() => {

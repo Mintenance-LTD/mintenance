@@ -115,7 +115,7 @@ describe('LocationPicker Component', () => {
     });
 
     it('should render section title in all states', () => {
-      const states: Array<'loading' | 'success' | 'error'> = ['loading', 'success', 'error'];
+      const states: ('loading' | 'success' | 'error')[] = ['loading', 'success', 'error'];
 
       states.forEach(status => {
         const { getByText } = render(
@@ -820,7 +820,7 @@ describe('LocationPicker Component', () => {
     });
 
     it('should maintain structure across all states', () => {
-      const states: Array<'loading' | 'success' | 'error'> = ['loading', 'success', 'error'];
+      const states: ('loading' | 'success' | 'error')[] = ['loading', 'success', 'error'];
 
       states.forEach(status => {
         const { getByText } = render(
@@ -926,7 +926,7 @@ describe('LocationPicker Component', () => {
 
   describe('Props Validation', () => {
     it('should accept all valid locationStatus values', () => {
-      const statuses: Array<'loading' | 'success' | 'error'> = ['loading', 'success', 'error'];
+      const statuses: ('loading' | 'success' | 'error')[] = ['loading', 'success', 'error'];
 
       statuses.forEach(status => {
         expect(() =>

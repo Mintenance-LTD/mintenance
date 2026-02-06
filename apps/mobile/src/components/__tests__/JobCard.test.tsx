@@ -576,7 +576,7 @@ describe('JobCard Component', () => {
     });
 
     it('handles multiple status values correctly', () => {
-      const statuses: Array<'posted' | 'assigned' | 'in_progress' | 'completed'> = [
+      const statuses: ('posted' | 'assigned' | 'in_progress' | 'completed')[] = [
         'posted',
         'assigned',
         'in_progress',
@@ -593,7 +593,7 @@ describe('JobCard Component', () => {
     });
 
     it('handles multiple priority values correctly', () => {
-      const priorities: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high'];
+      const priorities: ('low' | 'medium' | 'high')[] = ['low', 'medium', 'high'];
 
       priorities.forEach((priority) => {
         const job = createMockJob({ priority });

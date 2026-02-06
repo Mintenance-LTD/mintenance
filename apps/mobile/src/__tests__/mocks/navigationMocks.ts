@@ -60,7 +60,7 @@ export class NavigationMockFactory {
         key: string;
         index: number;
         routeNames: string[];
-        routes: Array<{ key: string; name: string }>;
+        routes: { key: string; name: string }[];
         type: string;
       }) => T) =>
         selector({

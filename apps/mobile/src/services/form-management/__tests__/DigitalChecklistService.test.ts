@@ -1,3 +1,5 @@
+import DigitalChecklistService from '../DigitalChecklistService';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,8 +10,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-import DigitalChecklistService from '../DigitalChecklistService';
 
 describe('DigitalChecklistService', () => {
   let service: DigitalChecklistService;

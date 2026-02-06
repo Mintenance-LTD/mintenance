@@ -1,3 +1,15 @@
+/**
+ * Tests for ContractorService - Contractor Management Operations
+ * Tests actual service functionality, not just existence
+ */
+
+import { ContractorService } from '../ContractorService';
+import { LocationData } from '@mintenance/types';
+
+// Import mocked modules
+import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,14 +20,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-/**
- * Tests for ContractorService - Contractor Management Operations
- * Tests actual service functionality, not just existence
- */
-
-import { ContractorService } from '../ContractorService';
-import { LocationData } from '@mintenance/types';
 
 // Mock supabase
 jest.mock('../../config/supabase', () => ({
@@ -44,10 +48,6 @@ jest.mock('../../utils/logger', () => ({
 jest.mock('../../utils/sqlSanitization', () => ({
   sanitizeForSQL: jest.fn((input: string) => input.replace(/[';]/g, '')),
 }));
-
-// Import mocked modules
-import { supabase } from '../../config/supabase';
-import { logger } from '../../utils/logger';
 
 describe('ContractorService', () => {
   // Mock data

@@ -1,3 +1,7 @@
+import { AIAnalysisService } from '../AIAnalysisService';
+import { Job } from '@mintenance/types';
+import { logger } from '../../utils/logger';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -17,10 +21,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { AIAnalysisService } from '../AIAnalysisService';
-import { Job } from '@mintenance/types';
-import { logger } from '../../utils/logger';
 
 describe('AIAnalysisService', () => {
   beforeEach(() => {

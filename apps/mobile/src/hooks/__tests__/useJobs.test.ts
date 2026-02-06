@@ -149,7 +149,7 @@ describe('useJobs Hooks Integration', () => {
       });
 
       it('should handle all job statuses', async () => {
-        const statuses: Array<Job['status']> = ['posted', 'assigned', 'in_progress', 'completed'];
+        const statuses: Job['status'][] = ['posted', 'assigned', 'in_progress', 'completed'];
 
         for (const status of statuses) {
           (JobService.getJobsByStatus as jest.Mock).mockResolvedValue([

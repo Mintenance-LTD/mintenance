@@ -1,3 +1,6 @@
+import '../../__tests__/setup/testMocks';
+
+import { mlMemoryManager, MLMemoryManager } from '../../services/MLMemoryFixes';
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -27,7 +30,6 @@ jest.mock('../../services/MLMemoryLeakFixes', () => {
     }
   };
 });
-import '../../__tests__/setup/testMocks';
 
 // Mock the ML services to avoid TensorFlow dependency
 jest.mock('../../services/MLMemoryFixes');
@@ -39,8 +41,6 @@ jest.mock('../../services/MLTrainingPipeline', () => ({
     getModelStats: jest.fn(() => ({ accuracy: 0.85, loss: 0.15 })),
   })),
 }));
-
-import { mlMemoryManager, MLMemoryManager } from '../../services/MLMemoryFixes';
 
 describe('ML Memory Leak Fixes', () => {
   let memoryManager: MLMemoryManager;

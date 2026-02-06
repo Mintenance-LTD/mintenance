@@ -1,15 +1,15 @@
 
+import React from 'react';
+import { render } from '../../test-utils';
+import { ServiceAreasInsights } from '../ServiceAreasInsights';
+import type { ServiceArea } from '../../../services/ServiceAreasService';
+
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
-import React from 'react';
-import { render } from '../../test-utils';
-import { ServiceAreasInsights } from '../ServiceAreasInsights';
-import type { ServiceArea } from '../../../services/ServiceAreasService';
 
 // Helper function to create mock service area
 const createMockServiceArea = (overrides: Partial<ServiceArea> = {}): ServiceArea => ({

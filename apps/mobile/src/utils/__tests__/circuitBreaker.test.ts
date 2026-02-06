@@ -1,4 +1,17 @@
 
+/**
+ * Tests for Circuit Breaker - Fault Tolerance System
+ */
+
+import {
+  CircuitBreaker,
+  CircuitBreakerManager,
+  CircuitState,
+  DEFAULT_CONFIGS,
+  initializeCircuitBreakers,
+  circuitBreakerManager,
+} from '../circuitBreaker';
+import { logger } from '../logger';
 jest.mock('../../../config/supabase', () => ({
   supabase: {
     auth: {
@@ -47,19 +60,6 @@ jest.mock('../../../config/supabase', () => ({
     },
   },
 }));
-/**
- * Tests for Circuit Breaker - Fault Tolerance System
- */
-
-import {
-  CircuitBreaker,
-  CircuitBreakerManager,
-  CircuitState,
-  DEFAULT_CONFIGS,
-  initializeCircuitBreakers,
-  circuitBreakerManager,
-} from '../circuitBreaker';
-import { logger } from '../logger';
 
 // Mock logger
 jest.mock('../logger', () => ({

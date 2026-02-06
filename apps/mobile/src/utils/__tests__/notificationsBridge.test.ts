@@ -1,3 +1,5 @@
+import notificationsBridge from '../notificationsBridge';
+
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
   getPermissionsAsync: jest.fn(),
@@ -11,8 +13,6 @@ jest.mock('expo-notifications', () => ({
   setNotificationChannelAsync: jest.fn(),
   AndroidImportance: { DEFAULT: 'default' },
 }));
-
-import notificationsBridge from '../notificationsBridge';
 
 describe('notificationsBridge', () => {
   it('exposes notification helpers', () => {

@@ -1,3 +1,8 @@
+import { BidService } from '../../services/BidService';
+import { supabase } from '../../config/supabase';
+import { Bid, BidData } from '../../types';
+
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,11 +13,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-
-import { BidService } from '../../services/BidService';
-import { supabase } from '../../config/supabase';
-import { Bid, BidData } from '../../types';
 
 // Mock Supabase
 jest.mock('../../config/supabase', () => ({

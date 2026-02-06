@@ -4,6 +4,13 @@
  * Tests: Error catching, logging, fallback UI, recovery, lifecycle methods
  */
 
+import React from 'react';
+import { Text, View } from 'react-native';
+import { render, fireEvent, waitFor } from '../../__tests__/test-utils';
+import { ErrorBoundary } from '../ErrorBoundary';
+import { logger } from '@mintenance/shared';
+import * as Sentry from '@sentry/react-native';
+
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
@@ -27,13 +34,6 @@ jest.mock('@mintenance/shared', () => ({
     debug: jest.fn(),
   },
 }));
-
-import React from 'react';
-import { Text, View } from 'react-native';
-import { render, fireEvent, waitFor } from '../../__tests__/test-utils';
-import { ErrorBoundary } from '../ErrorBoundary';
-import { logger } from '@mintenance/shared';
-import * as Sentry from '@sentry/react-native';
 
 // Component that throws an error
 const ThrowError: React.FC<{ message?: string; shouldThrow?: boolean }> = ({

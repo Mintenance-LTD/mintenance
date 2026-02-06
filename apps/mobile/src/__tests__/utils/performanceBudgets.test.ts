@@ -1,4 +1,15 @@
 // Mock the performance module before importing
+import {
+  PerformanceBudgetManagerLegacy as PerformanceBudgetManager,
+  performanceBudgetManager,
+  measurePerformance,
+  withPerformanceEnforcement,
+  usePerformanceMonitoring,
+  reactNativePerformanceEnforcer,
+} from '../../utils/performance';
+
+import { render } from '../setup/testUtils';
+
 jest.mock('../../utils/performance', () => ({
   performanceBudgetService: {
     initialize: jest.fn(() => Promise.resolve()),
@@ -12,17 +23,6 @@ jest.mock('../../utils/performance', () => ({
   BudgetViolation: {},
   ReactNativePerformanceConfig: {},
 }));
-
-import {
-  PerformanceBudgetManagerLegacy as PerformanceBudgetManager,
-  performanceBudgetManager,
-  measurePerformance,
-  withPerformanceEnforcement,
-  usePerformanceMonitoring,
-  reactNativePerformanceEnforcer,
-} from '../../utils/performance';
-
-import { render } from '../setup/testUtils';
 
 // Mock dependencies
 jest.mock('../../utils/logger', () => ({

@@ -1,5 +1,7 @@
 import React from 'react';
 
+import RootNavigator from '../RootNavigator';
+
 jest.mock('@react-navigation/native', () => ({
   NavigationContainer: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -48,8 +50,6 @@ jest.mock('../../utils/performanceMonitor', () => ({
     recordNavigationTime: jest.fn(),
   },
 }));
-
-import RootNavigator from '../RootNavigator';
 
 describe('RootNavigator', () => {
   it('exports a component', () => {

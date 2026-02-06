@@ -15,11 +15,72 @@ import { ConformalPredictionMonitoringService } from '../ConformalPredictionMoni
 import { CriticModule } from '../critic';
 
 // Mock dependencies
-vi.mock('@/lib/api/supabaseServer');
+vi.mock('@/lib/api/supabaseServer', () => ({
+  serverSupabase: {
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      update: vi.fn().mockReturnThis(),
+      delete: vi.fn().mockReturnThis(),
+      upsert: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      neq: vi.fn().mockReturnThis(),
+      gt: vi.fn().mockReturnThis(),
+      lt: vi.fn().mockReturnThis(),
+      gte: vi.fn().mockReturnThis(),
+      lte: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+      then: vi.fn().mockImplementation((cb: (val: { data: never[], error: null }) => unknown) => cb({ data: [], error: null })),
+    }),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+  },
+}));
+vi.mock('@mintenance/shared', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
 vi.mock('../BuildingSurveyorService');
 vi.mock('../DetectorFusionService');
 
+// Import serverSupabase so we can re-setup mocks in beforeEach
+import { serverSupabase } from '@/lib/api/supabaseServer';
+
+const mockChain = () => ({
+  select: vi.fn().mockReturnThis(),
+  insert: vi.fn().mockReturnThis(),
+  update: vi.fn().mockReturnThis(),
+  delete: vi.fn().mockReturnThis(),
+  upsert: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  neq: vi.fn().mockReturnThis(),
+  gt: vi.fn().mockReturnThis(),
+  lt: vi.fn().mockReturnThis(),
+  gte: vi.fn().mockReturnThis(),
+  lte: vi.fn().mockReturnThis(),
+  in: vi.fn().mockReturnThis(),
+  order: vi.fn().mockReturnThis(),
+  limit: vi.fn().mockReturnThis(),
+  range: vi.fn().mockReturnThis(),
+  single: vi.fn().mockResolvedValue({ data: null, error: null }),
+  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  then: vi.fn().mockImplementation((cb: (val: { data: never[], error: null }) => unknown) =>
+    Promise.resolve(cb({ data: [], error: null }))
+  ),
+});
+
 describe('A/B Test Integration', () => {
+  beforeEach(() => {
+    // Re-setup mocks after mockReset clears them
+    (serverSupabase.from as ReturnType<typeof vi.fn>).mockImplementation(() => mockChain());
+    if (serverSupabase.rpc) {
+      (serverSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({ data: null, error: null });
+    }
+  });
+
   describe('Context Vector Consistency', () => {
     it('should produce identical context vectors for same features', () => {
       const features = {

@@ -1,3 +1,7 @@
+import { FinancialManagementService } from '../FinancialManagementService';
+import { ServiceErrorHandler } from '@/utils/serviceErrorHandler';
+import { __setMockData, __resetSupabaseMock, __queueMockData } from '@/config/__mocks__/supabase';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -31,10 +35,6 @@ jest.mock('@/utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { FinancialManagementService } from '../FinancialManagementService';
-import { ServiceErrorHandler } from '@/utils/serviceErrorHandler';
-import { __setMockData, __resetSupabaseMock, __queueMockData } from '@/config/__mocks__/supabase';
 
 describe('FinancialManagementService', () => {
   beforeEach(() => {

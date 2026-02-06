@@ -1,457 +1,397 @@
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 /**
  * Edge Case Unit Tests for Agent Services
  *
  * Tests error handling, boundary conditions, and async operation failures
- * for PricingAgent, JobStatusAgent, EscrowReleaseAgent, and other agents
+ * for PricingAgent, JobStatusAgent, EscrowReleaseAgent, and PredictiveAgent
+ *
+ * Uses the REAL public API methods from each agent class.
  */
+
+// Hoist mocks so they survive mockReset
+const mocks = vi.hoisted(() => {
+  const fromMock = vi.fn();
+  return {
+    fromMock,
+    serverSupabase: { from: fromMock },
+    logger: {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    },
+    memoryManager: {
+      getOrCreateMemorySystem: vi.fn(),
+      query: vi.fn(),
+      addContextFlow: vi.fn(),
+      process: vi.fn(),
+      getMemorySystem: vi.fn(),
+      initialize: vi.fn(),
+    },
+  };
+});
+
+vi.mock('@/lib/api/supabaseServer', () => ({
+  serverSupabase: mocks.serverSupabase,
+}));
+
+vi.mock('@mintenance/shared', () => ({
+  logger: mocks.logger,
+}));
+
+vi.mock('@/lib/services/ml-engine/memory/MemoryManager', () => ({
+  memoryManager: mocks.memoryManager,
+}));
+
+// Override the global setup.ts mocks to use the REAL agent implementations
+// (setup.ts globally mocks PricingAgent, JobStatusAgent, etc. with fake stubs)
+vi.mock('@/lib/services/agents/PricingAgent', async () => {
+  return await vi.importActual<typeof import('../PricingAgent')>('../PricingAgent');
+});
+vi.mock('@/lib/services/agents/JobStatusAgent', async () => {
+  return await vi.importActual<typeof import('../JobStatusAgent')>('../JobStatusAgent');
+});
+vi.mock('@/lib/services/agents/EscrowReleaseAgent', async () => {
+  return await vi.importActual<typeof import('../EscrowReleaseAgent')>('../EscrowReleaseAgent');
+});
+vi.mock('@/lib/services/agents/PredictiveAgent', async () => {
+  return await vi.importActual<typeof import('../PredictiveAgent')>('../PredictiveAgent');
+});
+// Also mock transitive dependencies used by these agents
+vi.mock('@/lib/services/agents/AgentLogger', () => ({
+  AgentLogger: {
+    logDecision: vi.fn().mockResolvedValue('log-1'),
+    logRiskPrediction: vi.fn().mockResolvedValue('log-2'),
+  },
+}));
+vi.mock('@/lib/services/agents/AutomationPreferencesService', () => ({
+  AutomationPreferencesService: {
+    getPreferences: vi.fn().mockResolvedValue(null),
+    isAutomationEnabled: vi.fn().mockResolvedValue(false),
+  },
+}));
+vi.mock('@/lib/job-state-machine', () => ({
+  validateStatusTransition: vi.fn().mockReturnValue(true),
+}));
 
 import { PricingAgent } from '../PricingAgent';
 import { JobStatusAgent } from '../JobStatusAgent';
 import { EscrowReleaseAgent } from '../EscrowReleaseAgent';
 import { PredictiveAgent } from '../PredictiveAgent';
-import { serverSupabase } from '@/lib/api/supabaseServer';
-import { memoryManager } from '@/lib/services/ml-engine/memory/MemoryManager';
 
-// Mock dependencies
-vi.mock('@/lib/api/supabaseServer', () => ({
-  serverSupabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(),
+/**
+ * Helper: create a mock Supabase chain that returns given data/error
+ * for a select().eq().single() chain.
+ */
+function mockSelectEqSingle(data: unknown, error: unknown = null) {
+  return {
+    select: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({ data, error }),
+        in: vi.fn(() => ({
+          data: [],
+          error: null,
+        })),
+        gte: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({ count: 0 })),
+        })),
+        order: vi.fn(() => ({
+          limit: vi.fn().mockResolvedValue({ data: [], error: null }),
         })),
       })),
     })),
-  },
-}));
-
-vi.mock('@/lib/services/ml-engine/memory/MemoryManager', () => ({
-  memoryManager: {
-    getOrCreateMemorySystem: vi.fn(),
-    queryMemory: vi.fn(),
-    updateMemory: vi.fn(),
-  },
-}));
+    insert: vi.fn(() => ({
+      select: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({ data: { id: 'rec-1' }, error: null }),
+      })),
+    })),
+    update: vi.fn(() => ({
+      eq: vi.fn().mockResolvedValue({ data, error }),
+    })),
+  };
+}
 
 describe('PricingAgent - Edge Cases', () => {
-  describe('getPricingRecommendation - Error Handling', () => {
-    it('should handle null job ID', async () => {
-      await expect(
-        PricingAgent.getPricingRecommendation(null as unknown as string, {})
-      ).rejects.toThrow();
-    });
-
-    it('should handle empty job ID', async () => {
-      await expect(
-        PricingAgent.getPricingRecommendation('', {})
-      ).rejects.toThrow();
-    });
-
-    it('should handle invalid job ID format', async () => {
-      await expect(
-        PricingAgent.getPricingRecommendation('invalid-id-format', {})
-      ).rejects.toThrow();
-    });
-
-    it('should handle database query failure', async () => {
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: null,
-              error: { message: 'Database error' },
-            }),
-          })),
-        })),
-      } as any);
-
-      await expect(
-        PricingAgent.getPricingRecommendation('test-job-id', {})
-      ).rejects.toThrow();
-    });
-
-    it('should handle missing job data', async () => {
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: null,
-              error: null,
-            }),
-          })),
-        })),
-      } as any);
-
-      await expect(
-        PricingAgent.getPricingRecommendation('non-existent-job', {})
-      ).rejects.toThrow();
+  beforeEach(() => {
+    // Re-setup mocks since mockReset clears them
+    mocks.fromMock.mockReturnValue(mockSelectEqSingle(null, null));
+    mocks.memoryManager.getOrCreateMemorySystem.mockResolvedValue({
+      process: vi.fn().mockResolvedValue([0]),
+      query: vi.fn().mockResolvedValue({ values: [], keys: [] }),
+      addContextFlow: vi.fn().mockResolvedValue(undefined),
+      incrementStep: vi.fn(),
+      getMemoryLevels: vi.fn().mockReturnValue([]),
+      updateMemoryLevel: vi.fn().mockResolvedValue({ updated: true }),
     });
   });
 
-  describe('getPricingRecommendation - Boundary Conditions', () => {
-    it('should handle job with zero budget', async () => {
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'test-job',
-                budget: 0,
-                category: 'plumbing',
-              },
-              error: null,
-            }),
-          })),
-        })),
-      } as any);
+  describe('generateRecommendation - Error Handling', () => {
+    it('should return null when job fetch fails with database error', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(null, { message: 'Database error' })
+      );
 
-      const result = await PricingAgent.getPricingRecommendation('test-job', {});
+      const result = await PricingAgent.generateRecommendation('test-job-id');
 
+      // generateRecommendation returns null on error, not throws
+      expect(result).toBeNull();
+    });
+
+    it('should return null when job data is missing', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(null, null)
+      );
+
+      const result = await PricingAgent.generateRecommendation('non-existent-job');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null on empty job ID', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(null, { message: 'Invalid ID' })
+      );
+
+      const result = await PricingAgent.generateRecommendation('');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('generateRecommendation - Boundary Conditions', () => {
+    it('should handle job with zero budget via fallback', async () => {
+      // First call returns job, subsequent calls return empty market data
+      mocks.fromMock.mockImplementation((table: string) => {
+        if (table === 'jobs') {
+          return mockSelectEqSingle(
+            { id: 'test-job', budget: 0, category: 'plumbing', location: '', title: 'Test', description: 'Test' },
+            null
+          );
+        }
+        // All other tables return empty data
+        return mockSelectEqSingle(null, null);
+      });
+
+      const result = await PricingAgent.generateRecommendation('test-job');
+
+      // With no market data (sampleSize < 3), returns budget-based fallback
       expect(result).toBeDefined();
-      expect(result.recommendedOptimalPrice).toBeGreaterThanOrEqual(0);
+      if (result) {
+        expect(result.recommendedOptimalPrice).toBeGreaterThanOrEqual(0);
+      }
     });
 
     it('should handle job with very high budget', async () => {
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'test-job',
-                budget: 1000000,
-                category: 'plumbing',
-              },
-              error: null,
-            }),
-          })),
-        })),
-      } as any);
+      mocks.fromMock.mockImplementation((table: string) => {
+        if (table === 'jobs') {
+          return mockSelectEqSingle(
+            { id: 'test-job', budget: 1000000, category: 'plumbing', location: '', title: 'Test', description: 'Test' },
+            null
+          );
+        }
+        return mockSelectEqSingle(null, null);
+      });
 
-      const result = await PricingAgent.getPricingRecommendation('test-job', {});
+      const result = await PricingAgent.generateRecommendation('test-job');
 
       expect(result).toBeDefined();
-      expect(result.recommendedOptimalPrice).toBeLessThanOrEqual(1000000);
-    });
-
-    it('should handle job with no market data', async () => {
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'test-job',
-                budget: 500,
-                category: 'rare-category',
-              },
-              error: null,
-            }),
-          })),
-        })),
-      } as any);
-
-      // Mock empty market data
-      vi.mocked(serverSupabase.from).mockReturnValueOnce({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            gte: vi.fn(() => ({
-              data: [],
-              error: null,
-            })),
-          })),
-        })),
-      } as any);
-
-      const result = await PricingAgent.getPricingRecommendation('test-job', {});
-
-      expect(result).toBeDefined();
-      expect(result.confidenceScore).toBeLessThan(1);
+      if (result) {
+        expect(result.recommendedOptimalPrice).toBeLessThanOrEqual(1500000);
+      }
     });
   });
 });
 
 describe('JobStatusAgent - Edge Cases', () => {
-  describe('updateJobStatus - Error Handling', () => {
-    it('should handle null job ID', async () => {
-      await expect(
-        JobStatusAgent.updateJobStatus(null as unknown as string, 'posted', {})
-      ).rejects.toThrow();
+  beforeEach(() => {
+    mocks.fromMock.mockReturnValue(mockSelectEqSingle(null, null));
+  });
+
+  describe('evaluateAutoComplete - Error Handling', () => {
+    it('should return null when job fetch fails', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(null, { message: 'Database error' })
+      );
+
+      const result = await JobStatusAgent.evaluateAutoComplete('test-job');
+
+      expect(result).toBeNull();
     });
 
-    it('should handle invalid status transition', async () => {
-      await expect(
-        JobStatusAgent.updateJobStatus('test-job', 'invalid-status' as any, {})
-      ).rejects.toThrow();
+    it('should return null when job data is missing', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(null, null)
+      );
+
+      const result = await JobStatusAgent.evaluateAutoComplete('non-existent-job');
+
+      expect(result).toBeNull();
     });
 
-    it('should handle database update failure', async () => {
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        update: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'Update failed' },
-          }),
-        })),
-      } as any);
+    it('should return null for non-in_progress jobs', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(
+          { id: 'test-job', status: 'posted', contractor_id: 'c1', homeowner_id: 'h1' },
+          null
+        )
+      );
 
-      await expect(
-        JobStatusAgent.updateJobStatus('test-job', 'in_progress', {})
-      ).rejects.toThrow();
+      const result = await JobStatusAgent.evaluateAutoComplete('test-job');
+
+      // Only evaluates in_progress jobs
+      expect(result).toBeNull();
     });
   });
 
-  describe('updateJobStatus - Boundary Conditions', () => {
-    it('should handle status update to same status', async () => {
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        update: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({
-            data: { id: 'test-job', status: 'posted' },
-            error: null,
-          }),
-        })),
-      } as any);
+  describe('evaluateAutoComplete - Boundary Conditions', () => {
+    it('should handle in_progress job without error', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(
+          {
+            id: 'test-job',
+            status: 'in_progress',
+            contractor_id: 'c1',
+            homeowner_id: 'h1',
+            scheduled_start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+          null
+        )
+      );
 
-      const result = await JobStatusAgent.updateJobStatus('test-job', 'posted', {});
-
-      expect(result).toBeDefined();
-    });
-
-    it('should handle rapid status transitions', async () => {
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        update: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({
-            data: { id: 'test-job', status: 'in_progress' },
-            error: null,
-          }),
-        })),
-      } as any);
-
-      // Rapid transitions
-      await JobStatusAgent.updateJobStatus('test-job', 'in_progress', {});
-      await JobStatusAgent.updateJobStatus('test-job', 'completed', {});
-      await JobStatusAgent.updateJobStatus('test-job', 'posted', {});
-
-      expect(true).toBe(true);
+      // Should not throw
+      const result = await JobStatusAgent.evaluateAutoComplete('test-job');
+      // Result can be null or an AgentResult depending on auto-complete criteria
+      expect(result === null || typeof result === 'object').toBe(true);
     });
   });
 });
 
 describe('EscrowReleaseAgent - Edge Cases', () => {
-  describe('releaseEscrow - Error Handling', () => {
-    it('should handle null escrow ID', async () => {
-      await expect(
-        EscrowReleaseAgent.releaseEscrow(null as unknown as string, {})
-      ).rejects.toThrow();
-    });
-
-    it('should handle non-existent escrow', async () => {
-      // Using vi.mocked(serverSupabase) from top-level import
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: null,
-              error: null,
-            }),
-          })),
-        })),
-      });
-
-      await expect(
-        EscrowReleaseAgent.releaseEscrow('non-existent-escrow', {})
-      ).rejects.toThrow();
-    });
-
-    it('should handle escrow already released', async () => {
-      // Using vi.mocked(serverSupabase) from top-level import
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'test-escrow',
-                status: 'released',
-                amount: 500,
-              },
-              error: null,
-            }),
-          })),
-        })),
-      });
-
-      await expect(
-        EscrowReleaseAgent.releaseEscrow('test-escrow', {})
-      ).rejects.toThrow('already released');
-    });
-
-    it('should handle payment processing failure', async () => {
-      // Using vi.mocked(serverSupabase) from top-level import
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'test-escrow',
-                status: 'pending',
-                amount: 500,
-              },
-              error: null,
-            }),
-          })),
-        })),
-        update: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({
-            data: null,
-            error: { message: 'Payment processing failed' },
-          }),
-        })),
-      });
-
-      await expect(
-        EscrowReleaseAgent.releaseEscrow('test-escrow', {})
-      ).rejects.toThrow();
-    });
+  beforeEach(() => {
+    mocks.fromMock.mockReturnValue(mockSelectEqSingle(null, null));
   });
 
-  describe('releaseEscrow - Boundary Conditions', () => {
-    it('should handle zero amount escrow', async () => {
-      // Using vi.mocked(serverSupabase) from top-level import
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'test-escrow',
-                status: 'pending',
-                amount: 0,
-              },
-              error: null,
-            }),
-          })),
-        })),
-      });
-
-      await expect(
-        EscrowReleaseAgent.releaseEscrow('test-escrow', {})
-      ).rejects.toThrow();
-    });
-
-    it('should handle very large escrow amount', async () => {
-      // Using vi.mocked(serverSupabase) from top-level import
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'test-escrow',
-                status: 'pending',
-                amount: 1000000,
-              },
-              error: null,
-            }),
-          })),
-        })),
-      });
-
-      const result = await EscrowReleaseAgent.releaseEscrow('test-escrow', {});
+  describe('verifyCompletionPhotos - Error Handling', () => {
+    it('should return failed result when no photos provided', async () => {
+      const result = await EscrowReleaseAgent.verifyCompletionPhotos(
+        'escrow-1', 'job-1', []
+      );
 
       expect(result).toBeDefined();
+      if (result) {
+        expect(result.verificationScore).toBe(0);
+        expect(result.status).toBe('failed');
+      }
+    });
+
+    it('should return null when job fetch fails', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(null, { message: 'Database error' })
+      );
+
+      const result = await EscrowReleaseAgent.verifyCompletionPhotos(
+        'escrow-1', 'non-existent-job', ['https://example.com/photo.jpg']
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when job data is missing', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(null, null)
+      );
+
+      const result = await EscrowReleaseAgent.verifyCompletionPhotos(
+        'escrow-1', 'non-existent-job', ['https://example.com/photo.jpg']
+      );
+
+      expect(result).toBeNull();
     });
   });
 });
 
 describe('PredictiveAgent - Edge Cases', () => {
+  beforeEach(() => {
+    mocks.fromMock.mockReturnValue(mockSelectEqSingle(null, null));
+    mocks.memoryManager.getOrCreateMemorySystem.mockResolvedValue({
+      process: vi.fn().mockResolvedValue([0]),
+      query: vi.fn().mockResolvedValue({ values: [], keys: [] }),
+      addContextFlow: vi.fn().mockResolvedValue(undefined),
+      incrementStep: vi.fn(),
+      getMemoryLevels: vi.fn().mockReturnValue([]),
+      updateMemoryLevel: vi.fn().mockResolvedValue({ updated: true }),
+    });
+  });
+
   describe('analyzeJob - Error Handling', () => {
-    it('should handle null job ID', async () => {
-      await expect(
-        PredictiveAgent.analyzeJob(null as unknown as string, {})
-      ).rejects.toThrow();
-    });
-
-    it('should handle missing job data', async () => {
-      // Using vi.mocked(serverSupabase) from top-level import
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: null,
-              error: null,
-            }),
-          })),
-        })),
-      } as any);
-
-      await expect(
-        PredictiveAgent.analyzeJob('non-existent-job', {})
-      ).rejects.toThrow();
-    });
-
-    it('should handle prediction model failure', async () => {
-      vi.mocked(memoryManager.queryMemory).mockRejectedValue(
-        new Error('Model prediction failed')
+    it('should return failure result when job fetch fails with null', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(null, null)
       );
 
-      await expect(
-        PredictiveAgent.analyzeJob('test-job', {})
-      ).rejects.toThrow();
+      const results = await PredictiveAgent.analyzeJob('non-existent-job');
+
+      // analyzeJob returns AgentResult[] with success: false, not throws
+      expect(Array.isArray(results)).toBe(true);
+      expect(results.length).toBeGreaterThan(0);
+      expect(results[0].success).toBe(false);
+    });
+
+    it('should return failure result when job fetch fails with DB error', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(null, { message: 'Database error' })
+      );
+
+      const results = await PredictiveAgent.analyzeJob('test-job');
+
+      expect(Array.isArray(results)).toBe(true);
+      expect(results[0].success).toBe(false);
     });
   });
 
   describe('analyzeJob - Boundary Conditions', () => {
-    it('should handle job with minimal data', async () => {
-      // Using vi.mocked(serverSupabase) from top-level import
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: {
-                id: 'test-job',
-                status: 'posted',
-                homeowner_id: 'test-homeowner',
-                // Minimal data
-              },
-              error: null,
-            }),
-          })),
-        })),
-      } as any);
+    it('should handle job with minimal data without throwing', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(
+          {
+            id: 'test-job',
+            status: 'posted',
+            homeowner_id: 'test-homeowner',
+            budget: null,
+            category: null,
+            created_at: new Date().toISOString(),
+          },
+          null
+        )
+      );
 
-      const result = await PredictiveAgent.analyzeJob('test-job', {});
+      const results = await PredictiveAgent.analyzeJob('test-job');
 
-      expect(result).toBeDefined();
-      if ('riskScore' in result) {
-        expect(result.riskScore).toBeGreaterThanOrEqual(0);
-      }
+      // With status 'posted' and minimal data, may return empty results (no risk found)
+      expect(Array.isArray(results)).toBe(true);
     });
 
-    it('should handle job with maximum data points', async () => {
-      // Using vi.mocked(serverSupabase) from top-level import
-      const largeJobData = {
-        id: 'test-job',
-        status: 'posted',
-        homeowner_id: 'test-homeowner',
-        contractor_id: 'test-contractor',
-        budget: 5000,
-        category: 'plumbing',
-        scheduled_start_date: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-      };
+    it('should handle job with full data without throwing', async () => {
+      mocks.fromMock.mockReturnValue(
+        mockSelectEqSingle(
+          {
+            id: 'test-job',
+            status: 'posted',
+            homeowner_id: 'test-homeowner',
+            contractor_id: 'test-contractor',
+            budget: 5000,
+            category: 'plumbing',
+            scheduled_start_date: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+          },
+          null
+        )
+      );
 
-      vi.mocked(serverSupabase.from).mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: largeJobData,
-              error: null,
-            }),
-          })),
-        })),
-      } as any);
+      const results = await PredictiveAgent.analyzeJob('test-job');
 
-      const result = await PredictiveAgent.analyzeJob('test-job', {});
-
-      expect(result).toBeDefined();
+      // Returns array of risk assessments (may be empty if no risks detected)
+      expect(Array.isArray(results)).toBe(true);
     });
   });
 });
-

@@ -1,3 +1,4 @@
+import { WebNotificationService } from '../WebNotificationService';
 jest.mock('expo-notifications', () => ({
   requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
@@ -37,7 +38,6 @@ jest.mock('../../NotificationService', () => ({
     delete: jest.fn(() => Promise.resolve(true)),
   },
 }));
-import { WebNotificationService } from '../WebNotificationService';
 
 describe('WebNotificationService', () => {
   let service: typeof WebNotificationService;

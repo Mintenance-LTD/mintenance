@@ -1,11 +1,4 @@
 
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }) => children,
-  SafeAreaView: ({ children }) => children,
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
 import React from 'react';
 /**
  * Payment Workflows Integration Tests
@@ -18,6 +11,14 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainer } from '@react-navigation/native';
 import { PaymentService } from '../../services/PaymentService';
+import { AuthProvider, useAuth } from '../../contexts/AuthContext';
+
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 
 jest.mock('../../services/PaymentService', () => ({
   PaymentService: {
@@ -30,7 +31,6 @@ jest.mock('../../services/PaymentService', () => ({
     deletePaymentMethod: jest.fn(),
   }
 }));
-import { AuthProvider, useAuth } from '../../contexts/AuthContext';
 
 // Mock payment screens (would import actual screens in real app)
 const MockPaymentScreen = ({ navigation, route }: any) => {

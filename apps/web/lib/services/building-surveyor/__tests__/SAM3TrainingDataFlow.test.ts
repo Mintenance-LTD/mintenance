@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 /**
  * SAM3 Training Data Flow Tests
  *
@@ -9,7 +9,6 @@ import { vi } from 'vitest';
  * 4. Training job triggered when thresholds met
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { SAM3TrainingDataService } from '../SAM3TrainingDataService';
 import { KnowledgeDistillationService } from '../KnowledgeDistillationService';
 import type {
@@ -20,27 +19,51 @@ import type {
 import type { Phase1BuildingAssessment, RoboflowDetection } from '../types';
 import type { DamageTypeSegmentation } from '../SAM3Service';
 
+/**
+ * Build a mock chain object that supports the Supabase query patterns used by
+ * KnowledgeDistillationService and SAM3TrainingDataService:
+ *
+ * - insert().select().single()         -> { data: { id: 'test-id' }, error: null }
+ * - select().eq().order()              -> { data: [], error: null }
+ * - select().eq().single()             -> { data: { model_version: 'v1.0' }, error: null }
+ * - select('column')                   -> { data: [], error: null }
+ * - update().in()                      -> { data: null, error: null }
+ * - update().eq()                      -> { data: null, error: null }
+ */
+function createMockSupabaseFrom() {
+  const terminalResult = { data: null, error: null };
+  const selectSingleResult = { data: { model_version: 'v1.0' }, error: null };
+  const insertSingleResult = { data: { id: 'test-id' }, error: null };
+  const selectArrayResult = { data: [], error: null };
+
+  return vi.fn(() => ({
+    insert: vi.fn(() => ({
+      select: vi.fn(() => ({
+        single: vi.fn(() => insertSingleResult),
+      })),
+    })),
+    select: vi.fn(() => ({
+      ...selectArrayResult,
+      eq: vi.fn(() => ({
+        ...selectArrayResult,
+        order: vi.fn(() => selectArrayResult),
+        single: vi.fn(() => selectSingleResult),
+      })),
+    })),
+    update: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        ...terminalResult,
+        in: vi.fn(() => terminalResult),
+      })),
+      in: vi.fn(() => terminalResult),
+    })),
+  }));
+}
+
 // Mock dependencies
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    from: vi.fn(() => ({
-      insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn(() => ({
-            data: { id: 'test-id' },
-            error: null,
-          })),
-        })),
-      })),
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => ({
-            data: [],
-            error: null,
-          })),
-        })),
-      })),
-    })),
+    from: createMockSupabaseFrom(),
     rpc: vi.fn(() => ({
       data: [
         {
@@ -155,7 +178,6 @@ describe('SAM3 Training Data Collection Flow', () => {
         success: true,
         damage_types: {
           water_damage: {
-            success: true,
             masks: [
               [
                 [0, 0, 1, 1, 0],
@@ -214,7 +236,6 @@ describe('SAM3 Training Data Collection Flow', () => {
         success: true,
         damage_types: {
           crack: {
-            success: true,
             masks: [
               [
                 [0, 1, 1],
@@ -226,7 +247,6 @@ describe('SAM3 Training Data Collection Flow', () => {
             num_instances: 1,
           },
           mold: {
-            success: true,
             masks: [
               [
                 [1, 1, 0],
@@ -359,7 +379,6 @@ describe('SAM3 Training Data Collection Flow', () => {
         success: true,
         damage_types: {
           crack: {
-            success: true,
             masks: [
               [
                 [0, 1, 1],
@@ -465,7 +484,6 @@ describe('Integration: Complete Training Pipeline', () => {
       success: true,
       damage_types: {
         structural_damage: {
-          success: true,
           masks: [
             [
               [0, 0, 1, 1, 1, 0],
@@ -491,13 +509,6 @@ describe('Integration: Complete Training Pipeline', () => {
 
     // 3. Check training readiness
     const stats = await KnowledgeDistillationService.getTrainingStats();
-
-    // console.log('Training Data Ready:', {
-      gpt4Labels: stats.gpt4Labels.unused,
-      sam3Masks: stats.sam3Masks.unused,
-      pseudoLabels: stats.pseudoLabels.qualityPassing,
-      totalReady: stats.readyForTraining.totalSamplesReady,
-    });
 
     expect(stats.readyForTraining.totalSamplesReady).toBeGreaterThan(0);
   });

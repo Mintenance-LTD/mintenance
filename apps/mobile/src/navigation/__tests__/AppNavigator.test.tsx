@@ -1,10 +1,10 @@
+import AppNavigator from '../AppNavigator';
+
 jest.mock('@expo/vector-icons/Ionicons', () => {
   return function MockIonicons() {
     return null;
   };
 });
-
-import AppNavigator from '../AppNavigator';
 
 describe('AppNavigator', () => {
   it('exports a component', () => {

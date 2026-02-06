@@ -1,3 +1,9 @@
+/**
+ * @jest-environment node
+ */
+
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,12 +14,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-/**
- * @jest-environment node
- */
-
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 
 describe('OfflineManager Memory Leak', () => {
   let OfflineManager: any;

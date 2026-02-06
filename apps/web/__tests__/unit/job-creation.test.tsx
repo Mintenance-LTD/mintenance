@@ -20,13 +20,17 @@ vi.mock('next/navigation');
 vi.mock('@/hooks/useCurrentUser');
 vi.mock('@/lib/hooks/useCSRF');
 vi.mock('@/app/jobs/create/utils/submitJob');
-vi.mock('react-hot-toast', () => ({
-  default: {
+const { mockToast } = vi.hoisted(() => ({
+  mockToast: {
     error: vi.fn(),
     success: vi.fn(),
     loading: vi.fn(),
     dismiss: vi.fn(),
   },
+}));
+vi.mock('react-hot-toast', () => ({
+  default: mockToast,
+  toast: mockToast,
 }));
 
 const mockRouter = {
@@ -69,9 +73,11 @@ describe('CreateJobPage', () => {
     });
     vi.mocked(useCSRF).mockReturnValue({ csrfToken: 'test-token' });
 
-    // Mock fetch for properties
+    // Mock fetch for properties - must include ok/status for Response checks
     global.fetch = vi.fn(() =>
       Promise.resolve({
+        ok: true,
+        status: 200,
         json: () => Promise.resolve({ properties: mockProperties }),
       })
     ) as any;
@@ -167,7 +173,9 @@ describe('CreateJobPage', () => {
 
       await user.upload(input, file);
 
-      const removeButton = await screen.findByRole('button', { name: /remove/i });
+      // The remove button is an X icon without accessible name, find it by its position in the upload preview
+      const previewContainer = screen.getByText(/Uploaded Photos/).parentElement!;
+      const removeButton = previewContainer.querySelector('button')!;
       await user.click(removeButton);
 
       expect(screen.queryByText(/Uploaded Photos/)).not.toBeInTheDocument();
@@ -182,7 +190,7 @@ describe('CreateJobPage', () => {
       await completeStep1(user);
       await completeStep2(user);
 
-      const budgetInput = screen.getByPlaceholderText(/Enter your budget/i);
+      const budgetInput = screen.getByPlaceholderText(/Enter maximum budget/i);
       await user.type(budgetInput, '250');
 
       expect(budgetInput).toHaveValue(250);
@@ -213,8 +221,10 @@ describe('CreateJobPage', () => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dateString = tomorrow.toISOString().split('T')[0];
 
-      const dateInput = screen.getByLabelText(/Preferred start date/i);
-      await user.type(dateInput, dateString);
+      // Label not associated via htmlFor, find the input by type within the date section
+      const dateLabel = screen.getByText(/Preferred start date/i);
+      const dateInput = dateLabel.parentElement!.querySelector('input[type="date"]') as HTMLInputElement;
+      await fireEvent.change(dateInput, { target: { value: dateString } });
 
       expect(dateInput).toHaveValue(dateString);
     });
@@ -235,7 +245,7 @@ describe('CreateJobPage', () => {
 
     it('should submit job successfully', async () => {
       const user = userEvent.setup();
-      vi.mocked(submitJob).mockResolvedValue({ jobId: 'job-123' });
+      vi.mocked(submitJob).mockResolvedValue({ success: true, jobId: 'job-123' });
 
       render(<CreateJobPage />);
 
@@ -245,7 +255,7 @@ describe('CreateJobPage', () => {
       await user.click(postButton);
 
       await waitFor(() => {
-        expect(submitJob).toHaveBeenCalledWith({
+        expect(submitJob).toHaveBeenCalledWith(expect.objectContaining({
           formData: expect.objectContaining({
             title: 'Fix bathroom leak',
             category: 'plumbing',
@@ -254,8 +264,8 @@ describe('CreateJobPage', () => {
           }),
           photoUrls: [],
           csrfToken: 'test-token',
-        });
-        expect(toast.success).toHaveBeenCalledWith('Job posted successfully!');
+        }));
+        expect(mockToast.success).toHaveBeenCalledWith('Job posted successfully!');
         expect(mockRouter.push).toHaveBeenCalledWith('/jobs/job-123');
       });
     });
@@ -272,7 +282,7 @@ describe('CreateJobPage', () => {
       await user.click(postButton);
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith('Network error');
+        expect(mockToast.error).toHaveBeenCalledWith('Network error');
       });
     });
   });
@@ -311,9 +321,12 @@ describe('QuickJobPage', () => {
       user: mockUser,
       loading: false,
     });
+    vi.mocked(useCSRF).mockReturnValue({ csrfToken: 'test-token' });
 
     global.fetch = vi.fn(() =>
       Promise.resolve({
+        ok: true,
+        status: 200,
         json: () => Promise.resolve({ properties: mockProperties }),
       })
     ) as any;
@@ -335,7 +348,7 @@ describe('QuickJobPage', () => {
     const template = screen.getByText('Leaky Tap/Pipe');
     await user.click(template.closest('button')!);
 
-    const titleInput = screen.getByLabelText(/What needs fixing/i);
+    const titleInput = screen.getByPlaceholderText(/Leaking kitchen tap/i);
     expect(titleInput).toHaveValue('Leaky Tap/Pipe');
   });
 
@@ -361,26 +374,26 @@ describe('QuickJobPage', () => {
 
   it('should submit quick job', async () => {
     const user = userEvent.setup();
-    vi.mocked(submitJob).mockResolvedValue({ jobId: 'quick-job-123' });
+    vi.mocked(submitJob).mockResolvedValue({ success: true, jobId: 'quick-job-123' });
 
     render(<QuickJobPage />);
 
     // Select template
     await user.click(screen.getByText('Leaky Tap/Pipe').closest('button')!);
 
-    // Submit
-    const submitButton = screen.getByText('Post Job');
+    // Wait for properties to load and submit button to show "Post Job"
+    const submitButton = await screen.findByText('Post Job');
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(submitJob).toHaveBeenCalledWith({
+      expect(submitJob).toHaveBeenCalledWith(expect.objectContaining({
         formData: expect.objectContaining({
           title: 'Leaky Tap/Pipe',
           category: 'plumbing',
         }),
         photoUrls: [],
         csrfToken: expect.any(String),
-      });
+      }));
       expect(mockRouter.push).toHaveBeenCalledWith('/jobs/quick-job-123');
     });
   });
@@ -423,7 +436,7 @@ async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
 
 async function completeStep3(user: ReturnType<typeof userEvent.setup>) {
   // Set budget
-  const budgetInput = screen.getByPlaceholderText(/Enter your budget/i);
+  const budgetInput = screen.getByPlaceholderText(/Enter maximum budget/i);
   await user.type(budgetInput, '250');
 
   // Select urgency

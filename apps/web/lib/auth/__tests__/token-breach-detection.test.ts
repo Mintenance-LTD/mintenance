@@ -2,7 +2,6 @@ import { vi } from 'vitest';
 /**
  * @jest-environment node
  */
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { createClient } from '@supabase/supabase-js';
 
 // Mock dependencies

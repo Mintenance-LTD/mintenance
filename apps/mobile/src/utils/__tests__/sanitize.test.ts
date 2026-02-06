@@ -1,4 +1,11 @@
 // Mock DOM globals for React Native environment
+/**
+ * Tests for Sanitize - Input Sanitization for Security
+ */
+
+import { sanitizeText } from '../sanitize';
+
+
 global.document = {
   getElementById: jest.fn(),
   querySelector: jest.fn(),
@@ -17,13 +24,6 @@ global.window = {
     removeListener: jest.fn(),
   })),
 };
-
-
-/**
- * Tests for Sanitize - Input Sanitization for Security
- */
-
-import { sanitizeText } from '../sanitize';
 
 describe('sanitizeText', () => {
   describe('Basic Input Handling', () => {

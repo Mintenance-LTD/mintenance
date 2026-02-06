@@ -1,3 +1,5 @@
+import { E2ETestHelper } from '../e2e-setup';
+
 jest.mock('detox', () => ({
   by: {
     id: jest.fn(),
@@ -36,8 +38,6 @@ jest.mock('detox', () => ({
     })),
   })),
 }), { virtual: true });
-
-import { E2ETestHelper } from '../e2e-setup';
 
 describe('E2ETestHelper', () => {
   it('exports the module', () => {

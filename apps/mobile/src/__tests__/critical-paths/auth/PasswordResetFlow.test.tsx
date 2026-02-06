@@ -1,5 +1,10 @@
 
 // Mock React Native modules
+import React from 'react';
+import { render, fireEvent, waitFor } from '../../test-utils';
+import { AuthService } from '../../../services/AuthService';
+import { ForgotPasswordScreen } from '../../../screens/ForgotPasswordScreen';
+
 jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -16,11 +21,6 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-
-import React from 'react';
-import { render, fireEvent, waitFor } from '../../test-utils';
-import { AuthService } from '../../../services/AuthService';
-import { ForgotPasswordScreen } from '../../../screens/ForgotPasswordScreen';
 
 jest.mock('../../../services/AuthService');
 

@@ -63,7 +63,9 @@ describe('BudgetRangeSelector', () => {
 
     it('should display formatted budget amount', () => {
       render(<BudgetRangeSelector {...defaultProps} />);
-      expect(screen.getByText('£500')).toBeInTheDocument();
+      // "£500" may appear in multiple places (display + visibility text)
+      const matches = screen.getAllByText(/£500/);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('Maximum budget')).toBeInTheDocument();
     });
 
@@ -140,7 +142,11 @@ describe('BudgetRangeSelector', () => {
     });
 
     it('should recommend itemization for budgets over £500', () => {
-      render(<BudgetRangeSelector {...defaultProps} />);
+      const props = {
+        ...defaultProps,
+        value: { ...defaultProps.value, budget: '600', budget_min: '540', budget_max: '660' },
+      };
+      render(<BudgetRangeSelector {...props} />);
       expect(screen.getByText('(Recommended for £500+)')).toBeInTheDocument();
     });
 
@@ -173,7 +179,11 @@ describe('BudgetRangeSelector', () => {
 
   describe('Photo Requirement Warning', () => {
     it('should show photo warning for budgets over £500 without images', () => {
-      render(<BudgetRangeSelector {...defaultProps} />);
+      const props = {
+        ...defaultProps,
+        value: { ...defaultProps.value, budget: '600', budget_min: '540', budget_max: '660' },
+      };
+      render(<BudgetRangeSelector {...props} />);
       expect(screen.getByText('Photos Required')).toBeInTheDocument();
       expect(screen.getByText(/For jobs over £500, you must upload at least one photo/)).toBeInTheDocument();
     });
@@ -246,7 +256,7 @@ describe('BudgetRangeSelector', () => {
         value: { ...defaultProps.value, budget: '5000', budget_min: '4500', budget_max: '5500' },
       };
       render(<BudgetRangeSelector {...props} />);
-      expect(screen.getByText(/Typical budgets for larger projects: £3,000-£12,000/)).toBeInTheDocument();
+      expect(screen.getByText(/Typical budgets for major renovations: £3,000-£12,000/)).toBeInTheDocument();
     });
 
     it('should show congratulatory message when budget is hidden', () => {

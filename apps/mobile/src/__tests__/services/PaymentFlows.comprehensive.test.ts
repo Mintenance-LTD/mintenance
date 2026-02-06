@@ -1,3 +1,12 @@
+/**
+ * Comprehensive Payment Flows Test Suite
+ * Tests all critical payment workflows end-to-end
+ */
+
+
+import { PaymentService } from '../../services/PaymentService';
+import { supabase } from '../../config/supabase';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,15 +17,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-/**
- * Comprehensive Payment Flows Test Suite
- * Tests all critical payment workflows end-to-end
- */
-
-
-import { PaymentService } from '../../services/PaymentService';
-import { supabase } from '../../config/supabase';
 
 // Enhanced mocking for comprehensive testing
 jest.mock('@stripe/stripe-react-native', () => ({

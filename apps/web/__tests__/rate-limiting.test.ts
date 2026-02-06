@@ -96,24 +96,30 @@ describe('Rate Limit Bypass Rules', () => {
     expect(shouldBypassRateLimit(request)).toBe(true);
   });
 
-  it('should bypass for whitelisted IPs', () => {
+  it('should bypass for whitelisted IPs', async () => {
     process.env.RATE_LIMIT_WHITELIST_IPS = '192.168.1.1,10.0.0.1';
     vi.resetModules();
+
+    // Dynamic import to pick up the new env vars at module evaluation time
+    const { shouldBypassRateLimit: freshBypass } = await import('@/lib/constants/rate-limits');
 
     const request = createMockRequest('/api/test', {
       'x-forwarded-for': '192.168.1.1',
     });
-    expect(shouldBypassRateLimit(request)).toBe(true);
+    expect(freshBypass(request)).toBe(true);
   });
 
-  it('should bypass for internal service tokens', () => {
+  it('should bypass for internal service tokens', async () => {
     process.env.INTERNAL_SERVICE_TOKENS = 'secret-token-1,secret-token-2';
     vi.resetModules();
+
+    // Dynamic import to pick up the new env vars at module evaluation time
+    const { shouldBypassRateLimit: freshBypass } = await import('@/lib/constants/rate-limits');
 
     const request = createMockRequest('/api/internal', {
       'x-service-token': 'secret-token-1',
     });
-    expect(shouldBypassRateLimit(request)).toBe(true);
+    expect(freshBypass(request)).toBe(true);
   });
 
   it('should not bypass for regular requests', () => {
@@ -275,10 +281,9 @@ describe('Security Event Logging', () => {
       });
     }
 
-    // Check that violation was logged
+    // Check that violation was logged (logger formats as a single string)
     expect(logSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Rate limit exceeded'),
-      expect.any(Object)
+      expect.stringContaining('Rate limit exceeded')
     );
 
     logSpy.mockRestore();
@@ -306,6 +311,9 @@ describe('Rate Limiter Reset Functionality', () => {
 
     // Reset the limit
     await rateLimiter.reset('reset-test', '/api/test');
+
+    // Small delay so that expire(key, 0) entry is strictly in the past
+    await new Promise(resolve => setTimeout(resolve, 2));
 
     // Should be allowed again
     result = await rateLimiter.checkLimit(request, {

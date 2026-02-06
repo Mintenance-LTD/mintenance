@@ -8,16 +8,16 @@
  * Test Count: 67 tests
  */
 
+import React from 'react';
+import { render, screen } from '@testing-library/react-native';
+import { JobImagesGallery } from '../JobImagesGallery';
+import type { Job } from '@mintenance/types';
+
 jest.mock('react-native/Libraries/Utilities/Dimensions', () => ({
   get: jest.fn(() => ({ width: 375, height: 667 })),
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
 }));
-
-import React from 'react';
-import { render, screen } from '@testing-library/react-native';
-import { JobImagesGallery } from '../JobImagesGallery';
-import type { Job } from '@mintenance/types';
 
 const createMockJob = (overrides?: Partial<Job>): Job => ({
   id: 'job-1',

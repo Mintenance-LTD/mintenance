@@ -4,8 +4,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  * Tests for contractor bid submission endpoint
  */
 
-import { describe, it, expect } from '@jest/globals';
-
 describe('POST /api/contractor/submit-bid', () => {
   describe('Authorization', () => {
     it('should require authentication', async () => {

@@ -1,3 +1,13 @@
+/**
+ * Tests for JobService - Main Job Service Facade
+ */
+
+import { JobService } from '../JobService';
+import { JobCRUDService } from '../JobCRUDService';
+import { BidManagementService } from '../BidManagementService';
+import { JobSearchService } from '../JobSearchService';
+import type { Job, Bid } from '@mintenance/types';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,16 +18,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-/**
- * Tests for JobService - Main Job Service Facade
- */
-
-import { JobService } from '../JobService';
-import { JobCRUDService } from '../JobCRUDService';
-import { BidManagementService } from '../BidManagementService';
-import { JobSearchService } from '../JobSearchService';
-import type { Job, Bid } from '@mintenance/types';
 
 // Mock the delegated services
 jest.mock('../JobCRUDService');

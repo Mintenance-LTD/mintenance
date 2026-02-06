@@ -4,6 +4,9 @@
  */
 
 import { JobService } from '../../services/JobService';
+import { AuthService } from '../../services/AuthService';
+import { PaymentService } from '../../services/PaymentService';
+import { MessagingService } from '../../services/MessagingService';
 
 jest.mock('../../services/JobService', () => ({
   JobService: {
@@ -22,7 +25,6 @@ jest.mock('../../services/JobService', () => ({
     acceptBid: jest.fn(),
   }
 }));
-import { AuthService } from '../../services/AuthService';
 
 jest.mock('../../services/AuthService', () => ({
   AuthService: {
@@ -37,7 +39,6 @@ jest.mock('../../services/AuthService', () => ({
     onAuthStateChange: jest.fn(),
   }
 }));
-import { PaymentService } from '../../services/PaymentService';
 
 jest.mock('../../services/PaymentService', () => ({
   PaymentService: {
@@ -50,7 +51,6 @@ jest.mock('../../services/PaymentService', () => ({
     deletePaymentMethod: jest.fn(),
   }
 }));
-import { MessagingService } from '../../services/MessagingService';
 
 jest.mock('../../services/MessagingService', () => ({
   MessagingService: {

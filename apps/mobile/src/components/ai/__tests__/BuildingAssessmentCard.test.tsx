@@ -1,3 +1,5 @@
+import { BuildingAssessmentCard } from '../BuildingAssessmentCard';
+
 jest.mock('../../services/UnifiedAIServiceMobile', () => ({
   __esModule: true,
   default: {
@@ -5,8 +7,6 @@ jest.mock('../../services/UnifiedAIServiceMobile', () => ({
     submitCorrections: jest.fn(),
   },
 }));
-
-import { BuildingAssessmentCard } from '../BuildingAssessmentCard';
 
 describe('BuildingAssessmentCard', () => {
   it('exports a component', () => {

@@ -1518,7 +1518,7 @@ describe('QuoteCard', () => {
     });
 
     it('all statuses render correctly', () => {
-      const statuses: Array<'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected'> =
+      const statuses: ('draft' | 'sent' | 'viewed' | 'accepted' | 'rejected')[] =
         ['draft', 'sent', 'viewed', 'accepted', 'rejected'];
 
       statuses.forEach(status => {

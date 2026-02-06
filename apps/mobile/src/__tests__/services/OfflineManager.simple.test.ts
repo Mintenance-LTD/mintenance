@@ -1,4 +1,6 @@
 
+import NetInfo from '@react-native-community/netinfo';
+import { OfflineManager, OfflineAction } from '../../services/OfflineManager';
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -9,8 +11,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiSet: jest.fn(() => Promise.resolve()),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-import NetInfo from '@react-native-community/netinfo';
-import { OfflineManager, OfflineAction } from '../../services/OfflineManager';
 
 // Mock external dependencies only
 jest.mock('@react-native-community/netinfo');

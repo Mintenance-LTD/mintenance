@@ -1481,7 +1481,7 @@ describe('ServiceAreaCard', () => {
     });
 
     it('should render all area types correctly in sequence', () => {
-      const types: Array<'radius' | 'polygon' | 'postal_codes' | 'cities'> = [
+      const types: ('radius' | 'polygon' | 'postal_codes' | 'cities')[] = [
         'radius',
         'polygon',
         'postal_codes',

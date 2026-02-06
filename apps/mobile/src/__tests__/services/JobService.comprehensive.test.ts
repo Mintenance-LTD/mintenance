@@ -1,3 +1,6 @@
+import { JobService } from '../../services/JobService';
+import { Job, Bid } from '../../types';
+import { supabase } from '../../config/supabase';
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -58,9 +61,6 @@ jest.mock('../../config/supabase', () => ({
     },
   },
 }));
-import { JobService } from '../../services/JobService';
-import { Job, Bid } from '../../types';
-import { supabase } from '../../config/supabase';
 
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
 

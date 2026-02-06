@@ -4,13 +4,13 @@
  * Tests: Error display, retry functionality, accessibility, edge cases
  */
 
-jest.mock('@expo/vector-icons', () => ({
-  Ionicons: 'Ionicons',
-}));
-
 import React from 'react';
 import { render, fireEvent } from '../../../__tests__/test-utils';
 import { BookingError } from '../BookingError';
+
+jest.mock('@expo/vector-icons', () => ({
+  Ionicons: 'Ionicons',
+}));
 
 describe('BookingError', () => {
   const mockOnRetry = jest.fn();

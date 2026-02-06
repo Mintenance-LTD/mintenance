@@ -1,4 +1,9 @@
 
+import React from 'react';
+import { Alert } from 'react-native';
+import { render, fireEvent, waitFor, act } from '../../test-utils';
+import { PaymentMethodsScreen } from '../../../screens/payment-methods';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -13,11 +18,6 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-
-import React from 'react';
-import { Alert } from 'react-native';
-import { render, fireEvent, waitFor, act } from '../../test-utils';
-import { PaymentMethodsScreen } from '../../../screens/payment-methods';
 
 describe('Payment Methods Management - Critical Path', () => {
   beforeEach(() => {
