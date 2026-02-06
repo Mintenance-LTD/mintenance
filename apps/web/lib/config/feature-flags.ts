@@ -8,8 +8,15 @@
 import { logger } from '@mintenance/shared';
 
 // LaunchDarkly types - dynamically imported to avoid build failure when package is not installed
-type LDClient = any;
-type LDFlagSet = Record<string, any>;
+interface LDClient {
+  waitForInitialization(): Promise<void>;
+  allFlags(): LDFlagSet;
+  on(event: string, callback: (changes: Record<string, unknown>) => void): void;
+  track(event: string, data?: Record<string, unknown>): void;
+  flush(): Promise<void>;
+  close(): Promise<void>;
+}
+type LDFlagSet = Record<string, unknown>;
 
 /**
  * Feature flag names
@@ -38,7 +45,7 @@ export interface SAM3RolloutConfig {
 /**
  * Default configurations for development
  */
-const DEFAULT_FLAGS: Record<string, any> = {
+const DEFAULT_FLAGS: Record<string, unknown> = {
     [FeatureFlag.SAM3_PRESENCE_DETECTION]: {
         enabled: false,
         rolloutPercentage: 0,
@@ -61,7 +68,7 @@ export class FeatureFlagService {
     private ldClient?: LDClient;
     private flags: LDFlagSet = {};
     private initialized = false;
-    private userContext: unknown = {};
+    private userContext: { key?: string; anonymous?: boolean; custom?: Record<string, unknown> } = {};
 
     private constructor() {}
 
@@ -77,7 +84,7 @@ export class FeatureFlagService {
      */
     async initialize(
         userId?: string,
-        attributes?: Record<string, any>
+        attributes?: Record<string, unknown>
     ): Promise<void> {
         if (this.initialized) {
             return;
@@ -145,9 +152,9 @@ export class FeatureFlagService {
      * Get SAM3 rollout configuration
      */
     getSAM3Config(): SAM3RolloutConfig {
-        const config = this.getFlag(
+        const config = this.getFlag<Partial<SAM3RolloutConfig>>(
             FeatureFlag.SAM3_PRESENCE_DETECTION,
-            DEFAULT_FLAGS[FeatureFlag.SAM3_PRESENCE_DETECTION]
+            DEFAULT_FLAGS[FeatureFlag.SAM3_PRESENCE_DETECTION] as Partial<SAM3RolloutConfig>
         );
 
         // Ensure proper typing
@@ -197,20 +204,20 @@ export class FeatureFlagService {
     /**
      * Get feature flag value
      */
-    getFlag<T = any>(flag: FeatureFlag | string, defaultValue: T): T {
+    getFlag<T = unknown>(flag: FeatureFlag | string, defaultValue: T): T {
         if (!this.initialized) {
             logger.warn('Feature flags not initialized, using default', { flag });
             return defaultValue;
         }
 
         const value = this.flags[flag];
-        return value !== undefined ? value : defaultValue;
+        return value !== undefined ? (value as T) : defaultValue;
     }
 
     /**
      * Track feature flag usage
      */
-    trackUsage(flag: FeatureFlag, metadata?: Record<string, any>): void {
+    trackUsage(flag: FeatureFlag, metadata?: Record<string, unknown>): void {
         if (this.ldClient) {
             this.ldClient.track(`${flag}-used`, metadata);
         }
@@ -262,7 +269,7 @@ export class FeatureFlagService {
         try {
             // Disable SAM3 locally immediately
             this.flags[FeatureFlag.SAM3_PRESENCE_DETECTION] = {
-                ...DEFAULT_FLAGS[FeatureFlag.SAM3_PRESENCE_DETECTION],
+                ...(DEFAULT_FLAGS[FeatureFlag.SAM3_PRESENCE_DETECTION] as Record<string, unknown>),
                 enabled: false,
             };
 
@@ -289,7 +296,7 @@ export class FeatureFlagService {
     /**
      * Handle flag changes
      */
-    private handleFlagChanges(changes: Record<string, any>): void {
+    private handleFlagChanges(changes: Record<string, unknown>): void {
         // Handle SAM3 flag changes
         if (changes[FeatureFlag.SAM3_PRESENCE_DETECTION]) {
             const newConfig = this.getSAM3Config();
@@ -305,10 +312,11 @@ export class FeatureFlagService {
 
         // Handle other flag changes as needed
         Object.keys(changes).forEach((flag) => {
+            const change = changes[flag] as { previous?: unknown; current?: unknown } | undefined;
             logger.info('Feature flag changed', {
                 flag,
-                oldValue: changes[flag].previous,
-                newValue: changes[flag].current,
+                oldValue: change?.previous,
+                newValue: change?.current,
             });
         });
     }
@@ -365,7 +373,7 @@ export class FeatureFlagService {
 export const featureFlags = FeatureFlagService.getInstance();
 
 // React hook for feature flags
-export function useFeatureFlag<T = any>(
+export function useFeatureFlag<T = unknown>(
     flag: FeatureFlag,
     defaultValue: T
 ): T {
@@ -382,9 +390,9 @@ export function useFeatureFlag<T = any>(
             setValue(featureFlags.getFlag(flag, defaultValue));
         };
 
-        window.addEventListener('sam3-config-changed', handleChange as any);
+        window.addEventListener('sam3-config-changed', handleChange as EventListener);
         return () => {
-            window.removeEventListener('sam3-config-changed', handleChange as any);
+            window.removeEventListener('sam3-config-changed', handleChange as EventListener);
         };
     }, [flag, defaultValue]);
 

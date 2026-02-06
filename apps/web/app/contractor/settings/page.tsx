@@ -30,6 +30,9 @@ import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
 
 type SectionKey = 'profile' | 'account' | 'notifications' | 'payments' | 'automation' | 'privacy';
 
+/** Extended user fields that may come from the database but aren't in the base User type */
+type UserWithLocation = { address?: string; city?: string; postcode?: string };
+
 export default function ContractorSettingsPage() {
   const router = useRouter();
   const { user, loading: loadingUser, refresh } = useCurrentUser();
@@ -119,6 +122,7 @@ export default function ContractorSettingsPage() {
   // Load user data into form
   useEffect(() => {
     if (user) {
+      const userLoc = user as typeof user & UserWithLocation;
       setProfileData({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
@@ -129,9 +133,9 @@ export default function ContractorSettingsPage() {
         company_name: user.company_name || '',
         trade: '',
         skills: '',
-        address: (user as any).address || '',
-        city: (user as any).city || '',
-        postcode: (user as any).postcode || '',
+        address: userLoc.address || '',
+        city: userLoc.city || '',
+        postcode: userLoc.postcode || '',
       });
     }
   }, [user]);

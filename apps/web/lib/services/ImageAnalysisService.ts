@@ -188,7 +188,7 @@ export class ImageAnalysisService {
                   const timeoutPromise = new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error('Label detection timeout')), API_TIMEOUT_MS)
                   );
-                  const [result] = await Promise.race([labelPromise, timeoutPromise]) as any;
+                  const [result] = await Promise.race([labelPromise, timeoutPromise]) as [Record<string, unknown>];
                   return result;
                 } catch (error: unknown) {
                   const err = error as Error;
@@ -210,7 +210,7 @@ export class ImageAnalysisService {
                   const timeoutPromise = new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error('Object localization timeout')), API_TIMEOUT_MS)
                   );
-                  const objectLocalizationResult = await Promise.race([objectPromise, timeoutPromise]) as any;
+                  const objectLocalizationResult = await Promise.race([objectPromise, timeoutPromise]) as [Record<string, unknown>] | null;
                   return objectLocalizationResult ? objectLocalizationResult[0] : null;
                 } catch (error: unknown) {
                   const err = error as Error;
@@ -229,7 +229,7 @@ export class ImageAnalysisService {
                   const timeoutPromise = new Promise<never>((_, reject) =>
                     setTimeout(() => reject(new Error('Text detection timeout')), API_TIMEOUT_MS)
                   );
-                  const [result] = await Promise.race([textPromise, timeoutPromise]) as any;
+                  const [result] = await Promise.race([textPromise, timeoutPromise]) as [Record<string, unknown>];
                   return result;
                 } catch (error: unknown) {
                   const err = error as Error;

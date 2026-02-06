@@ -66,9 +66,10 @@ function JobPaymentPageContent() {
       // Verify user has permission to pay for this job
       // Only homeowners can make payments
       const isHomeowner = currentUser.role === 'homeowner';
+      const typedJobData = jobData as Job;
       const isJobOwner =
-        (jobData as any).homeownerId === currentUser.id ||
-        (jobData as any).homeowner_id === currentUser.id;
+        typedJobData.homeownerId === currentUser.id ||
+        typedJobData.homeowner_id === currentUser.id;
 
       if (!isHomeowner || !isJobOwner) {
         setError('Only the job owner (homeowner) can make payments for this job');
@@ -78,19 +79,19 @@ function JobPaymentPageContent() {
 
       // Normalize to Job shape
       const normalized: Job = {
-        id: (jobData as any).id,
-        title: (jobData as any).title ?? '',
-        description: (jobData as any).description ?? '',
-        location: (jobData as any).location ?? '',
-        homeowner_id: (jobData as any).homeowner_id ?? (jobData as any).homeownerId ?? '',
-        contractor_id: (jobData as any).contractor_id ?? (jobData as any).contractorId ?? undefined,
-        status: (jobData as any).status ?? 'posted',
-        budget: (jobData as any).budget ?? 0,
-        created_at: (jobData as any).created_at ?? (jobData as any).createdAt ?? new Date().toISOString(),
-        updated_at: (jobData as any).updated_at ?? (jobData as any).updatedAt ?? new Date().toISOString(),
-        category: (jobData as any).category ?? undefined,
-        priority: (jobData as any).priority ?? undefined,
-        photos: (jobData as any).photos ?? [],
+        id: typedJobData.id,
+        title: typedJobData.title ?? '',
+        description: typedJobData.description ?? '',
+        location: typedJobData.location ?? '',
+        homeowner_id: typedJobData.homeowner_id ?? typedJobData.homeownerId ?? '',
+        contractor_id: typedJobData.contractor_id ?? typedJobData.contractorId ?? undefined,
+        status: typedJobData.status ?? 'posted',
+        budget: typedJobData.budget ?? 0,
+        created_at: typedJobData.created_at ?? typedJobData.createdAt ?? new Date().toISOString(),
+        updated_at: typedJobData.updated_at ?? typedJobData.updatedAt ?? new Date().toISOString(),
+        category: typedJobData.category ?? undefined,
+        priority: typedJobData.priority ?? undefined,
+        photos: typedJobData.photos ?? [],
       };
 
       setJob(normalized);

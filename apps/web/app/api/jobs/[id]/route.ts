@@ -130,7 +130,7 @@ export async function GET(_req: NextRequest, context: Params) {
       throw error;
     }
 
-    const row = data as any;
+    const row = data as Record<string, unknown>;
     if (row.homeowner_id !== user.id && row.contractor_id !== user.id) {
       logger.warn('Unauthorized job access attempt', {
         service: 'jobs',
@@ -170,9 +170,9 @@ export async function GET(_req: NextRequest, context: Params) {
         city: row.city || '',
         postcode: row.postcode || '',
       },
-      propertyType: row.property?.property_type || 'house',
+      propertyType: (row.property as Record<string, unknown> | null)?.property_type || 'house',
       accessInfo: row.access_info || '',
-      images: row.job_attachments
+      images: (row.job_attachments as JobAttachment[] | undefined)
         ?.filter((att: JobAttachment) => att.file_type === 'image')
         .map((att: JobAttachment) => att.file_url) || [],
       requirements: row.requirements || [],
@@ -180,13 +180,13 @@ export async function GET(_req: NextRequest, context: Params) {
       longitude: row.longitude,
       homeowner: row.homeowner || null,
       contractor: row.contractor || null,
-      bidCount: row.bids?.[0]?.count || 0,
+      bidCount: (row.bids as Array<{ count: number }> | undefined)?.[0]?.count || 0,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-    } as any;
+    } as Record<string, unknown>;
 
     // Check if we have cached AI analysis
-    const cacheKey = getCacheKey(id, formattedJob.images);
+    const cacheKey = getCacheKey(id, formattedJob.images as string[]);
     const cached = aiAnalysisCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       formattedJob.aiAnalysis = cached.data;
@@ -250,7 +250,7 @@ export async function PUT(request: NextRequest, context: Params) {
       throw new BadRequestError('Validation failed');
     }
 
-    const payload = parsed.data as any;
+    const payload = parsed.data;
     let aiAnalysisResult = null;
     let buildingSurveyResult = null;
     let geocodeResult = null;
@@ -358,7 +358,7 @@ export async function PUT(request: NextRequest, context: Params) {
     }
 
     // Update job in database
-    const updatePayload: any = {
+    const updatePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
 
@@ -546,7 +546,7 @@ export async function PATCH(request: NextRequest, context: Params) {
       throw new ForbiddenError('You do not have permission to update this job');
     }
 
-    const payload = parsed.data as any;
+    const payload = parsed.data;
     const updatePayload: {
       title?: string;
       description?: string | null;

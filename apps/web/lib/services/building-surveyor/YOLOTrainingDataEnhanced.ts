@@ -85,7 +85,7 @@ export class YOLOTrainingDataEnhanced {
         }
 
         const fileStream = createWriteStream(outputPath);
-        await pipeline(response.body as any, fileStream);
+        await pipeline(response.body as NodeJS.ReadableStream, fileStream);
       } else {
         // Regular URL download
         const response = await fetch(url);
@@ -94,7 +94,7 @@ export class YOLOTrainingDataEnhanced {
         }
 
         const fileStream = createWriteStream(outputPath);
-        await pipeline(response.body as any, fileStream);
+        await pipeline(response.body as NodeJS.ReadableStream, fileStream);
       }
 
       logger.info('Downloaded image', {

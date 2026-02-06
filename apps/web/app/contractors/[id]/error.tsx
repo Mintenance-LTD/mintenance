@@ -20,8 +20,8 @@ export default function ContractorDetailsError({
     logger.error('Contractor details error:', error, { service: 'app' });
 
     // Report to Sentry if configured
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error);
+    if (typeof window !== 'undefined' && window.Sentry) {
+      window.Sentry.captureException(error);
     }
   }, [error]);
 

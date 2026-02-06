@@ -524,15 +524,16 @@ function calculateAggregateMetrics(metricsData: unknown[]) {
     const aggregates: Record<string, number[]> = {};
     const totals: Record<string, number> = {};
 
-    (metricsData as Array<{ metrics: Record<string, any> }>).forEach((record) => {
+    (metricsData as Array<{ metrics: Record<string, unknown> }>).forEach((record) => {
         const metrics = record.metrics;
         Object.keys(metrics).forEach((key) => {
-            if (typeof metrics[key] === 'number') {
+            const value = metrics[key];
+            if (typeof value === 'number') {
                 if (!aggregates[key]) {
                     aggregates[key] = [];
                 }
-                aggregates[key].push(metrics[key]);
-                totals[key] = (totals[key] || 0) + metrics[key];
+                aggregates[key].push(value);
+                totals[key] = (totals[key] || 0) + value;
             }
         });
     });
@@ -550,17 +551,18 @@ function calculateAggregateMetrics(metricsData: unknown[]) {
     };
 }
 
-function calculateFalseNegativeRate(metrics: unknown[]): number {
+function calculateFalseNegativeRate(metrics: Record<string, unknown>[]): number {
     if (!metrics || metrics.length === 0) return 0;
 
     let falseNegatives = 0;
     let total = 0;
 
-    metrics.forEach((m: any) => {
-        if (m.presence_detection) {
+    metrics.forEach((m) => {
+        const presenceDetection = m.presence_detection as Record<string, unknown> | undefined;
+        if (presenceDetection) {
             total++;
             if (
-                !m.presence_detection.damageDetected &&
+                !presenceDetection.damageDetected &&
                 !m.yolo_skipped // If YOLO ran and found something
             ) {
                 falseNegatives++;
@@ -571,12 +573,12 @@ function calculateFalseNegativeRate(metrics: unknown[]): number {
     return total > 0 ? (falseNegatives / total) * 100 : 0;
 }
 
-function calculateAvgInferenceTime(metrics: unknown[]): number {
+function calculateAvgInferenceTime(metrics: Record<string, unknown>[]): number {
     if (!metrics || metrics.length === 0) return 0;
 
     const times = metrics
-        .filter((m: any) => m.inference_time_ms)
-        .map((m: any) => m.inference_time_ms);
+        .filter((m) => typeof m.inference_time_ms === 'number')
+        .map((m) => m.inference_time_ms as number);
 
     return times.length > 0
         ? times.reduce((a, b) => a + b, 0) / times.length

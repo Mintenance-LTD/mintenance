@@ -18,8 +18,8 @@ export default function CorrectAssessmentError({
   useEffect(() => {
     logger.error('Correct assessment error:', error);
 
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error);
+    if (typeof window !== 'undefined' && window.Sentry) {
+      window.Sentry.captureException(error);
     }
   }, [error]);
 

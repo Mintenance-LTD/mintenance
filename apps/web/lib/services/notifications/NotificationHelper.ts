@@ -142,7 +142,7 @@ export async function notifyJobStatusChange(
     for (const notification of notifications) {
       await NotificationService.createNotification({
         userId: notification.user_id,
-        type: notification.type as any,
+        type: notification.type,
         title: notification.title,
         message: notification.message,
         actionUrl: notification.action_url,
@@ -214,7 +214,7 @@ export async function notifyPaymentEvent(
 
     await NotificationService.createNotification({
       userId,
-      type: type as any,
+      type,
       title,
       message,
       actionUrl,
@@ -284,7 +284,7 @@ export async function notifyJobScheduled(
     for (const notification of notifications) {
       await NotificationService.createNotification({
         userId: notification.user_id,
-        type: notification.type as any,
+        type: notification.type,
         title: notification.title,
         message: notification.message,
         actionUrl: notification.action_url,

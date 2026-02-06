@@ -20,8 +20,8 @@ export default function JobCreationError({
     logger.error('Job creation error:', error, { service: 'app' });
 
     // Report to Sentry if configured
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error);
+    if (typeof window !== 'undefined' && window.Sentry) {
+      window.Sentry.captureException(error);
     }
 
     // Try to save form data to localStorage for recovery

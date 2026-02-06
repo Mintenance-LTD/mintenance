@@ -125,7 +125,7 @@ export default function AdminUsersPage2025() {
         userInfo={{
           name: userDisplayName,
           email: user?.email || '',
-          avatar: (user as any)?.profile_image_url,
+          avatar: user?.profile_image_url,
         }}
       />
 
@@ -197,7 +197,7 @@ export default function AdminUsersPage2025() {
               {/* Role Filter */}
               <select
                 value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value as any)}
+                onChange={(e) => setSelectedRole(e.target.value as typeof selectedRole)}
                 className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
                 <option value="all">All Roles</option>
@@ -209,7 +209,7 @@ export default function AdminUsersPage2025() {
               {/* Status Filter */}
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value as any)}
+                onChange={(e) => setSelectedStatus(e.target.value as typeof selectedStatus)}
                 className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
               >
                 <option value="all">All Statuses</option>

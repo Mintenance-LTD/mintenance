@@ -20,6 +20,7 @@ import { rateLimiter, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, BadRequestError, UnauthorizedError } from '@/lib/errors/api-error';
+import type { AgentName, DecisionType, ActionTaken } from '@/lib/services/agents/types';
 
 const requestSchema = z.object({
   agentName: z.string(),
@@ -37,7 +38,7 @@ const requestSchema = z.object({
         sms: z.boolean()
       })
     }).optional(),
-    historicalData: z.any().optional()
+    historicalData: z.record(z.string(), z.unknown()).optional()
   })
 });
 
@@ -119,24 +120,28 @@ export async function POST(req: NextRequest) {
       const orchestratorResult = await AgentOrchestrator.processJobLifecycle(
         context.jobId,
         {
-          ...context,
+          jobId: context.jobId,
           userId: user.id,
-          enableAutomation: automationEnabled,
-          automationLevel: userPrefs?.automation_level || 'minimal',
-          requireApproval: requiresApproval,
-          notificationSettings: {
-            email: userPrefs?.notify_email ?? true,
-            push: userPrefs?.notify_push ?? true,
-            sms: userPrefs?.notify_sms ?? false
+          contractorId: context.contractorId,
+          additionalData: {
+            enableAutomation: automationEnabled,
+            automationLevel: userPrefs?.automation_level || 'minimal',
+            requireApproval: requiresApproval,
+            notificationSettings: {
+              email: userPrefs?.notify_email ?? true,
+              push: userPrefs?.notify_push ?? true,
+              sms: userPrefs?.notify_sms ?? false
+            },
+            historicalData: context.historicalData,
           }
-        } as any
+        }
       );
 
       // Log the orchestrated decision
       await AgentLogger.logDecision({
-        agentName: 'AgentOrchestrator' as any,
-        decisionType: 'multi-agent-workflow' as any,
-        actionTaken: 'orchestrated' as any,
+        agentName: 'AgentOrchestrator',
+        decisionType: 'multi-agent-workflow',
+        actionTaken: 'orchestrated',
         confidence: 0.85,
         reasoning: 'Multiple agents coordinated for job lifecycle',
         metadata: {
@@ -172,7 +177,7 @@ export async function POST(req: NextRequest) {
         break;
 
       case 'BidAcceptanceAgent':
-        decision = await (BidAcceptanceAgent as any).evaluateBid(
+        decision = await (BidAcceptanceAgent as unknown as { evaluateBid(jobId: string, contractorId: string, data: unknown): Promise<Record<string, unknown>> }).evaluateBid(
           context.jobId!,
           context.contractorId!,
           context.historicalData
@@ -180,7 +185,7 @@ export async function POST(req: NextRequest) {
         break;
 
       case 'SchedulingAgent':
-        decision = await (SchedulingAgent as any).optimizeSchedule(
+        decision = await (SchedulingAgent as unknown as { optimizeSchedule(jobId: string, contractorId: string, times: unknown): Promise<Record<string, unknown>> }).optimizeSchedule(
           context.jobId!,
           context.contractorId || user.id,
           context.historicalData?.preferredTimes
@@ -188,7 +193,7 @@ export async function POST(req: NextRequest) {
         break;
 
       case 'NotificationAgent':
-        decision = await (NotificationAgent as any).determineNotificationStrategy(
+        decision = await (NotificationAgent as unknown as { determineNotificationStrategy(userId: string, type: unknown, data: unknown): Promise<Record<string, unknown>> }).determineNotificationStrategy(
           user.id,
           context.historicalData?.notificationType,
           context.historicalData
@@ -196,7 +201,7 @@ export async function POST(req: NextRequest) {
         break;
 
       case 'DisputeResolutionAgent':
-        decision = await (DisputeResolutionAgent as any).analyzeDispute(
+        decision = await (DisputeResolutionAgent as unknown as { analyzeDispute(jobId: string, details: unknown): Promise<Record<string, unknown>> }).analyzeDispute(
           context.jobId!,
           context.historicalData?.disputeDetails
         );
@@ -209,14 +214,14 @@ export async function POST(req: NextRequest) {
         break;
 
       case 'JobStatusAgent':
-        decision = await (JobStatusAgent as any).determineNextStatus(
+        decision = await (JobStatusAgent as unknown as { determineNextStatus(jobId: string, status: unknown): Promise<Record<string, unknown>> }).determineNextStatus(
           context.jobId!,
           context.historicalData?.currentStatus
         );
         break;
 
       case 'PredictiveAgent':
-        decision = await (PredictiveAgent as any).predictDemand(
+        decision = await (PredictiveAgent as unknown as { predictDemand(category: unknown, location: unknown): Promise<Record<string, unknown>> }).predictDemand(
           context.historicalData?.category,
           context.historicalData?.location
         );
@@ -229,15 +234,18 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    // Cast decision to a record for property access across agent types
+    const decisionRecord = decision as Record<string, unknown> | undefined;
+
     // Log the decision
     await AgentLogger.logDecision({
-      agentName: agentName as any,
-      decisionType: 'api-request' as any,
-      actionTaken: (decision?.action || 'evaluated') as any,
-      confidence: decision?.confidence || 0.75,
-      reasoning: decision?.reasoning || 'API request processed',
+      agentName: agentName as AgentName,
+      decisionType: 'api-request',
+      actionTaken: ((decisionRecord?.action as string) || 'evaluated') as ActionTaken,
+      confidence: (decisionRecord?.confidence as number) || 0.75,
+      reasoning: (decisionRecord?.reasoning as string) || 'API request processed',
       metadata: {
-        ...decision,
+        ...(decisionRecord ?? {}),
         userId: user.id,
         platform: req.headers.get('x-platform') || 'unknown'
       }
@@ -250,7 +258,7 @@ export async function POST(req: NextRequest) {
         agent_name: agentName,
         decision_count: 1,
         success_count: decision ? 1 : 0,
-        avg_confidence: decision?.confidence || 0,
+        avg_confidence: (decisionRecord?.confidence as number) || 0,
         avg_processing_time: Date.now() - performance.now(),
         date: new Date().toISOString().split('T')[0]
       });
@@ -267,7 +275,7 @@ export async function POST(req: NextRequest) {
         headers: {
           'X-Request-ID': crypto.randomUUID(),
           'X-Agent': agentName,
-          'X-Confidence': (decision?.confidence || 0).toString(),
+          'X-Confidence': ((decisionRecord?.confidence as number) || 0).toString(),
           'X-Automation-Level': userPrefs?.automation_level || 'minimal',
           'X-Processing-Time': (Date.now() - performance.now()).toString()
         }
@@ -279,9 +287,9 @@ export async function POST(req: NextRequest) {
 
     // SECURITY: Log error to agent decision logs WITHOUT sensitive details
     await AgentLogger.logDecision({
-      agentName: 'error' as any,
-      decisionType: 'error' as any,
-      actionTaken: 'failed' as any,
+      agentName: 'error',
+      decisionType: 'error',
+      actionTaken: 'failed',
       confidence: 0,
       reasoning: 'Agent decision processing failed',  // Generic message, no error details
       metadata: {

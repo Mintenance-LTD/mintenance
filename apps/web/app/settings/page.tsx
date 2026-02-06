@@ -12,6 +12,9 @@ import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
 
 type SectionKey = 'profile' | 'account' | 'notifications' | 'payments' | 'automation' | 'privacy';
 
+/** Extended user fields that may come from the database but aren't in the base User type */
+type UserWithLocation = { address?: string; city?: string; postcode?: string };
+
 export default function SettingsPage2025({
   params,
   searchParams,
@@ -85,6 +88,7 @@ export default function SettingsPage2025({
   // Load user data into form
   useEffect(() => {
     if (user) {
+      const userLoc = user as typeof user & UserWithLocation;
       setProfileData({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
@@ -92,9 +96,9 @@ export default function SettingsPage2025({
         phone: user.phone || '',
         bio: user.bio || '',
         profile_image_url: user.profile_image_url || '',
-        address: (user as any).address || '',
-        city: (user as any).city || '',
-        postcode: (user as any).postcode || '',
+        address: userLoc.address || '',
+        city: userLoc.city || '',
+        postcode: userLoc.postcode || '',
       });
     }
   }, [user]);
@@ -501,6 +505,7 @@ export default function SettingsPage2025({
                     <button
                       onClick={() => {
                         if (user) {
+                          const userLoc = user as typeof user & UserWithLocation;
                           setProfileData({
                             first_name: user.first_name || '',
                             last_name: user.last_name || '',
@@ -508,9 +513,9 @@ export default function SettingsPage2025({
                             phone: user.phone || '',
                             bio: user.bio || '',
                             profile_image_url: user.profile_image_url || '',
-                            address: (user as any).address || '',
-                            city: (user as any).city || '',
-                            postcode: (user as any).postcode || '',
+                            address: userLoc.address || '',
+                            city: userLoc.city || '',
+                            postcode: userLoc.postcode || '',
                           });
                         }
                       }}

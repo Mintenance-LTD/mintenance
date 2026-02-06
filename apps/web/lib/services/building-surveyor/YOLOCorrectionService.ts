@@ -481,11 +481,10 @@ export class YOLOCorrectionService {
         Array.from(damageTypes)
       );
 
-      if (!sam3Result || (sam3Result as any).error) {
+      if (!sam3Result || !sam3Result.success) {
         logger.debug('SAM3 segmentation failed', {
           service: 'YOLOCorrectionService',
           correctionId: yoloCorrectionId,
-          error: (sam3Result as any)?.error,
         });
         return;
       }

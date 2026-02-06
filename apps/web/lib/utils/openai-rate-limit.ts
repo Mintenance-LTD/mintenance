@@ -277,8 +277,8 @@ export async function withOpenAIRetry<T>(
       if (error instanceof Error) {
         lastError = error;
         // Preserve rate limit info if it exists
-        if ((error as any)?.rateLimitInfo) {
-          lastRateLimitInfo = (error as any).rateLimitInfo;
+        if ('rateLimitInfo' in error && error.rateLimitInfo) {
+          lastRateLimitInfo = error.rateLimitInfo as OpenAIRateLimitInfo;
         }
       } else {
         lastError = new Error(String(error));
@@ -322,7 +322,7 @@ export async function withOpenAIRetry<T>(
         });
         // Preserve rateLimitInfo in the thrown error
         if (lastRateLimitInfo) {
-          (lastError as any).rateLimitInfo = lastRateLimitInfo;
+          (lastError as Error & { rateLimitInfo?: OpenAIRateLimitInfo }).rateLimitInfo = lastRateLimitInfo;
         }
         throw lastError;
       }
@@ -369,7 +369,7 @@ export async function fetchWithOpenAIRetry(
       const error = new Error(`AI assessment failed: ${response.status}`);
       
       // Attach rate limit info to error for better retry handling
-      (error as any).rateLimitInfo = rateLimitInfo;
+      (error as Error & { rateLimitInfo?: OpenAIRateLimitInfo }).rateLimitInfo = rateLimitInfo;
       
       throw error;
     }
@@ -394,7 +394,7 @@ export async function fetchWithOpenAIRetry(
       const error = new Error(errorMessage);
       // Attach error code for downstream handling
       if (parsedError?.error?.code) {
-        (error as any).openaiErrorCode = parsedError.error.code;
+        (error as Error & { openaiErrorCode?: string }).openaiErrorCode = parsedError.error.code;
       }
       throw error;
     }

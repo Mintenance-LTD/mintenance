@@ -105,10 +105,8 @@ export async function exportToPDFAdvanced(
 ): Promise<void> {
   try {
     // Dynamic import to avoid bundling if not used
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const jsPDF = (await import('jspdf' as any)).default;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const html2canvas = (await import('html2canvas' as any)).default;
+    const jsPDF = (await import(/* webpackChunkName: "jspdf" */ 'jspdf' as string)).default;
+    const html2canvas = (await import(/* webpackChunkName: "html2canvas" */ 'html2canvas' as string)).default;
     
     const element = document.getElementById(elementId);
     if (!element) {

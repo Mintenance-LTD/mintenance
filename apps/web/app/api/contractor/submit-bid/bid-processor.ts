@@ -58,12 +58,13 @@ export async function createBid(
     created_at: new Date().toISOString(),
   };
 
+  const insertRecord = insertPayload as Record<string, unknown>;
   logger.debug('[BID_CREATE] Inserting bid with payload', {
     service: 'contractor',
     hasEstimatedDuration: 'estimated_duration' in insertPayload,
     hasProposedStartDate: 'proposed_start_date' in insertPayload,
-    estimatedDuration: insertPayload.estimated_duration,
-    proposedStartDate: insertPayload.proposed_start_date,
+    estimatedDuration: insertRecord.estimated_duration,
+    proposedStartDate: insertRecord.proposed_start_date,
   });
 
   const { data: newBid, error: insertError } = await serverSupabase
@@ -79,11 +80,12 @@ export async function createBid(
       errorMessage: insertError.message,
     });
   } else {
+    const bidRecord = newBid as Record<string, unknown> | null;
     logger.debug('[BID_CREATE] Bid created successfully', {
       service: 'contractor',
-      bidId: (newBid as any)?.id,
-      savedEstimatedDuration: (newBid as any)?.estimated_duration,
-      savedProposedStartDate: (newBid as any)?.proposed_start_date,
+      bidId: bidRecord?.id,
+      savedEstimatedDuration: bidRecord?.estimated_duration,
+      savedProposedStartDate: bidRecord?.proposed_start_date,
     });
   }
 
@@ -97,13 +99,14 @@ export async function updateBid(
   bidId: string,
   payload: BidPayload
 ): Promise<{ bid: unknown; error: unknown }> {
+  const payloadRecord = payload as unknown as Record<string, unknown>;
   logger.debug('[BID_UPDATE] Updating bid with payload', {
     service: 'contractor',
     bidId,
     hasEstimatedDuration: 'estimated_duration' in payload,
     hasProposedStartDate: 'proposed_start_date' in payload,
-    estimatedDuration: payload.estimated_duration,
-    proposedStartDate: payload.proposed_start_date,
+    estimatedDuration: payloadRecord.estimated_duration,
+    proposedStartDate: payloadRecord.proposed_start_date,
   });
   
   const { data: updatedBid, error: updateError } = await serverSupabase
@@ -114,18 +117,20 @@ export async function updateBid(
     .single();
 
   if (updateError) {
+    const errRecord = updateError as { code?: string; message?: string };
     logger.error('[BID_UPDATE] Database update error', updateError, {
       service: 'contractor',
       bidId,
-      errorCode: (updateError as any).code,
-      errorMessage: (updateError as any).message,
+      errorCode: errRecord.code,
+      errorMessage: errRecord.message,
     });
   } else {
+    const bidRecord = updatedBid as Record<string, unknown> | null;
     logger.debug('[BID_UPDATE] Bid updated successfully', {
       service: 'contractor',
       bidId,
-      savedEstimatedDuration: (updatedBid as any)?.estimated_duration,
-      savedProposedStartDate: (updatedBid as any)?.proposed_start_date,
+      savedEstimatedDuration: bidRecord?.estimated_duration,
+      savedProposedStartDate: bidRecord?.proposed_start_date,
     });
   }
 
@@ -210,31 +215,30 @@ export async function processBid(
         return { bid: raceBid, isUpdate: true };
       } else {
         // Handle other insert errors
+        const dbError = error as { code?: string; message?: string; details?: string; hint?: string };
         const errorInfo = {
           service: 'contractor',
           contractorId,
           jobId: validatedData.jobId,
-          errorCode: error.code || 'NO_CODE',
-          errorMessage: error.message || 'NO_MESSAGE',
-          errorDetails: (error as any).details,
-          errorHint: (error as any).hint,
+          errorCode: dbError.code || 'NO_CODE',
+          errorMessage: dbError.message || 'NO_MESSAGE',
+          errorDetails: dbError.details,
+          errorHint: dbError.hint,
           payloadKeys: Object.keys(bidPayload),
-          payloadEstimatedDuration: (bidPayload as any).estimated_duration,
-          payloadProposedStartDate: (bidPayload as any).proposed_start_date,
+          payloadEstimatedDuration: (bidPayload as unknown as Record<string, unknown>).estimated_duration,
+          payloadProposedStartDate: (bidPayload as unknown as Record<string, unknown>).proposed_start_date,
         };
 
         logger.error('[BID_CREATE] Failed to create bid in database - full error details', {
           ...errorInfo,
           fullError: error,
         });
-        
+
         // Preserve the original error so it can be properly handled upstream
-        const dbError = error as { code?: string; message?: string; details?: string; hint?: string };
-        const preservedError = new Error('Unable to submit bid due to a database error. Please try again or contact support.');
-        (preservedError as any).code = dbError.code;
-        (preservedError as any).message = dbError.message;
-        (preservedError as any).details = dbError.details;
-        (preservedError as any).hint = dbError.hint;
+        const preservedError = Object.assign(
+          new Error('Unable to submit bid due to a database error. Please try again or contact support.'),
+          { code: dbError.code, details: dbError.details, hint: dbError.hint }
+        );
         throw preservedError;
       }
     }

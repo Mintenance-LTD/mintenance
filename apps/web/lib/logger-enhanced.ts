@@ -113,7 +113,7 @@ export function logApiResponse(
 ): void {
   const level = status >= 400 ? 'error' : status >= 300 ? 'warn' : 'info';
 
-  logger.log(level as any, 'API response', {
+  logger.log(level as 'debug' | 'info' | 'warn' | 'error', 'API response', {
     method,
     endpoint,
     status,
@@ -129,7 +129,7 @@ export function logApiResponse(
 export function logUserAction(
   action: string,
   category: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   logger.info('User action', {
     action,
@@ -147,7 +147,7 @@ export function logPerformance(
   metric: string,
   value: number,
   unit: string = 'ms',
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   logger.info('Performance metric', {
     metric,
@@ -158,8 +158,8 @@ export function logPerformance(
   });
 
   // Also send to performance monitoring if available
-  if (typeof window !== 'undefined' && (window as any).datadog) {
-    (window as any).datadog.rum.addAction(metric, {
+  if (typeof window !== 'undefined' && (window as unknown as { datadog?: { rum: { addAction: (metric: string, data: Record<string, unknown>) => void } } }).datadog) {
+    (window as unknown as { datadog: { rum: { addAction: (metric: string, data: Record<string, unknown>) => void } } }).datadog.rum.addAction(metric, {
       value,
       unit,
       ...metadata
@@ -173,7 +173,7 @@ export function logPerformance(
 export function logFeatureUsage(
   feature: string,
   action: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): void {
   logger.info('Feature usage', {
     feature,

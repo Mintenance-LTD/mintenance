@@ -3,12 +3,15 @@ import type {
   MilestoneTemplate as DomainMilestoneTemplate,
   ProjectMilestone,
   ProjectTimeline,
-  TimelineTemplate
+  TimelineTemplate,
+  User
 } from '@mintenance/types';
 
 import type {
+  MilestoneNoteAuthor,
   MilestoneNoteRow,
   MilestoneTemplateRow,
+  ProjectMilestoneAssignee,
   ProjectMilestoneRow,
   ProjectTimelineRow,
   TimelineTemplateRow
@@ -65,13 +68,13 @@ export function mapMilestoneFromRow(milestone: ProjectMilestoneRow): ProjectMile
     updatedAt: milestone.updated_at,
     assignee: milestone.users ? {
       id: milestone.users.id,
-      email: (milestone.users as any).email || '',
+      email: (milestone.users as ProjectMilestoneAssignee & { role?: string; created_at?: string; updated_at?: string }).email || '',
       first_name: milestone.users.first_name,
       last_name: milestone.users.last_name,
-      role: (milestone.users as any).role || 'contractor',
-      created_at: (milestone.users as any).created_at || new Date().toISOString(),
-      updated_at: (milestone.users as any).updated_at || new Date().toISOString()
-    } : undefined
+      role: ((milestone.users as ProjectMilestoneAssignee & { role?: string }).role || 'contractor') as User['role'],
+      created_at: (milestone.users as ProjectMilestoneAssignee & { created_at?: string }).created_at || new Date().toISOString(),
+      updated_at: (milestone.users as ProjectMilestoneAssignee & { updated_at?: string }).updated_at || new Date().toISOString()
+    } as User : undefined
   };
 }
 
@@ -87,13 +90,13 @@ export function mapNoteFromRow(note: MilestoneNoteRow): MilestoneNote {
     updatedAt: note.updated_at,
     author: note.users ? {
       id: note.users.id,
-      email: (note.users as any).email || '',
+      email: (note.users as MilestoneNoteAuthor & { role?: string; created_at?: string; updated_at?: string }).email || '',
       first_name: note.users.first_name,
       last_name: note.users.last_name,
-      role: (note.users as any).role || 'contractor',
-      created_at: (note.users as any).created_at || new Date().toISOString(),
-      updated_at: (note.users as any).updated_at || new Date().toISOString()
-    } : undefined
+      role: ((note.users as MilestoneNoteAuthor & { role?: string }).role || 'contractor') as User['role'],
+      created_at: (note.users as MilestoneNoteAuthor & { created_at?: string }).created_at || new Date().toISOString(),
+      updated_at: (note.users as MilestoneNoteAuthor & { updated_at?: string }).updated_at || new Date().toISOString()
+    } as User : undefined
   };
 }
 

@@ -30,10 +30,10 @@ export async function GET(
     }
 
     return NextResponse.json(material);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('GET /api/materials/[id] exception', error);
     return NextResponse.json(
-      { error: 'Failed to fetch material', details: error.message },
+      { error: 'Failed to fetch material', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -73,10 +73,10 @@ export async function PATCH(
     const updatedMaterial = await materialsService.updateMaterial(id, body);
 
     return NextResponse.json(updatedMaterial);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('PATCH /api/materials/[id] exception', error);
     return NextResponse.json(
-      { error: 'Failed to update material', details: error.message },
+      { error: 'Failed to update material', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -112,10 +112,10 @@ export async function DELETE(
       { success: true, message: 'Material deleted successfully' },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('DELETE /api/materials/[id] exception', error);
     return NextResponse.json(
-      { error: 'Failed to delete material', details: error.message },
+      { error: 'Failed to delete material', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

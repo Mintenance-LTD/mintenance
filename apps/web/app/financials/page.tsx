@@ -291,7 +291,7 @@ export default async function FinancialsPage() {
                           {sub.name || 'Subscription'}
                         </h3>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
-                          <Icon name={statusConfig.icon as any} size={12} />
+                          <Icon name={statusConfig.icon} size={12} />
                           {sub.status || 'active'}
                         </span>
                       </div>
@@ -360,7 +360,7 @@ export default async function FinancialsPage() {
                             {invoice.title || invoice.invoice_number}
                           </h3>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
-                            <Icon name={statusConfig.icon as any} size={12} />
+                            <Icon name={statusConfig.icon} size={12} />
                             {invoice.status || 'draft'}
                           </span>
                         </div>
@@ -421,7 +421,7 @@ export default async function FinancialsPage() {
                           {payment.description || job?.title || 'Payment'}
                         </h3>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
-                          <Icon name={statusConfig.icon as any} size={12} />
+                          <Icon name={statusConfig.icon} size={12} />
                           {payment.status || 'pending'}
                         </span>
                       </div>

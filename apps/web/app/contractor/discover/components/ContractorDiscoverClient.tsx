@@ -101,8 +101,8 @@ export function ContractorDiscoverClient({
     firstJob: jobs[0] ? {
       id: jobs[0].id,
       title: jobs[0].title,
-      lat: (jobs[0] as any).latitude,
-      lng: (jobs[0] as any).longitude,
+      lat: (jobs[0] as Job & { latitude?: number }).latitude,
+      lng: (jobs[0] as Job & { longitude?: number }).longitude,
       property: jobs[0].property
     } : null,
     service: 'ui',
@@ -214,7 +214,7 @@ export function ContractorDiscoverClient({
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': (window as any).csrfToken || '',
+            'X-CSRF-Token': ((window as Window & { csrfToken?: string }).csrfToken) || '',
           },
         });
 
@@ -234,7 +234,7 @@ export function ContractorDiscoverClient({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': (window as any).csrfToken || '',
+            'X-CSRF-Token': ((window as Window & { csrfToken?: string }).csrfToken) || '',
           },
           body: JSON.stringify({ jobId }),
         });
@@ -289,8 +289,9 @@ export function ContractorDiscoverClient({
   useEffect(() => {
     // Jobs should already have latitude and longitude from the database
     const jobsWithCoords = availableJobs.map(job => {
-      const lat = (job as any).latitude || (job as any).lat;
-      const lng = (job as any).longitude || (job as any).lng;
+      const jobWithCoords = job as Job & { latitude?: number; lat?: number; longitude?: number; lng?: number };
+      const lat = jobWithCoords.latitude || jobWithCoords.lat;
+      const lng = jobWithCoords.longitude || jobWithCoords.lng;
 
       // Calculate distance if contractor has location
       let distance: number | undefined;
@@ -561,7 +562,8 @@ export function ContractorDiscoverClient({
 
       // Carousel navigation logic - use unique function names per marker
       let currentIndex = 0;
-      (window as any)[`${carouselId}_next`] = () => {
+      const windowWithCarousel = window as unknown as Record<string, unknown>;
+      windowWithCarousel[`${carouselId}_next`] = () => {
         document.querySelector(`.${carouselId}-job-card-${currentIndex}`)?.setAttribute('style', 'display: none');
         currentIndex = (currentIndex + 1) % jobsAtLocation.length;
         document.querySelector(`.${carouselId}-job-card-${currentIndex}`)?.setAttribute('style', 'display: block; animation: fadeIn 0.3s');
@@ -569,7 +571,7 @@ export function ContractorDiscoverClient({
         if (indexEl) indexEl.textContent = String(currentIndex + 1);
       };
 
-      (window as any)[`${carouselId}_prev`] = () => {
+      windowWithCarousel[`${carouselId}_prev`] = () => {
         document.querySelector(`.${carouselId}-job-card-${currentIndex}`)?.setAttribute('style', 'display: none');
         currentIndex = (currentIndex - 1 + jobsAtLocation.length) % jobsAtLocation.length;
         document.querySelector(`.${carouselId}-job-card-${currentIndex}`)?.setAttribute('style', 'display: block; animation: fadeIn 0.3s');

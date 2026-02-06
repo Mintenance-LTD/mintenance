@@ -149,6 +149,7 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     description?: string;
     created_at: string;
     contractor_id: string;
+    quote_id?: string;
     lineItems?: Array<{
       id: string;
       description: string;
@@ -162,7 +163,11 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
       first_name?: string;
       last_name?: string;
       company_name?: string;
+      email?: string;
+      phone?: string;
       profile_image_url?: string;
+      admin_verified?: boolean;
+      license_number?: string;
       rating?: number;
       portfolioImages?: Array<{ url: string; title?: string; category?: string }>;
     };
@@ -208,11 +213,11 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
       first_name: bid.contractor?.first_name,
       last_name: bid.contractor?.last_name,
       company_name: bid.contractor?.company_name,
-      email: (bid.contractor as any)?.email || '',
-      phone: (bid.contractor as any)?.phone,
+      email: bid.contractor?.email || '',
+      phone: bid.contractor?.phone,
       profile_image_url: bid.contractor?.profile_image_url,
-      admin_verified: (bid.contractor as any)?.admin_verified,
-      license_number: (bid.contractor as any)?.license_number,
+      admin_verified: bid.contractor?.admin_verified,
+      license_number: bid.contractor?.license_number,
     },
   }));
 
