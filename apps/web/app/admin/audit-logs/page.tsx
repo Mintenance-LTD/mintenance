@@ -19,13 +19,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Audit Logs | Mintenance Admin',
-  description: 'View and search system audit logs to monitor administrative actions, security events, and platform activity.',
-};
-
 // Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },

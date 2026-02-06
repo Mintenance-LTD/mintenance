@@ -25,13 +25,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'API Documentation | Mintenance Admin',
-  description: 'Mintenance API documentation with endpoints, authentication guides, webhooks, and an interactive playground.',
-};
-
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0 },

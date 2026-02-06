@@ -1,12 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Pay Invoice | Mintenance',
-  description: 'Securely pay a contractor invoice using your saved payment method.',
-};
-
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { InvoicePaymentClient } from '@/app/contractor/invoices/components/InvoicePaymentClient';

@@ -6,13 +6,6 @@
 import { useEffect, useState } from 'react';
 import { logger } from '@mintenance/shared';
 import { createBrowserClient } from '@supabase/ssr';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Migration Dashboard | Mintenance Admin',
-  description: 'Real-time monitoring of API route migration progress, feature flags, and controller usage statistics.',
-};
-
 interface FeatureFlagStat {
   name: string;
   enabled: boolean;

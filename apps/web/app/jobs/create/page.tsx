@@ -1,12 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Post a New Job | Mintenance',
-  description: 'Create a new maintenance job request with details, photos, and budget for qualified contractors.',
-};
-
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
 import { useRouter, useSearchParams } from 'next/navigation';

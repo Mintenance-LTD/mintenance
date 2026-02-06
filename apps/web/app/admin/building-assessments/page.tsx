@@ -19,13 +19,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Building Assessments | Mintenance Admin',
-  description: 'Manage AI-powered building safety assessments, compliance monitoring, and property inspection reports.',
-};
-
 // Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },

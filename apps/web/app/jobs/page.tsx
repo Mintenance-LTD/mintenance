@@ -1,12 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Your Jobs | Mintenance',
-  description: 'View and manage your maintenance jobs, track contractor progress, and post new projects.',
-};
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';

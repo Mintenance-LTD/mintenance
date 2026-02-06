@@ -1,5 +1,3 @@
-import { logger } from '@mintenance/shared';
-
 // Web Logger Utility - Structured logging for Next.js/web environment
 // Adapted from mobile logger pattern for browser and server-side compatibility
 

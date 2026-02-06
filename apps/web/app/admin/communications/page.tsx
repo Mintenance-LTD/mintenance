@@ -20,13 +20,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Communications | Mintenance Admin',
-  description: 'Manage platform-wide messaging, email campaigns, notifications, and user communication analytics.',
-};
-
 // Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },

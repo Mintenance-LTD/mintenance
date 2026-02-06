@@ -1,12 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Secure Payment | Mintenance',
-  description: 'Make a secure escrow payment for your maintenance job. Funds are protected until work is complete.',
-};
-
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';

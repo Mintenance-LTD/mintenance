@@ -1,12 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Two-Factor Authentication | Mintenance',
-  description: 'Set up and manage two-factor authentication to add an extra layer of security to your account.',
-};
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';

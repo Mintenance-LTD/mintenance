@@ -19,13 +19,6 @@ import {
 } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Analytics Detail | Mintenance Admin',
-  description: 'Detailed platform analytics including user growth, revenue breakdown, job distribution, and regional performance.',
-};
-
 // Dynamic imports for Tremor charts - lazy load heavy charting library
 const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
   loading: () => <ChartSkeleton height="288px" />,

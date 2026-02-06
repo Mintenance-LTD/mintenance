@@ -13,7 +13,7 @@ import crypto from 'crypto';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { LRUCache } from 'lru-cache';
-import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, TooManyRequestsError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 
 // Environment configuration for A/B testing
 const AB_TEST_ENABLED = process.env.AB_TEST_ENABLED === 'true';
@@ -304,7 +304,7 @@ export async function POST(request: NextRequest) {
     let assessmentIdForImages: string | null = null;
 
     if (config.useHybridInference) {
-      assessment = await HybridInferenceService.assessWithHybridRouting(imageUrls, context);
+      assessment = await HybridInferenceService.assessDamage(imageUrls, context) as unknown as Phase1BuildingAssessment;
       logger.info('Assessment service used', {
         service: 'building-surveyor-api',
         inferenceType: 'hybrid',

@@ -1,35 +1,11 @@
+'use client';
+
 import React, { useState } from 'react';
 import { fadeIn, staggerContainer, staggerItem, cardHover } from '@/lib/animations/variants';
 import Link from 'next/link';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { LandingNavigation } from '../components/landing/LandingNavigation';
 import { Footer2025 } from '../components/landing/Footer2025';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Help Centre - Support & Guides | Mintenance',
-  description: 'Browse our help centre for detailed guides, tutorials, and support articles. Get help with posting jobs, hiring contractors, payment issues, and account management.',
-  keywords: 'help centre, support articles, user guides, tutorials, how-to guides, mintenance help, customer support documentation',
-  openGraph: {
-    title: 'Help Centre - Support & Guides | Mintenance',
-    description: 'Comprehensive guides and support articles to help you get the most out of Mintenance.',
-    type: 'website',
-    images: [
-      {
-        url: '/og-help.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Mintenance Help Centre',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Mintenance Help Centre | Guides',
-    description: 'Browse support articles, tutorials, and guides for using Mintenance.',
-  },
-};
-
 interface Article {
   id: string;
   title: string;

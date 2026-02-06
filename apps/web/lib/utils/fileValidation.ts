@@ -1,4 +1,4 @@
-import { fromBuffer } from 'file-type';
+import { fileTypeFromBuffer } from 'file-type';
 import { logger } from '@mintenance/shared';
 
 /**
@@ -147,7 +147,7 @@ export async function validateFileUpload(
     }
 
     // Step 4: Use file-type library for robust magic number detection
-    const detectedFileType = await fromBuffer(buffer);
+    const detectedFileType = await fileTypeFromBuffer(buffer);
 
     if (!detectedFileType) {
       // Fallback: Check magic numbers manually for edge cases

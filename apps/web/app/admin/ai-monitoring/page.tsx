@@ -6,13 +6,6 @@ import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { DashboardSkeleton } from '@/components/ui/ChartSkeleton';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'AI Monitoring | Mintenance Admin',
-  description: 'Monitor AI agent performance metrics, system status, and real-time insights for the Mintenance platform.',
-};
-
 // Dynamic import for heavy AI monitoring component with Tremor charts
 const AIMonitoringClient = dynamic(
   () => import('./components/AIMonitoringClient').then(mod => ({ default: mod.AIMonitoringClient })),

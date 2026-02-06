@@ -1,12 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Transaction Details | Mintenance',
-  description: 'View transaction details, payment breakdown, contractor info, and download your receipt.',
-};
-
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {

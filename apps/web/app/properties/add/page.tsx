@@ -1,12 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Add Property | Mintenance',
-  description: 'Add a new property to your account to start posting maintenance jobs and tracking upkeep.',
-};
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Home, MapPin, Upload, X, Image as ImageIcon } from 'lucide-react';

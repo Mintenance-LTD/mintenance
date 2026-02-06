@@ -5,8 +5,11 @@
  * Integrates with LaunchDarkly for production, uses local config for development.
  */
 
-import { LDClient, LDFlagSet } from 'launchdarkly-js-client-sdk';
 import { logger } from '@mintenance/shared';
+
+// LaunchDarkly types - dynamically imported to avoid build failure when package is not installed
+type LDClient = any;
+type LDFlagSet = Record<string, any>;
 
 /**
  * Feature flag names
@@ -86,7 +89,16 @@ export class FeatureFlagService {
 
             if (!isDevelopment && ldKey) {
                 // Initialize LaunchDarkly for production
-                const { initialize } = await import('launchdarkly-js-client-sdk');
+                // Dynamic import - package may not be installed in all environments
+                let initialize: (envKey: string, context: Record<string, unknown>) => LDClient;
+                try {
+                    const ld = await import('launchdarkly-js-client-sdk' as string);
+                    initialize = ld.initialize;
+                } catch {
+                    logger.warn('LaunchDarkly SDK not available, falling back to local flags');
+                    this.initialized = true;
+                    return;
+                }
 
                 this.userContext = {
                     key: userId || 'anonymous',

@@ -1,12 +1,5 @@
 'use client';
 
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Settings | Mintenance',
-  description: 'Manage your account settings, profile, security, notifications, and payment preferences.',
-};
-
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
 import { useRouter } from 'next/navigation';

@@ -6,13 +6,6 @@ import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'User Management | Mintenance Admin',
-  description: 'Manage platform users including homeowners, contractors, and admins with role and status filtering.',
-};
-
 interface UserRecord {
   id: string;
   name: string;

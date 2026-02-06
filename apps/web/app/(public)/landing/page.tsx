@@ -7,6 +7,9 @@ import { Star, CheckCircle, TrendingUp, Users, Briefcase } from 'lucide-react';
 import { LocalBusinessStructuredData, WebApplicationStructuredData } from '@/components/StructuredData';
 import { logger } from '@mintenance/shared';
 
+// Force dynamic rendering - this page has interactive elements and live data
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Mintenance - Find Trusted Local Contractors for Home Maintenance',
   description: 'Connect with verified contractors for all your home maintenance needs. Get instant quotes, read reviews, and hire trusted professionals. 10,000+ verified contractors nationwide.',
@@ -104,10 +107,6 @@ export default async function LandingPage() {
           {/* Search Bar */}
           <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <SearchBar
-              onSearch={(params) => {
-                // Client-side navigation will be handled by the component
-                // logger.info('Search:', params', { service: 'app' });
-              }}
               variant="hero"
             />
           </div>

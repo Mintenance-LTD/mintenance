@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
           status: 429,
           headers: {
             'Retry-After': '60',
-            'X-RateLimit-Limit': String(rateLimit),
+            'X-RateLimit-Limit': String(isDev ? 720 : 60),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': new Date(Date.now() + 3600000).toISOString(),
           }
