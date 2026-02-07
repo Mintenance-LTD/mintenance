@@ -100,6 +100,15 @@ yarn-error.*
 .env*.local
 .env.backup*
 .cursor/mcp.local.json
+.cursor/mcp.json
+.cursor/mcp.json.*
+!.cursor/mcp.json.example
+.claude/settings.local.json
+
+# Test output artifacts
+**/test-results.json
+**/*-test-results*.txt
+**/test-results/
 
 # TypeScript
 *.tsbuildinfo
