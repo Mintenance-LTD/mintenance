@@ -8,8 +8,7 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
-import { PasswordValidator } from '@mintenance/auth';
-import { checkPasswordBreach } from '../../../../../../packages/auth/src/password-security';
+import { PasswordValidator, checkPasswordBreach } from '@mintenance/auth';
 
 export async function POST(request: NextRequest) {
   try {

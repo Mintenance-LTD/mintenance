@@ -360,7 +360,7 @@ export function logCategorizedError(
  * );
  * ```
  */
-export function withErrorHandling<TArgs extends any[], TReturn>(
+export function withErrorHandling<TArgs extends unknown[], TReturn>(
   fn: (...args: TArgs) => Promise<TReturn>,
   options: {
     retry?: boolean | Partial<RetryConfig>;

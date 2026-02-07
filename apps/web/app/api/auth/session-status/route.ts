@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
 
     // Extract session tracking fields from JWT
     // These are set during login and preserved across token refreshes
-    const sessionStart = (user as any).sessionStart; // Unix timestamp (ms)
-    const lastActivity = (user as any).lastActivity; // Unix timestamp (ms)
+    const sessionStart = (user as unknown as { sessionStart?: number }).sessionStart; // Unix timestamp (ms)
+    const lastActivity = (user as unknown as { lastActivity?: number }).lastActivity; // Unix timestamp (ms)
 
     // If session tracking not available (legacy token), return basic status
     if (!sessionStart || !lastActivity) {

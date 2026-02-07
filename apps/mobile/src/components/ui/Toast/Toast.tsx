@@ -384,7 +384,7 @@ export const Toast: React.FC<ToastProps> = ({
         {/* Icon */}
         <View style={styles.iconContainer}>
           <Ionicons
-            name={getIcon() as any}
+            name={getIcon() as keyof typeof Ionicons.glyphMap}
             size={preset === 'minimal' ? 20 : 24}
             color={colors.icon}
           />

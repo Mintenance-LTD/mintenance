@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
+import { maintenanceDetectSchema } from '@/lib/validation/schemas';
 
 // Maintenance issue to contractor mapping
 const ISSUE_TO_CONTRACTOR: Record<string, string> = {
@@ -65,8 +66,6 @@ export async function POST(request: NextRequest) {
     // Get image from form data
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
-    const description = formData.get('description') as string || '';
-    const urgency = formData.get('urgency') as string || 'normal';
 
     if (!imageFile) {
       return NextResponse.json(
@@ -74,6 +73,21 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Validate and sanitize form text fields using Zod schema
+    const fieldValidation = maintenanceDetectSchema.safeParse({
+      description: (formData.get('description') as string) || '',
+      urgency: (formData.get('urgency') as string) || 'normal',
+    });
+
+    if (!fieldValidation.success) {
+      return NextResponse.json(
+        { error: 'Invalid input data', details: fieldValidation.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    const { description, urgency } = fieldValidation.data;
 
     // Upload image to Supabase Storage
     const fileName = `${user.id}/${Date.now()}_${imageFile.name}`;

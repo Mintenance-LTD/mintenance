@@ -41,7 +41,7 @@ export const initSentry = () => {
   });
 };
 
-export const captureException = (error: Error, extra?: Record<string, any>) => {
+export const captureException = (error: Error, extra?: Record<string, unknown>) => {
   if (
     !isFeatureEnabled('enableCrashReporting') ||
     config.environment === 'development'
@@ -98,7 +98,7 @@ export const setUserContext = (user: User | null) => {
 export const addBreadcrumb = (
   message: string,
   category?: string,
-  data?: Record<string, any>
+  data?: Record<string, unknown>
 ) => {
   Sentry.addBreadcrumb({
     message,
@@ -233,7 +233,7 @@ export const trackNavigation = (
 // Business logic monitoring
 export const trackUserAction = (
   action: string,
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 ) => {
   addBreadcrumb(`User action: ${action}`, 'user', details);
 };

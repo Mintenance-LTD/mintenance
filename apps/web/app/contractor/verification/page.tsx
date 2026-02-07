@@ -32,7 +32,7 @@ export default function ContractorVerificationPage2025() {
     },
     {
       id: '2',
-      type: 'Business License',
+      type: 'Business Licence',
       status: 'pending',
       uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     },
@@ -46,15 +46,15 @@ export default function ContractorVerificationPage2025() {
     {
       id: 'identity',
       title: 'Identity Verification',
-      description: 'Upload a government-issued ID (passport, driver\'s license)',
+      description: 'Upload a government-issued ID (passport, driving licence)',
       status: documents.find(d => d.type === 'Government ID')?.status || 'not_started',
       required: true,
     },
     {
       id: 'business',
-      title: 'Business License',
-      description: 'Upload your business license or registration',
-      status: documents.find(d => d.type === 'Business License')?.status || 'not_started',
+      title: 'Business Licence',
+      description: 'Upload your business licence or registration',
+      status: documents.find(d => d.type === 'Business Licence')?.status || 'not_started',
       required: true,
     },
     {

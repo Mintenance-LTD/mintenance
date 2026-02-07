@@ -87,7 +87,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
         <View style={styles.clientInfo}>
           <View style={styles.nameRow}>
             <Ionicons
-              name={getClientTypeIcon(client.client_type) as any}
+              name={getClientTypeIcon(client.client_type) as keyof typeof Ionicons.glyphMap}
               size={16}
               color={theme.colors.primary}
             />

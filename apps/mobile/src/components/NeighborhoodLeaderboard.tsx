@@ -53,7 +53,7 @@ export const NeighborhoodLeaderboard: React.FC<
     getChampionBadgeEmoji,
     getBadgeLevelColor,
     getContractorSpecialtyIcon,
-  } = useNeighborhoodFormatters() as any;
+  } = useNeighborhoodFormatters() as Record<string, (...args: unknown[]) => unknown>;
 
   const handleRefresh = async () => {
     setRefreshing(true);

@@ -82,7 +82,7 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <View style={styles.header}>
-            <Text style={styles.title}>Cancel Booking</Text>
+            <Text style={styles.title} accessibilityRole='header'>Cancel Booking</Text>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={handleCancel}
@@ -141,6 +141,8 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
+                accessibilityLabel='Cancellation reason'
+                accessibilityHint='Enter your reason for cancelling the booking'
               />
             </View>
           )}
@@ -150,6 +152,9 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
               style={styles.cancelButton}
               onPress={handleCancel}
               disabled={cancelling}
+              accessibilityRole='button'
+              accessibilityLabel='Keep booking'
+              accessibilityHint='Double tap to dismiss and keep your booking'
             >
               <Text style={styles.cancelButtonText}>Keep Booking</Text>
             </TouchableOpacity>
@@ -161,6 +166,9 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
               ]}
               onPress={handleConfirm}
               disabled={!selectedReason || (selectedReason === 'other' && !customReason.trim()) || cancelling}
+              accessibilityRole='button'
+              accessibilityLabel='Cancel booking'
+              accessibilityHint='Double tap to confirm cancellation of your booking'
             >
               {cancelling ? (
                 <ActivityIndicator size="small" color={theme.colors.textInverse} />

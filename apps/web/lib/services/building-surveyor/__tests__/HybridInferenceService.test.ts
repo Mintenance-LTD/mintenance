@@ -34,6 +34,15 @@ vi.mock('../config/BuildingSurveyorConfig', () => ({
         yolo: { dataYamlPath: undefined },
         sam3: { serviceUrl: 'http://localhost:8001', enabled: false, modelVersion: '3', rolloutPercentage: 0, timeoutMs: 30000 },
     })),
+    getActiveDomain: vi.fn(() => ({
+        id: 'uk-residential',
+        name: 'UK Residential',
+        safetyCriticalClasses: ['structural_damage', 'gas_leak', 'electrical_hazard'],
+        confidenceThresholds: { high: 0.75, medium: 0.55, low: 0.35 },
+        damageTypes: [],
+        materialTypes: [],
+        regulatoryBodies: [],
+    })),
     loadBuildingSurveyorConfig: vi.fn(),
     validateConfig: vi.fn(),
     resetConfig: vi.fn(),
@@ -254,7 +263,7 @@ describe('HybridInferenceService', () => {
             const result = await HybridInferenceService.assessDamage(mockImageUrls, mockContext);
 
             expect(result.route).toBe('gpt4_vision');
-            expect(result.reasoning).toContain('safety concern');
+            expect(result.reasoning).toContain('Safety-critical detection');
         });
 
         it('should use GPT-4 for commercial properties (higher risk)', async () => {
@@ -277,7 +286,7 @@ describe('HybridInferenceService', () => {
             const result = await HybridInferenceService.assessDamage(mockImageUrls, commercialContext);
 
             expect(result.route).toBe('gpt4_vision');
-            expect(result.reasoning).toContain('safety concern');
+            expect(result.reasoning).toContain('Safety-critical detection');
         });
     });
 

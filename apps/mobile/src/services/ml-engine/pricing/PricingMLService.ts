@@ -488,21 +488,21 @@ export class PricingMLService {
   }
 
   // Additional helper methods for market analysis...
-  private async _getRegionalPricingData(location: unknown): Promise<unknown> {
+  private async _getRegionalPricingData(location: { lat: number; lng: number; region?: string }): Promise<{ adjustmentFactor: number }> {
     // Mock implementation - would fetch real regional data
     return { adjustmentFactor: this._getLocationPricingFactor(location) };
   }
 
-  private async _getCategoryRates(category: string): Promise<any[]> {
+  private async _getCategoryRates(category: string): Promise<{ rate: number }[]> {
     // Mock implementation - would fetch real category pricing data
     return [{ rate: 50 + Math.random() * 100 }];
   }
 
-  private _calculateAverageRate(categoryRates: unknown[], regionalData: unknown): number {
+  private _calculateAverageRate(categoryRates: { rate: number }[], regionalData: { adjustmentFactor: number }): number {
     return 75 * regionalData.adjustmentFactor; // Mock average
   }
 
-  private _analyzeMarketTrend(categoryRates: unknown[]): 'rising' | 'stable' | 'declining' {
+  private _analyzeMarketTrend(categoryRates: { rate: number }[]): 'rising' | 'stable' | 'declining' {
     const trends = ['rising', 'stable', 'declining'] as const;
     return trends[Math.floor(Math.random() * trends.length)];
   }
@@ -511,7 +511,7 @@ export class PricingMLService {
     return this._getSeasonalPricingFactor(category);
   }
 
-  private _analyzeCompetitorPricing(categoryRates: unknown[]): {
+  private _analyzeCompetitorPricing(categoryRates: { rate: number }[]): {
     lowEnd: number;
     midRange: number;
     highEnd: number;
@@ -524,12 +524,12 @@ export class PricingMLService {
     };
   }
 
-  private _analyzeDemandLevel(category: string, location: unknown): 'low' | 'medium' | 'high' {
+  private _analyzeDemandLevel(category: string, location: { lat: number; lng: number }): 'low' | 'medium' | 'high' {
     const levels = ['low', 'medium', 'high'] as const;
     return levels[Math.floor(Math.random() * levels.length)];
   }
 
-  private _suggestAlternativeMaterials(input: PricingInput): unknown[] {
+  private _suggestAlternativeMaterials(input: PricingInput): CostOptimizationSuggestion['alternativeMaterials'] {
     // Mock implementation
     return [
       {

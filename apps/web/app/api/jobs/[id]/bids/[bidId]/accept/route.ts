@@ -128,7 +128,7 @@ export async function POST(
     // Check if contractor has payment setup before accepting bid
     // Check both users table and contractor_payout_accounts for completeness
     const { data: contractor, error: contractorError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('stripe_connect_account_id, first_name, last_name')
       .eq('id', bid.contractor_id)
       .single();
@@ -326,7 +326,7 @@ export async function POST(
     try {
       // Get homeowner details for the message
       const { data: homeownerData } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('first_name, last_name')
         .eq('id', user.id)
         .single();

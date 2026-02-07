@@ -25,12 +25,12 @@ export function FeaturedArticle({
   href,
 }: FeaturedArticleProps) {
   const formattedDate = publishedDate
-    ? new Date(publishedDate).toLocaleDateString('en-US', {
+    ? new Date(publishedDate).toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
       })
-    : new Date().toLocaleDateString('en-US', {
+    : new Date().toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',

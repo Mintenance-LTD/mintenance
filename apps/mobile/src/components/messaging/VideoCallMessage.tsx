@@ -146,7 +146,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
       <View style={styles.messageHeader}>
         <View style={[styles.iconContainer, { backgroundColor: getMessageColor() }]}>
           <Ionicons
-            name={getMessageIcon() as any}
+            name={getMessageIcon() as keyof typeof Ionicons.glyphMap}
             size={16}
             color={theme.colors.surface}
           />

@@ -1,8 +1,13 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 
-export const useInfiniteScroll = (fetchFn: (page: number) => Promise<any>) => {
-  const [data, setData] = useState<any[]>([]);
+interface PaginatedResult<T> {
+  data: T[];
+  hasMore: boolean;
+}
+
+export const useInfiniteScroll = <T = unknown>(fetchFn: (page: number) => Promise<PaginatedResult<T>>) => {
+  const [data, setData] = useState<T[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);

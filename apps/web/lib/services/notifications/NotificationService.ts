@@ -8,7 +8,7 @@ interface CreateNotificationParams {
   title: string;
   message: string;
   actionUrl?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

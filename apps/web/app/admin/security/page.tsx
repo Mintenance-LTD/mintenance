@@ -262,7 +262,7 @@ export default function AdminSecurityDashboard2025() {
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
-                  <Shield className="w-8 h-8" />
+                  <Shield className="w-8 h-8" aria-hidden="true" />
                 </div>
                 <h1 className="text-4xl font-bold">Security Dashboard</h1>
               </div>
@@ -282,7 +282,7 @@ export default function AdminSecurityDashboard2025() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-300" />
+                    <CheckCircle className="w-4 h-4 text-green-300" aria-hidden="true" />
                     <span className="text-sm">Excellent</span>
                   </div>
                   <p className="text-xs text-purple-200">Last updated: Now</p>
@@ -297,13 +297,14 @@ export default function AdminSecurityDashboard2025() {
             initial="hidden"
             animate="visible"
             className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mt-8"
+            aria-live="polite" aria-label="Security statistics"
           >
             <MotionDiv
               variants={staggerItem}
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Activity className="w-5 h-5 text-purple-200" />
+                <Activity className="w-5 h-5 text-purple-200" aria-hidden="true" />
                 <p className="text-purple-100 text-sm">Total Events</p>
               </div>
               <p className="text-3xl font-bold">{securityStats.totalEvents.toLocaleString()}</p>
@@ -314,7 +315,7 @@ export default function AdminSecurityDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border-2 border-red-400"
             >
               <div className="flex items-center gap-2 mb-2">
-                <XCircle className="w-5 h-5 text-red-200" />
+                <XCircle className="w-5 h-5 text-red-200" aria-hidden="true" />
                 <p className="text-purple-100 text-sm">Critical</p>
               </div>
               <p className="text-3xl font-bold text-red-200">{securityStats.criticalAlerts}</p>
@@ -325,7 +326,7 @@ export default function AdminSecurityDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4 border-2 border-emerald-400"
             >
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-5 h-5 text-emerald-200" />
+                <AlertTriangle className="w-5 h-5 text-emerald-200" aria-hidden="true" />
                 <p className="text-purple-100 text-sm">Active Threats</p>
               </div>
               <p className="text-3xl font-bold text-emerald-200">{securityStats.activeThreats}</p>
@@ -336,7 +337,7 @@ export default function AdminSecurityDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <UserX className="w-5 h-5 text-green-200" />
+                <UserX className="w-5 h-5 text-green-200" aria-hidden="true" />
                 <p className="text-purple-100 text-sm">Blocked</p>
               </div>
               <p className="text-3xl font-bold">{securityStats.blockedAttempts}</p>
@@ -347,7 +348,7 @@ export default function AdminSecurityDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Key className="w-5 h-5 text-purple-200" />
+                <Key className="w-5 h-5 text-purple-200" aria-hidden="true" />
                 <p className="text-purple-100 text-sm">2FA Enabled</p>
               </div>
               <p className="text-3xl font-bold">{securityStats.twoFactorEnabled}%</p>
@@ -358,7 +359,7 @@ export default function AdminSecurityDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <TrendingDown className="w-5 h-5 text-green-200" />
+                <TrendingDown className="w-5 h-5 text-green-200" aria-hidden="true" />
                 <p className="text-purple-100 text-sm">Trend</p>
               </div>
               <p className="text-3xl font-bold text-green-200">-12%</p>
@@ -424,9 +425,11 @@ export default function AdminSecurityDashboard2025() {
         >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" aria-hidden="true" />
               <input
                 type="text"
+                id="security-search"
+                aria-label="Search security events"
                 placeholder="Search events..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -435,6 +438,8 @@ export default function AdminSecurityDashboard2025() {
             </div>
 
             <select
+              id="severity-filter"
+              aria-label="Filter by severity"
               value={selectedSeverity}
               onChange={(e) => setSelectedSeverity(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -447,6 +452,8 @@ export default function AdminSecurityDashboard2025() {
             </select>
 
             <select
+              id="type-filter"
+              aria-label="Filter by event type"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -459,7 +466,7 @@ export default function AdminSecurityDashboard2025() {
               <option value="data_export">Data Exports</option>
             </select>
 
-            <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            <button aria-label="Export security report" className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
               Export Report
             </button>
           </div>
@@ -510,21 +517,21 @@ export default function AdminSecurityDashboard2025() {
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Location</p>
                       <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-gray-500" />
+                        <MapPin className="w-3 h-3 text-gray-500" aria-hidden="true" />
                         <p className="font-medium text-gray-900">{event.location}</p>
                       </div>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Device</p>
                       <div className="flex items-center gap-1">
-                        <Smartphone className="w-3 h-3 text-gray-500" />
+                        <Smartphone className="w-3 h-3 text-gray-500" aria-hidden="true" />
                         <p className="font-medium text-gray-900">{event.device}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Clock className="w-4 h-4" />
+                    <Clock className="w-4 h-4" aria-hidden="true" />
                     <span>{event.timestamp}</span>
                   </div>
                 </div>
@@ -534,9 +541,10 @@ export default function AdminSecurityDashboard2025() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleInvestigate(event.id)}
+                    aria-label={"Investigate event " + event.id}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                   >
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-4 h-4" aria-hidden="true" />
                     Investigate
                   </MotionButton>
                   {event.status !== 'resolved' && (
@@ -544,9 +552,10 @@ export default function AdminSecurityDashboard2025() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleResolve(event.id)}
+                      aria-label={"Resolve event " + event.id}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
                     >
-                      <CheckCircle className="w-4 h-4" />
+                      <CheckCircle className="w-4 h-4" aria-hidden="true" />
                       Resolve
                     </MotionButton>
                   )}
@@ -562,7 +571,7 @@ export default function AdminSecurityDashboard2025() {
             animate={{ opacity: 1 }}
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center"
           >
-            <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" aria-hidden="true" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No security events found</h3>
             <p className="text-gray-500">Try adjusting your filters or search query</p>
           </MotionDiv>

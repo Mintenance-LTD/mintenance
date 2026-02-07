@@ -79,7 +79,7 @@ export async function POST(  request: NextRequest,
 
       // Check if contractor is verified
       const { data: contractor } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('admin_verified')
         .eq('id', job.contractor_id)
         .single();

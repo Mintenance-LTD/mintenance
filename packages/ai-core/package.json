@@ -2,12 +2,12 @@
   "name": "@mintenance/ai-core",
   "version": "1.0.0",
   "description": "Shared AI services and types for Mintenance platform",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./services/*": "./src/services/*.ts",
-    "./types": "./src/types/index.ts"
+    ".": "./dist/index.js",
+    "./services/*": "./dist/services/*.js",
+    "./types": "./dist/types/index.js"
   },
   "scripts": {
     "build": "tsc",

@@ -263,7 +263,7 @@ export const useAppInitialization = () => {
 export const withAppInitialization = <P extends object>(
   Component: React.ComponentType<P>
 ) => {
-  return React.forwardRef<any, P>((props, ref) => {
+  return React.forwardRef<unknown, P>((props, ref) => {
     const initialization = useAppInitialization();
 
     // Note: In actual implementation, these would render proper React Native screens

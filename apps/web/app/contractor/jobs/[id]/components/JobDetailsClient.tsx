@@ -103,7 +103,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': (window as any).csrfToken || '',
+            'X-CSRF-Token': window.csrfToken || '',
           },
         });
 
@@ -119,7 +119,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': (window as any).csrfToken || '',
+            'X-CSRF-Token': window.csrfToken || '',
           },
           body: JSON.stringify({ jobId: job.id }),
         });

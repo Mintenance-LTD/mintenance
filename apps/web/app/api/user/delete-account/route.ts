@@ -6,7 +6,6 @@ import { requireCSRF } from '@/lib/csrf';
 import { checkDeleteAccountRateLimit } from '@/lib/rate-limiting/admin-gdpr';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
  * POST /api/user/delete-account
@@ -14,28 +13,6 @@ import { rateLimiter } from '@/lib/rate-limiter';
  */
 export async function POST(request: NextRequest) {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
     // CSRF protection
     await requireCSRF(request);
 
@@ -84,7 +61,7 @@ export async function POST(request: NextRequest) {
       await serverSupabase.from('bids').delete().eq('contractor_id', user.id);
       await serverSupabase.from('jobs').delete().or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`);
       await serverSupabase.from('properties').delete().eq('owner_id', user.id);
-      await serverSupabase.from('users').delete().eq('id', user.id);
+      await serverSupabase.from('profiles').delete().eq('id', user.id);
     }
 
     // SECURITY: Blacklist all tokens for this user

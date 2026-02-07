@@ -220,7 +220,7 @@ export function DragDropUpload2025({
             <div className="flex-1">
               <h3 className="font-bold text-lg mb-1">AI-Powered Analysis Available</h3>
               <p className="text-teal-50 text-sm">
-                Our AI can analyze your photos to suggest job categories, detect issues, and estimate costs automatically.
+                Our AI can analyse your photos to suggest job categories, detect issues, and estimate costs automatically.
               </p>
             </div>
           </div>

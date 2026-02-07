@@ -35,7 +35,10 @@ export const SpecialOffersCarousel: React.FC<SpecialOffersCarouselProps> = ({
   const viewConfigRef = React.useRef({ viewAreaCoveragePercentThreshold: 50 });
 
   const renderOffer = ({ item }: { item: SpecialOffer }) => (
-    <View style={styles.offerCard}>
+    <View
+      style={styles.offerCard}
+      accessibilityLabel={`${item.badge}: ${item.title}. Up to ${item.discount} off. ${item.description}`}
+    >
       <View style={styles.offerBadge}>
         <Text style={styles.offerBadgeText}>{item.badge}</Text>
       </View>
@@ -48,6 +51,8 @@ export const SpecialOffersCarousel: React.FC<SpecialOffersCarouselProps> = ({
       <TouchableOpacity
         style={styles.claimButton}
         onPress={() => onOfferClaim(item.id)}
+        accessibilityRole='button'
+        accessibilityLabel={`Claim ${item.title} offer`}
       >
         <Text style={styles.claimButtonText}>Claim Now</Text>
       </TouchableOpacity>

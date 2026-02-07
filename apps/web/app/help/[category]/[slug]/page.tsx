@@ -73,7 +73,7 @@ export default async function HelpArticlePage(props: HelpArticlePageProps) {
           }}
         >
           <ArrowLeft className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
-          Back to Help Center
+          Back to Help Centre
         </Link>
 
         {/* Category Badge */}

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -8,6 +7,8 @@ import { checkApiRateLimit } from '@/lib/rate-limiter';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { validateRequest } from '@/lib/validation/validator';
+import { refundRequestSchema } from '@/lib/validation/schemas';
 
 // SECURITY: No fallback for production credentials
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -16,13 +17,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-04-10',
-});
-
-const refundSchema = z.object({
-  jobId: z.string().uuid(),
-  escrowTransactionId: z.string().uuid(),
-  amount: z.number().positive().optional(), // Partial refund amount
-  reason: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -47,18 +41,12 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    // Validate request body
-    const body = await request.json();
-    const parsed = refundSchema.safeParse(body);
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, refundRequestSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
-    }
-
-    const { jobId, escrowTransactionId, amount, reason } = parsed.data;
+    const { jobId, escrowTransactionId, amount, reason } = data;
 
     // Get MFA token from header if present
     const mfaToken = request.headers.get('x-mfa-token');

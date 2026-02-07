@@ -282,7 +282,7 @@ export async function storeIdempotencyResult<T>(
   operation: string,
   result: T,
   userId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): Promise<void> {
   try {
     const { error } = await serverSupabase

@@ -6,21 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/auth';
-import { z } from 'zod';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
-
-// Feedback validation schema
-const feedbackSchema = z.object({
-  assessmentId: z.string().uuid(),
-  wasAccurate: z.boolean(),
-  actualIssue: z.string().optional(),
-  actualSeverity: z.enum(['minor', 'moderate', 'major', 'critical']).optional(),
-  actualTimeHours: z.number().min(0).max(100).optional(),
-  actualMaterials: z.array(z.string()).optional(),
-  contractorNotes: z.string().max(1000).optional(),
-  helpfulnessScore: z.number().min(1).max(5).optional()
-});
+import { maintenanceFeedbackSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,9 +58,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse and validate request
+    // Parse and validate request using centralized Zod schema
     const body = await request.json();
-    const validationResult = feedbackSchema.safeParse(body);
+    const validationResult = maintenanceFeedbackSchema.safeParse(body);
 
     if (!validationResult.success) {
       return NextResponse.json(

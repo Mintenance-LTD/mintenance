@@ -60,8 +60,8 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             onPress={onPress}
             style={styles.tabItem}
           >
-            {React.createElement(Ionicons as any, {
-              name: (iconName || 'help-outline') as any,
+            {React.createElement(Ionicons, {
+              name: (iconName || 'help-outline') as keyof typeof Ionicons.glyphMap,
               size: isFocused ? NAVIGATION_CONSTANTS.ACTIVE_ICON_SIZE : NAVIGATION_CONSTANTS.ICON_SIZE,
               color: isFocused ? theme.colors.primary : theme.colors.textSecondary,
               style: TAB_STYLES.tabBarIconStyle,

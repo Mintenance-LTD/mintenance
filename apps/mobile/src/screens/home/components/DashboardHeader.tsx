@@ -44,7 +44,13 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.userInfo}>
-        <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={onProfilePress}
+          accessibilityRole='button'
+          accessibilityLabel='View profile'
+          accessibilityHint='Double tap to open your profile'
+        >
           <View style={styles.avatarPlaceholder}>
             <Ionicons
               name="person"
@@ -65,6 +71,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <TouchableOpacity
           style={styles.iconButton}
           onPress={onNotificationPress}
+          accessibilityRole='button'
+          accessibilityLabel={unreadNotifications > 0 ? `Notifications, ${unreadNotifications} unread` : 'Notifications'}
+          accessibilityHint='Double tap to view notifications'
         >
           <Ionicons
             name="notifications-outline"
@@ -72,7 +81,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             color={theme.colors.text}
           />
           {unreadNotifications > 0 && (
-            <View style={styles.badge}>
+            <View style={styles.badge} accessible={false}>
               <Text style={styles.badgeText}>
                 {unreadNotifications > 99 ? '99+' : unreadNotifications}
               </Text>
@@ -83,6 +92,9 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         <TouchableOpacity
           style={styles.iconButton}
           onPress={onSettingsPress}
+          accessibilityRole='button'
+          accessibilityLabel='Settings'
+          accessibilityHint='Double tap to open settings'
         >
           <Ionicons
             name="settings-outline"

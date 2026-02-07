@@ -1,22 +1,20 @@
 import { generateRefreshToken } from '../jwt';
 
 describe('generateRefreshToken', () => {
-  it('should generate a refresh token', () => {
-    // Test normal functionality
-    const token = generateRefreshToken();
+  it('should generate a refresh token', async () => {
+    const token = await generateRefreshToken();
     expect(token).toBeDefined();
     expect(typeof token).toBe('string');
     expect(token.length).toBeGreaterThan(0);
   });
 
-  it('should generate unique tokens', () => {
-    // Test that tokens are unique
-    const token1 = generateRefreshToken();
-    const token2 = generateRefreshToken();
+  it('should generate unique tokens', async () => {
+    const token1 = await generateRefreshToken();
+    const token2 = await generateRefreshToken();
     expect(token1).not.toBe(token2);
   });
 
-  it('should handle error cases', () => {
-    // Test error scenarios
+  it('should handle error cases', async () => {
+    await expect(generateRefreshToken()).resolves.toBeDefined();
   });
 });

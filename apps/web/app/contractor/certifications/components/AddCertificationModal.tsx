@@ -192,7 +192,7 @@ export function AddCertificationModal({ onClose, onSuccess, getCsrfHeaders }: Ad
             </label>
             <select
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value as typeof formData.category })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="general">General</option>

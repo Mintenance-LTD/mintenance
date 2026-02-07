@@ -276,7 +276,7 @@ export default async function FinancialsPage() {
               {subscriptionsList.map((sub) => {
                 const statusConfig = getStatusColor(sub.status || 'active');
                 const nextBilling = sub.next_billing_date
-                  ? new Date(sub.next_billing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  ? new Date(sub.next_billing_date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'N/A';
                 const isOverdue = sub.next_billing_date && new Date(sub.next_billing_date) < now && sub.status === 'active';
 
@@ -340,10 +340,10 @@ export default async function FinancialsPage() {
                   ? `${contractor.first_name} ${contractor.last_name}`
                   : 'Unknown Contractor';
                 const dueDate = invoice.due_date
-                  ? new Date(invoice.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  ? new Date(invoice.due_date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'N/A';
                 const invoiceDate = invoice.invoice_date
-                  ? new Date(invoice.invoice_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  ? new Date(invoice.invoice_date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'N/A';
                 const isOverdue = invoice.due_date && new Date(invoice.due_date) < now && invoice.status !== 'paid';
 
@@ -407,7 +407,7 @@ export default async function FinancialsPage() {
                 const statusConfig = getStatusColor(payment.status || 'pending');
                 const job = Array.isArray(payment.job) ? payment.job[0] : payment.job;
                 const paymentDate = payment.payment_date || payment.created_at
-                  ? new Date(payment.payment_date || payment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  ? new Date(payment.payment_date || payment.created_at).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'N/A';
 
                 return (

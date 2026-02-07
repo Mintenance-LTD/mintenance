@@ -30,10 +30,12 @@ export interface LogEntry {
 class Logger {
   private isDevelopment: boolean;
   private minLogLevel: LogLevel;
+  private baseContext?: LogContext;
 
-  constructor() {
+  constructor(baseContext?: LogContext) {
     this.isDevelopment = process.env.NODE_ENV === 'development';
     this.minLogLevel = this.getMinLogLevel();
+    this.baseContext = baseContext;
   }
 
   private getMinLogLevel(): LogLevel {
@@ -183,7 +185,8 @@ class Logger {
       return;
     }
 
-    const formattedMessage = this.formatMessage(level, message, context);
+    const mergedContext = this.baseContext ? { ...this.baseContext, ...context } : context;
+    const formattedMessage = this.formatMessage(level, message, mergedContext);
 
     // Use console directly to avoid circular dependency
     switch (level) {
@@ -212,14 +215,25 @@ class Logger {
 
     // In production, send to monitoring service (e.g., Sentry, DataDog)
     if (!this.isDevelopment) {
-      this.sendToMonitoring(level, message, context, error);
+      this.sendToMonitoring(level, message, mergedContext, error);
     }
   }
 
   private sendToMonitoring(level: LogLevel, message: string, context?: LogContext, error?: Error): void {
-    // TODO: Integrate with monitoring service
-    // Example: Sentry.captureMessage(message, { level, extra: context });
-    // For now, this is a placeholder
+    const payload = {
+      level,
+      message,
+      timestamp: new Date().toISOString(),
+      context: this.sanitize(context),
+      error: error
+        ? {
+          name: error.name,
+          message: error.message,
+          stack: this.isDevelopment ? error.stack : undefined,
+        }
+        : undefined,
+    };
+    console.error('[MONITORING]', this.safeStringify(payload));
   }
 
   /**
@@ -259,14 +273,8 @@ class Logger {
    * Create a child logger with preset context
    */
   child(childContext: LogContext): Logger {
-    const childLogger = new Logger();
-    const originalLog = childLogger.log.bind(childLogger);
-    
-    childLogger.log = (level: LogLevel, message: string, context?: LogContext, error?: Error) => {
-      originalLog(level, message, { ...childContext, ...context }, error);
-    };
-
-    return childLogger;
+    const mergedContext = this.baseContext ? { ...this.baseContext, ...childContext } : childContext;
+    return new Logger(mergedContext);
   }
 }
 

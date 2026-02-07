@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
-import { z } from 'zod';
+import { releaseEscrowSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { PaymentStateMachine, PaymentAction, PaymentState } from '@/lib/payment-state-machine';
 import { requireCSRF } from '@/lib/csrf';
@@ -21,11 +21,6 @@ import { rateLimiter } from '@/lib/rate-limiter';
 // Initialize Stripe with validated secret key (server-side only)
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-04-10',
-});
-
-const releaseEscrowSchema = z.object({
-  escrowTransactionId: z.string().uuid('Invalid escrow transaction ID'),
-  releaseReason: z.enum(['job_completed', 'dispute_resolved', 'timeout']),
 });
 
 export async function POST(request: NextRequest) {
@@ -369,7 +364,7 @@ export async function POST(request: NextRequest) {
 
     // Get contractor's Stripe Connect account
     const { data: contractor, error: contractorError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('stripe_connect_account_id')
       .eq('id', job.contractor_id)
       .single();

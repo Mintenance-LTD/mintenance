@@ -25,7 +25,11 @@ export const CreditCardPreview: React.FC<CreditCardPreviewProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <View style={styles.card}>
+      <View
+        style={styles.card}
+        accessibilityLabel={`Visa card preview. Card holder: ${holderName || 'Esther Howard'}. Number ending in ${(number || '8047').slice(-4)}. Expires ${expiry || '02/30'}`}
+        accessibilityRole='summary'
+      >
         <Text style={styles.visa}>VISA</Text>
         <Text style={styles.number}>{number || '4716 9627 1635 8047'}</Text>
         <View style={styles.footer}>

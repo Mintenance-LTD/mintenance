@@ -124,7 +124,7 @@ export function useBuildingAssessment({
 
       const errorMessage = error instanceof Error
         ? error.message
-        : 'Failed to analyze building damage. Please try again.';
+        : 'Failed to analyse building damage. Please try again.';
 
       setAssessmentError(errorMessage);
       if (onError) onError(errorMessage);

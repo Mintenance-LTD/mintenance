@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
               encoding_format: 'float',
             },
             {
-              signal: controller.signal as any,
+              signal: controller.signal as AbortSignal,
             }
           );
 

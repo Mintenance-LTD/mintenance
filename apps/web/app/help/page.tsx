@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { fadeIn, staggerContainer, staggerItem, cardHover } from '@/lib/animations/variants';
 import Link from 'next/link';
 import { MotionDiv } from '@/components/ui/MotionDiv';

@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
 
     // Update user profile
     const { data: updatedUser, error: updateError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .update(updateData)
       .eq('id', user.id)
       .select()

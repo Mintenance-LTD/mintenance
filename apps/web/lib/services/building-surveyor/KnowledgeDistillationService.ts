@@ -11,6 +11,8 @@
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { SAM3TrainingDataService } from './SAM3TrainingDataService';
+import { YOLORetrainingService } from './YOLORetrainingService';
+import { YOLOTrainingDataEnhanced } from './YOLOTrainingDataEnhanced';
 import type {
   GPT4TrainingLabel,
   GPT4TrainingLabelInput,
@@ -179,6 +181,109 @@ export class KnowledgeDistillationService {
         assessmentId,
       });
       throw error;
+    }
+  }
+
+  // ========================================================================
+  // RECORD SAM2 TEMPORAL DATA
+  // ========================================================================
+
+  /**
+   * Record SAM2 temporal video analysis as training pseudo-labels.
+   * Filters for high-confidence, consistent trajectories and stores
+   * peak-frame detections as pseudo-labels for the student model.
+   */
+  static async recordSAM2TemporalData(
+    assessmentId: string,
+    videoResult: {
+      trajectories: Array<{
+        track_id: string;
+        damage_type: string;
+        average_confidence: number;
+        max_confidence: number;
+        consistency_score: number;
+        is_consistent: boolean;
+        tracking_points: Array<{
+          frame_number: number;
+          bounding_box: { x1: number; y1: number; x2: number; y2: number };
+          confidence: number;
+        }>;
+      }>;
+    }
+  ): Promise<number> {
+    try {
+      let storedCount = 0;
+
+      for (const trajectory of videoResult.trajectories) {
+        // Only use consistent, high-confidence trajectories
+        if (
+          trajectory.average_confidence < 0.6 ||
+          trajectory.consistency_score < 0.7 ||
+          !trajectory.is_consistent
+        ) {
+          continue;
+        }
+
+        // Find peak-confidence frame as the best training sample
+        const peakPoint = trajectory.tracking_points.reduce((best, point) =>
+          point.confidence > best.confidence ? point : best
+        );
+
+        // Convert bounding box to YOLO-format label string
+        const bbox = peakPoint.bounding_box;
+        const cx = ((bbox.x1 + bbox.x2) / 2) / 640; // Normalized center x
+        const cy = ((bbox.y1 + bbox.y2) / 2) / 640; // Normalized center y
+        const w = (bbox.x2 - bbox.x1) / 640;
+        const h = (bbox.y2 - bbox.y1) / 640;
+        const yoloLabel = `0 ${cx.toFixed(6)} ${cy.toFixed(6)} ${w.toFixed(6)} ${h.toFixed(6)}`;
+
+        // Store as pseudo-label with sam2_temporal source
+        const { error } = await serverSupabase
+          .from('sam3_pseudo_labels')
+          .insert({
+            image_url: `sam2://assessment/${assessmentId}/frame/${peakPoint.frame_number}`,
+            image_hash: `sam2-${assessmentId}-${trajectory.track_id}`,
+            damage_types_detected: [trajectory.damage_type],
+            segmentation_data: { [trajectory.damage_type]: {
+              masks: [],
+              boxes: [[bbox.x1, bbox.y1, bbox.x2 - bbox.x1, bbox.y2 - bbox.y1]],
+              scores: [peakPoint.confidence],
+              numInstances: 1,
+            }},
+            overall_confidence: peakPoint.confidence,
+            min_confidence: trajectory.average_confidence,
+            max_confidence: trajectory.max_confidence,
+            yolo_labels: yoloLabel,
+            passes_quality_threshold: true,
+            quality_score: trajectory.consistency_score,
+            used_in_training: false,
+            human_reviewed: false,
+            source: 'sam2_temporal',
+          });
+
+        if (!error) {
+          storedCount++;
+        }
+      }
+
+      if (storedCount > 0) {
+        logger.info('SAM2 temporal data recorded as pseudo-labels', {
+          service: 'KnowledgeDistillationService',
+          assessmentId,
+          trajectoriesProcessed: videoResult.trajectories.length,
+          pseudoLabelsStored: storedCount,
+        });
+
+        await this.checkAndTriggerTraining('damage_classifier');
+      }
+
+      return storedCount;
+    } catch (error) {
+      logger.error('Failed to record SAM2 temporal data', error, {
+        service: 'KnowledgeDistillationService',
+        assessmentId,
+      });
+      return 0;
     }
   }
 
@@ -457,27 +562,297 @@ export class KnowledgeDistillationService {
 
       await this.updateJobStatus(actualJobId, 'running');
 
-      // Actual training would happen here in a background worker
-      // For now, this is a placeholder
+      const startTime = Date.now();
 
-      logger.info('Damage classifier training job created', {
+      // 1. Fetch unused GPT-4 labels (quality >= medium)
+      const { data: gpt4Labels } = await serverSupabase
+        .from('gpt4_training_labels')
+        .select('id, image_urls, damage_type, severity, confidence')
+        .eq('used_in_training', false)
+        .in('response_quality', ['high', 'medium'])
+        .order('confidence', { ascending: false })
+        .limit(500);
+
+      // 2. Fetch approved pseudo-labels from SAM3
+      const { data: pseudoLabels } = await serverSupabase
+        .from('sam3_pseudo_labels')
+        .select('id, image_url, yolo_labels, quality_score')
+        .eq('used_in_training', false)
+        .eq('passes_quality_threshold', true)
+        .order('quality_score', { ascending: false })
+        .limit(500);
+
+      // 3. Fetch approved YOLO corrections
+      const { data: corrections } = await serverSupabase
+        .from('yolo_corrections')
+        .select('id')
+        .eq('status', 'approved')
+        .eq('used_in_training', false)
+        .limit(500);
+
+      const totalSamples =
+        (gpt4Labels?.length || 0) +
+        (pseudoLabels?.length || 0) +
+        (corrections?.length || 0);
+
+      if (totalSamples === 0) {
+        await this.updateJobStatus(actualJobId, 'failed', {
+          errorMessage: 'No training data available from any teacher source',
+        });
+        return {
+          jobId: actualJobId,
+          success: false,
+          modelVersion: '',
+          metrics: {},
+          durationSeconds: 0,
+          samplesUsed: 0,
+          error: 'No training data available',
+        };
+      }
+
+      logger.info('Training data collected from teachers', {
         service: 'KnowledgeDistillationService',
         jobId: actualJobId,
+        gpt4Labels: gpt4Labels?.length || 0,
+        pseudoLabels: pseudoLabels?.length || 0,
+        corrections: corrections?.length || 0,
+      });
+
+      // 4. Export enhanced training dataset (creates YOLO-format files)
+      const dataset = await YOLOTrainingDataEnhanced.exportEnhancedTrainingData({
+        outputDir: `training-data/distillation-${actualJobId}`,
+        maxCorrections: 1000,
+        includeSAM3Masks: true,
+      });
+
+      // 5. Delegate to YOLORetrainingService for actual Python training
+      const retrainingJob = await YOLORetrainingService.triggerRetraining();
+
+      // 6. Mark all teacher data as used
+      if (gpt4Labels?.length) {
+        const ids = gpt4Labels.map((l: { id: string }) => l.id);
+        await this.markDataAsUsed(actualJobId, 'damage_classifier', ids);
+      }
+      if (pseudoLabels?.length) {
+        const ids = pseudoLabels.map((l: { id: string }) => l.id);
+        await this.markDataAsUsed(actualJobId, 'yolo_enhancement', ids);
+      }
+
+      const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+      const metrics = retrainingJob.metrics || {};
+
+      // 7. Update job with real metrics
+      await this.updateJobStatus(actualJobId, 'completed', {
+        metrics: {
+          ...metrics,
+          gpt4LabelsUsed: gpt4Labels?.length || 0,
+          pseudoLabelsUsed: pseudoLabels?.length || 0,
+          correctionsUsed: corrections?.length || 0,
+          retrainingJobId: retrainingJob.id,
+        },
+        outputModelPath: retrainingJob.onnxPath,
+      });
+
+      // 8. Trigger evaluation and A/B test deployment if model was produced
+      if (retrainingJob.onnxPath && retrainingJob.modelVersion) {
+        try {
+          const { ContinuousLearningService } = await import('./ContinuousLearningService');
+          await ContinuousLearningService.evaluateAndDeploy(
+            retrainingJob.onnxPath,
+            retrainingJob.modelVersion
+          );
+        } catch (evalError) {
+          logger.warn('Model evaluation/deployment skipped', {
+            service: 'KnowledgeDistillationService',
+            error: evalError instanceof Error ? evalError.message : 'unknown',
+          });
+        }
+      }
+
+      logger.info('Damage classifier training completed', {
+        service: 'KnowledgeDistillationService',
+        jobId: actualJobId,
+        totalSamples,
+        durationSeconds,
+        modelVersion: retrainingJob.modelVersion,
       });
 
       return {
         jobId: actualJobId,
         success: true,
-        modelVersion: `v${Date.now()}`,
-        metrics: {},
-        durationSeconds: 0,
-        samplesUsed: 0,
+        modelVersion: retrainingJob.modelVersion || `v${Date.now()}`,
+        metrics,
+        outputModelPath: retrainingJob.onnxPath,
+        durationSeconds,
+        samplesUsed: totalSamples,
       };
     } catch (error) {
       logger.error('Failed to train damage classifier', error, {
         service: 'KnowledgeDistillationService',
       });
       throw error;
+    }
+  }
+
+  // ========================================================================
+  // MULTI-TEACHER ENSEMBLE DISTILLATION
+  // ========================================================================
+
+  /**
+   * Compute teacher agreement for an assessment.
+   * Compares GPT-4 and SAM3 outputs to score how much teachers agree.
+   * High-agreement labels are more reliable for training.
+   */
+  static async computeTeacherAgreement(assessmentId: string): Promise<{
+    agreementScore: number;
+    difficultyScore: number;
+    details: { damageTypeMatch: boolean; severityMatch: boolean; confidenceDelta: number };
+  }> {
+    try {
+      // Fetch GPT-4 label for this assessment
+      const { data: gpt4Label } = await serverSupabase
+        .from('gpt4_training_labels')
+        .select('damage_type, severity, confidence')
+        .eq('assessment_id', assessmentId)
+        .limit(1)
+        .single();
+
+      // Fetch SAM3 masks for this assessment
+      const { data: sam3Masks } = await serverSupabase
+        .from('sam3_training_masks')
+        .select('damage_type, scores')
+        .eq('assessment_id', assessmentId);
+
+      if (!gpt4Label || !sam3Masks?.length) {
+        return { agreementScore: 0, difficultyScore: 1.0, details: { damageTypeMatch: false, severityMatch: false, confidenceDelta: 1.0 } };
+      }
+
+      // Find the most prominent SAM3 damage type
+      const sam3DamageTypes = sam3Masks.map((m: { damage_type: string }) => m.damage_type);
+      const sam3AvgConfidence = sam3Masks.reduce((sum: number, m: { scores: number[] }) => {
+        const maskAvg = m.scores?.length ? m.scores.reduce((a: number, b: number) => a + b, 0) / m.scores.length : 0;
+        return sum + maskAvg;
+      }, 0) / sam3Masks.length;
+
+      // Compute agreement components
+      const damageTypeMatch = sam3DamageTypes.some(
+        (t: string) => t.toLowerCase().includes(gpt4Label.damage_type.toLowerCase()) ||
+                       gpt4Label.damage_type.toLowerCase().includes(t.toLowerCase())
+      );
+
+      const confidenceDelta = Math.abs((gpt4Label.confidence / 100) - sam3AvgConfidence);
+
+      // Score: 0.5 for damage type match, 0.3 for confidence agreement, 0.2 base
+      let agreementScore = 0.2;
+      if (damageTypeMatch) agreementScore += 0.5;
+      agreementScore += Math.max(0, 0.3 - confidenceDelta);
+
+      // Difficulty: high disagreement = hard sample, low disagreement = easy sample
+      const difficultyScore = 1.0 - agreementScore;
+
+      // Update the GPT-4 label with agreement scores
+      await serverSupabase
+        .from('gpt4_training_labels')
+        .update({
+          teacher_agreement_score: agreementScore,
+          difficulty_score: difficultyScore,
+          sam3_agreement: damageTypeMatch,
+        })
+        .eq('assessment_id', assessmentId);
+
+      logger.debug('Teacher agreement computed', {
+        service: 'KnowledgeDistillationService',
+        assessmentId,
+        agreementScore,
+        difficultyScore,
+        damageTypeMatch,
+      });
+
+      return {
+        agreementScore,
+        difficultyScore,
+        details: { damageTypeMatch, severityMatch: false, confidenceDelta },
+      };
+    } catch (error) {
+      logger.error('Failed to compute teacher agreement', error, {
+        service: 'KnowledgeDistillationService',
+        assessmentId,
+      });
+      return { agreementScore: 0, difficultyScore: 1.0, details: { damageTypeMatch: false, severityMatch: false, confidenceDelta: 1.0 } };
+    }
+  }
+
+  /**
+   * Generate soft label (probability distribution) for an assessment.
+   * Instead of a hard one-hot label, produces weighted probabilities across
+   * all damage classes using Bayesian fusion weights.
+   *
+   * Weights: SAM3=0.40, GPT4=0.35, SceneGraph=0.25
+   */
+  static async generateSoftLabel(assessmentId: string): Promise<{
+    softLabel: Record<string, number>;
+    assessmentId: string;
+    teacherSources: string[];
+  } | null> {
+    try {
+      const FUSION_WEIGHTS = { gpt4: 0.35, sam3: 0.40, sceneGraph: 0.25 };
+
+      // Fetch GPT-4 prediction
+      const { data: gpt4Label } = await serverSupabase
+        .from('gpt4_training_labels')
+        .select('damage_type, severity, confidence')
+        .eq('assessment_id', assessmentId)
+        .limit(1)
+        .single();
+
+      // Fetch SAM3 masks (each damage type detected)
+      const { data: sam3Masks } = await serverSupabase
+        .from('sam3_training_masks')
+        .select('damage_type, scores')
+        .eq('assessment_id', assessmentId);
+
+      if (!gpt4Label && !sam3Masks?.length) {
+        return null;
+      }
+
+      const softLabel: Record<string, number> = {};
+      const teacherSources: string[] = [];
+
+      // GPT-4 contribution (weighted by confidence)
+      if (gpt4Label) {
+        const gpt4Confidence = (gpt4Label.confidence || 0) / 100;
+        softLabel[gpt4Label.damage_type] =
+          (softLabel[gpt4Label.damage_type] || 0) + FUSION_WEIGHTS.gpt4 * gpt4Confidence;
+        teacherSources.push('gpt4');
+      }
+
+      // SAM3 contribution (weighted by detection confidence)
+      if (sam3Masks?.length) {
+        for (const mask of sam3Masks) {
+          const maskAvg = (mask as { scores: number[] }).scores?.length
+            ? (mask as { scores: number[] }).scores.reduce((a: number, b: number) => a + b, 0) / (mask as { scores: number[] }).scores.length
+            : 0;
+          softLabel[(mask as { damage_type: string }).damage_type] =
+            (softLabel[(mask as { damage_type: string }).damage_type] || 0) + FUSION_WEIGHTS.sam3 * maskAvg;
+        }
+        teacherSources.push('sam3');
+      }
+
+      // Normalize to probability distribution (sum to 1)
+      const totalWeight = Object.values(softLabel).reduce((a, b) => a + b, 0);
+      if (totalWeight > 0) {
+        for (const key of Object.keys(softLabel)) {
+          softLabel[key] /= totalWeight;
+        }
+      }
+
+      return { softLabel, assessmentId, teacherSources };
+    } catch (error) {
+      logger.error('Failed to generate soft label', error, {
+        service: 'KnowledgeDistillationService',
+        assessmentId,
+      });
+      return null;
     }
   }
 

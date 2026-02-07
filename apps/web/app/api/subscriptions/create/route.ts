@@ -5,13 +5,10 @@ import { SubscriptionService } from '@/lib/services/subscription/SubscriptionSer
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf-validator';
-import { z } from 'zod';
 import { handleAPIError, UnauthorizedError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
-
-const createSubscriptionSchema = z.object({
-  planType: z.enum(['free', 'basic', 'professional', 'enterprise']),
-});
+import { validateRequest } from '@/lib/validation/validator';
+import { createSubscriptionSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,14 +44,12 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Contractor authentication required');
     }
 
-    const body = await request.json();
-    const validation = createSubscriptionSchema.safeParse(body);
+    // Validate and sanitize input using Zod schema
+    const validationResult = await validateRequest(request, createSubscriptionSchema);
+    if (validationResult instanceof NextResponse) return validationResult;
+    const { data: validatedData } = validationResult;
 
-    if (!validation.success) {
-      throw new BadRequestError('Invalid request');
-    }
-
-    const { planType } = validation.data;
+    const { planType } = validatedData;
 
     // Check if user already has a subscription
     const existingSubscription = await SubscriptionService.getContractorSubscription(user.id);
@@ -278,7 +273,7 @@ export async function POST(request: NextRequest) {
 
     // Get or create Stripe customer (only for paid plans)
     const { data: userData } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('stripe_customer_id, email, trial_ends_at')
       .eq('id', user.id)
       .single();
@@ -307,7 +302,7 @@ export async function POST(request: NextRequest) {
 
       // Save customer ID
       await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({ stripe_customer_id: stripeCustomerId })
         .eq('id', user.id);
     }

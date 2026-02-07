@@ -25,6 +25,9 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
       <TouchableOpacity
         style={[styles.tab, activeTab === 'photos' && styles.activeTab]}
         onPress={() => onTabChange('photos')}
+        accessibilityRole='tab'
+        accessibilityLabel='Photos tab'
+        accessibilityState={{ selected: activeTab === 'photos' }}
       >
         <Text style={[styles.tabText, activeTab === 'photos' && styles.activeTabText]}>
           Photos
@@ -34,6 +37,9 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
       <TouchableOpacity
         style={[styles.tab, activeTab === 'reviews' && styles.activeTab]}
         onPress={() => onTabChange('reviews')}
+        accessibilityRole='tab'
+        accessibilityLabel='Reviews tab'
+        accessibilityState={{ selected: activeTab === 'reviews' }}
       >
         <Text style={[styles.tabText, activeTab === 'reviews' && styles.activeTabText]}>
           Reviews

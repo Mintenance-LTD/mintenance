@@ -103,10 +103,15 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+        >
           <Text style={styles.backButtonText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Business Verification</Text>
+        <Text style={styles.headerTitle} accessibilityRole='header'>Business Verification</Text>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -184,6 +189,9 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
                   key={option.value}
                   style={styles.radioOption}
                   onPress={() => setFormData({ ...formData, licenseType: option.value })}
+                  accessibilityRole='radio'
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ selected: formData.licenseType === option.value }}
                 >
                   <View style={styles.radio}>
                     {formData.licenseType === option.value && <View style={styles.radioSelected} />}
@@ -228,6 +236,9 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           style={[styles.submitButton, loading && styles.submitButtonDisabled]}
           onPress={handleSubmit}
           disabled={loading}
+          accessibilityRole='button'
+          accessibilityLabel={loading ? 'Submitting verification' : 'Submit for verification'}
+          accessibilityState={{ disabled: loading }}
         >
           {loading ? (
             <ActivityIndicator color="white" />

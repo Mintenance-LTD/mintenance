@@ -41,7 +41,7 @@ export async function GET(
 
     // Fetch full user data
     const { data: userData, error: userError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
@@ -81,7 +81,7 @@ export async function GET(
         const [automatedCheck, verificationHistory] = await Promise.race([
           verificationPromise,
           timeoutPromise,
-        ]) as [any, any[]];
+        ]) as [{ passed: boolean; checks: unknown[]; requiresManualReview: boolean; verificationScore: number }, { id: string; action: string; reason: string | null; created_at: string }[]];
 
         verificationData = {
           ...automatedCheck,

@@ -116,10 +116,10 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(fileName);
 
     // Process with SAM3 for segmentation
-    let segmentationData: any = null;
+    let segmentationData: { masks: unknown; boxes: unknown; scores: unknown; num_instances: number; areas: number[] } | null = null;
     try {
       if (process.env.ENABLE_SAM3_SEGMENTATION === 'true') {
-        segmentationData = await processWithSAM3(publicUrl);
+        segmentationData = await processWithSAM3(publicUrl) as { masks: unknown; boxes: unknown; scores: unknown; num_instances: number; areas: number[] };
       }
     } catch (error) {
       logger.error('SAM3 processing failed:', error, { service: 'api' });

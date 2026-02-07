@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const user = auth.user;
 
     // Get cache statistics
-    const metrics = AIResponseCache.exportMetrics() as CacheMetrics;
+    const metrics = AIResponseCache.exportMetrics() as unknown as CacheMetrics;
 
     logger.info('AI cache stats accessed', {
       service: 'ai_cache_stats',

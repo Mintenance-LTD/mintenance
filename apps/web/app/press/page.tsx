@@ -43,7 +43,7 @@ export default function PressPage() {
                   Have a question or want to schedule an interview? Get in touch with our press team.
                 </p>
                 <Link
-                  href="/contact?subject=Press+Inquiry"
+                  href="/contact?subject=Press+Enquiry"
                   className="inline-block px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
                 >
                   Contact Press Team

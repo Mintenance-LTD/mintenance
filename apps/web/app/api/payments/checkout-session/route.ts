@@ -6,6 +6,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
 
 const bodySchema = z.object({
   amount: z.number().int().positive(),
@@ -46,12 +47,13 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid payload');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, bodySchema);
+    if ('headers' in validation) {
+      return validation;
     }
 
-    const { amount, jobId, contractorId, currency } = parsed.data;
+    const { amount, jobId, contractorId, currency } = validation.data;
     
     // SECURITY: Fix IDOR - check ownership in query, not after fetch
     const { data: jobData, error: jobError } = await serverSupabase

@@ -79,7 +79,7 @@ aws s3 sync /home/ubuntu/training_output s3://mintenance-ml-storage-production/t
 
 # Send notification
 aws sns publish \
-    --topic-arn arn:aws:sns:us-east-1:YOUR_ACCOUNT:mintenance-ml-training-notifications \
+    --topic-arn "arn:aws:sns:${AWS_REGION}:${AWS_ACCOUNT_ID}:mintenance-ml-training-notifications" \
     --message "Training complete! Check S3 for results." \
     --subject "YOLO Training Finished"
 

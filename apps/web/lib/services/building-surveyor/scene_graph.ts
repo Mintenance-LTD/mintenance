@@ -55,9 +55,12 @@ export interface SceneEdge {
 }
 
 /**
- * Node types (entities) in building assessment
+ * Node types (entities) in building assessment.
+ * Includes residential, industrial, and rail domain types.
+ * The active DomainConfig.nodeTypes controls which are valid at runtime.
  */
 export type NodeType =
+  // Residential
   | 'wall'
   | 'foundation'
   | 'roof'
@@ -75,12 +78,47 @@ export type NodeType =
   | 'structural_beam'
   | 'pest_damage'
   | 'fire_damage'
+  // Industrial
+  | 'beam'
+  | 'girder'
+  | 'column'
+  | 'slab'
+  | 'weld'
+  | 'bolt'
+  | 'pipe'
+  | 'duct'
+  | 'cladding'
+  | 'corrosion'
+  | 'spalling'
+  | 'deformation'
+  | 'coating'
+  | 'joint'
+  | 'rebar'
+  // Rail
+  | 'rail'
+  | 'tie'
+  | 'ballast'
+  | 'signal'
+  | 'switch'
+  | 'bridge'
+  | 'tunnel'
+  | 'catenary'
+  | 'fastener'
+  | 'sleeper'
+  | 'wear'
+  | 'misalignment'
+  | 'fouling'
+  | 'vegetation'
+  | 'drainage'
+  // Catch-all
   | 'unknown';
 
 /**
- * Edge relations (relationships) between entities
+ * Edge relations (relationships) between entities.
+ * Includes shared + industrial + rail domain relations.
  */
 export type EdgeRelation =
+  // Shared
   | 'has'
   | 'on_surface'
   | 'adjacent_to'
@@ -92,7 +130,14 @@ export type EdgeRelation =
   | 'right_of'
   | 'overlaps'
   | 'indicates'
-  | 'caused_by';
+  | 'caused_by'
+  // Industrial & Rail
+  | 'supports'
+  | 'connected_to'
+  | 'welded_to'
+  | 'bolted_to'
+  | 'runs_along'
+  | 'crosses';
 
 /**
  * Complete scene graph structure

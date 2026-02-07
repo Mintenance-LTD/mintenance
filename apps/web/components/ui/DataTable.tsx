@@ -6,7 +6,7 @@ import { EmptyState } from './EmptyState';
 import { Card } from './Card';
 
 export interface Column<T> {
-  key: string;
+  key: keyof T & string;
   label: string;
   render?: (item: T) => ReactNode;
   align?: 'left' | 'center' | 'right';
@@ -140,7 +140,7 @@ export function DataTable<T extends { id: string | number }>({
                     >
                       {column.render
                         ? column.render(item)
-                        : String((item as any)[column.key] || '-')}
+                        : String(item[column.key] ?? '-')}
                     </td>
                   ))}
                 </tr>
@@ -200,7 +200,7 @@ export function DataTable<T extends { id: string | number }>({
                   }}>
                     {column.render
                       ? column.render(item)
-                      : String((item as any)[column.key] || '-')}
+                      : String(item[column.key] ?? '-')}
                   </span>
                 </div>
               ))}

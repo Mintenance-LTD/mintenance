@@ -93,7 +93,7 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
     : {};
   // Normalize style prop to avoid mixing shorthand and non-shorthand border properties
   // Extract style from props if it exists (React Hook Form might pass it through spread)
-  const propsStyle = (props as unknown).style;
+  const propsStyle = (props as Record<string, unknown>).style as React.CSSProperties | undefined;
   const allStyles = [style, propsStyle].filter(Boolean);
   const mergedStyle = allStyles.length > 0 
     ? Object.assign({}, ...allStyles) 
@@ -122,7 +122,7 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
     }
   });
   // Remove style from props to prevent it from being spread on the input element
-  const { style: _, ...propsWithoutStyle } = restProps as unknown;
+  const { style: _, ...propsWithoutStyle } = restProps as Record<string, unknown>;
   // Also filter out any border-related properties from props that might be spread
   // This prevents React Hook Form or other libraries from adding border shorthand
   const cleanedProps: Record<string, unknown> = {};
@@ -134,7 +134,7 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
   });
   // Final safety check: explicitly remove any border shorthand that might have slipped through
   // This ensures React never sees both 'border' and 'borderColor' at the same time
-  const finalCleanedProps: unknown = { ...cleanedProps };
+  const finalCleanedProps: Record<string, unknown> = { ...cleanedProps };
   const borderShorthandProps = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft'];
   borderShorthandProps.forEach(prop => {
     if (prop in finalCleanedProps) {
@@ -157,18 +157,18 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
   const borderShorthandKeys = ['border', 'borderTop', 'borderRight', 'borderBottom', 'borderLeft'];
   borderShorthandKeys.forEach(key => {
     if (key in inputStyles) {
-      delete (inputStyles as unknown)[key];
+      delete (inputStyles as Record<string, unknown>)[key];
     }
   });
   // Also ensure no borderWidth or borderStyle from normalizedStyle conflicts
   // We set these ourselves in baseStyles, so remove any from normalizedStyle
   if ('borderWidth' in normalizedStyle && normalizedStyle.borderWidth !== baseStyles.borderWidth) {
     // Only remove if it's different from what we set
-    delete (inputStyles as unknown).borderWidth;
+    delete (inputStyles as Record<string, unknown>).borderWidth;
     inputStyles.borderWidth = baseStyles.borderWidth;
   }
   if ('borderStyle' in normalizedStyle && normalizedStyle.borderStyle !== baseStyles.borderStyle) {
-    delete (inputStyles as unknown).borderStyle;
+    delete (inputStyles as Record<string, unknown>).borderStyle;
     inputStyles.borderStyle = baseStyles.borderStyle;
   }
   // FINAL CHECK: Ensure borderColor is never removed if border shorthand exists
@@ -177,7 +177,7 @@ export const Input = forwardRef<HTMLInputElement, WebInputProps>((props, ref) =>
   const hasBorderShorthand = borderShorthandKeys.some(key => key in inputStyles);
   if (hasBorderShorthand && 'borderColor' in inputStyles) {
     // This shouldn't happen, but if it does, remove borderColor to avoid React warning
-    delete (inputStyles as unknown).borderColor;
+    delete (inputStyles as Record<string, unknown>).borderColor;
   }
   // Use useId() hook to generate stable IDs that match between server and client
   // This prevents hydration mismatches

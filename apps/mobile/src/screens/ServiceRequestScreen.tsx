@@ -299,16 +299,18 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
+            accessibilityRole='button'
+            accessibilityLabel='Go back'
           >
             <Ionicons name='arrow-back' size={24} color={theme.colors.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Request Service</Text>
+          <Text style={styles.headerTitle} accessibilityRole='header'>Request Service</Text>
           <View style={styles.placeholder} />
         </View>
 
         <ScrollView style={styles.content}>
           <View style={styles.categorySection}>
-            <Text style={styles.sectionTitle}>What service do you need?</Text>
+            <Text style={styles.sectionTitle} accessibilityRole='header'>What service do you need?</Text>
             <Text style={styles.sectionSubtitle}>
               Select a category to get started
             </Text>
@@ -319,6 +321,9 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                   key={category.id}
                   style={[styles.categoryCard, { borderColor: category.color }]}
                   onPress={() => handleCategorySelect(category)}
+                  accessibilityRole='button'
+                  accessibilityLabel={`${category.name} service category`}
+                  accessibilityHint='Double tap to select this category'
                 >
                   <View
                     style={[
@@ -348,10 +353,12 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => setSelectedCategory(null)}
+          accessibilityRole='button'
+          accessibilityLabel='Go back to category selection'
         >
           <Ionicons name='arrow-back' size={24} color={theme.colors.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{selectedCategory.name} Service</Text>
+        <Text style={styles.headerTitle} accessibilityRole='header'>{selectedCategory.name} Service</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -373,6 +380,9 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                   },
                 ]}
                 onPress={() => handleSubcategorySelect(subcategory)}
+                accessibilityRole='radio'
+                accessibilityLabel={subcategory}
+                accessibilityState={{ selected: selectedSubcategory === subcategory }}
               >
                 <Text
                   style={[
@@ -440,6 +450,9 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                   priority === level.id && { backgroundColor: level.color },
                 ]}
                 onPress={() => setPriority(level.id as unknown)}
+                accessibilityRole='radio'
+                accessibilityLabel={`${level.name} priority: ${level.description}`}
+                accessibilityState={{ selected: priority === level.id }}
               >
                 <Text
                   style={[
@@ -480,6 +493,8 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.removePhotoButton}
                   onPress={() => removePhoto(index)}
+                  accessibilityRole='button'
+                  accessibilityLabel={`Remove photo ${index + 1}`}
                 >
                   <Ionicons name='close-circle' size={24} color='#FF3B30' />
                 </TouchableOpacity>
@@ -490,6 +505,9 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.addPhotoButton}
                 onPress={showImagePickerOptions}
+                accessibilityRole='button'
+                accessibilityLabel='Add photo'
+                accessibilityHint='Double tap to take or choose a photo of the problem'
               >
                 <Ionicons name='camera' size={30} color='#666' />
                 <Text style={styles.addPhotoText}>Add Photo</Text>
@@ -508,6 +526,9 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
           ]}
           onPress={handleSubmit}
           disabled={loading}
+          accessibilityRole='button'
+          accessibilityLabel={loading ? 'Posting service request' : 'Submit service request'}
+          accessibilityState={{ disabled: loading }}
         >
           <Text style={styles.submitButtonText}>
             {loading ? 'Posting...' : 'Request Service'}

@@ -269,7 +269,7 @@ export function ArticleDetailModal(props: ArticleDetailModalProps) {
               onClick={onClose}
               className="text-secondary hover:underline font-medium"
             >
-              return to help center
+              return to help centre
             </button>
           </p>
         </div>

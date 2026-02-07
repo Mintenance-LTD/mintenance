@@ -137,7 +137,7 @@ export class RecommendationsService {
 
           // Sort by ML-predicted engagement score (highest first) and limit to top 5
           return scoredRecommendations
-            .sort((a, b) => (b as any).engagementScore - (a as any).engagementScore)
+            .sort((a, b) => (b as { engagementScore: number }).engagementScore - (a as { engagementScore: number }).engagementScore)
             .slice(0, 5)
             .map(({ engagementScore, ...rec }) => rec); // Remove engagementScore from final output
 

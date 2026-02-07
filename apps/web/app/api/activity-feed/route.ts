@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
         // Fetch user information
         const allUserIds = [...homeownerIds, ...contractorIds];
         const { data: users } = allUserIds.length > 0 ? await serverSupabase
-            .from('users')
+            .from('profiles')
             .select('id, first_name, last_name')
             .in('id', allUserIds) : { data: [] };
 

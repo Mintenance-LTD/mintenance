@@ -29,7 +29,7 @@ export default function AIMonitoringPage() {
         userInfo={{
           name: userDisplayName,
           email: user?.email || '',
-          avatar: (user as any)?.profile_image_url,
+          avatar: user?.profile_image_url,
         }}
       />
 

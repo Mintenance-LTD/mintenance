@@ -53,7 +53,7 @@ export async function createServerSupabaseClient() {
           // This can be ignored if you have middleware refreshing user sessions.
         }
       },
-    } as any,
+    } as Parameters<typeof createServerClient>[2]["cookies"],
   });
 }
 

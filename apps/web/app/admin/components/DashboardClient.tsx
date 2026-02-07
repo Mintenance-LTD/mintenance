@@ -119,7 +119,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
         ]}
         actions={
           <div className="flex items-center gap-3">
-            {loading && <Icon name="loader" size={20} className="animate-spin" color={theme.colors.white} />}
+            {loading && <span role="status" aria-label="Loading metrics"><Icon name="loader" size={20} className="animate-spin" color={theme.colors.white} aria-hidden="true" /></span>}
             {mounted && lastUpdated && (
               <span className="text-xs text-white/70 font-medium">
                 Updated {lastUpdated.toLocaleTimeString('en-GB')}
@@ -130,7 +130,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
       />
 
       {/* Metrics Row */}
-      <section className="mt-2">
+      <section className="mt-2" aria-label="Platform metrics" aria-live="polite">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <AdminMetricCard
           label="Total Users"
@@ -175,7 +175,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
       </section>
 
       {/* Action Cards Row */}
-      <section>
+      <section aria-label="Quick actions">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickActionCard
             href="/admin/revenue"
@@ -212,7 +212,7 @@ export function DashboardClient({ initialMetrics }: { initialMetrics: DashboardM
       </section>
 
       {/* YOLO Learning Status */}
-      <section>
+      <section aria-label="YOLO learning status">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <YOLOLearningStatusCard />
         </div>

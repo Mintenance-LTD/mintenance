@@ -10,7 +10,7 @@ export interface BlockedIP {
   blocked_at: string;
   expires_at?: string;
   is_active: boolean;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -52,7 +52,7 @@ export class IPBlockingService {
     reason: string;
     blockedBy: string;
     expiresAt?: Date;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }): Promise<BlockedIP | null> {
     try {
       const { data, error } = await serverSupabase

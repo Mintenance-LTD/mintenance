@@ -1,12 +1,40 @@
 /**
  * Centralized Configuration for Building Surveyor Service
- * 
+ *
  * All environment variable access is centralized here with:
  * - Type safety
  * - Default values
  * - Validation
  * - Documentation
  */
+
+/**
+ * Domain-specific configuration for multi-domain support.
+ * Each domain (residential, industrial, rail) has its own
+ * damage taxonomy, fusion weights, and confidence thresholds.
+ */
+export interface DomainConfig {
+    id: string;
+    displayName: string;
+    damageTypes: string[];
+    classNames: string[];
+    fusionWeights: {
+        sam3: number;
+        gpt4: number;
+        sceneGraph: number;
+    };
+    confidenceThresholds: {
+        high: number;
+        medium: number;
+        low: number;
+    };
+    agreementThreshold: number;
+    safetyCriticalClasses: string[];
+    nodeTypes: string[];
+    edgeTypes: string[];
+    modelPath?: string;
+    modelVersion?: string;
+}
 
 export interface BuildingSurveyorConfig {
     // API Keys
@@ -53,10 +81,16 @@ export interface BuildingSurveyorConfig {
         rolloutPercentage: number;
         timeoutMs: number;
     };
+
+    // Active domain (defaults to 'residential')
+    activeDomainId: string;
 }
 
 import { env, isDevelopment } from '../../../env';
 import { logger } from '@mintenance/shared';
+import { residentialDomain } from './domains/residential';
+import { industrialDomain } from './domains/industrial';
+import { railDomain } from './domains/rail';
 
 /**
  * Load and validate configuration from environment variables
@@ -145,6 +179,9 @@ export function loadBuildingSurveyorConfig(): BuildingSurveyorConfig {
                 10
             ),
         },
+
+        // Active domain
+        activeDomainId: process.env.BUILDING_SURVEYOR_DOMAIN || 'residential',
     };
 }
 
@@ -198,4 +235,48 @@ export function getConfig(): BuildingSurveyorConfig {
  */
 export function resetConfig(): void {
     configInstance = null;
+}
+
+// ─── Domain Registry ────────────────────────────────────────────────
+
+const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
+    residential: residentialDomain,
+    industrial: industrialDomain,
+    rail: railDomain,
+};
+
+/**
+ * Get the domain config for the currently active domain
+ */
+export function getActiveDomain(): DomainConfig {
+    const config = getConfig();
+    return getDomainConfig(config.activeDomainId);
+}
+
+/**
+ * Get domain config by ID. Falls back to residential if unknown.
+ */
+export function getDomainConfig(domainId: string): DomainConfig {
+    const domain = DOMAIN_REGISTRY[domainId];
+    if (!domain) {
+        logger.warn(`Unknown domain "${domainId}", falling back to residential`, {
+            service: 'BuildingSurveyorConfig',
+        });
+        return DOMAIN_REGISTRY.residential;
+    }
+    return domain;
+}
+
+/**
+ * List all registered domain IDs
+ */
+export function getRegisteredDomains(): string[] {
+    return Object.keys(DOMAIN_REGISTRY);
+}
+
+/**
+ * Register a new domain at runtime (e.g. loaded from DB)
+ */
+export function registerDomain(domain: DomainConfig): void {
+    DOMAIN_REGISTRY[domain.id] = domain;
 }

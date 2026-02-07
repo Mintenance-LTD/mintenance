@@ -163,7 +163,7 @@ function validateMimeType(
 ): { valid: boolean; error?: string } {
   const allowedTypes = ALLOWED_MIME_TYPES[category];
 
-  if (!allowedTypes.includes(mimeType as any)) {
+  if (!(allowedTypes as readonly string[]).includes(mimeType)) {
     return {
       valid: false,
       error: `MIME type "${mimeType}" is not allowed for ${category} files. Allowed types: ${allowedTypes.join(', ')}`,

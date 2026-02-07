@@ -1,17 +1,5 @@
 // Common type definitions for the application
 
-// Sentry global (loaded via script tag)
-interface SentryGlobal {
-  captureException: (error: unknown, context?: Record<string, unknown>) => void;
-  captureMessage: (message: string, level?: string) => void;
-}
-
-declare global {
-  interface Window {
-    Sentry?: SentryGlobal;
-  }
-}
-
 interface User {
   id: string;
   email: string;

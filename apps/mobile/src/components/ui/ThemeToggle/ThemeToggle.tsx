@@ -157,7 +157,7 @@ export const ThemeModeSelector: React.FC<ThemeModeSelectorProps> = ({
             accessibilityState={{ selected: themeMode === mode.key }}
           >
             <Ionicons
-              name={mode.icon as any}
+              name={mode.icon as keyof typeof Ionicons.glyphMap}
               size={20}
               color={
                 themeMode === mode.key

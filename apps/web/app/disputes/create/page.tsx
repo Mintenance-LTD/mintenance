@@ -240,7 +240,7 @@ function CreateDisputeContent() {
             </label>
             <select
               value={formData.priority}
-              onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, priority: e.target.value as typeof formData.priority })}
               style={{
                 width: '100%',
                 padding: theme.spacing[3],

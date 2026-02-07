@@ -109,12 +109,38 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Pre-fetch contractor Stripe accounts to avoid N+1 queries
+    const contractorIds = [...new Set(
+      eligibleEscrows
+        .map(e => {
+          const job = e.jobs as unknown as { contractor_id?: string } | null;
+          return job?.contractor_id;
+        })
+        .filter((id): id is string => Boolean(id))
+    )];
+
+    const contractorStripeMap = new Map<string, string>();
+    if (contractorIds.length > 0) {
+      const { data: contractors } = await serverSupabase
+        .from('profiles')
+        .select('id, stripe_connect_account_id')
+        .in('id', contractorIds);
+
+      if (contractors) {
+        for (const c of contractors) {
+          if (c.stripe_connect_account_id) {
+            contractorStripeMap.set(c.id, c.stripe_connect_account_id);
+          }
+        }
+      }
+    }
+
     // Process each escrow
     for (const escrow of eligibleEscrows) {
       try {
         results.evaluated++;
 
-        const job = escrow.jobs as any;
+        const job = escrow.jobs as unknown as { id: string; status: string; contractor_id: string; homeowner_id: string; title: string };
         if (!job || job.status !== 'completed') {
           continue; // Skip if job not completed
         }
@@ -143,14 +169,10 @@ export async function GET(request: NextRequest) {
         }
 
         // Auto-release approved - proceed with release
-        // Get contractor's Stripe Connect account
-        const { data: contractor, error: contractorError } = await serverSupabase
-          .from('users')
-          .select('stripe_connect_account_id')
-          .eq('id', job.contractor_id)
-          .single();
+        // Get contractor's Stripe Connect account (pre-fetched)
+        const contractorStripeAccountId = contractorStripeMap.get(job.contractor_id);
 
-        if (contractorError || !contractor?.stripe_connect_account_id) {
+        if (!contractorStripeAccountId) {
           // Send notification to contractor
           const { PaymentSetupNotificationService } = await import('@/lib/services/contractor/PaymentSetupNotificationService');
           await PaymentSetupNotificationService.notifyPaymentSetupRequired(
@@ -186,7 +208,7 @@ export async function GET(request: NextRequest) {
         const transfer = await stripe.transfers.create({
           amount: contractorAmountCents,
           currency: 'usd',
-          destination: contractor.stripe_connect_account_id,
+          destination: contractorStripeAccountId,
           description: `Auto-release: ${job.title}`,
           metadata: {
             jobId: job.id,
@@ -238,7 +260,7 @@ export async function GET(request: NextRequest) {
         }
 
         // Update escrow transaction
-        const updateData: Record<string, any> = {
+        const updateData: Record<string, unknown> = {
           status: 'completed',
           released_at: new Date().toISOString(),
           release_reason: 'auto_release',

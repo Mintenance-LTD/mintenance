@@ -280,7 +280,7 @@ export function FindContractorsClient({ contractors }: FindContractorsClientProp
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><Link href="/help" className="hover:text-white">Help Center</Link></li>
+                <li><Link href="/help" className="hover:text-white">Help Centre</Link></li>
                 <li><Link href="/contact" className="hover:text-white">Contact Us</Link></li>
                 <li><Link href="/terms" className="hover:text-white">Terms of Service</Link></li>
               </ul>

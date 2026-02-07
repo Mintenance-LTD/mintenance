@@ -199,14 +199,14 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
             variant="primary"
             onClick={() => setShowCreateModal(true)}
           >
-            <Icon name="plus" size={16} /> New Announcement
+            <Icon name="plus" size={16} aria-hidden="true" /> New Announcement
           </Button>
         }
       />
 
       {/* Success Alert */}
       {successAlert.show && (
-        <Alert className="mb-4 border-green-200 bg-green-50">
+        <Alert role="alert" aria-live="assertive" className="mb-4 border-green-200 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <AlertTitle className="text-green-800">Success</AlertTitle>
           <AlertDescription className="text-green-700">
@@ -216,7 +216,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
       )}
 
       {/* Announcements List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[5] }}>
+      <div role="list" aria-label="Announcements" style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[5] }}>
         {announcements.map((announcement) => (
           <Card
             key={announcement.id}
@@ -274,7 +274,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                         gap: '6px',
                         border: '1px solid #86EFAC',
                       }}>
-                        <Icon name="checkCircle" size={12} color="#065F46" />
+                        <Icon name="checkCircle" size={12} color="#065F46" aria-hidden="true" />
                         Published
                       </span>
                     ) : (
@@ -339,7 +339,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                     alignItems: 'center',
                     gap: '6px',
                   }}>
-                    <Icon name="users" size={14} color="#64748B" />
+                    <Icon name="users" size={14} color="#64748B" aria-hidden="true" />
                     Target: {announcement.target_audience.replace('_', ' ')}
                   </span>
                   {announcement.expires_at && (
@@ -350,7 +350,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                       alignItems: 'center',
                       gap: '6px',
                     }}>
-                      <Icon name="clock" size={14} color="#64748B" />
+                      <Icon name="clock" size={14} color="#64748B" aria-hidden="true" />
                       Expires: {new Date(announcement.expires_at).toLocaleDateString()}
                     </span>
                   )}
@@ -421,7 +421,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                     }}
                     className="rounded-lg bg-[#4A67FF] hover:bg-[#3B5BDB]"
                   >
-                    <Icon name="send" size={16} /> Publish
+                    <Icon name="send" size={16} aria-hidden="true" /> Publish
                   </Button>
                 )}
                 <Button
@@ -436,7 +436,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                   }}
                   className="rounded-lg hover:bg-slate-100"
                 >
-                  <Icon name="edit" size={16} /> {editingId === announcement.id ? 'Cancel' : 'Edit'}
+                  <Icon name="edit" size={16} aria-hidden="true" /> {editingId === announcement.id ? 'Cancel' : 'Edit'}
                 </Button>
                 <Button
                   variant="destructive"
@@ -450,7 +450,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                   }}
                   className="rounded-lg hover:bg-red-600"
                 >
-                  <Icon name="trash" size={16} /> Delete
+                  <Icon name="trash" size={16} aria-hidden="true" /> Delete
                 </Button>
               </div>
             </div>
@@ -476,6 +476,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
               <Label htmlFor="announcement-title">Title</Label>
               <Input
                 id="announcement-title"
+                aria-required="true"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Announcement title"
@@ -486,6 +487,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
               <Label htmlFor="announcement-content">Content</Label>
               <Textarea
                 id="announcement-content"
+                aria-required="true"
                 value={formData.content}
                 onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="Announcement content..."
@@ -498,7 +500,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                 <Label htmlFor="announcement-type">Type</Label>
                 <Select
                   value={formData.announcement_type}
-                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, announcement_type: value as any }))}
+                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, announcement_type: value as typeof prev.announcement_type }))}
                 >
                   <SelectTrigger id="announcement-type">
                     <SelectValue placeholder="Select type" />
@@ -517,7 +519,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                 <Label htmlFor="target-audience">Target Audience</Label>
                 <Select
                   value={formData.target_audience}
-                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, target_audience: value as any }))}
+                  onValueChange={(value: string) => setFormData(prev => ({ ...prev, target_audience: value as typeof prev.target_audience }))}
                 >
                   <SelectTrigger id="target-audience">
                     <SelectValue placeholder="Select audience" />

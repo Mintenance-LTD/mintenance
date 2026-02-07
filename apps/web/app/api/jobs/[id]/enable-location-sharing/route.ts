@@ -5,6 +5,8 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { enableLocationSharingSchema } from '@/lib/validation/schemas';
 
 export async function POST(  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -45,8 +47,13 @@ export async function POST(  request: NextRequest,
       throw new ForbiddenError('Only contractors can enable location sharing');
     }
 
-    const body = await request.json();
-    const enabled = body.enabled !== false; // Default to true if not specified
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, enableLocationSharingSchema);
+    if ('headers' in validation) {
+      return validation;
+    }
+
+    const { enabled } = validation.data;
 
     // Verify job exists and contractor is assigned
     const { data: job, error: jobError } = await serverSupabase

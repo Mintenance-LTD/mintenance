@@ -137,7 +137,7 @@ export class PaymentEnforcement {
         .eq('id', jobId)
         .single();
 
-      const metadata = (job?.metadata as Record<string, any>) || {};
+      const metadata = (job?.metadata as Record<string, unknown>) || {};
 
       metadata.payment_method = paymentMethod;
       metadata.payment_method_recorded_at = new Date().toISOString();

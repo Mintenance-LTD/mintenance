@@ -132,6 +132,8 @@ const JobsScreen: React.FC = () => {
                 placeholderTextColor='#999'
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                accessibilityLabel='Search jobs'
+                accessibilityHint='Type to search by title, description, or location'
               />
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -151,6 +153,9 @@ const JobsScreen: React.FC = () => {
                       selectedFilter === key && styles.filterChipActive,
                     ]}
                     onPress={() => setSelectedFilter(key)}
+                    accessibilityRole='button'
+                    accessibilityLabel={`Filter by ${key === 'all' ? 'all jobs' : key === 'in_progress' ? 'in progress' : key}`}
+                    accessibilityState={{ selected: selectedFilter === key }}
                   >
                     <Text
                       style={[
@@ -214,7 +219,13 @@ const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
   const statusIcon = getStatusIcon(item.status);
 
   return (
-    <TouchableOpacity style={styles.jobCard} onPress={onPress}>
+    <TouchableOpacity
+      style={styles.jobCard}
+      onPress={onPress}
+      accessibilityRole='button'
+      accessibilityLabel={`${item.title}, ${formatStatus(item.status)}, budget $${item.budget.toLocaleString()}, ${item.location}`}
+      accessibilityHint='Double tap to view job details'
+    >
       <View style={styles.jobCardHeader}>
         <View style={styles.jobTitleSection}>
           <View style={styles.titlePriorityRow}>

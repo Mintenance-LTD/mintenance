@@ -1,6 +1,7 @@
 import React from 'react';
 import { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 import { View, RefreshControl, ScrollView, ViewStyle } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import {
   LoadingState,
   EmptyState,
@@ -12,7 +13,7 @@ import { useNetworkState } from '../hooks/useNetworkState';
 import { useOfflineSyncStatus } from '../hooks/useOfflineQuery';
 import { logger } from '../utils/logger';
 
-export interface QueryStateWrapperProps<TData = any> {
+export interface QueryStateWrapperProps<TData = unknown> {
   query: UseQueryResult<TData>;
   children: (data: TData) => React.ReactNode;
 
@@ -47,7 +48,7 @@ export interface QueryStateWrapperProps<TData = any> {
   offlineMessage?: string;
 }
 
-export interface MutationStateWrapperProps<TData = any, TVariables = any> {
+export interface MutationStateWrapperProps<TData = unknown, TVariables = unknown> {
   mutation: UseMutationResult<TData, Error, TVariables>;
   children: (
     mutate: (variables: TVariables) => void,
@@ -134,7 +135,7 @@ export const QueryStateWrapper = <TData,>({
         <EmptyState
           title={emptyTitle}
           message={emptyMessage}
-          icon={emptyIcon as any}
+          icon={emptyIcon as keyof typeof MaterialIcons.glyphMap}
           actionText={emptyActionText}
           onActionPress={onEmptyAction}
           showRetry={showErrorRetry}
@@ -246,23 +247,23 @@ export const MutationStateWrapper = <TData, TVariables>({
         logger.info('Mutation succeeded:', successMessage);
       }
     }
-  }, [(mutation as any).isSuccess, mutation.data, onSuccess, successMessage]);
+  }, [mutation.isSuccess, mutation.data, onSuccess, successMessage]);
 
   // Handle error
   React.useEffect(() => {
-    if ((mutation as any).isError) {
-      logger.error('Mutation failed:', mutation.error as any);
+    if (mutation.isError) {
+      logger.error('Mutation failed:', mutation.error);
 
       if (onError && mutation.error) {
-        onError(mutation.error as any);
+        onError(mutation.error);
       }
 
       if (showErrorAlert) {
         // Could integrate with your alert/toast system
-        logger.error('Mutation error', (mutation.error as any)?.message);
+        logger.error('Mutation error', (mutation.error)?.message);
       }
     }
-  }, [(mutation as any).isError, mutation.error, onError, showErrorAlert]);
+  }, [mutation.isError, mutation.error, onError, showErrorAlert]);
 
   const handleMutate = (variables: TVariables) => {
     logger.info('Triggering mutation with variables:', variables);
@@ -274,7 +275,7 @@ export const MutationStateWrapper = <TData, TVariables>({
       {children(handleMutate, mutation.data)}
 
       {/* Loading overlay */}
-      {showLoadingOverlay && (mutation as any).isLoading && (
+      {showLoadingOverlay && mutation.isPending && (
         <View
           style={{
             position: 'absolute',
@@ -356,9 +357,9 @@ export const useMutationState = <TData, TVariables>(
 ) => {
   return React.useMemo(
     () => ({
-      isLoading: (mutation as any).isLoading,
-      isError: (mutation as any).isError,
-      isSuccess: (mutation as any).isSuccess,
+      isLoading: mutation.isPending,
+      isError: mutation.isError,
+      isSuccess: mutation.isSuccess,
       error: mutation.error,
       data: mutation.data,
 
@@ -367,13 +368,13 @@ export const useMutationState = <TData, TVariables>(
       reset: mutation.reset,
 
       // Computed states
-      canSubmit: !(mutation as any).isLoading,
-      hasResult: (mutation as any).isSuccess || (mutation as any).isError,
+      canSubmit: !mutation.isPending,
+      hasResult: mutation.isSuccess || mutation.isError,
     }),
     [
-      (mutation as any).isLoading,
-      (mutation as any).isError,
-      (mutation as any).isSuccess,
+      mutation.isPending,
+      mutation.isError,
+      mutation.isSuccess,
       mutation.error,
       mutation.data,
       mutation.mutate,

@@ -210,7 +210,7 @@ export default function TermsOfServicePage() {
                 <li><strong>Appeal Process:</strong> If you disagree with the resolution, you may request a review within 7 days with additional evidence</li>
               </ul>
               <p className="text-gray-700 leading-relaxed mb-4">
-                For detailed dispute resolution procedures, visit our <a href="/help" className="text-blue-600 hover:underline">Help Center</a>.
+                For detailed dispute resolution procedures, visit our <a href="/help" className="text-blue-600 hover:underline">Help Centre</a>.
               </p>
 
               <h3 className="text-xl font-semibold text-gray-900 mb-3">9.2 Legal Disputes with Mintenance</h3>

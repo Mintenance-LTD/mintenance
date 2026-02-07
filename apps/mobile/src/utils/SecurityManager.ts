@@ -308,7 +308,7 @@ class SecurityManagerService {
         const now = Date.now();
 
         // Only restore entries that haven't expired
-        Object.entries(data).forEach(([key, value]: [string, any]) => {
+        Object.entries(data).forEach(([key, value]: [string, unknown]) => {
           if (value.resetTime > now) {
             this.rateLimitMap.set(key, value);
           }

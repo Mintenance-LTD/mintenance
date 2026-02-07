@@ -113,7 +113,7 @@ export async function POST(  request: NextRequest,
       try {
         // Get contractor name
         const { data: contractor } = await serverSupabase
-          .from('users')
+          .from('profiles')
           .select('first_name, last_name')
           .eq('id', user.id)
           .single();

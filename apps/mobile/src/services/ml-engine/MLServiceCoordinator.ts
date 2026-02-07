@@ -425,7 +425,7 @@ export class MLServiceCoordinator {
   /**
    * Verify individual service availability
    */
-  private async _verifyService(serviceName: string, serviceFactory: () => any): Promise<void> {
+  private async _verifyService(serviceName: string, serviceFactory: () => unknown): Promise<void> {
     try {
       const service = serviceFactory();
       if (!service) {

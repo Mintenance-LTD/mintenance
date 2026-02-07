@@ -49,8 +49,9 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
             activeTab === tab.id && styles.activeTab,
           ]}
           onPress={() => onTabChange(tab.id)}
-          accessibilityRole="button"
-          accessibilityLabel={`${tab.name} tab with ${tab.count} bookings`}
+          accessibilityRole="tab"
+          accessibilityLabel={`${tab.name} tab, ${tab.count} bookings`}
+          accessibilityState={{ selected: activeTab === tab.id }}
         >
           <Text
             style={[

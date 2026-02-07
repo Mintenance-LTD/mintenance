@@ -20,7 +20,7 @@ export const ServiceAreasStats: React.FC<ServiceAreasStatsProps> = ({ serviceAre
     color: string
   ) => (
     <View style={[styles.statCard, { borderLeftColor: color }]}>
-      <Ionicons name={icon as any} size={20} color={color} />
+      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={color} />
       <View style={styles.statContent}>
         <Text style={[styles.statValue, { color }]}>{value}</Text>
         <Text style={styles.statLabel}>{title}</Text>

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, waitFor, fireEvent, act } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { Text, View, TouchableOpacity } from 'react-native';
-import RootNavigator from '../../navigation/RootNavigator';
+import AppNavigator from '../../navigation/AppNavigator';
 import { AuthProvider , useAuth } from '../../contexts/AuthContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -183,7 +183,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId, getByText } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -200,7 +200,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -216,7 +216,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId, getByText } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -237,7 +237,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
     it('should navigate from Landing to Login', async () => {
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -253,7 +253,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
     it('should navigate from Login to Register', async () => {
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -279,7 +279,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
     it('should navigate between tabs', async () => {
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -296,7 +296,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
     it('should navigate to JobDetails with parameters', async () => {
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -316,7 +316,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -336,7 +336,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -356,7 +356,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -377,7 +377,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -405,7 +405,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId, rerender } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -423,7 +423,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       rerender(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -449,7 +449,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -476,7 +476,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -501,7 +501,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -528,7 +528,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -562,7 +562,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -584,7 +584,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByLabelText } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -606,7 +606,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByRole } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -630,7 +630,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -647,7 +647,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { unmount } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -666,7 +666,7 @@ describe('SimpleNavigationTest - Comprehensive Navigation Tests', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 

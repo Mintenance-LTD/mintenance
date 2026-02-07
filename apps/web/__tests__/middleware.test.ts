@@ -309,6 +309,7 @@ describe('Middleware Security', () => {
         '/register',
         '/about',
         '/contact',
+        '/try-mint-ai',
         '/api/auth/login',
         '/api/auth/register',
       ];

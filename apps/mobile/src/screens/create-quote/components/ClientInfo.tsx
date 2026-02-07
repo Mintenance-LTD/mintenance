@@ -31,7 +31,7 @@ export const ClientInfo: React.FC<ClientInfoProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Client Information</Text>
+      <Text style={styles.sectionTitle} accessibilityRole='header'>Client Information</Text>
       
       <View style={styles.inputGroup}>
         <Input

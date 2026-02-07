@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // Build query
     let query = serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, email, first_name, last_name, role, company_name, admin_verified, created_at, updated_at, deleted_at', { count: 'exact' });
 
     // Filter by role
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       (users || []).map(async (user) => {
         if (user.role === 'contractor') {
           const { data: contractorData } = await serverSupabase
-            .from('users')
+            .from('profiles')
             .select('company_name, license_number, business_address, latitude, longitude')
             .eq('id', user.id)
             .single();

@@ -96,7 +96,7 @@ export interface AgentDecision {
   actionTaken?: ActionTaken;
   confidence: number; // 0-100
   reasoning: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   userFeedback?: 'accepted' | 'rejected' | 'modified' | null;
   outcomeSuccess?: boolean | null;
   createdAt?: string;
@@ -120,7 +120,7 @@ export interface AgentContext {
   userId?: string;
   contractorId?: string;
   homeownerId?: string;
-  additionalData?: Record<string, any>;
+  additionalData?: Record<string, unknown>;
 }
 
 export interface AgentResult {
@@ -128,14 +128,14 @@ export interface AgentResult {
   decision?: AgentDecision;
   error?: string;
   message?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface LearningData {
   userId: string;
   eventType: string;
-  context: Record<string, any>;
-  outcome?: Record<string, any>;
+  context: Record<string, unknown>;
+  outcome?: Record<string, unknown>;
   timestamp: string;
 }
 

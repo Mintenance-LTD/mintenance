@@ -28,9 +28,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.avatarContainer}>
-        <View style={styles.avatar} />
+        <View style={styles.avatar} accessible={false} />
         {showEditButton && (
-          <TouchableOpacity style={styles.editButton} onPress={onEditPress}>
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={onEditPress}
+            accessibilityRole='button'
+            accessibilityLabel='Edit profile photo'
+          >
             <Ionicons name="pencil" size={14} color={theme.colors.white} />
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>

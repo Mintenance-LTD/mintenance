@@ -59,7 +59,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <Icon name={activity.icon as any} size={16} color={activity.iconColor} />
+              <Icon name={activity.icon as string} size={16} color={activity.iconColor} />
             </div>
             <div>
               <p style={{

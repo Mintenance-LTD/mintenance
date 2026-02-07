@@ -40,12 +40,11 @@ export const withScreenErrorBoundary = <P extends object>(
   } = {}
 ) => {
   const ComponentWithErrorBoundary = (props: P) =>
-    // Cast to any to allow optional fields without altering component prop types
-    React.createElement(ScreenErrorBoundary as any, {
+    React.createElement(ScreenErrorBoundary as React.ComponentType<Record<string, unknown>>, {
       screenName,
       fallbackRoute: options.fallbackRoute,
       showHomeButton: options.showHomeButton,
-      children: React.createElement(WrappedComponent, props as any),
+      children: React.createElement(WrappedComponent, props as P),
     });
 
   ComponentWithErrorBoundary.displayName = `withScreenErrorBoundary(${screenName})`;

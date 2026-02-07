@@ -287,7 +287,7 @@ const linking: LinkingOptions<RootStackParamList> = {
           HomeTab: 'home',
           DiscoverTab: 'discover',
           JobsTab: 'jobs',
-          FeedTab: 'feed',
+          AddTab: 'add',
           MessagingTab: 'messages',
           ProfileTab: 'profile',
         },

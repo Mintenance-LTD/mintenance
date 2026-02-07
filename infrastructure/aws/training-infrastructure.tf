@@ -9,6 +9,12 @@ terraform {
     }
   }
   required_version = ">= 1.0"
+
+  backend "s3" {
+    bucket = "mintenance-terraform-state"
+    key    = "training-infrastructure/terraform.tfstate"
+    region = "eu-west-2"
+  }
 }
 
 provider "aws" {
@@ -18,17 +24,26 @@ provider "aws" {
 # Variables
 variable "aws_region" {
   description = "AWS region for resources"
+  type        = string
   default     = "us-east-1"
 }
 
 variable "project_name" {
   description = "Project name for tagging"
+  type        = string
   default     = "mintenance-ml"
 }
 
 variable "environment" {
   description = "Environment (dev/staging/prod)"
+  type        = string
   default     = "production"
+}
+
+variable "alert_email" {
+  description = "Email address for training notifications"
+  type        = string
+  sensitive   = true
 }
 
 # S3 Bucket for Training Data and Models
@@ -230,7 +245,7 @@ resource "aws_sns_topic" "training_notifications" {
 resource "aws_sns_topic_subscription" "training_email" {
   topic_arn = aws_sns_topic.training_notifications.arn
   protocol  = "email"
-  endpoint  = "your-email@example.com" # Replace with your email
+  endpoint  = var.alert_email
 }
 
 # Outputs

@@ -402,7 +402,7 @@ export const getThemeColor = (
   return current;
 };
 
-export const createThemedStyles = <T extends Record<string, any>>(
+export const createThemedStyles = <T extends Record<string, unknown>>(
   styleCreator: (theme: Theme) => T
 ) => {
   return (theme: Theme) => styleCreator(theme);

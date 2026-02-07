@@ -25,8 +25,9 @@ export type {
     InternalPrediction,
 } from './routing/types';
 
-import { CONFIDENCE_THRESHOLDS } from './routing/types';
+import { getConfidenceThresholds } from './routing/types';
 import type { HybridInferenceResult, RouteDecision } from './routing/types';
+import { getActiveDomain } from './config/BuildingSurveyorConfig';
 import {
     executeInternalRoute,
     executeGPT4Route,
@@ -164,7 +165,8 @@ export class HybridInferenceService {
     }
 
     /**
-     * Decide which route to take based on model availability and confidence
+     * Decide which route to take based on model availability, confidence,
+     * and domain-specific thresholds.
      */
     private static async selectRoute(
         features: number[],
@@ -186,7 +188,11 @@ export class HybridInferenceService {
             ? await InternalDamageClassifier.predictFromImage(imageUrls[0])
             : await InternalDamageClassifier.predict(features);
 
-        const hasSuspectedHazard = context?.propertyType === 'commercial' ||
+        // Domain-aware safety check: use GPT-4 for safety-critical predictions
+        const domain = getActiveDomain();
+        const isSafetyCritical = domain.safetyCriticalClasses.includes(internal.damageType);
+        const hasSuspectedHazard = isSafetyCritical ||
+                                   context?.propertyType === 'commercial' ||
                                    internal.urgency === 'immediate';
 
         if (hasSuspectedHazard) {
@@ -194,30 +200,33 @@ export class HybridInferenceService {
                 route: 'gpt4_vision',
                 confidence: internal.confidence,
                 useInternalFirst: false,
-                reasoning: 'Critical safety concern detected - using GPT-4 Vision for verification',
+                reasoning: `Safety-critical detection (${domain.id}) - using GPT-4 Vision for verification`,
             };
         }
 
-        if (internal.confidence >= CONFIDENCE_THRESHOLDS.high) {
+        // Use domain-specific confidence thresholds
+        const thresholds = getConfidenceThresholds();
+
+        if (internal.confidence >= thresholds.high) {
             return {
                 route: 'internal',
                 confidence: internal.confidence,
                 useInternalFirst: true,
-                reasoning: `High confidence (${internal.confidence.toFixed(2)}) - using internal model`,
+                reasoning: `High confidence (${internal.confidence.toFixed(2)}, domain=${domain.id}) - using internal model`,
             };
-        } else if (internal.confidence >= CONFIDENCE_THRESHOLDS.medium) {
+        } else if (internal.confidence >= thresholds.medium) {
             return {
                 route: 'hybrid',
                 confidence: internal.confidence,
                 useInternalFirst: true,
-                reasoning: `Medium confidence (${internal.confidence.toFixed(2)}) - using hybrid approach for validation`,
+                reasoning: `Medium confidence (${internal.confidence.toFixed(2)}, domain=${domain.id}) - using hybrid approach`,
             };
         } else {
             return {
                 route: 'gpt4_vision',
                 confidence: internal.confidence,
                 useInternalFirst: false,
-                reasoning: `Low confidence (${internal.confidence.toFixed(2)}) - using GPT-4 Vision as primary`,
+                reasoning: `Low confidence (${internal.confidence.toFixed(2)}, domain=${domain.id}) - using GPT-4 Vision`,
             };
         }
     }

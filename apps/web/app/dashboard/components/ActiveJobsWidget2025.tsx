@@ -45,7 +45,7 @@ export function ActiveJobsWidget2025({ jobs }: ActiveJobsWidget2025Props) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not scheduled';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
   };
 
   return (

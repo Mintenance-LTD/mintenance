@@ -24,13 +24,16 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Service Categories</Text>
+      <Text style={styles.sectionTitle} accessibilityRole='header'>Service Categories</Text>
       <View style={styles.grid}>
         {services.map((service) => (
           <TouchableOpacity
             key={service.id}
             style={styles.serviceItem}
             onPress={() => onServicePress(service.id)}
+            accessibilityRole='button'
+            accessibilityLabel={`${service.name} service category`}
+            accessibilityHint='Double tap to browse this service category'
           >
             <View style={styles.serviceIcon}>
               <Ionicons

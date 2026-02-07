@@ -84,7 +84,7 @@ export function ProfileFormField({
           gap: theme.spacing[2],
           flexWrap: 'wrap',
         }}>
-          {icon && <Icon name={icon as any} size={16} color={theme.colors.textSecondary} />}
+          {icon && <Icon name={icon as string} size={16} color={theme.colors.textSecondary} />}
           {displayValue || value || 'Not set'}
           {verified && (
             <span style={{

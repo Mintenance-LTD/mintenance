@@ -93,8 +93,17 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
       display: 'flex',
       backgroundColor: '#F9FAFB',
     }}>
+      {/* Skip to content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[9999] focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:bg-white focus:text-purple-700 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500"
+      >
+        Skip to content
+      </a>
+
       {/* Sidebar */}
       <aside
+        aria-label="Admin navigation sidebar"
         style={{
           width: isCollapsed ? '80px' : '280px',
           backgroundColor: '#0C1A33',
@@ -136,7 +145,9 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
         </div>
 
         {/* Navigation */}
-        <nav style={{
+        <nav
+          aria-label="Admin main navigation"
+          style={{
           flex: 1,
           padding: theme.spacing[2],
           overflowY: 'auto',
@@ -148,6 +159,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
                 key={item.href}
                 href={item.href}
                 prefetch={true}
+                aria-current={active ? "page" : undefined}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -185,11 +197,13 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Icon name={item.icon} size={20} color={active ? '#4A67FF' : 'rgba(255, 255, 255, 0.8)'} />
+                  <Icon name={item.icon} size={20} color={active ?  '#4A67FF' : 'rgba(255, 255, 255, 0.8)'} />
                 </div>
                 {!isCollapsed && <span>{item.label}</span>}
                 {active && !isCollapsed && (
-                  <div style={{
+                  <div
+                    aria-hidden="true"
+                    style={{
                     position: 'absolute',
                     right: theme.spacing[4],
                     width: '6px',
@@ -215,7 +229,9 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
             gap: theme.spacing[3],
             marginBottom: theme.spacing[4],
           }}>
-            <div style={{
+            <div
+              aria-hidden="true"
+              style={{
               width: '40px',
               height: '40px',
               borderRadius: '50%',
@@ -257,6 +273,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
           <button
             onClick={handleLogout}
             disabled={isLoggingOut}
+            aria-label="Log out of admin panel"
             style={{
               width: '100%',
               display: 'flex',
@@ -280,7 +297,10 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
       </aside>
 
       {/* Main Content */}
-      <main style={{
+      <main
+        id="main-content"
+        role="main"
+        style={{
         flex: 1,
         marginLeft: isCollapsed ? '80px' : '280px',
         transition: 'margin-left 0.3s ease',

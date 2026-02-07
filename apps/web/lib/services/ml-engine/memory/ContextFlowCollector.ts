@@ -52,7 +52,7 @@ export class ContextFlowCollector {
   async collect(
     keys: number[],
     values: number[],
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<void> {
     try {
       await this.onlineLearningService.addDataPoint(keys, values, metadata);

@@ -371,12 +371,12 @@ const accessibilityManager = new Proxy(
   {},
   {
     get(_target, prop) {
-      const instance = AccessibilityManager.getInstance() as any;
+      const instance = AccessibilityManager.getInstance() as Record<string, unknown>;
       const value = instance[prop as keyof typeof instance];
       return typeof value === 'function' ? value.bind(instance) : value;
     },
     set(_target, prop, value) {
-      const instance = AccessibilityManager.getInstance() as any;
+      const instance = AccessibilityManager.getInstance() as Record<string, unknown>;
       instance[prop as keyof typeof instance] = value;
       return true;
     },

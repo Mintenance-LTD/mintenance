@@ -369,28 +369,10 @@ export class EnhancedHybridInferenceService {
   }
   // Placeholder methods for actual model calls
   private async runInternalModel(imageUrls: string[]): Promise<InternalModelPrediction> {
-    // Implement actual YOLO/internal model call
-    return {
-      severity: 'midway',
-      confidence: 0.75,
-      scores: { early: 0.15, midway: 0.75, full: 0.10 },
-      inferenceTimeMs: 50
-    };
+    throw new Error('Internal model inference not implemented');
   }
   private async runGPT4Vision(imageUrls: string[]): Promise<GPT4Prediction> {
-    // Implement actual GPT-4 Vision API call
-    return {
-      assessment: {
-        damageType: 'structural_crack',
-        severity: 'midway',
-        confidence: 0.92,
-        urgency: 'urgent',
-        safetyScore: 75,
-        complianceScore: 85,
-        insuranceRiskScore: 80
-      },
-      inferenceTimeMs: 2000
-    };
+    throw new Error('GPT-4 Vision inference not implemented');
   }
   private async logPerformanceMetric(metric: unknown): Promise<void> {
     // Implement logging to database

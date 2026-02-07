@@ -211,7 +211,7 @@ export default function AddPropertyPage2025() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-2">Square feet</label>
+                <label className="block text-sm font-medium text-gray-600 mb-2">Square metres</label>
                 <input
                   type="number"
                   value={formData.squareFeet}

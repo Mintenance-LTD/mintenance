@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { createContractSchema, updateContractSchema } from '@/lib/validation/schemas';
 
 // Type definitions for contracts
 interface ContractTerms {
@@ -49,28 +50,6 @@ interface MessagePayload {
   message_type: string;
   read: boolean;
 }
-
-const createContractSchema = z.object({
-  job_id: z.string().uuid(),
-  title: z.string().min(1).max(255).optional(),
-  description: z.string().optional(),
-  amount: z.number().positive(),
-  start_date: z.string().datetime().optional(),
-  end_date: z.string().datetime().optional(),
-  terms: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-  contractor_company_name: z.string().min(1),
-  contractor_license_registration: z.string().min(1),
-  contractor_license_type: z.string().optional(),
-});
-
-const updateContractSchema = z.object({
-  title: z.string().min(1).max(255).optional(),
-  description: z.string().optional(),
-  amount: z.number().positive().optional(),
-  start_date: z.string().datetime().optional(),
-  end_date: z.string().datetime().optional(),
-  terms: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
-});
 
 export async function GET(request: NextRequest) {
   try {
@@ -186,14 +165,12 @@ export async function POST(request: NextRequest) {
       throw new ForbiddenError('Only contractors can create contracts');
     }
 
-    const body = await request.json();
-    const parsed = createContractSchema.safeParse(body);
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, createContractSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data: validatedContract } = validation;
 
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid request data');
-    }
-
-    const { job_id, title, description, amount, start_date, end_date, terms, contractor_company_name, contractor_license_registration, contractor_license_type } = parsed.data;
+    const { job_id, title, description, amount, start_date, end_date, terms, contractor_company_name, contractor_license_registration, contractor_license_type } = validatedContract;
 
     // Verify job exists and contractor is assigned
     const { data: job, error: jobError } = await serverSupabase
@@ -283,7 +260,7 @@ export async function POST(request: NextRequest) {
     try {
       // Get contractor name for the message
       const { data: contractorData } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('first_name, last_name, company_name')
         .eq('id', user.id)
         .single();
@@ -444,23 +421,21 @@ export async function PUT(request: NextRequest) {
       throw new BadRequestError('Contract cannot be edited in current status');
     }
 
-    const body = await request.json();
-    const parsed = updateContractSchema.safeParse(body);
-
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid request data');
-    }
+    // Validate and sanitize input using Zod schema
+    const updateValidation = await validateRequest(request, updateContractSchema);
+    if (updateValidation instanceof NextResponse) return updateValidation;
+    const { data: validatedUpdate } = updateValidation;
 
     const updateData: ContractUpdateData = {
       updated_at: new Date().toISOString(),
     };
 
-    if (parsed.data.title !== undefined) updateData.title = parsed.data.title;
-    if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
-    if (parsed.data.amount !== undefined) updateData.amount = parsed.data.amount;
-    if (parsed.data.start_date !== undefined) updateData.start_date = parsed.data.start_date || null;
-    if (parsed.data.end_date !== undefined) updateData.end_date = parsed.data.end_date || null;
-    if (parsed.data.terms !== undefined) updateData.terms = parsed.data.terms as ContractTerms;
+    if (validatedUpdate.title !== undefined) updateData.title = validatedUpdate.title;
+    if (validatedUpdate.description !== undefined) updateData.description = validatedUpdate.description;
+    if (validatedUpdate.amount !== undefined) updateData.amount = validatedUpdate.amount;
+    if (validatedUpdate.start_date !== undefined) updateData.start_date = validatedUpdate.start_date || null;
+    if (validatedUpdate.end_date !== undefined) updateData.end_date = validatedUpdate.end_date || null;
+    if (validatedUpdate.terms !== undefined) updateData.terms = validatedUpdate.terms as ContractTerms;
 
     // Update status based on who is editing
     if (user.role === 'contractor' && contract.status === 'pending_homeowner') {

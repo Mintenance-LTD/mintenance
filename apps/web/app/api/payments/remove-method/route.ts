@@ -7,6 +7,7 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
@@ -56,18 +57,13 @@ export async function DELETE(request: NextRequest) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    // Validate request body
-    const body = await request.json();
-    const parsed = removeMethodSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, removeMethodSchema);
+    if ('headers' in validation) {
+      return validation;
     }
 
-    const { paymentMethodId } = parsed.data;
+    const { paymentMethodId } = validation.data;
 
     // Retrieve payment method to verify ownership
     const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
@@ -82,7 +78,7 @@ export async function DELETE(request: NextRequest) {
     // Verify the payment method belongs to this user's customer
     // Use users table to match add-method route behavior
     const { data: userData, error: userError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('stripe_customer_id')
       .eq('id', user.id)
       .single();

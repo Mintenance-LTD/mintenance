@@ -7,7 +7,7 @@ import { theme } from '../../theme';
 const { width: screenWidth } = Dimensions.get('window');
 
 interface QuickActionsProps {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<Record<string, undefined>>;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
@@ -45,7 +45,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
             onPress={action.onPress}
           >
             <Ionicons
-              name={action.icon as any}
+              name={action.icon as keyof typeof Ionicons.glyphMap}
               size={24}
               color={theme.colors.primary}
             />

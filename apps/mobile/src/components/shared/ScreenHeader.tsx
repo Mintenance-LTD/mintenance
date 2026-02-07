@@ -51,7 +51,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       </View>
 
       <View style={styles.centerSection}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={styles.title} numberOfLines={1} accessibilityRole='header'>
           {title}
         </Text>
         {subtitle && (

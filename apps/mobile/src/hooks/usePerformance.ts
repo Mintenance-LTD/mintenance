@@ -70,7 +70,7 @@ export const useDebounced = <T>(
  * Hook to throttle expensive operations
  * Limits the frequency of function calls
  */
-export const useThrottled = <T extends (...args: unknown[]) => any>(
+export const useThrottled = <T extends (...args: unknown[]) => unknown>(
   callback: T,
   delay: number = 300
 ): T => {
@@ -229,26 +229,22 @@ export const useMemoCache = <T>(
  */
 export const useImageOptimization = () => {
   const preloadedImages = useRef<Set<string>>(new Set());
-  
-  const preloadImage = useCallback((uri: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (preloadedImages.current.has(uri)) {
-        resolve();
-        return;
-      }
 
-      const image = new Image();
-      image.onload = () => {
-        preloadedImages.current.add(uri);
-        resolve();
-      };
-      image.onerror = reject;
-      image.src = uri;
-    });
+  const preloadImage = useCallback(async (uri: string): Promise<void> => {
+    if (preloadedImages.current.has(uri)) return;
+
+    try {
+      // Use expo-image's prefetch API (works in React Native, unlike DOM Image)
+      const { Image: ExpoImage } = await import('expo-image');
+      await ExpoImage.prefetch(uri);
+      preloadedImages.current.add(uri);
+    } catch (error) {
+      logger.warn('Image prefetch failed', { uri, error });
+    }
   }, []);
 
   const preloadImages = useCallback(async (uris: string[]) => {
-    const promises = uris.map(uri => preloadImage(uri));
+    const promises = uris.map((uri) => preloadImage(uri));
     return Promise.allSettled(promises);
   }, [preloadImage]);
 

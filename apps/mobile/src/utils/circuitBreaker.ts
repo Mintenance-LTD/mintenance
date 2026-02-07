@@ -18,7 +18,7 @@ export interface CircuitBreakerConfig {
   recoveryTimeout: number; // Time in ms before attempting recovery
   monitoringWindow: number; // Time window for failure counting
   expectedErrors: string[]; // Error types that should trigger circuit breaker
-  fallbackFunction?: () => any; // Fallback when circuit is open
+  fallbackFunction?: () => unknown; // Fallback when circuit is open
 }
 
 export interface CircuitBreakerMetrics {

@@ -103,6 +103,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({
         <TouchableOpacity
           style={[styles.actionButton, styles.secondaryButton]}
           onPress={handleContactPress}
+          accessibilityRole='button'
+          accessibilityLabel={`Contact ${booking.contractorName}`}
         >
           <Ionicons
             name="chatbubble-outline"
@@ -115,6 +117,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({
         <TouchableOpacity
           style={[styles.actionButton, styles.secondaryButton]}
           onPress={() => onShareBooking(booking)}
+          accessibilityRole='button'
+          accessibilityLabel='Share booking details'
         >
           <Ionicons
             name="share-outline"
@@ -130,6 +134,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           <TouchableOpacity
             style={[styles.actionButton, styles.rescheduleButton]}
             onPress={() => onReschedule(booking)}
+            accessibilityRole='button'
+            accessibilityLabel='Reschedule booking'
           >
             <Ionicons
               name="calendar-outline"
@@ -144,6 +150,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           <TouchableOpacity
             style={[styles.actionButton, styles.cancelButton]}
             onPress={() => onCancel(booking)}
+            accessibilityRole='button'
+            accessibilityLabel='Cancel booking'
           >
             <Ionicons
               name="close-circle-outline"
@@ -162,6 +170,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({
       <TouchableOpacity
         style={styles.actionButton}
         onPress={() => onViewReceipt(booking)}
+        accessibilityRole='button'
+        accessibilityLabel='View electronic receipt'
       >
         <Text style={styles.actionButtonText}>View E-Receipt</Text>
       </TouchableOpacity>
@@ -172,6 +182,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           <TouchableOpacity
             style={styles.reviewButton}
             onPress={() => onLeaveReview(booking)}
+            accessibilityRole='button'
+            accessibilityLabel='Leave a review for this booking'
           >
             <Text style={styles.reviewButtonText}>Leave Review</Text>
           </TouchableOpacity>

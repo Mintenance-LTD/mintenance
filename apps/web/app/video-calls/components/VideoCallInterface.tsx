@@ -70,7 +70,7 @@ export function VideoCallInterface({ call, currentUserId, onEndCall }: VideoCall
                 };
 
                 peerConnection.current.onconnectionstatechange = () => {
-                    setConnectionStatus(peerConnection.current?.connectionState as any);
+                    setConnectionStatus((peerConnection.current?.connectionState || "connecting") as typeof connectionStatus);
                 };
 
                 // 3. Setup Signaling via Supabase Realtime

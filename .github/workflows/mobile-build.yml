@@ -98,16 +98,15 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
 
       - name: Validate environment
         working-directory: apps/mobile
-        run: npm run validate:env || true
+        run: npm run validate:env
 
       - name: Type check
         working-directory: apps/mobile
-        run: npm run type-check || echo "⚠️ Type errors found - non-blocking"
-        continue-on-error: true
+        run: npm run type-check
 
       - name: Lint mobile code
         working-directory: apps/mobile
@@ -145,7 +144,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
 
       - name: Build shared packages
         run: npm run build:packages
@@ -228,7 +227,7 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
-        run: npm ci || npm install
+        run: npm ci
 
       - name: Build shared packages
         run: npm run build:packages

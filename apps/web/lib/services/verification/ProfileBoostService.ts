@@ -34,7 +34,7 @@ export interface ProfileBoostBreakdown {
 
   // Metadata
   lastCalculatedAt: Date;
-  calculationDetails: Record<string, any>;
+  calculationDetails: Record<string, unknown>;
 }
 
 /**

@@ -5,8 +5,11 @@
  * plus conversion helpers for mapping internal predictions to assessments.
  */
 
+import { logger } from '@mintenance/shared';
 import { InternalDamageClassifier } from '../InternalDamageClassifier';
 import { AssessmentOrchestrator } from '../orchestration/AssessmentOrchestrator';
+import { FeatureExtractionService } from '../orchestration/FeatureExtractionService';
+import { getActiveDomain } from '../config/BuildingSurveyorConfig';
 import type {
     AssessmentContext,
     Phase1BuildingAssessment,
@@ -85,10 +88,25 @@ export async function executeHybridRoute(
     ]);
 
     const agreementScore = calculateAgreementScore(internalResult, gpt4Assessment);
-    const useInternal = agreementScore >= 0.80;
+    const domain = getActiveDomain();
+    const useInternal = agreementScore >= domain.agreementThreshold;
     const finalAssessment = useInternal
         ? convertInternalPredictionToAssessment(internalResult, imageUrls, context)
         : gpt4Assessment;
+
+    // When GPT-4 is used as ground truth (agreement below domain threshold),
+    // feed the surprise signal to the learned feature extractor.
+    if (!useInternal && internalResult.features?.length > 0) {
+        FeatureExtractionService.learnFromAssessmentFeedback(
+            internalResult.features,
+            gpt4Assessment
+        ).catch(err => {
+            logger.warn('Feature extractor feedback failed (non-blocking)', {
+                service: 'routeExecutors',
+                error: err instanceof Error ? err.message : 'unknown',
+            });
+        });
+    }
 
     return {
         assessment: finalAssessment,
@@ -142,7 +160,7 @@ export function convertInternalPredictionToAssessment(
             detectedItems: [],
         },
         safetyHazards: {
-            hazards: prediction.safetyHazards as any[],
+            hazards: prediction.safetyHazards as unknown[],
             hasCriticalHazards: prediction.urgency === 'immediate',
             overallSafetyScore: calculateSafetyScore(prediction.urgency),
         },

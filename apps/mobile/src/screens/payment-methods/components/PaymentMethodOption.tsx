@@ -28,6 +28,10 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
     <TouchableOpacity
       style={[styles.container, isSelected && styles.selected]}
       onPress={() => onSelect(method.id)}
+      accessibilityRole='radio'
+      accessibilityLabel={method.name}
+      accessibilityState={{ selected: isSelected }}
+      accessibilityHint={`Double tap to select ${method.name} as payment method`}
     >
       <View style={styles.left}>
         <View style={styles.iconContainer}>

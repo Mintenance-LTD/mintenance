@@ -26,11 +26,11 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Ionicons name="sparkles" size={20} color={theme.colors.accent} />
-          <Text style={styles.title}>AI Analysis</Text>
+          <Ionicons name="sparkles" size={20} color={theme.colors.accent} accessible={false} />
+          <Text style={styles.title} accessibilityRole='header'>AI Analysis</Text>
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <ActivityIndicator size="small" color={theme.colors.primary} accessibilityLabel='Analyzing job photos' />
           <Text style={styles.loadingText}>Analyzing job photos...</Text>
         </View>
       </View>
@@ -42,10 +42,10 @@ export const AIAnalysisCard: React.FC<AIAnalysisCardProps> = ({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} accessibilityLabel={`AI Analysis: ${aiAnalysis.category}, ${aiAnalysis.complexity} complexity, estimated ${aiAnalysis.estimatedDuration}, ${Math.round(aiAnalysis.confidence * 100)}% confidence`}>
       <View style={styles.header}>
-        <Ionicons name="sparkles" size={20} color={theme.colors.accent} />
-        <Text style={styles.title}>AI Analysis</Text>
+        <Ionicons name="sparkles" size={20} color={theme.colors.accent} accessible={false} />
+        <Text style={styles.title} accessibilityRole='header'>AI Analysis</Text>
         <View style={styles.confidenceBadge}>
           <Text style={styles.confidenceText}>
             {Math.round(aiAnalysis.confidence * 100)}% confidence

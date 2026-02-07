@@ -15,6 +15,7 @@ import { JobAnalysisService } from '@/lib/services/JobAnalysisService';
 import { rateLimiter } from '@/lib/rate-limiter';
 import crypto from 'crypto';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
+import { validateRequest } from '@/lib/validation/validator';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -243,14 +244,13 @@ export async function PUT(request: NextRequest, context: Params) {
       throw new RateLimitError(rateLimitResult.retryAfter);
     }
 
-    const body = await request.json();
-    const parsed = updateJobSchema.safeParse(body);
-
-    if (!parsed.success) {
-      throw new BadRequestError('Validation failed');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, updateJobSchema);
+    if ('headers' in validation) {
+      return validation;
     }
 
-    const payload = parsed.data;
+    const payload = validation.data;
     let aiAnalysisResult = null;
     let buildingSurveyResult = null;
     let geocodeResult = null;
@@ -507,10 +507,10 @@ export async function PATCH(request: NextRequest, context: Params) {
     }
     const { id } = await context.params;
 
-    const body = await request.json();
-    const parsed = updateJobSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new BadRequestError('Validation failed');
+    // Validate and sanitize input using Zod schema
+    const patchValidation = await validateRequest(request, updateJobSchema);
+    if ('headers' in patchValidation) {
+      return patchValidation;
     }
 
     const { data: existing, error: fetchError } = await serverSupabase
@@ -546,7 +546,7 @@ export async function PATCH(request: NextRequest, context: Params) {
       throw new ForbiddenError('You do not have permission to update this job');
     }
 
-    const payload = parsed.data;
+    const payload = patchValidation.data;
     const updatePayload: {
       title?: string;
       description?: string | null;

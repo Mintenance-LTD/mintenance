@@ -6,6 +6,8 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { notificationEngagementSchema } from '@/lib/validation/schemas';
 
 export async function GET(request: NextRequest) {
   try {
@@ -259,7 +261,7 @@ export async function GET(request: NextRequest) {
       // Get sender names
       const senderIds = [...new Set(unreadMessages.map((m: MessageRecord) => m.sender_id))];
       const { data: senders } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, first_name, last_name, company_name')
         .in('id', senderIds);
 
@@ -390,16 +392,12 @@ export async function PATCH(request: NextRequest) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    const body = await request.json();
-    const { notificationId, action } = body; // action: 'opened', 'clicked', 'dismissed'
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, notificationEngagementSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
 
-    if (!notificationId || !action) {
-      throw new BadRequestError('Missing required fields: notificationId, action');
-    }
-
-    if (!['opened', 'clicked', 'dismissed'].includes(action)) {
-      throw new BadRequestError('Invalid action. Must be: opened, clicked, or dismissed');
-    }
+    const { notificationId, action } = data;
 
     // Update notification read status if opened/clicked
     if (action === 'opened' || action === 'clicked') {

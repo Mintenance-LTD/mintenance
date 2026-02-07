@@ -145,7 +145,7 @@ export function PaymentSuccess2025(props: PaymentSuccess2025Props) {
             <div className="flex items-center justify-between py-3">
               <span className="text-gray-600">Date</span>
               <span className="font-semibold text-gray-900">
-                {new Date().toLocaleDateString('en-US', {
+                {new Date().toLocaleDateString('en-GB', {
                   month: 'long',
                   day: 'numeric',
                   year: 'numeric',

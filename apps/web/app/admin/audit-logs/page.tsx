@@ -148,7 +148,7 @@ export default function AuditLogsPage2025() {
       status: 'success',
       ipAddress: '192.168.1.2',
       userAgent: 'Mozilla/5.0...',
-      details: 'Resolved dispute in favor of homeowner',
+      details: 'Resolved dispute in favour of homeowner',
     },
     {
       id: '8',
@@ -249,7 +249,7 @@ export default function AuditLogsPage2025() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <Shield className="w-10 h-10" />
+                <Shield className="w-10 h-10" aria-hidden="true" />
                 <h1 className="text-4xl font-bold">Audit Logs</h1>
               </div>
               <p className="text-purple-100">
@@ -258,9 +258,10 @@ export default function AuditLogsPage2025() {
             </div>
             <button
               onClick={handleExport}
+              aria-label="Export audit logs"
               className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-medium"
             >
-              <Download className="w-5 h-5" />
+              <Download className="w-5 h-5" aria-hidden="true" />
               Export Logs
             </button>
           </div>
@@ -274,13 +275,14 @@ export default function AuditLogsPage2025() {
           initial="hidden"
           animate="visible"
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          aria-live="polite" aria-label="Audit log statistics"
         >
           <MotionDiv
             variants={staggerItem}
             className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
           >
             <div className="p-3 bg-blue-100 rounded-lg mb-4 w-fit">
-              <FileText className="w-6 h-6 text-blue-600" />
+              <FileText className="w-6 h-6 text-blue-600" aria-hidden="true" />
             </div>
             <p className="text-sm text-gray-600 mb-1">Total Events</p>
             <p className="text-2xl font-bold text-gray-900">{stats.totalLogs}</p>
@@ -291,7 +293,7 @@ export default function AuditLogsPage2025() {
             className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
           >
             <div className="p-3 bg-green-100 rounded-lg mb-4 w-fit">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+              <CheckCircle className="w-6 h-6 text-green-600" aria-hidden="true" />
             </div>
             <p className="text-sm text-gray-600 mb-1">Successful</p>
             <p className="text-2xl font-bold text-gray-900">{stats.successfulActions}</p>
@@ -302,7 +304,7 @@ export default function AuditLogsPage2025() {
             className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
           >
             <div className="p-3 bg-red-100 rounded-lg mb-4 w-fit">
-              <XCircle className="w-6 h-6 text-red-600" />
+              <XCircle className="w-6 h-6 text-red-600" aria-hidden="true" />
             </div>
             <p className="text-sm text-gray-600 mb-1">Failures</p>
             <p className="text-2xl font-bold text-gray-900">{stats.failures}</p>
@@ -313,7 +315,7 @@ export default function AuditLogsPage2025() {
             className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
           >
             <div className="p-3 bg-yellow-100 rounded-lg mb-4 w-fit">
-              <AlertTriangle className="w-6 h-6 text-yellow-600" />
+              <AlertTriangle className="w-6 h-6 text-yellow-600" aria-hidden="true" />
             </div>
             <p className="text-sm text-gray-600 mb-1">Warnings</p>
             <p className="text-2xl font-bold text-gray-900">{stats.warnings}</p>
@@ -327,17 +329,21 @@ export default function AuditLogsPage2025() {
         >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                id="audit-search"
+                aria-label="Search audit logs"
                 placeholder="Search logs..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
 
             <select
+              id="action-filter"
+              aria-label="Filter by action"
               value={selectedAction}
               onChange={(e) => setSelectedAction(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -350,6 +356,8 @@ export default function AuditLogsPage2025() {
             </select>
 
             <select
+              id="audit-status-filter"
+              aria-label="Filter by status"
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -362,6 +370,8 @@ export default function AuditLogsPage2025() {
             </select>
 
             <select
+              id="date-filter"
+              aria-label="Filter by date range"
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -380,25 +390,26 @@ export default function AuditLogsPage2025() {
           className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
         >
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full" aria-label="Audit log entries">
+              <caption className="sr-only">System audit log entries with timestamps, users, actions, and statuses</caption>
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Timestamp
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     User
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Action
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Resource
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     IP Address
                   </th>
                 </tr>
@@ -408,7 +419,7 @@ export default function AuditLogsPage2025() {
                   <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2 text-sm text-gray-900">
-                        <Clock className="w-4 h-4 text-gray-400" />
+                        <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
                         {new Date(log.timestamp).toLocaleString('en-GB', {
                           day: '2-digit',
                           month: 'short',
@@ -464,7 +475,7 @@ export default function AuditLogsPage2025() {
 
             {filteredLogs.length === 0 && (
               <div className="text-center py-12">
-                <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" aria-hidden="true" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No logs found</h3>
                 <p className="text-gray-600">Try adjusting your filters</p>
               </div>

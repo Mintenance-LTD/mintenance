@@ -9,7 +9,7 @@ import React from 'react';
 
 import { render, fireEvent, waitFor } from '../test-utils';
 import { NavigationContainer } from '@react-navigation/native';
-import { RootNavigator } from '../../navigation/RootNavigator';
+import { AppNavigator } from '../../navigation/AppNavigator';
 import { useAuth } from '../../contexts/AuthContext';
 
 jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
@@ -45,7 +45,7 @@ describe('Navigation Flows - Critical Paths', () => {
 
     const { getByText } = render(
       <NavigationContainer>
-        <RootNavigator />
+        <AppNavigator />
       </NavigationContainer>
     );
 
@@ -66,7 +66,7 @@ describe('Navigation Flows - Critical Paths', () => {
 
     const { getByText } = render(
       <NavigationContainer>
-        <RootNavigator />
+        <AppNavigator />
       </NavigationContainer>
     );
 
@@ -93,7 +93,7 @@ describe('Navigation Flows - Critical Paths', () => {
 
     const { getByText } = render(
       <NavigationContainer>
-        <RootNavigator />
+        <AppNavigator />
       </NavigationContainer>
     );
 
@@ -120,7 +120,7 @@ describe('Navigation Flows - Critical Paths', () => {
 
     const { getByText } = render(
       <NavigationContainer>
-        <RootNavigator />
+        <AppNavigator />
       </NavigationContainer>
     );
 
@@ -147,7 +147,7 @@ describe('Navigation Flows - Critical Paths', () => {
 
     const { getByText } = render(
       <NavigationContainer>
-        <RootNavigator />
+        <AppNavigator />
       </NavigationContainer>
     );
 
@@ -175,7 +175,7 @@ describe('Navigation Flows - Critical Paths', () => {
     // Test deep link handling
     const { getByText } = render(
       <NavigationContainer>
-        <RootNavigator />
+        <AppNavigator />
       </NavigationContainer>
     );
 
@@ -200,7 +200,7 @@ describe('Navigation Flows - Critical Paths', () => {
 
     const { getByText } = render(
       <NavigationContainer>
-        <RootNavigator />
+        <AppNavigator />
       </NavigationContainer>
     );
 

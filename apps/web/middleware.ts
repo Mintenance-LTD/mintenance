@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyJWT, ConfigManager, SessionValidator } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
-import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter-enhanced';
+import { checkRateLimit, createRateLimitHeaders, type RateLimitResult } from '@/lib/rate-limiter-enhanced';
 import { handlePreflightRequest, addCorsHeaders, shouldSkipCors } from '@/lib/cors';
 import { securityMonitor } from '@/lib/security-monitor';
 
@@ -89,9 +89,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Define public routes that don't require authentication
-  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search'];
+  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search', '/try-mint-ai'];
   // Auth API routes must be public (can't require auth to log in)
-  const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email'];
+  const publicApiRoutes = ['/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform'];
   // Admin auth routes (login, register, forgot-password) are also public
   const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
   // Public contractor profile pages (e.g., /contractor/[id] for viewing contractor profiles)
@@ -163,7 +163,7 @@ export async function middleware(request: NextRequest) {
 
       // Perform rate limit check (unless explicitly skipped)
       const rateLimitResult = skipMiddlewareRateLimit
-        ? { allowed: true, limit: 0, remaining: 0, tier: 'skip' }
+        ? { allowed: true, limit: 0, remaining: 0, resetTime: Date.now() + 60000, tier: 'anonymous' } as RateLimitResult
         : await checkRateLimit(request);
 
       if (!rateLimitResult.allowed) {

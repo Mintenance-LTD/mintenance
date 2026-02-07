@@ -17,7 +17,7 @@ interface Contract {
   end_date: string | null;
   contractor_signed_at: string | null;
   homeowner_signed_at: string | null;
-  terms: Record<string, any>;
+  terms: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }

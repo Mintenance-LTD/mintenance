@@ -104,6 +104,8 @@ export const ContractorDashboard: React.FC = () => {
         <TouchableOpacity
           style={styles.retryButton}
           onPress={() => loadContractorData()}
+          accessibilityRole='button'
+          accessibilityLabel='Retry loading dashboard'
         >
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>

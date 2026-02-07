@@ -82,7 +82,7 @@ export async function PATCH(request: Request) {
 
     // Verify user owns this contractor profile
     const { data: contractorData, error: contractorError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, role')
       .eq('id', user.id)
       .single();
@@ -108,7 +108,7 @@ export async function PATCH(request: Request) {
 
     // Update contractor location in users table
     const { data: updatedData, error: updateError } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         latitude,
         longitude,
@@ -204,7 +204,7 @@ export async function GET(request: Request) {
 
     // Fetch contractor location
     const { data: locationData, error: locationError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, latitude, longitude, address, city, postcode')
       .eq('id', user.id)
       .eq('role', 'contractor')

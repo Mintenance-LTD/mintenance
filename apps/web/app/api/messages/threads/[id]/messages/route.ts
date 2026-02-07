@@ -15,6 +15,7 @@ import {
   SupabaseJobRow,
   SupabaseMessageRow,
 } from '@/app/api/messages/utils';
+import { validateRequest } from '@/lib/validation/validator';
 
 const bodySchema = z.object({
   content: z.string().trim().min(1).optional().transform(val => val ? sanitizeMessage(val) : val),
@@ -68,13 +69,13 @@ export async function POST(request: NextRequest, context: Params) {
       throw new BadRequestError('Thread id is required');
     }
 
-    const rawBody = await request.json().catch(() => ({}));
-    const parsed = bodySchema.safeParse(rawBody);
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid payload');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, bodySchema);
+    if ('headers' in validation) {
+      return validation;
     }
 
-    const data = parsed.data;
+    const data = validation.data;
     const messageText = data.content ?? data.messageText ?? '';
     if (!messageText) {
       throw new BadRequestError('Message content is required');
@@ -198,7 +199,7 @@ export async function POST(request: NextRequest, context: Params) {
         .single();
       
       const { data: senderData } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('first_name, last_name, company_name')
         .eq('id', user.id)
         .single();

@@ -235,6 +235,9 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
             <TouchableOpacity
               style={[styles.actionButton, { borderColor: statusConfig.color }]}
               onPress={handleSyncNow}
+              accessibilityRole='button'
+              accessibilityLabel={`Sync now, ${pendingCount} changes pending`}
+              accessibilityHint='Double tap to sync pending changes to the server'
             >
               <Text
                 style={[styles.actionButtonText, { color: statusConfig.color }]}
@@ -248,6 +251,9 @@ const OfflineSyncStatus: React.FC<OfflineSyncStatusProps> = ({
             <TouchableOpacity
               style={styles.clearButton}
               onPress={handleClearQueue}
+              accessibilityRole='button'
+              accessibilityLabel={`Clear ${pendingCount} pending changes`}
+              accessibilityHint='Double tap to discard all pending offline changes'
             >
               <Ionicons
                 name='trash-outline'

@@ -334,7 +334,7 @@ export const getCategoryColor = (category: string) => {
   const categoryKey = category
     .toLowerCase()
     .replace(/\s+/g, '') as keyof typeof tokens.colors;
-  return (tokens.colors as any)[categoryKey] || tokens.colors.textSecondary;
+  return (tokens.colors as Record<string, string>)[categoryKey] || tokens.colors.textSecondary;
 };
 
 export default theme;

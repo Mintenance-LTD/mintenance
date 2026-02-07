@@ -7,10 +7,30 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
-import { supabase } from '@/lib/supabase';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getCurrentUserFromCookies } from '@/lib/auth';
 import { featureFlags, FeatureFlag } from '@/lib/config/feature-flags';
 import { HybridInferenceService } from '@/lib/services/building-surveyor/HybridInferenceService';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+async function requireAdminAccess(request: NextRequest): Promise<NextResponse | null> {
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { data, error } = await serverSupabase
+        .from('profiles')
+        .select('id, role')
+        .eq('id', user.id)
+        .single();
+
+    if (error || data?.role !== 'admin') {
+        return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    return null;
+}
 
 /**
  * GET /api/feature-flags
@@ -39,6 +59,11 @@ export async function GET(request: NextRequest) {
       }
     );
   }
+
+        const adminError = await requireAdminAccess(request);
+        if (adminError) {
+            return adminError;
+        }
 
         const searchParams = request.nextUrl.searchParams;
         const flag = searchParams.get('flag');
@@ -146,6 +171,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+        const adminError = await requireAdminAccess(request);
+        if (adminError) {
+            return adminError;
+        }
+
         const body = await request.json();
         const { flag, metrics, userId, sessionId, reason, automatic } = body;
 
@@ -162,7 +192,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Record metrics in database
-        const { data, error } = await supabase
+        const { data, error } = await serverSupabase
             .from('feature_flag_metrics')
             .insert({
                 flag_name: flag,

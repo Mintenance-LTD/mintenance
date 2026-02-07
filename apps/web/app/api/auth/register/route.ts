@@ -6,7 +6,7 @@ import { registerSchema } from '@/lib/validation/schemas';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
-import { checkPasswordBreach } from '../../../../../../packages/auth/src/password-security';
+import { checkPasswordBreach } from '@mintenance/auth';
 
 export async function POST(request: NextRequest) {
   try {

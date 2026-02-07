@@ -17,6 +17,9 @@ if sys.platform == 'win32':
         # If stdout/stderr don't have buffer attribute, skip encoding fix
         pass
 
+import os
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
@@ -27,10 +30,19 @@ from PIL import Image
 from app.schemas.requests import (
     SegmentationRequest,
     SegmentationResponse,
-    DamageTypeSegmentation
+    DamageTypeSegmentation,
+    DamageTypeSegmentationRequest,
 )
 from app.models.sam3_client import SAM3Client
+from app.middleware.auth import APIKeyAuthMiddleware
 from contextlib import asynccontextmanager
+
+logger = logging.getLogger(__name__)
+
+# --- Input validation constants ---
+MAX_IMAGE_BASE64_LENGTH = 20 * 1024 * 1024  # ~15 MB decoded
+MAX_IMAGE_DIMENSIONS = (8192, 8192)  # 8K resolution cap
+MAX_DAMAGE_TYPES = 20
 
 # Initialize SAM 3 client (lazy loading)
 sam3_client: Optional[SAM3Client] = None
@@ -64,19 +76,57 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# API key authentication middleware (registered first so it runs after CORS)
+app.add_middleware(APIKeyAuthMiddleware)
+
 # CORS configuration for Next.js app
+allowed_origins = os.environ.get(
+    "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Next.js dev
-        "http://127.0.0.1:3000",
-        # Add production domain when ready
-        # "https://your-production-domain.com"
-    ],
+    allow_origins=[origin.strip() for origin in allowed_origins],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+def _validate_base64_image(image_base64: str) -> Image.Image:
+    """Validate and decode a base64 image. Returns the PIL Image."""
+    if len(image_base64) > MAX_IMAGE_BASE64_LENGTH:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Image too large. Maximum base64 length is {MAX_IMAGE_BASE64_LENGTH // (1024 * 1024)} MB.",
+        )
+
+    # Strip data URL prefix if present
+    raw_b64 = image_base64
+    if raw_b64.startswith("data:image"):
+        raw_b64 = raw_b64.split(",", 1)[1]
+
+    try:
+        image_data = base64.b64decode(raw_b64)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid base64 encoding for image.")
+
+    if len(image_data) == 0:
+        raise HTTPException(status_code=400, detail="Decoded image is empty.")
+
+    try:
+        image = Image.open(BytesIO(image_data)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Cannot decode image. Ensure it is a valid image file.")
+
+    # Check dimensions
+    if image.width > MAX_IMAGE_DIMENSIONS[0] or image.height > MAX_IMAGE_DIMENSIONS[1]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image dimensions ({image.width}x{image.height}) exceed maximum ({MAX_IMAGE_DIMENSIONS[0]}x{MAX_IMAGE_DIMENSIONS[1]}).",
+        )
+
+    return image
 
 
 @app.get("/health")
@@ -107,13 +157,8 @@ async def segment_image(request: SegmentationRequest):
         )
     
     try:
-        # Decode base64 image
-        if request.image_base64.startswith('data:image'):
-            # Remove data URL prefix if present
-            request.image_base64 = request.image_base64.split(',')[1]
-        
-        image_data = base64.b64decode(request.image_base64)
-        image = Image.open(BytesIO(image_data)).convert("RGB")
+        # Validate and decode base64 image
+        image = _validate_base64_image(request.image_base64)
         
         # Perform segmentation
         result = await sam3_client.segment(
@@ -138,36 +183,33 @@ async def segment_image(request: SegmentationRequest):
 
 
 @app.post("/segment-damage-types", response_model=DamageTypeSegmentation)
-async def segment_damage_types(
-    image_base64: str,
-    damage_types: List[str] = None
-):
+async def segment_damage_types(request: DamageTypeSegmentationRequest):
     """
     Segment multiple damage types in a single image
-    
+
     Args:
-        image_base64: Base64-encoded image
-        damage_types: List of damage type prompts (defaults to common types)
-        
+        request: DamageTypeSegmentationRequest with image and optional damage types
+
     Returns:
         DamageTypeSegmentation with results for each damage type
     """
-    if damage_types is None:
-        damage_types = ["water damage", "crack", "rot", "mold"]
-    
+    damage_types = request.damage_types or ["water damage", "crack", "rot", "mold"]
+
+    if len(damage_types) > MAX_DAMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Too many damage types (max {MAX_DAMAGE_TYPES}).",
+        )
+
     if not sam3_client or not sam3_client.is_ready():
         raise HTTPException(
             status_code=503,
             detail="SAM 3 model not initialized. Please check service logs."
         )
-    
+
     try:
-        # Decode image
-        if image_base64.startswith('data:image'):
-            image_base64 = image_base64.split(',')[1]
-        
-        image_data = base64.b64decode(image_base64)
-        image = Image.open(BytesIO(image_data)).convert("RGB")
+        # Validate and decode image
+        image = _validate_base64_image(request.image_base64)
         
         results = {}
         for damage_type in damage_types:

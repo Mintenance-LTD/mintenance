@@ -111,7 +111,7 @@ export function HybridInferenceStatsClient() {
     ? stats.agreementScores.reduce((a, b) => a + b, 0) / stats.agreementScores.length
     : 0;
 
-  // Calculate cost savings (assuming $0.05 for GPT-4, $0.001 for internal)
+  // Calculate cost savings (assuming £0.05 for GPT-4, £0.001 for internal)
   const gpt4Cost = stats.routeDistribution.gpt4_vision * 0.05;
   const internalCost = stats.routeDistribution.internal * 0.001;
   const hybridCost = stats.routeDistribution.hybrid * 0.051; // Both models
@@ -311,16 +311,16 @@ export function HybridInferenceStatsClient() {
           <div className="grid md:grid-cols-4 gap-4">
             <div>
               <div className="text-sm text-muted-foreground">Current Cost</div>
-              <div className="text-2xl font-bold">${totalCost.toFixed(2)}</div>
+              <div className="text-2xl font-bold">£{totalCost.toFixed(2)}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground">Baseline (All GPT-4)</div>
-              <div className="text-2xl font-bold">${baselineCost.toFixed(2)}</div>
+              <div className="text-2xl font-bold">£{baselineCost.toFixed(2)}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground">Savings</div>
               <div className="text-2xl font-bold text-green-600">
-                ${(baselineCost - totalCost).toFixed(2)}
+                £{(baselineCost - totalCost).toFixed(2)}
               </div>
             </div>
             <div>
@@ -352,7 +352,7 @@ export function HybridInferenceStatsClient() {
                 />
               </div>
               <div className="text-sm text-muted-foreground">
-                {stats.agreementScores.length} hybrid assessments analyzed
+                {stats.agreementScores.length} hybrid assessments analysed
               </div>
             </div>
           </CardContent>

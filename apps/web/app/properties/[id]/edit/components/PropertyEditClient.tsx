@@ -70,7 +70,7 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as any).csrfToken || '',
+          'X-CSRF-Token': window.csrfToken || '',
         },
         body: JSON.stringify({
           ...formData,
@@ -250,7 +250,7 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Square Feet
+                    Square Metres
                   </label>
                   <input
                     type="number"

@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const followingOnly = searchParams.get('following') === 'true';
 
-    let posts: any[] = [];
+    let posts: Array<{ contractor_id?: string; [key: string]: unknown }> = [];
     let postsError: unknown = null;
 
     // SECURITY FIX: Use secure RPC function for search queries
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    const formattedPosts = (posts || []).map((post: PostRecord) => ({
+    const formattedPosts = ((posts || []) as unknown as PostRecord[]).map((post: PostRecord) => ({
       id: String(post.id || ''),
       title: post.title || '',
       content: post.content || '',

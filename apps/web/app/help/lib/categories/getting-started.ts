@@ -109,7 +109,7 @@ Mintenance connects homeowners with trusted tradespeople. Here's how it works:
 - Check your dashboard for updates
 - Review notifications regularly
 - Use filters to narrow down results
-- Save favorite tradespeople or jobs`
+- Save favourite tradespeople or jobs`
     },
     { 
       title: 'Verifying your account', 

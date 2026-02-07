@@ -191,7 +191,7 @@ export const prefetchQuery = async <T>(
 // Helper function to warm cache with multiple queries
 export const warmCache = async (queries: {
   queryKey: unknown[];
-  queryFn: () => Promise<any>;
+  queryFn: () => Promise<unknown>;
   staleTime?: number;
 }[]) => {
   logger.info('Warming cache', { count: queries.length });

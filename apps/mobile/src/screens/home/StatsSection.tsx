@@ -17,13 +17,13 @@ interface StatsSectionProps {
 export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
   return (
     <View style={styles.statsSection}>
-      <Text style={styles.sectionTitle}>Your Stats</Text>
+      <Text style={styles.sectionTitle} accessibilityRole='header'>Your Stats</Text>
       <Text style={styles.sectionSubtitle}>Track your performance</Text>
 
       <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
+        <View style={styles.statCard} accessibilityLabel={`Total earnings: $${stats?.totalEarnings?.toFixed(0) || '0'}`}>
           <View style={styles.statIcon}>
-            <Ionicons name="cash" size={20} color={theme.colors.successDark} />
+            <Ionicons name="cash" size={20} color={theme.colors.successDark} accessible={false} />
           </View>
           <Text style={styles.statValue}>
             ${stats?.totalEarnings?.toFixed(0) || '0'}
@@ -31,9 +31,9 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
           <Text style={styles.statLabel}>Total Earnings</Text>
         </View>
 
-        <View style={styles.statCard}>
+        <View style={styles.statCard} accessibilityLabel={`${stats?.jobsCompleted || 0} jobs completed`}>
           <View style={styles.statIcon}>
-            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} accessible={false} />
           </View>
           <Text style={styles.statValue}>
             {stats?.jobsCompleted || 0}
@@ -41,9 +41,9 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
           <Text style={styles.statLabel}>Jobs Completed</Text>
         </View>
 
-        <View style={styles.statCard}>
+        <View style={styles.statCard} accessibilityLabel={`Average rating: ${stats?.averageRating?.toFixed(1) || 'New'}`}>
           <View style={styles.statIcon}>
-            <Ionicons name="star" size={20} color={theme.colors.ratingGold} />
+            <Ionicons name="star" size={20} color={theme.colors.ratingGold} accessible={false} />
           </View>
           <Text style={styles.statValue}>
             {stats?.averageRating?.toFixed(1) || 'New'}
@@ -51,9 +51,9 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
           <Text style={styles.statLabel}>Average Rating</Text>
         </View>
 
-        <View style={styles.statCard}>
+        <View style={styles.statCard} accessibilityLabel={`Average response time: ${stats?.responseTimeMinutes || 'N/A'} minutes`}>
           <View style={styles.statIcon}>
-            <Ionicons name="time" size={20} color={theme.colors.infoDark} />
+            <Ionicons name="time" size={20} color={theme.colors.infoDark} accessible={false} />
           </View>
           <Text style={styles.statValue}>
             {stats?.responseTimeMinutes || 'N/A'}

@@ -57,7 +57,7 @@ export default async function JobSignOffPage({ params }: { params: Promise<{ id:
 
     const contractor = Array.isArray(job.contractor) ? job.contractor[0] : job.contractor;
     const contractorName = contractor
-        ? `${(contractor as any)?.first_name || ''} ${(contractor as any)?.last_name || ''}`.trim() || 'Contractor'
+        ? `${(contractor as { first_name?: string; last_name?: string })?.first_name || ''} ${(contractor as { first_name?: string; last_name?: string })?.last_name || ''}`.trim() || 'Contractor'
         : 'Contractor';
 
     return (

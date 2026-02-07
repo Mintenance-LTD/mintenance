@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     // Ensure contractor remains visible on homeowner radar
     await supabase
-      .from('users')
+      .from('profiles')
       .update({
         is_visible_on_map: true,
         last_location_visibility_at: new Date().toISOString(),

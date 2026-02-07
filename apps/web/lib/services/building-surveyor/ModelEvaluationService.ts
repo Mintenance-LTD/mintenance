@@ -484,7 +484,7 @@ export class ModelEvaluationService {
           trend: 'stable',
           improvement_rate: 0,
           best_model_version: historicalMetrics[0]?.model_version || 'unknown',
-          latest_vs_best_comparison: null as any
+          latest_vs_best_comparison: null as unknown as ModelComparisonResult
         };
       }
 

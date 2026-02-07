@@ -73,7 +73,7 @@ Report safety concerns or suspicious activity to keep Mintenance safe.
 ## What to Report
 
 - Safety hazards
-- Suspicious behavior
+- Suspicious behaviour
 - Fraud or scams
 - Unprofessional conduct
 - Platform abuse
@@ -211,7 +211,7 @@ Protect yourself and your information when using Mintenance.
 
 - Requests for off-platform payment
 - Pressure tactics
-- Suspicious behavior
+- Suspicious behaviour
 - Unrealistic promises
 - Requests for personal info
 

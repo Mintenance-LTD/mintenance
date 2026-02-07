@@ -27,22 +27,46 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.actionButton} onPress={onMessage} testID="message-button">
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onMessage}
+        testID="message-button"
+        accessibilityRole='button'
+        accessibilityLabel='Send message to contractor'
+      >
         <Ionicons name="chatbubble-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Message</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionButton} onPress={onCall} testID="call-button">
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onCall}
+        testID="call-button"
+        accessibilityRole='button'
+        accessibilityLabel='Call contractor'
+      >
         <Ionicons name="call-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Call</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionButton} onPress={onVideo} testID="video-button">
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onVideo}
+        testID="video-button"
+        accessibilityRole='button'
+        accessibilityLabel='Start video call with contractor'
+      >
         <Ionicons name="videocam-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Video</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.actionButton} onPress={onShare} testID="share-button">
+      <TouchableOpacity
+        style={styles.actionButton}
+        onPress={onShare}
+        testID="share-button"
+        accessibilityRole='button'
+        accessibilityLabel='Share contractor profile'
+      >
         <Ionicons name="share-social-outline" size={18} color={theme.colors.white} />
         <Text style={styles.actionButtonText}>Share</Text>
       </TouchableOpacity>

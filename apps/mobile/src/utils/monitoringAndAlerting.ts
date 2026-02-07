@@ -88,9 +88,9 @@ export class MonitoringAndAlerting {
 
   static getInstance(): MonitoringAndAlerting {
     if (!this.instance) {
-      const globalInstance = (globalThis as any)[MONITORING_GLOBAL_INSTANCE_KEY] as MonitoringAndAlerting | undefined;
+      const globalInstance = (globalThis as Record<string, unknown>)[MONITORING_GLOBAL_INSTANCE_KEY] as MonitoringAndAlerting | undefined;
       this.instance = globalInstance || new MonitoringAndAlerting();
-      (globalThis as any)[MONITORING_GLOBAL_INSTANCE_KEY] = this.instance;
+      (globalThis as Record<string, unknown>)[MONITORING_GLOBAL_INSTANCE_KEY] = this.instance;
     }
     return this.instance;
   }

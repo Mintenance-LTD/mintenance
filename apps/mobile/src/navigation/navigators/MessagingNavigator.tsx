@@ -20,7 +20,7 @@ const SafeMessagesListScreen = withScreenErrorBoundary(
 );
 
 const SafeMessagingScreen = withScreenErrorBoundary(
-  MessagingScreen as any,
+  MessagingScreen as React.ComponentType<Record<string, unknown>>,
   'Messaging',
   { fallbackRoute: 'MessagesList' }
 );

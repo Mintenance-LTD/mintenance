@@ -28,7 +28,7 @@ export function AirbnbActivityTimeline({ events }: AirbnbActivityTimelineProps) 
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
 
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
   };
 
   const getIcon = (type: string) => {

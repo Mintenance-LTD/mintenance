@@ -326,7 +326,7 @@ class SustainabilityEngine {
   async getContractorSustainabilityRanking(
     location: string,
     category?: string
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     try {
       const { data, error } = await supabase
         .from('contractor_esg_profiles')

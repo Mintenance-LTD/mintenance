@@ -44,7 +44,7 @@ export default function Error({ error, reset }: ErrorPageProps) {
           color: theme.colors.textPrimary || '#111827',
           marginBottom: '1rem',
         }}>
-          Help Center Error
+          Help Centre Error
         </h1>
 
         <p style={{
@@ -53,7 +53,7 @@ export default function Error({ error, reset }: ErrorPageProps) {
           marginBottom: '2rem',
           lineHeight: 1.6,
         }}>
-          We encountered an error loading the help center.
+          We encountered an error loading the help centre.
         </p>
 
         {isDevelopment && error && (

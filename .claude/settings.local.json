@@ -118,7 +118,11 @@
       "Bash(git reset:*)",
       "Bash(npm search:*)",
       "Bash(npx ts-node:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "Bash(git status:*)",
+      "Bash(while IFS= read -r f)",
+      "Bash(do git add \"$f\")"
     ],
     "deny": [],
     "ask": []

@@ -300,7 +300,7 @@ export function logPaymentError(error: unknown, context: PaymentErrorContext): v
   const sanitized = sanitizePaymentError(error, true);
 
   // Build log metadata
-  const logMetadata: Record<string, any> = {
+  const logMetadata: Record<string, unknown> = {
     service: 'payments',
     errorCode: sanitized.code,
     retryable: sanitized.retryable,

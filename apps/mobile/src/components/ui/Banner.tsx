@@ -39,7 +39,7 @@ export const Banner: React.FC<BannerProps> = ({ message, variant = 'info', testI
   return (
     <View style={[styles.container, { backgroundColor: config.background }]} testID={testID}>
       <Ionicons
-        name={config.icon as any}
+        name={config.icon as keyof typeof Ionicons.glyphMap}
         size={18}
         color={config.text}
         accessibilityElementsHidden

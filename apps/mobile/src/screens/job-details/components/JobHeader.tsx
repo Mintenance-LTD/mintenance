@@ -40,14 +40,18 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.jobTitle}>{job.title}</Text>
+      <Text style={styles.jobTitle} accessibilityRole='header'>{job.title}</Text>
       
       <View style={styles.statusRow}>
-        <View style={styles.statusBadge}>
-          <Ionicons 
-            name={getStatusIcon(job.status) as unknown} 
-            size={16} 
-            color={getStatusColor(job.status)} 
+        <View
+          style={styles.statusBadge}
+          accessibilityLabel={`Status: ${job.status.replace('_', ' ')}`}
+        >
+          <Ionicons
+            name={getStatusIcon(job.status) as unknown}
+            size={16}
+            color={getStatusColor(job.status)}
+            accessible={false}
           />
           <Text style={[styles.statusText, { color: getStatusColor(job.status) }]}>
             {job.status.replace('_', ' ').toUpperCase()}

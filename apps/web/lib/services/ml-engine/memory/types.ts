@@ -85,7 +85,7 @@ export interface ContextFlow {
   keys: number[]; // Key vector K ⊆ R^(dk)
   values: number[]; // Value vector V ⊆ R^(dv)
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -157,8 +157,8 @@ export interface MemoryPerformanceMetrics {
 export interface SelfModificationEvent {
   agentName: string;
   modificationType: 'frequency_adjustment' | 'chunk_size_adjustment' | 'learning_rate_adjustment' | 'architecture_change';
-  before: Record<string, any>;
-  after: Record<string, any>;
+  before: Record<string, unknown>;
+  after: Record<string, unknown>;
   reason: string;
   performanceImpact: number;
   timestamp: Date;

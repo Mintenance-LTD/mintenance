@@ -23,7 +23,7 @@ export interface MonitoredTransaction {
   amount: number;
   currency: string;
   type: 'payment' | 'escrow_release' | 'refund' | 'payout';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   timestamp?: Date;
 }
 
@@ -144,7 +144,7 @@ export class PaymentMonitoringService {
       if (transaction.metadata?.ipAddress) {
         const geoAnomaly = await this.checkGeographicAnomaly(
           userId,
-          transaction.metadata.ipAddress
+          transaction.metadata.ipAddress as string
         );
         if (geoAnomaly) {
           reasons.push('Transaction from unusual location');
@@ -156,7 +156,7 @@ export class PaymentMonitoringService {
       if (transaction.metadata?.deviceFingerprint) {
         const isNewDevice = await this.checkDeviceAnomaly(
           userId,
-          transaction.metadata.deviceFingerprint
+          transaction.metadata.deviceFingerprint as string
         );
         if (isNewDevice) {
           reasons.push('Transaction from new device');

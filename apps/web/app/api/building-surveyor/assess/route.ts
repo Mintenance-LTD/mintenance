@@ -7,8 +7,8 @@ import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurve
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 import { ABTestIntegration } from '@/lib/services/building-surveyor/ab_test_harness';
 import { logger, hashString } from '@mintenance/shared';
-import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { buildingAssessRequestSchema } from '@/lib/validation/schemas';
 import crypto from 'crypto';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -26,7 +26,7 @@ const AB_TEST_EXPERIMENT_ID = process.env.AB_TEST_EXPERIMENT_ID;
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days (matches DB cache TTL)
 const MAX_CACHE_SIZE = 200; // More entries than ImageAnalysis (handles more assessment variations)
 
-type Phase1BuildingAssessment = any; // Import from BuildingSurveyorService types
+import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 
 const assessmentCache = new LRUCache<string, Phase1BuildingAssessment>({
   max: MAX_CACHE_SIZE,
@@ -36,21 +36,6 @@ const assessmentCache = new LRUCache<string, Phase1BuildingAssessment>({
 });
 
 const ASSESSMENT_DOMAINS = ['building', 'rail', 'infrastructure', 'general'] as const;
-
-const assessRequestSchema = z.object({
-  imageUrls: z.array(z.string().url()).min(1).max(4),
-  jobId: z.string().uuid().optional(),
-  propertyId: z.string().uuid().optional(),
-  domain: z.enum(ASSESSMENT_DOMAINS).optional(), // Phase 6: extensibility (default building)
-  context: z
-    .object({
-      location: z.string().optional(),
-      propertyType: z.enum(['residential', 'commercial', 'industrial']).optional(),
-      ageOfProperty: z.number().optional(),
-      propertyDetails: z.string().optional(),
-    })
-    .optional(),
-});
 
 /**
  * Generate cache key from image URLs
@@ -147,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse and validate request
     const body = await request.json();
-    const validationResult = assessRequestSchema.safeParse(body);
+    const validationResult = buildingAssessRequestSchema.safeParse(body);
 
     if (!validationResult.success) {
       throw new BadRequestError('Invalid request');

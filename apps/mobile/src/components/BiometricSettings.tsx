@@ -155,6 +155,9 @@ const BiometricSettings: React.FC = () => {
           thumbColor={
             isEnabled ? theme.colors.surface : theme.colors.textTertiary
           }
+          accessibilityLabel='Enable biometric sign-in'
+          accessibilityRole='switch'
+          accessibilityState={{ checked: isEnabled }}
         />
       </View>
 
@@ -163,6 +166,9 @@ const BiometricSettings: React.FC = () => {
           style={styles.testButton}
           onPress={testBiometric}
           disabled={loading}
+          accessibilityRole='button'
+          accessibilityLabel='Test biometric authentication'
+          accessibilityHint='Double tap to verify your biometric settings are working'
         >
           <Ionicons
             name='checkmark-circle-outline'

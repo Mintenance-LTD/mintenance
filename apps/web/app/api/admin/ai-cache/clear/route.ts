@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
-import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
+import { AIResponseCache, type AICacheServiceType } from '@/lib/services/cache/AIResponseCache';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         ],
       });
     } else {
-      await AIResponseCache.clearService(service as any);
+      await AIResponseCache.clearService(service as AICacheServiceType);
       logger.warn('AI cache cleared', {
         service: 'ai_cache_clear',
         userId: user.id,
@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
     const user = auth.user;
 
     // Get current cache stats before clearing
-    const metrics = AIResponseCache.exportMetrics();
+    const metrics = AIResponseCache.exportMetrics() as { aggregated: { totalCacheSize: number; totalSavedCost: number }; perService: unknown };
 
     return NextResponse.json({
       success: true,

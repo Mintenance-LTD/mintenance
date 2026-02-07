@@ -415,7 +415,7 @@ export function BidListClient({ bids, jobId }: BidListClientProps) {
                       fontSize: theme.typography.fontSize.xs,
                       color: theme.colors.textSecondary,
                     }}>
-                      Submitted {new Date(bid.created_at).toLocaleDateString('en-US', {
+                      Submitted {new Date(bid.created_at).toLocaleDateString('en-GB', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',

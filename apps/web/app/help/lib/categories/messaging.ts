@@ -132,13 +132,13 @@ Share files and photos securely through Mintenance messaging.
 - Use clear photos
 - Compress large files
 - Add descriptions
-- Organize files
+- Organise files
 - Keep important files`
     },
     { 
       title: 'Reporting inappropriate behaviour', 
       content: 'How to flag concerning messages or conduct.',
-      fullContent: `# Reporting Inappropriate Behavior
+      fullContent: `# Reporting Inappropriate Behaviour
 
 Mintenance takes safety and professionalism seriously.
 
@@ -178,7 +178,7 @@ Mintenance takes safety and professionalism seriously.
 
 - Keep communication professional
 - Don't share personal information
-- Report suspicious behavior
+- Report suspicious behaviour
 - Trust your instincts
 - Use platform features`
     },

@@ -24,17 +24,24 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
   return (
     <View style={styles.scheduleSection}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Today's Schedule</Text>
-        <TouchableOpacity onPress={onViewAllPress}>
+        <Text style={styles.sectionTitle} accessibilityRole='header'>Today's Schedule</Text>
+        <TouchableOpacity
+          onPress={onViewAllPress}
+          accessibilityRole='button'
+          accessibilityLabel='View full schedule'
+        >
           <Text style={styles.viewAllLink}>View All</Text>
         </TouchableOpacity>
       </View>
 
       {/* Upcoming Jobs */}
-      <View style={styles.scheduleCard}>
+      <View
+        style={styles.scheduleCard}
+        accessibilityLabel='Kitchen Renovation, 9:00 AM to 12:00 PM, upcoming'
+      >
         <View style={styles.scheduleHeader}>
           <View style={styles.scheduleIcon}>
-            <Ionicons name="calendar" size={16} color={theme.colors.primary} />
+            <Ionicons name="calendar" size={16} color={theme.colors.primary} accessible={false} />
           </View>
           <View style={styles.scheduleInfo}>
             <Text style={styles.scheduleTitle}>Kitchen Renovation</Text>
@@ -46,10 +53,13 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
         </View>
       </View>
 
-      <View style={styles.scheduleCard}>
+      <View
+        style={styles.scheduleCard}
+        accessibilityLabel='Bathroom Repair, 2:00 PM to 4:00 PM, confirmed'
+      >
         <View style={styles.scheduleHeader}>
           <View style={styles.scheduleIcon}>
-            <Ionicons name="construct" size={16} color={theme.colors.accent} />
+            <Ionicons name="construct" size={16} color={theme.colors.accent} accessible={false} />
           </View>
           <View style={styles.scheduleInfo}>
             <Text style={styles.scheduleTitle}>Bathroom Repair</Text>
@@ -76,6 +86,8 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
             </View>
             <TouchableOpacity
               onPress={() => onJobDetailsPress('completed-job-1')}
+              accessibilityRole='button'
+              accessibilityLabel='View details for plumbing repair'
             >
               <Text style={styles.viewDetailsLink}>View Details</Text>
             </TouchableOpacity>

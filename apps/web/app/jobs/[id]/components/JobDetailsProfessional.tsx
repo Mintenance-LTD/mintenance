@@ -610,7 +610,7 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
           alert('A bid has already been accepted for this job. Refreshing the page...');
           window.location.reload();
         } else if (response.status === 403) {
-          alert(`Access denied: ${data.error || 'You are not authorized to accept bids for this job.'}`);
+          alert(`Access denied: ${data.error || 'You are not authorised to accept bids for this job.'}`);
         } else if (response.status === 404) {
           alert(`Error: ${data.error || 'Bid or job not found. Please refresh the page.'}`);
           window.location.reload();

@@ -1,43 +1,243 @@
 /**
- * User Profile API Route - FIXED VERSION
- * GET /api/users/profile - Get user profile
- * PUT /api/users/profile - Update user profile
+ * User Profile API Route
+ * GET /api/users/profile - Get authenticated user's profile
+ * PUT /api/users/profile - Update authenticated user's profile
+ *
+ * Security: Authentication, CSRF (mutations), Zod validation, rate limiting
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
+import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
-// import {} from '@supabase/supabase-js'; // Removed unused imports
+import { rateLimiter } from '@/lib/rate-limiter';
+import {
+  handleAPIError,
+  UnauthorizedError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import { validateRequest } from '@/lib/validation/validator';
 
-export async function GET(_request: NextRequest) {
+/**
+ * Zod schema for profile update validation.
+ * All fields are optional so users can do partial updates.
+ */
+const profileUpdateSchema = z.object({
+  first_name: z
+    .string()
+    .min(1, 'First name is required')
+    .max(50, 'First name must be less than 50 characters')
+    .optional(),
+  last_name: z
+    .string()
+    .min(1, 'Last name is required')
+    .max(50, 'Last name must be less than 50 characters')
+    .optional(),
+  bio: z
+    .string()
+    .max(1000, 'Bio must be less than 1000 characters')
+    .optional(),
+  city: z
+    .string()
+    .max(100, 'City must be less than 100 characters')
+    .optional(),
+  country: z
+    .string()
+    .max(100, 'Country must be less than 100 characters')
+    .optional(),
+  phone: z
+    .string()
+    .max(20, 'Phone must be less than 20 characters')
+    .optional()
+    .nullable(),
+  location: z
+    .string()
+    .max(256, 'Location must be less than 256 characters')
+    .optional()
+    .nullable(),
+});
+
+/**
+ * GET /api/users/profile
+ * Returns the authenticated user's profile data.
+ */
+export async function GET(request: NextRequest) {
   try {
-    // For now, just return a test response to verify the route works
-    return NextResponse.json({
-      success: true,
-      message: 'User profile endpoint is working',
-      timestamp: new Date().toISOString(),
-      note: 'This is a simplified version without the broken imports'
+    // Rate limiting
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+      windowMs: 60000,
+      maxRequests: 30,
     });
-  } catch (error) {
-    logger.error('Profile GET error:', error);
-    return NextResponse.json(
-      { error: 'Failed to get profile', details: error },
-      { status: 500 }
-    );
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(30),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(
+              rateLimitResult.resetTime
+            ).toISOString(),
+          },
+        }
+      );
+    }
+
+    // Authentication
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      throw new UnauthorizedError('Authentication required to view profile');
+    }
+
+    // Fetch user profile from database
+    const { data: profile, error } = await serverSupabase
+      .from('profiles')
+      .select(
+        'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at'
+      )
+      .eq('id', user.id)
+      .single();
+
+    if (error) {
+      logger.error('Failed to fetch user profile', error, {
+        service: 'users',
+        userId: user.id,
+      });
+      throw error;
+    }
+
+    return NextResponse.json({ profile });
+  } catch (err) {
+    return handleAPIError(err);
   }
 }
+
+/**
+ * PUT /api/users/profile
+ * Updates the authenticated user's profile.
+ * Requires CSRF token for cross-site forgery protection.
+ */
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Rate limiting
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+      windowMs: 60000,
+      maxRequests: 30,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(30),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(
+              rateLimitResult.resetTime
+            ).toISOString(),
+          },
+        }
+      );
+    }
+
+    // CSRF protection for mutation
+    await requireCSRF(request);
+
+    // Authentication
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      throw new UnauthorizedError('Authentication required to update profile');
+    }
+
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, profileUpdateSchema);
+    if ('headers' in validation) {
+      logger.warn('Profile update validation failed', {
+        service: 'users',
+        userId: user.id,
+      });
+      return validation;
+    }
+
+    const validatedData = validation.data;
+
+    // Build update payload with sanitized values
+    const updateData: Record<string, string | null> = {};
+
+    if (validatedData.first_name !== undefined) {
+      updateData.first_name = sanitizeText(validatedData.first_name, 50);
+    }
+    if (validatedData.last_name !== undefined) {
+      updateData.last_name = sanitizeText(validatedData.last_name, 50);
+    }
+    if (validatedData.bio !== undefined) {
+      updateData.bio = sanitizeText(validatedData.bio, 1000);
+    }
+    if (validatedData.city !== undefined) {
+      updateData.city = sanitizeText(validatedData.city, 100);
+    }
+    if (validatedData.country !== undefined) {
+      updateData.country = sanitizeText(validatedData.country, 100);
+    }
+    if (validatedData.phone !== undefined) {
+      updateData.phone = validatedData.phone
+        ? sanitizeText(validatedData.phone, 20)
+        : null;
+    }
+    if (validatedData.location !== undefined) {
+      updateData.location = validatedData.location
+        ? sanitizeText(validatedData.location, 256)
+        : null;
+    }
+
+    // Nothing to update
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No changes to update',
+      });
+    }
+
+    // Set updated_at timestamp
+    updateData.updated_at = new Date().toISOString();
+
+    // Update profile -- scoped to authenticated user's own row
+    const { data: updatedProfile, error } = await serverSupabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('Failed to update user profile', error, {
+        service: 'users',
+        userId: user.id,
+        updateFields: Object.keys(updateData),
+      });
+      throw error;
+    }
+
+    logger.info('User profile updated successfully', {
+      service: 'users',
+      userId: user.id,
+      updatedFields: Object.keys(updateData),
+    });
+
     return NextResponse.json({
       success: true,
-      message: 'User profile update endpoint is working',
-      received: body,
-      timestamp: new Date().toISOString()
+      profile: updatedProfile,
     });
-  } catch (error) {
-    logger.error('Profile PUT error:', error);
-    return NextResponse.json(
-      { error: 'Failed to update profile', details: error },
-      { status: 500 }
-    );
+  } catch (err) {
+    return handleAPIError(err);
   }
 }

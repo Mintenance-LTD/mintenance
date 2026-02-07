@@ -513,7 +513,7 @@ async function getABTestingMetrics(startDate: Date, endDate: Date) {
   const currentTests = (tests || [])
     .filter(t => t.status === 'running')
     .map(t => {
-      const config = t.config_jsonb as any;
+      const config = t.config_jsonb as { name?: string; control_model?: { version?: string }; treatment_model?: { version?: string } };
       return {
         testId: t.test_id,
         name: config.name || 'Unnamed Test',

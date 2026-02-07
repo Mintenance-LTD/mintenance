@@ -1,5 +1,5 @@
 /**
- * Help Center Categories and Articles Data
+ * Help Centre Categories and Articles Data
  * Contains all help articles organized by category
  */
 
@@ -121,7 +121,7 @@ Mintenance connects homeowners with trusted tradespeople. Here's how it works:
 - Check your dashboard for updates
 - Review notifications regularly
 - Use filters to narrow down results
-- Save favorite tradespeople or jobs`
+- Save favourite tradespeople or jobs`
       },
       { 
         title: 'Verifying your account', 
@@ -1002,7 +1002,7 @@ Strong evidence helps resolve disputes fairly and quickly.
 - **Photos**: Visual evidence
 - **Expectations**: What was agreed
 
-## Organizing Evidence
+## Organising Evidence
 
 - Label photos clearly
 - Date all documents
@@ -1126,7 +1126,7 @@ Mintenance provides proper invoicing and VAT documentation.
 
 - Keep all invoices
 - Download PDFs
-- Organize by date
+- Organise by date
 - Keep for tax purposes
 - Consult accountant if needed
 
@@ -1267,13 +1267,13 @@ Share files and photos securely through Mintenance messaging.
 - Use clear photos
 - Compress large files
 - Add descriptions
-- Organize files
+- Organise files
 - Keep important files`
       },
       { 
         title: 'Reporting inappropriate behaviour', 
         content: 'How to flag concerning messages or conduct.',
-        fullContent: `# Reporting Inappropriate Behavior
+        fullContent: `# Reporting Inappropriate Behaviour
 
 Mintenance takes safety and professionalism seriously.
 
@@ -1313,7 +1313,7 @@ Mintenance takes safety and professionalism seriously.
 
 - Keep communication professional
 - Don't share personal information
-- Report suspicious behavior
+- Report suspicious behaviour
 - Trust your instincts
 - Use platform features`
       },
@@ -1663,7 +1663,7 @@ Report safety concerns or suspicious activity to keep Mintenance safe.
 ## What to Report
 
 - Safety hazards
-- Suspicious behavior
+- Suspicious behaviour
 - Fraud or scams
 - Unprofessional conduct
 - Platform abuse
@@ -1801,7 +1801,7 @@ Protect yourself and your information when using Mintenance.
 
 - Requests for off-platform payment
 - Pressure tactics
-- Suspicious behavior
+- Suspicious behaviour
 - Unrealistic promises
 - Requests for personal info
 

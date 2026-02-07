@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase';
 
 interface Payment {
   amount: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface Job {
@@ -20,7 +20,7 @@ interface Job {
   status: string;
   category?: string;
   payments?: Payment[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export default function AnalyticsPage2025() {
@@ -75,7 +75,7 @@ export default function AnalyticsPage2025() {
 
         (jobs as Job[] | null)?.forEach((job) => {
           const date = new Date(job.created_at);
-          const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+          const monthKey = date.toLocaleDateString('en-GB', { month: 'short' });
 
           if (job.status === 'completed') completedJobs++;
           if (job.status === 'in_progress' || job.status === 'posted') activeJobs++;

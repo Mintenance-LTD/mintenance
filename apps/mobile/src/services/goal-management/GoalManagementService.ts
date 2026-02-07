@@ -222,7 +222,7 @@ export class GoalManagementService {
   /**
    * Get goal templates
    */
-  async getGoalTemplates(category?: string): Promise<any[]> {
+  async getGoalTemplates(category?: string): Promise<Partial<CreateGoalRequest>[]> {
     try {
       return await this.goalRepository.getGoalTemplates(category);
     } catch (error) {

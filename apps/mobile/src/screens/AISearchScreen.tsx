@@ -134,7 +134,11 @@ export const AISearchScreen: React.FC = () => {
   };
 
   const renderSearchResult = ({ item }: { item: SearchResult }) => (
-    <TouchableOpacity style={styles.resultItem}>
+    <TouchableOpacity
+      style={styles.resultItem}
+      accessibilityRole='button'
+      accessibilityLabel={`${item.type}: ${item.title}. ${item.description}. ${Math.round(item.relevanceScore * 100)}% match`}
+    >
       <View style={styles.resultContent}>
         <View style={styles.resultIcon}>
           <Ionicons
@@ -182,6 +186,8 @@ export const AISearchScreen: React.FC = () => {
     <TouchableOpacity
       style={styles.suggestionItem}
       onPress={() => handleSuggestionPress(item)}
+      accessibilityRole='button'
+      accessibilityLabel={`Search suggestion: ${item.text}`}
     >
       <Ionicons
         name={item.type === 'query' ? 'search-outline' : item.type === 'category' ? 'grid-outline' : 'location-outline'}
@@ -196,6 +202,8 @@ export const AISearchScreen: React.FC = () => {
     <TouchableOpacity
       style={styles.trendingItem}
       onPress={() => handleSuggestionPress(item)}
+      accessibilityRole='button'
+      accessibilityLabel={`Trending search: ${item.text}`}
     >
       <Text style={styles.trendingText}>{item.text}</Text>
     </TouchableOpacity>
@@ -220,9 +228,15 @@ export const AISearchScreen: React.FC = () => {
             }}
             onSubmitEditing={() => performSearch()}
             returnKeyType="search"
+            accessibilityLabel='AI search'
+            accessibilityHint='Type to search for jobs, contractors, or services'
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
+            <TouchableOpacity
+              onPress={() => setQuery('')}
+              accessibilityRole='button'
+              accessibilityLabel='Clear search'
+            >
               <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           )}
@@ -230,6 +244,9 @@ export const AISearchScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.filterButton}
           onPress={() => setShowFilters(!showFilters)}
+          accessibilityRole='button'
+          accessibilityLabel={showFilters ? 'Hide search filters' : 'Show search filters'}
+          accessibilityState={{ expanded: showFilters }}
         >
           <Ionicons name="options-outline" size={20} color={theme.colors.primary} />
         </TouchableOpacity>
@@ -258,7 +275,12 @@ export const AISearchScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+          <TouchableOpacity
+            style={styles.clearFiltersButton}
+            onPress={clearFilters}
+            accessibilityRole='button'
+            accessibilityLabel='Clear all search filters'
+          >
             <Text style={styles.clearFiltersText}>Clear Filters</Text>
           </TouchableOpacity>
         </View>
@@ -304,7 +326,7 @@ export const AISearchScreen: React.FC = () => {
         </View>
       ) : (
         <View style={styles.noResultsContainer}>
-          <Ionicons name="search-outline" size={64} color={theme.colors.textTertiary} />
+          <Ionicons name="search-outline" size={64} color={theme.colors.textTertiary} accessible={false} />
           <Text style={styles.noResultsTitle}>No Results Found</Text>
           <Text style={styles.noResultsSubtitle}>
             Try adjusting your search terms or filters

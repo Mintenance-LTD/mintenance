@@ -8,7 +8,6 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Image, ImageContentFit, ImageTransition } from 'expo-image';
-import { useImageOptimization } from '../../hooks/usePerformance';
 
 // ============================================================================
 // TYPES
@@ -19,8 +18,6 @@ export interface OptimizedImageProps {
   style?: ImageStyle;
   containerStyle?: ViewStyle;
   contentFit?: ImageContentFit;
-  /** @deprecated Use contentFit instead */
-  resizeMode?: ImageContentFit;
   placeholder?: React.ReactNode | string;
   placeholderContentFit?: ImageContentFit;
   errorComponent?: React.ReactNode;
@@ -31,17 +28,10 @@ export interface OptimizedImageProps {
   onLoadEnd?: () => void;
   testID?: string;
   accessibilityLabel?: string;
-  preload?: boolean;
   transition?: ImageTransition;
-  /** @deprecated Use transition instead */
-  fade?: boolean;
-  /** @deprecated Use transition instead */
-  fadeDuration?: number;
   quality?: 'low' | 'medium' | 'high';
   priority?: 'low' | 'normal' | 'high';
   cachePolicy?: 'none' | 'disk' | 'memory' | 'memory-disk';
-  /** @deprecated Use cachePolicy instead */
-  cache?: 'default' | 'reload' | 'force-cache' | 'only-if-cached';
   blurRadius?: number;
   /** expo-image blurhash for fast placeholder */
   blurhash?: string;
@@ -56,6 +46,17 @@ interface ImageState {
 }
 
 // ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const QUALITY_MAP = { low: 60, medium: 80, high: 95 } as const;
+
+const DEFAULT_TRANSITION: ImageTransition = {
+  duration: 300,
+  effect: 'cross-dissolve',
+};
+
+// ============================================================================
 // OPTIMIZED IMAGE COMPONENT
 // ============================================================================
 
@@ -64,8 +65,7 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     source,
     style,
     containerStyle,
-    contentFit,
-    resizeMode = 'cover',
+    contentFit = 'cover',
     placeholder,
     placeholderContentFit = 'cover',
     errorComponent,
@@ -76,24 +76,17 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     onLoadEnd,
     testID,
     accessibilityLabel,
-    preload = false,
-    transition,
-    fade = true,
-    fadeDuration = 300,
+    transition = DEFAULT_TRANSITION,
     quality = 'medium',
     priority = 'normal',
     cachePolicy = 'memory-disk',
-    cache,
     blurRadius,
     blurhash,
     recyclingKey,
   } = props;
 
-  // Use contentFit if provided, otherwise fall back to resizeMode (deprecated)
-  const imageContentFit = contentFit || resizeMode;
-
   // ============================================================================
-  // STATE & HOOKS
+  // STATE
   // ============================================================================
 
   const [imageState, setImageState] = useState<ImageState>({
@@ -102,236 +95,176 @@ export const OptimizedImage = memo<OptimizedImageProps>((props) => {
     loaded: false,
   });
 
-  const { preloadImage, isPreloaded } = useImageOptimization();
-
   // ============================================================================
-  // COMPUTED VALUES
+  // COMPUTED SOURCE
   // ============================================================================
-
-  const isRemoteImage = useMemo(() => {
-    return typeof source === 'object' && source.uri;
-  }, [source]);
-
-  const imageUri = useMemo(() => {
-    if (typeof source === 'object' && source.uri) {
-      return source.uri;
-    }
-    return null;
-  }, [source]);
 
   const optimizedSource = useMemo(() => {
     if (typeof source === 'number') {
-      return source; // Local image
+      return source; // Local require() image
     }
 
-    if (!imageUri) {
-      return source;
+    if (typeof source === 'string') {
+      return { uri: source };
     }
 
-    // Add quality parameters for remote images
-    const url = new URL(imageUri);
-    
-    // Add quality parameter based on setting
-    const qualityMap = { low: 60, medium: 80, high: 95 };
-    url.searchParams.set('quality', qualityMap[quality].toString());
-    
-    // Add format optimization
-    if (Platform.OS === 'ios') {
-      url.searchParams.set('format', 'webp');
+    if (typeof source === 'object' && source.uri) {
+      // Safely attempt to add quality param for remote URLs
+      try {
+        const url = new URL(source.uri);
+        url.searchParams.set('quality', QUALITY_MAP[quality].toString());
+        return { uri: url.toString() };
+      } catch {
+        // Malformed URI - use as-is (relative paths, data URIs, etc.)
+        return source;
+      }
     }
-    
-    return { uri: url.toString() };
-  }, [source, imageUri, quality]);
+
+    return source;
+  }, [source, quality]);
+
+  // ============================================================================
+  // EXPO-IMAGE PLACEHOLDER
+  // ============================================================================
+
+  const expoPlaceholder = useMemo(() => {
+    if (blurhash) {
+      return { blurhash };
+    }
+    return undefined;
+  }, [blurhash]);
 
   // ============================================================================
   // EVENT HANDLERS
   // ============================================================================
 
   const handleLoadStart = useCallback(() => {
-    setImageState(prev => ({
-      ...prev,
-      loading: true,
-      error: false,
-    }));
+    setImageState({ loading: true, error: false, loaded: false });
     onLoadStart?.();
   }, [onLoadStart]);
 
   const handleLoad = useCallback(() => {
-    setImageState(prev => ({
-      ...prev,
-      loading: false,
-      loaded: true,
-    }));
+    setImageState({ loading: false, error: false, loaded: true });
     onLoad?.();
   }, [onLoad]);
 
-  const handleError = useCallback((error: unknown) => {
-    setImageState(prev => ({
-      ...prev,
-      loading: false,
-      error: true,
-    }));
-    onError?.(error);
-  }, [onError]);
+  const handleError = useCallback(
+    (error: unknown) => {
+      setImageState({ loading: false, error: true, loaded: false });
+      onError?.(error);
+    },
+    [onError],
+  );
 
   const handleLoadEnd = useCallback(() => {
-    setImageState(prev => ({
-      ...prev,
-      loading: false,
-    }));
+    setImageState((prev) => ({ ...prev, loading: false }));
     onLoadEnd?.();
   }, [onLoadEnd]);
 
   // ============================================================================
-  // PRELOADING EFFECT
+  // OVERLAY RENDERERS
   // ============================================================================
 
-  React.useEffect(() => {
-    if (preload && imageUri && !isPreloaded(imageUri)) {
-      preloadImage(imageUri);
-    }
-  }, [preload, imageUri, preloadImage, isPreloaded]);
+  const renderLoadingOverlay = useCallback(() => {
+    if (!imageState.loading || imageState.loaded) return null;
 
-  // ============================================================================
-  // RENDER COMPONENTS
-  // ============================================================================
-
-  const renderPlaceholder = useCallback(() => {
-    if (placeholder) {
-      return placeholder;
-    }
-
-    return (
-      <View style={[styles.placeholder, style]} testID={`${testID}-placeholder`}>
-        <View style={styles.placeholderContent}>
-          <Text style={styles.placeholderText}>📷</Text>
-        </View>
-      </View>
-    );
-  }, [placeholder, style, testID]);
-
-  const renderLoadingComponent = useCallback(() => {
     if (loadingComponent) {
-      return loadingComponent;
+      return (
+        <View style={StyleSheet.absoluteFill}>{loadingComponent}</View>
+      );
     }
 
     return (
-      <View style={[styles.loading, style]} testID={`${testID}-loading`}>
-        <ActivityIndicator 
-          size="small" 
-          color="#007AFF"
-          testID={`${testID}-loading-indicator`}
+      <View
+        style={[StyleSheet.absoluteFill, styles.loading]}
+        testID={testID ? `${testID}-loading` : undefined}
+      >
+        <ActivityIndicator
+          size="small"
+          color="#3B82F6"
+          testID={testID ? `${testID}-loading-indicator` : undefined}
         />
       </View>
     );
-  }, [loadingComponent, style, testID]);
+  }, [imageState.loading, imageState.loaded, loadingComponent, testID]);
 
-  const renderErrorComponent = useCallback(() => {
+  const renderErrorOverlay = useCallback(() => {
+    if (!imageState.error) return null;
+
     if (errorComponent) {
-      return errorComponent;
+      return (
+        <View style={StyleSheet.absoluteFill}>{errorComponent}</View>
+      );
     }
 
     return (
-      <View style={[styles.error, style]} testID={`${testID}-error`}>
-        <Text style={styles.errorText}>⚠️</Text>
+      <View
+        style={[StyleSheet.absoluteFill, styles.error]}
+        testID={testID ? `${testID}-error` : undefined}
+      >
+        <Text style={styles.errorIcon}>!</Text>
         <Text style={styles.errorMessage}>Failed to load image</Text>
       </View>
     );
-  }, [errorComponent, style, testID]);
+  }, [imageState.error, errorComponent, testID]);
 
-  // ============================================================================
-  // IMAGE STYLES
-  // ============================================================================
+  const renderCustomPlaceholder = useCallback(() => {
+    if (imageState.loaded || imageState.error || imageState.loading) return null;
+    if (!placeholder) return null;
 
-  const imageStyles = useMemo(() => {
-    const baseStyles = [styles.image, style];
-    
-    if (fade && imageState.loaded) {
-      baseStyles.push({
-        opacity: 1,
-      });
-    } else if (fade) {
-      baseStyles.push({
-        opacity: 0,
-      });
+    if (typeof placeholder === 'string') {
+      return (
+        <View
+          style={[StyleSheet.absoluteFill, styles.placeholder]}
+          testID={testID ? `${testID}-placeholder` : undefined}
+        >
+          <Text style={styles.placeholderText}>{placeholder}</Text>
+        </View>
+      );
     }
 
-    return baseStyles;
-  }, [style, fade, imageState.loaded]);
-
-  const animatedStyles = useMemo(() => {
-    if (!fade) return {};
-    
-    return {
-      transition: `opacity ${fadeDuration}ms ease-in-out`,
-    };
-  }, [fade, fadeDuration]);
+    return (
+      <View style={StyleSheet.absoluteFill}>{placeholder}</View>
+    );
+  }, [imageState.loaded, imageState.error, imageState.loading, placeholder, testID]);
 
   // ============================================================================
   // RENDER
   // ============================================================================
 
-  const containerStyles = [styles.container, containerStyle];
-
-  // Show placeholder while not loaded and no error
-  if (!imageState.loaded && !imageState.error && !imageState.loading) {
-    return (
-      <View style={containerStyles} testID={testID}>
-        {renderPlaceholder()}
-      </View>
-    );
-  }
-
-  // Show loading state
-  if (imageState.loading && !imageState.loaded) {
-    return (
-      <View style={containerStyles} testID={testID}>
-        {renderLoadingComponent()}
-      </View>
-    );
-  }
-
-  // Show error state
-  if (imageState.error) {
-    return (
-      <View style={containerStyles} testID={testID}>
-        {renderErrorComponent()}
-      </View>
-    );
-  }
-
-  // Calculate transition settings
-  const imageTransition = useMemo((): ImageTransition | undefined => {
-    if (transition) return transition;
-    if (!fade) return undefined;
-    return {
-      duration: fadeDuration,
-      effect: 'cross-dissolve',
-    };
-  }, [transition, fade, fadeDuration]);
-
-  // Show actual image using expo-image
+  // The Image is ALWAYS mounted so loading can start.
+  // Loading/error/placeholder are rendered as overlays on top.
   return (
-    <View style={containerStyles} testID={testID}>
-      <Image
-        source={optimizedSource}
-        style={[imageStyles, animatedStyles]}
-        contentFit={imageContentFit}
-        placeholder={blurhash ? { blurhash } : undefined}
-        placeholderContentFit={placeholderContentFit}
-        transition={imageTransition}
-        onLoadStart={handleLoadStart}
-        onLoad={handleLoad}
-        onError={handleError}
-        onLoadEnd={handleLoadEnd}
-        accessibilityLabel={accessibilityLabel}
-        blurRadius={blurRadius}
-        testID={`${testID}-image`}
-        // expo-image performance optimizations
-        cachePolicy={cachePolicy}
-        priority={priority}
-        recyclingKey={recyclingKey}
-      />
+    <View
+      style={[styles.container, containerStyle]}
+      testID={testID}
+      accessible={!!accessibilityLabel}
+      accessibilityLabel={accessibilityLabel}
+    >
+      {!imageState.error && (
+        <Image
+          source={optimizedSource}
+          style={[styles.image, style]}
+          contentFit={contentFit}
+          placeholder={expoPlaceholder}
+          placeholderContentFit={placeholderContentFit}
+          transition={transition}
+          onLoadStart={handleLoadStart}
+          onLoad={handleLoad}
+          onError={handleError}
+          onLoadEnd={handleLoadEnd}
+          accessibilityLabel={accessibilityLabel}
+          blurRadius={blurRadius}
+          cachePolicy={cachePolicy}
+          priority={priority}
+          recyclingKey={recyclingKey}
+          testID={testID ? `${testID}-image` : undefined}
+        />
+      )}
+
+      {renderCustomPlaceholder()}
+      {renderLoadingOverlay()}
+      {renderErrorOverlay()}
     </View>
   );
 });
@@ -351,36 +284,41 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   placeholder: {
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  placeholderContent: {
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
     fontSize: 24,
-    color: '#CCCCCC',
+    color: '#9CA3AF',
   },
   loading: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: 'rgba(243, 244, 246, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   error: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#FEF2F2',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
-  errorText: {
+  errorIcon: {
     fontSize: 20,
+    fontWeight: 'bold',
+    color: '#EF4444',
+    width: 28,
+    height: 28,
+    lineHeight: 28,
+    textAlign: 'center',
+    borderWidth: 2,
+    borderColor: '#EF4444',
+    borderRadius: 14,
     marginBottom: 4,
   },
   errorMessage: {
     fontSize: 12,
-    color: '#D32F2F',
+    color: '#DC2626',
     textAlign: 'center',
   },
 });

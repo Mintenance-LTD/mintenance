@@ -24,15 +24,15 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
 }) => {
   return (
     <View style={styles.container} testID="profile-stats-container">
-      <View style={styles.stat} testID="jobs-stat">
+      <View style={styles.stat} testID="jobs-stat" accessibilityLabel={`${jobsCompleted} jobs completed`}>
         <Text style={styles.statValue} testID="jobs-value">{jobsCompleted}</Text>
         <Text style={styles.statLabel}>Jobs</Text>
       </View>
-      <View style={styles.stat} testID="rating-stat">
+      <View style={styles.stat} testID="rating-stat" accessibilityLabel={`Rating: ${rating} out of 5`}>
         <Text style={styles.statValue} testID="rating-value">{rating}</Text>
         <Text style={styles.statLabel}>Rating</Text>
       </View>
-      <View style={styles.stat} testID="reviews-stat">
+      <View style={styles.stat} testID="reviews-stat" accessibilityLabel={`${reviewCount} reviews`}>
         <Text style={styles.statValue} testID="reviews-value">{reviewCount}</Text>
         <Text style={styles.statLabel}>Reviews</Text>
       </View>

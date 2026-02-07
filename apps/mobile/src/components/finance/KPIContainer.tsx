@@ -10,7 +10,7 @@ const { width: screenWidth } = Dimensions.get('window');
 interface KPIContainerProps {
   financialData: FinancialSummary;
   formatCurrency: (amount: number) => string;
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<Record<string, undefined>>;
 }
 
 export const KPIContainer: React.FC<KPIContainerProps> = ({

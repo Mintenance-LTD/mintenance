@@ -134,7 +134,7 @@ export async function GET(request: Request) {
         
         if (reviewerIds.length > 0) {
             const { data: reviewers, error: reviewerError } = await serverSupabase
-                .from('users')
+                .from('profiles')
                 .select('id, first_name, last_name, email')
                 .in('id', reviewerIds);
 
@@ -150,16 +150,16 @@ export async function GET(request: Request) {
 
         // Transform reviews to testimonial format
         const testimonials = (reviews || []).map((review: ReviewRecord) => {
-            const reviewer = reviewerMap.get(review.reviewer_id) || {} as any;
-            const job = Array.isArray(review.jobs) ? review.jobs[0] : review.jobs || {} as any;
+            const reviewer = reviewerMap.get(review.reviewer_id) || ({} as ReviewerRecord);
+            const job = Array.isArray(review.jobs) ? review.jobs[0] : review.jobs || ({} as ReviewJob);
             
             // Calculate savings (simplified - could be enhanced with actual cost comparison)
-            const savings = (job as any).budget 
-                ? `£${Math.round(Number((job as any).budget) * 0.15)}` // Estimate 15% savings
+            const savings = job.budget 
+                ? `£${Math.round(Number(job.budget) * 0.15)}` // Estimate 15% savings
                 : 'Contact for quote';
 
             // Get location from user email domain or default
-            const location = (reviewer as any).email?.split('@')[1]?.includes('co.uk') 
+            const location = reviewer.email?.split('@')[1]?.includes('co.uk') 
                 ? 'UK' 
                 : 'London'; // Default fallback
 

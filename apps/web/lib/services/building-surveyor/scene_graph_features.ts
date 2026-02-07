@@ -7,6 +7,7 @@
 
 import { logger } from '@mintenance/shared';
 import type { SceneGraph, SceneNode, SceneEdge, NodeType, EdgeRelation } from './scene_graph';
+import { getActiveDomain } from './config/BuildingSurveyorConfig';
 
 /**
  * Feature vector extracted from scene graph
@@ -150,35 +151,40 @@ export class SceneGraphFeatureExtractor {
   ): number[] {
     const totalNodes = sceneGraph.nodes.length;
     const totalEdges = sceneGraph.edges.length;
+    const domain = getActiveDomain();
 
-    // 1. has_critical_hazard (binary) - critical if structural damage or high-risk damage
-    const criticalDamageTypes = nodeCounts.crack + nodeCounts.structural_beam +
-      nodeCounts.fire_damage + nodeCounts.electrical;
-    const hasCriticalHazard = criticalDamageTypes > 0 ? 1 : 0;
+    // 1. has_critical_hazard (binary) - uses domain safety-critical classes
+    const criticalCount = domain.safetyCriticalClasses.reduce(
+      (sum, cls) => sum + (nodeCounts[cls as NodeType] || 0), 0
+    );
+    const hasCriticalHazard = criticalCount > 0 ? 1 : 0;
 
     // 2. crack_density (0-1) - normalized crack count
     const crackDensity = totalNodes > 0 ? Math.min(1, nodeCounts.crack / totalNodes) : 0;
 
     // 3. water_damage_area_ratio (0-1) - moisture + stain normalized
-    const waterDamageCount = nodeCounts.moisture + nodeCounts.stain;
+    const waterDamageCount = (nodeCounts.moisture || 0) + (nodeCounts.stain || 0);
     const waterDamageAreaRatio = totalNodes > 0 ? Math.min(1, waterDamageCount / totalNodes) : 0;
 
-    // 4. structural_elements_count (normalized) - wall + foundation + roof + floor
-    const structuralElements = nodeCounts.wall + nodeCounts.foundation +
-      nodeCounts.roof + nodeCounts.floor;
+    // 4. structural_elements_count (normalized) - domain-aware structural elements
+    const structuralNodeTypes: NodeType[] = domain.id === 'rail'
+      ? ['rail', 'tie', 'bridge', 'tunnel']
+      : domain.id === 'industrial'
+        ? ['beam', 'girder', 'column', 'slab']
+        : ['wall', 'foundation', 'roof', 'floor'];
+    const structuralElements = structuralNodeTypes.reduce(
+      (sum, t) => sum + (nodeCounts[t] || 0), 0
+    );
     const structuralElementsCount = totalNodes > 0 ? Math.min(1, structuralElements / totalNodes) : 0;
 
-    // 5. safety_hazard_count (normalized) - electrical + fire_damage + pest_damage
-    const safetyHazards = nodeCounts.electrical + nodeCounts.fire_damage + nodeCounts.pest_damage;
-    const safetyHazardCount = totalNodes > 0 ? Math.min(1, safetyHazards / totalNodes) : 0;
+    // 5. safety_hazard_count (normalized) - uses domain safety classes
+    const safetyHazardCount = totalNodes > 0 ? Math.min(1, criticalCount / totalNodes) : 0;
 
     // 6. damage_severity_score (0-1) - weighted combination
-    // Weights: critical (1.0), high (0.7), medium (0.4), low (0.1)
-    const criticalWeight = (nodeCounts.crack + nodeCounts.structural_beam +
-      nodeCounts.fire_damage) * 1.0;
-    const highWeight = (nodeCounts.mold + nodeCounts.electrical) * 0.7;
-    const mediumWeight = (nodeCounts.moisture + nodeCounts.stain) * 0.4;
-    const lowWeight = (nodeCounts.insulation) * 0.1;
+    const criticalWeight = criticalCount * 1.0;
+    const highWeight = ((nodeCounts.mold || 0) + (nodeCounts.electrical || 0) + (nodeCounts.corrosion || 0)) * 0.7;
+    const mediumWeight = ((nodeCounts.moisture || 0) + (nodeCounts.stain || 0) + (nodeCounts.wear || 0)) * 0.4;
+    const lowWeight = ((nodeCounts.insulation || 0) + (nodeCounts.vegetation || 0)) * 0.1;
     const totalWeight = criticalWeight + highWeight + mediumWeight + lowWeight;
     const damageSeverityScore = totalNodes > 0 ? Math.min(1, totalWeight / totalNodes) : 0;
 
@@ -332,13 +338,13 @@ export class SceneGraphFeatureExtractor {
   }
 
   /**
-   * Flatten features to vector
-   * 
+   * Flatten features to vector (40-dim, domain-aware)
+   *
    * Vector structure:
-   * - [0-16]: Node type counts (17 node types)
-   * - [17-28]: Edge relation counts (12 relations)
-   * - [29-35]: Spatial features (5 features)
-   * - [36-39]: Top node-edge patterns (4 most common)
+   * - [0-16]: Node type counts (first 17 domain node types)
+   * - [17-28]: Edge relation counts (first 12 domain edge types)
+   * - [29-33]: Spatial features (5 features)
+   * - [34-39]: Top node-edge patterns (6 most common, pad to 40)
    */
   private static flattenToVector(
     nodeCounts: Record<NodeType, number>,
@@ -353,33 +359,16 @@ export class SceneGraphFeatureExtractor {
     }
   ): number[] {
     const vector: number[] = [];
+    const domain = getActiveDomain();
 
-    // 1. Node type counts (17 features)
-    const nodeTypes: NodeType[] = [
-      'wall',
-      'foundation',
-      'roof',
-      'floor',
-      'ceiling',
-      'window',
-      'door',
-      'crack',
-      'stain',
-      'moisture',
-      'mold',
-      'electrical',
-      'plumbing',
-      'insulation',
-      'structural_beam',
-      'pest_damage',
-      'fire_damage',
-    ];
-
-    for (const type of nodeTypes) {
-      vector.push(nodeCounts[type] || 0);
+    // 1. Node type counts (first 17 from domain, padded if fewer)
+    const domainNodeTypes = domain.nodeTypes.slice(0, 17) as NodeType[];
+    for (let i = 0; i < 17; i++) {
+      const type = domainNodeTypes[i];
+      vector.push(type ? (nodeCounts[type] || 0) : 0);
     }
 
-    // Normalize node counts (divide by total nodes)
+    // Normalize node counts
     const totalNodes = vector.slice(0, 17).reduce((a, b) => a + b, 0);
     if (totalNodes > 0) {
       for (let i = 0; i < 17; i++) {
@@ -387,24 +376,11 @@ export class SceneGraphFeatureExtractor {
       }
     }
 
-    // 2. Edge relation counts (12 features)
-    const relations: EdgeRelation[] = [
-      'has',
-      'on_surface',
-      'adjacent_to',
-      'contains',
-      'near',
-      'above',
-      'below',
-      'left_of',
-      'right_of',
-      'overlaps',
-      'indicates',
-      'caused_by',
-    ];
-
-    for (const relation of relations) {
-      vector.push(edgeCounts[relation] || 0);
+    // 2. Edge relation counts (first 12 from domain)
+    const domainEdgeTypes = domain.edgeTypes.slice(0, 12) as EdgeRelation[];
+    for (let i = 0; i < 12; i++) {
+      const relation = domainEdgeTypes[i];
+      vector.push(relation ? (edgeCounts[relation] || 0) : 0);
     }
 
     // Normalize edge counts
@@ -418,16 +394,16 @@ export class SceneGraphFeatureExtractor {
     // 3. Spatial features (5 features)
     vector.push(spatialFeatures.avgNodeConfidence);
     vector.push(spatialFeatures.avgEdgeConfidence);
-    vector.push(spatialFeatures.maxNodeDegree / 10); // Normalized
-    vector.push(spatialFeatures.avgNodeDegree / 10); // Normalized
+    vector.push(spatialFeatures.maxNodeDegree / 10);
+    vector.push(spatialFeatures.avgNodeDegree / 10);
     vector.push(spatialFeatures.connectivityScore);
 
-    // 4. Top node-edge patterns (4 features)
+    // 4. Top node-edge patterns (pad to 40)
     const sortedPatterns = Array.from(nodeEdgePatterns.entries())
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 4);
+      .slice(0, 6);
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       vector.push(sortedPatterns[i]?.[1] || 0);
     }
 
@@ -444,48 +420,40 @@ export class SceneGraphFeatureExtractor {
   }
 
   /**
-   * Initialize empty node counts
+   * Initialize empty node counts (all domains)
    */
   private static initializeNodeCounts(): Record<NodeType, number> {
     return {
-      wall: 0,
-      foundation: 0,
-      roof: 0,
-      floor: 0,
-      ceiling: 0,
-      window: 0,
-      door: 0,
-      crack: 0,
-      stain: 0,
-      moisture: 0,
-      mold: 0,
-      electrical: 0,
-      plumbing: 0,
-      insulation: 0,
-      structural_beam: 0,
-      pest_damage: 0,
-      fire_damage: 0,
+      // Residential
+      wall: 0, foundation: 0, roof: 0, floor: 0, ceiling: 0,
+      window: 0, door: 0, crack: 0, stain: 0, moisture: 0,
+      mold: 0, electrical: 0, plumbing: 0, insulation: 0,
+      structural_beam: 0, pest_damage: 0, fire_damage: 0,
+      // Industrial
+      beam: 0, girder: 0, column: 0, slab: 0, weld: 0,
+      bolt: 0, pipe: 0, duct: 0, cladding: 0, corrosion: 0,
+      spalling: 0, deformation: 0, coating: 0, joint: 0, rebar: 0,
+      // Rail
+      rail: 0, tie: 0, ballast: 0, signal: 0, switch: 0,
+      bridge: 0, tunnel: 0, catenary: 0, fastener: 0, sleeper: 0,
+      wear: 0, misalignment: 0, fouling: 0, vegetation: 0, drainage: 0,
+      // Catch-all
       unknown: 0,
     };
   }
 
   /**
-   * Initialize empty edge counts
+   * Initialize empty edge counts (all domains)
    */
   private static initializeEdgeCounts(): Record<EdgeRelation, number> {
     return {
-      has: 0,
-      on_surface: 0,
-      adjacent_to: 0,
-      contains: 0,
-      near: 0,
-      above: 0,
-      below: 0,
-      left_of: 0,
-      right_of: 0,
-      overlaps: 0,
-      indicates: 0,
-      caused_by: 0,
+      // Shared
+      has: 0, on_surface: 0, adjacent_to: 0, contains: 0, near: 0,
+      above: 0, below: 0, left_of: 0, right_of: 0, overlaps: 0,
+      indicates: 0, caused_by: 0,
+      // Industrial & Rail
+      supports: 0, connected_to: 0, welded_to: 0, bolted_to: 0,
+      runs_along: 0, crosses: 0,
     };
   }
 }

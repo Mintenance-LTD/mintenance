@@ -43,7 +43,7 @@ export function ResourceCategories() {
     {
       icon: CheckCircle,
       title: 'Platform Best Practices',
-      description: 'Insider tips to maximize your success rate and become a featured contractor.',
+      description: 'Insider tips to maximise your success rate and become a featured contractor.',
       color: 'from-blue-500 to-blue-600',
       href: '#best-practices',
     },

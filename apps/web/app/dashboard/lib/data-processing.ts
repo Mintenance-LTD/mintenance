@@ -291,7 +291,7 @@ export function prepareUpcomingJobs(scheduledJobs: Job[]): {
       let scheduledTime = 'Not scheduled';
 
       if (scheduledDate) {
-        const timeStr = scheduledDate.toLocaleTimeString('en-US', {
+        const timeStr = scheduledDate.toLocaleTimeString('en-GB', {
           hour: 'numeric',
           minute: '2-digit',
           hour12: true
@@ -316,7 +316,7 @@ export function prepareUpcomingJobs(scheduledJobs: Job[]): {
         .sort((a, b) => a.getTime() - b.getTime());
 
       if (jobsWithDates.length > 0) {
-        return jobsWithDates[0].toLocaleDateString('en-US', {
+        return jobsWithDates[0].toLocaleDateString('en-GB', {
           weekday: 'short',
           month: 'short',
           day: 'numeric',
@@ -363,7 +363,7 @@ export function prepareUpcomingEstimates(
         id: bid.id,
         title: (job && job.title) || 'New Bid Received',
         location: (job && job.location) || 'Location not specified',
-        scheduledTime: `Received: ${bidDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        scheduledTime: `Received: ${bidDate.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}`,
         avatar: (contractor && contractor.profile_image_url),
       };
     });
@@ -374,7 +374,7 @@ export function prepareUpcomingEstimates(
         .map((bid) => new Date(bid.created_at || bid.updated_at || Date.now()))
         .sort((a, b) => b.getTime() - a.getTime())[0];
 
-      return mostRecentBid.toLocaleDateString('en-US', {
+      return mostRecentBid.toLocaleDateString('en-GB', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
@@ -428,12 +428,12 @@ export function prepareRecentActivities(
       description = 'Waiting for contractor bids';
     } else if (job.status === 'assigned' || job.status === 'in_progress') {
       if (scheduledDate) {
-        const formattedDate = scheduledDate.toLocaleDateString('en-US', {
+        const formattedDate = scheduledDate.toLocaleDateString('en-GB', {
           month: 'long',
           day: 'numeric',
           year: 'numeric'
         });
-        const formattedTime = scheduledDate.toLocaleTimeString('en-US', {
+        const formattedTime = scheduledDate.toLocaleTimeString('en-GB', {
           hour: 'numeric',
           minute: '2-digit',
           hour12: true
@@ -457,7 +457,7 @@ export function prepareRecentActivities(
       type: 'job',
       title,
       description,
-      timestamp: createdDate.toLocaleDateString('en-US', {
+      timestamp: createdDate.toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric'
@@ -482,7 +482,7 @@ export function prepareRecentActivities(
       type: 'estimate',
       title: `${contractorName} submitted an estimate for ${(job && job.title) || 'your job'}.`,
       description: `Amount: £${Number(bid.amount || bid.total_amount || 0).toLocaleString()}`,
-      timestamp: createdDate.toLocaleDateString('en-US', {
+      timestamp: createdDate.toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric'
@@ -502,7 +502,7 @@ export function prepareRecentActivities(
         type: 'message',
         title: 'New message received',
         description: message.content ? (message.content.length > 100 ? message.content.substring(0, 100) + '...' : message.content) : 'No content',
-        timestamp: createdDate.toLocaleDateString('en-US', {
+        timestamp: createdDate.toLocaleDateString('en-GB', {
           month: 'long',
           day: 'numeric',
           year: 'numeric'
@@ -523,9 +523,9 @@ export function prepareRecentActivities(
       type: 'payment',
       title: `Payment ${statusText}: £${Number(payment.amount || 0).toLocaleString()}`,
       description: payment.due_date
-        ? `Due: ${new Date(payment.due_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+        ? `Due: ${new Date(payment.due_date).toLocaleDateString('en-GB', { month: 'long', day: 'numeric', year: 'numeric' })}`
         : 'No due date',
-      timestamp: createdDate.toLocaleDateString('en-US', {
+      timestamp: createdDate.toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric'
@@ -550,8 +550,8 @@ export function prepareRecentActivities(
         id: `subscription-${sub.id}`,
         type: 'subscription',
         title: `Maintenance service is ${daysUntil <= 0 ? 'due' : `due in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`}.`,
-        description: `Next billing: ${nextDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
-        timestamp: createdDate.toLocaleDateString('en-US', {
+        description: `Next billing: ${nextDate.toLocaleDateString('en-GB', { month: 'long', day: 'numeric', year: 'numeric' })}`,
+        timestamp: createdDate.toLocaleDateString('en-GB', {
           month: 'long',
           day: 'numeric',
           year: 'numeric'

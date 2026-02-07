@@ -95,7 +95,7 @@ export const JobCard2025 = React.memo(function JobCard2025({
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays}d ago`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
   };
 
   // AI Assessment severity colors and configurations

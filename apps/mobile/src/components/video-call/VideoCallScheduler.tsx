@@ -264,7 +264,7 @@ const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
                   }}
                 >
                   <Ionicons
-                    name={option.icon as any}
+                    name={option.icon as keyof typeof Ionicons.glyphMap}
                     size={20}
                     color={
                       callType === option.value

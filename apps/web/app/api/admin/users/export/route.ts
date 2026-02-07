@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     // Build query
     let query = serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, email, first_name, last_name, role, company_name, admin_verified, created_at, updated_at')
       .is('deleted_at', null);
 

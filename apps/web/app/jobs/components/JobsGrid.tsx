@@ -21,7 +21,7 @@ interface Job {
   photos?: string[];
   created_at: string;
   view_count?: number;
-  ai_assessment?: any;
+  ai_assessment?: Record<string, unknown>;
 }
 
 interface JobsGridProps {

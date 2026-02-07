@@ -144,7 +144,7 @@ export function useCachedMutation<TData, TVariables>({
   invalidateKeys?: QueryKey[];
   optimisticUpdate?: {
     queryKey: QueryKey;
-    updater: (old: unknown, variables: TVariables) => any;
+    updater: (old: unknown, variables: TVariables) => unknown;
   };
   onSuccess?: (data: TData, variables: TVariables) => void;
   onError?: (error: Error, variables: TVariables) => void;

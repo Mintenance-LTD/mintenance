@@ -59,12 +59,18 @@ export default function LandingScreen() {
         </View>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Login')}
+            accessibilityRole='link'
+            accessibilityLabel='Sign in to your account'
+          >
             <Text style={styles.link}>Sign In</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.primaryBtn}
             onPress={() => navigation.navigate('Register')}
+            accessibilityRole='button'
+            accessibilityLabel='Get started with Mintenance'
           >
             <Text style={styles.primaryBtnText}>Get Started</Text>
           </TouchableOpacity>
@@ -82,7 +88,7 @@ export default function LandingScreen() {
                 <Text style={styles.badgeText}>AI Matching • Escrow • Live Chat</Text>
               </View>
 
-              <Text style={styles.heroTitle}>Find Trusted Home Contractors Fast</Text>
+              <Text style={styles.heroTitle} accessibilityRole='header'>Find Trusted Home Contractors Fast</Text>
               <Text style={styles.heroSub}>
                 Post your home project, compare verified contractor bids, chat in real time and pay securely — all in one seamless platform.
               </Text>
@@ -91,10 +97,17 @@ export default function LandingScreen() {
                 <TouchableOpacity
                   style={styles.ctaSolid}
                   onPress={() => navigation.navigate('Register')}
+                  accessibilityRole='button'
+                  accessibilityLabel='Start free registration'
                 >
                   <Text style={styles.ctaSolidText}>Start Free →</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.ctaGhost} onPress={scrollToFeatures}>
+                <TouchableOpacity
+                  style={styles.ctaGhost}
+                  onPress={scrollToFeatures}
+                  accessibilityRole='button'
+                  accessibilityLabel='See how Mintenance works'
+                >
                   <Text style={styles.ctaGhostText}>See How It Works</Text>
                 </TouchableOpacity>
               </View>
@@ -117,7 +130,12 @@ export default function LandingScreen() {
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
           {CATEGORIES.map(c => (
-            <TouchableOpacity key={c.key} style={styles.chip}>
+            <TouchableOpacity
+              key={c.key}
+              style={styles.chip}
+              accessibilityRole='button'
+              accessibilityLabel={`${c.label} services`}
+            >
               <Ionicons name={c.icon as unknown} size={18} color={theme.colors.primary} />
               <Text style={styles.chipText}>{c.label}</Text>
             </TouchableOpacity>
@@ -132,13 +150,21 @@ export default function LandingScreen() {
             { title: 'Emergency Repairs', discount: '15% OFF', desc: 'Available 24/7' },
             { title: 'Spring Cleaning', discount: '25% OFF', desc: 'Deep cleaning services' }
           ].map((offer, i) => (
-            <View key={i} style={styles.offerCard}>
-              <Image source={demoThumb} style={styles.offerImage} />
+            <View
+              key={i}
+              style={styles.offerCard}
+              accessibilityLabel={`${offer.title}: Up to ${offer.discount}. ${offer.desc}`}
+            >
+              <Image source={demoThumb} style={styles.offerImage} accessible={false} />
               <View style={{ padding: 14 }}>
                 <View style={styles.discountPill}><Text style={styles.discountText}>Up to {offer.discount}</Text></View>
                 <Text style={styles.offerTitle}>{offer.title}</Text>
                 <Text style={styles.offerSub}>{offer.desc}</Text>
-                <TouchableOpacity style={styles.claimBtn}><Text style={styles.claimText}>Get Quote</Text></TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.claimBtn}
+                  accessibilityRole='button'
+                  accessibilityLabel={`Get quote for ${offer.title}`}
+                ><Text style={styles.claimText}>Get Quote</Text></TouchableOpacity>
               </View>
             </View>
           ))}
@@ -152,8 +178,12 @@ export default function LandingScreen() {
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselRow}>
           {CONTRACTORS.map(c => (
-            <View key={c.id} style={styles.contractorCard}>
-              <Image source={c.img} style={styles.contractorImg} />
+            <View
+              key={c.id}
+              style={styles.contractorCard}
+              accessibilityLabel={`${c.name}, rated ${c.rating} stars, ${c.jobs} jobs completed`}
+            >
+              <Image source={c.img} style={styles.contractorImg} accessible={false} />
               <View style={{ padding: 12 }}>
                 <Text style={styles.contractorName}>{c.name}</Text>
                 <View style={styles.contractorMeta}>
@@ -162,7 +192,11 @@ export default function LandingScreen() {
                   <Text style={styles.dot}>•</Text>
                   <Text style={styles.metaTxt}>{c.jobs} jobs</Text>
                 </View>
-                <TouchableOpacity style={styles.smallBtn}>
+                <TouchableOpacity
+                  style={styles.smallBtn}
+                  accessibilityRole='button'
+                  accessibilityLabel={`View ${c.name} profile`}
+                >
                   <Text style={styles.smallBtnText}>View Profile</Text>
                 </TouchableOpacity>
               </View>
@@ -183,9 +217,13 @@ export default function LandingScreen() {
         <SectionHeader title="What Homeowners Say" />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselRow}>
           {TESTIMONIALS.map(t => (
-            <View key={t.id} style={styles.testimonial}>
+            <View
+              key={t.id}
+              style={styles.testimonial}
+              accessibilityLabel={`Testimonial from ${t.name}: ${t.text}`}
+            >
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
-                <Image source={t.avatar} style={styles.avatar} />
+                <Image source={t.avatar} style={styles.avatar} accessible={false} />
                 <View style={{ marginLeft: 10 }}>
                   <Text style={styles.tName}>{t.name}</Text>
                   <View style={{ flexDirection: 'row' }}>
@@ -200,18 +238,22 @@ export default function LandingScreen() {
 
         {/* FINAL CALL TO ACTION */}
         <View style={styles.bottomCTA}>
-          <Text style={styles.bottomTitle}>Ready to start your home project?</Text>
+          <Text style={styles.bottomTitle} accessibilityRole='header'>Ready to start your home project?</Text>
           <Text style={styles.bottomSub}>Join thousands of homeowners who trust Mintenance.</Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <TouchableOpacity
               style={styles.ctaSolid}
               onPress={() => navigation.navigate('Register')}
+              accessibilityRole='button'
+              accessibilityLabel='Post a job'
             >
               <Text style={styles.ctaSolidText}>Post a Job</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.ctaGhost}
               onPress={() => navigation.navigate('Modal', { screen: 'ContractorDiscovery' })}
+              accessibilityRole='button'
+              accessibilityLabel='Find contractors'
             >
               <Text style={styles.ctaGhostText}>Find Contractors</Text>
             </TouchableOpacity>
@@ -230,9 +272,13 @@ export default function LandingScreen() {
 function SectionHeader({ title, action, onActionPress }: { title: string; action?: string; onActionPress?: () => void }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionTitle} accessibilityRole='header'>{title}</Text>
       {action ? (
-        <TouchableOpacity onPress={onActionPress}>
+        <TouchableOpacity
+          onPress={onActionPress}
+          accessibilityRole='button'
+          accessibilityLabel={`${action} ${title}`}
+        >
           <Text style={styles.sectionAction}>{action}</Text>
         </TouchableOpacity>
       ) : null}

@@ -20,17 +20,17 @@ export interface OfflineQueryOptions {
   offlineFirst?: boolean; // Prefer cached data even when online
 }
 
-export interface OfflineMutationOptions<TVariables = any, TData = any> {
+export interface OfflineMutationOptions<TVariables = unknown, TData = unknown> {
   mutationFn: (variables: TVariables) => Promise<TData>;
   onlineOnly?: boolean; // Fail immediately if offline
   entity: string;
   actionType: OfflineAction['type'];
-  optimisticUpdate?: (variables: TVariables) => any;
+  optimisticUpdate?: (variables: TVariables) => TData;
   getQueryKey?: (variables: TVariables) => QueryKey;
   retryCount?: number;
 }
 
-export const useOfflineQuery = <T = any>({
+export const useOfflineQuery = <T = unknown>({
   queryKey,
   queryFn,
   staleTime = 5 * 60 * 1000, // 5 minutes
@@ -140,7 +140,7 @@ export const useOfflineQuery = <T = any>({
   });
 };
 
-export const useOfflineMutation = <TVariables = any, TData = any>({
+export const useOfflineMutation = <TVariables = unknown, TData = unknown>({
   mutationFn,
   onlineOnly = false,
   entity,

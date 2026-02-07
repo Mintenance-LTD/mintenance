@@ -26,8 +26,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci || npm install
+        run: npm ci
         timeout-minutes: 10
 
       - name: Build mobile bundle
@@ -66,8 +65,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci || npm install
+        run: npm ci
         timeout-minutes: 10
 
       - name: Build web bundle
@@ -116,8 +114,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci || npm install
+        run: npm ci
         timeout-minutes: 10
 
       - name: Run performance tests
@@ -127,8 +124,7 @@ jobs:
       - name: Check TypeScript performance
         run: |
           cd apps/mobile
-          npm run type-check || echo "⚠️ Type errors found - non-blocking"
-        continue-on-error: true
+          npm run type-check
 
       - name: Lint performance
         run: |

@@ -279,7 +279,7 @@ async function fullTextSearchContractors(
 
     // Build the query
     let queryBuilder = serverSupabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('role', 'contractor')
       .or(`first_name.ilike.%${sanitizedQuery}%,last_name.ilike.%${sanitizedQuery}%,bio.ilike.%${sanitizedQuery}%`)

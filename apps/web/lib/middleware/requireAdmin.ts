@@ -172,7 +172,7 @@ export async function requireAdmin(request: NextRequest): Promise<{
 async function logSecurityEvent(
   userId: string,
   eventType: string,
-  details: Record<string, any>
+  details: Record<string, unknown>
 ) {
   try {
     const supabase = createClient();

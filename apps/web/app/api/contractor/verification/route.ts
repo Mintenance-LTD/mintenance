@@ -103,7 +103,7 @@ export async function GET(request: Request) {
     }
 
     const { data: userData, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('business_address, license_number, latitude, longitude, company_name')
       .eq('id', user.id)
       .single();
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
     const geocoder = new GeocodingService();
     const coordinates = await geocoder.geocodeAddress(businessAddress);
 
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, unknown> = {
       company_name: companyName,
       business_address: coordinates?.formattedAddress || businessAddress,
       license_number: licenseNumber.trim().toUpperCase(),
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: updatedUser, error: updateError } = await supabase
-      .from('users')
+      .from('profiles')
       .update(updateData)
       .eq('id', user.id)
       .select()

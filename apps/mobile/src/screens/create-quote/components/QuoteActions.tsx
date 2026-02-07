@@ -31,6 +31,8 @@ export const QuoteActions: React.FC<QuoteActionsProps> = ({
           style={[styles.button, styles.secondaryButton]}
           onPress={onBack}
           disabled={loading}
+          accessibilityRole='button'
+          accessibilityLabel='Cancel quote'
         >
           <Text style={styles.secondaryButtonText}>Cancel</Text>
         </TouchableOpacity>
@@ -39,6 +41,8 @@ export const QuoteActions: React.FC<QuoteActionsProps> = ({
           style={[styles.button, styles.primaryButton]}
           onPress={onSave}
           disabled={loading}
+          accessibilityRole='button'
+          accessibilityLabel={loading ? 'Saving quote' : 'Save quote as draft'}
         >
           {loading ? (
             <ActivityIndicator size="small" color={theme.colors.textInverse} />
@@ -52,6 +56,8 @@ export const QuoteActions: React.FC<QuoteActionsProps> = ({
         style={[styles.button, styles.sendButton]}
         onPress={onSend}
         disabled={loading}
+        accessibilityRole='button'
+        accessibilityLabel={loading ? 'Sending quote to client' : 'Send quote to client'}
       >
         {loading ? (
           <ActivityIndicator size="small" color={theme.colors.textInverse} />

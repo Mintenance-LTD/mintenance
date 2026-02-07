@@ -27,13 +27,11 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci || npm install
+        run: npm ci
         timeout-minutes: 10
 
       - name: Type check
-        run: npm run type-check:web || echo "⚠️ Type errors found - non-blocking"
-        continue-on-error: true
+        run: npm run type-check:web
 
       - name: Lint
         run: npm run lint:web

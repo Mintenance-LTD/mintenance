@@ -5,6 +5,8 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { matchCommunicationSchema } from '@/lib/validation/schemas';
 
 export async function POST(  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -40,12 +42,14 @@ export async function POST(  request: NextRequest,
     }
 
     const { id: jobId } = await params;
-    const body = await request.json();
-    const { contractorId } = body;
 
-    if (!contractorId) {
-      throw new BadRequestError('Contractor ID is required');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, matchCommunicationSchema);
+    if ('headers' in validation) {
+      return validation;
     }
+
+    const { contractorId } = validation.data;
 
     // Get match explanation
     const explanation = await MatchCommunicationService.getMatchExplanation(jobId, contractorId);

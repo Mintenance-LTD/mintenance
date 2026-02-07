@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (escrows && escrows.length > 0) {
       const totalAmount = escrows.reduce((sum, e) => sum + (e.amount || 0), 0);
-      const jobTitles = escrows.map((e) => (e.jobs as any).title).join(', ');
+      const jobTitles = escrows.map((e) => (e.jobs as unknown as { title: string }).title).join(', ');
 
       await PaymentSetupNotificationService.notifyPaymentSetupRequired(
         contractorId,

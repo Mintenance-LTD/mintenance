@@ -305,7 +305,7 @@ export function ContractorMapView(props: ContractorMapViewProps) {
       const serviceAreasData = await response.json();
 
       // Draw circles for each service area
-      serviceAreasData.forEach(([contractorId, areas]: [string, any[]]) => {
+      serviceAreasData.forEach(([contractorId, areas]: [string, ({ id: string; latitude: number; longitude: number; radius_km: number; is_active: boolean; city: string; state: string })[]]) => {
         areas.forEach((area) => {
           const circle = createServiceAreaCircle(mapInstance, {
             id: area.id,
