@@ -35,15 +35,27 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
           onChangeText={onChangeText}
           placeholder={placeholder}
           placeholderTextColor={theme.colors.textTertiary}
+          accessibilityLabel='Search services'
+          accessibilityRole='search'
         />
         {value.length > 0 && (
-          <TouchableOpacity onPress={() => onChangeText('')}>
+          <TouchableOpacity
+            onPress={() => onChangeText('')}
+            accessibilityRole='button'
+            accessibilityLabel='Clear search'
+          >
             <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         )}
       </View>
 
-      <TouchableOpacity style={styles.filterButton} onPress={onFilterPress}>
+      <TouchableOpacity
+        style={styles.filterButton}
+        onPress={onFilterPress}
+        accessibilityRole='button'
+        accessibilityLabel='Open filters'
+        accessibilityHint='Double tap to adjust search filters'
+      >
         <Ionicons name="options" size={24} color={theme.colors.white} />
       </TouchableOpacity>
     </View>

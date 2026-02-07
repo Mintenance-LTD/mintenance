@@ -210,7 +210,7 @@ export class TrustScoreService {
         return baseDate; // Return base date if escrow not found
       }
 
-      const job = (escrow as any).jobs;
+      const job = (escrow as Record<string, unknown>).jobs as Record<string, unknown>;
       const contractorId = job.contractor_id;
 
       // Get hold period

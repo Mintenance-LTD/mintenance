@@ -334,6 +334,7 @@ export interface AIServiceConfig {
     huggingface?: string;
   };
   endpoints: {
+    baseUrl?: string;
     buildingSurveyor: string;
     agents: string;
     search: string;

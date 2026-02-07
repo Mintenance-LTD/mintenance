@@ -33,7 +33,7 @@ export const metadata = {
 
 // Calculate match score based on various factors
 function calculateMatchScore(
-  job: any,
+  job: { category?: string | null; property?: { address?: string } | null; budget?: number; priority?: string | null; created_at: string },
   contractorSkills: string[],
   contractorCity: string | null
 ): number {

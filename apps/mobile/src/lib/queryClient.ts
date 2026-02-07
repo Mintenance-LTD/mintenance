@@ -1,45 +1,36 @@
 import { QueryClient, QueryCache, MutationCache, Query, Mutation } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
 import HapticService from '../utils/haptics';
 import { logger } from '../utils/logger';
 
-// Error handling for queries
-const handleQueryError = (error: unknown, query: Query<unknown, Error, unknown>) => {
-  logger.error('Query error:', error, query);
+// ============================================================================
+// GLOBAL ERROR HANDLERS
+// Errors are logged centrally. UI-level error messages should be handled
+// per-component (via useQuery's onError or error state), NOT via Alert.alert
+// here, because background refetch failures would interrupt the user.
+// ============================================================================
 
-  // Haptic feedback for errors
+const handleQueryError = (error: unknown, query: Query<unknown, Error, unknown>): void => {
+  logger.error('Query error', {
+    queryKey: query.queryKey,
+    message: error instanceof Error ? error.message : String(error),
+  });
+
   HapticService.error();
-
-  // Show user-friendly error message
-  if (error instanceof Error) {
-    Alert.alert(
-      'Something went wrong',
-      error.message || 'Please try again later',
-      [{ text: 'OK', style: 'default' }]
-    );
-  }
 };
 
-// Error handling for mutations
 const handleMutationError = (
   error: unknown,
-  variables: unknown,
-  context: unknown,
-  mutation: Mutation<unknown, Error, unknown>
-) => {
-  logger.error('Mutation error:', error, mutation);
+  _variables: unknown,
+  _context: unknown,
+  mutation: Mutation<unknown, Error, unknown>,
+): void => {
+  logger.error('Mutation error', {
+    mutationKey: mutation.options.mutationKey,
+    message: error instanceof Error ? error.message : String(error),
+  });
 
-  // Haptic feedback for errors
   HapticService.error();
-
-  // Show user-friendly error message
-  if (error instanceof Error) {
-    Alert.alert('Action Failed', error.message || 'Please try again', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Retry', onPress: () => mutation.reset() },
-    ]);
-  }
 };
 
 // Query Cache configuration
@@ -73,15 +64,16 @@ export const queryClient = new QueryClient({
 
       // Retry configuration
       retry: (failureCount, error: unknown) => {
+        const status = (error as { status?: number })?.status;
+        const name = (error as { name?: string })?.name;
+        const message = (error as { message?: string })?.message;
+
         // Don't retry on 4xx errors (client errors)
-        if (error?.status >= 400 && error?.status < 500) {
+        if (typeof status === 'number' && status >= 400 && status < 500) {
           return false;
         }
         // Don't retry if the error indicates offline state
-        if (
-          error?.name === 'NetworkError' ||
-          error?.message?.includes('fetch')
-        ) {
+        if (name === 'NetworkError' || (message && message.includes('fetch'))) {
           return false;
         }
         // Retry up to 3 times for other errors
@@ -109,12 +101,13 @@ export const queryClient = new QueryClient({
       refetchIntervalInBackground: false,
     },
     mutations: {
-      // More aggressive retry for mutations
+      // Retry failed mutations once, but not client errors
       retry: (failureCount, error: unknown) => {
-        // Don't retry client errors
-        if (error?.status >= 400 && error?.status < 500) return false;
-        // Don't retry offline queued errors
-        if (error?.name === 'OfflineQueuedError') return false;
+        const status = (error as { status?: number })?.status;
+        const name = (error as { name?: string })?.name;
+
+        if (typeof status === 'number' && status >= 400 && status < 500) return false;
+        if (name === 'OfflineQueuedError') return false;
         return failureCount < 2;
       },
 
@@ -149,7 +142,7 @@ export const persistQueryClient = async () => {
           }
           return acc;
         },
-        [] as Array<{ key: string; data: unknown; dataUpdatedAt: number }>
+        [] as { key: string; data: unknown; dataUpdatedAt: number }[]
       );
 
     // Apply TTL filter

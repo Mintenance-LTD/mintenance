@@ -51,7 +51,7 @@ interface User {
   email: string;
   role: string;
   created_at: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface UserDetailDialogProps {

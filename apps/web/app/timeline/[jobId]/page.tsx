@@ -1,6 +1,12 @@
+import type { Metadata } from 'next';
 import { use } from 'react';
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
+
+export const metadata: Metadata = {
+  title: 'Project Timeline | Mintenance',
+  description: 'View the detailed timeline and milestones for your property maintenance project.',
+};
 
 interface Params {
   params: Promise<{ jobId: string }>;

@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       // Update user's phone number if different
       const { serverSupabase } = await import('@/lib/api/supabaseServer');
       await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({ phone: phoneNumber })
         .eq('id', user.id);
 

@@ -18,9 +18,10 @@ import {
   RateLimitResult,
 } from './core/RateLimiter';
 // Detect platform
+const isReactNative = typeof navigator !== 'undefined' && navigator.product === 'ReactNative';
 const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
-const isServer = typeof window === 'undefined' && typeof process !== 'undefined';
-const isMobile = !isWeb && !isServer;
+const isServer = typeof window === 'undefined' && typeof process !== 'undefined' && !isReactNative;
+const isMobile = isReactNative;
 // Select appropriate adapter
 const PlatformSanitizer = isServer || isWeb ? WebSanitizer : MobileSanitizer;
 /**
@@ -217,7 +218,7 @@ if (isMobile) {
      */
     object: <T extends Record<string, unknown>>(
       obj: T,
-      fieldSanitizers?: Partial<Record<keyof T, (value: unknown) => any>>
+      fieldSanitizers?: Partial<Record<keyof T, (value: unknown) => unknown>>
     ): T => {
       return MobileSanitizer.sanitizeObject(obj, fieldSanitizers);
     },
@@ -274,29 +275,30 @@ export const utils = {
     data: T,
     schema: Partial<Record<keyof T, 'text' | 'email' | 'phone' | 'url' | 'number'>>
   ): T => {
-    const result = { ...data };
-    for (const [key, type] of Object.entries(schema) as [keyof T, string][]) {
-      const value = data[key];
+    const result = { ...data } as Record<string, unknown>;
+    for (const [key, type] of Object.entries(schema)) {
+      const value = result[key];
       if (value === undefined || value === null) continue;
+      const strValue = String(value);
       switch (type) {
         case 'text':
-          result[key] = sanitize.text(value) as unknown;
+          result[key] = sanitize.text(strValue);
           break;
         case 'email':
-          result[key] = sanitize.email(value) as unknown;
+          result[key] = sanitize.email(strValue);
           break;
         case 'phone':
-          result[key] = sanitize.phone(value) as unknown;
+          result[key] = sanitize.phone(strValue);
           break;
         case 'url':
-          result[key] = sanitize.url(value) as unknown;
+          result[key] = sanitize.url(strValue);
           break;
         case 'number':
-          result[key] = sanitize.numeric(value) as unknown;
+          result[key] = sanitize.numeric(strValue);
           break;
       }
     }
-    return result;
+    return result as T;
   },
   /**
    * Create a Zod transformer for sanitization
@@ -334,8 +336,10 @@ export const utils = {
       logger.warn('[Security Threat]', logData);
     }
     // In production, send to monitoring service
-    if (typeof global !== 'undefined' && (global as unknown).securityLogger) {
-      (global as unknown).securityLogger.warn('Security threat detected', logData);
+    const globalObj = typeof global !== 'undefined' ? global as Record<string, unknown> : undefined;
+    if (globalObj?.securityLogger) {
+      const securityLogger = globalObj.securityLogger as { warn: (msg: string, data: unknown) => void };
+      securityLogger.warn('Security threat detected', logData);
     }
   },
 };

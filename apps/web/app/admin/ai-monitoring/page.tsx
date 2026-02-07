@@ -6,7 +6,6 @@ import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { DashboardSkeleton } from '@/components/ui/ChartSkeleton';
-
 // Dynamic import for heavy AI monitoring component with Tremor charts
 const AIMonitoringClient = dynamic(
   () => import('./components/AIMonitoringClient').then(mod => ({ default: mod.AIMonitoringClient })),
@@ -30,7 +29,7 @@ export default function AIMonitoringPage() {
         userInfo={{
           name: userDisplayName,
           email: user?.email || '',
-          avatar: (user as any)?.profile_image_url,
+          avatar: user?.profile_image_url,
         }}
       />
 

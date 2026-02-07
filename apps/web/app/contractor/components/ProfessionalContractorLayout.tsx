@@ -474,7 +474,7 @@ export function ProfessionalContractorLayout({
                       onClick={() => setShowUserMenu(false)}
                     >
                       <HelpCircle className="w-4 h-4" />
-                      Help Center
+                      Help Centre
                     </Link>
                     <div className="border-t border-gray-200 my-2" />
                     <button
@@ -599,7 +599,7 @@ export function ProfessionalContractorLayout({
                           onClick={() => setShowHeaderUserMenu(false)}
                         >
                           <HelpCircle className="w-4 h-4" />
-                          Help Center
+                          Help Centre
                         </Link>
                       </div>
 

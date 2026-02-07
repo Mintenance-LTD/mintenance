@@ -27,8 +27,8 @@ export default function CheckoutError({
     });
 
     // Report to Sentry
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error, {
+    if (typeof window !== 'undefined' && window.Sentry) {
+      window.Sentry.captureException(error, {
         tags: {
           page: 'checkout',
           errorBoundary: true,

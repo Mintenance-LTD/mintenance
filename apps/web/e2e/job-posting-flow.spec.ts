@@ -77,8 +77,8 @@ test.describe('Job Posting Flow', () => {
                                  await page.getByText('Photos').isVisible().catch(() => false);
 
       // Check if photo upload elements are visible on current view
-      let hasFileInput = await page.locator('input#photo-upload').isVisible().catch(() => false);
-      let hasUploadText = await page.getByText(/Add photos of your project|Click to upload|drag and drop/i).isVisible().catch(() => false);
+      const hasFileInput = await page.locator('input#photo-upload').isVisible().catch(() => false);
+      const hasUploadText = await page.getByText(/Add photos of your project|Click to upload|drag and drop/i).isVisible().catch(() => false);
 
       // Photo functionality exists if Step 2 indicator shows (multi-step) or upload visible (single-page)
       expect(hasStep2Indicator || hasFileInput || hasUploadText).toBeTruthy();
@@ -99,8 +99,8 @@ test.describe('Job Posting Flow', () => {
       const hasStep3InDOM = await page.locator('[data-testid="step-3-budget"]').count() > 0;
 
       // Check if budget elements are visible on current view
-      let hasBudgetHeading = await page.getByText('Set your budget and timeline').isVisible().catch(() => false);
-      let hasBudgetText = await page.getByText(/budget|contractors provide accurate/i).isVisible().catch(() => false);
+      const hasBudgetHeading = await page.getByText('Set your budget and timeline').isVisible().catch(() => false);
+      const hasBudgetText = await page.getByText(/budget|contractors provide accurate/i).isVisible().catch(() => false);
 
       // Budget functionality exists if Step 3 exists in DOM (multi-step form) or budget visible (single-page)
       expect(hasStep3InDOM || hasBudgetHeading || hasBudgetText).toBeTruthy();
@@ -122,8 +122,8 @@ test.describe('Job Posting Flow', () => {
       const hasStep3Indicator = await page.getByText(/^3$/).isVisible().catch(() => false) &&
                                  await page.getByText('Budget').isVisible().catch(() => false);
 
-      let hasUrgencyLabel = await page.getByText('When do you need this done?').isVisible().catch(() => false);
-      let hasUrgencyOption = await page.getByText(/Flexible|Soon|Urgent|Emergency/i).isVisible().catch(() => false);
+      const hasUrgencyLabel = await page.getByText('When do you need this done?').isVisible().catch(() => false);
+      const hasUrgencyOption = await page.getByText(/Flexible|Soon|Urgent|Emergency/i).isVisible().catch(() => false);
 
       // Urgency exists if Step 3 indicator shows (multi-step) or urgency elements visible (single-page)
       expect(hasStep3Indicator || hasUrgencyLabel || hasUrgencyOption).toBeTruthy();

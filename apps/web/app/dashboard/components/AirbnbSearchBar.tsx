@@ -129,7 +129,7 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
   };
 
   const formatMonth = (date: Date) => {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
   };
 
   const handleDateClick = (date: Date) => {

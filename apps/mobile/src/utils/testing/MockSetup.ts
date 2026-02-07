@@ -7,7 +7,7 @@
 // MOCK SETUP UTILITIES
 // ============================================================================
 
-const activeMocks: Array<() => void> = [];
+const activeMocks: (() => void)[] = [];
 
 export function setupMocks(mockConfig: {
   navigation?: boolean;

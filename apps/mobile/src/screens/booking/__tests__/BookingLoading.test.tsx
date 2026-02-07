@@ -3,6 +3,11 @@
  * Target: 100% coverage with 20-40 tests
  */
 
+import React from 'react';
+import { render } from '../../../__tests__/test-utils';
+import { BookingLoading } from '../BookingLoading';
+import { theme } from '../../../theme';
+
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: any) => children,
   SafeAreaView: ({ children }: any) => children,
@@ -11,11 +16,6 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
-
-import React from 'react';
-import { render } from '../../../__tests__/test-utils';
-import { BookingLoading } from '../BookingLoading';
-import { theme } from '../../../theme';
 
 describe('BookingLoading Component', () => {
   describe('Rendering', () => {

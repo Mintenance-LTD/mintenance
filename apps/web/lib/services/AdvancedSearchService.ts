@@ -189,7 +189,7 @@ export class AdvancedSearchService {
         rating: profile.rating || 0,
         total_jobs: profile.total_jobs || 0,
         portfolioImages: profile.portfolio_images || [],
-        reviews: (profile as any).reviews ?? []
+        reviews: (profile as Record<string, unknown>).reviews ?? []
       }));
 
       // Calculate facets for refined search

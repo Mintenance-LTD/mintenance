@@ -79,7 +79,7 @@ export function ChatInterface2025(props: ChatInterface2025Props) {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   const getInitials = (name: string) => {
@@ -94,7 +94,7 @@ export function ChatInterface2025(props: ChatInterface2025Props) {
   const groupMessagesByDate = (messages: Message[]) => {
     const groups: { [key: string]: Message[] } = {};
     messages.forEach((message) => {
-      const date = new Date(message.created_at).toLocaleDateString('en-US', {
+      const date = new Date(message.created_at).toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',

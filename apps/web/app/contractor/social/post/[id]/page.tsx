@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { redirect, notFound } from 'next/navigation';
 import { PostDetailClient } from './components/PostDetailClient';
+
+export const metadata: Metadata = {
+  title: 'Post Details | Mintenance',
+  description: 'View contractor post details, photos, comments, and engage with the contractor community.',
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -89,6 +95,6 @@ export default async function PostDetailPage({ params }: { params: Promise<{ id:
     rental_price: post.rental_price,
   };
 
-  return <PostDetailClient post={formattedPost as any} currentUserId={user.id} />;
+  return <PostDetailClient post={formattedPost as Parameters<typeof PostDetailClient>[0]["post"]} currentUserId={user.id} />;
 }
 

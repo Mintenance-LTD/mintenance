@@ -1,4 +1,11 @@
 // Mock expo-local-authentication
+import * as LocalAuthentication from 'expo-local-authentication';
+import * as SecureStore from 'expo-secure-store';
+import { Alert } from 'react-native';
+import { BiometricService, BiometricCredentials } from '../BiometricService';
+import { trackUserAction, addBreadcrumb } from '../../config/sentry';
+import { logger } from '../../utils/logger';
+
 jest.mock('expo-local-authentication', () => ({
   hasHardwareAsync: jest.fn(() => Promise.resolve(true)),
   isEnrolledAsync: jest.fn(() => Promise.resolve(true)),
@@ -40,13 +47,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import * as LocalAuthentication from 'expo-local-authentication';
-import * as SecureStore from 'expo-secure-store';
-import { Alert } from 'react-native';
-import { BiometricService, BiometricCredentials } from '../BiometricService';
-import { trackUserAction, addBreadcrumb } from '../../config/sentry';
-import { logger } from '../../utils/logger';
 
 const mockLocalAuth = LocalAuthentication as jest.Mocked<typeof LocalAuthentication>;
 const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;

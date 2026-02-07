@@ -67,6 +67,8 @@ const EditProfileScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
         >
           <Ionicons
             name='arrow-back'
@@ -74,11 +76,14 @@ const EditProfileScreen: React.FC = () => {
             color={theme.colors.textInverse}
           />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle} accessibilityRole='header'>Edit Profile</Text>
         <TouchableOpacity
           style={styles.saveButton}
           onPress={handleSave}
           disabled={loading}
+          accessibilityRole='button'
+          accessibilityLabel={loading ? 'Saving profile changes' : 'Save profile changes'}
+          accessibilityState={{ disabled: loading }}
         >
           <Text style={styles.saveButtonText}>
             {loading ? 'Saving...' : 'Save'}
@@ -103,11 +108,19 @@ const EditProfileScreen: React.FC = () => {
                 </Text>
               </View>
             )}
-            <TouchableOpacity style={styles.photoEditButton}>
+            <TouchableOpacity
+              style={styles.photoEditButton}
+              accessibilityRole='button'
+              accessibilityLabel='Change profile photo'
+            >
               <Ionicons name='camera' size={20} color={theme.colors.info} />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.changePhotoButton}>
+          <TouchableOpacity
+            style={styles.changePhotoButton}
+            accessibilityRole='button'
+            accessibilityLabel='Change profile photo'
+          >
             <Text style={styles.changePhotoText}>Change Profile Photo</Text>
           </TouchableOpacity>
         </View>
@@ -206,6 +219,9 @@ const EditProfileScreen: React.FC = () => {
                 true: theme.colors.success,
               }}
               thumbColor={theme.colors.textInverse}
+              accessibilityLabel='Email notifications'
+              accessibilityRole='switch'
+              accessibilityState={{ checked: emailNotifications }}
             />
           </View>
 
@@ -224,6 +240,9 @@ const EditProfileScreen: React.FC = () => {
                 true: theme.colors.success,
               }}
               thumbColor={theme.colors.textInverse}
+              accessibilityLabel='Push notifications'
+              accessibilityRole='switch'
+              accessibilityState={{ checked: pushNotifications }}
             />
           </View>
         </View>
@@ -232,7 +251,11 @@ const EditProfileScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Account</Text>
 
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity
+            style={styles.actionItem}
+            accessibilityRole='button'
+            accessibilityLabel='Change password'
+          >
             <View style={styles.actionLeft}>
               <Ionicons name='key-outline' size={20} color='#666' />
               <Text style={styles.actionText}>Change Password</Text>
@@ -240,7 +263,12 @@ const EditProfileScreen: React.FC = () => {
             <Ionicons name='chevron-forward' size={16} color='#ccc' />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.actionItem, styles.dangerAction]}>
+          <TouchableOpacity
+            style={[styles.actionItem, styles.dangerAction]}
+            accessibilityRole='button'
+            accessibilityLabel='Delete account'
+            accessibilityHint='This action cannot be undone'
+          >
             <View style={styles.actionLeft}>
               <Ionicons name='trash-outline' size={20} color='#FF3B30' />
               <Text style={[styles.actionText, styles.dangerText]}>

@@ -1,5 +1,11 @@
+import type { Metadata } from 'next';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { theme } from '@/lib/theme';
+
+export const metadata: Metadata = {
+  title: 'Reporting | Mintenance',
+  description: 'View analytics and reports for your property maintenance projects and spending.',
+};
 
 export default function ReportingPage() {
   return (

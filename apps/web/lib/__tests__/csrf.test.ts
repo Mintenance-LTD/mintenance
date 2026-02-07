@@ -4,12 +4,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
  * Tests CSRF token validation and generation
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import { 
-  validateCSRF, 
-  requireCSRF, 
-  generateCSRFToken, 
-  setCSRFToken 
+import {
+  validateCSRF,
+  requireCSRF,
+  generateCSRFToken,
+  setCSRFToken
 } from '../csrf';
 import { NextRequest } from 'next/server';
 
@@ -25,13 +24,44 @@ Object.defineProperty(global, 'crypto', {
   }
 });
 
+/**
+ * Helper to create a NextRequest with cookie header properly set.
+ * happy-dom strips cookie headers from NextRequest, so we need to
+ * spy on headers.get to return the cookie value.
+ */
+function createRequestWithCookies(
+  url: string,
+  options: { method: string; headers?: Record<string, string> }
+): NextRequest {
+  const { headers = {} } = options;
+  const cookieValue = headers['cookie'];
+  // Remove cookie from headers passed to NextRequest (happy-dom strips it anyway)
+  const { cookie: _cookie, ...otherHeaders } = headers;
+
+  const request = new NextRequest(url, {
+    method: options.method,
+    headers: otherHeaders,
+  });
+
+  // Spy on headers.get to inject the cookie value since happy-dom strips it
+  if (cookieValue !== undefined) {
+    const originalGet = request.headers.get.bind(request.headers);
+    vi.spyOn(request.headers, 'get').mockImplementation((name: string) => {
+      if (name === 'cookie') return cookieValue;
+      return originalGet(name);
+    });
+  }
+
+  return request;
+}
+
 describe('CSRF Protection', () => {
   const validToken = 'valid-csrf-token-12345';
   const invalidToken = 'invalid-csrf-token-67890';
 
   describe('validateCSRF', () => {
     it('should validate CSRF token for POST requests', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
@@ -44,7 +74,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should validate CSRF token for PUT requests', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'PUT',
         headers: {
           'x-csrf-token': validToken,
@@ -57,7 +87,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should validate CSRF token for DELETE requests', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'DELETE',
         headers: {
           'x-csrf-token': validToken,
@@ -70,7 +100,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should validate CSRF token for PATCH requests', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'PATCH',
         headers: {
           'x-csrf-token': validToken,
@@ -83,7 +113,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should skip validation for GET requests', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'GET',
         headers: {
           'x-csrf-token': validToken,
@@ -96,7 +126,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should skip validation for HEAD requests', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'HEAD',
         headers: {
           'x-csrf-token': validToken,
@@ -109,7 +139,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should fail when header token is missing', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'cookie': `__Host-csrf-token=${validToken}`
@@ -121,7 +151,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should fail when cookie token is missing', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken
@@ -133,7 +163,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should fail when tokens do not match', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
@@ -146,7 +176,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should fail when both tokens are missing', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {}
       });
@@ -156,7 +186,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should handle malformed cookie header', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
@@ -169,7 +199,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should handle empty cookie header', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
@@ -182,7 +212,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should handle multiple cookies', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
@@ -197,7 +227,7 @@ describe('CSRF Protection', () => {
 
   describe('requireCSRF', () => {
     it('should not throw for valid CSRF token', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
@@ -209,7 +239,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should throw for invalid CSRF token', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
@@ -221,7 +251,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should not throw for GET requests', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'GET',
         headers: {}
       });
@@ -304,7 +334,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should handle null token values', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': '',
@@ -317,7 +347,7 @@ describe('CSRF Protection', () => {
     });
 
     it('should handle whitespace in tokens', async () => {
-      const request = new NextRequest('http://localhost:3000/api/test', {
+      const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
           'x-csrf-token': ` ${validToken} `,

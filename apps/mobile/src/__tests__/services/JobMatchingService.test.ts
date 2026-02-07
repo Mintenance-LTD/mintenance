@@ -1,3 +1,5 @@
+import { ContractorService } from '../../services/ContractorService';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -72,8 +74,6 @@ jest.mock('../../services/ContractorService', () => {
     },
   };
 });
-
-import { ContractorService } from '../../services/ContractorService';
 
 jest.mock('../../utils/logger', () => ({
   logger: {

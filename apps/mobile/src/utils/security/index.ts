@@ -4,6 +4,9 @@
  * Provides consolidated access to security audit and penetration testing functionality
  */
 
+// Create and export singleton instance
+import { SecurityAuditService } from './core/SecurityAuditService';
+
 export { SecurityAuditService } from './core/SecurityAuditService';
 export { ComplianceManager } from './managers/ComplianceManager';
 export { RecommendationEngine } from './managers/RecommendationEngine';
@@ -21,8 +24,5 @@ export type {
   PenetrationTestSuite,
   PenetrationTest
 } from './types';
-
-// Create and export singleton instance
-import { SecurityAuditService } from './core/SecurityAuditService';
 export const securityAuditService = new SecurityAuditService();
 export default securityAuditService;

@@ -175,7 +175,7 @@ export function ContractorTravelTracking({
           color: theme.colors.textSecondary,
           fontSize: theme.typography.fontSize.base,
         }}>
-          The contractor will appear on the map when they start traveling to the job location.
+          The contractor will appear on the map when they start travelling to the job location.
         </p>
       </div>
     );

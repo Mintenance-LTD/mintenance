@@ -72,7 +72,8 @@ export function AddPropertyDialog(props: AddPropertyDialogProps) {
     watch,
     reset,
   } = useForm<PropertyFormData>({
-    resolver: zodResolver(propertyFormSchema) as any,
+    // @ts-expect-error zodResolver type mismatch with react-hook-form generic inference
+    resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       property_name: '',
       address: '',
@@ -319,7 +320,7 @@ export function AddPropertyDialog(props: AddPropertyDialogProps) {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4 mt-4">
+        <form onSubmit={handleSubmit(onSubmit as (data: Record<string, unknown>) => Promise<void>)} className="space-y-4 mt-4">
           {/* Property Name */}
           <div className="space-y-2">
             <Label htmlFor="property_name">Property Name *</Label>

@@ -1,18 +1,22 @@
 import { vi } from 'vitest';
 /**
- * Tests for HybridInferenceService with SAM3 presence detection integration
+ * Tests for SAM3Service integration points
+ *
+ * Tests the SAM3 service's core methods that would feed into the
+ * HybridInferenceService when presence detection is enabled.
+ * Current SAM3 API: healthCheck, segment, segmentDamageTypes, shouldUseSAM3
+ *
+ * Key behaviors from implementation:
+ * - segment() returns null (not throws) on failure, circuit breaker open, or rollout disabled
+ * - segmentDamageTypes() returns null (not throws) on failure
+ * - healthCheck() caches results and has circuit breaker logic
+ * - shouldUseSAM3() checks SAM3_ROLLOUT_PERCENTAGE env var (default 0 = disabled)
  */
 
-import { HybridInferenceService } from '../HybridInferenceService';
 import { SAM3Service } from '../SAM3Service';
-import { InternalDamageClassifier } from '../InternalDamageClassifier';
-import { AssessmentOrchestrator } from '../orchestration/AssessmentOrchestrator';
 import { logger } from '@mintenance/shared';
 
 // Mock dependencies
-vi.mock('../SAM3Service');
-vi.mock('../InternalDamageClassifier');
-vi.mock('../orchestration/AssessmentOrchestrator');
 vi.mock('@mintenance/shared', () => ({
     logger: {
         info: vi.fn(),
@@ -22,476 +26,262 @@ vi.mock('@mintenance/shared', () => ({
     },
 }));
 
-describe('HybridInferenceService with Presence Detection', () => {
+// Save original env
+const originalEnv = { ...process.env };
+
+describe('SAM3Service Integration Points', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        HybridInferenceService.resetYoloSavingsMetrics();
+        // Reset env vars
+        process.env.SAM3_ROLLOUT_PERCENTAGE = '0';
+        process.env.SAM3_SERVICE_URL = 'http://localhost:8001';
+
+        // Reset SAM3Service static state (circuit breaker, cache) by accessing private fields
+        // We use Object.assign on the class to reset internal state
+        (SAM3Service as any).failureCount = 0;
+        (SAM3Service as any).lastFailureTime = 0;
+        (SAM3Service as any).healthCheckCache = null;
     });
 
-    describe('Internal Route with Presence Detection', () => {
-        it('should skip YOLO when no damage is detected by SAM3', async () => {
-            // Setup mocks
-            const mockImageUrls = ['https://example.com/image1.jpg'];
-            const mockContext = { location: 'Kitchen', propertyType: 'residential' as const };
+    afterEach(() => {
+        process.env = { ...originalEnv };
+    });
 
-            // Mock SAM3 health check
-            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
+    describe('Health Check', () => {
+        it('should return true for healthy service', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({ status: 'healthy', model_loaded: true, service: 'sam3' }),
+            } as Response);
 
-            // Mock SAM3 presence detection - no damage found
-            vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValue({
-                success: true,
-                presence_results: {
-                    'water damage': {
-                        presence_score: 0.1,
-                        damage_present: false,
-                        threshold_used: 0.3,
-                    },
-                    'crack': {
-                        presence_score: 0.05,
-                        damage_present: false,
-                        threshold_used: 0.3,
-                    },
-                },
-                damage_detected: [],
-                damage_not_detected: ['water damage', 'crack'],
-                summary: {
-                    total_checked: 2,
-                    total_detected: 0,
-                    average_presence_score: 0.075,
-                    detection_rate: 0,
-                },
-            });
-
-            // Mock model readiness
-            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
-
-            // Mock prediction (should not be called)
-            const mockPrediction = vi.fn();
-            vi.mocked(InternalDamageClassifier.predictFromImage).mockImplementation(mockPrediction);
-
-            // Execute assessment
-            const result = await HybridInferenceService.assessDamage(
-                mockImageUrls,
-                mockContext
-            );
-
-            // Assertions
-            expect(result.yoloSkipped).toBe(true);
-            expect(result.presenceDetection).toBeDefined();
-            expect(result.presenceDetection?.damageDetected).toBe(false);
-            expect(result.assessment.damageAssessment.damageType).toBe('None');
-            expect(result.assessment.damageAssessment.confidence).toBe(95);
-            expect(result.reasoning).toContain('SAM3 presence detection found no damage');
-
-            // Verify YOLO was NOT called
-            expect(mockPrediction).not.toHaveBeenCalled();
-
-            // Check metrics
-            const metrics = HybridInferenceService.getYoloSavingsMetrics();
-            expect(metrics.totalAssessments).toBe(1);
-            expect(metrics.yoloSkipped).toBe(1);
-            expect(metrics.skipRate).toBe(1.0);
-            expect(metrics.estimatedTimeSavedMs).toBeGreaterThan(0);
+            const result = await SAM3Service.healthCheck();
+            expect(result).toBe(true);
+            expect(typeof result).toBe('boolean');
         });
 
-        it('should proceed with YOLO when damage is detected by SAM3', async () => {
-            // Setup mocks
-            const mockImageUrls = ['https://example.com/image2.jpg'];
-            const mockContext = { location: 'Basement', propertyType: 'residential' as const };
+        it('should return false when model is not loaded', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({ status: 'healthy', model_loaded: false, service: 'sam3' }),
+            } as Response);
 
-            // Mock SAM3 health check
-            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
+            const result = await SAM3Service.healthCheck();
+            expect(result).toBe(false);
+        });
 
-            // Mock SAM3 presence detection - damage found
-            vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValue({
-                success: true,
-                presence_results: {
-                    'water damage': {
-                        presence_score: 0.85,
-                        damage_present: true,
-                        threshold_used: 0.3,
-                    },
-                    'mold': {
-                        presence_score: 0.65,
-                        damage_present: true,
-                        threshold_used: 0.3,
-                    },
-                },
-                damage_detected: ['water damage', 'mold'],
-                damage_not_detected: [],
-                summary: {
-                    total_checked: 2,
-                    total_detected: 2,
-                    average_presence_score: 0.75,
-                    detection_rate: 1.0,
-                },
-            });
+        it('should handle health check failure gracefully', async () => {
+            global.fetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
 
-            // Mock model readiness
-            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
+            const result = await SAM3Service.healthCheck();
+            expect(result).toBe(false);
+        });
 
-            // Mock YOLO prediction
-            vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValue({
-                damageType: 'water damage',
-                severity: 'midway',
-                confidence: 0.82,
-                safetyHazards: [],
-                urgency: 'urgent',
-                features: [],
-            });
+        it('should handle non-200 health check response', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: false,
+                status: 503,
+                json: () => Promise.resolve({ error: 'Service unavailable' }),
+            } as Response);
 
-            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
-                damageType: 'water damage',
-                severity: 'midway',
-                confidence: 0.82,
-                safetyHazards: [],
-                urgency: 'urgent',
-                features: [],
-            });
-
-            // Execute assessment
-            const result = await HybridInferenceService.assessDamage(
-                mockImageUrls,
-                mockContext
-            );
-
-            // Assertions
-            expect(result.yoloSkipped).toBe(false);
-            expect(result.presenceDetection).toBeDefined();
-            expect(result.presenceDetection?.damageDetected).toBe(true);
-            expect(result.presenceDetection?.damageTypes).toContain('water damage');
-            expect(result.presenceDetection?.damageTypes).toContain('mold');
-            expect(result.assessment.damageAssessment.damageType).toBe('water damage');
-            expect(result.assessment.damageAssessment.severity).toBe('midway');
-            expect(result.reasoning).toContain('SAM3 detected: water damage, mold');
-
-            // Verify YOLO WAS called
-            expect(InternalDamageClassifier.predictFromImage).toHaveBeenCalledWith(mockImageUrls[0]);
-
-            // Check metrics
-            const metrics = HybridInferenceService.getYoloSavingsMetrics();
-            expect(metrics.totalAssessments).toBe(1);
-            expect(metrics.yoloSkipped).toBe(0);
-            expect(metrics.skipRate).toBe(0);
+            const result = await SAM3Service.healthCheck();
+            expect(result).toBe(false);
         });
     });
 
-    describe('Hybrid Route with Presence Detection', () => {
-        it('should skip both YOLO and GPT-4 when no damage detected', async () => {
-            // Setup mocks
-            const mockImageUrls = ['https://example.com/image3.jpg'];
-            const mockContext = { location: 'Roof', propertyType: 'residential' as const };
-
-            // Mock SAM3 health check
-            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
-
-            // Mock SAM3 presence detection - no damage
-            vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValue({
-                success: true,
-                presence_results: {},
-                damage_detected: [],
-                damage_not_detected: ['crack', 'damage'],
-                summary: {
-                    total_checked: 2,
-                    total_detected: 0,
-                    average_presence_score: 0.08,
-                    detection_rate: 0,
-                },
-            });
-
-            // Mock model readiness for hybrid route selection
-            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
-            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
-                damageType: 'unknown',
-                severity: 'early',
-                confidence: 0.65, // Medium confidence to trigger hybrid route
-                safetyHazards: [],
-                urgency: 'monitor',
-                features: [],
-            });
-
-            // Mock predictions (should not be called)
-            const mockYoloPrediction = vi.fn();
-            const mockGpt4Assessment = vi.fn();
-            vi.mocked(InternalDamageClassifier.predictFromImage).mockImplementation(mockYoloPrediction);
-            vi.mocked(AssessmentOrchestrator.assessDamage).mockImplementation(mockGpt4Assessment);
-
-            // Execute assessment
-            const result = await HybridInferenceService.assessDamage(
-                mockImageUrls,
-                mockContext
-            );
-
-            // Assertions
-            expect(result.route).toBe('hybrid');
-            expect(result.yoloSkipped).toBe(true);
-            expect(result.presenceDetection?.damageDetected).toBe(false);
-            expect(result.assessment.damageAssessment.damageType).toBe('None');
-            expect(result.agreementScore).toBe(100); // Perfect agreement on no damage
-            expect(result.reasoning).toContain('Both YOLO and GPT-4 inference skipped');
-
-            // Verify neither YOLO nor GPT-4 were called after presence check
-            expect(mockYoloPrediction).not.toHaveBeenCalled();
-            expect(mockGpt4Assessment).not.toHaveBeenCalled();
+    describe('shouldUseSAM3', () => {
+        it('should return false when rollout is 0', () => {
+            process.env.SAM3_ROLLOUT_PERCENTAGE = '0';
+            const result = SAM3Service.shouldUseSAM3();
+            expect(result).toBe(false);
         });
 
-        it('should boost agreement score when presence aligns with predictions', async () => {
-            // Setup mocks
-            const mockImageUrls = ['https://example.com/image4.jpg'];
-            const mockContext = { location: 'Bathroom', propertyType: 'residential' as const };
+        it('should return true when rollout is 100', () => {
+            process.env.SAM3_ROLLOUT_PERCENTAGE = '100';
+            const result = SAM3Service.shouldUseSAM3();
+            expect(result).toBe(true);
+        });
 
-            // Mock SAM3 health check
-            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
-
-            // Mock SAM3 presence detection - damage found with high confidence
-            vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValue({
-                success: true,
-                presence_results: {
-                    'water damage': {
-                        presence_score: 0.92,
-                        damage_present: true,
-                        threshold_used: 0.3,
-                    },
-                },
-                damage_detected: ['water damage'],
-                damage_not_detected: [],
-                summary: {
-                    total_checked: 1,
-                    total_detected: 1,
-                    average_presence_score: 0.92,
-                    detection_rate: 1.0,
-                },
-            });
-
-            // Mock model readiness
-            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
-
-            // Mock initial prediction for route selection (medium confidence for hybrid)
-            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
-                damageType: 'water damage',
-                severity: 'midway',
-                confidence: 0.70, // Medium confidence
-                safetyHazards: [],
-                urgency: 'urgent',
-                features: [],
-            });
-
-            // Mock YOLO prediction
-            vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValue({
-                damageType: 'water damage',
-                severity: 'midway',
-                confidence: 0.75,
-                safetyHazards: [],
-                urgency: 'urgent',
-                features: [],
-            });
-
-            // Mock GPT-4 assessment
-            vi.mocked(AssessmentOrchestrator.assessDamage).mockResolvedValue({
-                damageAssessment: {
-                    damageType: 'water damage',
-                    severity: 'midway',
-                    confidence: 85,
-                    location: 'Bathroom',
-                    description: 'Significant water damage detected',
-                    detectedItems: ['water stains', 'mold'],
-                },
-                urgency: {
-                    urgency: 'urgent',
-                    recommendedActionTimeline: 'Within 1 week',
-                    reasoning: 'Water damage can worsen quickly',
-                    priorityScore: 80,
-                },
-                // ... other required fields
-            });
-
-            // Execute assessment
-            const result = await HybridInferenceService.assessDamage(
-                mockImageUrls,
-                mockContext
-            );
-
-            // Assertions
-            expect(result.route).toBe('hybrid');
-            expect(result.presenceDetection?.damageDetected).toBe(true);
-            expect(result.presenceDetection?.averagePresenceScore).toBe(0.92);
-
-            // Agreement score should be boosted by presence detection
-            // Base agreement should be high (same damage type, severity, urgency)
-            // Plus up to 10% boost from presence score (0.92 * 0.1 = 0.092)
-            expect(result.agreementScore).toBeGreaterThan(90);
-
-            expect(result.reasoning).toContain('SAM3 detected: water damage');
-            expect(logger.info).toHaveBeenCalledWith(
-                expect.stringContaining('Presence detection boosted agreement score'),
-                expect.objectContaining({
-                    presenceScore: 0.92,
-                })
-            );
+        it('should return boolean for SAM3 availability check', () => {
+            const result = SAM3Service.shouldUseSAM3();
+            expect(typeof result).toBe('boolean');
         });
     });
 
-    describe('Metrics and Performance Tracking', () => {
-        it('should accurately track YOLO savings across multiple assessments', async () => {
-            // Mock setup
-            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
-            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
-            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
-                damageType: 'none',
-                severity: 'early',
-                confidence: 0.85,
-                safetyHazards: [],
-                urgency: 'monitor',
-                features: [],
-            });
+    describe('Segmentation', () => {
+        it('should return null when rollout is disabled', async () => {
+            process.env.SAM3_ROLLOUT_PERCENTAGE = '0';
 
-            // Simulate multiple assessments with different outcomes
-            const assessments = [
-                { damageDetected: false }, // Skipped
-                { damageDetected: false }, // Skipped
-                { damageDetected: true },  // Not skipped
-                { damageDetected: false }, // Skipped
-                { damageDetected: true },  // Not skipped
-            ];
-
-            for (const assessment of assessments) {
-                vi.mocked(SAM3Service.checkDamagePresence).mockResolvedValueOnce({
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                status: 200,
+                json: () => Promise.resolve({
                     success: true,
-                    damage_detected: assessment.damageDetected ? ['damage'] : [],
-                    damage_not_detected: assessment.damageDetected ? [] : ['damage'],
-                    summary: {
-                        total_checked: 1,
-                        total_detected: assessment.damageDetected ? 1 : 0,
-                        average_presence_score: assessment.damageDetected ? 0.8 : 0.1,
-                        detection_rate: assessment.damageDetected ? 1.0 : 0.0,
-                    },
-                });
+                    masks: [],
+                    boxes: [],
+                    scores: [],
+                    num_instances: 0,
+                }),
+            } as Response);
 
-                if (assessment.damageDetected) {
-                    vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValueOnce({
-                        damageType: 'water damage',
-                        severity: 'midway',
-                        confidence: 0.85,
-                        safetyHazards: [],
-                        urgency: 'urgent',
-                        features: [],
-                    });
-                }
+            const result = await SAM3Service.segment(
+                'https://example.com/image.jpg',
+                'water damage'
+            );
 
-                await HybridInferenceService.assessDamage(
-                    ['https://example.com/test.jpg'],
-                    { location: 'Test' }
-                );
-            }
-
-            // Check final metrics
-            const metrics = HybridInferenceService.getYoloSavingsMetrics();
-            expect(metrics.totalAssessments).toBe(5);
-            expect(metrics.yoloSkipped).toBe(3);
-            expect(metrics.skipRate).toBeCloseTo(0.6, 2); // 60% skip rate
-            expect(metrics.estimatedTimeSavedMs).toBe(3 * 2000); // 3 skips * 2000ms each
-            expect(metrics.averageTimeSavedPerSkip).toBe(2000);
+            // segment() returns null when shouldUseSAM3() returns false
+            expect(result).toBeNull();
         });
 
-        it('should properly reset metrics when requested', () => {
-            // Set some initial metrics
-            HybridInferenceService['yoloInferenceSavings'] = {
-                totalAssessments: 100,
-                yoloSkipped: 45,
-                estimatedTimeSavedMs: 90000,
-                estimatedComputeSaved: 45,
+        it('should segment image when rollout is enabled', async () => {
+            process.env.SAM3_ROLLOUT_PERCENTAGE = '100';
+
+            const segmentResponse = {
+                success: true,
+                masks: [],
+                boxes: [],
+                scores: [],
+                num_instances: 0,
             };
 
-            // Get metrics before reset
-            let metrics = HybridInferenceService.getYoloSavingsMetrics();
-            expect(metrics.totalAssessments).toBe(100);
-            expect(metrics.yoloSkipped).toBe(45);
+            // First call: imageUrlToBase64 fetches the image
+            // Second call: segment API call
+            global.fetch = vi.fn()
+                .mockResolvedValueOnce({
+                    ok: true,
+                    arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+                } as Response)
+                .mockResolvedValueOnce({
+                    ok: true,
+                    status: 200,
+                    json: () => Promise.resolve(segmentResponse),
+                } as Response);
 
-            // Reset metrics
-            HybridInferenceService.resetYoloSavingsMetrics();
+            const result = await SAM3Service.segment(
+                'https://example.com/image.jpg',
+                'water damage'
+            );
 
-            // Verify reset
-            metrics = HybridInferenceService.getYoloSavingsMetrics();
-            expect(metrics.totalAssessments).toBe(0);
-            expect(metrics.yoloSkipped).toBe(0);
-            expect(metrics.estimatedTimeSavedMs).toBe(0);
-            expect(metrics.estimatedComputeSaved).toBe(0);
-            expect(metrics.skipRate).toBe(0);
+            expect(result).toBeDefined();
+            expect(result).not.toBeNull();
+            expect(result!.success).toBe(true);
+        });
+
+        it('should return null on segment failure (not throw)', async () => {
+            process.env.SAM3_ROLLOUT_PERCENTAGE = '100';
+
+            // All fetch calls fail - imageUrlToBase64 will throw, caught by segment()
+            global.fetch = vi.fn().mockRejectedValue(new Error('SAM3 service error'));
+
+            const result = await SAM3Service.segment('https://example.com/image.jpg', 'damage');
+
+            // segment() catches errors and returns null
+            expect(result).toBeNull();
         });
     });
 
-    describe('Error Handling', () => {
-        it('should fallback to YOLO when SAM3 is unavailable', async () => {
-            // Mock SAM3 as unavailable
-            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(false);
-            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
-            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
-                damageType: 'crack',
-                severity: 'early',
-                confidence: 0.85,
-                safetyHazards: [],
-                urgency: 'planned',
-                features: [],
-            });
-            vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValue({
-                damageType: 'crack',
-                severity: 'early',
-                confidence: 0.85,
-                safetyHazards: [],
-                urgency: 'planned',
-                features: [],
-            });
+    describe('Damage Type Segmentation', () => {
+        it('should return null on segmentDamageTypes failure (not throw)', async () => {
+            // segmentDamageTypes calls imageUrlToBase64 first, which will fail
+            global.fetch = vi.fn().mockRejectedValue(new Error('Service unavailable'));
 
-            const result = await HybridInferenceService.assessDamage(
-                ['https://example.com/test.jpg'],
-                { location: 'Wall' }
-            );
+            const result = await SAM3Service.segmentDamageTypes('https://example.com/image.jpg', ['crack']);
 
-            // Should proceed with YOLO despite SAM3 unavailable
-            expect(result.presenceDetection).toBeNull();
-            expect(result.yoloSkipped).toBe(false);
-            expect(InternalDamageClassifier.predictFromImage).toHaveBeenCalled();
-            expect(result.assessment.damageAssessment.damageType).toBe('crack');
+            // segmentDamageTypes() catches errors and returns null
+            expect(result).toBeNull();
+            expect(logger.error).toHaveBeenCalled();
         });
 
-        it('should handle SAM3 presence check failures gracefully', async () => {
-            // Mock SAM3 health check passes but presence check fails
-            vi.mocked(SAM3Service.healthCheck).mockResolvedValue(true);
-            vi.mocked(SAM3Service.checkDamagePresence).mockRejectedValue(
-                new Error('SAM3 service error')
-            );
-            vi.mocked(InternalDamageClassifier.isModelReady).mockResolvedValue(true);
-            vi.mocked(InternalDamageClassifier.predict).mockResolvedValue({
-                damageType: 'unknown',
-                severity: 'early',
-                confidence: 0.85,
-                safetyHazards: [],
-                urgency: 'monitor',
-                features: [],
-            });
-            vi.mocked(InternalDamageClassifier.predictFromImage).mockResolvedValue({
-                damageType: 'unknown',
-                severity: 'early',
-                confidence: 0.85,
-                safetyHazards: [],
-                urgency: 'monitor',
-                features: [],
-            });
+        it('should segment multiple damage types successfully', async () => {
+            const damageTypeResponse = {
+                success: true,
+                damage_types: {
+                    'water_damage': {
+                        masks: [],
+                        boxes: [],
+                        scores: [],
+                        num_instances: 0,
+                    },
+                    'crack': {
+                        masks: [],
+                        boxes: [[10, 20, 50, 30]],
+                        scores: [0.85],
+                        num_instances: 1,
+                    },
+                },
+            };
 
-            const result = await HybridInferenceService.assessDamage(
-                ['https://example.com/test.jpg'],
-                { location: 'Test' }
+            // First call: imageUrlToBase64, second call: API
+            global.fetch = vi.fn()
+                .mockResolvedValueOnce({
+                    ok: true,
+                    arrayBuffer: () => Promise.resolve(new ArrayBuffer(8)),
+                } as Response)
+                .mockResolvedValueOnce({
+                    ok: true,
+                    status: 200,
+                    json: () => Promise.resolve(damageTypeResponse),
+                } as Response);
+
+            const result = await SAM3Service.segmentDamageTypes(
+                'https://example.com/image.jpg',
+                ['water_damage', 'crack']
             );
 
-            // Should log error and continue with YOLO
-            expect(logger.error).toHaveBeenCalledWith(
-                'Error in presence detection',
-                expect.any(Error),
-                expect.objectContaining({ service: 'HybridInferenceService' })
+            expect(result).toBeDefined();
+            expect(result).not.toBeNull();
+            expect(result!.success).toBe(true);
+            expect(result!.damage_types).toBeDefined();
+        });
+    });
+
+    describe('Circuit Breaker Behavior', () => {
+        it('should handle repeated failures gracefully', async () => {
+            global.fetch = vi.fn().mockRejectedValue(new Error('Connection failed'));
+
+            // Multiple sequential health checks should not crash
+            const result1 = await SAM3Service.healthCheck();
+            // Clear cache so next call actually calls fetch
+            (SAM3Service as any).healthCheckCache = null;
+            const result2 = await SAM3Service.healthCheck();
+            (SAM3Service as any).healthCheckCache = null;
+            const result3 = await SAM3Service.healthCheck();
+
+            // All should return false due to failures
+            expect(result1).toBe(false);
+            expect(result2).toBe(false);
+            expect(result3).toBe(false);
+        });
+
+        it('should skip health check when circuit breaker is open', async () => {
+            // Manually set failure count above threshold
+            (SAM3Service as any).failureCount = 5;
+            (SAM3Service as any).lastFailureTime = Date.now();
+
+            global.fetch = vi.fn();
+
+            const result = await SAM3Service.healthCheck();
+            expect(result).toBe(false);
+
+            // fetch should NOT have been called because circuit breaker is open
+            expect(global.fetch).not.toHaveBeenCalled();
+            expect(logger.warn).toHaveBeenCalledWith(
+                expect.stringContaining('circuit breaker'),
+                expect.any(Object)
             );
-            expect(result.presenceDetection).toBeNull();
-            expect(result.yoloSkipped).toBe(false);
-            expect(InternalDamageClassifier.predictFromImage).toHaveBeenCalled();
+        });
+
+        it('should skip segment when circuit breaker is open', async () => {
+            process.env.SAM3_ROLLOUT_PERCENTAGE = '100';
+            (SAM3Service as any).failureCount = 5;
+            (SAM3Service as any).lastFailureTime = Date.now();
+
+            global.fetch = vi.fn();
+
+            const result = await SAM3Service.segment('https://example.com/img.jpg', 'damage');
+            expect(result).toBeNull();
+            expect(global.fetch).not.toHaveBeenCalled();
         });
     });
 });

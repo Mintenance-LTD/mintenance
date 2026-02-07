@@ -28,8 +28,8 @@ export default function AdminError({
     });
 
     // Report to Sentry with high priority
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error, {
+    if (typeof window !== 'undefined' && window.Sentry) {
+      window.Sentry.captureException(error, {
         tags: {
           page: 'admin',
           errorBoundary: true,

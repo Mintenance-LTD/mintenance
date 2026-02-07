@@ -4,6 +4,8 @@ import { Alert } from 'react-native';
 import { AIPricingWidget } from '../AIPricingWidget';
 import { PricingAnalysis } from '../../services/AIPricingEngine';
 
+import { useAIPricing } from '../../hooks/useAIPricing';
+
 // Mock dependencies
 jest.mock('../../theme', () => ({
   theme: {
@@ -66,8 +68,6 @@ const mockGetHomeownerInsights = jest.fn();
 jest.mock('../../hooks/useAIPricing', () => ({
   useAIPricing: jest.fn(),
 }));
-
-import { useAIPricing } from '../../hooks/useAIPricing';
 
 const mockJobInput = {
   title: 'Fix leaky faucet',

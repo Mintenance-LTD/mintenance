@@ -27,8 +27,12 @@ export const TopContractorsList: React.FC<TopContractorsListProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>Top Contractors</Text>
-        <TouchableOpacity onPress={onSeeAllPress}>
+        <Text style={styles.sectionTitle} accessibilityRole='header'>Top Contractors</Text>
+        <TouchableOpacity
+          onPress={onSeeAllPress}
+          accessibilityRole='button'
+          accessibilityLabel='See all contractors'
+        >
           <Text style={styles.seeAllText}>See All</Text>
         </TouchableOpacity>
       </View>
@@ -38,6 +42,9 @@ export const TopContractorsList: React.FC<TopContractorsListProps> = ({
           key={contractor.id}
           style={styles.contractorCard}
           onPress={() => onContractorPress(contractor.id)}
+          accessibilityRole='button'
+          accessibilityLabel={`${contractor.name}, rated ${contractor.rating} stars with ${contractor.reviewCount} reviews, ${contractor.distance} away`}
+          accessibilityHint='Double tap to view contractor profile'
         >
           <View style={styles.contractorImage} />
           <View style={styles.contractorInfo}>
@@ -56,7 +63,11 @@ export const TopContractorsList: React.FC<TopContractorsListProps> = ({
             </View>
             <Text style={styles.distance}>{contractor.distance} away</Text>
           </View>
-          <TouchableOpacity style={styles.favoriteButton}>
+          <TouchableOpacity
+            style={styles.favoriteButton}
+            accessibilityRole='button'
+            accessibilityLabel={`Add ${contractor.name} to favourites`}
+          >
             <Ionicons name="heart-outline" size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </TouchableOpacity>

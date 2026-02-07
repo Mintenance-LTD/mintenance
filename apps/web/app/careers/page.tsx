@@ -81,7 +81,7 @@ export default function CareersPage() {
             Don&apos;t see a role that fits? We&apos;re always looking for talented people.
           </p>
           <Link
-            href="/contact?subject=General+Inquiry"
+            href="/contact?subject=General+Enquiry"
             className="inline-block px-6 py-2 border-2 border-teal-600 text-teal-600 rounded-lg hover:bg-teal-50 transition-colors"
           >
             Get in Touch

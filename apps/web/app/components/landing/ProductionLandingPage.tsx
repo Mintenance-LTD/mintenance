@@ -734,7 +734,7 @@ export function ProductionLandingPage() {
             <div>
               <h3 className="font-semibold text-lg mb-4">Support</h3>
               <ul className="space-y-3">
-                {['Help Center', 'Safety', 'Contact Us', 'FAQs'].map((item) => (
+                {['Help Centre', 'Safety', 'Contact Us', 'FAQs'].map((item) => (
                   <li key={item}>
                     <Link href={`/${item.toLowerCase().replace(' ', '-')}`} className="text-gray-400 hover:text-white transition-colors">
                       {item}

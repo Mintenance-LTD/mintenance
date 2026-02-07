@@ -35,7 +35,7 @@ export interface MFARequirement {
   reason?: string;
   operation: HighRiskOperation;
   riskScore: number; // 0-100
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -79,7 +79,7 @@ export async function requiresMFA(
     let riskScore = 0;
     let required = false;
     let reason = '';
-    const metadata: Record<string, any> = {};
+    const metadata: Record<string, unknown> = {};
 
     // Rule 1: Escrow releases over threshold
     if (operation === HighRiskOperation.ESCROW_RELEASE && amount !== null) {

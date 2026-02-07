@@ -15,7 +15,7 @@ export interface ResourceArticle {
 export const RESOURCE_ARTICLES: ResourceArticle[] = [
   {
     id: '1',
-    title: 'Maximize Your Earnings: 10 Proven Strategies for Contractors',
+    title: 'Maximise Your Earnings: 10 Proven Strategies for Contractors',
     excerpt:
       'Discover expert tips and strategies to grow your contracting business, increase your revenue, and build lasting relationships with homeowners.',
     category: 'Business Tips',

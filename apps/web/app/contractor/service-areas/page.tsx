@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { ServiceAreasClient } from './components/ServiceAreasClient';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+
+export const metadata: Metadata = {
+  title: 'Service Areas | Mintenance',
+  description: 'Manage your service coverage areas and radius to get matched with nearby maintenance jobs.',
+};
 
 export default async function ServiceAreasPage() {
   const user = await getCurrentUserFromCookies();

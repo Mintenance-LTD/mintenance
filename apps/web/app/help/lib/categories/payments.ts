@@ -307,7 +307,7 @@ Strong evidence helps resolve disputes fairly and quickly.
 - **Photos**: Visual evidence
 - **Expectations**: What was agreed
 
-## Organizing Evidence
+## Organising Evidence
 
 - Label photos clearly
 - Date all documents
@@ -431,7 +431,7 @@ Mintenance provides proper invoicing and VAT documentation.
 
 - Keep all invoices
 - Download PDFs
-- Organize by date
+- Organise by date
 - Keep for tax purposes
 - Consult accountant if needed
 

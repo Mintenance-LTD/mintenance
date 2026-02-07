@@ -60,7 +60,7 @@ export function MeetingScheduler(props: MeetingSchedulerProps) {
     const [duration, setDuration] = useState(60);
     const [address, setAddress] = useState('');
     const [notes, setNotes] = useState('');
-    const [jobs, setJobs] = useState<any[]>([]);
+    const [jobs, setJobs] = useState<{ id: string; title: string; location: string | null; contractor_id: string; homeowner_id: string }[]>([]);
     const [selectedJobId, setSelectedJobId] = useState('');
     const [loading, setLoading] = useState(false);
 

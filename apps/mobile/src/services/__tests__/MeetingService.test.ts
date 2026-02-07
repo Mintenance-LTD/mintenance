@@ -1,4 +1,9 @@
 // Mock AsyncStorage first
+// Import REAL service (after mocks)
+import { MeetingService } from '../MeetingService';
+import { logger } from '../../utils/logger';
+import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -62,11 +67,6 @@ jest.mock('../JobContextLocationService', () => ({
     AT_JOB_SITE: 'AT_JOB_SITE',
   },
 }));
-
-// Import REAL service (after mocks)
-import { MeetingService } from '../MeetingService';
-import { logger } from '../../utils/logger';
-import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 
 // Mock data helpers
 const createMockMeetingDb = (overrides = {}) => ({

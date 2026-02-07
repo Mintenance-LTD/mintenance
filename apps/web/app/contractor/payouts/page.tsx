@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { PayoutsPageClient } from './components/PayoutsPageClient';
+
+export const metadata: Metadata = {
+  title: 'Contractor Payout Settings | Mintenance',
+  description: 'Manage your payout accounts, bank details, and payment schedules for receiving contractor earnings.',
+};
 
 export default async function PayoutsPage() {
   const user = await getCurrentUserFromCookies();

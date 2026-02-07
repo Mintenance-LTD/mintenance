@@ -40,6 +40,8 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
           onChangeText={(text) => onUpdateDetails({ holderName: text })}
           placeholder="Esther Howard"
           placeholderTextColor={theme.colors.textTertiary}
+          accessibilityLabel='Card holder name'
+          accessibilityHint='Enter the name as it appears on your card'
         />
       </View>
 
@@ -53,6 +55,8 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
           placeholderTextColor={theme.colors.textTertiary}
           keyboardType="numeric"
           maxLength={19}
+          accessibilityLabel='Card number'
+          accessibilityHint='Enter your 16-digit card number'
         />
       </View>
 
@@ -67,6 +71,8 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
             placeholderTextColor={theme.colors.textTertiary}
             keyboardType="numeric"
             maxLength={5}
+            accessibilityLabel='Expiry date'
+            accessibilityHint='Enter expiry date in month and year format'
           />
         </View>
         <View style={[styles.inputGroup, styles.halfWidth]}>
@@ -80,11 +86,19 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
             keyboardType="numeric"
             maxLength={3}
             secureTextEntry
+            accessibilityLabel='CVV security code'
+            accessibilityHint='Enter the 3-digit security code from the back of your card'
           />
         </View>
       </View>
 
-      <TouchableOpacity style={styles.saveCardContainer} onPress={onToggleSaveCard}>
+      <TouchableOpacity
+        style={styles.saveCardContainer}
+        onPress={onToggleSaveCard}
+        accessibilityRole='checkbox'
+        accessibilityLabel='Save card for future payments'
+        accessibilityState={{ checked: saveCard }}
+      >
         <View style={[styles.checkbox, saveCard && styles.checkboxSelected]}>
           {saveCard && <Ionicons name="checkmark" size={16} color={theme.colors.white} />}
         </View>

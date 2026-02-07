@@ -1,3 +1,10 @@
+// Import supabase BEFORE AuthService so the mock is in place
+import { supabase } from '../../config/supabase';
+import { User } from '../../types';
+
+// Import the REAL AuthService (not mocked) - we want to test the actual implementation
+import { AuthService } from '../../services/AuthService';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -59,13 +66,6 @@ jest.mock('../../config/supabase', () => ({
     },
   },
 }));
-
-// Import supabase BEFORE AuthService so the mock is in place
-import { supabase } from '../../config/supabase';
-import { User } from '../../types';
-
-// Import the REAL AuthService (not mocked) - we want to test the actual implementation
-import { AuthService } from '../../services/AuthService';
 
 // Get mocked modules from jest-setup.js
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;

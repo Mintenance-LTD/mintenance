@@ -200,11 +200,19 @@ async function fullTextSearchJobs(
   limit: number
 ): Promise<SearchResult[]> {
   try {
+    // SECURITY: Sanitize search query to prevent PostgREST filter injection
+    const sanitizedQuery = query
+      .replace(/[^a-zA-Z0-9\s\-']/g, '')
+      .substring(0, 200)
+      .trim();
+
+    if (!sanitizedQuery) return [];
+
     // Build the query
     let queryBuilder = serverSupabase
       .from('jobs')
       .select('*')
-      .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+      .or(`title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`)
       .limit(limit);
 
     // Apply filters
@@ -261,12 +269,20 @@ async function fullTextSearchContractors(
   limit: number
 ): Promise<SearchResult[]> {
   try {
+    // SECURITY: Sanitize search query to prevent PostgREST filter injection
+    const sanitizedQuery = query
+      .replace(/[^a-zA-Z0-9\s\-']/g, '')
+      .substring(0, 200)
+      .trim();
+
+    if (!sanitizedQuery) return [];
+
     // Build the query
     let queryBuilder = serverSupabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('role', 'contractor')
-      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,bio.ilike.%${query}%`)
+      .or(`first_name.ilike.%${sanitizedQuery}%,last_name.ilike.%${sanitizedQuery}%,bio.ilike.%${sanitizedQuery}%`)
       .limit(limit);
 
     // Apply filters

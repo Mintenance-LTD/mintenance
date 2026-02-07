@@ -1,3 +1,13 @@
+/**
+ * Tests for JobCRUDService - Job CRUD Operations
+ */
+
+import { JobCRUDService } from '../JobCRUDService';
+import { supabase } from '../../config/supabase';
+import type { Job } from '@mintenance/types';
+import { sanitizeText } from '../../utils/sanitize';
+import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,16 +18,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-/**
- * Tests for JobCRUDService - Job CRUD Operations
- */
-
-import { JobCRUDService } from '../JobCRUDService';
-import { supabase } from '../../config/supabase';
-import type { Job } from '@mintenance/types';
-import { sanitizeText } from '../../utils/sanitize';
-import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 
 // Mock dependencies
 jest.mock('../../config/supabase', () => ({
@@ -352,7 +352,7 @@ describe('JobCRUDService', () => {
     });
 
     it('should allow valid status values', async () => {
-      const validStatuses: Array<Job['status']> = [
+      const validStatuses: Job['status'][] = [
         'posted',
         'assigned',
         'in_progress',

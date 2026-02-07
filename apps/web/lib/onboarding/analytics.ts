@@ -10,7 +10,7 @@ export interface OnboardingAnalyticsEvent {
   stepId?: string;
   userType: 'homeowner' | 'contractor';
   timestamp: string;
-  properties?: Record<string, any>;
+  properties?: Record<string, unknown>;
   [key: string]: unknown; // Index signature for dynamic property access
 }
 
@@ -20,7 +20,7 @@ export interface OnboardingAnalyticsEvent {
 export function trackOnboardingEvent(
   event: string,
   stepId?: string,
-  properties?: Record<string, any>
+  properties?: Record<string, unknown>
 ) {
   const userType = getUserType();
 
@@ -222,8 +222,8 @@ function getUserType(): 'homeowner' | 'contractor' {
  */
 function sendToAnalytics(event: OnboardingAnalyticsEvent) {
   // In production, send to your analytics service (e.g., Mixpanel, Amplitude, PostHog)
-  if (typeof window !== 'undefined' && (window as any).analytics) {
-    (window as any).analytics.track(event.event, {
+  if (typeof window !== 'undefined' && (window as unknown as { analytics?: { track: (event: string, data: Record<string, unknown>) => void } }).analytics) {
+    (window as unknown as { analytics: { track: (event: string, data: Record<string, unknown>) => void } }).analytics.track(event.event, {
       ...event.properties,
       stepId: event.stepId,
       userType: event.userType,

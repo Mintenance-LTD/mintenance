@@ -20,11 +20,11 @@ const initiatePaymentSchema = z.object({
 });
 
 // Create Stripe payment intent for invoice
-async function createPaymentIntent(invoice: any, payerId: string) {
+async function createPaymentIntent(invoice: { id: string; contractor_id: string; total_amount: number; invoice_number: string; title: string; client_email: string; job_id?: string; status: string }, payerId: string) {
   try {
     // Get contractor's Stripe Connect account
     const { data: contractor } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('stripe_connect_account_id, email, company_name')
       .eq('id', invoice.contractor_id)
       .single();
@@ -67,7 +67,7 @@ async function createPaymentIntent(invoice: any, payerId: string) {
 }
 
 // Create escrow transaction for invoice payment
-async function createEscrowTransaction(invoice: any, payerId: string, paymentIntentId: string) {
+async function createEscrowTransaction(invoice: { id: string; contractor_id: string; total_amount: number; invoice_number: string; title: string; client_email: string; job_id?: string; status: string }, payerId: string, paymentIntentId: string) {
   const escrowData = {
     job_id: invoice.job_id,
     payer_id: payerId,

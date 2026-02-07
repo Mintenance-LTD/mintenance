@@ -41,7 +41,7 @@ export const isRunningAsPWA = (): boolean => {
 
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true ||
+    window.navigator.standalone === true ||
     document.referrer.includes('android-app://')
   );
 };

@@ -28,20 +28,26 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci || npm install
+        run: npm ci
         timeout-minutes: 10
 
       - name: Build shared packages
         run: npm run build:packages
 
       - name: TypeScript compilation check
-        run: npm run type-check || echo "⚠️ Type errors found - non-blocking while we fix pre-existing errors"
-        continue-on-error: true
+        run: npm run type-check
 
-      - name: Run unit tests
-        run: npm test -- --coverage --watchAll=false || echo "⚠️ Tests failing - non-blocking while we fix pre-existing issues"
-        continue-on-error: true
+      - name: Lint (web)
+        run: npm run lint:web
+
+      - name: Lint (mobile)
+        run: npm run lint:mobile
+
+      - name: Run web tests
+        run: npm run test:web -- run --coverage
+
+      - name: Run mobile tests
+        run: npm run test:mobile -- --coverage --watchAll=false
 
       - name: Upload coverage to Codecov
         if: ${{ env.HAS_CODECOV == 'true' }}
@@ -51,12 +57,6 @@ jobs:
           file: ./coverage/lcov.info
           flags: unittests
           name: codecov-umbrella
-        continue-on-error: true
-
-      - name: Bundle analysis
-        run: |
-          npm install -g @expo/cli
-          expo export --platform android --output-dir dist
         continue-on-error: true
 
       - name: Security audit
@@ -138,8 +138,7 @@ jobs:
           eas-version: latest
 
       - name: Install dependencies
-        run: |
-          npm ci || npm install
+        run: npm ci
         timeout-minutes: 10
 
       - name: Build shared packages
@@ -184,8 +183,7 @@ jobs:
           eas-version: latest
 
       - name: Install dependencies
-        run: |
-          npm ci || npm install
+        run: npm ci
         timeout-minutes: 10
 
       - name: Build shared packages
@@ -233,13 +231,11 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci || npm install
+        run: npm ci
         timeout-minutes: 10
 
       - name: Run performance tests
         run: npm run test -- --testPathPattern=performance
-        continue-on-error: true
 
       - name: Bundle size analysis
         run: |
@@ -247,19 +243,16 @@ jobs:
           expo export --platform android --output-dir dist
           du -sh dist/
           echo "Bundle size analysis completed"
-        continue-on-error: true
 
       - name: Dependency vulnerability scan
         run: |
           npm audit --json > audit-results.json || true
           cat audit-results.json
-        continue-on-error: true
 
       - name: License compliance check
         run: |
           npm install -g license-checker
           license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC' --summary
-        continue-on-error: true
 
   pr-quality-gate:
     name: PR Quality Gate

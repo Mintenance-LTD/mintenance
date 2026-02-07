@@ -79,7 +79,7 @@ export class AuthService {
   static async signIn(
     email: string,
     password: string
-  ): Promise<{ user: User | null; session: Session | null } | any> {
+  ): Promise<{ user: User | null; session: Session | null }> {
     const context = {
       service: 'AuthService',
       method: 'signIn',

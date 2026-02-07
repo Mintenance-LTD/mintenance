@@ -7,6 +7,11 @@
  * @filesize <300 lines
  */
 
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import { SpecialOffersCarousel } from '../SpecialOffersCarousel';
+import type { SpecialOffer } from '../../viewmodels/EnhancedHomeViewModel';
+
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
   return {
@@ -20,11 +25,6 @@ jest.mock('react-native', () => {
     },
   };
 });
-
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { SpecialOffersCarousel } from '../SpecialOffersCarousel';
-import type { SpecialOffer } from '../../viewmodels/EnhancedHomeViewModel';
 
 describe('SpecialOffersCarousel', () => {
   const mockOnOfferClaim = jest.fn();

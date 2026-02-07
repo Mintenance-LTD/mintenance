@@ -41,14 +41,14 @@ export async function GET(request: NextRequest) {
       activeSubscriptionsResponse,
       pendingVerificationsResponse,
     ] = await Promise.all([
-      serverSupabase.from('users').select('id', { count: 'exact', head: true }).is('deleted_at', null),
-      serverSupabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'contractor').is('deleted_at', null),
+      serverSupabase.from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+      serverSupabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'contractor').is('deleted_at', null),
       serverSupabase.from('jobs').select('id', { count: 'exact', head: true }),
       serverSupabase.from('contractor_subscriptions')
         .select('id', { count: 'exact', head: true })
         .in('status', ['active', 'trial']),
       serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id', { count: 'exact', head: true })
         .eq('role', 'contractor')
         .eq('admin_verified', false)
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     
     const { data: userGrowthData } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('created_at')
       .is('deleted_at', null)
       .gte('created_at', thirtyDaysAgo.toISOString())

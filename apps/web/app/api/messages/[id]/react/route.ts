@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { z } from 'zod';
 import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
-
-// ==========================================================
-// VALIDATION SCHEMAS
-// ==========================================================
-
-const reactionSchema = z.object({
-  emoji: z
-    .string()
-    .min(1, 'Emoji is required')
-    .max(10, 'Emoji too long')
-    .regex(/^[\p{Emoji}\u200d]+$/u, 'Invalid emoji format'),
-});
+import { validateRequest } from '@/lib/validation/validator';
+import { messageReactionSchema } from '@/lib/validation/schemas';
 
 // ==========================================================
 // POST /api/messages/:id/react
@@ -56,15 +45,12 @@ export async function POST(
       throw new UnauthorizedError('Authentication required to react to messages');
     }
 
-    // Step 2: Validate request body
-    const body = await request.json();
-    const parsed = reactionSchema.safeParse(body);
+    // Step 2: Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, messageReactionSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data: validatedReaction } = validation;
 
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid emoji format');
-    }
-
-    const { emoji } = parsed.data;
+    const { emoji } = validatedReaction;
     const { id: messageId } = await params;
 
     // Validate UUID format

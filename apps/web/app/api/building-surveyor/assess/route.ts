@@ -7,15 +7,13 @@ import { getConfig } from '@/lib/services/building-surveyor/config/BuildingSurve
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 import { ABTestIntegration } from '@/lib/services/building-surveyor/ab_test_harness';
 import { logger, hashString } from '@mintenance/shared';
-import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { buildingAssessRequestSchema } from '@/lib/validation/schemas';
 import crypto from 'crypto';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
-import fs from 'fs';
-import path from 'path';
 import { LRUCache } from 'lru-cache';
-import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, TooManyRequestsError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 
 // Environment configuration for A/B testing
 const AB_TEST_ENABLED = process.env.AB_TEST_ENABLED === 'true';
@@ -28,7 +26,7 @@ const AB_TEST_EXPERIMENT_ID = process.env.AB_TEST_EXPERIMENT_ID;
 const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days (matches DB cache TTL)
 const MAX_CACHE_SIZE = 200; // More entries than ImageAnalysis (handles more assessment variations)
 
-type Phase1BuildingAssessment = any; // Import from BuildingSurveyorService types
+import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 
 const assessmentCache = new LRUCache<string, Phase1BuildingAssessment>({
   max: MAX_CACHE_SIZE,
@@ -38,21 +36,6 @@ const assessmentCache = new LRUCache<string, Phase1BuildingAssessment>({
 });
 
 const ASSESSMENT_DOMAINS = ['building', 'rail', 'infrastructure', 'general'] as const;
-
-const assessRequestSchema = z.object({
-  imageUrls: z.array(z.string().url()).min(1).max(4),
-  jobId: z.string().uuid().optional(),
-  propertyId: z.string().uuid().optional(),
-  domain: z.enum(ASSESSMENT_DOMAINS).optional(), // Phase 6: extensibility (default building)
-  context: z
-    .object({
-      location: z.string().optional(),
-      propertyType: z.enum(['residential', 'commercial', 'industrial']).optional(),
-      ageOfProperty: z.number().optional(),
-      propertyDetails: z.string().optional(),
-    })
-    .optional(),
-});
 
 /**
  * Generate cache key from image URLs
@@ -149,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     // 2. Parse and validate request
     const body = await request.json();
-    const validationResult = assessRequestSchema.safeParse(body);
+    const validationResult = buildingAssessRequestSchema.safeParse(body);
 
     if (!validationResult.success) {
       throw new BadRequestError('Invalid request');
@@ -306,7 +289,7 @@ export async function POST(request: NextRequest) {
     let assessmentIdForImages: string | null = null;
 
     if (config.useHybridInference) {
-      assessment = await HybridInferenceService.assessWithHybridRouting(imageUrls, context);
+      assessment = await HybridInferenceService.assessDamage(imageUrls, context) as unknown as Phase1BuildingAssessment;
       logger.info('Assessment service used', {
         service: 'building-surveyor-api',
         inferenceType: 'hybrid',
@@ -508,16 +491,6 @@ export async function POST(request: NextRequest) {
     logger.error('Error in building surveyor assessment', error, {
       service: 'building-surveyor-api',
     });
-
-    // #region agent log
-    const logData = {location:'api/building-surveyor/assess/route.ts:323',message:'Error caught in API route',data:{errorType:error instanceof Error ? error.name : typeof error,errorMessage:error instanceof Error ? error.message : String(error),hasOpenaiErrorCode:!!(error as any)?.openaiErrorCode,openaiErrorCode:(error as any)?.openaiErrorCode},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'};
-    try {
-      const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
-      fs.appendFileSync(logPath, JSON.stringify(logData) + '\n');
-    } catch (e) {
-      // File write failed, that's ok - console.log is the fallback
-    }
-    // #endregion
 
     return handleAPIError(error);
   }

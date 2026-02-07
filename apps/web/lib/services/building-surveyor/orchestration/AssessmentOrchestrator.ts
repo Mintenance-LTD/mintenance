@@ -330,7 +330,7 @@ export class AssessmentOrchestrator {
                 visionAnalysis,
             );
 
-            let memoryAdjustments: number[] = [0, 0, 0, 0, 0];
+            const memoryAdjustments: number[] = [0, 0, 0, 0, 0];
             try {
                 const memorySystem = memoryManager.getMemorySystem(this.AGENT_NAME);
 

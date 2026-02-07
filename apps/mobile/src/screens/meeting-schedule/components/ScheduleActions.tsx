@@ -29,6 +29,8 @@ export const ScheduleActions: React.FC<ScheduleActionsProps> = ({
           style={[styles.button, styles.cancelButton]}
           onPress={onCancel}
           disabled={loading}
+          accessibilityRole='button'
+          accessibilityLabel='Cancel scheduling'
         >
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
@@ -37,6 +39,8 @@ export const ScheduleActions: React.FC<ScheduleActionsProps> = ({
           style={[styles.button, styles.scheduleButton]}
           onPress={onSchedule}
           disabled={loading}
+          accessibilityRole='button'
+          accessibilityLabel={loading ? 'Scheduling meeting' : 'Schedule meeting'}
         >
           {loading ? (
             <ActivityIndicator size="small" color={theme.colors.textInverse} />

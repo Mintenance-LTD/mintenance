@@ -79,7 +79,7 @@ export function PropertiesClient2025({ properties, userInfo }: PropertiesClient2
         method,
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as any).csrfToken || '',
+          'X-CSRF-Token': window.csrfToken || '',
         },
         body: JSON.stringify({ property_id: propertyId }),
       });

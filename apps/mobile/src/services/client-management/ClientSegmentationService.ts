@@ -145,10 +145,10 @@ export class ClientSegmentationService {
   /**
    * Get suggested segments based on client data
    */
-  async getSuggestedSegments(contractorId: string): Promise<Array<{ name: string; description: string; criteria: SegmentCriteria }>> {
+  async getSuggestedSegments(contractorId: string): Promise<{ name: string; description: string; criteria: SegmentCriteria }[]> {
     const clients = await this.getClientsForContractor(contractorId);
 
-    const suggestions: Array<{ name: string; description: string; criteria: SegmentCriteria }> = [];
+    const suggestions: { name: string; description: string; criteria: SegmentCriteria }[] = [];
 
     // High-value clients
     const highValueClients = clients.filter(c => c.financials.totalSpent > 5000);

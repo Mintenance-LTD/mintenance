@@ -7,7 +7,7 @@ import { paymentIntentSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError, BadRequestError } from '@/lib/errors/api-error';
 import { stripeWithTimeout } from '@/lib/utils/api-timeout';
 import { rateLimiter } from '@/lib/rate-limiter';
 

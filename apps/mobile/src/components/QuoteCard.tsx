@@ -88,7 +88,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               ]}
             >
               <Ionicons
-                name={getStatusIcon(actualStatus) as any}
+                name={getStatusIcon(actualStatus) as keyof typeof Ionicons.glyphMap}
                 size={12}
                 color='#fff'
               />

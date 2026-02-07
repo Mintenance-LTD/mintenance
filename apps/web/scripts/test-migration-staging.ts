@@ -195,7 +195,7 @@ class MigrationTester {
 
   private async testRoute(route: RouteTest): Promise<void> {
     const startTime = Date.now();
-    let result: TestResult = {
+    const result: TestResult = {
       route: `${route.method} ${route.path}`,
       status: 'SKIP',
       responseTime: 0

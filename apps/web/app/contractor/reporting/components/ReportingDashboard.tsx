@@ -56,7 +56,7 @@ function MetricCard({ title, value, change, changeType, icon, color }: MetricCar
             justifyContent: 'center',
           }}
         >
-          <Icon name={icon as any} size={24} color={bgColor} />
+          <Icon name={icon as string} size={24} color={bgColor} />
         </div>
         {change && (
           <div

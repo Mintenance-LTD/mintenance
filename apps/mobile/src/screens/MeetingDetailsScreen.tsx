@@ -11,6 +11,18 @@ import {
   Platform,
 } from 'react-native';
 import { useJobTravelTracking } from '../hooks/useJobTravelTracking';
+import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import { useAuth } from '../contexts/AuthContext';
+import { MeetingService } from '../services/MeetingService';
+import {
+  ContractorMeeting,
+  ContractorLocation,
+  MeetingUpdate,
+  LocationData,
+} from '@mintenance/types';
+import { theme } from '../theme';
+import { logger } from '../utils/logger';
 
 // Web-compatible fallback components (react-native-maps removed for web compatibility)
 interface Region {
@@ -29,18 +41,6 @@ const MapView = ({ children, ...props }: unknown) => (
 
 const Marker = ({ children, ...props }: unknown) => <View {...props}>{children}</View>;
 const Polyline = ({ children, ...props }: unknown) => <View {...props}>{children}</View>;
-import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import { useAuth } from '../contexts/AuthContext';
-import { MeetingService } from '../services/MeetingService';
-import {
-  ContractorMeeting,
-  ContractorLocation,
-  MeetingUpdate,
-  LocationData,
-} from '@mintenance/types';
-import { theme } from '../theme';
-import { logger } from '../utils/logger';
 
 interface Props {
   route: {

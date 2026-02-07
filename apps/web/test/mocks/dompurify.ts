@@ -26,8 +26,8 @@ export const createMockDOMPurify = () => {
       result = result.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match, tagName) => {
         const tag = tagName.toLowerCase();
         if (allowedTags.includes(tag)) {
-          // Keep allowed tags but remove dangerous attributes
-          return match.replace(/\s*(on\w+|javascript:)[^>\s]*/gi, '');
+          // Keep allowed tags but remove dangerous attributes (only match space-prefixed attrs)
+          return match.replace(/\s+on\w+=["'][^"']*["']/gi, '').replace(/\s+on\w+=\S*/gi, '');
         }
         return ''; // Remove non-allowed tags
       });

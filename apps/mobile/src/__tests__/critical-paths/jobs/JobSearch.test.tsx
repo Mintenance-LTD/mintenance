@@ -1,4 +1,7 @@
 
+import React from 'react';
+import FindContractorsScreen from '../../../screens/FindContractorsScreen';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -7,9 +10,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiSet: jest.fn(() => Promise.resolve()),
   multiGet: jest.fn(() => Promise.resolve([])),
 }));
-
-import React from 'react';
-import FindContractorsScreen from '../../../screens/FindContractorsScreen';
 
 jest.mock('../../../contexts/AuthContext', () => ({
   useAuth: jest.fn(() => ({ user: { id: 'user-1' } })),

@@ -277,7 +277,7 @@ describe('DragDropUpload2025', () => {
       render(<DragDropUpload2025 {...props} />);
 
       expect(screen.getByText('AI-Powered Analysis Available')).toBeInTheDocument();
-      expect(screen.getByText(/Our AI can analyze your photos/i)).toBeInTheDocument();
+      expect(screen.getByText(/Our AI can analyse your photos/i)).toBeInTheDocument();
     });
 
     it('should not show AI analysis CTA when no images', () => {

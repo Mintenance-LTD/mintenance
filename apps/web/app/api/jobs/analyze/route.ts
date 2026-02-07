@@ -6,6 +6,8 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { jobAnalysisSchema } from '@/lib/validation/schemas';
 
 /**
  * Analyze job description and return suggestions
@@ -43,12 +45,13 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required to analyze jobs');
     }
 
-    const body = await request.json();
-    const { title, description, location, imageUrls } = body;
-
-    if (!title && !description && (!imageUrls || imageUrls.length === 0)) {
-      throw new BadRequestError('Title, description, or image URLs are required');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, jobAnalysisSchema);
+    if ('headers' in validation) {
+      return validation;
     }
+
+    const { title, description, location, imageUrls } = validation.data;
 
     // SECURITY: Validate image URLs to prevent SSRF attacks
     let validatedImageUrls: string[] = [];

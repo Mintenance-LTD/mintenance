@@ -22,7 +22,7 @@ export interface CacheConfig {
   tags?: string[]; // For bulk invalidation
 }
 
-export interface CacheEntry<T = any> {
+export interface CacheEntry<T = unknown> {
   key: string;
   value: T;
   timestamp: number;

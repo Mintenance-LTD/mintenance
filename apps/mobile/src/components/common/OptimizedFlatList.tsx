@@ -56,7 +56,7 @@ interface OptimizedFlatListProps<T> extends Omit<FlatListProps<T>, 'getItemLayou
   windowMultiplier?: number;
 }
 
-function OptimizedFlatListComponent<T = any>(
+function OptimizedFlatListComponent<T = unknown>(
   props: OptimizedFlatListProps<T>,
   ref: React.Ref<FlatList<T>>
 ) {
@@ -89,9 +89,9 @@ function OptimizedFlatListComponent<T = any>(
       }
       // Fallback: try common id properties
       if (typeof item === 'object' && item !== null) {
-        if ('id' in item) return String((item as any).id);
-        if ('_id' in item) return String((item as any)._id);
-        if ('key' in item) return String((item as any).key);
+        if ('id' in item) return String((item as Record<string, unknown>).id);
+        if ('_id' in item) return String((item as Record<string, unknown>)._id);
+        if ('key' in item) return String((item as Record<string, unknown>).key);
       }
       return String(index);
     },
@@ -220,7 +220,7 @@ function OptimizedFlatListComponent<T = any>(
 }
 
 // Export with forwardRef support
-export const OptimizedFlatList = React.forwardRef(OptimizedFlatListComponent) as <T = any>(
+export const OptimizedFlatList = React.forwardRef(OptimizedFlatListComponent) as <T = unknown>(
   props: OptimizedFlatListProps<T> & { ref?: React.Ref<FlatList<T>> }
 ) => React.ReactElement;
 
@@ -240,7 +240,7 @@ export function useOptimizedRenderItem<T>(
 export function useItemSeparator(
   height: number = 1,
   color: string = '#e0e0e0'
-): React.ComponentType<any> {
+): React.ComponentType<Record<string, never>> {
   return useMemo(
     () =>
       React.memo(() => (

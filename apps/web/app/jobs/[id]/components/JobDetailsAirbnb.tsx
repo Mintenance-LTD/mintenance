@@ -155,7 +155,7 @@ export function JobDetailsAirbnb({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-GB', {
       month: 'long',
       day: 'numeric',
       year: 'numeric'

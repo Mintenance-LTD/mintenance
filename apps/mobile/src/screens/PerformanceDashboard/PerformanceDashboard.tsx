@@ -58,8 +58,8 @@ export const PerformanceDashboard: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [reportData, setReportData] = useState<unknown>(null);
-  const [budgetStatus, setBudgetStatus] = useState<any[]>([]);
-  const [componentMetrics, setComponentMetrics] = useState<any[]>([]);
+  const [budgetStatus, setBudgetStatus] = useState<unknown[]>([]);
+  const [componentMetrics, setComponentMetrics] = useState<unknown[]>([]);
 
   useEffect(() => {
     loadPerformanceData();

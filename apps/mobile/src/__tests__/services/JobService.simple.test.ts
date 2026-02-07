@@ -1,3 +1,7 @@
+// FIXED: Removed JobService mock antipattern - now testing real service with mocked dependencies
+
+import { JobService } from '../../services/JobService';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,10 +12,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-// FIXED: Removed JobService mock antipattern - now testing real service with mocked dependencies
-
-import { JobService } from '../../services/JobService';
 
 // Mock only external dependencies
 jest.mock('../../config/supabase', () => ({

@@ -92,7 +92,7 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
         const response = await fetch(`/api/properties/${property.id}`, {
           method: 'DELETE',
           headers: {
-            'X-CSRF-Token': (window as any).csrfToken || '',
+            'X-CSRF-Token': window.csrfToken || '',
           },
         });
 
@@ -201,7 +201,7 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
                       </>
                     )}
                     {property.squareFeet > 0 && (
-                      <span>{property.squareFeet.toLocaleString()} sq ft</span>
+                      <span>{property.squareFeet.toLocaleString()} sq m</span>
                     )}
                   </div>
                 </div>
@@ -231,7 +231,7 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
                     className={`pb-3 px-1 font-medium transition-colors relative ${
                       activeTab === tab.id
                         ? 'text-gray-900'

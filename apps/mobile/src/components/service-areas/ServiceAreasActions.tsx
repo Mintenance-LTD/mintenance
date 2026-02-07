@@ -5,7 +5,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../../theme';
 
 interface ServiceAreasActionsProps {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<Record<string, undefined>>;
 }
 
 export const ServiceAreasActions: React.FC<ServiceAreasActionsProps> = ({ navigation }) => {

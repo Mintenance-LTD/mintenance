@@ -1,4 +1,11 @@
 
+import React from 'react';
+import { render } from '../../test-utils';
+import { Input } from '../../../components/ui/Input/Input';
+import { Button } from '../../../components/ui/Button/Button';
+import { Checkbox } from '../../../components/ui/Checkbox/Checkbox';
+import { Select } from '../../../components/ui/Select/Select';
+
 jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
@@ -6,13 +13,6 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
-import React from 'react';
-import { render } from '../../test-utils';
-import { Input } from '../../../components/ui/Input/Input';
-import { Button } from '../../../components/ui/Button/Button';
-import { Checkbox } from '../../../components/ui/Checkbox/Checkbox';
-import { Select } from '../../../components/ui/Select/Select';
 
 describe('Form Components - Snapshots', () => {
   describe('Input', () => {

@@ -7,7 +7,6 @@ import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
-
 // Dynamic imports for Tremor charts - lazy load heavy charting library
 const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
   loading: () => <ChartSkeleton height="280px" />,
@@ -73,7 +72,7 @@ export default function AdminDashboardPage2025() {
         userInfo={{
           name: userDisplayName,
           email: user?.email || '',
-          avatar: (user as any)?.profile_image_url,
+          avatar: user?.profile_image_url,
         }}
       />
 
@@ -88,7 +87,7 @@ export default function AdminDashboardPage2025() {
             <div className="flex items-start justify-between gap-8">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30">
-                  <svg className="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-9 h-9 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                 </div>
@@ -99,7 +98,7 @@ export default function AdminDashboardPage2025() {
               </div>
 
               {/* Period Selector */}
-              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-xl p-1 border border-white/30">
+              <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-xl p-1 border border-white/30" role="tablist" aria-label="Select time period">
                 {[
                   { label: 'Week', value: 'week' as const },
                   { label: 'Month', value: 'month' as const },
@@ -108,6 +107,8 @@ export default function AdminDashboardPage2025() {
                 ].map((period) => (
                   <button
                     key={period.value}
+                    role="tab"
+                    aria-selected={selectedPeriod === period.value}
                     onClick={() => setSelectedPeriod(period.value)}
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${
                       selectedPeriod === period.value
@@ -128,6 +129,8 @@ export default function AdminDashboardPage2025() {
           {/* Metrics Grid */}
           <MotionDiv
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6"
+            aria-live="polite"
+            aria-label="Platform metrics"
             variants={staggerContainer}
             initial="initial"
             animate="animate"
@@ -140,7 +143,7 @@ export default function AdminDashboardPage2025() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">{metric.icon}</span>
+                    <span className="text-2xl" aria-hidden="true">{metric.icon}</span>
                   </div>
                   <div className={`px-3 py-1 rounded-lg text-sm font-semibold ${
                     metric.changeType === 'positive'
@@ -157,7 +160,7 @@ export default function AdminDashboardPage2025() {
           </MotionDiv>
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <section aria-label="Revenue and user charts" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Revenue Trend */}
             <MotionDiv
               className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
@@ -197,7 +200,7 @@ export default function AdminDashboardPage2025() {
                 className="h-80"
               />
             </MotionDiv>
-          </div>
+          </section>
 
           {/* Jobs Activity */}
           <MotionDiv
@@ -238,7 +241,7 @@ export default function AdminDashboardPage2025() {
                   onClick={() => window.location.href = action.href}
                   className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 hover:shadow-lg transition-all group"
                 >
-                  <div className="text-3xl mb-2">{action.icon}</div>
+                  <div className="text-3xl mb-2" aria-hidden="true">{action.icon}</div>
                   <div className="text-sm font-semibold text-gray-900 group-hover:text-purple-600">
                     {action.label}
                   </div>

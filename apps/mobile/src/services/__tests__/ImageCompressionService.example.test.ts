@@ -1,3 +1,5 @@
+import * as ImageCompressionExamples from '../ImageCompressionService.example';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -65,8 +67,6 @@ jest.mock('expo-image-picker', () => ({
   MediaTypeOptions: { Images: 'Images' },
   launchImageLibraryAsync: jest.fn(() => Promise.resolve({ canceled: true, assets: [] })),
 }));
-
-import * as ImageCompressionExamples from '../ImageCompressionService.example';
 
 describe('ImageCompressionService.example', () => {
   describe('initialization', () => {

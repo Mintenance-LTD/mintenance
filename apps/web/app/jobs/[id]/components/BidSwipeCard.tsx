@@ -287,7 +287,7 @@ export function BidSwipeCard({ bid, contractor, onAccept, onReject, onClose }: B
               fontWeight: theme.typography.fontWeight.medium,
               color: theme.colors.textPrimary,
             }}>
-              {new Date(bid.created_at).toLocaleDateString('en-US', {
+              {new Date(bid.created_at).toLocaleDateString('en-GB', {
                 month: 'short',
                 day: 'numeric',
                 year: 'numeric',

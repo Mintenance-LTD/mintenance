@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
-
 // Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },

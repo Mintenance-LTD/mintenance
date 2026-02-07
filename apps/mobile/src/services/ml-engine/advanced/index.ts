@@ -8,15 +8,15 @@
 import { logger } from '../../../utils/logger';
 import { performanceMonitor } from '../../../utils/performanceMonitor';
 
-// Export all types
-export * from './types';
-
 // Import services
 import { MLModelRegistry } from './MLModelRegistry';
 import { MLInferenceEngine } from './MLInferenceEngine';
 import { MLEvaluationService } from './MLEvaluationService';
 import { MLDeploymentService } from './MLDeploymentService';
 import { MLApplicationService } from './MLApplicationService';
+
+// Export all types
+export * from './types';
 
 // Export service classes
 export { MLModelRegistry } from './MLModelRegistry';

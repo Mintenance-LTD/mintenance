@@ -1,9 +1,15 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
 import { getCachedUser } from '@/lib/cache';
 import { PropertiesClient2025 } from './components/PropertiesClient2025';
+
+export const metadata: Metadata = {
+  title: 'Your Properties | Mintenance',
+  description: 'Manage your properties, view maintenance history, and track active jobs for each location.',
+};
 
 export default async function PropertiesPage2025() {
   const user = await getCurrentUserFromCookies();

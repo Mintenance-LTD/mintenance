@@ -4,7 +4,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { DisputeWorkflowService } from '@/lib/services/disputes/DisputeWorkflowService';
+import { DisputeWorkflowService, type DisputePriority } from '@/lib/services/disputes/DisputeWorkflowService';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Set priority and SLA
-    await DisputeWorkflowService.setDisputePriority(escrowId, priority as any);
+    await DisputeWorkflowService.setDisputePriority(escrowId, priority as DisputePriority);
 
     // Attempt auto-resolution (runs asynchronously)
     DisputeWorkflowService.attemptAutoResolution(escrowId).catch((error) => {

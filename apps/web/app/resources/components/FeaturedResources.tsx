@@ -31,7 +31,7 @@ export function FeaturedResources() {
     },
     {
       title: 'Pricing Your Services',
-      description: 'Market research and competitive pricing strategies to maximize your profit margins',
+      description: 'Market research and competitive pricing strategies to maximise your profit margins',
       readingTime: 10,
       category: 'Finance',
       downloadUrl: '#',

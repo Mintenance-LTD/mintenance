@@ -5,8 +5,13 @@ import { theme } from '../theme';
 import { Invoice } from '../services/contractor-business';
 import { useI18n } from '../hooks/useI18n';
 
+interface InvoiceWithExtras extends Invoice {
+  client_name?: string;
+  reminder_sent_count?: number;
+}
+
 interface InvoiceCardProps {
-  invoice: Invoice;
+  invoice: InvoiceWithExtras;
   onPress: () => void;
   onSendReminder: () => void;
   onMarkPaid: () => void;
@@ -60,7 +65,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
         <View style={styles.invoiceInfo}>
           <Text style={styles.invoiceNumber}>#{invoice.invoice_number}</Text>
           <Text style={styles.clientName}>
-            {(invoice as any).client_name || ''}
+            {invoice.client_name || ''}
           </Text>
         </View>
         <View
@@ -70,7 +75,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
           ]}
         >
           <Ionicons
-            name={getStatusIcon(invoice.status) as any}
+            name={getStatusIcon(invoice.status) as keyof typeof Ionicons.glyphMap}
             size={14}
             color='#fff'
           />
@@ -103,9 +108,9 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
           </View>
         )}
 
-        {(invoice as any).reminder_sent_count > 0 && (
+        {invoice.reminder_sent_count > 0 && (
           <Text style={styles.reminderText}>
-            {(invoice as any).reminder_sent_count} reminder(s) sent
+            {invoice.reminder_sent_count} reminder(s) sent
           </Text>
         )}
       </View>

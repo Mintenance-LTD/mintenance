@@ -1,6 +1,12 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
+
+export const metadata: Metadata = {
+  title: 'Scheduling | Mintenance',
+  description: 'Manage your maintenance job schedule, appointments, and upcoming events in one place.',
+};
 import { unstable_cache } from 'next/cache';
 import { fetchJobsWithRelations, fetchContractsForJobs, fetchMeetingsForUser } from '@/lib/queries/scheduling';
 import {

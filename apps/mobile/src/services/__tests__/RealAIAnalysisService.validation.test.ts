@@ -1,14 +1,3 @@
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  setItem: jest.fn(() => Promise.resolve()),
-  getItem: jest.fn(() => Promise.resolve(null)),
-  removeItem: jest.fn(() => Promise.resolve()),
-  clear: jest.fn(() => Promise.resolve()),
-  getAllKeys: jest.fn(() => Promise.resolve([])),
-  multiSet: jest.fn(() => Promise.resolve()),
-  multiGet: jest.fn(() => Promise.resolve([])),
-  multiRemove: jest.fn(() => Promise.resolve()),
-}));
-
 /**
  * Comprehensive tests for Real AI Analysis Service - API Key Validation
  *
@@ -27,6 +16,17 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
  
 import { RealAIAnalysisService } from '../RealAIAnalysisService';
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
 
 // Mock dependencies
 jest.mock('../../config/ai.config', () => ({

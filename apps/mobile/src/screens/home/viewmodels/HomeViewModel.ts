@@ -40,7 +40,7 @@ export const useHomeViewModel = (user: unknown): HomeViewModel => {
   // State management
   const [contractorStats, setContractorStats] = useState<ContractorStats | null>(null);
   const [previousContractors, setPreviousContractors] = useState<UserProfile[]>([]);
-  const [homeownerJobs, setHomeownerJobs] = useState<any[]>([]);
+  const [homeownerJobs, setHomeownerJobs] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);

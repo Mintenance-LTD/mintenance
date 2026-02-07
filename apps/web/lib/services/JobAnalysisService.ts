@@ -426,7 +426,7 @@ export class JobAnalysisService {
             // No database match found, return original detection
             return detected;
           } catch (err) {
-            console.error(`Error looking up material "${detected.name}":`, err);
+            logger.error(`Error looking up material "${detected.name}"`, err);
             return detected; // Return original on error
           }
         })
@@ -434,7 +434,7 @@ export class JobAnalysisService {
 
       return materialsWithPricing;
     } catch (err) {
-      console.error('Error in material database lookup:', err);
+      logger.error('Error in material database lookup', err);
       // Graceful degradation: return detected materials without pricing
       return detectedMaterials;
     }

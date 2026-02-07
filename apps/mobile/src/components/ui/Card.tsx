@@ -15,7 +15,7 @@ export const Card: React.FC<CardProps> = ({
   variant = 'default',
   style,
 }) => {
-  const v = theme.components.card[variant] as any;
+  const v = theme.components.card[variant] as Record<string, unknown>;
   return <View style={[styles.base, v, style]}>{children}</View>;
 };
 

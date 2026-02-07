@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { materialsService } from '@/lib/services/MaterialsService';
 import type { MaterialCategory, MaterialQueryFilters } from '@mintenance/shared/types/materials';
+import { logger } from '@mintenance/shared';
 
 /**
  * GET /api/materials - Query materials with filters
@@ -74,9 +75,9 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await queryBuilder;
 
     if (error) {
-      console.error('GET /api/materials error:', error);
+      logger.error('GET /api/materials error', error);
       return NextResponse.json(
-        { error: 'Failed to fetch materials', details: error.message },
+        { error: 'Failed to fetch materials', details: error instanceof Error ? error.message : 'Unknown error' },
         { status: 500 }
       );
     }
@@ -87,10 +88,10 @@ export async function GET(request: NextRequest) {
       limit: filters.limit || 50,
       offset: filters.offset || 0,
     });
-  } catch (error: any) {
-    console.error('GET /api/materials exception:', error);
+  } catch (error: unknown) {
+    logger.error('GET /api/materials exception', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -122,10 +123,10 @@ export async function POST(request: NextRequest) {
     const material = await materialsService.createMaterial(body);
 
     return NextResponse.json(material, { status: 201 });
-  } catch (error: any) {
-    console.error('POST /api/materials exception:', error);
+  } catch (error: unknown) {
+    logger.error('POST /api/materials exception', error);
     return NextResponse.json(
-      { error: 'Failed to create material', details: error.message },
+      { error: 'Failed to create material', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

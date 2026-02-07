@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     // Get or create Stripe customer ID for this user
     const { data: userData, error: userError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, email, stripe_customer_id')
       .eq('id', user.id)
       .single();
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
       // Save customer ID to database
       await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({ stripe_customer_id: stripeCustomerId })
         .eq('id', user.id);
     }
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     const customer = await stripe.customers.retrieve(stripeCustomerId);
 
     // Check if customer is deleted
-    if ((customer as any).deleted) {
+    if ((customer as Stripe.DeletedCustomer).deleted) {
       throw new BadRequestError('Stripe customer deleted');
     }
 

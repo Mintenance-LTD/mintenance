@@ -563,7 +563,7 @@ export class ServiceAreasService {
     }
 
     // Type assertion to access properties
-    const dbData = data as any;
+    const dbData = data as Record<string, unknown>;
 
     return {
       id: dbData.id,

@@ -179,7 +179,7 @@ export function SchedulingClient2025({ events, userInfo }: SchedulingClient2025P
               {selectedDate && (
                 <div className="mt-8 pt-8 border-t border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Available Times for {selectedDate.toLocaleDateString('en-US', {
+                    Available Times for {selectedDate.toLocaleDateString('en-GB', {
                       month: 'long',
                       day: 'numeric',
                       year: 'numeric'
@@ -269,7 +269,7 @@ export function SchedulingClient2025({ events, userInfo }: SchedulingClient2025P
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <CalendarIcon className="w-4 h-4" />
                           <span>
-                            {eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {eventDate.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
                         <div className={`mt-2 inline-block px-2 py-1 rounded-lg text-xs font-medium ${getEventTypeColor(event.type)}`}>

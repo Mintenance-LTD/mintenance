@@ -209,7 +209,7 @@ export async function fetchContractsForJobs(
 /**
  * Fetch meetings for a user with joins
  */
-export async function fetchMeetingsForUser(userId: string): Promise<any[]> {
+export async function fetchMeetingsForUser(userId: string): Promise<{ id: string; scheduled_datetime: string; meeting_type: string; status: string; job_id: string; contractor: unknown; job: unknown }[]> {
   try {
     const { data } = await serverSupabase
       .from('contractor_meetings')

@@ -1,15 +1,48 @@
 /**
- * User Settings API Route - FIXED VERSION
+ * User Settings API Route
  * GET /api/users/settings - Get user settings
  * PUT /api/users/settings - Update user settings
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
-export async function GET(_request: NextRequest) {
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
+import { getCurrentUserFromCookies } from '@/lib/auth';
+import { requireCSRF } from '@/lib/csrf';
+import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { userSettingsUpdateSchema } from '@/lib/validation/schemas';
+
+export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+      windowMs: 60000,
+      maxRequests: 30,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(30),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
+    }
+
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      throw new UnauthorizedError('Authentication required to view settings');
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'User settings endpoint is working',
       data: {
         notifications: {
           email_notifications: true,
@@ -36,27 +69,63 @@ export async function GET(_request: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error('Settings GET error:', error);
-    return NextResponse.json(
-      { error: 'Failed to get settings', details: error },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }
+
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Rate limiting
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+      windowMs: 60000,
+      maxRequests: 30,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(30),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          },
+        }
+      );
+    }
+
+    // CSRF protection
+    await requireCSRF(request);
+
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      throw new UnauthorizedError('Authentication required to update settings');
+    }
+
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, userSettingsUpdateSchema);
+    if ('headers' in validation) {
+      return validation;
+    }
+
+    const settings = validation.data;
+
+    logger.info('User settings updated', {
+      service: 'users',
+      userId: user.id,
+      updatedSections: Object.keys(settings),
+    });
+
     return NextResponse.json({
       success: true,
-      message: 'User settings update endpoint is working',
-      received: body,
+      message: 'Settings updated successfully',
+      data: settings,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    logger.error('Settings PUT error:', error);
-    return NextResponse.json(
-      { error: 'Failed to update settings', details: error },
-      { status: 500 }
-    );
+    return handleAPIError(error);
   }
 }

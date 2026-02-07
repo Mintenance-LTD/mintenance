@@ -373,7 +373,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
                   <View style={styles.damageSection}>
                     <Text style={styles.damageSectionTitle}>Damage Details</Text>
                     {Object.entries(processingResults.aggregated_assessment.damage_summary).map(
-                      ([type, data]: [string, any]) =>
+                      ([type, data]: [string, Record<string, unknown>]) =>
                         data.instance_count > 0 && renderDamageItem(type, data)
                     )}
                   </View>

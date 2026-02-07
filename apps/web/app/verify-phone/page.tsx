@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { VerifyPhoneClient } from './components/VerifyPhoneClient';
+
+export const metadata: Metadata = {
+  title: 'Verify Phone Number | Mintenance',
+  description: 'Verify your phone number to post jobs and connect with contractors on Mintenance.',
+};
 
 export default async function VerifyPhonePage() {
   const user = await getCurrentUserFromCookies();

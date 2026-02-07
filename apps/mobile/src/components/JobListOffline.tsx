@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing[3],
     paddingHorizontal: theme.spacing[4],
     borderRadius: theme.borderRadius.base,
-    ...(theme.shadows as any).md,
+    ...theme.shadows.md,
   },
   creatingText: {
     fontSize: theme.typography.fontSize.base,

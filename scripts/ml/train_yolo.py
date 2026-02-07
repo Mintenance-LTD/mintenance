@@ -38,8 +38,22 @@ class YOLOTrainer:
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
 
-    def get_base_model(self, mode: str = 'incremental') -> str:
-        """Get the base model path based on training mode."""
+    def get_base_model(
+        self,
+        mode: str = 'incremental',
+        transfer_from: Optional[str] = None
+    ) -> str:
+        """Get the base model path based on training mode.
+
+        Args:
+            mode: Training mode (full, incremental, experimental)
+            transfer_from: Path to source domain model for transfer learning.
+                           Loads the source model's backbone and freezes it,
+                           then fine-tunes the detection head on new domain data.
+        """
+        if transfer_from and os.path.exists(transfer_from):
+            print(f"Transfer learning from source model: {transfer_from}")
+            return transfer_from
 
         if mode == 'full':
             # Start from pretrained YOLOv8
@@ -177,12 +191,21 @@ class YOLOTrainer:
         momentum: float = 0.937,
         weight_decay: float = 0.0005,
         warmup_epochs: float = 3.0,
-        close_mosaic: int = 10
+        close_mosaic: int = 10,
+        transfer_from: Optional[str] = None,
+        freeze_layers: int = 0
     ) -> Path:
-        """Train YOLO model with specified configuration."""
+        """Train YOLO model with specified configuration.
 
-        # Get base model
-        base_model = self.get_base_model(mode)
+        Args:
+            transfer_from: Source domain model path for transfer learning.
+            freeze_layers: Number of backbone layers to freeze (0 = none).
+                           For transfer learning, typically 10-15 to keep
+                           learned features while fine-tuning the head.
+        """
+
+        # Get base model (may come from transfer source)
+        base_model = self.get_base_model(mode, transfer_from=transfer_from)
 
         # Initialize YOLO model
         model = YOLO(base_model)
@@ -226,9 +249,15 @@ class YOLOTrainer:
             **aug_config
         }
 
-        # Add callbacks for continuous learning
-        if mode == 'incremental':
-            train_args['freeze'] = 10  # Freeze backbone for first epochs
+        # Freeze backbone layers for incremental or transfer learning
+        if freeze_layers > 0:
+            train_args['freeze'] = freeze_layers
+            print(f"Freezing first {freeze_layers} layers (transfer/incremental)")
+        elif transfer_from:
+            train_args['freeze'] = 15  # Freeze most of backbone for transfer
+            print("Transfer learning: freezing first 15 backbone layers")
+        elif mode == 'incremental':
+            train_args['freeze'] = 10  # Freeze backbone for incremental
 
         # Train model
         results = model.train(**train_args)
@@ -315,9 +344,20 @@ class YOLOTrainer:
         self,
         model_path: str,
         output_dir: str,
-        formats: List[str] = ['onnx', 'torchscript', 'tflite']
+        formats: List[str] = ['onnx', 'torchscript', 'tflite'],
+        quantization: str = 'fp32',
+        imgsz: int = 640
     ) -> Dict[str, str]:
-        """Export model to various formats for deployment."""
+        """Export model to various formats for deployment.
+
+        Args:
+            model_path: Path to trained .pt model
+            output_dir: Directory for exported files
+            formats: Export formats (onnx, torchscript, tflite, tensorrt,
+                     onnx_fp16, tflite_int8, tensorrt_fp16, tensorrt_int8)
+            quantization: Global quantization hint (fp32, fp16, int8)
+            imgsz: Image size for exported model
+        """
 
         model = YOLO(model_path)
         exported_paths = {}
@@ -325,44 +365,84 @@ class YOLOTrainer:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
+        use_half = quantization in ('fp16',)
+        use_int8 = quantization in ('int8',)
+
         for format_type in formats:
             try:
+                exported_path = None
+
                 if format_type == 'onnx':
                     exported_path = model.export(
                         format='onnx',
-                        imgsz=640,
+                        imgsz=imgsz,
                         opset=12,
                         simplify=True,
-                        dynamic=True
+                        dynamic=True,
+                        half=use_half
+                    )
+                elif format_type == 'onnx_fp16':
+                    exported_path = model.export(
+                        format='onnx',
+                        imgsz=imgsz,
+                        opset=12,
+                        simplify=True,
+                        dynamic=False,
+                        half=True
                     )
                 elif format_type == 'torchscript':
                     exported_path = model.export(
                         format='torchscript',
-                        imgsz=640,
+                        imgsz=imgsz,
                         optimize=True
                     )
                 elif format_type == 'tflite':
                     exported_path = model.export(
                         format='tflite',
-                        imgsz=640,
-                        int8=False  # Use FP16 instead of INT8 for better accuracy
+                        imgsz=imgsz,
+                        int8=use_int8
                     )
-                elif format_type == 'tensorrt':
+                elif format_type == 'tflite_int8':
+                    exported_path = model.export(
+                        format='tflite',
+                        imgsz=imgsz,
+                        int8=True
+                    )
+                elif format_type == 'tensorrt' or format_type == 'tensorrt_fp16':
                     if torch.cuda.is_available():
                         exported_path = model.export(
                             format='engine',
-                            imgsz=640,
+                            imgsz=imgsz,
                             device=0,
-                            half=True  # FP16 precision
+                            half=True
                         )
+                    else:
+                        print(f"Skipping {format_type}: CUDA not available")
+                        continue
+                elif format_type == 'tensorrt_int8':
+                    if torch.cuda.is_available():
+                        exported_path = model.export(
+                            format='engine',
+                            imgsz=imgsz,
+                            device=0,
+                            half=False,
+                            int8=True
+                        )
+                    else:
+                        print(f"Skipping {format_type}: CUDA not available")
+                        continue
                 else:
+                    print(f"Unknown format: {format_type}")
                     continue
 
                 # Move to output directory
                 if exported_path:
                     final_path = output_path / Path(exported_path).name
-                    shutil.move(exported_path, final_path)
+                    if Path(exported_path).resolve() != final_path.resolve():
+                        shutil.move(str(exported_path), str(final_path))
                     exported_paths[format_type] = str(final_path)
+                    size_mb = final_path.stat().st_size / (1024 * 1024)
+                    print(f"  {format_type}: {final_path} ({size_mb:.1f} MB)")
 
             except Exception as e:
                 print(f"Failed to export to {format_type}: {e}")
@@ -393,6 +473,19 @@ def main():
     parser.add_argument('--patience', type=int, default=20, help='Early stopping patience')
     parser.add_argument('--export', action='store_true', help='Export model after training')
     parser.add_argument('--evaluate', action='store_true', help='Evaluate after training')
+    parser.add_argument('--domain', default='residential',
+                       help='Domain ID (residential, industrial, rail)')
+    parser.add_argument('--transfer-from', default=None,
+                       help='Source domain model path for transfer learning')
+    parser.add_argument('--freeze-layers', type=int, default=0,
+                       help='Number of backbone layers to freeze (0=auto)')
+    parser.add_argument('--quantization', default='fp32',
+                       choices=['fp32', 'fp16', 'int8'],
+                       help='Quantization type for model export')
+    parser.add_argument('--export-formats', nargs='+',
+                       default=['onnx', 'torchscript', 'tflite'],
+                       help='Export formats (onnx, onnx_fp16, torchscript, tflite, '
+                            'tflite_int8, tensorrt_fp16, tensorrt_int8)')
 
     args = parser.parse_args()
 
@@ -400,7 +493,8 @@ def main():
     trainer = YOLOTrainer(config_path=args.config, use_wandb=True)
 
     # Train model
-    print(f"Starting training in {args.mode} mode...")
+    transfer_info = f" (transfer from {args.transfer_from})" if args.transfer_from else ""
+    print(f"Starting training in {args.mode} mode for domain={args.domain}{transfer_info}...")
     best_model = trainer.train(
         data_yaml=args.data_yaml,
         epochs=args.epochs,
@@ -410,7 +504,9 @@ def main():
         project=args.project,
         name=args.name,
         mode=args.mode,
-        patience=args.patience
+        patience=args.patience,
+        transfer_from=args.transfer_from,
+        freeze_layers=args.freeze_layers
     )
 
     print(f"Training complete. Best model saved at: {best_model}")
@@ -437,11 +533,14 @@ def main():
 
     # Export if requested
     if args.export:
-        print("Exporting model...")
+        print(f"Exporting model (quantization={args.quantization})...")
         export_dir = best_model.parent.parent / 'exports'
         exported = trainer.export_model(
             model_path=str(best_model),
-            output_dir=str(export_dir)
+            output_dir=str(export_dir),
+            formats=args.export_formats,
+            quantization=args.quantization,
+            imgsz=args.imgsz
         )
         print(f"Exported formats: {list(exported.keys())}")
 
@@ -454,6 +553,8 @@ def main():
         'model_path': str(best_model),
         'model_hash': model_hash,
         'training_mode': args.mode,
+        'domain': args.domain,
+        'transfer_from': args.transfer_from,
         'epochs': args.epochs,
         'timestamp': datetime.now().isoformat()
     }

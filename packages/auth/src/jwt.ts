@@ -9,15 +9,18 @@ interface CryptoLike {
   randomBytes(size: number): { toString(encoding: 'hex'): string };
   createHash(algorithm: string): { update(data: string): { digest(encoding: 'hex'): string } };
 }
-// Conditional import for crypto (Node.js only, not Edge Runtime compatible)
-let crypto: CryptoLike | null = null;
-try {
-  if (typeof window === 'undefined' && typeof process !== 'undefined') {
-    crypto = require('crypto') as CryptoLike;
+
+let cryptoPromise: Promise<CryptoLike> | null = null;
+const getCrypto = async (): Promise<CryptoLike> => {
+  if (cryptoPromise) {
+    return cryptoPromise;
   }
-} catch {
-  // crypto not available in Edge Runtime or other environments
-}
+  if (typeof window !== 'undefined' || typeof process === 'undefined') {
+    throw new Error('Refresh token generation not available in Edge Runtime');
+  }
+  cryptoPromise = import('crypto').then((module) => module as unknown as CryptoLike);
+  return cryptoPromise;
+};
 import type { JWTPayload } from '@mintenance/types';
 /**
  * Generate JWT token
@@ -57,20 +60,16 @@ export async function generateJWT(
 /**
  * Generate refresh token
  */
-export function generateRefreshToken(): string {
-  if (!crypto) {
-    throw new Error('Refresh token generation not available in Edge Runtime');
-  }
-  return crypto!.randomBytes(32).toString('hex');
+export async function generateRefreshToken(): Promise<string> {
+  const crypto = await getCrypto();
+  return crypto.randomBytes(32).toString('hex');
 }
 /**
  * Hash refresh token for storage
  */
-export function hashRefreshToken(token: string): string {
-  if (!crypto) {
-    throw new Error('Refresh token hashing not available in Edge Runtime');
-  }
-  return crypto!.createHash('sha256').update(token).digest('hex');
+export async function hashRefreshToken(token: string): Promise<string> {
+  const crypto = await getCrypto();
+  return crypto.createHash('sha256').update(token).digest('hex');
 }
 /**
  * Generate token pair (access + refresh)
@@ -88,7 +87,7 @@ export async function generateTokenPair(
   lastActivity?: number
 ): Promise<{ accessToken: string; refreshToken: string }> {
   const accessToken = await generateJWT(payload, secret, '1h', sessionStart, lastActivity);
-  const refreshToken = generateRefreshToken();
+  const refreshToken = await generateRefreshToken();
   return { accessToken, refreshToken };
 }
 /**
@@ -134,9 +133,29 @@ export function decodeJWTPayload(token: string): Partial<JWTPayload> | null {
     } else {
       return null;
     }
-    const parsed = JSON.parse(decoded);
-    // Return as Partial since unverified payload may be incomplete
-    return parsed as Partial<JWTPayload>;
+    const parsed = JSON.parse(decoded) as unknown;
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const payload = parsed as Record<string, unknown>;
+    const sub = typeof payload.sub === 'string' ? payload.sub : undefined;
+    const email = typeof payload.email === 'string' ? payload.email : undefined;
+    const role = typeof payload.role === 'string' ? payload.role : undefined;
+    const iat = typeof payload.iat === 'number' ? payload.iat : undefined;
+    const exp = typeof payload.exp === 'number' ? payload.exp : undefined;
+
+    if (!sub || !email || !role || !iat || !exp) return null;
+
+    return {
+      sub,
+      email,
+      role,
+      iat,
+      exp,
+      first_name: typeof payload.first_name === 'string' ? payload.first_name : undefined,
+      last_name: typeof payload.last_name === 'string' ? payload.last_name : undefined,
+      sessionStart: typeof payload.sessionStart === 'number' ? payload.sessionStart : undefined,
+      lastActivity: typeof payload.lastActivity === 'number' ? payload.lastActivity : undefined,
+    };
   } catch {
     return null;
   }

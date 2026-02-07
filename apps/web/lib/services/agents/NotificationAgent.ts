@@ -514,7 +514,7 @@ export class NotificationAgent {
     title: string;
     message: string;
     actionUrl?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
     scheduledFor: Date;
     priority: 'urgent' | 'high' | 'medium' | 'low';
   }): Promise<string | null> {

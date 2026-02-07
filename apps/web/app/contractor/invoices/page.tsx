@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { InvoiceManagementClient } from './components/InvoiceManagementClient';
+
+export const metadata: Metadata = {
+  title: 'Contractor Invoice Management | Mintenance',
+  description: 'Create, send, and track invoices for your maintenance jobs. Manage outstanding payments and billing.',
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

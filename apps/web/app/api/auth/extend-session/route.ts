@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract session tracking fields from JWT
-    const sessionStart = (user as any).sessionStart;
-    const lastActivity = (user as any).lastActivity;
+    const sessionStart = (user as unknown as { sessionStart?: number }).sessionStart;
+    const lastActivity = (user as unknown as { lastActivity?: number }).lastActivity;
 
     // Validate session is not expired
     if (sessionStart && lastActivity) {

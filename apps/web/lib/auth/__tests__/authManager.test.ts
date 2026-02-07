@@ -4,8 +4,6 @@ import { vi } from 'vitest';
  * Tests for authentication business logic
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-
 describe('Auth Manager', () => {
   beforeEach(() => {
     vi.clearAllMocks();

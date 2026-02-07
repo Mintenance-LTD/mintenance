@@ -40,7 +40,7 @@ export const Input = forwardRef<TextInput, InputProps>(
     errorText,
     ...props
   }, ref) => {
-    const v = theme.components.input[variant] as any;
+    const v = theme.components.input[variant] as Record<string, unknown>;
     return (
       <View
         style={[

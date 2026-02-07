@@ -11,6 +11,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
+import type { ActionTaken } from '@/lib/services/agents/types';
 
 const requestSchema = z.object({
   action: z.enum(['evaluate', 'auto-accept', 'recommend']),
@@ -29,27 +30,27 @@ const requestSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'anonymous'}:${req.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+    // Rate limiting check
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `${req.headers.get('x-forwarded-for')?.split(',')[0] || req.headers.get('x-real-ip') || 'anonymous'}:${req.url}`,
+      windowMs: 60000,
+      maxRequests: 30,
+    });
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(30),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          },
         }
-      }
-    );
-  }
+      );
+    }
 
     const supabase = serverSupabase;
 
@@ -120,15 +121,16 @@ export async function POST(req: Request) {
 
         // Evaluate each bid
         const evaluations = await Promise.all(
-          bids.map(async (bid: any) => {
-            const evaluation = await (BidAcceptanceAgent as any).evaluateBid(
+          bids.map(async (bid: Record<string, unknown>) => {
+            const contractor = bid.contractor as Record<string, unknown> | null;
+            const evaluation = await (BidAcceptanceAgent as unknown as { evaluateBid(jobId: string, contractorId: string, data: unknown): Promise<Record<string, unknown>> }).evaluateBid(
               context.jobId,
-              bid.contractor_id,
+              bid.contractor_id as string,
               {
                 bidAmount: bid.amount,
-                contractorRating: bid.contractor?.rating || 0,
-                totalJobs: bid.contractor?.total_jobs || 0,
-                certifications: bid.contractor?.certifications || [],
+                contractorRating: contractor?.rating || 0,
+                totalJobs: contractor?.total_jobs || 0,
+                certifications: contractor?.certifications || [],
                 description: bid.description,
                 estimatedDuration: bid.estimated_duration,
                 thresholds: context.thresholds
@@ -142,7 +144,7 @@ export async function POST(req: Request) {
         );
 
         // Sort by recommendation score
-        evaluations.sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
+        evaluations.sort((a: Record<string, unknown>, b: Record<string, unknown>) => ((b.score as number) || 0) - ((a.score as number) || 0));
 
         result = {
           evaluations,
@@ -185,14 +187,15 @@ export async function POST(req: Request) {
         }
 
         // Evaluate the bid
-        const evaluation = await (BidAcceptanceAgent as any).evaluateBid(
+        const bidContractor = bid.contractor as Record<string, unknown> | null;
+        const evaluation = await (BidAcceptanceAgent as unknown as { evaluateBid(jobId: string, contractorId: string, data: unknown): Promise<{ confidence: number; recommend: boolean }> }).evaluateBid(
           context.jobId,
           bid.contractor_id,
           {
             bidAmount: bid.amount,
-            contractorRating: bid.contractor?.rating || 0,
-            totalJobs: bid.contractor?.total_jobs || 0,
-            certifications: bid.contractor?.certifications || [],
+            contractorRating: bidContractor?.rating || 0,
+            totalJobs: bidContractor?.total_jobs || 0,
+            certifications: bidContractor?.certifications || [],
             description: bid.description,
             estimatedDuration: bid.estimated_duration,
             thresholds: context.thresholds
@@ -287,15 +290,16 @@ export async function POST(req: Request) {
         }
 
         const recommendations = await Promise.all(
-          allBids.map(async (bid: any) => {
-            const evaluation = await (BidAcceptanceAgent as any).evaluateBid(
+          allBids.map(async (bid: Record<string, unknown>) => {
+            const bidContractorRec = bid.contractor as Record<string, unknown> | null;
+            const evaluation = await (BidAcceptanceAgent as unknown as { evaluateBid(jobId: string, contractorId: string, data: unknown): Promise<Record<string, unknown>> }).evaluateBid(
               context.jobId,
-              bid.contractor_id,
+              bid.contractor_id as string,
               {
                 bidAmount: bid.amount,
-                contractorRating: bid.contractor?.rating || 0,
-                totalJobs: bid.contractor?.total_jobs || 0,
-                certifications: bid.contractor?.certifications || [],
+                contractorRating: bidContractorRec?.rating || 0,
+                totalJobs: bidContractorRec?.total_jobs || 0,
+                certifications: bidContractorRec?.certifications || [],
                 description: bid.description,
                 estimatedDuration: bid.estimated_duration,
                 thresholds: context.thresholds
@@ -308,14 +312,14 @@ export async function POST(req: Request) {
           })
         );
 
-        const bestBid = recommendations.reduce((best: any, current: any) =>
-          (current.score || 0) > (best.score || 0) ? current : best
+        const bestBid = recommendations.reduce((best: Record<string, unknown>, current: Record<string, unknown>) =>
+          ((current.score as number) || 0) > ((best.score as number) || 0) ? current : best
         );
 
         result = {
           recommended: bestBid,
           alternativeCount: recommendations.length - 1,
-          averagePrice: recommendations.reduce((sum: any, r: any) => sum + r.amount, 0) / recommendations.length
+          averagePrice: recommendations.reduce((sum: number, r: Record<string, unknown>) => sum + (r.amount as number), 0) / recommendations.length
         };
         break;
 
@@ -328,9 +332,9 @@ export async function POST(req: Request) {
 
     // Log the decision
     await AgentLogger.logDecision({
-      agentName: 'BidAcceptanceAgent' as any,
-      decisionType: action as any,
-      actionTaken: (action === 'auto-accept' && result.accepted ? 'accepted' : 'evaluated') as any,
+      agentName: 'BidAcceptanceAgent',
+      decisionType: action as 'auto-accept' | 'evaluate' | 'recommend',
+      actionTaken: (action === 'auto-accept' && result.accepted ? 'accepted' : 'evaluated') as ActionTaken,
       confidence: result.confidence || 0.75,
       reasoning: result.reason || 'Bid evaluation completed',
       metadata: {

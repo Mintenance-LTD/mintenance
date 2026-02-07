@@ -1,3 +1,15 @@
+/**
+ * Tests for AuthService - Authentication Operations
+ * Following the pattern from BidManagementService.test.ts
+ */
+
+import { AuthService, SignUpData } from '../AuthService';
+
+// Import mocked modules for easier access
+import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
+import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,13 +20,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-/**
- * Tests for AuthService - Authentication Operations
- * Following the pattern from BidManagementService.test.ts
- */
-
-import { AuthService, SignUpData } from '../AuthService';
 
 // Mock supabase
 jest.mock('../../config/supabase', () => ({
@@ -65,11 +70,6 @@ jest.mock('../../utils/networkDiagnostics', () => ({
     diagnose: jest.fn(),
   },
 }));
-
-// Import mocked modules for easier access
-import { supabase } from '../../config/supabase';
-import { logger } from '../../utils/logger';
-import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 
 describe('AuthService', () => {
   const mockUser = {

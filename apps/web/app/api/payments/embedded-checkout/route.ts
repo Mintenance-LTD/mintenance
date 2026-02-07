@@ -9,6 +9,7 @@ import { env } from '@/lib/env';
 import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
@@ -56,15 +57,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new UnauthorizedError('Authentication required');
     }
 
-    const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid payload', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, bodySchema);
+    if ('headers' in validation) {
+      return validation;
     }
 
-    const { priceId, jobId, contractorId, quantity, paymentType } = parsed.data;
+    const { priceId, jobId, contractorId, quantity, paymentType } = validation.data;
 
     // Get price details to calculate amount
     let paymentAmount: number | null = null;
@@ -121,7 +120,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Get contractor's Stripe Connect account for marketplace payment
       if (jobData.contractor_id) {
         const { data: contractor, error: contractorError } = await serverSupabase
-          .from('users')
+          .from('profiles')
           .select('stripe_connect_account_id')
           .eq('id', jobData.contractor_id)
           .single();

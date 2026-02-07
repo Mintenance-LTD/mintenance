@@ -86,6 +86,9 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
       style={styles.jobItem}
       onPress={() => onJobPress(item.id)}
       activeOpacity={0.7}
+      accessibilityRole='button'
+      accessibilityLabel={`${item.title}, status: ${item.status}${item.budget ? `, budget: ${formatCurrency(item.budget)}` : ''}`}
+      accessibilityHint='Double tap to view job details'
     >
       <View style={styles.jobHeader}>
         <Text style={styles.jobTitle} numberOfLines={2}>
@@ -131,6 +134,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
         name={userRole === 'homeowner' ? 'briefcase-outline' : 'search-outline'}
         size={48}
         color={theme.colors.textSecondary}
+        accessible={false}
       />
       <Text style={styles.emptyStateText}>
         {emptyStateMessage ||
@@ -153,9 +157,13 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>{sectionTitle}</Text>
+        <Text style={styles.sectionTitle} accessibilityRole='header'>{sectionTitle}</Text>
         {jobs.length > 0 && (
-          <TouchableOpacity onPress={onViewAllPress}>
+          <TouchableOpacity
+            onPress={onViewAllPress}
+            accessibilityRole='button'
+            accessibilityLabel='View all jobs'
+          >
             <Text style={styles.viewAllText}>View All</Text>
           </TouchableOpacity>
         )}

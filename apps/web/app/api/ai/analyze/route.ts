@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { UnifiedAIService, type AnalysisContext } from '@/lib/services/ai/UnifiedAIService';
-import { createClient } from '@/lib/database';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
 
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get authenticated user
-    const supabase = createClient();
+    const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

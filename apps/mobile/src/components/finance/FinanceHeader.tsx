@@ -5,7 +5,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../../theme';
 
 interface FinanceHeaderProps {
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<Record<string, undefined>>;
 }
 
 export const FinanceHeader: React.FC<FinanceHeaderProps> = ({ navigation }) => {

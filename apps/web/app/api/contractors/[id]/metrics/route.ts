@@ -110,7 +110,7 @@ async function getContractorMetrics(context: Params) {
 
     // Calculate repeat customers
     const homeownerCounts = new Map<string, number>();
-    homeownerIds.forEach((job: any) => {
+    homeownerIds.forEach((job: { homeowner_id: string | null }) => {
       if (job.homeowner_id) {
         homeownerCounts.set(job.homeowner_id, (homeownerCounts.get(job.homeowner_id) || 0) + 1);
       }
@@ -135,21 +135,21 @@ async function getContractorMetrics(context: Params) {
 
     // Create maps for first bid/message times per job
     const firstBidMap = new Map<string, Date>();
-    firstBids.forEach((bid: any) => {
+    firstBids.forEach((bid: { job_id: string; created_at: string }) => {
       if (!firstBidMap.has(bid.job_id)) {
         firstBidMap.set(bid.job_id, new Date(bid.created_at));
       }
     });
 
     const firstMessageMap = new Map<string, Date>();
-    firstMessages.forEach((message: any) => {
+    firstMessages.forEach((message: { job_id: string; created_at: string }) => {
       if (!firstMessageMap.has(message.job_id)) {
         firstMessageMap.set(message.job_id, new Date(message.created_at));
       }
     });
 
     // Calculate response time for each completed job
-    completedJobs.forEach((job: any) => {
+    completedJobs.forEach((job: { id: string; scheduled_date: string | null; completed_at: string | null; total_amount: number | null; created_at: string }) => {
       const jobCreatedAt = new Date(job.created_at).getTime();
       const firstBidTime = firstBidMap.get(job.id)?.getTime();
       const firstMessageTime = firstMessageMap.get(job.id)?.getTime();

@@ -114,10 +114,12 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
         >
           <Text style={styles.backButtonText}>‹ Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Submit Bid</Text>
+        <Text style={styles.headerTitle} accessibilityRole='header'>Submit Bid</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -182,6 +184,9 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           ]}
           onPress={handleSubmit}
           disabled={submitting}
+          accessibilityRole='button'
+          accessibilityLabel={submitting ? 'Submitting bid' : 'Submit bid'}
+          accessibilityState={{ disabled: submitting }}
         >
           <Text style={styles.submitButtonText}>
             {submitting ? 'Submitting...' : 'Submit Bid'}

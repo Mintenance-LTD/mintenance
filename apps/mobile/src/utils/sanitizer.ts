@@ -183,7 +183,7 @@ export function sanitizeRating(input: string | number): number {
  */
 export function sanitizeObject<T extends Record<string, unknown>>(
   obj: T,
-  fieldSanitizers?: Partial<Record<keyof T, (value: unknown) => any>>
+  fieldSanitizers?: Partial<Record<keyof T, (value: unknown) => unknown>>
 ): T {
   const sanitized = { ...obj };
 

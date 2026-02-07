@@ -335,7 +335,7 @@ AccessibleCheckbox.displayName = 'AccessibleCheckbox';
 // ============================================================================
 
 export interface AccessibleTabBarProps {
-  tabs: Array<{ key: string; title: string; icon?: string }>;
+  tabs: { key: string; title: string; icon?: string }[];
   activeTab: string;
   onTabPress: (key: string) => void;
   style?: ViewStyle;

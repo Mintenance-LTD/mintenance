@@ -92,7 +92,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         </View>
 
         {/* Error Title */}
-        <Text style={styles.title}>Something went wrong</Text>
+        <Text style={styles.title} accessibilityRole='header'>Something went wrong</Text>
 
         {/* Error Message */}
         <Text style={styles.message}>
@@ -123,6 +123,9 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
             style={[styles.button, styles.primaryButton]}
             onPress={handleRestart}
             activeOpacity={0.8}
+            accessibilityRole='button'
+            accessibilityLabel='Try again'
+            accessibilityHint='Double tap to restart the application'
           >
             <Ionicons name="refresh" size={20} color="#FFFFFF" />
             <Text style={styles.primaryButtonText}>Try Again</Text>
@@ -133,6 +136,9 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
               style={[styles.button, styles.secondaryButton]}
               onPress={handleCheckUpdates}
               activeOpacity={0.8}
+              accessibilityRole='button'
+              accessibilityLabel='Check for updates'
+              accessibilityHint='Double tap to check if a newer version is available'
             >
               <Ionicons name="download-outline" size={20} color="#3B82F6" />
               <Text style={styles.secondaryButtonText}>Check for Updates</Text>
@@ -143,6 +149,9 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
             style={[styles.button, styles.outlineButton]}
             onPress={handleContactSupport}
             activeOpacity={0.8}
+            accessibilityRole='button'
+            accessibilityLabel='Contact support'
+            accessibilityHint='Double tap to send an email to our support team'
           >
             <Ionicons name="mail-outline" size={20} color="#6B7280" />
             <Text style={styles.outlineButtonText}>Contact Support</Text>

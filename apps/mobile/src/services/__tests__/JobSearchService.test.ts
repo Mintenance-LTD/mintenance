@@ -1,14 +1,3 @@
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  setItem: jest.fn(() => Promise.resolve()),
-  getItem: jest.fn(() => Promise.resolve(null)),
-  removeItem: jest.fn(() => Promise.resolve()),
-  clear: jest.fn(() => Promise.resolve()),
-  getAllKeys: jest.fn(() => Promise.resolve([])),
-  multiSet: jest.fn(() => Promise.resolve()),
-  multiGet: jest.fn(() => Promise.resolve([])),
-  multiRemove: jest.fn(() => Promise.resolve()),
-}));
-
 /**
  * Tests for JobSearchService - Job Search and Filtering Operations
  */
@@ -19,6 +8,17 @@ import { JobCRUDService } from '../JobCRUDService';
 import { supabase } from '../../config/supabase';
 import { sanitizeForSQL, isValidSearchTerm } from '../../utils/sqlSanitization';
 import { logger } from '../../utils/logger';
+
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  setItem: jest.fn(() => Promise.resolve()),
+  getItem: jest.fn(() => Promise.resolve(null)),
+  removeItem: jest.fn(() => Promise.resolve()),
+  clear: jest.fn(() => Promise.resolve()),
+  getAllKeys: jest.fn(() => Promise.resolve([])),
+  multiSet: jest.fn(() => Promise.resolve()),
+  multiGet: jest.fn(() => Promise.resolve([])),
+  multiRemove: jest.fn(() => Promise.resolve()),
+}));
 
 // Mock dependencies
 jest.mock('../../config/supabase', () => ({

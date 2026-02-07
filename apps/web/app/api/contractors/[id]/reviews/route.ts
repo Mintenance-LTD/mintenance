@@ -78,15 +78,15 @@ async function getContractorReviews(context: Params) {
     }
 
     // Transform reviews to match frontend interface
-    const transformedReviews = (reviews || []).map((review: any) => ({
+    const transformedReviews = (reviews || []).map((review) => ({
       id: review.id,
       author: review.reviewer
-        ? `${review.reviewer.first_name || ''} ${review.reviewer.last_name || ''}`.trim() || 'Anonymous'
+        ? `${(Array.isArray(review.reviewer) ? review.reviewer[0] : review.reviewer)?.first_name || ''} ${(Array.isArray(review.reviewer) ? review.reviewer[0] : review.reviewer)?.last_name || ''}`.trim() || 'Anonymous'
         : 'Anonymous',
       rating: review.rating,
       date: review.created_at,
       comment: review.review_text || '',
-      jobType: review.job?.category || review.job?.title || 'General Work',
+      jobType: (Array.isArray(review.job) ? review.job[0] : review.job)?.category || (Array.isArray(review.job) ? review.job[0] : review.job)?.title || 'General Work',
       helpful: 0, // TODO: Add helpful votes feature
       verified: review.is_verified || false,
       photos: review.photos || [],

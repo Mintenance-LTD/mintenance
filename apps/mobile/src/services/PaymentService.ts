@@ -213,7 +213,7 @@ export class PaymentService {
       throw new Error(transactionError?.message || 'Escrow transaction not found');
     }
 
-    const contractorId = (transaction as any).job?.contractor_id;
+    const contractorId = (transaction as Record<string, Record<string, string>>).job?.contractor_id;
 
     const { error: releaseError } = await supabase.functions.invoke(
       'release-escrow-payment',
@@ -221,7 +221,7 @@ export class PaymentService {
         body: {
           transactionId,
           contractorId,
-          amount: (transaction as any).amount,
+          amount: (transaction as Record<string, unknown>).amount,
         },
       }
     );
@@ -312,8 +312,8 @@ export class PaymentService {
 
     return {
       hasAccount: true,
-      accountComplete: Boolean((data as any).account_complete),
-      accountId: (data as any).stripe_account_id,
+      accountComplete: Boolean((data as Record<string, unknown>).account_complete),
+      accountId: (data as Record<string, unknown>).stripe_account_id as string | undefined,
     };
   }
 
@@ -346,7 +346,7 @@ export class PaymentService {
    * Get escrow transactions for a specific job
    */
   static async getJobEscrowTransactions(jobId: string): Promise<
-    Array<PaymentTables['escrow_transactions']['Row'] & { jobId: string }>
+    (PaymentTables['escrow_transactions']['Row'] & { jobId: string })[]
   > {
     const { data, error } = await supabase
       .from('escrow_transactions')

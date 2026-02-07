@@ -67,7 +67,7 @@ function GoogleMapContent({
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     
     if (!apiKey) {
-      logger.error('❌ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not configured');
+      logger.error('NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not configured');
       setError('Map configuration error. Please contact support.');
       setLoading(false);
       return;
@@ -175,7 +175,7 @@ function GoogleMapContent({
     script.defer = true;
 
     script.onerror = () => {
-      logger.error('❌ Error loading Google Maps script');
+      logger.error('Error loading Google Maps script');
       delete (window as any)[callbackName];
       setError('Failed to load map. Please try again.');
       setLoading(false);

@@ -9,7 +9,7 @@ import type { ServiceArea } from '../../services/ServiceAreasService';
 
 interface ServiceAreasListProps {
   serviceAreas: ServiceArea[];
-  navigation: StackNavigationProp<any>;
+  navigation: StackNavigationProp<Record<string, undefined>>;
   onToggleActive: (area: ServiceArea) => void;
   onDelete: (area: ServiceArea) => void;
 }

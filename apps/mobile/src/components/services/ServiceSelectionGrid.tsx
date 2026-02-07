@@ -115,14 +115,14 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onPress, style }) =>
 
 // Special offers component inspired by the beauty salon's discount cards
 export const SpecialOffersSection: React.FC<{
-  offers: Array<{
+  offers: {
     id: string;
     title: string;
     description: string;
     discount: string;
     validUntil: string;
     image: string;
-  }>;
+  }[];
   onOfferSelect: (id: string) => void;
 }> = ({ offers, onOfferSelect }) => {
   return (

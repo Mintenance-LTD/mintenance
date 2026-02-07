@@ -28,7 +28,7 @@ export class AIMatchingService {
       const matches: ContractorMatch[] = [];
 
       for (const contractor of contractors) {
-        let matchScore = await ScoringService.calculateMatchScore(contractor, criteria);
+        const matchScore = await ScoringService.calculateMatchScore(contractor, criteria);
 
         // Apply learning-based adjustments if homeowner ID is available
         // Note: criteria.jobId would need to be passed to get homeownerId

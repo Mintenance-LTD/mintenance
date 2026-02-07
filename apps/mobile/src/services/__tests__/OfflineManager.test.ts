@@ -1,9 +1,9 @@
+import { OfflineManager } from '../OfflineManager';
+
 jest.mock('@react-native-community/netinfo', () => ({
   fetch: jest.fn(() => Promise.resolve({ isConnected: true })),
   addEventListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
-
-import { OfflineManager } from '../OfflineManager';
 
 // Mock dependencies
 jest.mock('../../utils/logger', () => ({

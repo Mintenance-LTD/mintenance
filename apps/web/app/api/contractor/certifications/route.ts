@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate status for each certification
     const today = new Date();
-    const certificationsWithStatus = (certifications || []).map((cert: any) => {
+    const certificationsWithStatus = (certifications || []).map((cert: { expiry_date?: string; [key: string]: unknown }) => {
       let status: 'active' | 'expiring_soon' | 'expired' = 'active';
       
       if (cert.expiry_date) {

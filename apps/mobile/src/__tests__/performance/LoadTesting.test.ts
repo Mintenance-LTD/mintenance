@@ -4,6 +4,11 @@
  */
 
 import { JobService } from '../../services/JobService';
+import { MessagingService } from '../../services/MessagingService';
+import { NotificationService } from '../../services/NotificationService';
+import { PaymentService } from '../../services/PaymentService';
+import { RealAIAnalysisService } from '../../services/RealAIAnalysisService';
+import { logger } from '../../utils/logger';
 
 jest.mock('../../services/JobService', () => ({
   JobService: {
@@ -22,7 +27,6 @@ jest.mock('../../services/JobService', () => ({
     acceptBid: jest.fn(),
   }
 }));
-import { MessagingService } from '../../services/MessagingService';
 
 jest.mock('../../services/MessagingService', () => ({
   MessagingService: {
@@ -34,7 +38,6 @@ jest.mock('../../services/MessagingService', () => ({
     deleteConversation: jest.fn(),
   }
 }));
-import { NotificationService } from '../../services/NotificationService';
 
 jest.mock('../../services/NotificationService', () => ({
   NotificationService: {
@@ -46,7 +49,6 @@ jest.mock('../../services/NotificationService', () => ({
     updateSettings: jest.fn(),
   }
 }));
-import { PaymentService } from '../../services/PaymentService';
 
 jest.mock('../../services/PaymentService', () => ({
   PaymentService: {
@@ -59,8 +61,6 @@ jest.mock('../../services/PaymentService', () => ({
     deletePaymentMethod: jest.fn(),
   }
 }));
-import { RealAIAnalysisService } from '../../services/RealAIAnalysisService';
-import { logger } from '../../utils/logger';
 
 // Mock all external services for controlled testing
 jest.mock('../../config/supabase');

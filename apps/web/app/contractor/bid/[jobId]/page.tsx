@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BidSubmissionClient2025 } from './components/BidSubmissionClient2025';
 import { redirect } from 'next/navigation';
 import { logger } from '@mintenance/shared';
+
+export const metadata: Metadata = {
+  title: 'Submit Bid | Mintenance',
+  description: 'Submit your bid for a maintenance job. Set your price, timeline, and proposal details.',
+};
 
 export default async function BidSubmissionPage2025({ params }: { params: Promise<{ jobId: string }> }) {
   const resolvedParams = await params;

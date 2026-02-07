@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { JobSignOffClient } from './components/JobSignOffClient';
 import { redirect } from 'next/navigation';
 import { PageLayout, PageHeader } from '@/components/ui/PageLayout';
+
+export const metadata: Metadata = {
+  title: 'Job Sign-Off | Mintenance',
+  description: 'Review and sign off on completed maintenance work. Finalize the job and release payment.',
+};
 
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -51,7 +57,7 @@ export default async function JobSignOffPage({ params }: { params: Promise<{ id:
 
     const contractor = Array.isArray(job.contractor) ? job.contractor[0] : job.contractor;
     const contractorName = contractor
-        ? `${(contractor as any)?.first_name || ''} ${(contractor as any)?.last_name || ''}`.trim() || 'Contractor'
+        ? `${(contractor as { first_name?: string; last_name?: string })?.first_name || ''} ${(contractor as { first_name?: string; last_name?: string })?.last_name || ''}`.trim() || 'Contractor'
         : 'Contractor';
 
     return (

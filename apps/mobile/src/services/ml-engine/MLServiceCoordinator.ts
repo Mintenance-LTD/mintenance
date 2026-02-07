@@ -42,12 +42,12 @@ export interface ContractorRecommendationRequest {
   jobRequirements: JobRequirements;
   availableContractors: ContractorProfile[];
   clientHistory?: {
-    previousJobs: Array<{
+    previousJobs: {
       contractorId: string;
       rating: number;
       category: string;
       satisfaction: number;
-    }>;
+    }[];
     preferences: {
       preferredSkills: string[];
       budgetRange: [number, number];
@@ -425,7 +425,7 @@ export class MLServiceCoordinator {
   /**
    * Verify individual service availability
    */
-  private async _verifyService(serviceName: string, serviceFactory: () => any): Promise<void> {
+  private async _verifyService(serviceName: string, serviceFactory: () => unknown): Promise<void> {
     try {
       const service = serviceFactory();
       if (!service) {

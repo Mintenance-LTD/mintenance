@@ -132,14 +132,14 @@ test.describe('Homeowner Workflow', () => {
 
       // Sort by price
       await page.locator('button:has-text("Price")').click();
-      let amounts = await page.locator('[data-testid="bid-amount"]').allTextContents();
-      let prices = amounts.map(a => parseFloat(a.replace('£', '')));
+      const amounts = await page.locator('[data-testid="bid-amount"]').allTextContents();
+      const prices = amounts.map(a => parseFloat(a.replace('£', '')));
       expect(prices).toEqual([...prices].sort((a, b) => a - b));
 
       // Sort by rating
       await page.locator('button:has-text("Rating")').click();
-      let ratings = await page.locator('[data-testid="contractor-rating"]').allTextContents();
-      let ratingValues = ratings.map(r => parseFloat(r));
+      const ratings = await page.locator('[data-testid="contractor-rating"]').allTextContents();
+      const ratingValues = ratings.map(r => parseFloat(r));
       expect(ratingValues).toEqual([...ratingValues].sort((a, b) => b - a));
     });
   });

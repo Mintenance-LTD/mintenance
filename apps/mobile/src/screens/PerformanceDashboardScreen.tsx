@@ -86,7 +86,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Performance Dashboard</Text>
+        <Text style={styles.title} accessibilityRole='header'>Performance Dashboard</Text>
         <Text style={styles.subtitle}>
           {report.metrics.length} metrics tracked
         </Text>
@@ -94,12 +94,12 @@ export const PerformanceDashboardScreen: React.FC = () => {
 
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
-        <View style={styles.summaryCard}>
+        <View style={styles.summaryCard} accessibilityLabel={`${report.budgets.length} total budgets`}>
           <Text style={styles.summaryValue}>{report.budgets.length}</Text>
           <Text style={styles.summaryLabel}>Total Budgets</Text>
         </View>
 
-        <View style={styles.summaryCard}>
+        <View style={styles.summaryCard} accessibilityLabel={`${report.violations.length} violations`}>
           <Text
             style={[
               styles.summaryValue,
@@ -111,7 +111,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
           <Text style={styles.summaryLabel}>Violations</Text>
         </View>
 
-        <View style={styles.summaryCard}>
+        <View style={styles.summaryCard} accessibilityLabel={`Health score: ${Math.round(report.summary.healthScore)}`}>
           <Text
             style={[
               styles.summaryValue,
@@ -139,6 +139,9 @@ export const PerformanceDashboardScreen: React.FC = () => {
             selectedCategory === 'all' && styles.filterButtonActive,
           ]}
           onPress={() => setSelectedCategory('all')}
+          accessibilityRole='button'
+          accessibilityLabel='Show all budgets'
+          accessibilityState={{ selected: selectedCategory === 'all' }}
         >
           <Text
             style={[
@@ -156,6 +159,9 @@ export const PerformanceDashboardScreen: React.FC = () => {
             selectedCategory === 'violations' && styles.filterButtonActive,
           ]}
           onPress={() => setSelectedCategory('violations')}
+          accessibilityRole='button'
+          accessibilityLabel='Show violations only'
+          accessibilityState={{ selected: selectedCategory === 'violations' }}
         >
           <Text
             style={[
@@ -170,7 +176,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
 
       {/* Budget Status List */}
       <View style={styles.budgetsContainer}>
-        <Text style={styles.sectionTitle}>Performance Budgets</Text>
+        <Text style={styles.sectionTitle} accessibilityRole='header'>Performance Budgets</Text>
 
         {filteredBudgets.length === 0 ? (
           <View style={styles.emptyState}>
@@ -253,7 +259,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
       {/* Recent Violations */}
       {report.violations.length > 0 && (
         <View style={styles.violationsContainer}>
-          <Text style={styles.sectionTitle}>Recent Violations</Text>
+          <Text style={styles.sectionTitle} accessibilityRole='header'>Recent Violations</Text>
 
           {report.violations.slice(0, 5).map((violation, index) => (
             <View key={index} style={styles.violationCard}>

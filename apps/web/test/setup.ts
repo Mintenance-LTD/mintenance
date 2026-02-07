@@ -82,7 +82,7 @@ vi.mock('next/headers', () => ({
 // Mock next/image to prevent image optimization errors
 vi.mock('next/image', () => ({
   default: ({ src, alt, ...props }: any) => {
-    // eslint-disable-next-line @next/next/no-img-element
+     
     return React.createElement('img', { src, alt, ...props });
   },
 }));
@@ -248,24 +248,76 @@ process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = 'pk_test_51Abc123Def456Ghi789Jk
 process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000';
 
 // Mock DOMPurify for sanitizer tests
-// The mock must return the sanitize function directly when called without arguments
-// and also work when called as a constructor with window
-vi.mock('dompurify', async () => {
-  const { createMockDOMPurify } = await import('./mocks/dompurify');
-  const mockDOMPurify = createMockDOMPurify();
+// Use vi.hoisted() so the mock factory survives mockReset: true between tests.
+// Without this, mockReset clears the vi.fn() implementation of sanitize,
+// causing it to return undefined and truncate tag names (e.g. <strong> -> <str>).
+const { stableMockDOMPurify } = vi.hoisted(() => {
+  // This function re-creates the sanitize logic each time it's called,
+  // ensuring the mock is always functional even after mockReset.
+  const createSanitize = () => (input: string, config?: any) => {
+    if (!input || typeof input !== 'string') return '';
 
-  // Create a callable function that also has all properties of mockDOMPurify
+    let result = input;
+
+    // Remove script tags completely
+    result = result.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    result = result.replace(/<script.*?\/>/gi, '');
+
+    // Remove event handlers
+    result = result.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
+    result = result.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
+
+    // Remove javascript: URLs
+    result = result.replace(/javascript:/gi, '');
+
+    // Handle allowed tags if specified
+    if (config?.ALLOWED_TAGS && Array.isArray(config.ALLOWED_TAGS)) {
+      const allowedTags = config.ALLOWED_TAGS.map((t: string) => t.toLowerCase());
+
+      // Remove tags not in allowed list
+      result = result.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (match: string, tagName: string) => {
+        const tag = tagName.toLowerCase();
+        if (allowedTags.includes(tag)) {
+          // Keep allowed tags but remove dangerous attributes (only match space-prefixed attrs)
+          return match.replace(/\s+on\w+=["'][^"']*["']/gi, '').replace(/\s+on\w+=\S*/gi, '');
+        }
+        return ''; // Remove non-allowed tags
+      });
+    }
+
+    return result.trim();
+  };
+
+  const mockPurify = {
+    sanitize: createSanitize(),
+    isSupported: true,
+    version: '3.0.5',
+    removed: [] as any[],
+    isValidAttribute: () => true,
+    addHook: () => {},
+    removeHook: () => {},
+    removeHooks: () => {},
+    removeAllHooks: () => {},
+    setConfig: () => {},
+    clearConfig: () => {},
+  };
+
   const DOMPurifyMock = Object.assign(
-    (window?: unknown) => mockDOMPurify,
-    mockDOMPurify
+    (_window?: unknown) => mockPurify,
+    mockPurify
   );
 
+  return { stableMockDOMPurify: DOMPurifyMock };
+});
+
+vi.mock('dompurify', () => {
   return {
-    default: DOMPurifyMock,
+    default: stableMockDOMPurify,
   };
 });
 
-// Mock crypto for consistent testing
+// Mock crypto for consistent testing (preserve subtle for node environment)
+const existingCrypto = typeof globalThis.crypto !== 'undefined' ? globalThis.crypto : undefined;
 const mockCrypto = {
   randomUUID: () => `test-uuid-${Date.now()}`,
   randomBytes: (size: number) => Buffer.alloc(size, 'test'),
@@ -275,6 +327,8 @@ const mockCrypto = {
     }
     return arr;
   },
+  // Preserve crypto.subtle from Node.js when available (needed for JWT/auth tests)
+  ...(existingCrypto?.subtle ? { subtle: existingCrypto.subtle } : {}),
 };
 
 Object.defineProperty(global, 'crypto', {
@@ -283,7 +337,8 @@ Object.defineProperty(global, 'crypto', {
 });
 
 // Mock window.matchMedia (direct implementation to survive vi.clearAllMocks())
-Object.defineProperty(window, 'matchMedia', {
+// Guard for node environment where window is not defined
+if (typeof window !== 'undefined') Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
     matches: false,

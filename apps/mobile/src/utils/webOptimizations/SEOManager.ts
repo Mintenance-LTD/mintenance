@@ -209,7 +209,7 @@ export class SEOManager {
   /**
    * Generate sitemap (basic implementation)
    */
-  generateSitemap(routes: Array<{ path: string; priority: number; changefreq: string }>): string {
+  generateSitemap(routes: { path: string; priority: number; changefreq: string }[]): string {
     const urls = routes.map(route => `
   <url>
     <loc>${route.path}</loc>

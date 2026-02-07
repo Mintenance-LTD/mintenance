@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
     // Development (5s poll): 720/hour, Production (60s poll): 60/hour
     const isDev = process.env.NODE_ENV === 'development';
 
-    console.log('[session-status] Rate limit check:', { isDev, nodeEnv: process.env.NODE_ENV });
+    logger.debug('[session-status] Rate limit check', { isDev, nodeEnv: process.env.NODE_ENV });
 
     const rateLimitResult = await checkRateLimit(request);
 
-    console.log('[session-status] Rate limit result:', rateLimitResult);
+    logger.debug('[session-status] Rate limit result', { rateLimitResult });
 
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
           status: 429,
           headers: {
             'Retry-After': '60',
-            'X-RateLimit-Limit': String(rateLimit),
+            'X-RateLimit-Limit': String(isDev ? 720 : 60),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': new Date(Date.now() + 3600000).toISOString(),
           }
@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
 
     // Extract session tracking fields from JWT
     // These are set during login and preserved across token refreshes
-    const sessionStart = (user as any).sessionStart; // Unix timestamp (ms)
-    const lastActivity = (user as any).lastActivity; // Unix timestamp (ms)
+    const sessionStart = (user as unknown as { sessionStart?: number }).sessionStart; // Unix timestamp (ms)
+    const lastActivity = (user as unknown as { lastActivity?: number }).lastActivity; // Unix timestamp (ms)
 
     // If session tracking not available (legacy token), return basic status
     if (!sessionStart || !lastActivity) {

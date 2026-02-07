@@ -3,10 +3,14 @@ SAM3 Service for Maintenance App
 Provides segmentation masks for maintenance issue detection
 """
 
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form
+import os
+import hmac
+
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
+from starlette.middleware.base import BaseHTTPMiddleware
 import torch
 import numpy as np
 from segment_anything import sam_model_registry, SamPredictor, SamAutomaticMaskGenerator
@@ -28,14 +32,59 @@ predictor = None
 mask_generator = None
 device = None
 
+# --- Input validation constants ---
+MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+MAX_BASE64_LENGTH = 30 * 1024 * 1024  # ~22 MB decoded
+MAX_IMAGE_DIMENSIONS = (8192, 8192)
+MAX_BOXES = 50
+MAX_POINTS = 100
+ALLOWED_MODES = {"boxes", "points", "everything"}
+EXCLUDED_AUTH_PATHS = {"/health", "/", "/docs", "/openapi.json", "/redoc"}
+
+
+class APIKeyAuthMiddleware(BaseHTTPMiddleware):
+    """API key authentication middleware for SAM3 root service."""
+
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path in EXCLUDED_AUTH_PATHS or request.method == "OPTIONS":
+            return await call_next(request)
+
+        expected_key = os.environ.get("API_KEY")
+        if not expected_key:
+            logger.warning("API_KEY not set - authentication disabled.")
+            return await call_next(request)
+
+        provided_key = request.headers.get("X-API-Key")
+        if not provided_key:
+            auth_header = request.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                provided_key = auth_header[7:]
+
+        if not provided_key:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Missing API key. Provide X-API-Key or Authorization: Bearer header."},
+            )
+
+        if not hmac.compare_digest(provided_key.encode(), expected_key.encode()):
+            return JSONResponse(status_code=403, content={"detail": "Invalid API key."})
+
+        return await call_next(request)
+
+
 class SegmentationRequest(BaseModel):
     image_url: Optional[str] = None
     image_base64: Optional[str] = None
-    boxes: Optional[List[List[float]]] = None  # [[x1,y1,x2,y2], ...]
-    points: Optional[List[List[float]]] = None  # [[x,y], ...]
-    mode: str = "boxes"  # "boxes", "points", "everything"
+    boxes: Optional[List[List[float]]] = Field(
+        default=None, description="Bounding boxes [[x1,y1,x2,y2], ...]"
+    )
+    points: Optional[List[List[float]]] = Field(
+        default=None, description="Point prompts [[x,y], ...]"
+    )
+    mode: str = Field(default="boxes", description="Segmentation mode: boxes, points, or everything")
     refine_masks: bool = True
-    min_mask_region_area: int = 100
+    min_mask_region_area: int = Field(default=100, ge=0, le=1_000_000)
+
 
 class SegmentationResponse(BaseModel):
     masks: List[List[List[int]]]  # Binary masks
@@ -103,6 +152,26 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# API key authentication
+app.add_middleware(APIKeyAuthMiddleware)
+
+
+def _validate_image_from_bytes(image_bytes: bytes) -> Image.Image:
+    """Validate image bytes and return PIL Image."""
+    if len(image_bytes) == 0:
+        raise HTTPException(status_code=400, detail="Image data is empty.")
+    try:
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Cannot decode image. Ensure it is a valid image file.")
+    if image.width > MAX_IMAGE_DIMENSIONS[0] or image.height > MAX_IMAGE_DIMENSIONS[1]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image dimensions ({image.width}x{image.height}) exceed maximum {MAX_IMAGE_DIMENSIONS}.",
+        )
+    return image
+
+
 @app.get("/health")
 async def health_check():
     """Check if service is healthy and model is loaded"""
@@ -132,17 +201,43 @@ async def segment_image(
         # Parse request
         if request_json:
             import json
-            request = SegmentationRequest(**json.loads(request_json))
+            try:
+                request = SegmentationRequest(**json.loads(request_json))
+            except Exception as parse_err:
+                raise HTTPException(status_code=400, detail=f"Invalid request JSON: {parse_err}")
         else:
             request = SegmentationRequest()
 
-        # Load image
+        # Validate mode
+        if request.mode not in ALLOWED_MODES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid mode '{request.mode}'. Allowed: {', '.join(ALLOWED_MODES)}",
+            )
+
+        # Validate box/point counts
+        if request.boxes and len(request.boxes) > MAX_BOXES:
+            raise HTTPException(status_code=400, detail=f"Too many boxes (max {MAX_BOXES}).")
+        if request.points and len(request.points) > MAX_POINTS:
+            raise HTTPException(status_code=400, detail=f"Too many points (max {MAX_POINTS}).")
+
+        # Load and validate image
         if file:
             image_bytes = await file.read()
-            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            if len(image_bytes) > MAX_UPLOAD_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large. Maximum is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+                )
+            image = _validate_image_from_bytes(image_bytes)
         elif request.image_base64:
-            image_bytes = base64.b64decode(request.image_base64)
-            image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            if len(request.image_base64) > MAX_BASE64_LENGTH:
+                raise HTTPException(status_code=413, detail="Base64 image data too large.")
+            try:
+                image_bytes = base64.b64decode(request.image_base64)
+            except Exception:
+                raise HTTPException(status_code=400, detail="Invalid base64 encoding.")
+            image = _validate_image_from_bytes(image_bytes)
         elif request.image_url:
             # For production, implement proper image fetching from URL
             raise HTTPException(status_code=400, detail="URL fetching not implemented in demo")
@@ -290,9 +385,14 @@ async def segment_maintenance_issue(
     start_time = time.time()
 
     try:
-        # Read image
+        # Read and validate image
         image_bytes = await file.read()
-        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        if len(image_bytes) > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+            )
+        image = _validate_image_from_bytes(image_bytes)
         image_np = np.array(image)
 
         # Generate all masks

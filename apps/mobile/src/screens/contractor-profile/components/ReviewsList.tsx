@@ -20,11 +20,15 @@ interface ReviewsListProps {
 export const ReviewsList: React.FC<ReviewsListProps> = ({ reviews }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Reviews</Text>
+      <Text style={styles.sectionTitle} accessibilityRole='header'>Reviews</Text>
       {reviews.map((review) => (
-        <View key={review.id} style={styles.reviewCard}>
+        <View
+          key={review.id}
+          style={styles.reviewCard}
+          accessibilityLabel={`Review by ${review.reviewerName}, ${review.rating} out of 5 stars, ${review.date}. ${review.comment}`}
+        >
           <View style={styles.reviewHeader}>
-            <View style={styles.reviewerAvatar} />
+            <View style={styles.reviewerAvatar} accessible={false} />
             <View style={styles.reviewerInfo}>
               <Text style={styles.reviewerName}>{review.reviewerName}</Text>
               <View style={styles.reviewRatingRow}>

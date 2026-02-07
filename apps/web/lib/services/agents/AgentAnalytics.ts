@@ -341,9 +341,9 @@ export class AgentAnalytics {
 
       // Calculate accuracy history (daily)
       const accuracyHistory = this.groupByDay(decisions || [], (items) => {
-        const withOutcome = items.filter((d: any) => d.outcome_success !== null);
+        const withOutcome = items.filter((d) => d.outcome_success !== null);
         if (withOutcome.length === 0) return 0;
-        const successful = withOutcome.filter((d: any) => d.outcome_success === true).length;
+        const successful = withOutcome.filter((d) => d.outcome_success === true).length;
         return Math.round((successful / withOutcome.length) * 100 * 100) / 100;
       });
 
@@ -353,7 +353,7 @@ export class AgentAnalytics {
       // Calculate confidence trend (daily)
       const confidenceTrend = this.groupByDay(decisions || [], (items) => {
         if (items.length === 0) return 0;
-        const avgConfidence = items.reduce((sum, d: any) => sum + (d.confidence || 0), 0) / items.length;
+        const avgConfidence = items.reduce((sum, d) => sum + ((d as { confidence?: number }).confidence || 0), 0) / items.length;
         return Math.round(avgConfidence * 100) / 100;
       });
 
@@ -565,7 +565,7 @@ export class AgentAnalytics {
     }
   }
 
-  private static calculateAccuracyTrend(decisions: any[]): number[] {
+  private static calculateAccuracyTrend(decisions: Array<{ created_at: string; outcome_success: boolean | null; confidence?: number }>): number[] {
     const days = 7;
     const trend: number[] = [];
     const now = new Date();

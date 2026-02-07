@@ -168,6 +168,83 @@ export class FeatureExtractionService {
     }
 
     /**
+     * Learn from assessment feedback when GPT-4 disagrees with internal model.
+     * Converts the GPT-4 assessment into a surprise signal vector and feeds it
+     * to the learned feature extractor for online adaptation.
+     *
+     * @param rawFeatures - Raw input features used during the original prediction
+     * @param gpt4Assessment - GPT-4's assessment (the teacher ground truth)
+     */
+    static async learnFromAssessmentFeedback(
+        rawFeatures: number[],
+        gpt4Assessment: Phase1BuildingAssessment
+    ): Promise<void> {
+        if (!this.learnedExtractor) return;
+
+        try {
+            // Convert GPT-4 assessment to a target feature vector (surprise signal)
+            const surpriseSignal = this.assessmentToSurpriseSignal(gpt4Assessment);
+
+            await this.learnedExtractor.learnFromSurprise(rawFeatures, surpriseSignal);
+
+            logger.debug('Feature extractor learned from assessment feedback', {
+                service: 'FeatureExtractionService',
+                damageType: gpt4Assessment.damageAssessment.damageType,
+                confidence: gpt4Assessment.damageAssessment.confidence,
+            });
+        } catch (error) {
+            logger.warn('Failed to learn from assessment feedback', {
+                service: 'FeatureExtractionService',
+                error: error instanceof Error ? error.message : 'unknown',
+            });
+        }
+    }
+
+    /**
+     * Convert a GPT-4 assessment into a numeric surprise signal vector
+     * for the learned feature extractor.
+     */
+    private static assessmentToSurpriseSignal(assessment: Phase1BuildingAssessment): number[] {
+        const signal: number[] = new Array(40).fill(0);
+
+        // Encode damage confidence (position 0)
+        signal[0] = (assessment.damageAssessment.confidence || 0) / 100;
+
+        // Encode severity (positions 1-3)
+        const severityMap: Record<string, number> = { early: 0.33, midway: 0.66, full: 1.0 };
+        signal[1] = severityMap[assessment.damageAssessment.severity] || 0;
+
+        // Encode urgency (positions 2-6)
+        const urgencyMap: Record<string, number> = {
+            monitor: 0.2, planned: 0.4, soon: 0.6, urgent: 0.8, immediate: 1.0,
+        };
+        signal[2] = urgencyMap[assessment.urgency.urgency] || 0;
+
+        // Encode safety score (position 3)
+        signal[3] = (assessment.safetyHazards.overallSafetyScore || 0) / 100;
+
+        // Encode compliance score (position 4)
+        signal[4] = (assessment.compliance.complianceScore || 0) / 100;
+
+        // Encode risk score (position 5)
+        signal[5] = (assessment.insuranceRisk.riskScore || 0) / 100;
+
+        // Encode priority score (position 6)
+        signal[6] = (assessment.urgency.priorityScore || 0) / 100;
+
+        // Encode hazard count (position 7)
+        signal[7] = Math.min((assessment.safetyHazards.hazards?.length || 0) / 5, 1);
+
+        // Encode critical hazards flag (position 8)
+        signal[8] = assessment.safetyHazards.hasCriticalHazards ? 1.0 : 0.0;
+
+        // Encode detected items count (position 9)
+        signal[9] = Math.min((assessment.damageAssessment.detectedItems?.length || 0) / 10, 1);
+
+        return signal;
+    }
+
+    /**
      * Reset the service (useful for testing)
      */
     static reset(): void {

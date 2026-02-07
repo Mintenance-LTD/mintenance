@@ -12,7 +12,6 @@ import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
 });

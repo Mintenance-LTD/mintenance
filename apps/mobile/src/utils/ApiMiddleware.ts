@@ -326,11 +326,11 @@ export class ApiMiddleware {
   /**
    * Get active requests info
    */
-  getActiveRequests(): Array<{
+  getActiveRequests(): {
     id: string;
     context: RequestContext;
     duration: number;
-  }> {
+  }[] {
     const now = Date.now();
     return Array.from(this.activeRequests.entries()).map(([id, context]) => ({
       id,

@@ -1,8 +1,8 @@
+import { setupGlobalErrorHandler } from '../globalErrorHandler';
+
 jest.mock('react-native/Libraries/Core/ExceptionsManager', () => ({
   unstable_setGlobalHandler: jest.fn(),
 }));
-
-import { setupGlobalErrorHandler } from '../globalErrorHandler';
 
 describe('setupGlobalErrorHandler', () => {
   beforeEach(() => {

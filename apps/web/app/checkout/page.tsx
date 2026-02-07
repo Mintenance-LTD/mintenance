@@ -1,6 +1,12 @@
+import type { Metadata } from 'next';
 import { EmbeddedCheckoutComponent } from '@/components/payments/EmbeddedCheckout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { logger } from '@mintenance/shared';
+
+export const metadata: Metadata = {
+  title: 'Checkout | Mintenance',
+  description: 'Complete your payment securely through Stripe for maintenance services on Mintenance.',
+};
 
 interface CheckoutPageProps {
   searchParams: {

@@ -59,7 +59,7 @@ export async function DELETE(request: NextRequest) {
 
     // Check if account is already deleted
     const { data: existingUser, error: fetchError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, deleted_at')
       .eq('id', user.id)
       .single();
@@ -79,7 +79,7 @@ export async function DELETE(request: NextRequest) {
     // Soft delete: Set deleted_at timestamp
     // This preserves data for potential recovery while marking the account as deleted
     const { error: deleteError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .update({
         deleted_at: new Date().toISOString(),
         email: `deleted_${Date.now()}_${user.email}`, // Anonymize email to prevent reuse

@@ -12,7 +12,7 @@ interface FilterOption {
 interface SavedView {
   id: string;
   name: string;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   isDefault?: boolean;
 }
 

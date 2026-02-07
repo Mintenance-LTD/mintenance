@@ -283,7 +283,7 @@ export class SessionManager {
   private getThermalState(): 'nominal' | 'fair' | 'serious' | 'critical' {
     // Simplified thermal state
     // In a real implementation, this would use actual thermal APIs
-    const states: Array<'nominal' | 'fair' | 'serious' | 'critical'> = ['nominal', 'fair', 'serious', 'critical'];
+    const states: ('nominal' | 'fair' | 'serious' | 'critical')[] = ['nominal', 'fair', 'serious', 'critical'];
     return states[Math.floor(Math.random() * states.length)];
   }
 
@@ -293,7 +293,7 @@ export class SessionManager {
   private getTrackingQuality(sessionType: 'ar' | 'vr' | 'mixed'): 'poor' | 'limited' | 'normal' | 'excellent' {
     // Simplified tracking quality assessment
     // In a real implementation, this would use actual tracking APIs
-    const qualities: Array<'poor' | 'limited' | 'normal' | 'excellent'> = ['poor', 'limited', 'normal', 'excellent'];
+    const qualities: ('poor' | 'limited' | 'normal' | 'excellent')[] = ['poor', 'limited', 'normal', 'excellent'];
     return qualities[Math.floor(Math.random() * qualities.length)];
   }
 

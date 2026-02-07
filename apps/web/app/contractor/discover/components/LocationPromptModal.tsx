@@ -258,7 +258,7 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-Token': (window as any).csrfToken || '',
+        'X-CSRF-Token': window.csrfToken || '',
       },
       body: JSON.stringify({
         contractorId,

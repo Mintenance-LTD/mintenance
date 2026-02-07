@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     // Get admin users
     const { data: admins, error: adminError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, email')
       .eq('role', 'admin')
       .is('deleted_at', null);

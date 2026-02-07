@@ -1,50 +1,95 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    tsconfigPaths(),
+  ],
   test: {
+    // Test environment
+    environment: 'happy-dom',
+
+    // Global test utilities
     globals: true,
-    environment: 'jsdom',
+
+    // Setup files
     setupFiles: ['./test/setup.ts'],
-    testTimeout: 15000, // Increase from default 5000ms for complex component tests
-    hookTimeout: 15000, // Increase hook timeout
-    include: ['**/__tests__/**/*.{test,spec}.{ts,tsx}', '**/*.{test,spec}.{ts,tsx}'],
+
+    // Test file patterns
+    include: [
+      '**/__tests__/**/*.{test,spec}.{ts,tsx}',
+      '**/*.{test,spec}.{ts,tsx}',
+    ],
+
+    // Exclude patterns
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
       '**/.next/**',
-      // Exclude Playwright E2E tests (should run with playwright, not vitest)
-      '**/e2e/**/*.spec.ts',
-      '**/tests/e2e/**/*.spec.ts',
+      '**/build/**',
+      '**/coverage/**',
+      '**/_archive/**',
+      '**/e2e/**',
+      '**/test/examples/**',
+      '**/*.e2e.{test,spec}.{ts,tsx}',
+      '**/playwright/**',
+      '**/*.playwright.{test,spec}.{ts,tsx}',
       '**/*.spec.ts.old',
-      // Temporarily skip problematic tests that need more work
-      '**/__tests__/unit/job-creation.test.tsx', // 21 timeouts - needs better mocking
-      '**/__tests__/rate-limiting.test.ts', // 5 timeouts - needs Redis mock
     ],
+
+    // Coverage configuration
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
       exclude: [
         'node_modules/',
         'test/',
         '**/*.d.ts',
         '**/*.config.*',
-        '**/mockData/',
-        '**/__mocks__/',
+        '**/mockData/**',
+        '**/__mocks__/**',
+        '**/.next/**',
+        'coverage/**',
+        'dist/**',
       ],
+      thresholds: {
+        global: {
+          statements: 30,
+          branches: 25,
+          functions: 30,
+          lines: 30,
+        },
+      },
     },
+
+    // Test timeout
+    testTimeout: 15000,
+
+    // Hook timeout
+    hookTimeout: 15000,
+
+    // Clear mocks automatically
+    clearMocks: true,
+
+    // Restore mocks after each test
+    restoreMocks: true,
+
+    // Mock reset between tests
+    mockReset: true,
+
+    // Verbose output
+    reporters: ['verbose'],
   },
+
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
-      '@/components': path.resolve(__dirname, './components'),
-      '@/lib': path.resolve(__dirname, './lib'),
-      '@/app': path.resolve(__dirname, './app'),
-      '@/hooks': path.resolve(__dirname, './hooks'),
-      '@/types': path.resolve(__dirname, './types'),
-      '@/utils': path.resolve(__dirname, './utils'),
+      '@mintenance/types': path.resolve(__dirname, '../../packages/types/src'),
+      '@mintenance/auth': path.resolve(__dirname, '../../packages/auth/src'),
+      '@mintenance/shared': path.resolve(__dirname, '../../packages/shared/src'),
     },
   },
 });

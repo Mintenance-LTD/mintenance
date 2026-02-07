@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -6,6 +7,11 @@ import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: 'Contractor Payout Setup Incomplete | Mintenance',
+  description: 'Complete your payout account setup to start receiving payments for your maintenance work.',
+};
 
 export default async function PayoutRefreshPage() {
   const user = await getCurrentUserFromCookies();

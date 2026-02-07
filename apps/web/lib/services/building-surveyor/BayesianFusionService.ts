@@ -21,6 +21,7 @@ import { join } from 'path';
 import type { DamageTypeSegmentation } from './SAM3Service';
 import type { Phase1BuildingAssessment } from './types';
 import type { SceneGraphFeatures } from './scene_graph_features';
+import { getActiveDomain } from './config/BuildingSurveyorConfig';
 
 export interface FusionInput {
   sam3Evidence?: {
@@ -135,13 +136,18 @@ export class BayesianFusionService {
   }
 
   /**
-   * Get current evidence weights (loaded from file or defaults)
+   * Get current evidence weights.
+   * Priority: domain config → fusion_weights.json → defaults
    */
   private static getEvidenceWeights(): {
     sam3: number;
     gpt4: number;
     sceneGraph: number;
   } {
+    const domain = getActiveDomain();
+    if (domain.id !== 'residential') {
+      return { ...domain.fusionWeights };
+    }
     return this.loadWeightsFromFile();
   }
 

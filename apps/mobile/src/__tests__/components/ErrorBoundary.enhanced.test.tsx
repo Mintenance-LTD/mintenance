@@ -1,4 +1,9 @@
 
+import React from 'react';
+import { render, fireEvent , waitFor} from '../test-utils';
+import { Alert, Text, TouchableOpacity } from 'react-native';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
+
 jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
@@ -6,11 +11,6 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
-import React from 'react';
-import { render, fireEvent , waitFor} from '../test-utils';
-import { Alert, Text, TouchableOpacity } from 'react-native';
-import { ErrorBoundary } from '../../components/ErrorBoundary';
 
 // Mock Alert
 jest.spyOn(Alert, 'alert').mockImplementation(() => {});

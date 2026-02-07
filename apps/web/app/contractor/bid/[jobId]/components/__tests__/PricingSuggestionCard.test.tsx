@@ -1,21 +1,21 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { PricingSuggestionCard } from '../PricingSuggestionCard';
 
 // Mock MotionDiv to avoid animation issues in tests
-jest.mock('@/components/ui/MotionDiv', () => ({
-  MotionDiv: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+vi.mock('@/components/ui/MotionDiv', () => ({
+  MotionDiv: ({ children, className, ...props }: any) => <div className={className} {...props}>{children}</div>,
 }));
 
 // Mock fadeIn animation
-jest.mock('@/lib/animations/variants', () => ({
+vi.mock('@/lib/animations/variants', () => ({
   fadeIn: {},
 }));
 
 describe('PricingSuggestionCard', () => {
-  const mockOnApplyPrice = jest.fn();
-  const mockOnDismiss = jest.fn();
+  const mockOnApplyPrice = vi.fn();
+  const mockOnDismiss = vi.fn();
 
   const baseSuggestion = {
     priceRange: {
@@ -37,7 +37,7 @@ describe('PricingSuggestionCard', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Basic Rendering', () => {
@@ -50,7 +50,7 @@ describe('PricingSuggestionCard', () => {
         />
       );
 
-      expect(screen.getByText(/AI-Powered Pricing Suggestion/i)).toBeInTheDocument();
+      expect(screen.getByText('AI Pricing Suggestion')).toBeInTheDocument();
       expect(screen.getByText('£1000.00')).toBeInTheDocument();
       expect(screen.queryByText('Cost Breakdown')).not.toBeInTheDocument();
     });
@@ -220,7 +220,9 @@ describe('PricingSuggestionCard', () => {
         />
       );
 
-      expect(screen.getByText('£0.00')).toBeInTheDocument(); // Should still show zero values
+      // Zero-value items still appear in the legend (materials=0 and profit=0 both show £0.00)
+      const zeroValues = screen.getAllByText('£0.00');
+      expect(zeroValues.length).toBe(2);
       expect(screen.getByText('£850.00')).toBeInTheDocument();
     });
 
@@ -278,7 +280,8 @@ describe('PricingSuggestionCard', () => {
         />
       );
 
-      const dismissButton = screen.getByRole('button', { name: /dismiss/i });
+      // The text "Dismiss" button at the bottom
+      const dismissButton = screen.getByRole('button', { name: 'Dismiss' });
       fireEvent.click(dismissButton);
 
       expect(mockOnDismiss).toHaveBeenCalledTimes(1);
@@ -312,7 +315,7 @@ describe('PricingSuggestionCard', () => {
         />
       );
 
-      expect(screen.getByText('Too Low')).toBeInTheDocument();
+      expect(screen.getByText('Below Market')).toBeInTheDocument();
     });
 
     it('displays premium badge correctly', () => {
@@ -329,7 +332,7 @@ describe('PricingSuggestionCard', () => {
         />
       );
 
-      expect(screen.getByText('Premium')).toBeInTheDocument();
+      expect(screen.getByText('Premium Pricing')).toBeInTheDocument();
     });
 
     it('displays too_high badge correctly', () => {
@@ -346,7 +349,7 @@ describe('PricingSuggestionCard', () => {
         />
       );
 
-      expect(screen.getByText('Too High')).toBeInTheDocument();
+      expect(screen.getByText('Above Market')).toBeInTheDocument();
     });
   });
 
@@ -365,7 +368,7 @@ describe('PricingSuggestionCard', () => {
         />
       );
 
-      expect(screen.getByText(/AI-Powered Pricing Suggestion/i)).toBeInTheDocument();
+      expect(screen.getByText('AI Pricing Suggestion')).toBeInTheDocument();
     });
 
     it('displays sample size when available', () => {
@@ -498,7 +501,9 @@ describe('PricingSuggestionCard', () => {
       );
 
       expect(screen.getByRole('button', { name: /use £1000.00/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /dismiss/i })).toBeInTheDocument();
+      // The X button uses aria-label "Dismiss pricing suggestion", and there's also a text "Dismiss" button
+      expect(screen.getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Dismiss pricing suggestion' })).toBeInTheDocument();
     });
   });
 });

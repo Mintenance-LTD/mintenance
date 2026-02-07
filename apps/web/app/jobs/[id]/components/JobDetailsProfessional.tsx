@@ -70,6 +70,11 @@ interface Contractor {
   license_number?: string;
 }
 
+interface BidLineItem {
+  type: 'labor' | 'material' | 'equipment';
+  total: number;
+}
+
 interface Bid {
   id: string;
   amount: number;
@@ -77,6 +82,7 @@ interface Bid {
   status: string;
   created_at: string;
   contractor: Contractor;
+  lineItems?: BidLineItem[];
 }
 
 export interface JobDetailsProfessionalProps {
@@ -464,9 +470,9 @@ function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string
   return (
     <div className="flex items-start gap-3">
       <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
-        {React.isValidElement(icon) ? React.cloneElement(icon, {
+        {React.isValidElement<{ className?: string }>(icon) ? React.cloneElement(icon, {
           className: 'w-5 h-5 text-gray-600',
-        } as any) : icon}
+        }) : icon}
       </div>
       <div>
         <div className="text-sm text-gray-600">{label}</div>
@@ -604,7 +610,7 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
           alert('A bid has already been accepted for this job. Refreshing the page...');
           window.location.reload();
         } else if (response.status === 403) {
-          alert(`Access denied: ${data.error || 'You are not authorized to accept bids for this job.'}`);
+          alert(`Access denied: ${data.error || 'You are not authorised to accept bids for this job.'}`);
         } else if (response.status === 404) {
           alert(`Error: ${data.error || 'Bid or job not found. Please refresh the page.'}`);
           window.location.reload();
@@ -689,16 +695,16 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
       )}
 
       {/* Cost Breakdown - Labor vs Materials vs Equipment */}
-      {(bid as any).lineItems && (bid as any).lineItems.length > 0 && (() => {
-        const laborTotal = (bid as any).lineItems
-          .filter((item: any) => item.type === 'labor')
-          .reduce((sum: number, item: any) => sum + item.total, 0);
-        const materialTotal = (bid as any).lineItems
-          .filter((item: any) => item.type === 'material')
-          .reduce((sum: number, item: any) => sum + item.total, 0);
-        const equipmentTotal = (bid as any).lineItems
-          .filter((item: any) => item.type === 'equipment')
-          .reduce((sum: number, item: any) => sum + item.total, 0);
+      {bid.lineItems && bid.lineItems.length > 0 && (() => {
+        const laborTotal = bid.lineItems
+          .filter((item) => item.type === 'labor')
+          .reduce((sum, item) => sum + item.total, 0);
+        const materialTotal = bid.lineItems
+          .filter((item) => item.type === 'material')
+          .reduce((sum, item) => sum + item.total, 0);
+        const equipmentTotal = bid.lineItems
+          .filter((item) => item.type === 'equipment')
+          .reduce((sum, item) => sum + item.total, 0);
 
         return (laborTotal > 0 || materialTotal > 0 || equipmentTotal > 0) ? (
           <div className="mb-4 flex gap-4 flex-wrap text-sm text-gray-600">

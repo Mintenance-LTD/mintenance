@@ -12,6 +12,18 @@ export type AgentName =
   | 'pricing'
   | 'escrow-release'
   | 'notification'
+  // Orchestrator and error agents (used in API routes)
+  | 'AgentOrchestrator'
+  | 'BidAcceptanceAgent'
+  | 'error'
+  // Class-name variants (used in API routes)
+  | 'PricingAgent'
+  | 'SchedulingAgent'
+  | 'NotificationAgent'
+  | 'DisputeResolutionAgent'
+  | 'EscrowReleaseAgent'
+  | 'JobStatusAgent'
+  | 'PredictiveAgent'
   // Phase 2B agents (planned but not yet implemented)
   | 'review'
   | 'verification'
@@ -34,6 +46,12 @@ export type DecisionType =
   | 'notification_routing'
   | 'notification_timing'
   | 'notification_batching'
+  // API route decision types
+  | 'multi-agent-workflow'
+  | 'api-request'
+  | 'evaluate'
+  | 'recommend'
+  | 'error'
   // Phase 2B decision types (planned but not yet implemented)
   | 'review_request'
   | 'review_quality_check'
@@ -58,6 +76,11 @@ export type ActionTaken =
   | 'notification_queued'
   | 'notification_batched'
   | 'notification_delayed'
+  // API route actions
+  | 'orchestrated'
+  | 'evaluated'
+  | 'accepted'
+  | 'failed'
   // Phase 2B actions (planned but not yet implemented)
   | 'review_requested'
   | 'review_flagged'
@@ -73,7 +96,7 @@ export interface AgentDecision {
   actionTaken?: ActionTaken;
   confidence: number; // 0-100
   reasoning: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   userFeedback?: 'accepted' | 'rejected' | 'modified' | null;
   outcomeSuccess?: boolean | null;
   createdAt?: string;
@@ -97,7 +120,7 @@ export interface AgentContext {
   userId?: string;
   contractorId?: string;
   homeownerId?: string;
-  additionalData?: Record<string, any>;
+  additionalData?: Record<string, unknown>;
 }
 
 export interface AgentResult {
@@ -105,14 +128,14 @@ export interface AgentResult {
   decision?: AgentDecision;
   error?: string;
   message?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface LearningData {
   userId: string;
   eventType: string;
-  context: Record<string, any>;
-  outcome?: Record<string, any>;
+  context: Record<string, unknown>;
+  outcome?: Record<string, unknown>;
   timestamp: string;
 }
 

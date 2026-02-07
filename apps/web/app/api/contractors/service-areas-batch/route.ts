@@ -93,7 +93,7 @@ const body = await request.json();
       });
       
       return acc;
-    }, {} as Record<string, any[]>);
+    }, {} as Record<string, ({ id: string; contractorId: string; city: string; state: string; zipCode: string; country: string; latitude: number; longitude: number; radius_km: number; is_active: boolean; priority: number })[]>);
 
     // Convert to array format for response
     const result = Object.entries(groupedByContractor);

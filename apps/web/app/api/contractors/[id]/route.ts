@@ -45,14 +45,14 @@ async function getContractor(context: Params) {
 
     // First check if user exists at all (without role filter)
     const { data: userCheck, error: userCheckError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, role')
       .eq('id', id)
       .single();
 
     // Fetch contractor from database with all relevant fields
     const { data: contractor, error } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select(`
         id,
         first_name,

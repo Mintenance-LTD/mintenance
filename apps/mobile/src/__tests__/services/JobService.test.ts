@@ -1,3 +1,10 @@
+// Import supabase BEFORE JobService so the mock is in place
+import { supabase } from '../../config/supabase';
+import { Job, JobData } from '../../types';
+
+// Import the REAL JobService (not mocked) - we want to test the actual implementation
+import { JobService } from '../../services/JobService';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,13 +15,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-// Import supabase BEFORE JobService so the mock is in place
-import { supabase } from '../../config/supabase';
-import { Job, JobData } from '../../types';
-
-// Import the REAL JobService (not mocked) - we want to test the actual implementation
-import { JobService } from '../../services/JobService';
 
 // Mock ServiceErrorHandler
 jest.mock('../../utils/serviceErrorHandler', () => ({

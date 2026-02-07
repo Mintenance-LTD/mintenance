@@ -63,7 +63,7 @@ export function JobDetailsHero2025({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-GB', { month: 'long', day: 'numeric', year: 'numeric' });
   };
 
   return (

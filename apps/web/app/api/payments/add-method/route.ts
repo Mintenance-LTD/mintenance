@@ -7,6 +7,7 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
@@ -57,19 +58,17 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    // Validate request body
-    const body = await request.json();
-    const parsed = addMethodSchema.safeParse(body);
-
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid request');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, addMethodSchema);
+    if ('headers' in validation) {
+      return validation;
     }
 
-    const { paymentMethodId, setAsDefault } = parsed.data;
+    const { paymentMethodId, setAsDefault } = validation.data;
 
     // Get or create Stripe customer
     const { data: userData, error: userError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, email, stripe_customer_id')
       .eq('id', user.id)
       .single();
@@ -92,7 +91,7 @@ export async function POST(request: NextRequest) {
       stripeCustomerId = customer.id;
 
       await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({ stripe_customer_id: stripeCustomerId })
         .eq('id', user.id);
     }

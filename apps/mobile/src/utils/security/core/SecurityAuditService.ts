@@ -241,7 +241,7 @@ export class SecurityAuditService {
   /**
    * Get test suites information
    */
-  getTestSuites(): Array<{ name: string; description: string; testCount: number }> {
+  getTestSuites(): { name: string; description: string; testCount: number }[] {
     return Array.from(this.testSuites.entries()).map(([key, suite]) => ({
       name: suite.name,
       description: suite.description,

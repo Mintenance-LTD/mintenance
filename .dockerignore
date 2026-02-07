@@ -1,0 +1,95 @@
+# Dependencies
+node_modules/
+.npm/
+.yarn/
+.pnpm-store/
+
+# Build artifacts
+.next/
+.out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+credentials/
+*.pem
+*.p12
+*.key
+*.keystore
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# Version control
+.git/
+.gitignore
+
+# IDE and editors
+.vscode/
+.idea/
+.cursor/
+.claude/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Expo / React Native (not needed in web Docker)
+.expo/
+.expo-shared/
+android/
+ios/
+*.ipa
+*.apk
+*.aab
+
+# Test and dev artifacts
+e2e/
+playwright-report/
+test-results/
+*.spec.ts
+*.spec.js
+*.test.ts
+*.test.js
+__tests__/
+__mocks__/
+
+# Documentation (not needed in image)
+docs/
+*.md
+!README.md
+LEGAL/
+
+# Training data and ML models (large files)
+yolo_dataset*/
+training_data/
+training-data/
+all_images_merged/
+colab_upload*/
+*.pt
+*.onnx
+*.zip
+
+# Infrastructure configs
+infrastructure/
+.github/
+.husky/
+.eas/
+supabase/
+migrations/
+
+# Scripts not needed in runtime
+scripts/
+
+# Misc
+*.log
+*.tmp
+*.sql
+debug-*.png
+debug-*.jpg

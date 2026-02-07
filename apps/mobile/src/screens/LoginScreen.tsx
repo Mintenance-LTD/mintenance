@@ -84,12 +84,19 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             source={require('../../assets/icon.png')}
             style={styles.headerLogo}
             resizeMode='contain'
+            accessible={false}
           />
-          <Text style={[styles.headerTitle, headerTitleText.textStyle]}>
+          <Text
+            style={[styles.headerTitle, headerTitleText.textStyle]}
+            accessibilityRole='header'
+          >
             Mintenance
           </Text>
         </View>
-        <Text style={styles.headerSubtitle}>
+        <Text
+          style={styles.headerSubtitle}
+          accessibilityRole='text'
+        >
           Connect homeowners and contractors easily
         </Text>
       </View>
@@ -172,11 +179,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
             {/* Loading Spinner */}
             {loading && (
-              <ActivityIndicator 
+              <ActivityIndicator
                 testID="loading-spinner"
-                size="large" 
-                color={theme.colors.primary} 
+                size="large"
+                color={theme.colors.primary}
                 style={{ marginVertical: 20 }}
+                accessibilityLabel="Signing in"
               />
             )}
 

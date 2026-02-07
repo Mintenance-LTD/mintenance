@@ -1,3 +1,5 @@
+import { ARVRVisualizationService } from '../ARVRVisualizationService';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -14,8 +16,6 @@ jest.mock('../../../../utils/productionSetupGuide', () => ({
     trackError: jest.fn(),
   },
 }));
-
-import { ARVRVisualizationService } from '../ARVRVisualizationService';
 
 describe('ARVRVisualizationService', () => {
   let service: typeof ARVRVisualizationService;

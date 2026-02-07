@@ -29,16 +29,27 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
     <View style={styles.container}>
       <View style={styles.locationSection}>
         <Text style={styles.locationLabel}>Location</Text>
-        <TouchableOpacity style={styles.locationRow} onPress={onLocationPress}>
+        <TouchableOpacity
+          style={styles.locationRow}
+          onPress={onLocationPress}
+          accessibilityRole='button'
+          accessibilityLabel={`Current location: ${location}. Double tap to change`}
+        >
           <Ionicons name="location" size={16} color={theme.colors.secondary} />
           <Text style={styles.locationText}>{location}</Text>
           <Ionicons name="chevron-down" size={16} color={theme.colors.white} />
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress}>
+      <TouchableOpacity
+        style={styles.notificationButton}
+        onPress={onNotificationPress}
+        accessibilityRole='button'
+        accessibilityLabel={hasNotifications ? 'Notifications, you have new notifications' : 'Notifications'}
+        accessibilityHint='Double tap to view notifications'
+      >
         <Ionicons name="notifications" size={24} color={theme.colors.white} />
-        {hasNotifications && <View style={styles.notificationBadge} />}
+        {hasNotifications && <View style={styles.notificationBadge} accessible={false} />}
       </TouchableOpacity>
     </View>
   );

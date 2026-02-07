@@ -489,17 +489,27 @@ export class InternalDamageClassifier {
                 sampleCount: stats.totalValidatedSamples,
             });
 
-            // TODO: Trigger actual training pipeline
-            // This would typically involve:
-            // 1. Exporting training data from database
-            // 2. Running training script (could be Cloud Run job, GCP AI Platform, etc.)
-            // 3. Evaluating model performance
-            // 4. Saving model checkpoint
-            // 5. Updating model registry
+            // Delegate to KnowledgeDistillationService for actual training
+            // Uses lazy import to avoid circular dependency
+            const { KnowledgeDistillationService } = await import('./KnowledgeDistillationService');
+            const result = await KnowledgeDistillationService.trainDamageClassifier(job.id);
+
+            if (result.success) {
+                // Reset cached model so next inference loads the new version
+                this.reset();
+
+                logger.info('Retraining completed, model cache cleared', {
+                    service: this.SERVICE_NAME,
+                    jobId: job.id,
+                    modelVersion: result.modelVersion,
+                    samplesUsed: result.samplesUsed,
+                });
+            }
 
             return {
-                success: true,
+                success: result.success,
                 jobId: job.id,
+                error: result.error,
             };
         } catch (error) {
             logger.error('Failed to trigger retraining', error, {

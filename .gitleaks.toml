@@ -1,14 +1,141 @@
+title = "Mintenance Gitleaks Configuration"
+
+[extend]
+# Use the default gitleaks rules as a base
+# useDefault = true
+
 [allowlist]
-  description = "Allow test fixtures and placeholders"
+  description = "Global allowlist for false positives"
+
+  # Files and directories to skip entirely
   paths = [
-    "apps/mobile/jest-setup.js",
-    "apps/mobile/src/__tests__/",
-    "archive/",
+    # Test fixtures and mock data
+    '''apps/mobile/jest-setup\.js''',
+    '''apps/mobile/src/__tests__/''',
+    '''apps/web/__tests__/''',
+    '''packages/.*/src/__tests__/''',
+    '''scripts/__tests__/''',
+    '''e2e/''',
+
+    # Lock files and generated files
+    '''package-lock\.json''',
+    '''yarn\.lock''',
+    '''pnpm-lock\.yaml''',
+    '''\.next/''',
+    '''dist/''',
+    '''build/''',
+    '''coverage/''',
+    '''node_modules/''',
+
+    # Example/template configs (contain placeholder values)
+    '''\.env\.example''',
+    '''infrastructure/aws/aws-config\.env\.example''',
+
+    # Archived/legacy code
+    '''archive/''',
+
+    # Snapshot files
+    '''\.snap$''',
+
+    # Generated type files
+    '''\.d\.ts$''',
+    '''\.tsbuildinfo$''',
+
+    # Visual regression snapshots
+    '''e2e/visual/.*-snapshots/''',
+
+    # Documentation
+    '''docs/''',
+    '''migrations/README.*''',
+
+    # Design tokens (generated)
+    '''packages/design-tokens/dist/''',
+
+    # Class mapping JSON (ML training data, not secrets)
+    '''class_mapping.*\.json''',
   ]
 
-[rules]
-  [[rules.regexes]]
-    description = "Generic API key"
-    regex = '''(?i)(api[_-]?key|secret|token|bearer|authorization|private[_-]?key|supabase.*key|jwt[_-]?secret)[^\n]{0,40}?[\"\']?[A-Za-z0-9-_\.=]{24,}[\"\']?'''
-    tags = ["key", "api", "secret"]
+  # Regex patterns that are known safe (not actual secrets)
+  regexes = [
+    # Placeholder/example values in code
+    '''your-.*-here''',
+    '''sk_test_.*''',
+    '''pk_test_.*''',
+    '''REPLACE_ME''',
+    '''example\.com''',
 
+    # Supabase anon key patterns (public keys, safe to expose)
+    '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIi.*''',
+
+    # Base64 encoded test/mock data
+    '''data:image/.*base64,.*''',
+
+    # JWT structure in type definitions or tests
+    '''eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}''',
+  ]
+
+  # Commits to skip (e.g., initial commits with example data)
+  commits = []
+
+[[rules]]
+  id = "generic-api-key"
+  description = "Generic API Key"
+  regex = '''(?i)(api[_-]?key|secret[_-]?key|token|bearer|authorization|private[_-]?key|supabase.*service.*key|jwt[_-]?secret)\s*[=:]\s*[\"\']?[A-Za-z0-9\-_\.=]{24,}[\"\']?'''
+  tags = ["key", "api", "secret"]
+  [rules.allowlist]
+    # Allow env var references (not actual values)
+    regexes = [
+      '''process\.env\.[A-Z_]+''',
+      '''import\.meta\.env\.[A-Z_]+''',
+      '''env\(['\"][A-Z_]+['\"]\)''',
+    ]
+
+[[rules]]
+  id = "hardcoded-password"
+  description = "Hardcoded Password"
+  regex = '''(?i)(password|passwd|pwd)\s*[=:]\s*[\"\'][^\"\']{8,}[\"\']'''
+  tags = ["password"]
+  [rules.allowlist]
+    regexes = [
+      '''process\.env''',
+      '''placeholder''',
+      '''example''',
+      '''test.*password''',
+      '''your.*password''',
+    ]
+
+[[rules]]
+  id = "aws-access-key"
+  description = "AWS Access Key ID"
+  regex = '''AKIA[0-9A-Z]{16}'''
+  tags = ["aws", "key"]
+
+[[rules]]
+  id = "aws-secret-key"
+  description = "AWS Secret Access Key"
+  regex = '''(?i)aws_secret_access_key\s*[=:]\s*[A-Za-z0-9/+=]{40}'''
+  tags = ["aws", "secret"]
+
+[[rules]]
+  id = "stripe-live-key"
+  description = "Stripe Live Key"
+  regex = '''(sk_live|pk_live|rk_live)_[A-Za-z0-9]{20,}'''
+  tags = ["stripe", "key"]
+
+[[rules]]
+  id = "supabase-service-role"
+  description = "Supabase Service Role Key"
+  regex = '''sb_secret_[A-Za-z0-9\-_]{20,}'''
+  tags = ["supabase", "secret"]
+
+[[rules]]
+  id = "private-key-block"
+  description = "Private Key"
+  regex = '''-----BEGIN (RSA |EC |DSA )?PRIVATE KEY-----'''
+  tags = ["key", "private"]
+
+[[rules]]
+  id = "google-service-account"
+  description = "Google Service Account Key"
+  regex = '''"type"\s*:\s*"service_account"'''
+  tags = ["google", "service-account"]

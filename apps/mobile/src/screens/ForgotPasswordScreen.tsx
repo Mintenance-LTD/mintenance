@@ -81,8 +81,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
                 source={require('../../assets/icon.png')}
                 style={styles.headerLogo}
                 resizeMode='contain'
+                accessible={false}
               />
-              <Text style={styles.headerTitle}>Mintenance</Text>
+              <Text style={styles.headerTitle} accessibilityRole='header'>Mintenance</Text>
             </View>
           </View>
 
@@ -91,8 +92,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               name='checkmark-circle'
               size={80}
               color={theme.colors.success}
+              accessible={false}
             />
-            <Text style={styles.successTitle}>Email Sent!</Text>
+            <Text style={styles.successTitle} accessibilityRole='header'>Email Sent!</Text>
             <Text style={styles.successMessage}>
               We've sent a password reset link to {email}. Please check your email
               and follow the instructions.
@@ -101,6 +103,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => navigation.goBack()}
+              accessibilityRole='button'
+              accessibilityLabel='Back to login'
+              accessibilityHint='Double tap to return to the login screen'
             >
               <Text style={styles.backButtonText}>Back to Login</Text>
             </TouchableOpacity>
@@ -134,8 +139,9 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             source={require('../../assets/icon.png')}
             style={styles.headerLogo}
             resizeMode='contain'
+            accessible={false}
           />
-          <Text style={styles.headerTitle}>Reset Password</Text>
+          <Text style={styles.headerTitle} accessibilityRole='header'>Reset Password</Text>
         </View>
       </View>
 
@@ -157,8 +163,8 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           ) : null}
           <View style={styles.formContainer}>
             <View style={styles.instructionContainer}>
-              <Ionicons name='mail' size={48} color={theme.colors.primary} />
-              <Text style={styles.instructionTitle}>Forgot your password?</Text>
+              <Ionicons name='mail' size={48} color={theme.colors.primary} accessible={false} />
+              <Text style={styles.instructionTitle} accessibilityRole='header'>Forgot your password?</Text>
               <Text style={styles.instructionText}>
                 Enter your email address and we'll send you a link to reset your
                 password.

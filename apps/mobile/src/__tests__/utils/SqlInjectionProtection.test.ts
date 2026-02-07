@@ -3,6 +3,8 @@
  */
 
 // Mock the logger module before any imports
+import SqlInjectionProtection from '../../utils/SqlInjectionProtection';
+
 jest.mock('../../utils/logger', () => ({
   logger: {
     debug: jest.fn(),
@@ -11,8 +13,6 @@ jest.mock('../../utils/logger', () => ({
     error: jest.fn()
   }
 }));
-
-import SqlInjectionProtection from '../../utils/SqlInjectionProtection';
 
 describe('SqlInjectionProtection', () => {
   beforeEach(() => {

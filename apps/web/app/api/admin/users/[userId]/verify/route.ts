@@ -62,7 +62,7 @@ export async function POST(
 
     // Verify user exists and is a contractor
     const { data: userData, error: userError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, role, admin_verified, company_name, license_number')
       .eq('id', userId)
       .single();
@@ -90,7 +90,7 @@ export async function POST(
 
     // Update admin_verified status
     const { data: updatedUser, error: updateError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .update({
         admin_verified: newStatus,
         updated_at: new Date().toISOString(),

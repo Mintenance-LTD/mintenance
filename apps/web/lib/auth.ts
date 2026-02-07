@@ -96,7 +96,7 @@ export async function createTokenPair(
 
   const insertData: RefreshTokenInsert = {
     user_id: user.id,
-    token_hash: hashRefreshToken(refreshToken),
+    token_hash: await hashRefreshToken(refreshToken),
     expires_at: new Date(Date.now() + REFRESH_TTL_SEC_SHORT * 1000).toISOString(), // 7 days
     device_info: deviceInfo,
     ip_address: ipAddress,
@@ -175,7 +175,7 @@ export async function invalidateTokenFamily(familyId: string, reason: string = '
  * CRITICAL FIX: Added breach detection for token reuse
  */
 export async function rotateTokens(userId: string, oldRefreshToken: string, deviceInfo?: DeviceInfo, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
-  const tokenHash = hashRefreshToken(oldRefreshToken);
+  const tokenHash = await hashRefreshToken(oldRefreshToken);
 
   // SECURITY: Check if token has already been consumed (breach detection)
   // If a consumed token is reused, it indicates token theft - invalidate entire family

@@ -308,7 +308,7 @@ class SecurityManagerService {
         const now = Date.now();
 
         // Only restore entries that haven't expired
-        Object.entries(data).forEach(([key, value]: [string, any]) => {
+        Object.entries(data).forEach(([key, value]: [string, unknown]) => {
           if (value.resetTime > now) {
             this.rateLimitMap.set(key, value);
           }
@@ -398,7 +398,7 @@ class SecurityManagerService {
    * Generate security report
    */
   public generateSecurityReport(): {
-    rateLimitStatus: Array<{ identifier: string; count: number; resetTime: number }>;
+    rateLimitStatus: { identifier: string; count: number; resetTime: number }[];
     securityConfig: typeof SECURITY_CONFIG;
   } {
     const rateLimitStatus = Array.from(this.rateLimitMap.entries()).map(([identifier, data]) => ({

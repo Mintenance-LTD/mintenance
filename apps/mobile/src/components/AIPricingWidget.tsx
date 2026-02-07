@@ -105,7 +105,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
           disabled={isLoading}
         >
           <Ionicons
-            name={'brain' as any}
+            name={'brain' as keyof typeof Ionicons.glyphMap}
             size={20}
             color='#fff'
             style={styles.buttonIcon}

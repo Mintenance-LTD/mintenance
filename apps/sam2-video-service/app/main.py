@@ -26,7 +26,11 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import base64
+import os
+import re
 from io import BytesIO
+
+from app.middleware.auth import APIKeyAuthMiddleware
 
 from app.schemas.video_requests import (
     VideoSegmentationRequest,
@@ -105,17 +109,73 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# API key authentication middleware (registered first so it runs after CORS)
+app.add_middleware(APIKeyAuthMiddleware)
+
 # CORS configuration
+allowed_origins = os.environ.get(
+    "CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=[origin.strip() for origin in allowed_origins],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["POST", "GET", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# --- Input validation constants ---
+MAX_VIDEO_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
+ALLOWED_VIDEO_CONTENT_TYPES = {
+    "video/mp4", "video/x-msvideo", "video/quicktime",
+    "video/x-matroska", "video/webm",
+}
+UUID_PATTERN = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE
+)
+
+
+def _validate_processing_id(processing_id: str) -> None:
+    """Validate that a processing ID is a well-formed UUID."""
+    if not UUID_PATTERN.match(processing_id):
+        raise HTTPException(status_code=400, detail="Invalid processing ID format (expected UUID)")
+
+
+def _validate_video_upload(video_file: UploadFile, content: bytes) -> None:
+    """Validate video upload: size, extension, and content type."""
+    if len(content) > MAX_VIDEO_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Video file too large. Maximum size is {MAX_VIDEO_UPLOAD_BYTES // (1024 * 1024)} MB.",
+        )
+
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded video file is empty.")
+
+    filename = video_file.filename or ""
+    ext = Path(filename).suffix.lower()
+    if ext and ext not in ALLOWED_VIDEO_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported video format '{ext}'. Allowed: {', '.join(ALLOWED_VIDEO_EXTENSIONS)}",
+        )
+
+    if video_file.content_type and video_file.content_type not in ALLOWED_VIDEO_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported content type '{video_file.content_type}'.",
+        )
+
+
+def _sanitize_filename(filename: str) -> str:
+    """Sanitize filename to prevent path traversal attacks."""
+    if not filename:
+        return "upload.mp4"
+    # Strip directory components and dangerous characters
+    basename = Path(filename).name
+    return re.sub(r"[^\w.\-]", "_", basename)
 
 
 @app.get("/health")
@@ -160,6 +220,10 @@ async def process_video(
     if damage_types is None:
         damage_types = ["water damage", "crack", "rot", "mold", "structural damage"]
 
+    # Validate damage_types length
+    if len(damage_types) > 20:
+        raise HTTPException(status_code=400, detail="Too many damage types (max 20).")
+
     # Generate processing ID
     processing_id = str(uuid.uuid4())
 
@@ -173,9 +237,13 @@ async def process_video(
     )
 
     try:
-        # Save uploaded video temporarily
-        video_path = Path(f"/tmp/{processing_id}_{video_file.filename}")
+        # Read and validate uploaded video
         video_content = await video_file.read()
+        _validate_video_upload(video_file, video_content)
+
+        # Sanitize filename and save temporarily
+        safe_name = _sanitize_filename(video_file.filename or "upload.mp4")
+        video_path = Path(f"/tmp/{processing_id}_{safe_name}")
 
         with open(video_path, "wb") as f:
             f.write(video_content)
@@ -269,6 +337,8 @@ async def get_processing_status(processing_id: str):
     Returns:
         Current processing status and results if completed
     """
+    _validate_processing_id(processing_id)
+
     if processing_id not in processing_status:
         raise HTTPException(
             status_code=404,
@@ -377,6 +447,8 @@ async def get_aggregated_assessment(processing_id: str):
     Returns:
         AggregatedDamageAssessment with comprehensive damage analysis
     """
+    _validate_processing_id(processing_id)
+
     if processing_id not in processing_status:
         raise HTTPException(
             status_code=404,
@@ -409,6 +481,8 @@ async def cleanup_processing(processing_id: str):
     Args:
         processing_id: UUID of processing job to clean up
     """
+    _validate_processing_id(processing_id)
+
     if processing_id in processing_status:
         del processing_status[processing_id]
         return {"message": "Processing data cleaned up"}

@@ -115,6 +115,10 @@ export function useSessionMonitor() {
         return;
       }
 
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Unexpected content-type: ${contentType}`);
+      }
       const data: SessionStatus = await response.json();
 
       setState(prev => ({

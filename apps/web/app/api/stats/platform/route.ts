@@ -49,14 +49,14 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       // Active Contractors (verified contractors)
       serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id', { count: 'exact', head: true })
         .eq('role', 'contractor')
         .eq('admin_verified', true),
       
       // Active Contractors last month (for growth calculation)
       serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id', { count: 'exact', head: true })
         .eq('role', 'contractor')
         .eq('admin_verified', true)

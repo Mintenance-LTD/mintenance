@@ -1,4 +1,5 @@
 
+import { isSupabaseConfigured } from '../supabase';
 jest.mock('../../../config/supabase', () => ({
   supabase: {
     auth: {
@@ -47,7 +48,6 @@ jest.mock('../../../config/supabase', () => ({
     },
   },
 }));
-import { isSupabaseConfigured } from '../supabase';
 
 describe('isSupabaseConfigured', () => {
   it('should handle normal cases', () => {

@@ -4,8 +4,7 @@
  * Tests GPT-4 Vision prompt construction
  */
 
-import { describe, it, expect } from '@jest/globals';
-import { PromptBuilder } from '../PromptBuilder';
+import { PromptBuilder } from './PromptBuilder';
 import type { AssessmentContext, RoboflowDetection, VisionAnalysisSummary } from '../../types';
 
 describe('PromptBuilder', () => {

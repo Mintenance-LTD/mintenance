@@ -6,6 +6,7 @@ export { PasswordValidator } from './password-validator';
 export { PasswordHistoryManager } from './password-history';
 export { AccountLockoutManager } from './account-lockout';
 export { SessionValidator } from './session-validator';
+// password-security uses Node.js crypto and argon2; use in server-only contexts.
 export { checkPasswordBreach, validatePasswordStrength, generateSecurePassword, passwordPolicy } from './password-security';
 // Re-export types
 export type { User, AuthResult, LoginCredentials, RegisterData, JWTPayload } from '@mintenance/types';

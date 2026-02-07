@@ -9,6 +9,7 @@ import type {
     UrgencyLevel,
     Phase1BuildingAssessment,
 } from '../types';
+import { getActiveDomain } from '../config/BuildingSurveyorConfig';
 
 /**
  * Inference route options
@@ -16,15 +17,23 @@ import type {
 export type InferenceRoute = 'internal' | 'gpt4_vision' | 'hybrid';
 
 /**
- * Confidence thresholds for routing decisions
- * Optimized for cost reduction while maintaining quality
- * Lower thresholds = more internal model usage = lower costs
+ * Default confidence thresholds (residential).
+ * Use getConfidenceThresholds() for domain-aware values.
  */
 export const CONFIDENCE_THRESHOLDS = {
-    high: 0.75,      // Use internal model confidently (was 0.85)
-    medium: 0.55,    // Use internal but verify with GPT-4 (was 0.70)
-    low: 0.35,       // Use GPT-4 as primary (was 0.50)
+    high: 0.75,
+    medium: 0.55,
+    low: 0.35,
 } as const;
+
+/**
+ * Get confidence thresholds for the active domain.
+ * Rail uses stricter thresholds; industrial is moderately strict.
+ */
+export function getConfidenceThresholds(): { high: number; medium: number; low: number } {
+    const domain = getActiveDomain();
+    return domain.confidenceThresholds;
+}
 
 /**
  * Result from hybrid inference assessment

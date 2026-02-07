@@ -1,3 +1,9 @@
+import {
+  AppWithNotifications,
+  RootNavigatorWithNotifications,
+  HomeScreenWithBadgeUpdate,
+} from '../NotificationServiceExample';
+
 jest.mock('../NotificationService', () => ({
   NotificationService: {
     initialize: jest.fn(() => Promise.resolve('token')),
@@ -22,12 +28,6 @@ jest.mock('../../config/supabase', () => ({
 jest.mock('expo-notifications', () => ({
   setBadgeCountAsync: jest.fn(() => Promise.resolve()),
 }));
-
-import {
-  AppWithNotifications,
-  RootNavigatorWithNotifications,
-  HomeScreenWithBadgeUpdate,
-} from '../NotificationServiceExample';
 
 describe('NotificationServiceExample', () => {
   it('exports example components', () => {

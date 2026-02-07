@@ -6,20 +6,20 @@
 export interface TestPerformanceResult {
   renderTime: number;
   memoryUsage: number;
-  asyncOperations: Array<{
+  asyncOperations: {
     name: string;
     duration: number;
     success: boolean;
-  }>;
-  budgetViolations: Array<{
+  }[];
+  budgetViolations: {
     metric: string;
     expected: number;
     actual: number;
-  }>;
+  }[];
 }
 
 export class PerformanceTester {
-  private metrics: Array<{ name: string; value: number; timestamp: number }> = [];
+  private metrics: { name: string; value: number; timestamp: number }[] = [];
 
   startTest(name: string): () => void {
     const startTime = performance.now();
@@ -69,7 +69,7 @@ export class PerformanceTester {
     }
   }
 
-  getMetrics(): Array<{ name: string; value: number; timestamp: number }> {
+  getMetrics(): { name: string; value: number; timestamp: number }[] {
     return [...this.metrics];
   }
 

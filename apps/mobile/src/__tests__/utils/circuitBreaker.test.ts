@@ -1,4 +1,13 @@
 
+import {
+  CircuitBreaker,
+  CircuitBreakerManager,
+  CircuitBreakerConfig,
+  CircuitState,
+  circuitBreakerManager,
+  DEFAULT_CONFIGS,
+  initializeCircuitBreakers,
+} from '../../utils/circuitBreaker';
 jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
@@ -47,15 +56,6 @@ jest.mock('../../config/supabase', () => ({
     },
   },
 }));
-import {
-  CircuitBreaker,
-  CircuitBreakerManager,
-  CircuitBreakerConfig,
-  CircuitState,
-  circuitBreakerManager,
-  DEFAULT_CONFIGS,
-  initializeCircuitBreakers,
-} from '../../utils/circuitBreaker';
 
 // Mock logger
 jest.mock('../../utils/logger', () => ({

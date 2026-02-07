@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { materialsService } from '@/lib/services/MaterialsService';
 import type { MaterialCategory } from '@mintenance/shared/types/materials';
+import { logger } from '@mintenance/shared';
 
 /**
  * GET /api/materials/search - Fuzzy search for materials
@@ -54,10 +55,10 @@ export async function GET(request: NextRequest) {
       matches: similarResults,
       total: similarResults.length,
     });
-  } catch (error: any) {
-    console.error('GET /api/materials/search exception:', error);
+  } catch (error: unknown) {
+    logger.error('GET /api/materials/search exception', error);
     return NextResponse.json(
-      { error: 'Search failed', details: error.message },
+      { error: 'Search failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

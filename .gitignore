@@ -195,8 +195,10 @@ best_model_*.pt
 best_model_*.onnx
 yolo11n.pt
 
-# Exclude markdown files from git
-*.md
+# Exclude temporary/generated markdown files (but NOT documentation)
+# NOTE: Removed blanket *.md rule - docs should be version controlled
+/tmp/**/*.md
+/runs/**/*.md
 
 # Development artifacts that shouldn't be in root
 *.sql
@@ -274,3 +276,13 @@ auth-*.html
 /class_mapping_dataset6.json
 # Malformed Windows path artifacts
 assets/c__*
+c:Users*/
+
+# Python virtual environments
+**/venv/
+**/.venv/
+__pycache__/
+
+# SAM service artifacts
+apps/sam3-service/model_cache/
+apps/sam3-service/sam3_repo/

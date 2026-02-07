@@ -26,7 +26,7 @@ export const KPICard: React.FC<KPICardProps> = ({
       onPress={onPress}
     >
       <View style={styles.kpiHeader}>
-        <Ionicons name={icon as any} size={20} color={color} />
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={color} />
         <Text style={styles.kpiTitle}>{title}</Text>
       </View>
       <Text style={[styles.kpiValue, { color }]}>{value}</Text>

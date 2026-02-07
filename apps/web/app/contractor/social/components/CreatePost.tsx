@@ -78,7 +78,7 @@ export function CreatePost({ currentUserId, onPostCreated }: CreatePostProps) {
                     <div style={{ display: 'flex', gap: theme.spacing[2] }}>
                         <select
                             value={postType}
-                            onChange={(e) => setPostType(e.target.value as any)}
+                            onChange={(e) => setPostType(e.target.value as typeof postType)}
                             style={{
                                 padding: theme.spacing[2],
                                 borderRadius: theme.borderRadius.md,

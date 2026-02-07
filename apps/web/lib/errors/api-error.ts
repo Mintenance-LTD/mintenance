@@ -272,7 +272,7 @@ function isDatabaseError(error: unknown): error is DatabaseError {
     typeof error === 'object' &&
     error !== null &&
     'code' in error &&
-    typeof (error as any).code === 'string'
+    typeof (error as { code?: unknown }).code === 'string'
   );
 }
 

@@ -4,8 +4,7 @@
  * Tests handcrafted feature extraction logic
  */
 
-import { describe, it, expect } from '@jest/globals';
-import { extractHandcraftedFeatures } from '../FeatureExtractionUtils';
+import { extractHandcraftedFeatures } from './FeatureExtractionUtils';
 import type {
     AssessmentContext,
     RoboflowDetection,
@@ -203,14 +202,14 @@ describe('FeatureExtractionUtils', () => {
                 null
             );
 
-            // Should extract damage type encoding
-            expect(features[10]).toBeGreaterThan(0);
+            // Should extract damage type encoding (index 15: after 5 property + 5 image + 5 detection)
+            expect(features[15]).toBe(0.1); // water_damage encoding
 
             // Should extract severity (midway = 0.66)
-            expect(features[11]).toBeCloseTo(0.66, 1);
+            expect(features[16]).toBeCloseTo(0.66, 1);
 
             // Should extract confidence
-            expect(features[12]).toBe(0.85);
+            expect(features[17]).toBe(0.85);
         });
 
         it('should handle multiple images', async () => {

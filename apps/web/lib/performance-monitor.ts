@@ -338,8 +338,7 @@ export function getPerformanceHistory(): Array<{
 export function reportPerformanceMetric(metric: PerformanceMetric): void {
   // This would integrate with your analytics service (e.g., Google Analytics, Sentry)
   if (typeof window !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const gtag = (window as any).gtag as ((...args: unknown[]) => void) | undefined;
+    const gtag = window.gtag;
     if (gtag) {
       gtag('event', 'web_vitals', {
         event_category: 'Web Vitals',

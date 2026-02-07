@@ -120,7 +120,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color={theme.colors.info} />
+        <ActivityIndicator size='large' color={theme.colors.info} accessibilityLabel='Loading contractors' />
         <Text style={styles.loadingText}>Finding contractors near you...</Text>
       </View>
     );
@@ -133,6 +133,8 @@ const ContractorDiscoveryScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.retryButton}
           onPress={initializeLocation}
+          accessibilityRole='button'
+          accessibilityLabel='Try again to get your location'
         >
           <Text style={styles.retryButtonText}>Try Again</Text>
         </TouchableOpacity>
@@ -145,7 +147,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>
+        <Text style={styles.headerTitle} accessibilityRole='header'>
           {viewMode === 'map' ? 'Contractor Map' : 'Discover Contractors'}
         </Text>
         <Text style={styles.headerSubtitle}>
@@ -161,6 +163,9 @@ const ContractorDiscoveryScreen: React.FC = () => {
             viewMode === 'discover' && styles.toggleButtonActive,
           ]}
           onPress={() => setViewMode('discover')}
+          accessibilityRole='tab'
+          accessibilityLabel='Discover view'
+          accessibilityState={{ selected: viewMode === 'discover' }}
         >
           <Ionicons
             name='person-outline'
@@ -187,6 +192,9 @@ const ContractorDiscoveryScreen: React.FC = () => {
             viewMode === 'map' && styles.toggleButtonActive,
           ]}
           onPress={() => setViewMode('map')}
+          accessibilityRole='tab'
+          accessibilityLabel='Map view'
+          accessibilityState={{ selected: viewMode === 'map' }}
         >
           <Ionicons
             name='map-outline'
@@ -219,6 +227,9 @@ const ContractorDiscoveryScreen: React.FC = () => {
               },
             ]}
             onPress={() => setSelectedService(filter.id)}
+            accessibilityRole='button'
+            accessibilityLabel={`Filter by ${filter.name}`}
+            accessibilityState={{ selected: selectedService === filter.id }}
           >
             <Ionicons
               name={filter.icon as unknown}

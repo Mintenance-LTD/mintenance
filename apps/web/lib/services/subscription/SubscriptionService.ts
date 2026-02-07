@@ -19,7 +19,7 @@ export interface SubscriptionFeatures {
   advancedAnalytics: boolean;
   customBranding: boolean;
   apiAccess: boolean;
-  additionalFeatures: Record<string, any>;
+  additionalFeatures: Record<string, unknown>;
 }
 
 export interface Subscription {
@@ -254,7 +254,7 @@ export class SubscriptionService {
       });
 
       const invoice = subscription.latest_invoice as Stripe.Invoice;
-      const paymentIntent = (invoice as any)?.payment_intent as Stripe.PaymentIntent;
+      const paymentIntent = (invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent })?.payment_intent;
 
       return {
         subscriptionId: subscription.id,
@@ -592,7 +592,7 @@ export class SubscriptionService {
       },
       product_data: {
         name: `${this.PLAN_PRICING[planType].name} Plan`,
-      } as any,
+      } as Stripe.PriceCreateParams['product_data'],
     });
 
     return price.id;

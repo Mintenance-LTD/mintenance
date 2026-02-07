@@ -23,8 +23,14 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({
   onPress,
 }) => {
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
-      <View style={styles.image} />
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      accessibilityRole='button'
+      accessibilityLabel={`${contractor.name}, rated ${contractor.rating} stars with ${contractor.reviewCount} reviews, ${contractor.distance} away`}
+      accessibilityHint='Double tap to view contractor details'
+    >
+      <View style={styles.image} accessible={false} />
       <View style={styles.info}>
         <Text style={styles.name}>{contractor.name}</Text>
         <View style={styles.ratingRow}>

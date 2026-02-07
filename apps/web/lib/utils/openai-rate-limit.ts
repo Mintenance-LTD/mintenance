@@ -277,8 +277,8 @@ export async function withOpenAIRetry<T>(
       if (error instanceof Error) {
         lastError = error;
         // Preserve rate limit info if it exists
-        if ((error as any)?.rateLimitInfo) {
-          lastRateLimitInfo = (error as any).rateLimitInfo;
+        if ('rateLimitInfo' in error && error.rateLimitInfo) {
+          lastRateLimitInfo = error.rateLimitInfo as OpenAIRateLimitInfo;
         }
       } else {
         lastError = new Error(String(error));
@@ -322,7 +322,7 @@ export async function withOpenAIRetry<T>(
         });
         // Preserve rateLimitInfo in the thrown error
         if (lastRateLimitInfo) {
-          (lastError as any).rateLimitInfo = lastRateLimitInfo;
+          (lastError as Error & { rateLimitInfo?: OpenAIRateLimitInfo }).rateLimitInfo = lastRateLimitInfo;
         }
         throw lastError;
       }
@@ -369,23 +369,13 @@ export async function fetchWithOpenAIRetry(
       const error = new Error(`AI assessment failed: ${response.status}`);
       
       // Attach rate limit info to error for better retry handling
-      (error as any).rateLimitInfo = rateLimitInfo;
+      (error as Error & { rateLimitInfo?: OpenAIRateLimitInfo }).rateLimitInfo = rateLimitInfo;
       
       throw error;
     }
 
     if (!response.ok) {
       const errorText = await response.text();
-      // #region agent log
-      const logData = {location:'openai-rate-limit.ts:377',message:'OpenAI API error response',data:{status:response.status,errorTextLength:errorText.length,errorTextPreview:errorText.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'};
-      logger.error('[DEBUG] OpenAI API error:', logData, { service: 'lib' });
-      try {
-        const logPath = path.join(process.cwd(), '.cursor', 'debug.log');
-        fs.appendFileSync(logPath, JSON.stringify(logData) + '\n');
-      } catch (e) {
-        // File write failed, that's ok - console.log is the fallback
-      }
-      // #endregion
       // Try to parse OpenAI error response for better error messages
       let parsedError: { error?: { code?: string; message?: string; type?: string } } | null = null;
       try {
@@ -404,7 +394,7 @@ export async function fetchWithOpenAIRetry(
       const error = new Error(errorMessage);
       // Attach error code for downstream handling
       if (parsedError?.error?.code) {
-        (error as any).openaiErrorCode = parsedError.error.code;
+        (error as Error & { openaiErrorCode?: string }).openaiErrorCode = parsedError.error.code;
       }
       throw error;
     }

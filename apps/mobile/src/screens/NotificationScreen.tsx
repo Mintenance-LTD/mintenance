@@ -74,6 +74,9 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
       ]}
       onPress={onPress}
       onLongPress={onMarkAsRead}
+      accessibilityRole='button'
+      accessibilityLabel={`${notification.read ? '' : 'Unread: '}${notification.title}. ${notification.body}`}
+      accessibilityHint='Double tap to view, long press to mark as read'
     >
       <View style={styles.notificationContent}>
         <View style={styles.iconContainer}>
@@ -188,7 +191,11 @@ export const NotificationScreen: React.FC = () => {
         title="Notifications"
         rightComponent={
           unreadCount > 0 ? (
-            <TouchableOpacity onPress={handleMarkAllAsRead}>
+            <TouchableOpacity
+              onPress={handleMarkAllAsRead}
+              accessibilityRole='button'
+              accessibilityLabel={`Mark all ${unreadCount} notifications as read`}
+            >
               <Text style={styles.markAllText}>Mark All</Text>
             </TouchableOpacity>
           ) : null
@@ -201,6 +208,7 @@ export const NotificationScreen: React.FC = () => {
             name="notifications-off-outline"
             size={64}
             color={theme.colors.textTertiary}
+            accessible={false}
           />
           <Text style={styles.emptyTitle}>No Notifications</Text>
           <Text style={styles.emptySubtitle}>

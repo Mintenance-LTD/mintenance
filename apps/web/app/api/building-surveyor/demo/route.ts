@@ -26,7 +26,7 @@ const demoRequestSchema = z.object({
  * Does NOT require authentication (for demo purposes only)
  */
 export async function POST(request: NextRequest) {
-    console.log('=== DEMO ROUTE CALLED ===');
+    logger.debug('Demo route called');
     logger.info('Building Surveyor Demo: Request received', {
       service: 'mint-ai-demo',
     });
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
           .update(imageUrls.sort().join('|'))
           .digest('hex');
 
-        console.log('=== ABOUT TO CREATE ASSESSMENT RECORD ===');
+        logger.debug('About to create assessment record');
         logger.info('About to create demo assessment record', {
           service: 'mint-ai-demo',
           cacheKey,

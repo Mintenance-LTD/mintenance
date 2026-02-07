@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
       }
 
       const { error: updateError } = await supabase
-        .from('users')
+        .from('profiles')
         .update(updateData)
         .eq('id', user.id);
 
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
       }
 
       const { error: updateError } = await supabase
-        .from('users')
+        .from('profiles')
         .update(updateData)
         .eq('id', user.id);
 

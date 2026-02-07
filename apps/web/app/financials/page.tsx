@@ -1,6 +1,12 @@
+import type { Metadata } from 'next';
 import { HomeownerLayoutShell } from '../dashboard/components/HomeownerLayoutShell';
 import { theme } from '@/lib/theme';
 import { getCurrentUserFromCookies } from '@/lib/auth';
+
+export const metadata: Metadata = {
+  title: 'Financials | Mintenance',
+  description: 'Manage your payments, subscriptions, invoices, and billing overview for property maintenance.',
+};
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { Icon } from '@/components/ui/Icon';
@@ -270,7 +276,7 @@ export default async function FinancialsPage() {
               {subscriptionsList.map((sub) => {
                 const statusConfig = getStatusColor(sub.status || 'active');
                 const nextBilling = sub.next_billing_date
-                  ? new Date(sub.next_billing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  ? new Date(sub.next_billing_date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'N/A';
                 const isOverdue = sub.next_billing_date && new Date(sub.next_billing_date) < now && sub.status === 'active';
 
@@ -285,7 +291,7 @@ export default async function FinancialsPage() {
                           {sub.name || 'Subscription'}
                         </h3>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
-                          <Icon name={statusConfig.icon as any} size={12} />
+                          <Icon name={statusConfig.icon} size={12} />
                           {sub.status || 'active'}
                         </span>
                       </div>
@@ -334,10 +340,10 @@ export default async function FinancialsPage() {
                   ? `${contractor.first_name} ${contractor.last_name}`
                   : 'Unknown Contractor';
                 const dueDate = invoice.due_date
-                  ? new Date(invoice.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  ? new Date(invoice.due_date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'N/A';
                 const invoiceDate = invoice.invoice_date
-                  ? new Date(invoice.invoice_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  ? new Date(invoice.invoice_date).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'N/A';
                 const isOverdue = invoice.due_date && new Date(invoice.due_date) < now && invoice.status !== 'paid';
 
@@ -354,7 +360,7 @@ export default async function FinancialsPage() {
                             {invoice.title || invoice.invoice_number}
                           </h3>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
-                            <Icon name={statusConfig.icon as any} size={12} />
+                            <Icon name={statusConfig.icon} size={12} />
                             {invoice.status || 'draft'}
                           </span>
                         </div>
@@ -401,7 +407,7 @@ export default async function FinancialsPage() {
                 const statusConfig = getStatusColor(payment.status || 'pending');
                 const job = Array.isArray(payment.job) ? payment.job[0] : payment.job;
                 const paymentDate = payment.payment_date || payment.created_at
-                  ? new Date(payment.payment_date || payment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  ? new Date(payment.payment_date || payment.created_at).toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'N/A';
 
                 return (
@@ -415,7 +421,7 @@ export default async function FinancialsPage() {
                           {payment.description || job?.title || 'Payment'}
                         </h3>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}>
-                          <Icon name={statusConfig.icon as any} size={12} />
+                          <Icon name={statusConfig.icon} size={12} />
                           {payment.status || 'pending'}
                         </span>
                       </div>

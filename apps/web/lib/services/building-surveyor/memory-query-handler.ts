@@ -17,7 +17,7 @@ export async function queryMemoryAdjustments(
   features: number[],
   useTitans: boolean = false
 ): Promise<number[]> {
-  let memoryAdjustments: number[] = [0, 0, 0, 0, 0]; // Default: no adjustments
+  const memoryAdjustments: number[] = [0, 0, 0, 0, 0]; // Default: no adjustments
 
   try {
     const memorySystem = memoryManager.getMemorySystem(AGENT_NAME);

@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       try {
         results.processed++;
 
-        const job = escrow.jobs as any;
+        const job = escrow.jobs as unknown as { id: string; homeowner_id: string; title: string };
         if (!job || !job.homeowner_id) {
           continue;
         }

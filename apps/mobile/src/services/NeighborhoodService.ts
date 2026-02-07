@@ -369,7 +369,7 @@ class NeighborhoodService {
   async getNeighborhoodActivity(
     neighborhoodId: string,
     limit: number = 20
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     try {
       const { data, error } = await supabase
         .from('neighborhood_activity_feed')
@@ -583,7 +583,13 @@ class NeighborhoodService {
     return data;
   }
 
-  private async getNeighborhoodStats(neighborhoodId: string): Promise<unknown> {
+  private async getNeighborhoodStats(neighborhoodId: string): Promise<{
+    completed_jobs_count: number;
+    average_rating: number;
+    community_endorsements: number;
+    average_response_time: number;
+    active_contractors: number;
+  }> {
     // Mock stats for now - in real implementation would query actual data
     return {
       completed_jobs_count: 45,

@@ -35,6 +35,7 @@ export const BookingList: React.FC<BookingListProps> = ({
           name="calendar-outline"
           size={64}
           color={theme.colors.textTertiary}
+          accessible={false}
         />
         <Text style={styles.emptyTitle}>No bookings found</Text>
         <Text style={styles.emptySubtitle}>

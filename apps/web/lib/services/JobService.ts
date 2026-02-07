@@ -24,12 +24,12 @@ const mapSummaryToJob = (summary: JobSummary & { photos?: string[]; location?: s
   createdAt: summary.createdAt,
   updatedAt: summary.updatedAt,
   photos: summary.photos,
-  location: (summary as any).location,
-  budget: (summary as any).budget,
-  description: (summary as any).description,
-  category: (summary as any).category,
-  homeownerName: (summary as any).homeownerName,
-  contractorName: (summary as any).contractorName,
+  location: summary.location,
+  budget: summary.budget,
+  description: summary.description,
+  category: summary.category,
+  homeownerName: summary.homeownerName,
+  contractorName: summary.contractorName,
 });
 
 export class JobService {

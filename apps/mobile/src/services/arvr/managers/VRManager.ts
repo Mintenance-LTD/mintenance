@@ -223,11 +223,11 @@ export class VRManager {
     type: 'tool' | 'material' | 'measurement' | 'annotation',
     position: { x: number; y: number; z: number },
     modelId: string,
-    interactions: Array<{
+    interactions: {
       type: 'grab' | 'touch' | 'look' | 'speak';
       action: string;
       feedback: 'visual' | 'audio' | 'haptic';
-    }>
+    }[]
   ): Promise<VRInteractiveElement> {
     const walkthrough = this.vrWalkthroughs.get(walkthroughId);
     if (!walkthrough) {

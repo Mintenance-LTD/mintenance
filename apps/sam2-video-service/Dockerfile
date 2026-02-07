@@ -2,10 +2,10 @@
 # Multi-stage build for optimized image size
 
 # Stage 1: Builder
-FROM python:3.9-slim as builder
+FROM python:3.9-slim AS builder
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies (build-time only)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     gcc \
     g++ \
@@ -17,9 +17,7 @@ RUN apt-get update && apt-get install -y \
     libxrender-dev \
     libgomp1 \
     wget \
-    libglib2.0-0 \
     libgl1-mesa-glx \
-    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -41,7 +39,7 @@ RUN git clone https://github.com/facebookresearch/sam2.git && \
 FROM python:3.9-slim
 
 # Install runtime dependencies only
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -75,6 +73,7 @@ USER appuser
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV SAM2_CACHE_DIR=/app/model_cache
 ENV SAM2_MODEL_SIZE=base
 ENV SAM2_MEMORY_WINDOW=8
@@ -83,9 +82,9 @@ ENV SAM2_MAX_OBJECTS=50
 # Expose port
 EXPOSE 8002
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8002/health')"
+# Health check using Python stdlib (no requests dependency needed)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"
 
 # Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "1"]

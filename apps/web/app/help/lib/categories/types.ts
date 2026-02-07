@@ -1,5 +1,5 @@
 /**
- * Help Center Types
+ * Help Centre Types
  * 
  * Shared type definitions for help articles and categories.
  */

@@ -1,4 +1,7 @@
 
+import React from 'react';
+import VideoCallScheduler from '../VideoCallScheduler';
+
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
@@ -30,9 +33,6 @@ jest.mock('@react-native-community/datetimepicker', () => {
     default: () => React.createElement('View', { testID: 'date-time-picker' }),
   };
 });
-
-import React from 'react';
-import VideoCallScheduler from '../VideoCallScheduler';
 
 describe('VideoCallScheduler', () => {
   beforeEach(() => {

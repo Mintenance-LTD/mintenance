@@ -5,6 +5,7 @@
 
 import { logger } from '@mintenance/shared';
 import { NextRequest } from 'next/server';
+import { ForbiddenError } from '@/lib/errors/api-error';
 
 /**
  * Parse cookie string into key-value pairs
@@ -70,7 +71,7 @@ export async function requireCSRF(request: NextRequest): Promise<void> {
   const isValid = await validateCSRF(request);
   
   if (!isValid) {
-    throw new Error('CSRF validation failed');
+    throw new ForbiddenError('CSRF validation failed');
   }
 }
 
@@ -88,8 +89,12 @@ export function generateCSRFToken(): string {
  * Set CSRF token in response headers
  */
 export function setCSRFToken(response: Response, token: string): Response {
-  response.headers.set('Set-Cookie',
-    `__Host-csrf-token=${token}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600`
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const cookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+  const secureFlag = isDevelopment ? '' : ' Secure;';
+  response.headers.set(
+    'Set-Cookie',
+    `${cookieName}=${token}; HttpOnly;${secureFlag} SameSite=Strict; Path=/; Max-Age=3600`
   );
   return response;
 }

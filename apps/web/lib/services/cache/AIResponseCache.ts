@@ -490,7 +490,7 @@ export class AIResponseCache {
   /**
    * Export cache statistics for monitoring
    */
-  static exportMetrics(): Record<string, any> {
+  static exportMetrics(): Record<string, unknown> {
     const aggregated = this.getAggregatedStats();
     const perService: Record<string, CacheStats> = {};
 

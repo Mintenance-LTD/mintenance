@@ -1,6 +1,21 @@
 # Database Migrations (Mintenance)
 
-This folder contains safe, incremental SQL migrations to close gaps/risks and capture quick wins without changing app code.
+## 🔗 Connect With Us
+
+- **Website**: https://mintenance.co.uk
+- **GitHub**: https://github.com/Mintenance-LTD/mintenance
+- **LinkedIn**: [Mintenance](https://linkedin.com/company/mintenance)
+- **Twitter**: [@MintenanceUK](https://twitter.com/MintenanceUK)
+
+## Status: Deprecated
+
+This folder is deprecated. Canonical SQL migrations now live in `supabase/migrations/` and are the only source of truth.
+
+If you previously ran these scripts manually, do not re-run them. Use Supabase migrations going forward.
+
+---
+
+This folder previously contained safe, incremental SQL migrations to close gaps/risks and capture quick wins without changing app code.
 
 Run each file in order (001 → 008) using the Supabase SQL editor. Every script is idempotent (guards with IF/EXISTS) and can be re‑run safely.
 

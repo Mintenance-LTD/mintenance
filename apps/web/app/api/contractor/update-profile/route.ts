@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .update(updateData)
       .eq('id', user.id)
       .select()

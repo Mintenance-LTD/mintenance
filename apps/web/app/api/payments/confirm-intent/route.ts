@@ -7,6 +7,7 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
@@ -57,23 +58,17 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    // Validate request body
-    const body = await request.json();
-    const parsed = confirmIntentSchema.safeParse(body);
-
-    if (!parsed.success) {
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, confirmIntentSchema);
+    if ('headers' in validation) {
       logger.warn('Invalid payment confirmation request', {
         service: 'payments',
         userId: user.id,
-        errors: parsed.error.flatten().fieldErrors
       });
-      return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      return validation;
     }
 
-    const { paymentIntentId, jobId } = parsed.data;
+    const { paymentIntentId, jobId } = validation.data;
 
     // Retrieve the payment intent from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);

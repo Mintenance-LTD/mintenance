@@ -6,21 +6,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUser } from '@/lib/auth';
-import { z } from 'zod';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
-
-// Feedback validation schema
-const feedbackSchema = z.object({
-  assessmentId: z.string().uuid(),
-  wasAccurate: z.boolean(),
-  actualIssue: z.string().optional(),
-  actualSeverity: z.enum(['minor', 'moderate', 'major', 'critical']).optional(),
-  actualTimeHours: z.number().min(0).max(100).optional(),
-  actualMaterials: z.array(z.string()).optional(),
-  contractorNotes: z.string().max(1000).optional(),
-  helpfulnessScore: z.number().min(1).max(5).optional()
-});
+import { maintenanceFeedbackSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,9 +58,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse and validate request
+    // Parse and validate request using centralized Zod schema
     const body = await request.json();
-    const validationResult = feedbackSchema.safeParse(body);
+    const validationResult = maintenanceFeedbackSchema.safeParse(body);
 
     if (!validationResult.success) {
       return NextResponse.json(
@@ -239,17 +227,19 @@ export async function GET(request: NextRequest) {
  * Create correction record for wrong assessment
  */
 async function createCorrection(
-  assessment: any,
-  feedback: any,
+  assessment: Record<string, unknown>,
+  feedback: { actualIssue?: string; actualSeverity?: string; contractorNotes?: string; wasAccurate: boolean },
   contractorId: string
 ): Promise<void> {
   const supabase = await createServerSupabaseClient();
 
   try {
     // Create correction record
+    const assessmentData = assessment.assessment_data as Record<string, unknown> | null;
+    const assessmentImages = assessmentData?.images as string[] | undefined;
     await supabase.from('maintenance_corrections').insert({
       assessment_id: assessment.id,
-      image_url: assessment.assessment_data?.images?.[0],
+      image_url: assessmentImages?.[0],
       original_detections: {
         issue_type: assessment.issue_type,
         severity: assessment.severity,
@@ -384,7 +374,7 @@ async function checkRetrainingThreshold(): Promise<boolean> {
 /**
  * Calculate rewards for feedback
  */
-function calculateRewards(feedback: any): {
+function calculateRewards(feedback: { wasAccurate: boolean; contractorNotes?: string }): {
   credits: number;
   message: string;
 } {

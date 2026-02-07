@@ -7,13 +7,25 @@ import { logger } from '../logger';
  * before use, as the shared package doesn't have direct database access.
  */
 // Supabase client type - injected at runtime
-// select() return type is unknown; use typed await via assertion when destructuring
+// Uses a chainable query builder pattern to allow .eq(), .order(), .limit(), etc.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface SupabaseQueryBuilder {
+  eq(column: string, value: unknown): SupabaseQueryBuilder;
+  neq(column: string, value: unknown): SupabaseQueryBuilder;
+  gte(column: string, value: unknown): SupabaseQueryBuilder;
+  lte(column: string, value: unknown): SupabaseQueryBuilder;
+  order(column: string, options?: { ascending?: boolean }): SupabaseQueryBuilder;
+  limit(count: number): SupabaseQueryBuilder;
+  single(): SupabaseQueryBuilder;
+  then: Promise<{ data: unknown; error: unknown }>['then'];
+}
+
 interface SupabaseClient {
   from(table: string): {
-    select(columns?: string, options?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }): unknown;
-    insert(data: Record<string, unknown>): unknown;
-    update(data: Record<string, unknown>): unknown;
-    upsert(data: Record<string, unknown>): unknown;
+    select(columns?: string, options?: { count?: 'exact' | 'planned' | 'estimated'; head?: boolean }): SupabaseQueryBuilder;
+    insert(data: Record<string, unknown>): SupabaseQueryBuilder;
+    update(data: Record<string, unknown>): SupabaseQueryBuilder;
+    upsert(data: Record<string, unknown>): SupabaseQueryBuilder;
   };
   rpc(fn: string, params?: Record<string, unknown>): Promise<{ data: Record<string, unknown>; error: Error | unknown }>;
 }
@@ -94,6 +106,13 @@ export interface CalibrationMetrics {
   avg_confidence: number;
   calibration_error: number;
 }
+export interface CalibrationSummary {
+  id?: string;
+  set_name?: string;
+  set_type?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
 // ============================================================================
 // Conformal Prediction Service
 // ============================================================================
@@ -151,12 +170,12 @@ export class ConformalPredictionService {
    * Get active calibration sets
    */
   async getActiveCalibrationSets(): Promise<CalibrationSet[]> {
-    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
-    const { data, error } = await (getSupabase()
+    const response = getSupabase()
       .from('conformal_calibration_sets')
       .select('*')
       .eq('is_active', true)
-      .order('created_at', { ascending: false }) as unknown as Promise<{ data: CalibrationSet[] | null; error: Error | null }>);
+      .order('created_at', { ascending: false }) as unknown as Promise<{ data: CalibrationSet[] | null; error: Error | null }>;
+    const { data, error } = await response;
     if (error) {
       logger.error('Error fetching calibration sets:', error, { service: 'general' });
       return [];
@@ -166,17 +185,17 @@ export class ConformalPredictionService {
   /**
    * Get calibration summary with performance metrics
    */
-  async getCalibrationSummary(): Promise<any[]> {
-    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
-    const { data, error } = await (getSupabase()
+  async getCalibrationSummary(): Promise<CalibrationSummary[]> {
+    const response = getSupabase()
       .from('v_calibration_summary')
       .select('*')
-      .order('created_at', { ascending: false }) as unknown as Promise<{ data: unknown[] | null; error: Error | null }>);
+      .order('created_at', { ascending: false }) as unknown as Promise<{ data: CalibrationSummary[] | null; error: Error | null }>;
+    const { data, error } = await response;
     if (error) {
       logger.error('Error fetching calibration summary:', error, { service: 'general' });
       return [];
     }
-    return (data ?? []) as any[];
+    return data ?? [];
   }
   /**
    * Build a new calibration set (admin only)
@@ -220,15 +239,15 @@ export class ConformalPredictionService {
     calibrationSetId: string,
     daysBack: number = 7
   ): Promise<CalibrationMetrics | null> {
-    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
-    const { data, error } = await (getSupabase()
+    const response = getSupabase()
       .from('conformal_performance_metrics')
       .select('*')
       .eq('calibration_set_id', calibrationSetId)
       .gte('evaluation_end', new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000).toISOString())
       .order('evaluation_end', { ascending: false })
       .limit(1)
-      .single() as unknown as Promise<{ data: Record<string, unknown> | null; error: Error | null }>);
+      .single() as unknown as Promise<{ data: Record<string, unknown> | null; error: Error | null }>;
+    const { data, error } = await response;
     if (error || data == null) {
       if (error) logger.error('Error fetching performance metrics:', error, { service: 'general' });
       return null;
@@ -360,7 +379,6 @@ export class ConformalPredictionService {
    * Check if recalibration is needed
    */
   async isRecalibrationNeeded(calibrationSetId: string): Promise<boolean> {
-    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
     const { data, error } = await (getSupabase()
       .from('conformal_calibration_sets')
       .select('created_at, sample_count, valid_until')
@@ -371,7 +389,6 @@ export class ConformalPredictionService {
     const createdAt = data['created_at'] as string | undefined;
     const sampleCount = (data['sample_count'] as number) ?? 0;
     if (validUntil && new Date(validUntil) < new Date()) return true;
-    // @ts-expect-error TS2571 - Supabase chain returns unknown; we assert Promise shape for typed destructuring
     const { count } = await (getSupabase()
       .from('building_assessment_outcomes')
       .select('*', { count: 'exact', head: true })

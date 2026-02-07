@@ -159,12 +159,12 @@ export class ContractorMatchingMLService {
    */
   public async getPersonalizedRecommendations(
     clientHistory: {
-      previousJobs: Array<{
+      previousJobs: {
         contractorId: string;
         rating: number;
         category: string;
         satisfaction: number;
-      }>;
+      }[];
       preferences: {
         preferredSkills: string[];
         budgetRange: [number, number];

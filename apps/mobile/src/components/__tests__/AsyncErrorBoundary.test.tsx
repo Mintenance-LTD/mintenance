@@ -1,3 +1,10 @@
+import React from 'react';
+import { render, fireEvent, waitFor } from '../../__tests__/test-utils';
+import { Text, TouchableOpacity } from 'react-native';
+import { AsyncErrorBoundary } from '../AsyncErrorBoundary';
+import { logger } from '../../utils/logger';
+import { captureException } from '../../config/sentry';
+
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: any) => children,
   SafeAreaView: ({ children }: any) => children,
@@ -26,13 +33,6 @@ jest.mock('../../utils/logger', () => ({
     info: jest.fn(),
   },
 }));
-
-import React from 'react';
-import { render, fireEvent, waitFor } from '../../__tests__/test-utils';
-import { Text, TouchableOpacity } from 'react-native';
-import { AsyncErrorBoundary } from '../AsyncErrorBoundary';
-import { logger } from '../../utils/logger';
-import { captureException } from '../../config/sentry';
 
 // Helper component that throws errors
 const ThrowingComponent = ({

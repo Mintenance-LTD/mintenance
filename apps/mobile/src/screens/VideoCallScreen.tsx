@@ -155,6 +155,9 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
         <TouchableOpacity
           style={[styles.controlButton, isMuted && styles.controlButtonActive]}
           onPress={handleToggleMicrophone}
+          accessibilityRole='button'
+          accessibilityLabel={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+          accessibilityState={{ checked: !isMuted }}
         >
           <Ionicons
             name={isMuted ? 'mic-off' : 'mic'}
@@ -166,6 +169,9 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
         <TouchableOpacity
           style={[styles.controlButton, !isVideoEnabled && styles.controlButtonActive]}
           onPress={handleToggleCamera}
+          accessibilityRole='button'
+          accessibilityLabel={isVideoEnabled ? 'Turn off camera' : 'Turn on camera'}
+          accessibilityState={{ checked: isVideoEnabled }}
         >
           <Ionicons
             name={isVideoEnabled ? 'videocam' : 'videocam-off'}
@@ -177,6 +183,9 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
         <TouchableOpacity
           style={[styles.controlButton, isSpeakerEnabled && styles.controlButtonActive]}
           onPress={handleToggleSpeaker}
+          accessibilityRole='button'
+          accessibilityLabel={isSpeakerEnabled ? 'Turn off speaker' : 'Turn on speaker'}
+          accessibilityState={{ checked: isSpeakerEnabled }}
         >
           <Ionicons
             name={isSpeakerEnabled ? 'volume-high' : 'volume-low'}
@@ -188,6 +197,8 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
         <TouchableOpacity
           style={[styles.controlButton, styles.endCallButton]}
           onPress={handleEndCall}
+          accessibilityRole='button'
+          accessibilityLabel='End call'
         >
           <Ionicons name="call" size={24} color={theme.colors.textInverse} />
         </TouchableOpacity>

@@ -423,7 +423,7 @@ export const useAppState = (): AppStateContextType => {
 // SELECTORS
 // ============================================================================
 
-export const useAppSelector = <T extends any>(selector: (state: AppState) => T): T => {
+export const useAppSelector = <T,>(selector: (state: AppState) => T): T => {
   const { state } = useAppState();
   return useMemo(() => selector(state), [selector, state]);
 };

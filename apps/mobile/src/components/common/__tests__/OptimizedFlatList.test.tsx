@@ -1,4 +1,8 @@
 
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { useOptimizedRenderItem } from '../OptimizedFlatList';
+
 jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
@@ -6,10 +10,6 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { useOptimizedRenderItem } from '../OptimizedFlatList';
 
 // Mock dependencies
 jest.mock('next/navigation', () => ({

@@ -53,12 +53,14 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Date & Time</Text>
-      
+      <Text style={styles.sectionTitle} accessibilityRole='header'>Date & Time</Text>
+
       <View style={styles.selectorRow}>
         <TouchableOpacity
           style={styles.selectorButton}
           onPress={() => onShowDatePicker(true)}
+          accessibilityRole='button'
+          accessibilityLabel={`Selected date: ${formatDate(selectedDate)}. Double tap to change`}
         >
           <View style={styles.selectorContent}>
             <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
@@ -73,6 +75,8 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
         <TouchableOpacity
           style={styles.selectorButton}
           onPress={() => onShowTimePicker(true)}
+          accessibilityRole='button'
+          accessibilityLabel={`Selected time: ${formatTime(selectedTime)}. Double tap to change`}
         >
           <View style={styles.selectorContent}>
             <Ionicons name="time-outline" size={20} color={theme.colors.primary} />

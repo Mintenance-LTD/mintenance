@@ -238,7 +238,7 @@ export function PricingClient() {
     // Handle enterprise plan
     if (planId === 'enterprise') {
       toast.info('Please contact our sales team for enterprise pricing.');
-      router.push('/contact?subject=Enterprise%20Plan%20Inquiry');
+      router.push('/contact?subject=Enterprise%20Plan%20Enquiry');
       return;
     }
 

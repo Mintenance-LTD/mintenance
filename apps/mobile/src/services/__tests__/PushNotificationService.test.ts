@@ -1,3 +1,6 @@
+import pushNotificationService from '../PushNotificationService';
+
+
 jest.mock('expo-notifications', () => ({
   requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
@@ -26,9 +29,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-
-import pushNotificationService from '../PushNotificationService';
 
 describe('PushNotificationService', () => {
   let service;

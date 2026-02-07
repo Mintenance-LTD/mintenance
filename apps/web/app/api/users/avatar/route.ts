@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     // Get user profile with avatar
     const { data: profile, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('avatar_url')
       .eq('id', auth.user.id)
       .single();
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 
     // Update user profile
     const { error: updateError } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         avatar_url: publicUrl,
         updated_at: new Date().toISOString()
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     // Delete old avatar if exists
     const { data: oldProfile } = await supabase
-      .from('users')
+      .from('profiles')
       .select('avatar_url')
       .eq('id', auth.user.id)
       .single();
@@ -171,7 +171,7 @@ export async function DELETE(request: NextRequest) {
 
     // Get current avatar URL
     const { data: profile, error: fetchError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('avatar_url')
       .eq('id', auth.user.id)
       .single();
@@ -199,7 +199,7 @@ export async function DELETE(request: NextRequest) {
 
     // Update user profile to remove avatar URL
     const { error: updateError } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         avatar_url: null,
         updated_at: new Date().toISOString()

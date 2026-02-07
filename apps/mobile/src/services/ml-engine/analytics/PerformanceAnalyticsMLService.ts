@@ -62,17 +62,17 @@ export interface PerformanceInsights {
   };
   topPerformingModels: string[];
   bottleneckModels: string[];
-  optimizationOpportunities: Array<{
+  optimizationOpportunities: {
     type: 'latency' | 'accuracy' | 'resource_usage';
     description: string;
     potentialImpact: 'low' | 'medium' | 'high';
-  }>;
-  alerts: Array<{
+  }[];
+  alerts: {
     severity: 'info' | 'warning' | 'critical';
     message: string;
     modelName?: string;
     timestamp: string;
-  }>;
+  }[];
 }
 
 /**
@@ -85,7 +85,7 @@ export class PerformanceAnalyticsMLService {
   private static instance: PerformanceAnalyticsMLService;
   private predictionHistory: Map<string, PredictionAnalytics[]> = new Map();
   private performanceMetrics: Map<string, ModelPerformanceMetrics> = new Map();
-  private alerts: Array<PerformanceInsights['alerts'][0]> = [];
+  private alerts: PerformanceInsights['alerts'][0][] = [];
 
   /**
    * Get singleton instance
@@ -254,7 +254,7 @@ export class PerformanceAnalyticsMLService {
     averageLatency: number;
     errorCount: number;
     confidenceDistribution: { high: number; medium: number; low: number };
-    hourlyUsage: Array<{ hour: string; count: number }>;
+    hourlyUsage: { hour: string; count: number }[];
   }> {
     const history = this.predictionHistory.get(modelName) || [];
     const cutoffTime = new Date(Date.now() - timeRangeHours * 60 * 60 * 1000);
@@ -296,13 +296,13 @@ export class PerformanceAnalyticsMLService {
       averageLatency: number;
       modelCount: number;
     };
-    modelDetails: Array<{
+    modelDetails: {
       modelName: string;
       predictions: number;
       accuracy: number;
       latency: number;
       status: 'healthy' | 'warning' | 'critical';
-    }>;
+    }[];
     recommendations: string[];
   }> {
     const modelNames = Array.from(this.predictionHistory.keys());
@@ -437,7 +437,7 @@ export class PerformanceAnalyticsMLService {
   private _calculateHourlyUsage(
     predictions: PredictionAnalytics[],
     timeRangeHours: number
-  ): Array<{ hour: string; count: number }> {
+  ): { hour: string; count: number }[] {
     const hourlyData: { [key: string]: number } = {};
 
     // Initialize all hours in range
@@ -593,7 +593,7 @@ export class PerformanceAnalyticsMLService {
    * Check for performance alerts
    */
   private _checkForAlerts(modelName: string, metrics: ModelPerformanceMetrics): void {
-    const alerts: Array<PerformanceInsights['alerts'][0]> = [];
+    const alerts: PerformanceInsights['alerts'][0][] = [];
 
     if (metrics.accuracy < 0.5) {
       alerts.push({

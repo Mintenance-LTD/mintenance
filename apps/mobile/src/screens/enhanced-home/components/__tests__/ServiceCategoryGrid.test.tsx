@@ -7,6 +7,11 @@
  * @filesize <300 lines
  */
 
+import React from 'react';
+import { render, fireEvent } from '@testing-library/react-native';
+import { ServiceCategoryGrid } from '../ServiceCategoryGrid';
+import type { Service } from '../../viewmodels/EnhancedHomeViewModel';
+
 jest.mock('react-native', () => {
   const RN = jest.requireActual('react-native');
   return {
@@ -28,11 +33,6 @@ jest.mock('@expo/vector-icons', () => ({
     );
   },
 }));
-
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { ServiceCategoryGrid } from '../ServiceCategoryGrid';
-import type { Service } from '../../viewmodels/EnhancedHomeViewModel';
 
 describe('ServiceCategoryGrid', () => {
   const mockOnServicePress = jest.fn();

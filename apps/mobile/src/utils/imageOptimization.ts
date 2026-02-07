@@ -197,7 +197,7 @@ export const generateResponsiveSources = (
     IMAGE_SIZES.MEDIUM,
     IMAGE_SIZES.LARGE,
   ]
-): Array<{ url: string; width: number }> => {
+): { url: string; width: number }[] => {
   return sizes.map(width => ({
     url: optimizeImageUrl(url, { width, quality: IMAGE_QUALITY.MEDIUM }),
     width,
@@ -283,7 +283,7 @@ export const isImageCached = async (url: string): Promise<boolean> => {
 export const optimizeJobPhotos = (
   photos: string[],
   options: ImageOptimizationOptions = {}
-): Array<{ original: string; optimized: string; thumbnail: string }> => {
+): { original: string; optimized: string; thumbnail: string }[] => {
   return photos.map(photo => ({
     original: photo,
     optimized: optimizeImageUrl(photo, {

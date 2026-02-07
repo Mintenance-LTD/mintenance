@@ -1,3 +1,9 @@
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+
+// Import the REAL NotificationService (not mocked) - we want to test the actual implementation
+import { NotificationService } from '../../services/NotificationService';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,9 +14,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
 
 // Mock Device to override jest-setup.js
 jest.mock('expo-device', () => ({
@@ -34,9 +37,6 @@ jest.mock('../../config/supabase', () => ({
 }));
 
 const { supabase } = require('../../config/supabase');
-
-// Import the REAL NotificationService (not mocked) - we want to test the actual implementation
-import { NotificationService } from '../../services/NotificationService';
 
 // Mock fetch
 global.fetch = jest.fn();

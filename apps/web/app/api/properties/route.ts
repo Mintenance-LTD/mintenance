@@ -6,6 +6,8 @@ import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
+import { validateRequest } from '@/lib/validation/validator';
+import { createPropertySchema } from '@/lib/validation/schemas';
 
 // Type definition for property insert data
 interface PropertyInsertData {
@@ -110,21 +112,13 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required to create properties');
     }
 
-    const body = await request.json();
-    const { property_name, address, property_type, is_primary, photos } = body;
-
-    // Validation
-    if (!property_name || !property_name.trim()) {
-      throw new BadRequestError('Property name is required');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, createPropertySchema);
+    if ('headers' in validation) {
+      return validation;
     }
 
-    if (!address || !address.trim()) {
-      throw new BadRequestError('Address is required');
-    }
-
-    if (!property_type || !['residential', 'commercial', 'rental'].includes(property_type)) {
-      throw new BadRequestError('Valid property type is required (residential, commercial, or rental)');
-    }
+    const { property_name, address, property_type, is_primary, photos } = validation.data;
 
     // If setting as primary, unset all other primary properties for this user
     if (is_primary) {
@@ -135,17 +129,17 @@ export async function POST(request: NextRequest) {
         .eq('is_primary', true);
     }
 
-    // Create the property with sanitized data
+    // Create the property with sanitized data (Zod schema already sanitizes via .transform())
     const insertData: PropertyInsertData = {
       owner_id: user.id,
-      property_name: sanitizeText(property_name.trim(), 255),
-      address: sanitizeText(address.trim(), 500),
-      property_type: property_type,
-      is_primary: is_primary || false,
+      property_name,
+      address,
+      property_type,
+      is_primary: is_primary ?? false,
     };
 
     // Add photos if provided (as JSONB array or text array)
-    if (photos && Array.isArray(photos) && photos.length > 0) {
+    if (photos && photos.length > 0) {
       insertData.photos = photos;
     }
 

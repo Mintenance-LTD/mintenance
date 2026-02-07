@@ -76,7 +76,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Check if user has MFA enabled
     const { data: userData } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('mfa_enabled')
       .eq('id', result.user.id)
       .single();

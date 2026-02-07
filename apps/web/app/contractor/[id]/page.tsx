@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
 import Logo from '../../components/Logo';
 import { Icon } from '@/components/ui/Icon';
 import { notFound } from 'next/navigation';
+
+export const metadata: Metadata = {
+  title: 'Contractor Profile | Mintenance',
+  description: 'View contractor profile, reviews, portfolio, and completed jobs on Mintenance.',
+};
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';

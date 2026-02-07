@@ -7,6 +7,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
 
 // Type definition for schedule update data
 interface ScheduleUpdateData {
@@ -57,14 +58,13 @@ export async function POST(  request: NextRequest,
       throw new UnauthorizedError('Authentication required to schedule jobs');
     }
 
-    const body = await request.json();
-    const parsed = scheduleSchema.safeParse(body);
-
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid request data');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, scheduleSchema);
+    if ('headers' in validation) {
+      return validation;
     }
 
-    const { scheduled_start_date, scheduled_end_date, scheduled_duration_hours } = parsed.data;
+    const { scheduled_start_date, scheduled_end_date, scheduled_duration_hours } = validation.data;
 
     // Verify job exists and user has permission
     const { data: job, error: jobError } = await serverSupabase

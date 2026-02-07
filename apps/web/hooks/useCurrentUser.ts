@@ -29,7 +29,7 @@ export function useCurrentUser() {
         }
       } catch (err) {
         // Ignore abort errors - these are expected during unmount/route changes
-        if (err && typeof err === 'object' && (err as any).name === 'AbortError') {
+        if (err && typeof err === 'object' && (err as { name?: string }).name === 'AbortError') {
           return;
         }
         if (mounted) {

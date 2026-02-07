@@ -54,12 +54,12 @@ export async function GET(request: NextRequest) {
         startDate.setDate(startDate.getDate() - days);
 
         // 1. Training Data Accumulation
-        const { data: predictionCount } = await supabase
+        const { count: predictionCount } = await supabase
             .from('model_predictions_log')
             .select('created_at', { count: 'exact', head: true })
             .gte('created_at', startDate.toISOString());
 
-        const { data: correctionCount } = await supabase
+        const { count: correctionCount } = await supabase
             .from('user_corrections')
             .select('*', { count: 'exact', head: true })
             .gte('created_at', startDate.toISOString());

@@ -1,19 +1,11 @@
 
-jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }) => children,
-  SafeAreaView: ({ children }) => children,
-  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-}));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
 import React from 'react';
 import { render, fireEvent, waitFor } from '../test-utils';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClientProvider } from '@tanstack/react-query';
 
 // Import navigation components
-import RootNavigator from '../../navigation/RootNavigator';
+import AppNavigator from '../../navigation/AppNavigator';
 import JobsNavigator from '../../navigation/navigators/JobsNavigator';
 import AuthNavigator from '../../navigation/navigators/AuthNavigator';
 import MessagingNavigator from '../../navigation/navigators/MessagingNavigator';
@@ -42,6 +34,14 @@ import type {
 // Import test utilities
 import { createTestQueryClient } from '../utils/test-utils';
 import { AuthProvider } from '../../contexts/AuthContext';
+
+jest.mock('react-native', () => require('../../__mocks__/react-native.js'));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }) => children,
+  SafeAreaView: ({ children }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 
 // Mock dependencies
 jest.mock('../../contexts/AuthContext', () => ({
@@ -459,7 +459,7 @@ describe('Navigation Structure', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -478,7 +478,7 @@ describe('Navigation Structure', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -493,7 +493,7 @@ describe('Navigation Structure', () => {
 
       const { toJSON } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -573,7 +573,7 @@ describe('Navigation Structure', () => {
 
       const { getByTestId } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -595,7 +595,7 @@ describe('Navigation Structure', () => {
 
       const { getByLabelText } = render(
         <TestWrapper>
-          <RootNavigator />
+          <AppNavigator />
         </TestWrapper>
       );
 
@@ -616,7 +616,7 @@ describe('Navigation Integration', () => {
 
     const { getByTestId, rerender } = render(
       <TestWrapper>
-        <RootNavigator />
+        <AppNavigator />
       </TestWrapper>
     );
 
@@ -635,7 +635,7 @@ describe('Navigation Integration', () => {
 
     rerender(
       <TestWrapper>
-        <RootNavigator />
+        <AppNavigator />
       </TestWrapper>
     );
 
@@ -662,7 +662,7 @@ describe('Navigation Performance', () => {
     
     render(
       <TestWrapper>
-        <RootNavigator />
+        <AppNavigator />
       </TestWrapper>
     );
     

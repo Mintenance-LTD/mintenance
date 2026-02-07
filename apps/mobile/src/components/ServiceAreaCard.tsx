@@ -104,7 +104,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
       <View style={styles.detailsRow}>
         <View style={styles.areaType}>
           <Ionicons
-            name={getAreaTypeIcon(serviceArea.area_type) as any}
+            name={getAreaTypeIcon(serviceArea.area_type) as keyof typeof Ionicons.glyphMap}
             size={16}
             color={theme.colors.primary}
           />

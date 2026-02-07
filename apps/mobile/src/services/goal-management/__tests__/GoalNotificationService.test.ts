@@ -1,3 +1,4 @@
+import { GoalNotificationService } from '../GoalNotificationService';
 jest.mock('expo-notifications', () => ({
   requestPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
   getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
@@ -37,7 +38,6 @@ jest.mock('../../NotificationService', () => ({
     delete: jest.fn(() => Promise.resolve(true)),
   },
 }));
-import { GoalNotificationService } from '../GoalNotificationService';
 
 describe('GoalNotificationService', () => {
   let service: typeof GoalNotificationService;

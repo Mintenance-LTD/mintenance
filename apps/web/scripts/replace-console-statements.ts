@@ -101,7 +101,7 @@ function replaceConsoleStatements(content: string, filePath: string): { content:
       // Extract the arguments
       let args = '';
       let depth = 0;
-      let startIdx = trimmed.indexOf('(');
+      const startIdx = trimmed.indexOf('(');
       let j = startIdx;
       
       for (; j < trimmed.length; j++) {

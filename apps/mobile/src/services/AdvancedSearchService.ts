@@ -6,6 +6,9 @@
 import { supabase } from '../config/supabase';
 import type { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { logger } from '../utils/logger';
+
+// Type alias for Supabase query builder with proper generic types
+type QueryBuilder = PostgrestFilterBuilder<Record<string, unknown>, Record<string, unknown>, unknown[]>;
 import { handleDatabaseOperation, validateRequired } from '../utils/serviceHelper';
 import { performanceMonitor } from '../utils/performance';
 import { sanitizeForSQL } from '../utils/sqlSanitization';
@@ -495,9 +498,9 @@ export class AdvancedSearchService {
   // Private helper methods
 
   private static applyContractorFilters(
-    queryBuilder: PostgrestFilterBuilder<any, any, any>,
+    queryBuilder: QueryBuilder,
     filters: SearchFilters
-  ): PostgrestFilterBuilder<any, any, any> {
+  ): QueryBuilder {
     // Skills filter
     if (filters.skills.length > 0) {
       queryBuilder = queryBuilder.overlaps('skills', filters.skills);
@@ -544,9 +547,9 @@ export class AdvancedSearchService {
   }
 
   private static applyContractorSorting(
-    queryBuilder: PostgrestFilterBuilder<any, any, any>,
+    queryBuilder: QueryBuilder,
     sortBy: string
-  ): PostgrestFilterBuilder<any, any, any> {
+  ): QueryBuilder {
     switch (sortBy) {
       case 'rating':
         return queryBuilder.order('rating', { ascending: false });
@@ -562,9 +565,9 @@ export class AdvancedSearchService {
   }
 
   private static applyJobFilters(
-    queryBuilder: PostgrestFilterBuilder<any, any, any>,
+    queryBuilder: QueryBuilder,
     filters: SearchFilters
-  ): PostgrestFilterBuilder<any, any, any> {
+  ): QueryBuilder {
     // Skills filter
     if (filters.skills.length > 0) {
       queryBuilder = queryBuilder.overlaps('skills_required', filters.skills);
@@ -592,9 +595,9 @@ export class AdvancedSearchService {
   }
 
   private static applyJobSorting(
-    queryBuilder: PostgrestFilterBuilder<any, any, any>,
+    queryBuilder: QueryBuilder,
     sortBy: string
-  ): PostgrestFilterBuilder<any, any, any> {
+  ): QueryBuilder {
     switch (sortBy) {
       case 'price_high':
         return queryBuilder.order('budget_max', { ascending: false });

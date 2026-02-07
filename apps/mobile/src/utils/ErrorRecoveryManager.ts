@@ -478,7 +478,7 @@ class ErrorRecoveryManager {
     totalOccurrences: number;
     recurringErrors: number;
     activeRecoveries: number;
-    topErrors: Array<{ key: string; count: number }>;
+    topErrors: { key: string; count: number }[];
   } {
     const totalUniqueErrors = this.errorHistory.size;
     const totalOccurrences = Array.from(this.errorHistory.values())

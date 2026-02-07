@@ -158,7 +158,7 @@ export function AirbnbJobsCarousel({ jobs, properties }: AirbnbJobsCarouselProps
                         <>
                           <Calendar className="w-4 h-4" />
                           <span>
-                            {new Date(job.scheduled_date).toLocaleDateString('en-US', {
+                            {new Date(job.scheduled_date).toLocaleDateString('en-GB', {
                               month: 'short',
                               day: 'numeric',
                             })}

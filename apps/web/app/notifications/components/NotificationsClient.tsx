@@ -89,8 +89,8 @@ export function NotificationsClient(props: NotificationsClientProps) {
         break;
       case 'message_received':
         // Navigate to specific message thread if jobId is available
-        if (notification.data?.jobId || (notification as any).action_url?.includes('/messages/')) {
-          const jobId = notification.data?.jobId || (notification as any).action_url?.split('/messages/')[1]?.split('?')[0];
+        if (notification.data?.jobId || (notification as NotificationData & { action_url?: string }).action_url?.includes('/messages/')) {
+          const jobId = notification.data?.jobId || (notification as NotificationData & { action_url?: string }).action_url?.split('/messages/')[1]?.split('?')[0];
           const receiverId = notification.data?.senderId;
           const receiverName = notification.data?.senderName;
           const jobTitle = notification.data?.jobTitle;

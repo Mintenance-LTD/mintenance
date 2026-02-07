@@ -195,11 +195,11 @@ const getButtonStyles = (
     },
     'gradient-primary': {
       backgroundColor: disabled ? mobileTokens.colors.gray400 : mobileTokens.colors.primary,
-      ...mobileTokens.shadows.md,
+      ...mobileTokens.shadows.base,
     },
     'gradient-success': {
       backgroundColor: disabled ? mobileTokens.colors.gray400 : mobileTokens.colors.success,
-      ...mobileTokens.shadows.md,
+      ...mobileTokens.shadows.base,
     },
   };
   return {

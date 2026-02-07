@@ -330,14 +330,14 @@ export class AccessibilityManager {
   public getAccessibilityReport(componentProps: unknown[]): {
     totalElements: number;
     accessibleElements: number;
-    issues: Array<{
+    issues: {
       element: string;
       issues: string[];
-    }>;
+    }[];
   } {
     let totalElements = 0;
     let accessibleElements = 0;
-    const issues: Array<{ element: string; issues: string[] }> = [];
+    const issues: { element: string; issues: string[] }[] = [];
 
     componentProps.forEach((props, index) => {
       totalElements++;
@@ -371,12 +371,12 @@ const accessibilityManager = new Proxy(
   {},
   {
     get(_target, prop) {
-      const instance = AccessibilityManager.getInstance() as any;
+      const instance = AccessibilityManager.getInstance() as Record<string, unknown>;
       const value = instance[prop as keyof typeof instance];
       return typeof value === 'function' ? value.bind(instance) : value;
     },
     set(_target, prop, value) {
-      const instance = AccessibilityManager.getInstance() as any;
+      const instance = AccessibilityManager.getInstance() as Record<string, unknown>;
       instance[prop as keyof typeof instance] = value;
       return true;
     },

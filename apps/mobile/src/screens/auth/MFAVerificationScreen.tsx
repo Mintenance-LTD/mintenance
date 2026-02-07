@@ -200,7 +200,7 @@ export default function MFAVerificationScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Two-Factor Authentication</Text>
+          <Text style={styles.title} accessibilityRole='header'>Two-Factor Authentication</Text>
           <Text style={styles.subtitle}>
             Enter your verification code to complete login
           </Text>
@@ -214,6 +214,9 @@ export default function MFAVerificationScreen() {
               method === 'totp' && styles.methodButtonActive,
             ]}
             onPress={() => switchMethod('totp')}
+            accessibilityRole='tab'
+            accessibilityLabel='Authenticator app verification'
+            accessibilityState={{ selected: method === 'totp' }}
           >
             <Text
               style={[
@@ -231,6 +234,9 @@ export default function MFAVerificationScreen() {
               method === 'backup_code' && styles.methodButtonActive,
             ]}
             onPress={() => switchMethod('backup_code')}
+            accessibilityRole='tab'
+            accessibilityLabel='Backup code verification'
+            accessibilityState={{ selected: method === 'backup_code' }}
           >
             <Text
               style={[
@@ -261,6 +267,8 @@ export default function MFAVerificationScreen() {
             autoComplete="off"
             autoCorrect={false}
             editable={!loading}
+            accessibilityLabel={method === 'totp' ? 'Enter 6-digit verification code' : 'Enter backup code'}
+            accessibilityHint={method === 'totp' ? 'Enter the code from your authenticator app' : 'Enter one of your backup codes'}
           />
           <Text style={styles.hint}>
             {method === 'totp'
@@ -274,6 +282,9 @@ export default function MFAVerificationScreen() {
           style={styles.checkboxContainer}
           onPress={() => setRememberDevice(!rememberDevice)}
           disabled={loading}
+          accessibilityRole='checkbox'
+          accessibilityLabel='Trust this device for 30 days'
+          accessibilityState={{ checked: rememberDevice }}
         >
           <View style={[styles.checkbox, rememberDevice && styles.checkboxChecked]}>
             {rememberDevice && <Text style={styles.checkmark}>✓</Text>}
@@ -289,6 +300,8 @@ export default function MFAVerificationScreen() {
           ]}
           onPress={handleVerify}
           disabled={loading || !code || code.length < 6}
+          accessibilityRole='button'
+          accessibilityLabel={loading ? 'Verifying code' : 'Verify code'}
         >
           {loading ? (
             <ActivityIndicator color="#FFFFFF" />
@@ -300,7 +313,11 @@ export default function MFAVerificationScreen() {
         {/* Help text */}
         <View style={styles.helpContainer}>
           <Text style={styles.helpText}>Lost access to your authenticator app?</Text>
-          <TouchableOpacity onPress={() => switchMethod('backup_code')}>
+          <TouchableOpacity
+            onPress={() => switchMethod('backup_code')}
+            accessibilityRole='link'
+            accessibilityLabel='Switch to backup code verification'
+          >
             <Text style={styles.helpLink}>Use a backup code instead</Text>
           </TouchableOpacity>
         </View>
@@ -310,6 +327,8 @@ export default function MFAVerificationScreen() {
           style={styles.backButton}
           onPress={() => navigation.navigate('Login' as never)}
           disabled={loading}
+          accessibilityRole='link'
+          accessibilityLabel='Back to login'
         >
           <Text style={styles.backButtonText}>Back to login</Text>
         </TouchableOpacity>

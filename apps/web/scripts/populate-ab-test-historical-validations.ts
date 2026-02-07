@@ -148,7 +148,7 @@ async function populateHistoricalValidations() {
     // 2. Process assessments into historical validations
     const validations: HistoricalValidation[] = [];
     let processed = 0;
-    let skipped = 0;
+    const skipped = 0;
 
     for (const assessment of assessments) {
       const data = assessment.assessment_data;

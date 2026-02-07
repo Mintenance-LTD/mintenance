@@ -4,6 +4,8 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { propertyFavoriteSchema } from '@/lib/validation/schemas';
 
 /**
  * POST /api/properties/favorites
@@ -39,12 +41,13 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required to favorite properties');
     }
 
-    const body = await request.json();
-    const { property_id } = body;
-
-    if (!property_id) {
-      throw new BadRequestError('property_id is required');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, propertyFavoriteSchema);
+    if ('headers' in validation) {
+      return validation;
     }
+
+    const { property_id } = validation.data;
 
     // Verify the property exists and belongs to the user
     const { data: property, error: propertyError } = await serverSupabase
@@ -122,12 +125,13 @@ export async function DELETE(request: NextRequest) {
       throw new UnauthorizedError('Authentication required to manage favorites');
     }
 
-    const body = await request.json();
-    const { property_id } = body;
-
-    if (!property_id) {
-      throw new BadRequestError('property_id is required');
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, propertyFavoriteSchema);
+    if ('headers' in validation) {
+      return validation;
     }
+
+    const { property_id } = validation.data;
 
     // Remove favorite
     const { error } = await serverSupabase

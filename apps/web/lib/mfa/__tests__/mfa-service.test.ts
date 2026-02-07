@@ -2,7 +2,6 @@ import { vi } from 'vitest';
 /**
  * @jest-environment node
  */
-import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';

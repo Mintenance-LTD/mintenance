@@ -12,6 +12,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { Job, Bid } from '@mintenance/types';
+
+interface BidWithExtras extends Bid {
+  contractorAvatar?: string;
+  contractorRating?: number;
+  proposedTimeline?: string;
+}
 import { useJobBids, useAcceptBid } from '../hooks/useJobs';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
@@ -129,9 +135,9 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
         <View style={styles.contractorHeader}>
           <View style={styles.contractorAvatar}>
-            {(bid as any).contractorAvatar ? (
+            {(bid as BidWithExtras).contractorAvatar ? (
               <Image
-                source={{ uri: (bid as any).contractorAvatar }}
+                source={{ uri: (bid as BidWithExtras).contractorAvatar }}
                 style={styles.avatar}
               />
             ) : (
@@ -148,7 +154,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
               {bid.contractorName || 'Anonymous Contractor'}
             </Text>
             <Text style={styles.contractorRating}>
-              {getContractorRating((bid as any).contractorRating)}
+              {getContractorRating((bid as BidWithExtras).contractorRating)}
             </Text>
             <Text style={styles.bidTime}>{formatTimeAgo(bid.createdAt)}</Text>
           </View>
@@ -176,7 +182,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
           </View>
         )}
 
-        {(bid as any).proposedTimeline && (
+        {(bid as BidWithExtras).proposedTimeline && (
           <View style={styles.timeline}>
             <Ionicons
               name='time-outline'
@@ -184,7 +190,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
               color={theme.colors.textSecondary}
             />
             <Text style={styles.timelineText}>
-              Estimated completion: {(bid as any).proposedTimeline}
+              Estimated completion: {(bid as BidWithExtras).proposedTimeline}
             </Text>
           </View>
         )}

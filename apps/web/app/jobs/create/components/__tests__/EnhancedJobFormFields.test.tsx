@@ -4,7 +4,8 @@ import { EnhancedJobFormFields } from '../EnhancedJobFormFields';
 
 vi.mock('lucide-react', () => ({
   Info: () => <span data-testid="icon-info" />,
-  AlertCircle: () => <span data-testid="icon-alert" />,
+  AlertCircle: (props: any) => <span data-testid="icon-alert" aria-label={props?.['aria-label']} aria-hidden={props?.['aria-hidden']} className={props?.className} />,
+  CheckCircle: (props: any) => <span data-testid="icon-check" aria-label={props?.['aria-label']} aria-hidden={props?.['aria-hidden']} className={props?.className} />,
   TrendingUp: () => <span data-testid="icon-trending" />,
   Zap: () => <span data-testid="icon-zap" />,
 }));
@@ -80,8 +81,11 @@ describe('EnhancedJobFormFields', () => {
       };
       render(<EnhancedJobFormFields {...props} />);
 
-      expect(screen.getByText(/Great! Your title is clear and concise/)).toBeInTheDocument();
-      expect(screen.getByText(/16\/100 characters/)).toBeInTheDocument();
+      // FormField renders helper text in both a plain helper and a success section
+      const matches = screen.getAllByText(/Great! Your title is clear and concise/);
+      expect(matches.length).toBeGreaterThanOrEqual(1);
+      const charMatches = screen.getAllByText(/16\/100 characters/);
+      expect(charMatches.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -114,7 +118,9 @@ describe('EnhancedJobFormFields', () => {
       };
       render(<EnhancedJobFormFields {...props} />);
 
-      expect(screen.getByText('Location verified')).toBeInTheDocument();
+      // FormField renders helper text in both a plain helper and a success section
+      const matches = screen.getAllByText('Location verified');
+      expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
 

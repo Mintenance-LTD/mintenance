@@ -72,7 +72,7 @@ export class AutomationPreferencesService {
     preferences: Partial<AutomationPreferences>
   ): Promise<boolean> {
     try {
-      const updateData: Record<string, any> = {
+      const updateData: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
 

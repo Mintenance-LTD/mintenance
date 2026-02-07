@@ -515,7 +515,7 @@ class LocalDatabaseService {
   // SYNC OPERATIONS
   // ============================================================================
 
-  async getDirtyRecords(table: string): Promise<Array<DatabaseUserRow | DatabaseJobRow | DatabaseMessageRow>> {
+  async getDirtyRecords(table: string): Promise<(DatabaseUserRow | DatabaseJobRow | DatabaseMessageRow)[]> {
     if (!this.db) throw new Error('Database not initialized');
 
     const query = `SELECT * FROM ${table} WHERE is_dirty = TRUE ORDER BY updated_at DESC`;

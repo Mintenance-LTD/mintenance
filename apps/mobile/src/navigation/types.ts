@@ -26,8 +26,9 @@ export type RootStackParamList = {
 
 export type RootTabParamList = {
   HomeTab: undefined;
+  DiscoverTab: undefined;
   JobsTab: NavigatorScreenParams<JobsStackParamList> | undefined;
-  FeedTab: undefined;
+  AddTab: undefined;
   MessagingTab: NavigatorScreenParams<MessagingStackParamList> | undefined;
   ProfileTab: NavigatorScreenParams<ProfileStackParamList> | undefined;
 };

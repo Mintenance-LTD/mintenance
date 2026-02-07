@@ -26,8 +26,13 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.sectionTitle}>Photos</Text>
-        <TouchableOpacity style={styles.addButton} onPress={onAddPhoto}>
+        <Text style={styles.sectionTitle} accessibilityRole='header'>Photos</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={onAddPhoto}
+          accessibilityRole='button'
+          accessibilityLabel='Add photo to gallery'
+        >
           <Ionicons name="add" size={16} color={theme.colors.textSecondary} />
           <Text style={styles.addText}>Add Photo</Text>
         </TouchableOpacity>

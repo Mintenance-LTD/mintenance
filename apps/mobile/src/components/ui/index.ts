@@ -4,6 +4,23 @@
 // ============================================================================
 
 // Error Handling Components
+// ============================================================================
+// COMPONENT CATEGORIES
+// ============================================================================
+
+// Import all components for organized exports
+import * as ErrorComponents from './ErrorBoundary';
+import * as LoadingComponents from './LoadingStates';
+import Button from './Button';
+import Typography from './Typography';
+import Input from './Input';
+import Card from './Card';
+import Badge from './Badge';
+import ThemeToggle from './ThemeToggle';
+import Animated from './Animated';
+import Toast from './Toast';
+import Banner from './Banner';
+
 export {
   ErrorBoundary,
   withErrorBoundary,
@@ -109,23 +126,6 @@ export {
 } from './Toast';
 
 export { type BannerProps } from './Banner';
-
-// ============================================================================
-// COMPONENT CATEGORIES
-// ============================================================================
-
-// Import all components for organized exports
-import * as ErrorComponents from './ErrorBoundary';
-import * as LoadingComponents from './LoadingStates';
-import Button from './Button';
-import Typography from './Typography';
-import Input from './Input';
-import Card from './Card';
-import Badge from './Badge';
-import ThemeToggle from './ThemeToggle';
-import Animated from './Animated';
-import Toast from './Toast';
-import Banner from './Banner';
 
 // Organized exports by category
 export const UI = {

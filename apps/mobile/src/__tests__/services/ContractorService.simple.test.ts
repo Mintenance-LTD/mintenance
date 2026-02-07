@@ -1,3 +1,5 @@
+import { ContractorService } from '../../services/ContractorService';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
   getItem: jest.fn(() => Promise.resolve(null)),
@@ -8,8 +10,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiGet: jest.fn(() => Promise.resolve([])),
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
-
-import { ContractorService } from '../../services/ContractorService';
 
 // Mock only external dependencies
 jest.mock('../../config/supabase', () => ({

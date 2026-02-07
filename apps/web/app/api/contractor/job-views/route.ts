@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
       // Create notification for homeowner (only on first view)
       const { data: contractor } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('first_name, last_name, company_name, email')
         .eq('id', user.id)
         .single();

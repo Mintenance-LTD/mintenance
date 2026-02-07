@@ -27,7 +27,7 @@ export async function enrichMaterialsWithDatabase(
 ): Promise<Material[]> {
   // Guard clause: Check for null/undefined BEFORE any logging
   if (!aiMaterials) {
-    console.error('enrichMaterialsWithDatabase called with null/undefined', {
+    logger.error('enrichMaterialsWithDatabase called with null/undefined', {
       receivedType: typeof aiMaterials,
       receivedValue: aiMaterials
     });
@@ -39,7 +39,7 @@ export async function enrichMaterialsWithDatabase(
 
   // Guard clause: Verify it's an array
   if (!Array.isArray(aiMaterials)) {
-    console.error('enrichMaterialsWithDatabase called with non-array', {
+    logger.error('enrichMaterialsWithDatabase called with non-array', {
       receivedType: typeof aiMaterials,
       receivedValue: aiMaterials
     });
@@ -50,8 +50,8 @@ export async function enrichMaterialsWithDatabase(
     return [];
   }
 
-  // Log entry point (use both console and logger for debugging)
-  console.log('FUNCTION ENTRY - enrichMaterialsWithDatabase', {
+  // Log entry point
+  logger.debug('FUNCTION ENTRY - enrichMaterialsWithDatabase', {
     materialsCount: aiMaterials.length,
     firstMaterial: aiMaterials[0]
   });
@@ -68,11 +68,11 @@ export async function enrichMaterialsWithDatabase(
 
   try {
     // Dynamic import to avoid circular dependencies
-    console.log('About to import MaterialsService');
+    logger.debug('About to import MaterialsService');
     const { MaterialsService } = await import('../MaterialsService');
-    console.log('MaterialsService imported successfully', { MaterialsService: typeof MaterialsService });
+    logger.debug('MaterialsService imported successfully', { MaterialsService: typeof MaterialsService });
     const materialsService = new MaterialsService();
-    console.log('MaterialsService instantiated');
+    logger.debug('MaterialsService instantiated');
 
     // Parallel lookups for performance (proven pattern from JobAnalysisService)
     const enrichedMaterials = await Promise.all(

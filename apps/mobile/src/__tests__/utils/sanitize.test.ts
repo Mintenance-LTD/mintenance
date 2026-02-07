@@ -1,5 +1,5 @@
-import { sanitizeText } from '../../utils/sanitize';
-import sanitizeDefault from '../../utils/sanitize';
+import sanitizeDefault, { sanitizeText } from '../../utils/sanitize';
+
 
 describe('sanitize', () => {
   describe('sanitizeText', () => {

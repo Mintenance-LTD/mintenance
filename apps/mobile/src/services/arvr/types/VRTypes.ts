@@ -68,10 +68,10 @@ export interface VRInteractiveElement {
   type: 'tool' | 'material' | 'measurement' | 'annotation';
   position: { x: number; y: number; z: number };
   modelId: string;
-  interactions: Array<{
+  interactions: {
     type: 'grab' | 'touch' | 'look' | 'speak';
     action: string;
     feedback: 'visual' | 'audio' | 'haptic';
-  }>;
+  }[];
   state: Record<string, unknown>;
 }

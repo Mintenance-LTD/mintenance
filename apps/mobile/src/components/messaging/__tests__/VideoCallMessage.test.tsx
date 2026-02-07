@@ -1,4 +1,7 @@
 
+import React from 'react';
+import VideoCallMessage from '../VideoCallMessage';
+
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
@@ -20,9 +23,6 @@ jest.mock('../../../services/VideoCallService', () => ({
     }),
   },
 }));
-
-import React from 'react';
-import VideoCallMessage from '../VideoCallMessage';
 
 describe('VideoCallMessage', () => {
   it('exports the component', () => {

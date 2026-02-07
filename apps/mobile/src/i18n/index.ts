@@ -179,8 +179,9 @@ export const formatCurrency = (
   language?: Language
 ): string => {
   const lang = language || getCurrentLanguage();
-  const deviceCurrency = (RNLocalize as any)?.getCurrencies?.()?.[0] || 'USD';
-  const resolvedCurrency = currency || deviceCurrency;
+  const getCurrenciesFn = (RNLocalize as Record<string, (...args: unknown[]) => unknown>).getCurrencies;
+  const deviceCurrency = typeof getCurrenciesFn === 'function' ? (getCurrenciesFn() as string[])?.[0] : undefined;
+  const resolvedCurrency = currency || deviceCurrency || 'USD';
 
   try {
     return new Intl.NumberFormat(lang === 'en' ? 'en-US' : lang, {

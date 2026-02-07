@@ -777,7 +777,7 @@ describe('BookingCard', () => {
   describe('Status Helper Functions - getStatusColor', () => {
     it('should use correct theme colors for each status', () => {
       // Test all status variations through rendering
-      const statuses: Array<'upcoming' | 'completed' | 'cancelled'> = [
+      const statuses: ('upcoming' | 'completed' | 'cancelled')[] = [
         'upcoming',
         'completed',
         'cancelled',

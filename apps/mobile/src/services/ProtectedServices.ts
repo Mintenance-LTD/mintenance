@@ -311,7 +311,7 @@ export class ProtectedJobService {
     category?: string;
     userId?: string;
     userTier?: string;
-  }): Promise<any[]> {
+  }): Promise<Record<string, unknown>[]> {
     try {
       return await protectedSupabase.query(
         async () => {
@@ -424,7 +424,7 @@ export class ProtectedMessagingService {
     jobId: string;
     userId: string;
     userTier?: string;
-  }): Promise<any[]> {
+  }): Promise<Record<string, unknown>[]> {
     try {
       return await protectedSupabase.query(
         async () => {

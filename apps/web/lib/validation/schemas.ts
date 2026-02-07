@@ -307,6 +307,469 @@ export const adminSettingCreateSchema = z.object({
 });
 
 // ============================================================================
+// Escrow Schemas
+// ============================================================================
+
+export const releaseEscrowSchema = z.object({
+  escrowTransactionId: z.string()
+    .uuid('Invalid escrow transaction ID'),
+  releaseReason: z.enum(['job_completed', 'dispute_resolved', 'timeout']),
+});
+
+export const refundRequestSchema = z.object({
+  jobId: z.string()
+    .uuid('Invalid job ID'),
+  escrowTransactionId: z.string()
+    .uuid('Invalid escrow transaction ID'),
+  amount: z.number()
+    .positive('Amount must be positive')
+    .optional(),
+  reason: z.string()
+    .max(500, 'Reason too long')
+    .optional(),
+});
+
+// ============================================================================
+// Subscription Schemas
+// ============================================================================
+
+export const createSubscriptionSchema = z.object({
+  planType: z.enum(['free', 'basic', 'professional', 'enterprise']),
+});
+
+export const cancelSubscriptionSchema = z.object({
+  subscriptionId: z.string()
+    .uuid('Invalid subscription ID'),
+  reason: z.string()
+    .max(500, 'Reason too long')
+    .optional(),
+  cancelAtPeriodEnd: z.boolean().default(true),
+});
+
+export const updateSubscriptionSchema = z.object({
+  subscriptionId: z.string()
+    .uuid('Invalid subscription ID'),
+  planType: z.enum(['free', 'basic', 'professional', 'enterprise']),
+});
+
+// ============================================================================
+// Contract Schemas
+// ============================================================================
+
+export const createContractSchema = z.object({
+  job_id: z.string()
+    .uuid('Invalid job ID'),
+  title: z.string()
+    .min(1, 'Title required')
+    .max(255, 'Title too long')
+    .optional(),
+  description: z.string()
+    .max(5000, 'Description too long')
+    .optional(),
+  amount: z.number()
+    .positive('Amount must be positive'),
+  start_date: z.string()
+    .datetime('Invalid start date format')
+    .optional(),
+  end_date: z.string()
+    .datetime('Invalid end date format')
+    .optional(),
+  terms: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    .optional(),
+  contractor_company_name: z.string()
+    .min(1, 'Company name required')
+    .max(255, 'Company name too long'),
+  contractor_license_registration: z.string()
+    .min(1, 'License registration required')
+    .max(100, 'License registration too long'),
+  contractor_license_type: z.string()
+    .max(100, 'License type too long')
+    .optional(),
+});
+
+export const updateContractSchema = z.object({
+  title: z.string()
+    .min(1, 'Title required')
+    .max(255, 'Title too long')
+    .optional(),
+  description: z.string()
+    .max(5000, 'Description too long')
+    .optional(),
+  amount: z.number()
+    .positive('Amount must be positive')
+    .optional(),
+  start_date: z.string()
+    .datetime('Invalid start date format')
+    .optional(),
+  end_date: z.string()
+    .datetime('Invalid end date format')
+    .optional(),
+  terms: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()]))
+    .optional(),
+});
+
+// ============================================================================
+// Message Schemas
+// ============================================================================
+
+export const messageReactionSchema = z.object({
+  emoji: z.string()
+    .min(1, 'Emoji is required')
+    .max(10, 'Emoji too long')
+    .regex(/^[\p{Emoji}\u200d]+$/u, 'Invalid emoji format'),
+});
+
+export const sendMessageSchema = z.object({
+  jobId: z.string()
+    .uuid('Invalid job ID'),
+  receiverId: z.string()
+    .uuid('Invalid receiver ID'),
+  content: z.string()
+    .min(1, 'Message content required')
+    .max(2000, 'Message too long')
+    .transform(val => sanitizeText(val, 2000)),
+  messageType: z.enum(['text', 'image', 'file', 'system']).default('text'),
+});
+
+// ============================================================================
+// Notification Schemas
+// ============================================================================
+
+export const notificationEngagementSchema = z.object({
+  notificationId: z.string()
+    .min(1, 'Notification ID required')
+    .max(255, 'Notification ID too long'),
+  action: z.enum(['opened', 'clicked', 'dismissed']),
+});
+
+// ============================================================================
+// Building Surveyor Schemas
+// ============================================================================
+
+export const buildingAssessRequestSchema = z.object({
+  imageUrls: z.array(z.string().url('Invalid image URL'))
+    .min(1, 'At least one image required')
+    .max(4, 'Maximum 4 images allowed'),
+  jobId: z.string()
+    .uuid('Invalid job ID')
+    .optional(),
+  propertyId: z.string()
+    .uuid('Invalid property ID')
+    .optional(),
+  domain: z.enum(['building', 'rail', 'infrastructure', 'general'])
+    .optional(),
+  context: z.object({
+    location: z.string().max(200).optional(),
+    propertyType: z.enum(['residential', 'commercial', 'industrial']).optional(),
+    ageOfProperty: z.number().int().positive().max(500).optional(),
+    propertyDetails: z.string().max(1000).optional(),
+  }).optional(),
+});
+
+export const buildingCorrectionSchema = z.object({
+  assessmentId: z.string()
+    .uuid('Invalid assessment ID'),
+  imageUrl: z.string()
+    .url('Invalid image URL'),
+  imageIndex: z.number()
+    .int()
+    .min(0)
+    .optional(),
+  // Using z.any() for detection arrays to match the flexible RoboflowDetection/CorrectedDetection types
+  originalDetections: z.array(z.any()),
+  correctedDetections: z.array(z.any()),
+  correctionsMade: z.object({
+    added: z.array(z.any()).optional(),
+    removed: z.array(z.any()).optional(),
+    adjusted: z.array(z.any()).optional(),
+    classChanged: z.array(z.any()).optional(),
+  }).optional(),
+  correctionQuality: z.enum(['expert', 'verified', 'user']).optional(),
+});
+
+// ============================================================================
+// Maintenance Schemas
+// ============================================================================
+
+export const maintenanceDetectSchema = z.object({
+  description: z.string()
+    .max(2000, 'Description too long')
+    .transform(val => sanitizeText(val, 2000))
+    .optional()
+    .default(''),
+  urgency: z.enum(['low', 'normal', 'urgent', 'emergency'])
+    .default('normal'),
+});
+
+export const maintenanceFeedbackSchema = z.object({
+  assessmentId: z.string()
+    .uuid('Invalid assessment ID'),
+  wasAccurate: z.boolean(),
+  actualIssue: z.string()
+    .max(200, 'Issue description too long')
+    .optional(),
+  actualSeverity: z.enum(['minor', 'moderate', 'major', 'critical'])
+    .optional(),
+  actualTimeHours: z.number()
+    .min(0, 'Time must be non-negative')
+    .max(100, 'Time exceeds maximum')
+    .optional(),
+  actualMaterials: z.array(z.string().max(200))
+    .max(50, 'Maximum 50 materials')
+    .optional(),
+  contractorNotes: z.string()
+    .max(1000, 'Notes too long')
+    .optional(),
+  helpfulnessScore: z.number()
+    .int()
+    .min(1, 'Score must be at least 1')
+    .max(5, 'Score must be at most 5')
+    .optional(),
+});
+
+// ============================================================================
+// Contractor Schemas
+// ============================================================================
+
+export const contractorInvoiceLineItemSchema = z.object({
+  description: z.string()
+    .min(1, 'Description is required')
+    .max(500, 'Description too long')
+    .transform(val => sanitizeText(val, 500)),
+  quantity: z.number()
+    .positive('Quantity must be positive'),
+  unit_price: z.number()
+    .min(0, 'Unit price cannot be negative'),
+  amount: z.number()
+    .optional(),
+});
+
+export const createInvoiceSchema = z.object({
+  jobId: z.string().uuid('Invalid job ID').optional(),
+  quoteId: z.string().uuid('Invalid quote ID').optional(),
+  clientName: z.string()
+    .min(1, 'Client name is required')
+    .max(200, 'Client name too long')
+    .transform(val => sanitizeText(val, 200)),
+  clientEmail: z.string()
+    .transform(val => sanitizeEmail(val)),
+  clientPhone: z.string()
+    .max(20, 'Phone number too long')
+    .optional(),
+  clientAddress: z.string()
+    .max(500, 'Address too long')
+    .transform(val => sanitizeText(val, 500))
+    .optional(),
+  title: z.string()
+    .min(1, 'Invoice title is required')
+    .max(200, 'Title too long')
+    .transform(val => sanitizeText(val, 200)),
+  description: z.string()
+    .max(2000, 'Description too long')
+    .optional(),
+  lineItems: z.array(contractorInvoiceLineItemSchema)
+    .min(1, 'At least one line item is required'),
+  taxRate: z.number()
+    .min(0, 'Tax rate cannot be negative')
+    .max(100, 'Tax rate cannot exceed 100%')
+    .default(20),
+  paymentTerms: z.string()
+    .max(500, 'Payment terms too long')
+    .default('Payment due within 30 days')
+    .transform(val => sanitizeText(val, 500)),
+  notes: z.string()
+    .max(2000, 'Notes too long')
+    .optional(),
+  dueDate: z.string().optional(),
+  status: z.enum(['draft', 'sent']).default('draft'),
+});
+
+export const updateInvoiceSchema = z.object({
+  title: z.string()
+    .min(1, 'Title required')
+    .max(200, 'Title too long')
+    .transform(val => sanitizeText(val, 200))
+    .optional(),
+  description: z.string()
+    .max(2000, 'Description too long')
+    .optional(),
+  lineItems: z.array(contractorInvoiceLineItemSchema)
+    .min(1, 'At least one line item is required')
+    .optional(),
+  taxRate: z.number()
+    .min(0, 'Tax rate cannot be negative')
+    .max(100, 'Tax rate cannot exceed 100%')
+    .optional(),
+  paymentTerms: z.string()
+    .max(500, 'Payment terms too long')
+    .transform(val => sanitizeText(val, 500))
+    .optional(),
+  notes: z.string()
+    .max(2000, 'Notes too long')
+    .optional(),
+  dueDate: z.string().optional(),
+  status: z.enum(['draft', 'sent']).optional(),
+  clientName: z.string()
+    .min(1, 'Client name is required')
+    .max(200, 'Client name too long')
+    .transform(val => sanitizeText(val, 200))
+    .optional(),
+  clientEmail: z.string()
+    .transform(val => sanitizeEmail(val))
+    .optional(),
+  clientAddress: z.string()
+    .max(500, 'Address too long')
+    .transform(val => sanitizeText(val, 500))
+    .optional(),
+});
+
+// ============================================================================
+// Job Analysis Schemas
+// ============================================================================
+
+export const jobAnalysisSchema = z.object({
+  title: z.string()
+    .max(200, 'Title too long')
+    .transform(val => sanitizeText(val, 200))
+    .optional(),
+  description: z.string()
+    .max(5000, 'Description too long')
+    .transform(val => sanitizeText(val, 5000))
+    .optional(),
+  location: z.string()
+    .max(256, 'Location too long')
+    .transform(val => sanitizeText(val, 256))
+    .optional(),
+  imageUrls: z.array(
+    z.string().url('Invalid image URL')
+  ).max(10, 'Maximum 10 images allowed').optional(),
+}).refine((data) => {
+  return !!(data.title || data.description || (data.imageUrls && data.imageUrls.length > 0));
+}, {
+  message: 'Title, description, or image URLs are required',
+});
+
+// ============================================================================
+// Match Communication Schemas
+// ============================================================================
+
+export const matchCommunicationSchema = z.object({
+  contractorId: z.string()
+    .uuid('Invalid contractor ID'),
+});
+
+// ============================================================================
+// Location Sharing Schemas
+// ============================================================================
+
+export const enableLocationSharingSchema = z.object({
+  enabled: z.boolean().default(true),
+});
+
+// ============================================================================
+// Property Schemas
+// ============================================================================
+
+export const createPropertySchema = z.object({
+  property_name: z.string()
+    .min(1, 'Property name is required')
+    .max(255, 'Property name too long')
+    .transform(val => sanitizeText(val.trim(), 255)),
+  address: z.string()
+    .min(1, 'Address is required')
+    .max(500, 'Address too long')
+    .transform(val => sanitizeText(val.trim(), 500)),
+  property_type: z.enum(['residential', 'commercial', 'rental'], {
+    errorMap: () => ({ message: 'Valid property type is required (residential, commercial, or rental)' }),
+  }),
+  is_primary: z.boolean().default(false),
+  photos: z.array(
+    z.string().url('Invalid photo URL')
+  ).max(20, 'Maximum 20 photos allowed').optional(),
+});
+
+export const updatePropertySchema = z.object({
+  name: z.string()
+    .min(1, 'Property name is required')
+    .max(255, 'Property name too long')
+    .transform(val => sanitizeText(val.trim(), 255))
+    .optional(),
+  address: z.string()
+    .max(500, 'Address too long')
+    .transform(val => sanitizeText(val.trim(), 500))
+    .optional(),
+  city: z.string()
+    .max(100, 'City too long')
+    .transform(val => sanitizeText(val.trim(), 100))
+    .optional(),
+  postcode: z.string()
+    .max(20, 'Postcode too long')
+    .transform(val => sanitizeText(val.trim(), 20))
+    .optional(),
+  type: z.enum(['residential', 'commercial', 'rental', 'house', 'apartment', 'flat', 'detached', 'semi-detached', 'terraced', 'bungalow', 'cottage', 'other'])
+    .optional(),
+  bedrooms: z.number()
+    .int('Bedrooms must be a whole number')
+    .min(0, 'Bedrooms cannot be negative')
+    .max(50, 'Bedrooms exceeds maximum')
+    .optional()
+    .nullable(),
+  bathrooms: z.number()
+    .int('Bathrooms must be a whole number')
+    .min(0, 'Bathrooms cannot be negative')
+    .max(50, 'Bathrooms exceeds maximum')
+    .optional()
+    .nullable(),
+  squareFeet: z.number()
+    .positive('Square feet must be positive')
+    .max(100000, 'Square feet exceeds maximum')
+    .optional()
+    .nullable(),
+  yearBuilt: z.number()
+    .int('Year must be a whole number')
+    .min(1600, 'Year built is too old')
+    .max(new Date().getFullYear() + 5, 'Year built is in the future')
+    .optional()
+    .nullable(),
+  photos: z.array(
+    z.string().url('Invalid photo URL')
+  ).max(20, 'Maximum 20 photos allowed').optional(),
+});
+
+export const propertyFavoriteSchema = z.object({
+  property_id: z.string()
+    .uuid('Invalid property ID'),
+});
+
+// ============================================================================
+// User Settings Schemas
+// ============================================================================
+
+export const userSettingsUpdateSchema = z.object({
+  notifications: z.object({
+    email_notifications: z.boolean().optional(),
+    push_notifications: z.boolean().optional(),
+    sms_notifications: z.boolean().optional(),
+    new_jobs: z.boolean().optional(),
+    bid_updates: z.boolean().optional(),
+    messages: z.boolean().optional(),
+    marketing: z.boolean().optional(),
+  }).optional(),
+  privacy: z.object({
+    profile_visible: z.boolean().optional(),
+    show_phone: z.boolean().optional(),
+    show_email: z.boolean().optional(),
+    show_location: z.boolean().optional(),
+  }).optional(),
+  display: z.object({
+    theme: z.enum(['light', 'dark', 'system']).optional(),
+    language: z.string().max(10, 'Language code too long').optional(),
+    timezone: z.string().max(50, 'Timezone too long').optional(),
+    date_format: z.string().max(20, 'Date format too long').optional(),
+  }).optional(),
+});
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 
@@ -320,4 +783,27 @@ export type JobQueryInput = z.infer<typeof jobQuerySchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type AdminSettingUpdateInput = z.infer<typeof adminSettingUpdateSchema>;
 export type AdminSettingCreateInput = z.infer<typeof adminSettingCreateSchema>;
+export type ReleaseEscrowInput = z.infer<typeof releaseEscrowSchema>;
+export type RefundRequestInput = z.infer<typeof refundRequestSchema>;
+export type CreateSubscriptionInput = z.infer<typeof createSubscriptionSchema>;
+export type CancelSubscriptionInput = z.infer<typeof cancelSubscriptionSchema>;
+export type UpdateSubscriptionInput = z.infer<typeof updateSubscriptionSchema>;
+export type CreateContractInput = z.infer<typeof createContractSchema>;
+export type UpdateContractInput = z.infer<typeof updateContractSchema>;
+export type MessageReactionInput = z.infer<typeof messageReactionSchema>;
+export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type NotificationEngagementInput = z.infer<typeof notificationEngagementSchema>;
+export type BuildingAssessRequestInput = z.infer<typeof buildingAssessRequestSchema>;
+export type BuildingCorrectionInput = z.infer<typeof buildingCorrectionSchema>;
+export type MaintenanceDetectInput = z.infer<typeof maintenanceDetectSchema>;
+export type MaintenanceFeedbackInput = z.infer<typeof maintenanceFeedbackSchema>;
+export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
+export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
+export type JobAnalysisInput = z.infer<typeof jobAnalysisSchema>;
+export type MatchCommunicationInput = z.infer<typeof matchCommunicationSchema>;
+export type EnableLocationSharingInput = z.infer<typeof enableLocationSharingSchema>;
+export type CreatePropertyInput = z.infer<typeof createPropertySchema>;
+export type UpdatePropertyInput = z.infer<typeof updatePropertySchema>;
+export type PropertyFavoriteInput = z.infer<typeof propertyFavoriteSchema>;
+export type UserSettingsUpdateInput = z.infer<typeof userSettingsUpdateSchema>;
 

@@ -1,15 +1,15 @@
 
+import React from 'react';
+import { Text } from 'react-native';
+import { render, fireEvent, waitFor, act } from '../../test-utils';
+import { ErrorBoundary } from '../ErrorBoundary';
+
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
-
-import React from 'react';
-import { Text } from 'react-native';
-import { render, fireEvent, waitFor, act } from '../../test-utils';
-import { ErrorBoundary } from '../ErrorBoundary';
 
 describe('ErrorBoundary', () => {
   beforeEach(() => {

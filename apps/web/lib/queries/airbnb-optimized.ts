@@ -66,19 +66,7 @@ export interface PlatformStats {
 export async function getFeaturedContractors(limit = 12): Promise<ContractorProfile[]> {
   const supabase = createServerClient();
 
-  // #region agent log
   try {
-    fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/lib/queries/airbnb-optimized.ts:63', message: 'getFeaturedContractors called', data: { limit, supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'missing', hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-  } catch {}
-  // #endregion
-
-  try {
-    // #region agent log
-    try {
-      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/lib/queries/airbnb-optimized.ts:70', message: 'About to query contractors from users table', data: { limit, queryFields: ['id', 'first_name', 'last_name', 'company_name', 'profile_image_url', 'city', 'country', 'admin_verified', 'created_at', 'rating', 'total_jobs_completed'] }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-    } catch {}
-    // #endregion
-
     // Get contractors from users table (contractors are users with role='contractor')
     // Note: Removed admin_verified filter to get all contractors, not just verified ones
     const { data: contractors, error: contractorsError } = await supabase
@@ -88,19 +76,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
       .order('created_at', { ascending: false })
       .limit(limit * 2); // Get more to filter after
 
-    // #region agent log
-    try {
-      fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/lib/queries/airbnb-optimized.ts:82', message: 'Contractors query completed', data: { hasError: !!contractorsError, errorType: contractorsError ? typeof contractorsError : 'none', errorConstructor: contractorsError?.constructor?.name, errorKeys: contractorsError ? Object.keys(contractorsError) : [], contractorsCount: contractors?.length || 0, errorMessage: contractorsError?.message, errorCode: contractorsError?.code, errorDetails: contractorsError?.details, errorHint: contractorsError?.hint }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-    } catch {}
-    // #endregion
-
     if (contractorsError) {
-      // #region agent log
-      try {
-        fetch('http://127.0.0.1:7242/ingest/048b5fb6-d4d5-486b-b7cc-b35d2d018aaf', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'apps/web/lib/queries/airbnb-optimized.ts:88', message: 'Contractors query error - full details', data: { errorString: String(contractorsError), errorJSON: JSON.stringify(contractorsError), errorToString: contractorsError.toString(), errorValueOf: contractorsError.valueOf(), errorMessage: contractorsError.message, errorCode: contractorsError.code, errorDetails: contractorsError.details, errorHint: contractorsError.hint, errorName: contractorsError.name, errorStack: contractorsError.stack, allErrorProps: Object.getOwnPropertyNames(contractorsError) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'pre-fix', hypothesisId: 'A' }) }).catch(() => {});
-      } catch {}
-      // #endregion
-
       logger.error('[getFeaturedContractors] Error fetching contractors:', {
         message: contractorsError.message,
         details: contractorsError.details,

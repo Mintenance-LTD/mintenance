@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Get user's email from database
     const { data: userData, error: fetchError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('email, email_verified')
       .eq('id', user.id)
       .single();

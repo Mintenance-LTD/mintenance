@@ -385,7 +385,7 @@ describe('StatusPill', () => {
     });
 
     it('should maintain consistent structure across all statuses', () => {
-      const statuses: Array<'upcoming' | 'completed' | 'cancelled'> = [
+      const statuses: ('upcoming' | 'completed' | 'cancelled')[] = [
         'upcoming',
         'completed',
         'cancelled',

@@ -26,8 +26,8 @@ export default function LoginError({
     });
 
     // Report to Sentry if configured
-    if (typeof window !== 'undefined' && (window as any).Sentry) {
-      (window as any).Sentry.captureException(error, {
+    if (typeof window !== 'undefined' && window.Sentry) {
+      window.Sentry.captureException(error, {
         tags: {
           page: 'login',
           errorBoundary: true,

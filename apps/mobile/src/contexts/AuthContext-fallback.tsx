@@ -3,8 +3,15 @@ import { AuthService } from '../services/AuthService';
 import { BiometricService } from '../services/BiometricService';
 import { logger } from '../utils/logger';
 
-// Simple User type
-type User = any;
+// Simple User type - represents an authenticated user with optional extended properties
+interface User {
+  id: string;
+  email: string;
+  role: 'homeowner' | 'contractor';
+  first_name?: string;
+  last_name?: string;
+  [key: string]: unknown;
+}
 
 interface AuthContextType {
   user: User | null;

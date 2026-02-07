@@ -1,6 +1,8 @@
 # Supabase
 .branches
 .temp
+migrations_old_temp
+migrations_backup_20260106
 
 # dotenvx
 .env.keys

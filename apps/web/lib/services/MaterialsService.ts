@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@mintenance/shared';
 import type {
   Material,
   MaterialCategory,
@@ -74,7 +75,7 @@ export class MaterialsService {
     const { data, error } = await queryBuilder;
 
     if (error) {
-      console.error('MaterialsService.searchMaterials error:', error);
+      logger.error('MaterialsService.searchMaterials error', error);
       throw new Error(`Failed to search materials: ${error.message}`);
     }
 
@@ -192,7 +193,7 @@ export class MaterialsService {
     const { data, error, count } = await queryBuilder;
 
     if (error) {
-      console.error('MaterialsService.getMaterialsByCategory error:', error);
+      logger.error('MaterialsService.getMaterialsByCategory error', error);
       throw new Error(`Failed to get materials by category: ${error.message}`);
     }
 
@@ -219,7 +220,7 @@ export class MaterialsService {
         // Not found
         return null;
       }
-      console.error('MaterialsService.getMaterialById error:', error);
+      logger.error('MaterialsService.getMaterialById error', error);
       throw new Error(`Failed to get material by ID: ${error.message}`);
     }
 
@@ -240,7 +241,7 @@ export class MaterialsService {
       .in('id', ids);
 
     if (error) {
-      console.error('MaterialsService.getMaterialsByIds error:', error);
+      logger.error('MaterialsService.getMaterialsByIds error', error);
       throw new Error(`Failed to get materials by IDs: ${error.message}`);
     }
 
@@ -283,7 +284,7 @@ export class MaterialsService {
       .order('category');
 
     if (error) {
-      console.error('MaterialsService.getCategories error:', error);
+      logger.error('MaterialsService.getCategories error', error);
       throw new Error(`Failed to get categories: ${error.message}`);
     }
 
@@ -301,7 +302,7 @@ export class MaterialsService {
       .select('category');
 
     if (error) {
-      console.error('MaterialsService.getCategoryCounts error:', error);
+      logger.error('MaterialsService.getCategoryCounts error', error);
       throw new Error(`Failed to get category counts: ${error.message}`);
     }
 
@@ -333,7 +334,7 @@ export class MaterialsService {
       .order('unit_price', { ascending: true });
 
     if (error) {
-      console.error('MaterialsService.getMaterialsByCategories error:', error);
+      logger.error('MaterialsService.getMaterialsByCategories error', error);
       throw new Error(`Failed to get materials by categories: ${error.message}`);
     }
 
@@ -381,7 +382,7 @@ export class MaterialsService {
       .single();
 
     if (error) {
-      console.error('MaterialsService.createMaterial error:', error);
+      logger.error('MaterialsService.createMaterial error', error);
       throw new Error(`Failed to create material: ${error.message}`);
     }
 
@@ -403,7 +404,7 @@ export class MaterialsService {
       .single();
 
     if (error) {
-      console.error('MaterialsService.updateMaterial error:', error);
+      logger.error('MaterialsService.updateMaterial error', error);
       throw new Error(`Failed to update material: ${error.message}`);
     }
 
@@ -420,7 +421,7 @@ export class MaterialsService {
       .eq('id', id);
 
     if (error) {
-      console.error('MaterialsService.deleteMaterial error:', error);
+      logger.error('MaterialsService.deleteMaterial error', error);
       throw new Error(`Failed to delete material: ${error.message}`);
     }
   }

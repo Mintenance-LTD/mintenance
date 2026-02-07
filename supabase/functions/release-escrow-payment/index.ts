@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@12.18.0';
 import { handleCorsPreflight, createCorsResponse } from '../_shared/cors.ts';
+import { verifyAuth, AuthError, unauthorizedResponse } from '../_shared/auth.ts';
 
 serve(async (req) => {
   // SECURITY: Handle CORS preflight with whitelist-based origin validation
@@ -10,7 +11,16 @@ serve(async (req) => {
   }
 
   try {
+    // SECURITY: Verify authentication before releasing payment
+    const authUser = await verifyAuth(req);
+
     const { transactionId, contractorId, amount } = await req.json();
+
+    // SECURITY: Verify the authenticated user is authorized for this transaction
+    // Only the transaction payee or an admin should be able to release payments
+    if (authUser.userId !== contractorId && authUser.role !== 'admin') {
+      return unauthorizedResponse(req, 'Not authorized to release this payment');
+    }
 
     // Initialize Stripe and Supabase
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
@@ -167,10 +177,13 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    if (error instanceof AuthError) {
+      return unauthorizedResponse(req, error.message);
+    }
     console.error('Error releasing escrow payment:', error);
     return createCorsResponse(
       req,
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       {
         headers: { 'Content-Type': 'application/json' },
         status: 400,

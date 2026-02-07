@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Verify contractor exists
     const { data: contractor, error: contractorError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, role')
       .eq('id', contractor_id)
       .eq('role', 'contractor')

@@ -26,9 +26,9 @@ export interface OptimizedListProps<T> {
   refreshing?: boolean;
   onEndReached?: () => void;
   onEndReachedThreshold?: number;
-  ListEmptyComponent?: React.ComponentType<any> | React.ReactElement | null;
-  ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
-  ListFooterComponent?: React.ComponentType<any> | React.ReactElement | null;
+  ListEmptyComponent?: React.ComponentType<Record<string, never>> | React.ReactElement | null;
+  ListHeaderComponent?: React.ComponentType<Record<string, never>> | React.ReactElement | null;
+  ListFooterComponent?: React.ComponentType<Record<string, never>> | React.ReactElement | null;
   style?: ViewStyle;
   contentContainerStyle?: ViewStyle;
   numColumns?: number;
@@ -43,7 +43,7 @@ export interface OptimizedListProps<T> {
 // OPTIMIZED LIST COMPONENT
 // ============================================================================
 
-export const OptimizedList = memo(<T extends any>(props: OptimizedListProps<T>) => {
+export const OptimizedList = memo(<T,>(props: OptimizedListProps<T>) => {
   const {
     data,
     renderItem,

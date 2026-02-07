@@ -57,8 +57,12 @@ const MessagesListScreen: React.FC = () => {
       <View style={styles.container}>
         {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Messages</Text>
-        <TouchableOpacity style={styles.searchButton}>
+        <Text style={styles.headerTitle} accessibilityRole='header'>Messages</Text>
+        <TouchableOpacity
+          style={styles.searchButton}
+          accessibilityRole='button'
+          accessibilityLabel='Search messages'
+        >
           <Ionicons
             name='search-outline'
             size={24}
@@ -90,7 +94,12 @@ const MessagesListScreen: React.FC = () => {
               variant='error'
               testID='messages-error-banner'
             />
-            <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={handleRefresh}
+              accessibilityRole='button'
+              accessibilityLabel='Retry loading messages'
+            >
               <Ionicons
                 name='refresh'
                 size={18}
@@ -102,7 +111,7 @@ const MessagesListScreen: React.FC = () => {
           </View>
         ) : conversations.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name='chatbubbles-outline' size={48} color={theme.colors.textTertiary} />
+            <Ionicons name='chatbubbles-outline' size={48} color={theme.colors.textTertiary} accessible={false} />
             <Text style={styles.emptyText}>No conversations yet</Text>
             <Text style={styles.emptySubtext}>
               Start messaging contractors about your projects!
@@ -144,6 +153,9 @@ const MessagesListScreen: React.FC = () => {
                     otherUserName: otherParticipant.name,
                   });
                 }}
+                accessibilityRole='button'
+                accessibilityLabel={`Conversation with ${otherParticipant.name} about ${thread.jobTitle}${thread.unreadCount > 0 ? `, ${thread.unreadCount} unread messages` : ''}`}
+                accessibilityHint='Double tap to open conversation'
               >
                 <View style={styles.avatarContainer}>
                   <Ionicons

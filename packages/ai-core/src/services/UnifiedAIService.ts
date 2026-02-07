@@ -27,10 +27,11 @@ export class UnifiedAIService {
   private apiClient: AxiosInstance;
   private config: AIServiceConfig;
   private cache: Map<string, { data: Record<string, unknown>; timestamp: number }> = new Map();
+  private maxCacheEntries = 1000;
   constructor(config: AIServiceConfig) {
     this.config = config;
     this.apiClient = axios.create({
-      baseURL: config.endpoints.buildingSurveyor.replace('/api/building-surveyor/assess', ''),
+      baseURL: config.endpoints.baseUrl || config.endpoints.buildingSurveyor.replace('/api/building-surveyor/assess', ''),
       timeout: config.performance.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -46,9 +47,8 @@ export class UnifiedAIService {
     this.apiClient.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        if (error.response?.status === 429) {
-          // Rate limited - wait and retry
-          await this.handleRateLimit(error);
+        if (axios.isAxiosError(error) && error.response?.status === 429) {
+          return this.retryRequest(error);
         }
         return Promise.reject(error);
       }
@@ -122,12 +122,25 @@ export class UnifiedAIService {
         }
       };
     } catch (err: unknown) {
-      const error = err as AxiosError;
+      if (!axios.isAxiosError(err)) {
+        return {
+          success: false,
+          error: {
+            code: 'UNKNOWN',
+            message: (err as Error).message || 'Building assessment failed',
+            details: err,
+            retryable: false,
+            fallbackUsed: false
+          },
+          metadata: this.createEmptyMetadata()
+        };
+      }
+      const error = err;
       return {
         success: false,
         error: {
           code: error.response?.status?.toString() || 'UNKNOWN',
-          message: (error as Error).message || 'Building assessment failed',
+          message: error.message || 'Building assessment failed',
           details: error.response?.data,
           retryable: error.response?.status !== 400,
           fallbackUsed: false
@@ -407,16 +420,25 @@ export class UnifiedAIService {
       this.cache.delete(key);
       return null;
     }
+    // Refresh entry to keep LRU ordering
+    this.cache.delete(key);
+    this.cache.set(key, cached);
     return cached.data as T;
   }
   private saveToCache<T>(key: string, data: T): void {
+    if (this.cache.size >= this.maxCacheEntries) {
+      const oldestKey = this.cache.keys().next().value as string | undefined;
+      if (oldestKey) {
+        this.cache.delete(oldestKey);
+      }
+    }
     this.cache.set(key, {
       data: data as Record<string, unknown>,
       timestamp: Date.now()
     });
   }
   private generateRequestId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   }
   private getPlatform(): string {
     // Check if running in React Native
@@ -453,12 +475,25 @@ export class UnifiedAIService {
     };
   }
   private handleError<T>(error: unknown, defaultMessage: string): AIServiceResponse<T> {
-    const axiosError = error as AxiosError;
+    if (!axios.isAxiosError(error)) {
+      return {
+        success: false,
+        error: {
+          code: 'UNKNOWN',
+          message: (error as Error).message || defaultMessage,
+          details: error,
+          retryable: false,
+          fallbackUsed: false
+        },
+        metadata: this.createEmptyMetadata()
+      };
+    }
+    const axiosError = error;
     return {
       success: false,
       error: {
         code: axiosError.response?.status?.toString() || 'UNKNOWN',
-        message: (axiosError as Error).message || defaultMessage,
+        message: axiosError.message || defaultMessage,
         details: axiosError.response?.data,
         retryable: axiosError.response?.status !== 400 && axiosError.response?.status !== 401,
         fallbackUsed: false
@@ -466,10 +501,23 @@ export class UnifiedAIService {
       metadata: this.createEmptyMetadata()
     };
   }
-  private async handleRateLimit(error: AxiosError): Promise<void> {
+  private async retryRequest(error: AxiosError): Promise<AxiosResponse> {
+    const config = error.config;
+    if (!config) {
+      return Promise.reject(error);
+    }
+    const retryCount = Number(config.headers?.['X-Retry-Count'] ?? 0);
+    if (retryCount >= this.config.performance.maxRetries) {
+      return Promise.reject(error);
+    }
     const retryAfter = error.response?.headers?.['retry-after'];
     const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
     await new Promise(resolve => setTimeout(resolve, waitTime));
+    config.headers = {
+      ...config.headers,
+      'X-Retry-Count': retryCount + 1
+    };
+    return this.apiClient.request(config);
   }
   /**
    * Clear cache

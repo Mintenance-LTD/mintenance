@@ -1,6 +1,12 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Help Article | Mintenance',
+  description: 'Find answers and guidance on using the Mintenance property maintenance platform.',
+};
 import { PublicLayout } from '@/app/components/layouts/PublicLayout';
 import { theme } from '@/lib/theme';
 import { helpCategories, type Article, type Category } from '../../lib/categories/index';
@@ -67,7 +73,7 @@ export default async function HelpArticlePage(props: HelpArticlePageProps) {
           }}
         >
           <ArrowLeft className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
-          Back to Help Center
+          Back to Help Centre
         </Link>
 
         {/* Category Badge */}

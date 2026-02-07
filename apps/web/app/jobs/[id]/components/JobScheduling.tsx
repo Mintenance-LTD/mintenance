@@ -345,7 +345,7 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
             <Label htmlFor="start-date">Start Date & Time *</Label>
             <Input
               id="start-date"
-              type={"datetime-local" as any}
+              type="datetime-local"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               min={new Date().toISOString().slice(0, 16)}
@@ -356,7 +356,7 @@ export function JobScheduling({ jobId, userRole, userId, currentSchedule, contra
             <Label htmlFor="end-date">End Date & Time (Optional)</Label>
             <Input
               id="end-date"
-              type={"datetime-local" as any}
+              type="datetime-local"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               min={startDate || new Date().toISOString().slice(0, 16)}

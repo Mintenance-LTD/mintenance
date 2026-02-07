@@ -68,7 +68,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       onPress={onPress}
     >
       <View style={styles.kpiHeader}>
-        <Ionicons name={icon as any} size={24} color={color} />
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={color} />
         <Text style={styles.kpiTitle}>{title}</Text>
       </View>
 

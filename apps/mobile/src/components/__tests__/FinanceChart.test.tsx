@@ -731,7 +731,7 @@ describe('FinanceChart', () => {
 
   describe('Props Validation', () => {
     it('should accept all valid chart types', () => {
-      const types: Array<'line' | 'bar' | 'pie'> = ['line', 'bar', 'pie'];
+      const types: ('line' | 'bar' | 'pie')[] = ['line', 'bar', 'pie'];
 
       types.forEach((type) => {
         const data = type === 'pie' ? mockPieData : mockLineData;

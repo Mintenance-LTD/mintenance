@@ -1,3 +1,8 @@
+import {
+  initializeProductionSystems,
+  validateDeploymentReadiness,
+} from '../productionSetupGuide';
+
 jest.mock('../productionReadinessOrchestrator', () => ({
   productionReadinessOrchestrator: {
     initialize: jest.fn(() => Promise.resolve()),
@@ -50,11 +55,6 @@ jest.mock('../logger', () => ({
     error: jest.fn(),
   },
 }));
-
-import {
-  initializeProductionSystems,
-  validateDeploymentReadiness,
-} from '../productionSetupGuide';
 
 describe('productionSetupGuide', () => {
   beforeEach(() => {

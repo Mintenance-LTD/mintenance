@@ -1,3 +1,6 @@
+import { PaymentService } from '../../services/PaymentService';
+import { supabase } from '../../config/supabase';
+
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
   getItem: jest.fn(),
@@ -39,9 +42,6 @@ jest.mock('../../utils/logger', () => ({
     debug: jest.fn(),
   },
 }));
-
-import { PaymentService } from '../../services/PaymentService';
-import { supabase } from '../../config/supabase';
 
 const stripe = require('@stripe/stripe-react-native');
 

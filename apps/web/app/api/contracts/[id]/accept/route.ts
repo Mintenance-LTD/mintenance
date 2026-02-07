@@ -129,7 +129,7 @@ export async function POST(
       
       // Get user's name for the notification message
       const { data: signerData } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('first_name, last_name, company_name')
         .eq('id', user.id)
         .single();

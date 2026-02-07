@@ -4,6 +4,8 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { handleAPIError, UnauthorizedError, NotFoundError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { updatePropertySchema } from '@/lib/validation/schemas';
 
 export async function PUT(
   request: NextRequest,
@@ -39,7 +41,12 @@ export async function PUT(
       throw new UnauthorizedError('Authentication required to update properties');
     }
 
-    const body = await request.json();
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, updatePropertySchema);
+    if ('headers' in validation) {
+      return validation;
+    }
+
     const {
       name,
       address,
@@ -51,7 +58,7 @@ export async function PUT(
       squareFeet,
       yearBuilt,
       photos,
-    } = body;
+    } = validation.data;
 
     // Update the property in the database
     const { data, error } = await serverSupabase

@@ -86,9 +86,9 @@ export const navigateToScreen = <T extends keyof RootStackParamList>(
   params?: RootStackParamList[T]
 ) => {
   if (params) {
-    navigation.navigate(screen as any, params);
+    navigation.navigate(screen as never, params as never);
   } else {
-    navigation.navigate(screen as any);
+    navigation.navigate(screen as never);
   }
 };
 
@@ -102,7 +102,7 @@ export const goBackSafe = (
   if (navigation.canGoBack()) {
     navigation.goBack();
   } else if (fallbackScreen) {
-    navigation.navigate(fallbackScreen as any);
+    navigation.navigate(fallbackScreen as never);
   }
 };
 
@@ -118,8 +118,8 @@ export const resetToScreen = <T extends keyof RootStackParamList>(
     index: 0,
     routes: [
       {
-        name: screen as any,
-        params: params as any,
+        name: screen as never,
+        params: params as never,
       },
     ],
   });
@@ -191,9 +191,9 @@ export const useEnhancedNavigation = () => {
 
       // Navigate with params if provided
       if (params) {
-        navigation.navigate(screen as any, params);
+        navigation.navigate(screen as never, params as never);
       } else {
-        navigation.navigate(screen as any);
+        navigation.navigate(screen as never);
       }
 
       return true;
@@ -247,8 +247,8 @@ export const useEnhancedNavigation = () => {
         index: 0,
         routes: [
           {
-            name: screen as any,
-            params: params as any,
+            name: screen as never,
+            params: params as never,
           },
         ],
       });

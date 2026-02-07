@@ -51,7 +51,7 @@ export class SqlInjectionProtection {
   /**
    * Scan input for SQL injection patterns
    */
-  static scanForSqlInjection(input: string | any): {
+  static scanForSqlInjection(input: string | unknown): {
     isSafe: boolean;
     threats: string[];
     sanitized: string;

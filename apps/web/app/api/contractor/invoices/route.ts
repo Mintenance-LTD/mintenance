@@ -4,39 +4,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
-import { sanitizeText, sanitizeMessage, sanitizeEmail } from '@/lib/sanitizer';
-
-// Invoice line item schema
-const lineItemSchema = z.object({
-  description: z.string().min(1, 'Description is required').transform(val => sanitizeText(val, 500)),
-  quantity: z.number().positive('Quantity must be positive'),
-  unit_price: z.number().min(0, 'Unit price cannot be negative'),
-  amount: z.number().optional(), // Calculated: quantity * unit_price
-});
-
-// Invoice creation schema
-const createInvoiceSchema = z.object({
-  jobId: z.string().uuid().optional(),
-  quoteId: z.string().uuid().optional(),
-  clientName: z.string().min(1, 'Client name is required').transform(val => sanitizeText(val, 200)),
-  clientEmail: z.string().email('Invalid email address').transform(val => sanitizeEmail(val)),
-  clientPhone: z.string().optional(),
-  clientAddress: z.string().optional().transform(val => val ? sanitizeText(val, 500) : val),
-  title: z.string().min(1, 'Invoice title is required').transform(val => sanitizeText(val, 200)),
-  description: z.string().optional().transform(val => val ? sanitizeMessage(val) : val),
-  lineItems: z.array(lineItemSchema).min(1, 'At least one line item is required'),
-  taxRate: z.number().min(0).max(100).default(20), // Default 20% VAT
-  paymentTerms: z.string().optional().default('Payment due within 30 days').transform(val => sanitizeText(val, 500)),
-  notes: z.string().optional().transform(val => val ? sanitizeMessage(val) : val),
-  dueDate: z.string().optional(), // ISO date string
-  status: z.enum(['draft', 'sent']).default('draft'),
-});
+import { validateRequest } from '@/lib/validation/validator';
+import { createInvoiceSchema, updateInvoiceSchema } from '@/lib/validation/schemas';
 
 // Generate invoice number
 async function generateInvoiceNumber(contractorId: string): Promise<string> {
@@ -186,14 +160,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse and validate request body
-    const body = await request.json();
-    const validatedData = createInvoiceSchema.parse(body);
+    // Validate and sanitize input using Zod schema
+    const invoiceValidation = await validateRequest(request, createInvoiceSchema);
+    if (invoiceValidation instanceof NextResponse) return invoiceValidation;
+    const validatedData = invoiceValidation.data;
 
-    // Calculate totals
+    // Calculate totals (taxRate defaults to 20 via schema validation)
     const { subtotal, taxAmount, totalAmount } = calculateTotals(
       validatedData.lineItems,
-      validatedData.taxRate
+      validatedData.taxRate ?? 20
     );
 
     // Generate invoice number
@@ -296,13 +271,6 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid invoice data', details: error.errors },
-        { status: 400 }
-      );
-    }
-
     logger.error('Unexpected error in POST /api/contractor/invoices', error);
     return NextResponse.json(
       { error: 'Failed to create invoice' },
@@ -357,7 +325,10 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    // Validate and sanitize input using Zod schema
+    const patchValidation = await validateRequest(request, updateInvoiceSchema);
+    if (patchValidation instanceof NextResponse) return patchValidation;
+    const validatedPatchData = patchValidation.data;
 
     // Check if invoice belongs to contractor
     const { data: existingInvoice } = await serverSupabase
@@ -382,11 +353,11 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Recalculate totals if line items changed
-    let updateData: Record<string, unknown> = { ...body };
-    if (body.lineItems && body.taxRate !== undefined) {
+    let updateData: Record<string, unknown> = { ...validatedPatchData };
+    if (validatedPatchData.lineItems && validatedPatchData.taxRate !== undefined) {
       const { subtotal, taxAmount, totalAmount } = calculateTotals(
-        body.lineItems,
-        body.taxRate
+        validatedPatchData.lineItems,
+        validatedPatchData.taxRate
       );
       updateData = {
         ...updateData,

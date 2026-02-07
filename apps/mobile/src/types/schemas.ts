@@ -274,7 +274,7 @@ export const MessageSchema = z.object({
     name: z.string(),
     size: z.number().positive(),
   })).optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   read_at: DateSchema.optional(),
   created_at: DateSchema,
   updated_at: DateSchema,
@@ -325,7 +325,7 @@ export const PaymentSchema = z.object({
   status: PaymentStatusSchema.default('pending'),
   stripe_payment_intent_id: z.string().optional(),
   description: z.string().max(500, 'Description too long').optional(),
-  metadata: z.record(z.string(), z.any()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   created_at: DateSchema,
   updated_at: DateSchema,
   completed_at: DateSchema.optional(),
@@ -345,7 +345,7 @@ export const CreatePaymentSchema = z.object({
 
 export const ApiSuccessSchema = z.object({
   success: z.literal(true),
-  data: z.any(),
+  data: z.unknown(),
   message: z.string().optional(),
   timestamp: DateSchema.optional(),
 });
@@ -355,14 +355,14 @@ export const ApiErrorSchema = z.object({
   error: z.object({
     code: z.string(),
     message: z.string(),
-    details: z.any().optional(),
+    details: z.unknown().optional(),
     field: z.string().optional(),
   }),
   timestamp: DateSchema.optional(),
 });
 
 export const PaginatedResponseSchema = z.object({
-  data: z.array(z.any()),
+  data: z.array(z.unknown()),
   pagination: z.object({
     page: z.number().int().min(1),
     limit: z.number().int().min(1),
@@ -404,9 +404,9 @@ export type CreatePayment = z.infer<typeof CreatePaymentSchema>;
 export type PaymentStatus = z.infer<typeof PaymentStatusSchema>;
 export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
 
-export type ApiSuccess<T = any> = z.infer<typeof ApiSuccessSchema> & { data: T };
+export type ApiSuccess<T = unknown> = z.infer<typeof ApiSuccessSchema> & { data: T };
 export type ApiError = z.infer<typeof ApiErrorSchema>;
-export type PaginatedResponse<T = any> = z.infer<typeof PaginatedResponseSchema> & { data: T[] };
+export type PaginatedResponse<T = unknown> = z.infer<typeof PaginatedResponseSchema> & { data: T[] };
 
 // ============================================================================
 // VALIDATION UTILITIES

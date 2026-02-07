@@ -4,6 +4,16 @@
 // ============================================================================
 
 // Test Utilities - setup, teardown, rendering
+// ============================================================================
+// CONVENIENCE EXPORTS
+// ============================================================================
+
+import { renderWithProviders, createSnapshotTest, PerformanceTester, IntegrationTester } from './TestUtilities';
+import { createMockFactory, MockDataGenerator } from './MockFactories';
+import { TestDataBuilder } from './TestFixtures';
+import { setupMocks, cleanupMocks } from './MockSetup';
+import { testHelpers } from './TestHelpers';
+
 export {
   TestingConfig,
   TestPerformanceResult,
@@ -48,16 +58,6 @@ export {
 export {
   testHelpers,
 } from './TestHelpers';
-
-// ============================================================================
-// CONVENIENCE EXPORTS
-// ============================================================================
-
-import { renderWithProviders, createSnapshotTest, PerformanceTester, IntegrationTester } from './TestUtilities';
-import { createMockFactory, MockDataGenerator } from './MockFactories';
-import { TestDataBuilder } from './TestFixtures';
-import { setupMocks, cleanupMocks } from './MockSetup';
-import { testHelpers } from './TestHelpers';
 
 export const testUtils = {
   render: renderWithProviders,

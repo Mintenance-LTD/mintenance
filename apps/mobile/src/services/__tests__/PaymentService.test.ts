@@ -4,6 +4,16 @@
  */
 
 // Mock Stripe first
+import { PaymentService } from '../PaymentService';
+import {
+  confirmPayment as stripeConfirmPayment,
+  createPaymentMethod as stripeCreatePaymentMethod,
+} from '@stripe/stripe-react-native';
+
+import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
+import { config } from '../../config/environment';
+
 jest.mock('@stripe/stripe-react-native', () => ({
   initStripe: jest.fn(() => Promise.resolve()),
   createPaymentMethod: jest.fn(),
@@ -28,12 +38,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 // Mock fetch for API calls
 global.fetch = jest.fn();
-
-import { PaymentService } from '../PaymentService';
-import {
-  confirmPayment as stripeConfirmPayment,
-  createPaymentMethod as stripeCreatePaymentMethod,
-} from '@stripe/stripe-react-native';
 
 // Mock supabase
 jest.mock('../../config/supabase', () => ({
@@ -64,10 +68,6 @@ jest.mock('../../config/environment', () => ({
     apiBaseUrl: 'https://api.mintenance.com',
   },
 }));
-
-import { supabase } from '../../config/supabase';
-import { logger } from '../../utils/logger';
-import { config } from '../../config/environment';
 
 describe('PaymentService', () => {
   const mockSession = {

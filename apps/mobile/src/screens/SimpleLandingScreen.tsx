@@ -21,10 +21,17 @@ export default function SimpleLandingScreen() {
         </View>
 
         <View style={styles.actionsRow}>
-          <TouchableOpacity>
+          <TouchableOpacity
+            accessibilityRole='link'
+            accessibilityLabel='Sign in to your account'
+          >
             <Text style={styles.link}>Sign In</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryBtn}>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            accessibilityRole='button'
+            accessibilityLabel='Get started with Mintenance'
+          >
             <Text style={styles.primaryBtnText}>Get Started</Text>
           </TouchableOpacity>
         </View>
@@ -39,16 +46,24 @@ export default function SimpleLandingScreen() {
                 <Text style={styles.badgeText}>✨ AI Matching • Escrow • Live Chat</Text>
               </View>
 
-              <Text style={styles.heroTitle}>Find Trusted Home Contractors Fast</Text>
+              <Text style={styles.heroTitle} accessibilityRole='header'>Find Trusted Home Contractors Fast</Text>
               <Text style={styles.heroSub}>
                 Post your home project, compare verified contractor bids, chat in real time and pay securely — all in one seamless platform.
               </Text>
 
               <View style={styles.heroCTAs}>
-                <TouchableOpacity style={styles.ctaSolid}>
+                <TouchableOpacity
+                  style={styles.ctaSolid}
+                  accessibilityRole='button'
+                  accessibilityLabel='Start free registration'
+                >
                   <Text style={styles.ctaSolidText}>Start Free →</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.ctaGhost}>
+                <TouchableOpacity
+                  style={styles.ctaGhost}
+                  accessibilityRole='button'
+                  accessibilityLabel='See how Mintenance works'
+                >
                   <Text style={styles.ctaGhostText}>See How It Works</Text>
                 </TouchableOpacity>
               </View>
@@ -70,13 +85,18 @@ export default function SimpleLandingScreen() {
 
         {/* SERVICES */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Home Services</Text>
-          <TouchableOpacity><Text style={styles.sectionAction}>See All</Text></TouchableOpacity>
+          <Text style={styles.sectionTitle} accessibilityRole='header'>Home Services</Text>
+          <TouchableOpacity accessibilityRole='button' accessibilityLabel='See all home services'><Text style={styles.sectionAction}>See All</Text></TouchableOpacity>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
           {['🔧 Plumbing', '⚡ Electrical', '🏠 Roofing', '🎨 Painting', '✨ Cleaning', '🌿 Gardening'].map((service, i) => (
-            <TouchableOpacity key={i} style={styles.chip}>
+            <TouchableOpacity
+              key={i}
+              style={styles.chip}
+              accessibilityRole='button'
+              accessibilityLabel={`${service} services`}
+            >
               <Text style={styles.chipText}>{service}</Text>
             </TouchableOpacity>
           ))}
@@ -84,7 +104,7 @@ export default function SimpleLandingScreen() {
 
         {/* FEATURES */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Why Choose Mintenance?</Text>
+          <Text style={styles.sectionTitle} accessibilityRole='header'>Why Choose Mintenance?</Text>
         </View>
 
         <View style={styles.featuresGrid}>
@@ -106,7 +126,7 @@ export default function SimpleLandingScreen() {
 
         {/* TESTIMONIALS */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>What Homeowners Say</Text>
+          <Text style={styles.sectionTitle} accessibilityRole='header'>What Homeowners Say</Text>
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.carouselRow}>
@@ -131,13 +151,21 @@ export default function SimpleLandingScreen() {
 
         {/* CTA */}
         <View style={styles.bottomCTA}>
-          <Text style={styles.bottomTitle}>Ready to start your home project?</Text>
+          <Text style={styles.bottomTitle} accessibilityRole='header'>Ready to start your home project?</Text>
           <Text style={styles.bottomSub}>Join thousands of homeowners who trust Mintenance.</Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
-            <TouchableOpacity style={styles.ctaSolid}>
+            <TouchableOpacity
+              style={styles.ctaSolid}
+              accessibilityRole='button'
+              accessibilityLabel='Post a job'
+            >
               <Text style={styles.ctaSolidText}>Post a Job</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.ctaGhost}>
+            <TouchableOpacity
+              style={styles.ctaGhost}
+              accessibilityRole='button'
+              accessibilityLabel='Find contractors'
+            >
               <Text style={styles.ctaGhostText}>Find Contractors</Text>
             </TouchableOpacity>
           </View>

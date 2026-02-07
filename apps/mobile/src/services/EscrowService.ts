@@ -29,12 +29,12 @@ export interface EscrowTimeline {
   currentStatus: string;
   blockingReasons: string[];
   estimatedReleaseDate: string | null;
-  steps: Array<{
+  steps: {
     step: string;
     status: 'completed' | 'pending' | 'blocked';
     completedAt: string | null;
     blockedReason: string | null;
-  }>;
+  }[];
 }
 
 export class EscrowService {

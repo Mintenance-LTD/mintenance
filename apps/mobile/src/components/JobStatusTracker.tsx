@@ -168,7 +168,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
 
       await updateJobStatusMutation.mutateAsync({
         jobId: job.id,
-        status: newStatus as any,
+        status: newStatus as Job['status'],
         contractorId: job.contractorId || undefined,
       });
 
@@ -195,7 +195,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
       'completed',
     ];
     const currentIndex = statusOrder.indexOf(job.status);
-    return (job.status as any) === 'cancelled'
+    return job.status === 'cancelled'
       ? 0
       : ((currentIndex + 1) / statusOrder.length) * 100;
   };
@@ -228,7 +228,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
           const config = STATUS_CONFIG[status];
           const isActive = status === job.status;
           const isPassed = statusOrder.indexOf(job.status) > index;
-          const isCancelled = (job.status as any) === 'cancelled';
+          const isCancelled = job.status === 'cancelled';
 
           return (
             <View key={status} style={styles.timelineItem}>
@@ -303,7 +303,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
           </View>
         </View>
 
-        {(job.status as any) !== 'cancelled' && renderProgressBar()}
+        {job.status !== 'cancelled' && renderProgressBar()}
       </View>
 
       {/* Timeline */}
@@ -358,7 +358,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
             <Text style={styles.infoLabel}>Created</Text>
             <Text style={styles.infoValue}>
               {new Date(
-                ((job as any).createdAt || (job as any).created_at) as any
+                job.createdAt ?? job.created_at ?? ''
               ).toLocaleDateString()}
             </Text>
           </View>
@@ -366,7 +366,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
             <Text style={styles.infoLabel}>Last Updated</Text>
             <Text style={styles.infoValue}>
               {new Date(
-                ((job as any).updatedAt || (job as any).updated_at) as any
+                job.updatedAt ?? job.updated_at ?? ''
               ).toLocaleDateString()}
             </Text>
           </View>
