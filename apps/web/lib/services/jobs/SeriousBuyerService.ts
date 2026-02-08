@@ -35,7 +35,7 @@ export class SeriousBuyerService {
       // Get homeowner data
       const { data: homeowner, error: homeownerError } = await serverSupabase
         .from('profiles')
-        .select('phone_verified, email_verified')
+        .select('phone_verified, verified')
         .eq('id', homeownerId)
         .single();
 
@@ -59,7 +59,7 @@ export class SeriousBuyerService {
 
       const indicators: SeriousBuyerIndicators = {
         phoneVerified: homeowner.phone_verified || false,
-        emailVerified: homeowner.email_verified || false,
+        emailVerified: homeowner.verified || false,
         hasPreviousJobs: (previousJobsCount || 0) > 0,
         budgetHigh: (jobData.budget || 0) > 1000,
         detailedDescription: (jobData.description || '').length > 100,
@@ -144,7 +144,7 @@ export class SeriousBuyerService {
       // Get homeowner data
       const { data: homeowner } = await serverSupabase
         .from('profiles')
-        .select('phone_verified, email_verified')
+        .select('phone_verified, verified')
         .eq('id', job.homeowner_id)
         .single();
 
@@ -162,7 +162,7 @@ export class SeriousBuyerService {
 
       const indicators: SeriousBuyerIndicators = {
         phoneVerified: homeowner.phone_verified || false,
-        emailVerified: homeowner.email_verified || false,
+        emailVerified: homeowner.verified || false,
         hasPreviousJobs: (previousJobsCount || 0) > 0,
         budgetHigh: (job.budget || 0) > 1000,
         detailedDescription: (job.description || '').length > 100,

@@ -154,7 +154,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           role: result.user.role,
           firstName: result.user.first_name,
           lastName: result.user.last_name,
-          emailVerified: result.user.email_verified
+          emailVerified: result.user.verified
         }
       },
       { status: 200 }

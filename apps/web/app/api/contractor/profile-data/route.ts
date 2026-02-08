@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     // Fetch contractor data
     const { data: contractor } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry, created_at, updated_at')
+      .select('id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry_date, created_at, updated_at')
       .eq('id', user.id)
       .single();
 

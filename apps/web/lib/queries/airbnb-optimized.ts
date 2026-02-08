@@ -341,10 +341,10 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
     const homeownerIds = [...new Set(jobs.map(j => j.homeowner_id))];
     const { data: users } = await supabase
       .from('profiles')
-      .select('id, name, city')
+      .select('id, first_name, last_name, city')
       .in('id', homeownerIds);
 
-    const usersMap = new Map(users?.map(u => [u.id, u]) || []);
+    const usersMap = new Map(users?.map(u => [u.id, { name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'User', city: u.city }]) || []);
 
     const jobListings: JobListing[] = jobs.map(job => ({
       id: job.id,

@@ -448,7 +448,7 @@ export class SSOAuthenticationService {
           email: userProfile.email,
           first_name: userProfile.given_name,
           last_name: userProfile.family_name,
-          email_verified: userProfile.email_verified,
+          verified: userProfile.email_verified,
           created_at: new Date().toISOString(),
         })
         .select()

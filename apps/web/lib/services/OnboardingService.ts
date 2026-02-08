@@ -18,23 +18,21 @@ export class OnboardingService {
         try {
           const { data, error } = await serverSupabase
             .from('profiles')
-            .select('onboarding_completed, onboarding_completed_at')
+            .select('id, onboarding_completed, onboarding_completed_at')
             .eq('id', userId)
             .single();
 
-          if (error) {
-            logger.error('Error checking onboarding status', {
+          if (error || !data) {
+            logger.debug('User not found for onboarding check', {
               service: 'onboarding',
               userId,
-              error: error.message,
             });
-            // Default to not completed if there's an error
             return { completed: false, completedAt: null };
           }
 
           return {
-            completed: data?.onboarding_completed ?? false,
-            completedAt: data?.onboarding_completed_at ?? null,
+            completed: data.onboarding_completed ?? false,
+            completedAt: data.onboarding_completed_at ?? null,
           };
         } catch (error) {
           logger.error('Unexpected error checking onboarding status', {
@@ -67,7 +65,7 @@ export class OnboardingService {
         .eq('id', userId);
 
       if (error) {
-        logger.error('Error marking onboarding complete', {
+        logger.error('Failed to mark onboarding complete', {
           service: 'onboarding',
           userId,
           error: error.message,
@@ -75,11 +73,10 @@ export class OnboardingService {
         return false;
       }
 
-      logger.info('Onboarding marked as complete', {
+      logger.info('Onboarding marked complete', {
         service: 'onboarding',
         userId,
       });
-
       return true;
     } catch (error) {
       logger.error('Unexpected error marking onboarding complete', {
@@ -91,4 +88,3 @@ export class OnboardingService {
     }
   }
 }
-

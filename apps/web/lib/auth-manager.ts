@@ -6,7 +6,7 @@ import { serverSupabase } from './api/supabaseServer';
 
 export interface AuthResult {
   success: boolean;
-  user?: Omit<User, 'password_hash'>;
+  user?: User;
   error?: string;
   cookieHeaders?: Headers;
 }
@@ -112,18 +112,18 @@ export class AuthManager {
 
       logger.info('Supabase Auth login successful', { userId: authData.user.id, service: 'auth' });
 
-      // Get user profile from public.users (created by trigger)
+      // Get user profile from profiles table
       const { data: userProfile, error: profileError } = await serverSupabase
         .from('profiles')
-        .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+        .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
         .eq('id', authData.user.id)
         .single();
 
       if (profileError || !userProfile) {
-        logger.warn('User profile not found in public.users', { 
+        logger.warn('User profile not found in profiles table', {
           userId: authData.user.id,
           error: profileError,
-          service: 'auth' 
+          service: 'auth'
         });
         // Return fallback user from auth metadata
       }
@@ -136,7 +136,7 @@ export class AuthManager {
         role: authData.user.user_metadata?.role || 'homeowner',
         created_at: authData.user.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        email_verified: !!authData.user.email_confirmed_at,
+        verified: !!authData.user.email_confirmed_at,
         phone: undefined
       };
 
@@ -291,7 +291,7 @@ export class AuthManager {
         
         const { data, error } = await serverSupabase
           .from('profiles')
-          .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+          .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
           .eq('id', authData.user.id)
           .single();
         
@@ -327,10 +327,9 @@ export class AuthManager {
               last_name: userData.last_name,
               role: userData.role,
               phone: userData.phone || null,
-              email_verified: authData.user.email_confirmed_at ? true : false,
-              password_hash: null, // Supabase Auth users don't have password_hash
+              verified: authData.user.email_confirmed_at ? true : false,
             })
-            .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+            .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
             .single();
           
           if (manualProfile && !manualError) {
@@ -343,7 +342,7 @@ export class AuthManager {
               // Try to fetch the existing profile
               const { data: existingProfile } = await serverSupabase
                 .from('profiles')
-                .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+                .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
                 .eq('id', authData.user.id)
                 .single();
               
@@ -360,7 +359,7 @@ export class AuthManager {
           try {
             const { data: existingProfile } = await serverSupabase
               .from('profiles')
-              .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+              .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
               .eq('id', authData.user.id)
               .single();
             
@@ -382,7 +381,7 @@ export class AuthManager {
         role: userData.role,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        email_verified: authData.user.email_confirmed_at ? true : false,
+        verified: authData.user.email_confirmed_at ? true : false,
         phone: undefined
       };
 
@@ -467,7 +466,7 @@ export class AuthManager {
   /**
    * Get current authenticated user from token
    */
-  async getCurrentUser(token?: string): Promise<Omit<User, 'password_hash'> | null> {
+  async getCurrentUser(token?: string): Promise<User | null> {
     try {
       if (!token) {
         return null;

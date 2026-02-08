@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Get user's email from database
     const { data: userData, error: fetchError } = await serverSupabase
       .from('profiles')
-      .select('email, email_verified')
+      .select('email, verified')
       .eq('id', user.id)
       .single();
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already verified
-    if (userData.email_verified) {
+    if (userData.verified) {
       return NextResponse.json(
         { message: 'Email is already verified' },
         { status: 200 }

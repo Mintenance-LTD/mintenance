@@ -167,7 +167,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         role: user.role,
         firstName: user.first_name,
         lastName: user.last_name,
-        emailVerified: user.email_verified,
+        emailVerified: user.verified,
       },
       requiresNewBackupCodes: verificationResult.requiresNewBackupCodes,
     });

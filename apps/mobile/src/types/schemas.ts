@@ -47,7 +47,7 @@ export const UserSchema = z.object({
   created_at: DateSchema,
   updated_at: DateSchema,
   is_active: z.boolean().default(true),
-  email_verified: z.boolean().default(false),
+  verified: z.boolean().default(false),
   phone_verified: z.boolean().default(false),
 });
 

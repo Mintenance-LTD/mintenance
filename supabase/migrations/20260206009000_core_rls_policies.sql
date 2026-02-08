@@ -168,19 +168,19 @@ BEGIN
   END IF;
 END $$;
 
--- Saved jobs
+-- Saved jobs (schema: contractor_id)
 DO $$
 BEGIN
   IF to_regclass('public.saved_jobs') IS NOT NULL THEN
     EXECUTE 'DROP POLICY IF EXISTS "saved_jobs_manage_own" ON public.saved_jobs';
     EXECUTE 'CREATE POLICY "saved_jobs_manage_own" ON public.saved_jobs
              FOR ALL
-             USING (user_id = auth.uid())
-             WITH CHECK (user_id = auth.uid())';
+             USING (contractor_id = auth.uid())
+             WITH CHECK (contractor_id = auth.uid())';
   END IF;
 END $$;
 
--- Job views
+-- Job views (schema: contractor_id; homeowner sees views on their job)
 DO $$
 BEGIN
   IF to_regclass('public.job_views') IS NOT NULL THEN
@@ -189,12 +189,12 @@ BEGIN
 
     EXECUTE 'CREATE POLICY "job_views_insert" ON public.job_views
              FOR INSERT
-             WITH CHECK (viewer_id IS NULL OR viewer_id = auth.uid())';
+             WITH CHECK (contractor_id IS NULL OR contractor_id = auth.uid())';
 
     EXECUTE 'CREATE POLICY "job_views_select_owner" ON public.job_views
              FOR SELECT
              USING (
-               viewer_id = auth.uid()
+               contractor_id = auth.uid()
                OR EXISTS (
                  SELECT 1 FROM public.jobs j
                  WHERE j.id = job_views.job_id AND j.homeowner_id = auth.uid()
@@ -203,7 +203,7 @@ BEGIN
   END IF;
 END $$;
 
--- Job milestones
+-- Job milestones (schema: job_id; access via job owner or bid contractor)
 DO $$
 BEGIN
   IF to_regclass('public.job_milestones') IS NOT NULL THEN
@@ -212,24 +212,24 @@ BEGIN
              FOR ALL
              USING (
                EXISTS (
-                 SELECT 1 FROM public.bids b
-                 JOIN public.jobs j ON j.id = b.job_id
-                 WHERE b.id = job_milestones.bid_id
-                   AND (b.contractor_id = auth.uid() OR j.homeowner_id = auth.uid())
+                 SELECT 1 FROM public.jobs j
+                 WHERE j.id = job_milestones.job_id
+                   AND (j.homeowner_id = auth.uid()
+                        OR EXISTS (SELECT 1 FROM public.bids b WHERE b.job_id = j.id AND b.contractor_id = auth.uid()))
                )
              )
              WITH CHECK (
                EXISTS (
-                 SELECT 1 FROM public.bids b
-                 JOIN public.jobs j ON j.id = b.job_id
-                 WHERE b.id = job_milestones.bid_id
-                   AND (b.contractor_id = auth.uid() OR j.homeowner_id = auth.uid())
+                 SELECT 1 FROM public.jobs j
+                 WHERE j.id = job_milestones.job_id
+                   AND (j.homeowner_id = auth.uid()
+                        OR EXISTS (SELECT 1 FROM public.bids b WHERE b.job_id = j.id AND b.contractor_id = auth.uid()))
                )
              )';
   END IF;
 END $$;
 
--- Job guarantees
+-- Job guarantees (schema: job_id, contractor_id, homeowner_id)
 DO $$
 BEGIN
   IF to_regclass('public.job_guarantees') IS NOT NULL THEN
@@ -237,20 +237,12 @@ BEGIN
     EXECUTE 'CREATE POLICY "job_guarantees_access" ON public.job_guarantees
              FOR ALL
              USING (
-               EXISTS (
-                 SELECT 1 FROM public.bids b
-                 JOIN public.jobs j ON j.id = b.job_id
-                 WHERE b.id = job_guarantees.bid_id
-                   AND (b.contractor_id = auth.uid() OR j.homeowner_id = auth.uid())
-               )
+               contractor_id = auth.uid()
+               OR homeowner_id = auth.uid()
              )
              WITH CHECK (
-               EXISTS (
-                 SELECT 1 FROM public.bids b
-                 JOIN public.jobs j ON j.id = b.job_id
-                 WHERE b.id = job_guarantees.bid_id
-                   AND (b.contractor_id = auth.uid() OR j.homeowner_id = auth.uid())
-               )
+               contractor_id = auth.uid()
+               OR homeowner_id = auth.uid()
              )';
   END IF;
 END $$;

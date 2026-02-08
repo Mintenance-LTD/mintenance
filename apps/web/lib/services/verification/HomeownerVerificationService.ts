@@ -18,7 +18,7 @@ export class HomeownerVerificationService {
     try {
       const { data: user, error } = await serverSupabase
         .from('profiles')
-        .select('email_verified, phone_verified, role')
+        .select('verified, phone_verified, role')
         .eq('id', userId)
         .single();
 
@@ -33,7 +33,7 @@ export class HomeownerVerificationService {
 
       // Only homeowners need phone verification for job posting
       if (user.role === 'homeowner') {
-        const emailVerified = user.email_verified || false;
+        const emailVerified = user.verified || false;
         const phoneVerified = user.phone_verified || false;
         const canPostJobs = emailVerified && phoneVerified;
 
@@ -48,7 +48,7 @@ export class HomeownerVerificationService {
       // Contractors don't need phone verification for job posting
       return {
         verified: true,
-        emailVerified: user.email_verified || false,
+        emailVerified: user.verified || false,
         phoneVerified: false,
         canPostJobs: true,
       };
@@ -79,7 +79,7 @@ export class HomeownerVerificationService {
     try {
       const { data: user, error } = await serverSupabase
         .from('profiles')
-        .select('email_verified, phone_verified, phone, role')
+        .select('verified, phone_verified, phone, role')
         .eq('id', userId)
         .single();
 
@@ -92,7 +92,7 @@ export class HomeownerVerificationService {
         };
       }
 
-      const emailVerified = user.email_verified || false;
+      const emailVerified = user.verified || false;
       const phoneVerified = user.phone_verified || false;
       const missingRequirements: string[] = [];
 
