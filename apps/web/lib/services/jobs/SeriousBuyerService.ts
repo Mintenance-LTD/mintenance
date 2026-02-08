@@ -34,7 +34,7 @@ export class SeriousBuyerService {
     try {
       // Get homeowner data
       const { data: homeowner, error: homeownerError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('phone_verified, email_verified')
         .eq('id', homeownerId)
         .single();
@@ -143,7 +143,7 @@ export class SeriousBuyerService {
 
       // Get homeowner data
       const { data: homeowner } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('phone_verified, email_verified')
         .eq('id', job.homeowner_id)
         .single();

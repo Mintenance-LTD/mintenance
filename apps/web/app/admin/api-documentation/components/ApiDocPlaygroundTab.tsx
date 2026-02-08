@@ -29,7 +29,7 @@ export function ApiDocPlaygroundTab() {
       <div className="mt-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Start</h3>
         <ol className="space-y-3">
-          {&‘Generate your API key from the dashboard’,\n            ‘Select an endpoint to test’,\n            ‘Configure request parameters’,\n            ‘Click "Send Request" to test’,\n            ‘View formatted response’}.map((step, index) => (
+          {['Generate your API key from the dashboard', 'Select an endpoint to test', 'Configure request parameters', 'Click "Send Request" to test', 'View formatted response'].map((step, index) => (
             <li key={index} className="flex items-start gap-3">
               <div className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0">{index + 1}</div>
               <span className="text-gray-700">{step}</span>

@@ -28,7 +28,7 @@ async function setAdminPassword(email, password) {
     
     // Update the user with the password hash
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         password_hash: passwordHash,
         updated_at: new Date().toISOString()

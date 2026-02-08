@@ -161,7 +161,7 @@ async function updateContractorLocations() {
 
   for (const contractor of contractorLocations) {
     const { error } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         latitude: contractor.latitude,
         longitude: contractor.longitude,

@@ -5,7 +5,6 @@
  * Each handler is responsible for a specific event type.
  */
 import { Stripe } from 'stripe';
-import { PaymentIntentHandler } from './payment-intent.handler';
 import { SubscriptionHandler } from './subscription.handler';
 import { InvoiceHandler } from './invoice.handler';
 import { ChargeHandler } from './charge.handler';
@@ -20,16 +19,11 @@ export class WebhookHandlerRegistry {
     this.registerHandlers();
   }
   private registerHandlers(): void {
-    const paymentIntentHandler = new PaymentIntentHandler();
     const subscriptionHandler = new SubscriptionHandler();
     const invoiceHandler = new InvoiceHandler();
     const chargeHandler = new ChargeHandler();
     const accountHandler = new AccountHandler();
     const checkoutHandler = new CheckoutHandler();
-    // Payment Intent Events
-    this.handlers.set('payment_intent.succeeded', (e) => paymentIntentHandler.handleSucceeded(e));
-    this.handlers.set('payment_intent.payment_failed', (e) => paymentIntentHandler.handleFailed(e));
-    this.handlers.set('payment_intent.canceled', (e) => paymentIntentHandler.handleCanceled(e));
     // Charge Events
     this.handlers.set('charge.refunded', (e) => chargeHandler.handleRefunded(e));
     // Subscription Events

@@ -4,6 +4,19 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
+
+const availabilitySlotSchema = z.object({
+  dayOfWeek: z.number().int().min(0).max(6),
+  startTime: z.string().min(1),
+  endTime: z.string().min(1),
+  isAvailable: z.boolean(),
+});
+
+const updateAvailabilitySchema = z.object({
+  availability: z.array(availabilitySlotSchema).min(1).max(21),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -93,12 +106,9 @@ export async function PUT(request: NextRequest) {
       throw new UnauthorizedError('Contractor authentication required');
     }
 
-    const body = await request.json();
-    const { availability } = body; // Array of availability objects
-
-    if (!Array.isArray(availability)) {
-      throw new BadRequestError('Invalid availability data');
-    }
+    const validation = await validateRequest(request, updateAvailabilitySchema);
+    if (validation instanceof NextResponse) return validation;
+    const { availability } = validation.data;
 
     // Delete existing availability
     await serverSupabase

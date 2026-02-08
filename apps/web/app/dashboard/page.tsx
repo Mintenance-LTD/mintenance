@@ -99,7 +99,7 @@ export default async function DashboardPage2025() {
   // Batch query 3: Get all contractors at once
   const { data: allContractors } = contractorIds.length > 0
     ? await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, first_name, last_name, profile_image_url')
         .in('id', contractorIds)
     : { data: [] };

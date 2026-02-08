@@ -150,7 +150,6 @@ jobs:
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        continue-on-error: true
 
       - name: Staging build status
         run: |
@@ -195,7 +194,6 @@ jobs:
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        continue-on-error: true
 
       - name: Build production iOS
         if: ${{ env.HAS_EXPO == 'true' }}
@@ -203,7 +201,6 @@ jobs:
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        continue-on-error: true
 
       - name: Production build status
         run: |

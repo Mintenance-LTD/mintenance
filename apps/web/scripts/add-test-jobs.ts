@@ -100,7 +100,7 @@ async function addTestJobs() {
 
   // First, get a homeowner user to assign the jobs to
   const { data: homeowners, error: homeownerError } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id, email, first_name, last_name')
     .eq('role', 'homeowner')
     .limit(1);

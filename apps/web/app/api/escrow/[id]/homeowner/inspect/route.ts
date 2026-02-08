@@ -6,13 +6,15 @@ import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
-/** Type for escrow with job relation */
+/** Type for escrow with job relation (Supabase !inner join returns jobs as array) */
+interface EscrowHomeownerJob {
+  id: string;
+  homeowner_id: string;
+}
+
 interface EscrowWithHomeownerJob {
   id: string;
-  jobs: {
-    id: string;
-    homeowner_id: string;
-  };
+  jobs: EscrowHomeownerJob | EscrowHomeownerJob[];
 }
 
 /**
@@ -75,8 +77,8 @@ export async function POST(
       throw new NotFoundError('Escrow not found');
     }
 
-    const typedEscrow = escrow as EscrowWithHomeownerJob;
-    const job = typedEscrow.jobs;
+    const typedEscrow = escrow as unknown as EscrowWithHomeownerJob;
+    const job = Array.isArray(typedEscrow.jobs) ? typedEscrow.jobs[0] : typedEscrow.jobs;
     if (job.homeowner_id !== user.id) {
       throw new ForbiddenError('Unauthorized');
     }

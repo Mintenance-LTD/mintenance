@@ -7,9 +7,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { handleAPIError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/users/avatar
@@ -17,12 +17,9 @@ import { handleAPIError } from '@/lib/errors/api-error';
  */
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAuth(request);
-    if (!auth.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      throw new UnauthorizedError('Authentication required');
     }
 
     const supabase = serverSupabase;
@@ -31,7 +28,7 @@ export async function GET(request: NextRequest) {
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('avatar_url')
-      .eq('id', auth.user.id)
+      .eq('id', user.id)
       .single();
 
     if (error) {
@@ -54,12 +51,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAuth(request);
-    if (!auth.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      throw new UnauthorizedError('Authentication required');
     }
 
     const formData = await request.formData();
@@ -93,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename
     const fileExt = file.name.split('.').pop();
-    const fileName = `${auth.user.id}-${Date.now()}.${fileExt}`;
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
     // Upload to Supabase Storage
     const { data: _uploadData, error: uploadError } = await supabase.storage
@@ -120,7 +114,7 @@ export async function POST(request: NextRequest) {
         avatar_url: publicUrl,
         updated_at: new Date().toISOString()
       })
-      .eq('id', auth.user.id);
+      .eq('id', user.id);
 
     if (updateError) {
       // Try to delete uploaded file
@@ -133,7 +127,7 @@ export async function POST(request: NextRequest) {
     const { data: oldProfile } = await supabase
       .from('profiles')
       .select('avatar_url')
-      .eq('id', auth.user.id)
+      .eq('id', user.id)
       .single();
 
     if (oldProfile?.avatar_url && oldProfile.avatar_url !== publicUrl) {
@@ -159,12 +153,9 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const auth = await requireAuth(request);
-    if (!auth.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      throw new UnauthorizedError('Authentication required');
     }
 
     const supabase = serverSupabase;
@@ -173,7 +164,7 @@ export async function DELETE(request: NextRequest) {
     const { data: profile, error: fetchError } = await supabase
       .from('profiles')
       .select('avatar_url')
-      .eq('id', auth.user.id)
+      .eq('id', user.id)
       .single();
 
     if (fetchError) {
@@ -204,7 +195,7 @@ export async function DELETE(request: NextRequest) {
         avatar_url: null,
         updated_at: new Date().toISOString()
       })
-      .eq('id', auth.user.id);
+      .eq('id', user.id);
 
     if (updateError) {
       logger.error('Failed to update user profile:', updateError);

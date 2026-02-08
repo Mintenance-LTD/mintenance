@@ -33,7 +33,7 @@ async function cleanupTestData() {
 
   // Get test user IDs
   const { data: testUsers, error: userError } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id, email')
     .or(testEmailPatterns.map(p => `email.ilike.${p}`).join(','));
 
@@ -106,7 +106,7 @@ async function cleanupTestData() {
 
   // Check for real users (non-test)
   const { count: realUserCount } = await supabase
-    .from('users')
+    .from('profiles')
     .select('*', { count: 'exact', head: true })
     .not('email', 'ilike', '%test%')
     .not('email', 'ilike', '%demo%')

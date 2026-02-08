@@ -98,7 +98,7 @@ export default async function ContractorDiscoverPage2025() {
       .select('skill_name')
       .eq('contractor_id', user.id),
     serverSupabase
-      .from('users')
+      .from('profiles')
       .select('city, address, postcode, latitude, longitude')
       .eq('id', user.id)
       .single(),
@@ -152,7 +152,7 @@ export default async function ContractorDiscoverPage2025() {
   const jobsWithDetails = await Promise.all(
     (jobs || []).map(async job => {
       const homeownerResponse = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('first_name, last_name, profile_image_url, rating')
         .eq('id', job.homeowner_id)
         .single();

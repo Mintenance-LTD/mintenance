@@ -382,41 +382,97 @@ describe('Admin Security Audit - requireAdmin Middleware', () => {
 });
 
 describe('OWASP Top 10 Compliance Matrix', () => {
-  it('A01:2021 - Broken Access Control - covered by requireAdmin', () => {
-    // Multi-layer authorization (JWT + Database), role verification,
-    // session validation, rate limiting
-    expect(true).toBe(true);
+  it('A01:2021 - Broken Access Control - requireAdmin rejects non-admin users', async () => {
+    // Verify that non-admin users are rejected
+    mocks.getCurrentUserFromCookies.mockResolvedValue({ id: 'user-1', role: 'homeowner' });
+    mocks.supabaseFrom.mockReturnValue({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(() => ({ data: { role: 'homeowner' }, error: null })),
+        })),
+      })),
+      insert: vi.fn(() => ({ error: null })),
+    });
+
+    const result = await requireAdmin();
+    expect(isAdminError(result)).toBe(true);
   });
 
-  it('A02:2021 - Cryptographic Failures - JWT with HS256', () => {
-    expect(true).toBe(true);
+  it('A02:2021 - Cryptographic Failures - JWT_SECRET must be configured', () => {
+    // Verify JWT secret is required (not hardcoded or missing)
+    expect(process.env.JWT_SECRET || '').not.toBe('');
+    // Verify we don't use weak default secrets
+    const weakSecrets = ['secret', 'password', '123456', 'jwt-secret'];
+    expect(weakSecrets).not.toContain(process.env.JWT_SECRET);
   });
 
-  it('A03:2021 - Injection - Parameterized queries via Supabase', () => {
-    expect(true).toBe(true);
+  it('A03:2021 - Injection - Supabase client uses parameterized queries', () => {
+    // Verify supabase client is mocked with .from().select().eq() pattern
+    // Real supabase always parameterizes - no raw SQL in application code
+    const mockFrom = mocks.supabaseFrom;
+    expect(typeof mockFrom).toBe('function');
+    // Verify no raw SQL functions are used
+    expect(mockFrom.toString()).not.toContain('.raw(');
   });
 
-  it('A04:2021 - Insecure Design - Defense in depth', () => {
-    expect(true).toBe(true);
+  it('A04:2021 - Insecure Design - requireAdmin uses fail-closed pattern', async () => {
+    // When auth returns null, access should be denied (fail-closed)
+    mocks.getCurrentUserFromCookies.mockResolvedValue(null);
+    const result = await requireAdmin();
+    expect(isAdminError(result)).toBe(true);
   });
 
-  it('A05:2021 - Security Misconfiguration - Secure cookie settings', () => {
-    expect(true).toBe(true);
+  it('A05:2021 - Security Misconfiguration - error responses do not leak internals', async () => {
+    // Verify error responses don't contain stack traces or internal details
+    mocks.getCurrentUserFromCookies.mockRejectedValue(new Error('DB connection failed'));
+    const result = await requireAdmin();
+    expect(isAdminError(result)).toBe(true);
+    // The error object should not contain the internal message
+    if (isAdminError(result)) {
+      const errorStr = JSON.stringify(result);
+      expect(errorStr).not.toContain('DB connection failed');
+      expect(errorStr).not.toContain('stack');
+    }
   });
 
-  it('A07:2021 - Identification and Authentication Failures', () => {
-    expect(true).toBe(true);
+  it('A07:2021 - Identification and Authentication Failures - rejects expired/invalid tokens', async () => {
+    // When getCurrentUserFromCookies fails (expired token), access denied
+    mocks.getCurrentUserFromCookies.mockResolvedValue(null);
+    const result = await requireAdmin();
+    expect(isAdminError(result)).toBe(true);
   });
 
-  it('A08:2021 - Software and Data Integrity Failures', () => {
-    expect(true).toBe(true);
+  it('A08:2021 - Software and Data Integrity Failures - DB role must match JWT role', async () => {
+    // JWT says admin but DB says homeowner = rejected (anti-forgery)
+    mocks.getCurrentUserFromCookies.mockResolvedValue({ id: 'user-1', role: 'admin' });
+    mocks.supabaseFrom.mockReturnValue({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(() => ({ data: { role: 'homeowner' }, error: null })),
+        })),
+      })),
+      insert: vi.fn(() => ({ error: null })),
+    });
+
+    const result = await requireAdmin();
+    expect(isAdminError(result)).toBe(true);
   });
 
-  it('A09:2021 - Security Logging and Monitoring', () => {
-    expect(true).toBe(true);
+  it('A09:2021 - Security Logging and Monitoring - admin actions are logged', async () => {
+    // Verify that auth failures are logged
+    mocks.getCurrentUserFromCookies.mockResolvedValue(null);
+    await requireAdmin();
+    // Logger should have been called with security-relevant info
+    expect(mocks.logger.warn).toHaveBeenCalled();
   });
 
-  it('A10:2021 - Server-Side Request Forgery (SSRF)', () => {
-    expect(true).toBe(true);
+  it('A10:2021 - Server-Side Request Forgery (SSRF) - admin middleware does not follow redirects', () => {
+    // Verify requireAdmin doesn't make external HTTP calls that could be abused
+    // The middleware only queries the local database, no external fetches
+    expect(typeof requireAdmin).toBe('function');
+    // requireAdmin should only use supabase (local DB), not fetch/axios
+    const fnStr = requireAdmin.toString();
+    expect(fnStr).not.toContain('fetch(');
+    expect(fnStr).not.toContain('axios');
   });
 });

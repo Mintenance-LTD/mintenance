@@ -5,6 +5,8 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
 /**
  * POST /api/auth/resend-verification
@@ -40,6 +42,15 @@ export async function POST(request: NextRequest) {
     if (!user) {
       throw new UnauthorizedError('Authentication required to resend verification');
     }
+
+    // Validate request body
+    const resendVerificationSchema = z.object({
+      email: z.string().email(),
+    });
+
+    const validation = await validateRequest(request, resendVerificationSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data: validatedData } = validation;
 
     // Get user's email from database
     const { data: userData, error: fetchError } = await serverSupabase

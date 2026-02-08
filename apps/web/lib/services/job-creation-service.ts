@@ -1,7 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateURLs } from '@/lib/security/url-validation';
 import { logger, BUSINESS_RULES } from '@mintenance/shared';
-import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { BadRequestError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
 import type { JobDetail, JobSummary, User } from '@mintenance/types';
 import { JobNotificationService } from './job-notification-service';
 
@@ -19,6 +19,7 @@ interface JobCreationPayload {
   photoUrls?: string[];
   requiredSkills?: string[];
   property_id?: string;
+  urgency?: string;
   latitude?: number;
   longitude?: number;
 }
@@ -76,6 +77,7 @@ export class JobCreationService {
   async createJob(user: Pick<User, 'id' | 'role'>, payload: JobCreationPayload): Promise<JobDetail> {
     this.enforceBudgetPhotoRule(user.id, payload);
     await this.validatePhotoUrls(user.id, payload);
+    await this.validatePropertyOwnership(user.id, payload);
 
     const insertPayload = this.buildInsertPayload(user, payload);
     const jobRow = await this.insertJob(user.id, insertPayload);
@@ -137,12 +139,37 @@ export class JobCreationService {
     payload.photoUrls = urlValidation.valid;
   }
 
+  private async validatePropertyOwnership(userId: string, payload: JobCreationPayload): Promise<void> {
+    if (!payload.property_id) return;
+
+    const { data: property, error } = await serverSupabase
+      .from('properties')
+      .select('id, owner_id')
+      .eq('id', payload.property_id)
+      .single();
+
+    if (error || !property) {
+      throw new BadRequestError('Property not found');
+    }
+
+    if (property.owner_id !== userId) {
+      logger.warn('User attempted to create job for property they do not own', {
+        service: 'jobs',
+        userId,
+        propertyId: payload.property_id,
+        ownerId: property.owner_id,
+      });
+      throw new ForbiddenError('You do not own this property');
+    }
+  }
+
   private buildInsertPayload(user: Pick<User, 'id'>, payload: JobCreationPayload): {
     title: string;
     homeowner_id: string;
     status: string;
     description?: string;
     category?: string | null;
+    urgency?: string | null;
     budget?: number;
     budget_min?: number;
     budget_max?: number;
@@ -161,6 +188,7 @@ export class JobCreationService {
       status: string;
       description?: string;
       category?: string | null;
+      urgency?: string | null;
       budget?: number;
       budget_min?: number;
       budget_max?: number;
@@ -182,6 +210,9 @@ export class JobCreationService {
     }
     if (payload.category !== undefined) {
       insertPayload.category = payload.category?.trim() ?? null;
+    }
+    if (payload.urgency !== undefined) {
+      insertPayload.urgency = payload.urgency;
     }
     if (payload.budget !== undefined) insertPayload.budget = payload.budget;
     if (payload.budget_min !== undefined) insertPayload.budget_min = payload.budget_min;

@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
 
 const bulkVerifySchema = z.object({
   userIds: z.array(z.string().uuid()).min(1).max(100),
@@ -47,14 +48,11 @@ export async function POST(request: NextRequest) {
     if (isAdminError(auth)) return auth.error;
     const admin = auth.user;
 
-    const body = await request.json();
-    const validation = bulkVerifySchema.safeParse(body);
+    const validation = await validateRequest(request, bulkVerifySchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
 
-    if (!validation.success) {
-      throw new BadRequestError('Invalid request body');
-    }
-
-    const { userIds, action, reason } = validation.data;
+    const { userIds, action, reason } = data;
 
     // Require reason for bulk rejection
     if (action === 'reject' && !reason) {

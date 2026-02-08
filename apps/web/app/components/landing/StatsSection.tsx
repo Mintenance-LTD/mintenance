@@ -14,7 +14,7 @@ export async function StatsSection() {
   ] = await Promise.all([
     // Count verified contractors (admin_verified = true and role = 'contractor')
     serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('role', 'contractor')
       .eq('admin_verified', true),

@@ -234,7 +234,7 @@ export class IntegrationTestService {
     try {
       // Simple query to test database
       const { supabase } = await import('../config/supabase');
-      const { error } = await supabase.from('users').select('id').limit(1);
+      const { error } = await supabase.from('profiles').select('id').limit(1);
       health.services.database = !error;
     } catch (error) {
       health.services.database = false;

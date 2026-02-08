@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
     const anomalyCheck = await PaymentMonitoringService.detectAnomalies(user.id, {
       userId: user.id,
       amount: refundAmountDollars,
-      currency: 'usd',
+      currency: 'gbp',
       type: 'refund',
       metadata: {
         jobId,
@@ -276,27 +276,62 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update escrow transaction
-    const { data: updatedEscrow, error: updateError } = await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        status: 'refunded',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', escrowTransactionId)
-      .select()
-      .single();
+    // Update escrow transaction with retry logic
+    // CRITICAL: Stripe refund already succeeded, so DB must reflect this
+    let updatedEscrow: Record<string, unknown> | null = null;
+    let updateError: Error | null = null;
 
-    if (updateError) {
-      logger.error('Error updating escrow after refund - CRITICAL', updateError, {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const result = await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          status: 'refunded',
+          refunded_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', escrowTransactionId)
+        .select()
+        .single();
+
+      if (!result.error) {
+        updatedEscrow = result.data;
+        updateError = null;
+        break;
+      }
+
+      updateError = result.error;
+      logger.error(`Escrow DB update failed (attempt ${attempt}/3)`, result.error, {
         service: 'payments',
         userId: user.id,
         jobId,
         escrowTransactionId,
-        refundId: refund.id
+        refundId: refund.id,
       });
-      // Refund was processed by Stripe but DB update failed
-      // This should trigger an alert in production
+
+      if (attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+
+    if (updateError) {
+      // All retries failed - insert a reconciliation record so a cron job can fix it
+      logger.error('CRITICAL: Stripe refund succeeded but escrow DB update failed after 3 retries', updateError, {
+        service: 'payments',
+        userId: user.id,
+        jobId,
+        escrowTransactionId,
+        refundId: refund.id,
+        stripeRefundStatus: refund.status,
+      });
+
+      // Attempt to create a reconciliation record
+      await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          admin_hold_status: 'needs_reconciliation',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', escrowTransactionId);
     }
 
     // Update job status if needed

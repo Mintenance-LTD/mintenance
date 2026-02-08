@@ -233,7 +233,7 @@ describe('paymentIntentSchema', () => {
 
     const result = paymentIntentSchema.safeParse(data);
     if (result.success) {
-      expect(result.data.currency).toBe('usd');
+      expect(result.data.currency).toBe('gbp');
     }
   });
 

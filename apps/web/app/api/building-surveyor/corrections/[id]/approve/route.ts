@@ -8,8 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { YOLOCorrectionService } from '@/lib/services/building-surveyor/YOLOCorrectionService';
 import { logger } from '@mintenance/shared';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
+import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 const approveSchema = z.object({
@@ -48,13 +48,11 @@ export async function POST(
   }
 
     const { id } = await params;
-    const user = await getCurrentUserFromCookies();
-    if (!user?.id) {
-      throw new UnauthorizedError('Authentication required');
+    const adminResult = await requireAdmin(request);
+    if (isAdminError(adminResult)) {
+      return adminResult.error;
     }
-
-    // TODO: Check if user has permission to approve (admin/expert role)
-    // For now, allow any authenticated user
+    const user = adminResult.user;
 
     const body = await request.json().catch(() => ({}));
     const validation = approveSchema.safeParse(body);

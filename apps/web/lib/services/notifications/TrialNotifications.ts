@@ -13,7 +13,7 @@ export class TrialNotifications {
   static async sendTrialWelcomeEmail(contractorId: string): Promise<boolean> {
     try {
       const { data: user } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email, first_name, last_name, trial_ends_at')
         .eq('id', contractorId)
         .single();
@@ -101,7 +101,7 @@ export class TrialNotifications {
   ): Promise<boolean> {
     try {
       const { data: user } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email, first_name, last_name, trial_ends_at')
         .eq('id', contractorId)
         .single();
@@ -185,7 +185,7 @@ export class TrialNotifications {
   static async sendSubscriptionRequiredNotification(contractorId: string): Promise<boolean> {
     try {
       const { data: user } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email, first_name, last_name')
         .eq('id', contractorId)
         .single();
@@ -255,7 +255,7 @@ export class TrialNotifications {
   ): Promise<boolean> {
     try {
       const { data: user } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email, first_name, last_name')
         .eq('id', contractorId)
         .single();
@@ -320,7 +320,7 @@ export class TrialNotifications {
   static async sendSubscriptionPaymentFailed(contractorId: string): Promise<boolean> {
     try {
       const { data: user } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email, first_name, last_name')
         .eq('id', contractorId)
         .single();

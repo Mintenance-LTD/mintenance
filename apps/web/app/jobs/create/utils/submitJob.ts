@@ -133,8 +133,7 @@ export async function submitJob({
     description: formData.description?.trim() || '',
     location: formData.location?.trim() || '',
     category: formData.category,
-    // Don't send urgency field - it's not supported by the API/database
-    // Ensure budget is always a number for the API
+    urgency: formData.urgency || 'medium',
     budget: budgetValue,
     requiredSkills: formData.requiredSkills || [],
     property_id: propertyIdValue,

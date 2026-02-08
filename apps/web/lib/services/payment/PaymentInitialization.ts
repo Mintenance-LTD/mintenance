@@ -24,7 +24,7 @@ export class PaymentInitialization {
           amount: amountInCents,
           jobId: params.jobId,
           contractorId: params.contractorId,
-          currency: 'usd',
+          currency: 'gbp',
         }),
       });
 
@@ -54,7 +54,7 @@ export class PaymentInitialization {
       const { data, error } = await supabase.functions.invoke('create-payment-intent', {
         body: {
           amount: amountInCents,
-          currency: 'usd',
+          currency: 'gbp',
           metadata: {
             jobId,
             type: 'job_payment',
@@ -78,7 +78,7 @@ export class PaymentInitialization {
           : amountInCents,
         currency: typeof intentData['currency'] === 'string'
           ? (intentData['currency'] as string)
-          : 'usd',
+          : 'gbp',
         status: (typeof intentData['status'] === 'string'
           ? intentData['status']
           : 'requires_payment_method') as import('@mintenance/types').PaymentIntent['status'],

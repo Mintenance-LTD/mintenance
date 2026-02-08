@@ -125,7 +125,7 @@ export class ContractorService {
   ): Promise<ContractorProfile[]> {
     try {
       const { data: contractors, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select(
           `
           *,
@@ -216,7 +216,7 @@ export class ContractorService {
         matches?.map((m: MatchRow) => m.contractor_id) || [];
 
       const { data: contractors, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select(
           `
           *,
@@ -419,7 +419,7 @@ export class ContractorService {
   ): Promise<void> {
     try {
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .update({
           latitude: location.latitude,
           longitude: location.longitude,
@@ -495,7 +495,7 @@ export class ContractorService {
   ): Promise<{ isAvailable: boolean }> {
     try {
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .update({
           is_available: isAvailable,
           updated_at: new Date().toISOString(),
@@ -554,7 +554,7 @@ export class ContractorService {
       // Advanced signature with filtering
       const adv = params;
       let query = supabase
-        .from('users')
+        .from('profiles')
         .select(`
           *,
           contractor_skills (
@@ -680,7 +680,7 @@ export class ContractorService {
       };
 
       const { error: userError } = await supabase
-        .from('users')
+        .from('profiles')
         .update(userUpdateData)
         .eq('id', userId);
 

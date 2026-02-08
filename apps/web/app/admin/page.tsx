@@ -23,15 +23,15 @@ export default async function AdminDashboardPage() {
     activeSubscriptionsResponse,
     pendingVerificationsResponse,
   ] = await Promise.all([
-    serverSupabase.from('users').select('id', { count: 'exact', head: true }).is('deleted_at', null),
-    serverSupabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'contractor').is('deleted_at', null),
+    serverSupabase.from('profiles').select('id', { count: 'exact', head: true }).is('deleted_at', null),
+    serverSupabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'contractor').is('deleted_at', null),
     serverSupabase.from('jobs').select('id', { count: 'exact', head: true }),
     serverSupabase.from('contractor_subscriptions')
       .select('id', { count: 'exact', head: true })
       .in('status', ['active', 'trial']),
     // Pending verifications = contractors with verification data but not verified
     serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('role', 'contractor')
       .eq('admin_verified', false)

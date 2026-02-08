@@ -42,7 +42,7 @@ export class PayoutTierService {
     try {
       // Get contractor metrics
       const { data: contractor, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('rating, total_jobs_completed')
         .eq('id', contractorId)
         .single();
@@ -99,7 +99,7 @@ export class PayoutTierService {
       const payoutHours = TIER_CRITERIA[tier].payoutHours;
 
       const { error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({
           payout_tier: tier,
           payout_speed_hours: payoutHours,
@@ -138,7 +138,7 @@ export class PayoutTierService {
   static async getPayoutSpeed(contractorId: string): Promise<number> {
     try {
       const { data: contractor } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('payout_speed_hours, payout_tier')
         .eq('id', contractorId)
         .single();

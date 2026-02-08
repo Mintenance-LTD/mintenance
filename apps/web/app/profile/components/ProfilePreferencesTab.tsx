@@ -90,7 +90,10 @@ export function ProfilePreferencesTab({
         <MotionButton
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => toast.success('Preferences saved!')}
+          onClick={() => {
+            toast.success('Redirecting to settings to save preferences...');
+            window.location.href = '/settings?tab=preferences';
+          }}
           className="px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2"
         >
           <CheckCircle className="w-5 h-5" />

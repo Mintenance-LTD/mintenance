@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = serverSupabase;
 
 /**
  * POST /api/contractor/manage-skills
@@ -55,15 +54,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body
-    const { skills } = await request.json();
+    // Validate request body
+    const manageSkillsSchema = z.object({
+      skills: z.array(
+        z.union([
+          z.string().min(1).max(200),
+          z.object({
+            skill_name: z.string().min(1).max(200),
+            skill_icon: z.string().max(100),
+          }),
+        ])
+      ).max(50),
+    });
 
-    if (!Array.isArray(skills)) {
-      return NextResponse.json(
-        { error: 'Invalid skills data' },
-        { status: 400 }
-      );
-    }
+    const validation = await validateRequest(request, manageSkillsSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data: validatedData } = validation;
+    const { skills } = validatedData;
 
     // Delete all existing skills for this contractor
     const { error: deleteError } = await supabase

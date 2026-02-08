@@ -150,7 +150,7 @@ export class AdminCommunicationService {
         if (userRole === 'contractor') {
           // Also check if user is verified contractor
           const { data: user } = await serverSupabase
-            .from('users')
+            .from('profiles')
             .select('admin_verified')
             .eq('id', userId)
             .single();
@@ -287,7 +287,7 @@ export class AdminCommunicationService {
 
       // Get target users
       let userQuery = serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, email, first_name, last_name, role, admin_verified')
         .is('deleted_at', null);
 

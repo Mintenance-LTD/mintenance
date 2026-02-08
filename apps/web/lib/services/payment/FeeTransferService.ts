@@ -49,7 +49,7 @@ export interface FeeTransferOptions {
   
   /**
    * Currency code
-   * @default 'usd'
+   * @default 'gbp'
    */
   currency?: string;
 }
@@ -113,7 +113,7 @@ export class FeeTransferService {
       paymentIntentId,
       chargeId,
       paymentType = 'final',
-      currency = 'usd',
+      currency = 'gbp',
     } = options;
 
     // Calculate fees

@@ -70,7 +70,7 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
     // Get contractors from users table (contractors are users with role='contractor')
     // Note: Removed admin_verified filter to get all contractors, not just verified ones
     const { data: contractors, error: contractorsError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed')
       .eq('role', 'contractor')
       .order('created_at', { ascending: false })
@@ -96,23 +96,23 @@ export async function getFeaturedContractors(limit = 12): Promise<ContractorProf
 
     const contractorIds = contractors.map(c => c.id);
     
-    // Get skills for contractors (contractor_skills table uses user_id, not contractor_id)
+    // Get skills for contractors
     const { data: skills, error: skillsError } = await supabase
       .from('contractor_skills')
-      .select('user_id, skill_name')
-      .in('user_id', contractorIds);
+      .select('contractor_id, skill_name')
+      .in('contractor_id', contractorIds);
 
     if (skillsError) {
       logger.error('[getFeaturedContractors] Error fetching skills:', skillsError);
     }
 
-    // Group skills by contractor (using user_id)
+    // Group skills by contractor
     const skillsMap = new Map<string, string[]>();
     skills?.forEach(skill => {
-      if (!skillsMap.has(skill.user_id)) {
-        skillsMap.set(skill.user_id, []);
+      if (!skillsMap.has(skill.contractor_id)) {
+        skillsMap.set(skill.contractor_id, []);
       }
-      skillsMap.get(skill.user_id)!.push(skill.skill_name);
+      skillsMap.get(skill.contractor_id)!.push(skill.skill_name);
     });
 
     // Get ratings for contractors (reviews use reviewed_id to reference the contractor user)
@@ -210,7 +210,7 @@ export async function searchContractors(params: {
 
   try {
     let query = supabase
-      .from('users')
+      .from('profiles')
       .select('id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed')
       .eq('role', 'contractor');
 
@@ -238,15 +238,15 @@ export async function searchContractors(params: {
     // Get skills for contractors
     const { data: skills } = await supabase
       .from('contractor_skills')
-      .select('user_id, skill_name')
-      .in('user_id', contractorIds);
+      .select('contractor_id, skill_name')
+      .in('contractor_id', contractorIds);
 
     const skillsMap = new Map<string, string[]>();
     skills?.forEach(skill => {
-      if (!skillsMap.has(skill.user_id)) {
-        skillsMap.set(skill.user_id, []);
+      if (!skillsMap.has(skill.contractor_id)) {
+        skillsMap.set(skill.contractor_id, []);
       }
-      skillsMap.get(skill.user_id)!.push(skill.skill_name);
+      skillsMap.get(skill.contractor_id)!.push(skill.skill_name);
     });
 
     // Get ratings for contractors
@@ -340,7 +340,7 @@ export async function getAvailableJobs(limit = 20): Promise<JobListing[]> {
     // Get homeowner details
     const homeownerIds = [...new Set(jobs.map(j => j.homeowner_id))];
     const { data: users } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, name, city')
       .in('id', homeownerIds);
 
@@ -378,7 +378,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     const [contractorsResult, jobsResult, homeownersResult, reviewsResult] = await Promise.all([
       supabase.from('contractors').select('id', { count: 'exact', head: true }),
       supabase.from('jobs').select('id', { count: 'exact', head: true }),
-      supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'homeowner'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'homeowner'),
       supabase.from('reviews').select('rating')
     ]);
 
@@ -417,7 +417,7 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
 
   try {
     const { data: contractor, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, first_name, last_name, company_name, profile_image_url, city, country, admin_verified, created_at, rating, total_jobs_completed')
       .eq('id', contractorId)
       .eq('role', 'contractor')
@@ -432,7 +432,7 @@ export async function getContractorProfile(contractorId: string): Promise<Contra
     const { data: skills } = await supabase
       .from('contractor_skills')
       .select('skill_name')
-      .eq('user_id', contractorId);
+      .eq('contractor_id', contractorId);
 
     // Get reviews (reviews use reviewed_id to reference the contractor user)
     const { data: reviews } = await supabase

@@ -23,7 +23,7 @@ async function testAuth() {
     // Test 1: Check connection
     console.log('\n1️⃣ Testing Supabase Connection...');
     const { data: connectionTest } = await supabase
-      .from('users')
+      .from('profiles')
       .select('count')
       .limit(1);
     console.log('✅ Connection successful');
@@ -77,7 +77,7 @@ async function testAuth() {
     // Test 4: Check users table
     console.log('\n4️⃣ Checking Users Table...');
     const { data: usersData, error: usersError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('email, role')
       .limit(5);
 

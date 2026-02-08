@@ -115,7 +115,7 @@ async function applyMigration() {
     
     // Verify the column was added
     const { data, error: verifyError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('stripe_connect_account_id')
       .limit(1);
     

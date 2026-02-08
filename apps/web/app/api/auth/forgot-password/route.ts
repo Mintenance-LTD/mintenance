@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { checkPasswordResetRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { passwordResetSchema } from '@/lib/validation/schemas';
@@ -31,22 +31,8 @@ export async function POST(request: NextRequest) {
 
     const { email } = validation.data;
 
-    // Initialize Supabase client with service role key for admin operations
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      logger.error('Missing Supabase configuration', { service: 'auth' });
-      throw new InternalServerError('Service configuration error. Please contact support.');
-    }
-
-    // Use service role key for admin operations (can send emails regardless of user state)
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    // Use shared service-role client for admin operations (can send emails regardless of user state)
+    const supabase = serverSupabase;
 
     // Check if user exists first (for better error handling)
     const { data: userData } = await supabase.auth.admin.listUsers();

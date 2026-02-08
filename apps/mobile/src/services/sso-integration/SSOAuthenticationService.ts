@@ -431,7 +431,7 @@ export class SSOAuthenticationService {
   ): Promise<{ id: string; [key: string]: unknown } | null> {
     // Check if user exists
     const { data: existingUser } = await supabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('email', userProfile.email)
       .single();
@@ -443,7 +443,7 @@ export class SSOAuthenticationService {
     // Create new user if auto_create_users is enabled
     if (provider.auto_create_users) {
       const { data: newUser } = await supabase
-        .from('users')
+        .from('profiles')
         .insert({
           email: userProfile.email,
           first_name: userProfile.given_name,

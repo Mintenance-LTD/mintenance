@@ -89,7 +89,7 @@ export function generateFallbackJobAnalysis(): JobAnalysis {
     suggestedPrice: {
       min: 100,
       max: 500,
-      currency: 'USD',
+      currency: 'GBP',
     },
     complexity: 'moderate',
     safetyConsiderations: ['Wear appropriate PPE'],

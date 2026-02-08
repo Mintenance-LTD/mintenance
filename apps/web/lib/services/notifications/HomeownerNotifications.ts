@@ -12,7 +12,7 @@ export class HomeownerNotifications {
   static async sendWelcomeEmail(homeownerId: string): Promise<boolean> {
     try {
       const { data: user } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email, first_name, last_name')
         .eq('id', homeownerId)
         .single();

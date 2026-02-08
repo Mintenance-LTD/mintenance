@@ -25,7 +25,7 @@ export default async function PayoutsPage() {
 
   // Fetch contractor data for layout
   const { data: contractor } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('id, first_name, last_name, email, company_name, profile_image_url')
     .eq('id', user.id)
     .single();

@@ -27,7 +27,7 @@ async function applyMigration() {
     console.log('1️⃣ Checking if stripe_customer_id column exists...');
 
     const { data: beforeData, error: beforeError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, stripe_customer_id')
       .limit(1);
 

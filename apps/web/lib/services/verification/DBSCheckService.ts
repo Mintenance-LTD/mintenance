@@ -60,7 +60,7 @@ export class DBSCheckService {
     try {
       // Verify contractor exists and is a contractor role
       const { data: contractor, error: contractorError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, first_name, last_name, email, phone, role, date_of_birth, address_line1, address_line2, city, postal_code, country')
         .eq('id', contractorId)
         .single();

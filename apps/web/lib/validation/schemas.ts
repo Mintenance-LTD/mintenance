@@ -95,9 +95,9 @@ export const passwordUpdateSchema = z.object({
 export const paymentIntentSchema = z.object({
   amount: z.number()
     .positive('Amount must be positive')
-    .max(10000, 'Amount exceeds maximum ($10,000)')
+    .max(10000, 'Amount exceeds maximum (£10,000)')
     .transform(val => Math.round(val * 100) / 100), // Round to 2 decimals
-  currency: z.enum(['usd', 'eur', 'gbp']).default('usd'),
+  currency: z.enum(['gbp', 'eur', 'usd']).default('gbp'),
   jobId: z.string()
     .uuid('Invalid job ID'),
   contractorId: z.string()
@@ -142,9 +142,10 @@ const baseJobSchema = z.object({
   category: z.string()
     .min(1, 'Category required')
     .max(100, 'Category too long'),
+  urgency: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
   budget: z.number()
     .positive('Budget must be positive')
-    .max(1000000, 'Budget exceeds maximum ($1,000,000)')
+    .max(1000000, 'Budget exceeds maximum (£1,000,000)')
     .optional(),
   location: z.object({
     address: z.string().max(300),

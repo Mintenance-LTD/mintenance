@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = serverSupabase;
 
 class GeocodingService {
   private apiKey = process.env.GOOGLE_MAPS_API_KEY;
@@ -166,7 +165,20 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Contractor access required');
     }
 
-    const body = await request.json();
+    const verificationSchema = z.object({
+      companyName: z.string().min(1, 'Company name is required').max(300),
+      businessAddress: z.string().min(1, 'Business address is required').max(500),
+      licenseNumber: z.string().min(1, 'License number is required').max(50),
+      licenseType: z.string().max(100).optional(),
+      yearsExperience: z.number().int().min(0).max(100).optional(),
+      insuranceProvider: z.string().max(300).optional(),
+      insurancePolicyNumber: z.string().max(100).optional(),
+      insuranceExpiryDate: z.string().max(30).optional(),
+    });
+
+    const validation = await validateRequest(request, verificationSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
     const {
       companyName,
       businessAddress,
@@ -176,11 +188,7 @@ export async function POST(request: NextRequest) {
       insuranceProvider,
       insurancePolicyNumber,
       insuranceExpiryDate,
-    } = body;
-
-    if (!companyName || !businessAddress || !licenseNumber) {
-      throw new BadRequestError('Company name, business address, and license number are required');
-    }
+    } = data;
 
     const validator = new LicenseValidator();
     const licenseValidation = validator.validate(licenseNumber);

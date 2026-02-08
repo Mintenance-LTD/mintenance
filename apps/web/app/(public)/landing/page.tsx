@@ -108,6 +108,13 @@ export default async function LandingPage() {
           <div className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
             <SearchBar
               variant="hero"
+              onSearch={(params) => {
+                const query = new URLSearchParams();
+                if (params.service) query.set('service', params.service);
+                if (params.location) query.set('location', params.location);
+                if (params.date) query.set('date', params.date);
+                window.location.href = `/contractors?${query.toString()}`;
+              }}
             />
           </div>
 

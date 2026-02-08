@@ -72,7 +72,7 @@ export class MFAService {
     try {
       // Get user information for QR code label
       const { data: user, error: userError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email, first_name, last_name')
         .eq('id', userId)
         .single();
@@ -118,7 +118,7 @@ export class MFAService {
       // Store encrypted secret in database
       // NOTE: In production, use app-level encryption for totp_secret
       const { error: updateError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({
           totp_secret: secret.base32,
           mfa_method: 'totp',
@@ -169,7 +169,7 @@ export class MFAService {
     try {
       // Get user's TOTP secret
       const { data: user, error: userError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('totp_secret, mfa_enabled')
         .eq('id', userId)
         .single();
@@ -204,7 +204,7 @@ export class MFAService {
 
       // Enable MFA
       const { error: updateError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({
           mfa_enabled: true,
         })
@@ -567,7 +567,7 @@ export class MFAService {
   static async getMFAStatus(userId: string) {
     try {
       const { data: user, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('mfa_enabled, mfa_method, mfa_enrolled_at, phone_number')
         .eq('id', userId)
         .single();
@@ -651,7 +651,7 @@ export class MFAService {
     token: string
   ): Promise<boolean> {
     const { data: user } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('totp_secret')
       .eq('id', userId)
       .single();

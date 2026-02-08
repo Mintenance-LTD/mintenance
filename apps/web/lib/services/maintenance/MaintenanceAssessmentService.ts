@@ -205,7 +205,7 @@ export class MaintenanceAssessmentService {
       cost_range: knowledge ? {
         min: knowledge.cost_estimate_min,
         max: knowledge.cost_estimate_max,
-        currency: 'USD'
+        currency: 'GBP'
       } : null,
       safety_notes: knowledge?.safety_precautions || [],
       immediate_actions: knowledge?.homeowner_immediate_actions || [],
@@ -319,7 +319,7 @@ export class MaintenanceAssessmentService {
         cost_range: knowledge ? {
           min: knowledge.cost_estimate_min,
           max: knowledge.cost_estimate_max,
-          currency: 'USD'
+          currency: 'GBP'
         } : null,
         diy_possibility: knowledge?.diy_difficulty || null,
         processing_time_ms: processingTime,

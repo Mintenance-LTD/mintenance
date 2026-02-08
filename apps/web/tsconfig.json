@@ -41,7 +41,9 @@
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "**/_archive/**",
-    "public/**"
+    "public/**",
+    "scripts/**",
+    "e2e/**"
   ],
   "references": [
     { "path": "../../packages/types" },

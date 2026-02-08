@@ -156,7 +156,7 @@ async function testStripeCustomerIdColumn() {
 
   try {
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, stripe_customer_id')
       .limit(1);
 
@@ -172,7 +172,7 @@ async function testStripeCustomerIdColumn() {
 
     const count = await getTableCount('users');
     const { data: withStripe } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id')
       .not('stripe_customer_id', 'is', null);
 
@@ -258,7 +258,7 @@ async function testConnectivity() {
     const start = Date.now();
 
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id')
       .limit(1);
 

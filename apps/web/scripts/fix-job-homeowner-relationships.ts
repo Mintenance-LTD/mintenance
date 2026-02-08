@@ -74,7 +74,7 @@ async function fixJobHomeownerRelationships() {
 
   // Step 1: Check existing homeowners
   const { data: existingHomeowners, error: homeownerError } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id, email, first_name, last_name')
     .eq('role', 'homeowner');
 
@@ -94,7 +94,7 @@ async function fixJobHomeownerRelationships() {
     for (const homeowner of homeowners) {
       // Check if this email already exists
       const { data: existing } = await supabase
-        .from('users')
+        .from('profiles')
         .select('id')
         .eq('email', homeowner.email)
         .single();
@@ -105,7 +105,7 @@ async function fixJobHomeownerRelationships() {
       } else {
         // Create new homeowner
         const { data: newUser, error: createError } = await supabase
-          .from('users')
+          .from('profiles')
           .insert({
             ...homeowner,
             phone_verified: true,

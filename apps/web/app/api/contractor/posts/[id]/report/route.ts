@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const reportPostSchema = z.object({
+  reason: z.string().min(1).max(500),
+});
+
+const supabase = serverSupabase;
 
 export async function POST(
   request: NextRequest,
@@ -48,8 +51,9 @@ export async function POST(
     }
 
     const postId = id;
-    const body = await request.json();
-    const { reason } = body;
+    const validation = await validateRequest(request, reportPostSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { reason } = validation.data;
 
     // Verify post exists
     const { data: post, error: postError } = await supabase

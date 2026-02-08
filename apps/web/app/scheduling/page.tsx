@@ -133,7 +133,7 @@ export default async function SchedulingPage2025() {
 
   // Fetch user profile
   const { data: userProfile } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('profile_image_url, email')
     .eq('id', user.id)
     .single();

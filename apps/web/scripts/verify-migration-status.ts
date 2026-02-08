@@ -29,7 +29,7 @@ async function verifyMigration() {
   try {
     // Try to query the column
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('stripe_connect_account_id')
       .limit(1);
     

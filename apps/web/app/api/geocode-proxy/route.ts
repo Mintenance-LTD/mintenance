@@ -176,7 +176,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(geocodeResponse, {
         headers: {
           'Cache-Control': 'private, max-age=86400', // Cache for 24 hours
-          'X-RateLimit-Limit': String(rateLimitResult.limit),
+          'X-RateLimit-Limit': '10',
           'X-RateLimit-Remaining': String(rateLimitResult.remaining),
         },
       });

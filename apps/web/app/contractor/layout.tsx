@@ -17,7 +17,7 @@ export default async function ContractorLayout({ children }: ContractorLayoutPro
   }
 
   const { data: contractorProfile } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('first_name, last_name, company_name, profile_image_url, city, country, address, postcode, latitude, longitude')
     .eq('id', authUser.id)
     .single();

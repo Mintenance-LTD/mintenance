@@ -33,44 +33,7 @@ export default function PaymentMethodsPage2025() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedType, setSelectedType] = useState<'card' | 'bank'>('card');
 
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    {
-      id: 'PM-001',
-      type: 'card',
-      nickname: 'Personal Card',
-      last4: '4242',
-      brand: 'Visa',
-      expiry: '12/25',
-      isDefault: true,
-      addedDate: '2024-03-15',
-    },
-    {
-      id: 'PM-002',
-      type: 'card',
-      last4: '5555',
-      brand: 'Mastercard',
-      expiry: '08/26',
-      isDefault: false,
-      addedDate: '2024-06-20',
-    },
-    {
-      id: 'PM-003',
-      type: 'bank',
-      nickname: 'Main Account',
-      last4: '1234',
-      bankName: 'Barclays Bank',
-      accountNumber: '****1234',
-      isDefault: false,
-      addedDate: '2024-01-10',
-    },
-    {
-      id: 'PM-004',
-      type: 'paypal',
-      last4: 'sarah.johnson@example.com',
-      isDefault: false,
-      addedDate: '2024-09-05',
-    },
-  ]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
   const [newCard, setNewCard] = useState({
     number: '',

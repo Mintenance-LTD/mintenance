@@ -336,7 +336,7 @@ async function seedMoreJobs() {
 
   // Get some homeowner IDs to assign jobs to
   const { data: homeowners } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id')
     .eq('role', 'homeowner')
     .limit(5);

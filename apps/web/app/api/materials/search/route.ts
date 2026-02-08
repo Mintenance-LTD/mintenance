@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { materialsService } from '@/lib/services/MaterialsService';
-import type { MaterialCategory } from '@mintenance/shared/types/materials';
 import { logger } from '@mintenance/shared';
+import type { MaterialCategory } from '@mintenance/shared';
 
 /**
  * GET /api/materials/search - Fuzzy search for materials

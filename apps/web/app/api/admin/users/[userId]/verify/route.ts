@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
 
 const verifySchema = z.object({
   action: z.enum(['approve', 'reject']),
@@ -50,15 +51,13 @@ export async function POST(
     const admin = auth.user;
 
     const { userId } = await params;
-    const body = await request.json();
 
     // Validate request body
-    const validation = verifySchema.safeParse(body);
-    if (!validation.success) {
-      throw new BadRequestError('Invalid request body');
-    }
+    const validation = await validateRequest(request, verifySchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
 
-    const { action, reason } = validation.data;
+    const { action, reason } = data;
 
     // Verify user exists and is a contractor
     const { data: userData, error: userError } = await serverSupabase

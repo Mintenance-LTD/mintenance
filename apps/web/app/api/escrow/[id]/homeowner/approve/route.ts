@@ -72,12 +72,15 @@ export async function POST(
     }
 
     // Verify the requesting user is the homeowner
-    if (escrow.jobs.homeowner_id !== user.id) {
+    // Supabase !inner join returns jobs as array even with .single()
+    const jobs = escrow.jobs as unknown as { homeowner_id: string } | { homeowner_id: string }[];
+    const job = Array.isArray(jobs) ? jobs[0] : jobs;
+    if (job.homeowner_id !== user.id) {
       logger.warn('Unauthorized escrow approval attempt', {
         service: 'homeowner-approve',
         userId: user.id,
         escrowId,
-        actualHomeowner: escrow.jobs.homeowner_id,
+        actualHomeowner: job.homeowner_id,
       });
       throw new ForbiddenError('You do not own this escrow transaction');
     }

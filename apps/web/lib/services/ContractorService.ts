@@ -55,7 +55,7 @@ export class ContractorService {
   ): Promise<ContractorProfile[]> {
     try {
       const { data: contractors, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select(`
           *,
           contractor_skills (
@@ -107,7 +107,7 @@ export class ContractorService {
   static async getAllContractors(): Promise<ContractorProfile[]> {
     try {
       const { data: contractors, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select(`
           *,
           contractor_skills (

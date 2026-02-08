@@ -85,7 +85,7 @@ export class MatchCommunicationService {
         .single();
 
       const { data: contractor } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, rating, total_jobs_completed, skills')
         .eq('id', contractorId)
         .single();

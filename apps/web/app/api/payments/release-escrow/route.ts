@@ -15,7 +15,7 @@ import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
 import { env } from '@/lib/env';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError, ConflictError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 // Initialize Stripe with validated secret key (server-side only)
@@ -410,7 +410,7 @@ export async function POST(request: NextRequest) {
     // Create transfer to contractor using Stripe Connect (amount after platform fee)
     const transfer = await stripe.transfers.create({
       amount: contractorAmountCents,
-      currency: 'usd',
+      currency: 'gbp',
       destination: contractor.stripe_connect_account_id,
       description: `Payment for job: ${job.title}`,
       metadata: {

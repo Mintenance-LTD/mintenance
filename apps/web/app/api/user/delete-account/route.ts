@@ -5,7 +5,9 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { checkDeleteAccountRateLimit } from '@/lib/rate-limiting/admin-gdpr';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
-import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
 /**
  * POST /api/user/delete-account
@@ -27,10 +29,14 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    const body = await request.json();
-    if (!body.confirm) {
-      throw new BadRequestError('Account deletion must be confirmed');
-    }
+    const deleteAccountSchema = z.object({
+      confirmation: z.literal('DELETE'),
+      reason: z.string().max(500).optional(),
+    });
+
+    const validation = await validateRequest(request, deleteAccountSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
 
     // Log the deletion request for GDPR compliance
     await serverSupabase.from('gdpr_audit_log').insert({

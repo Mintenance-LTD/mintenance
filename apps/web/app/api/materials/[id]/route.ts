@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { materialsService } from '@/lib/services/MaterialsService';
 import { logger } from '@mintenance/shared';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
 /**
  * GET /api/materials/[id] - Get a single material by ID
@@ -47,11 +50,10 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // TODO: Add authentication check for admin role
-    // const session = await getServerSession();
-    // if (!session || session.user.role !== 'admin') {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    // }
+    const adminResult = await requireAdmin(request);
+    if (isAdminError(adminResult)) {
+      return adminResult.error;
+    }
 
     const resolvedParams = await params;
     const { id } = resolvedParams;
@@ -63,12 +65,40 @@ export async function PATCH(
       );
     }
 
-    const body = await request.json();
+    const materialCategories = [
+      'lumber', 'concrete', 'brick', 'tile', 'insulation', 'drywall',
+      'paint', 'roofing', 'plumbing', 'electrical', 'hardware', 'glass',
+      'sealants', 'fasteners', 'other',
+    ] as const;
 
-    // Prevent updating immutable fields
-    delete body.id;
-    delete body.created_at;
-    delete body.created_by;
+    const materialUnits = [
+      'each', 'meter', 'sqm', 'liter', 'kg', 'bundle', 'box', 'sqft', 'sheet',
+    ] as const;
+
+    const updateMaterialSchema = z.object({
+      name: z.string().min(1).max(300).optional(),
+      category: z.enum(materialCategories, { errorMap: () => ({ message: 'Invalid material category' }) }).optional(),
+      description: z.string().max(2000).optional(),
+      unit_price: z.number().positive('Unit price must be positive').optional(),
+      unit: z.enum(materialUnits, { errorMap: () => ({ message: 'Invalid unit type' }) }).optional(),
+      bulk_quantity: z.number().int().positive().optional(),
+      bulk_unit_price: z.number().positive().optional(),
+      sku: z.string().max(100).optional(),
+      barcode: z.string().max(100).optional(),
+      brand: z.string().max(200).optional(),
+      in_stock: z.boolean().optional(),
+      stock_quantity: z.number().int().min(0).optional(),
+      lead_time_days: z.number().int().min(0).optional(),
+      specifications: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+      image_url: z.string().url().max(2000).optional(),
+      supplier_name: z.string().max(300).optional(),
+      supplier_id: z.string().uuid().optional(),
+      updated_by: z.string().uuid().optional(),
+    });
+
+    const validation = await validateRequest(request, updateMaterialSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data: body } = validation;
 
     const updatedMaterial = await materialsService.updateMaterial(id, body);
 
@@ -90,11 +120,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // TODO: Add authentication check for admin role
-    // const session = await getServerSession();
-    // if (!session || session.user.role !== 'admin') {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    // }
+    const adminResult = await requireAdmin(request);
+    if (isAdminError(adminResult)) {
+      return adminResult.error;
+    }
 
     const resolvedParams = await params;
     const { id } = resolvedParams;

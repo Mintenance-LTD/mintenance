@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         if (data?.user) {
           // Supabase has already confirmed the email, sync our database
           await serverSupabase
-            .from('users')
+            .from('profiles')
             .update({ email_verified: true })
             .eq('id', data.user.id);
 

@@ -17,7 +17,7 @@ export class OnboardingService {
       async () => {
         try {
           const { data, error } = await serverSupabase
-            .from('users')
+            .from('profiles')
             .select('onboarding_completed, onboarding_completed_at')
             .eq('id', userId)
             .single();
@@ -59,7 +59,7 @@ export class OnboardingService {
   static async markOnboardingComplete(userId: string): Promise<boolean> {
     try {
       const { error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({
           onboarding_completed: true,
           onboarding_completed_at: new Date().toISOString(),

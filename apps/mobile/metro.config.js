@@ -53,6 +53,25 @@ function extendConfig(baseConfig) {
     baseConfig.resolver.nodeModulesPaths.push(monorepoModules);
   }
 
+  // Ensure Metro resolves the react-native field in package.json
+  // This is critical for monorepo packages like @mintenance/ai-core that
+  // point react-native to TypeScript source instead of compiled dist/
+  if (!baseConfig.resolver.resolverMainFields) {
+    baseConfig.resolver.resolverMainFields = ["react-native", "browser", "main"];
+  } else if (!baseConfig.resolver.resolverMainFields.includes("react-native")) {
+    baseConfig.resolver.resolverMainFields.unshift("react-native");
+  }
+
+  // Ensure .ts and .tsx extensions are resolved from monorepo packages
+  const defaultSourceExts = baseConfig.resolver.sourceExts || ["js", "jsx", "json", "ts", "tsx"];
+  if (!defaultSourceExts.includes("ts")) {
+    defaultSourceExts.push("ts");
+  }
+  if (!defaultSourceExts.includes("tsx")) {
+    defaultSourceExts.push("tsx");
+  }
+  baseConfig.resolver.sourceExts = defaultSourceExts;
+
   return baseConfig;
 }
 
@@ -60,6 +79,8 @@ function getMinimalConfig() {
   return {
     watchFolders: [path.resolve(__dirname, '../..')],
     resolver: {
+      resolverMainFields: ["react-native", "browser", "main"],
+      sourceExts: ["js", "jsx", "json", "ts", "tsx"],
       nodeModulesPaths: [
         path.resolve(__dirname, 'node_modules'),
         path.resolve(__dirname, '../../node_modules'),

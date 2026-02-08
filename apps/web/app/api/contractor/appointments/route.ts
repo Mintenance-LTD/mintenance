@@ -4,6 +4,22 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
+
+const createAppointmentSchema = z.object({
+  title: z.string().min(1).max(500),
+  clientName: z.string().max(200).optional(),
+  clientEmail: z.string().email().optional(),
+  clientPhone: z.string().max(50).optional(),
+  appointmentDate: z.string().min(1),
+  startTime: z.string().min(1),
+  endTime: z.string().min(1),
+  locationType: z.enum(['onsite', 'remote', 'phone']).optional(),
+  locationAddress: z.string().max(500).optional(),
+  jobId: z.string().uuid().optional(),
+  notes: z.string().max(5000).optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -134,7 +150,8 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Contractor access required');
     }
 
-    const body = await request.json();
+    const validation = await validateRequest(request, createAppointmentSchema);
+    if (validation instanceof NextResponse) return validation;
     const {
       title,
       clientName,
@@ -147,12 +164,7 @@ export async function POST(request: NextRequest) {
       locationAddress,
       jobId,
       notes,
-    } = body;
-
-    // Validate required fields
-    if (!title || !appointmentDate || !startTime || !endTime) {
-      throw new BadRequestError('Missing required fields');
-    }
+    } = validation.data;
 
     // Check for conflicts
     const { data: conflictCheck } = await serverSupabase.rpc(

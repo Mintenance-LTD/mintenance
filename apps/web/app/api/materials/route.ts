@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { materialsService } from '@/lib/services/MaterialsService';
-import type { MaterialCategory, MaterialQueryFilters } from '@mintenance/shared/types/materials';
 import { logger } from '@mintenance/shared';
+import type { MaterialCategory, MaterialQueryFilters } from '@mintenance/shared';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
 /**
  * GET /api/materials - Query materials with filters
@@ -104,21 +107,44 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Add authentication check for admin role
-    // const session = await getServerSession();
-    // if (!session || session.user.role !== 'admin') {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    // }
-
-    const body = await request.json();
-
-    // Validate required fields
-    if (!body.name || !body.category || !body.unit_price || !body.unit) {
-      return NextResponse.json(
-        { error: 'Missing required fields: name, category, unit_price, unit' },
-        { status: 400 }
-      );
+    const adminResult = await requireAdmin(request);
+    if (isAdminError(adminResult)) {
+      return adminResult.error;
     }
+
+    const materialCategories = [
+      'lumber', 'concrete', 'brick', 'tile', 'insulation', 'drywall',
+      'paint', 'roofing', 'plumbing', 'electrical', 'hardware', 'glass',
+      'sealants', 'fasteners', 'other',
+    ] as const;
+
+    const materialUnits = [
+      'each', 'meter', 'sqm', 'liter', 'kg', 'bundle', 'box', 'sqft', 'sheet',
+    ] as const;
+
+    const createMaterialSchema = z.object({
+      name: z.string().min(1, 'Name is required').max(300),
+      category: z.enum(materialCategories, { errorMap: () => ({ message: 'Invalid material category' }) }),
+      description: z.string().max(2000).optional(),
+      unit_price: z.number().positive('Unit price must be positive'),
+      unit: z.enum(materialUnits, { errorMap: () => ({ message: 'Invalid unit type' }) }),
+      bulk_quantity: z.number().int().positive().optional(),
+      bulk_unit_price: z.number().positive().optional(),
+      sku: z.string().max(100).optional(),
+      barcode: z.string().max(100).optional(),
+      brand: z.string().max(200).optional(),
+      in_stock: z.boolean().optional(),
+      stock_quantity: z.number().int().min(0).optional(),
+      lead_time_days: z.number().int().min(0).optional(),
+      specifications: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+      image_url: z.string().url().max(2000).optional(),
+      supplier_name: z.string().max(300).optional(),
+      supplier_id: z.string().uuid().optional(),
+    });
+
+    const validation = await validateRequest(request, createMaterialSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data: body } = validation;
 
     const material = await materialsService.createMaterial(body);
 

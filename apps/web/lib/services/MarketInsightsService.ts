@@ -65,7 +65,7 @@ export class MarketInsightsService {
     try {
       // Get contractor's location and service types if not provided
       const { data: contractor } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('city, country')
         .eq('id', contractorId)
         .single();
@@ -279,7 +279,7 @@ export class MarketInsightsService {
 
     // Count competitors (other contractors in same location/service area)
     const { data: competitors } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id')
       .eq('role', 'contractor')
       .limit(1000);

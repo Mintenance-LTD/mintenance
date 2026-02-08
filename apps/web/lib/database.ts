@@ -73,7 +73,7 @@ export class DatabaseManager {
 
     // Insert user into database
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .insert({
         email: userData.email.toLowerCase().trim(),
         password_hash: passwordHash,
@@ -119,7 +119,7 @@ export class DatabaseManager {
   static async authenticateUser(email: string, password: string, ipAddress?: string): Promise<Omit<User, 'password_hash'> | null> {
     // Get user with password hash
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone, password_hash')
       .eq('email', email.toLowerCase().trim())
       .single();
@@ -199,7 +199,7 @@ export class DatabaseManager {
    */
   static async getUserById(userId: string): Promise<Omit<User, 'password_hash'> | null> {
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone, phone_verified, phone_verified_at, location, profile_image_url, bio, address, city, postcode')
       .eq('id', userId)
       .single();
@@ -216,7 +216,7 @@ export class DatabaseManager {
    */
   static async getUserByEmail(email: string): Promise<Omit<User, 'password_hash'> | null> {
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone, location, profile_image_url')
       .eq('email', email.toLowerCase().trim())
       .single();
@@ -270,7 +270,7 @@ export class DatabaseManager {
 
     // Update password
     const { error } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         password_hash: passwordHash,
         updated_at: new Date().toISOString()
@@ -303,7 +303,7 @@ export class DatabaseManager {
    */
   static async updateUser(userId: string, updates: Partial<Pick<User, 'first_name' | 'last_name' | 'phone' | 'email_verified'>>): Promise<Omit<User, 'password_hash'> | null> {
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         ...updates,
         updated_at: new Date().toISOString()
@@ -326,7 +326,7 @@ export class DatabaseManager {
     try {
       const normalizedEmail = email.toLowerCase().trim();
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('id')
         .eq('email', normalizedEmail)
         .single();

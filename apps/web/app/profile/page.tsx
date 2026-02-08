@@ -1,51 +1,58 @@
-// TODO: Replace mock user data with real Supabase data fetching.
-// This page currently renders hardcoded placeholder values for demonstration purposes.
-// To connect to real data:
-//   1. Import `useCurrentUser` from `@/hooks/useCurrentUser`
-//   2. Fetch the full user profile from Supabase via `/api/profile` or a direct query
-//   3. Populate `userData` state from the fetched profile
-//   4. Wire `handleSave` to persist changes via a PATCH/PUT to the API
-//   5. Wire `handleAvatarChange` to upload images to Supabase Storage
-//   6. Wire `handlePasswordChange` to Supabase Auth password update
-//   7. Remove the `DEMO_DATA` flag and the demo banner once complete
-
 'use client';
 
-import React, { useState } from 'react';
-import { User, Shield, Bell, Globe, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { User as UserIcon, Shield, Bell, Globe, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { ProfileHeroHeader } from './components/ProfileHeroHeader';
 import { ProfileInfoTab } from './components/ProfileInfoTab';
 import { ProfileSecurityTab } from './components/ProfileSecurityTab';
 import { ProfileNotificationsTab } from './components/ProfileNotificationsTab';
 import { ProfilePreferencesTab } from './components/ProfilePreferencesTab';
 
-/** Flag indicating this page uses placeholder data rather than live Supabase queries. */
-const DEMO_DATA = true;
-
 type TabId = 'profile' | 'security' | 'notifications' | 'preferences';
 
 export default function ProfilePage2025() {
+  const { user, loading, error: userError, refresh } = useCurrentUser();
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
-  // DEMO: Mock user data -- replace with real Supabase profile fetch (see TODO at top of file)
   const [userData, setUserData] = useState({
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah.johnson@example.com',
-    phone: '+44 7700 900123',
-    address: '123 Oak Street, London',
-    postcode: 'SW1A 1AA',
-    city: 'London',
-    country: 'United Kingdom',
-    bio: 'Homeowner passionate about property maintenance and home improvement projects.',
-    joinDate: '2024-03-15',
-    accountType: 'Premium',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    postcode: '',
+    city: '',
+    country: '',
+    bio: '',
+    joinDate: '',
+    accountType: '',
   });
+
+  // Populate form from real user data
+  useEffect(() => {
+    if (user) {
+      setUserData({
+        firstName: user.first_name || user.firstName || '',
+        lastName: user.last_name || user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.location || '',
+        postcode: '',
+        city: user.city || '',
+        country: user.country || '',
+        bio: user.bio || '',
+        joinDate: user.created_at || user.createdAt || '',
+        accountType: user.role || '',
+      });
+    }
+  }, [user]);
 
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorEnabled: true,
@@ -127,8 +134,8 @@ export default function ProfilePage2025() {
     return touchedFields[field] && !errors[field] && Boolean(userData[field as keyof typeof userData]);
   };
 
-  const handleSave = () => {
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'postcode'];
+  const handleSave = useCallback(async () => {
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone'];
     const newErrors: Record<string, string> = {};
     const newTouchedFields: Record<string, boolean> = {};
     requiredFields.forEach(field => {
@@ -143,11 +150,37 @@ export default function ProfilePage2025() {
       toast.error(`Please fix ${Object.keys(newErrors).length} validation error${Object.keys(newErrors).length > 1 ? 's' : ''}`);
       return;
     }
-    setIsEditing(false);
-    setTouchedFields({});
-    setErrors({});
-    toast.success('Profile updated successfully!');
-  };
+
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/user/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+          email: userData.email,
+          phone: userData.phone,
+          location: userData.address,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to update profile');
+      }
+
+      setIsEditing(false);
+      setTouchedFields({});
+      setErrors({});
+      toast.success('Profile updated successfully!');
+      refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [userData, refresh]);
 
   const handleCancel = () => {
     setIsEditing(false);
@@ -157,26 +190,33 @@ export default function ProfilePage2025() {
   };
 
   const tabs: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'profile', label: 'Profile', icon: UserIcon },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'preferences', label: 'Preferences', icon: Globe },
   ];
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-emerald-50">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+      </div>
+    );
+  }
+
+  if (userError || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-emerald-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Unable to load profile. Please sign in.</p>
+          <a href="/login" className="text-teal-600 hover:text-teal-700 font-medium">Sign In</a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50">
-      {/* Demo Data Banner */}
-      {DEMO_DATA && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3">
-          <div className="max-w-7xl mx-auto flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-            <p className="text-sm text-amber-800">
-              <span className="font-semibold">Demo Data</span> &mdash; This profile is showing placeholder information. Connect your account to see real data.
-            </p>
-          </div>
-        </div>
-      )}
-
       <ProfileHeroHeader
         firstName={userData.firstName}
         lastName={userData.lastName}
@@ -186,7 +226,10 @@ export default function ProfilePage2025() {
         onStartEditing={() => setIsEditing(true)}
         onSave={handleSave}
         onCancel={handleCancel}
-        onAvatarChange={() => toast.success('Avatar updated!')}
+        onAvatarChange={() => {
+          // Avatar upload is handled in Settings > Profile
+          window.location.href = '/settings?tab=profile';
+        }}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -234,8 +277,12 @@ export default function ProfilePage2025() {
           <ProfileSecurityTab
             securitySettings={securitySettings}
             onSecurityChange={setSecuritySettings}
-            onPasswordChange={() => toast.success('Password change email sent!')}
-            onDeleteAccount={() => toast.error('Account deletion requested - you will receive a confirmation email')}
+            onPasswordChange={() => {
+              window.location.href = '/settings?tab=account';
+            }}
+            onDeleteAccount={() => {
+              window.location.href = '/settings?tab=privacy';
+            }}
           />
         )}
 

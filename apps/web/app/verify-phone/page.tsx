@@ -22,7 +22,7 @@ export default async function VerifyPhonePage() {
 
   // Check if already verified
   const { data: userData } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('phone_verified, phone, first_name, last_name, email')
     .eq('id', user.id)
     .single();

@@ -4,6 +4,31 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
+
+const lineItemSchema = z.object({
+  description: z.string().min(1).max(500),
+  quantity: z.number().min(0),
+  unitPrice: z.number().min(0),
+  total: z.number().min(0).optional(),
+});
+
+const createQuoteSchema = z.object({
+  title: z.string().min(1).max(500),
+  clientName: z.string().min(1).max(200),
+  clientEmail: z.string().email().optional(),
+  clientPhone: z.string().max(50).optional(),
+  clientAddress: z.string().max(500).optional(),
+  lineItems: z.array(lineItemSchema).optional(),
+  subtotal: z.number().min(0).optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  taxAmount: z.number().min(0).optional(),
+  totalAmount: z.number().min(0),
+  validUntil: z.string().optional(),
+  terms: z.string().max(5000).optional(),
+  notes: z.string().max(5000).optional(),
+});
 
 export async function GET(request: NextRequest) {
   try {
@@ -120,7 +145,8 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Contractor authentication required');
     }
 
-    const body = await request.json();
+    const validation = await validateRequest(request, createQuoteSchema);
+    if (validation instanceof NextResponse) return validation;
     const {
       title,
       clientName,
@@ -135,12 +161,7 @@ export async function POST(request: NextRequest) {
       validUntil,
       terms,
       notes,
-    } = body;
-
-    // Validate required fields
-    if (!title || !clientName || !totalAmount) {
-      throw new BadRequestError('Missing required fields');
-    }
+    } = validation.data;
 
     // Generate quote number using Supabase function
     const { data: quoteNumber, error: numberError } = await serverSupabase

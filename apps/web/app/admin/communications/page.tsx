@@ -1,5 +1,4 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { CommunicationsClient } from './components/CommunicationsClient';
 
 export const metadata = {
@@ -7,7 +6,7 @@ export const metadata = {
 };
 
 export default async function AdminCommunicationsPage() {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createServerSupabaseClient();
 
   const { data: { user } } = await supabase.auth.getUser();
 

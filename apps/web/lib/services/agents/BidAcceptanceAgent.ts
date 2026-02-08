@@ -67,7 +67,7 @@ export class BidAcceptanceAgent {
 
       // Get contractor profile
       const { data: contractor, error: contractorError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, verified, background_check_status')
         .eq('id', bid.contractor_id)
         .single();

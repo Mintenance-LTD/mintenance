@@ -244,7 +244,7 @@ export class UserService {
   static async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
       const { data: user, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select(
           `
           *,
@@ -327,7 +327,7 @@ export class UserService {
   } | null> {
     try {
       const { data: user, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('first_name, last_name, created_at, rating')
         .eq('id', homeownerId)
         .single();
@@ -367,7 +367,7 @@ export class UserService {
   ): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from('users')
+        .from('profiles')
         .update({
           first_name: updates.first_name || updates.firstName,
           last_name: updates.last_name || updates.lastName,
@@ -399,7 +399,7 @@ export class UserService {
   ): Promise<UserProfile[]> {
     try {
       const query = supabase
-        .from('users')
+        .from('profiles')
         .select(
           `
           *,

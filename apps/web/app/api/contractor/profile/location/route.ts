@@ -1,13 +1,15 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
 /**
  * PATCH /api/contractor/profile/location
  * Updates contractor location (latitude, longitude, address, city, postcode)
  */
-export async function PATCH(request: Request) {
+export async function PATCH(request: NextRequest) {
   try {
   // Rate limiting check
   const rateLimitResult = await rateLimiter.checkRateLimit({
@@ -46,39 +48,20 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Parse request body
-    const body = await request.json();
-    const {
-      contractorId,
-      latitude,
-      longitude,
-      address,
-      city,
-      postcode,
-    } = body;
+    // Validate request body
+    const locationSchema = z.object({
+      contractorId: z.string().uuid().optional(),
+      latitude: z.number().min(-90, 'Invalid latitude value').max(90, 'Invalid latitude value'),
+      longitude: z.number().min(-180, 'Invalid longitude value').max(180, 'Invalid longitude value'),
+      address: z.string().max(500).optional(),
+      city: z.string().max(200).optional(),
+      postcode: z.string().max(20).optional(),
+    });
 
-    // Validate required fields
-    if (!latitude || !longitude) {
-      return NextResponse.json(
-        { error: 'Latitude and longitude are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate latitude and longitude ranges
-    if (latitude < -90 || latitude > 90) {
-      return NextResponse.json(
-        { error: 'Invalid latitude value' },
-        { status: 400 }
-      );
-    }
-
-    if (longitude < -180 || longitude > 180) {
-      return NextResponse.json(
-        { error: 'Invalid longitude value' },
-        { status: 400 }
-      );
-    }
+    const validation = await validateRequest(request, locationSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data: validatedBody } = validation;
+    const { contractorId, latitude, longitude, address, city, postcode } = validatedBody;
 
     // Verify user owns this contractor profile
     const { data: contractorData, error: contractorError } = await supabase

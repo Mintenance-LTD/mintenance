@@ -214,7 +214,7 @@ export async function validateMFAForPayment(
   try {
     // Check if user has MFA enabled
     const { data: user, error: userError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('mfa_enabled, mfa_secret')
       .eq('id', userId)
       .single();
@@ -466,7 +466,7 @@ async function recordMFAAttempt(
 export async function userHasMFAEnabled(userId: string): Promise<boolean> {
   try {
     const { data, error } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('mfa_enabled')
       .eq('id', userId)
       .single();

@@ -4,7 +4,9 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { checkGDPRRateLimit } from '@/lib/rate-limiting/admin-gdpr';
-import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, InternalServerError } from '@/lib/errors/api-error';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
 /**
  * GET /api/user/gdpr-preferences
@@ -67,16 +69,17 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required');
     }
 
-    const body = await request.json();
-    const { preferences } = body;
+    const gdprPreferencesSchema = z.object({
+      preferences: z.record(z.string(), z.boolean()),
+    });
 
-    if (!preferences || typeof preferences !== 'object') {
-      throw new BadRequestError('Invalid preferences data');
-    }
+    const validation = await validateRequest(request, gdprPreferencesSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
 
     // Ensure dataProcessing is always true (required for service)
     const validPreferences = {
-      ...preferences,
+      ...data.preferences,
       dataProcessing: true,
     };
 

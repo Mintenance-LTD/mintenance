@@ -136,8 +136,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check phone verification for homeowners (TEMPORARILY DISABLED FOR TESTING)
-    // TODO: Re-enable phone verification after testing
+    // Phone verification for homeowners (skipped in development or when SKIP_PHONE_VERIFICATION=true)
     const skipVerification = process.env.NODE_ENV === 'development' || process.env.SKIP_PHONE_VERIFICATION === 'true';
 
     if (user.role === 'homeowner' && !skipVerification) {

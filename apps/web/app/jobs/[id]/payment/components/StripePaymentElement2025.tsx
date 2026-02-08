@@ -22,8 +22,9 @@ export function StripePaymentElement2025(props: StripePaymentElement2025Props) {
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'link' | 'apple' | 'google'>('card');
 
-  // This is a placeholder for Stripe Elements integration
-  // In production, you would use @stripe/stripe-js and @stripe/react-stripe-js
+  // TODO: Replace with real Stripe Elements integration using @stripe/stripe-js
+  // This placeholder should call POST /api/payments/create-intent to get a real PaymentIntent
+  // and use Stripe's confirmPayment() for PCI-compliant card processing.
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,13 +34,20 @@ export function StripePaymentElement2025(props: StripePaymentElement2025Props) {
     setProcessing(true);
 
     try {
-      // Simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Create a real payment intent via the API
+      const res = await fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, currency: 'gbp' }),
+      });
 
-      // In production, this would be the actual Stripe Payment Intent ID
-      const mockPaymentIntentId = `pi_${Date.now()}`;
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to create payment');
+      }
 
-      onPaymentSuccess(mockPaymentIntentId);
+      const { paymentIntentId } = await res.json();
+      onPaymentSuccess(paymentIntentId);
     } catch (error) {
       onPaymentError(error instanceof Error ? error.message : 'Payment failed');
     } finally {

@@ -153,7 +153,7 @@ export async function POST(
         if (stripeSecretKey) {
           const Stripe = (await import('stripe')).default;
           const stripe = new Stripe(stripeSecretKey, {
-            apiVersion: '2023-10-16',
+            apiVersion: '2024-04-10',
           });
 
           const stripeAccount = await stripe.accounts.retrieve(payoutAccount.stripe_account_id);

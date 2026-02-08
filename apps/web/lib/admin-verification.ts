@@ -19,7 +19,7 @@ import { logger } from '@mintenance/shared';
 export async function verifyAdminRoleFromDatabase(userId: string): Promise<boolean> {
   try {
     const { data, error } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, role')
       .eq('id', userId)
       .eq('role', 'admin')

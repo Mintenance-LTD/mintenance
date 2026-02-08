@@ -125,7 +125,7 @@ export class CheckoutHandler {
     }
     // Update user's setup intent
     await supabase
-      .from('users')
+      .from('profiles')
       .update({
         setup_intent_id: session.setup_intent as string,
         default_payment_method: session.payment_method_types?.[0],
