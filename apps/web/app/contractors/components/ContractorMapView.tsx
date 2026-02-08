@@ -133,7 +133,7 @@ export function ContractorMapView(props: ContractorMapViewProps) {
       } else {
         // Fetch from database if not provided
         const { data, error } = await supabase
-          .from('users')
+          .from('profiles')
           .select('id, first_name, last_name, latitude, longitude, rating, profile_image_url, city, is_visible_on_map')
           .eq('role', 'contractor')
           .eq('is_visible_on_map', true)

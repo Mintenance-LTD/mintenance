@@ -1,5 +1,4 @@
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { BuildingAssessmentsClient } from './components/BuildingAssessmentsClient';
 
 export const metadata = {
@@ -7,7 +6,7 @@ export const metadata = {
 };
 
 export default async function AdminBuildingAssessmentsPage() {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = await createServerSupabaseClient();
 
   const { data: assessments } = await supabase
     .from('building_assessments')
@@ -30,6 +29,16 @@ export default async function AdminBuildingAssessmentsPage() {
       safeAssessments.length > 0
         ? safeAssessments.reduce((sum, a) => sum + (a.safety_score ?? 0), 0) / safeAssessments.length
         : 0,
+    bySeverity: {
+      early: safeAssessments.filter((a) => a.severity === 'early').length,
+      midway: safeAssessments.filter((a) => a.severity === 'midway').length,
+      full: safeAssessments.filter((a) => a.severity === 'full').length,
+    },
+    byDamageType: safeAssessments.reduce<Record<string, number>>((acc, a) => {
+      const type = a.damage_type ?? 'unknown';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {}),
   };
 
   return (

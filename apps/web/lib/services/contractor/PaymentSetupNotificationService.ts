@@ -14,7 +14,7 @@ export class PaymentSetupNotificationService {
     try {
       // Check if contractor has payment setup
       const { data: contractor } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('stripe_connect_account_id')
         .eq('id', contractorId)
         .single();
@@ -87,7 +87,7 @@ export class PaymentSetupNotificationService {
 
     // Get contractors without payment setup
     const { data: contractors, error: contractorsError } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, first_name, last_name, email, stripe_connect_account_id')
       .in('id', contractorIds)
       .eq('role', 'contractor')

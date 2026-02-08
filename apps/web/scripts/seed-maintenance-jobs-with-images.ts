@@ -145,7 +145,7 @@ async function seedMaintenanceJobs() {
 
   // Get or create a test homeowner
   let { data: homeowner } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id')
     .eq('role', 'homeowner')
     .single();
@@ -153,7 +153,7 @@ async function seedMaintenanceJobs() {
   if (!homeowner) {
     // Create a test homeowner
     const { data: newUser, error: userError } = await supabase
-      .from('users')
+      .from('profiles')
       .insert({
         email: 'test.homeowner@mintenance.com',
         first_name: 'Test',

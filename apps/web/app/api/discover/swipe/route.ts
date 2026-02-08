@@ -5,6 +5,14 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
+
+const swipeSchema = z.object({
+  action: z.enum(['like', 'pass', 'super_like', 'maybe']),
+  itemId: z.string().uuid(),
+  itemType: z.enum(['job', 'contractor']),
+});
 
 /**
  * Handle swipe actions on the Discover page
@@ -46,16 +54,9 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Authentication required to swipe');
     }
 
-    const body = await request.json();
-    const { action, itemId, itemType } = body;
-
-    if (!action || !itemId || !itemType) {
-      throw new BadRequestError('Missing required fields: action, itemId, itemType');
-    }
-
-    if (!['like', 'pass', 'super_like', 'maybe'].includes(action)) {
-      throw new BadRequestError('Invalid action. Must be: like, pass, super_like, or maybe');
-    }
+    const validation = await validateRequest(request, swipeSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { action, itemId, itemType } = validation.data;
 
     const isContractor = user.role === 'contractor';
     const isHomeowner = user.role === 'homeowner';

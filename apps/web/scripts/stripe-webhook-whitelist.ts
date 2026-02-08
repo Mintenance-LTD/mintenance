@@ -24,7 +24,7 @@ const TEST_SCENARIOS = [
     testData: {
       id: 'pi_test_success',
       amount: 5000,
-      currency: 'usd',
+      currency: 'gbp',
       status: 'succeeded'
     }
   },
@@ -35,7 +35,7 @@ const TEST_SCENARIOS = [
     testData: {
       id: 'pi_test_failed',
       amount: 2500,
-      currency: 'usd',
+      currency: 'gbp',
       status: 'requires_payment_method',
       last_payment_error: {
         code: 'card_declined',

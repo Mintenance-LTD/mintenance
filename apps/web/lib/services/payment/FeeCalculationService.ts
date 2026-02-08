@@ -29,20 +29,20 @@ export interface FeeCalculationOptions {
   maxPlatformFee?: number;
   
   /**
-   * Stripe processing fee rate (as decimal, e.g., 0.029 for 2.9%)
-   * @default 0.029
+   * Stripe processing fee rate (as decimal, e.g., 0.015 for 1.5%)
+   * @default 0.015
    */
   stripeFeeRate?: number;
   
   /**
    * Fixed Stripe processing fee
-   * @default 0.30
+   * @default 0.20
    */
   stripeFixedFee?: number;
   
   /**
    * Currency code for rounding precision
-   * @default 'usd'
+   * @default 'gbp'
    */
   currency?: string;
 }
@@ -79,7 +79,7 @@ export interface FeeBreakdown extends FeeCalculation {
  * 
  * Handles all fee calculations consistently across the platform:
  * - Platform fees (configurable rate, min/max limits)
- * - Stripe processing fees (2.9% + fixed fee)
+ * - Stripe processing fees (1.5% + 20p, UK rates)
  * - Different rates for deposit vs final payments
  * - Net revenue calculations
  */
@@ -95,15 +95,15 @@ export class FeeCalculationService {
     },
     minPlatformFee: 0.50,
     maxPlatformFee: 50.00,
-    stripeFeeRate: 0.029, // 2.9%
-    stripeFixedFee: 0.30, // $0.30
-    currency: 'usd',
+    stripeFeeRate: 0.015, // 1.5% (UK Stripe rate)
+    stripeFixedFee: 0.20, // £0.20 (UK Stripe fixed fee)
+    currency: 'gbp',
   } as const;
 
   /**
    * Calculate fees for a payment amount
    * 
-   * @param amount - Payment amount in dollars/cents
+   * @param amount - Payment amount in pounds
    * @param options - Fee calculation options
    * @returns Fee breakdown with all calculated values
    */

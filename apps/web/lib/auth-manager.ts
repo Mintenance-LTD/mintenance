@@ -114,7 +114,7 @@ export class AuthManager {
 
       // Get user profile from public.users (created by trigger)
       const { data: userProfile, error: profileError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
         .eq('id', authData.user.id)
         .single();
@@ -199,7 +199,7 @@ export class AuthManager {
       // Check if user already exists in public.users before attempting registration
       logger.info('Checking if user already exists', { email: userData.email, service: 'auth' });
       const { data: existingUser } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, email, role')
         .eq('email', userData.email)
         .maybeSingle();
@@ -290,7 +290,7 @@ export class AuthManager {
         await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
         
         const { data, error } = await serverSupabase
-          .from('users')
+          .from('profiles')
           .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
           .eq('id', authData.user.id)
           .single();
@@ -319,7 +319,7 @@ export class AuthManager {
         // Try to manually create the profile if trigger failed
         try {
           const { data: manualProfile, error: manualError } = await serverSupabase
-            .from('users')
+            .from('profiles')
             .insert({
               id: authData.user.id,
               email: authData.user.email || userData.email,
@@ -342,7 +342,7 @@ export class AuthManager {
               logger.warn('User profile already exists, fetching existing profile', { userId: authData.user.id, service: 'auth' });
               // Try to fetch the existing profile
               const { data: existingProfile } = await serverSupabase
-                .from('users')
+                .from('profiles')
                 .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
                 .eq('id', authData.user.id)
                 .single();
@@ -359,7 +359,7 @@ export class AuthManager {
           // Try to fetch existing profile as fallback
           try {
             const { data: existingProfile } = await serverSupabase
-              .from('users')
+              .from('profiles')
               .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
               .eq('id', authData.user.id)
               .single();

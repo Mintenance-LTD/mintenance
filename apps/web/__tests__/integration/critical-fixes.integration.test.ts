@@ -209,7 +209,7 @@ describe('Critical Fixes Integration Tests', () => {
             // Process payment
             const paymentIntent = await mockStripe.paymentIntents.create({
               amount: amount * 100,
-              currency: 'usd',
+              currency: 'gbp',
             });
 
             // Record in history
@@ -374,7 +374,7 @@ describe('Critical Fixes Integration Tests', () => {
       expect(mockStripe.paymentIntents.create).toHaveBeenCalledWith(
         expect.objectContaining({
           amount: 500000, // $50 in cents
-          currency: 'usd',
+          currency: 'gbp',
         })
       );
     });

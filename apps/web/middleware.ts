@@ -273,6 +273,24 @@ export async function middleware(request: NextRequest) {
           return redirectToLogin(request);
         }
 
+        // SECURITY: Validate CSRF for state-changing requests (same check as JWT path)
+        if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+          const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+          const headerToken = request.headers.get('x-csrf-token');
+          const cookieToken = request.cookies.get(csrfCookieName)?.value;
+
+          if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+            logger.warn('CSRF token validation failed (Supabase auth path)', {
+              service: 'middleware',
+              method: request.method,
+              pathname,
+              hasHeaderToken: !!headerToken,
+              hasCookieToken: !!cookieToken,
+            });
+            return NextResponse.json({ error: 'CSRF token mismatch' }, { status: 403 });
+          }
+        }
+
         // Add user info to request headers from Supabase session
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set('x-user-id', user.id);

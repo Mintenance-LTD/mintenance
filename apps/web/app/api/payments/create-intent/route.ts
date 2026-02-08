@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const anomalyCheck = await PaymentMonitoringService.detectAnomalies(user.id, {
       userId: user.id,
       amount,
-      currency: currency || 'usd',
+      currency: currency || 'gbp',
       type: 'payment',
       metadata: {
         jobId,
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
 
     if (amount > 100000) {
       return NextResponse.json({
-        error: 'Payment amount exceeds maximum allowed ($100,000)',
+        error: 'Payment amount exceeds maximum allowed (£100,000)',
       }, { status: 400 });
     }
 
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
     await serverSupabase.from('payment_attempts').insert({
       user_id: user.id,
       amount,
-      currency: currency || 'usd',
+      currency: currency || 'gbp',
       status: 'pending',
       ip_address: request.headers.get('x-forwarded-for')?.split(',')[0] || null,
       user_agent: request.headers.get('user-agent') || null,
@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
     const paymentIntent = await stripeWithTimeout(
       () => stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
-        currency: (currency || 'usd').toLowerCase(),
+        currency: (currency || 'gbp').toLowerCase(),
         description: metadata?.description || `Payment for job: ${job.title}`,
         metadata: {
           jobId,

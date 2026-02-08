@@ -444,7 +444,7 @@ describe('Stripe Webhook Security', () => {
             id: 'pi_test_123',
             status: 'succeeded',
             amount: 2000,
-            currency: 'usd',
+            currency: 'gbp',
             metadata: {
               job_id: 'job_123',
               contractorId: 'contractor_456',

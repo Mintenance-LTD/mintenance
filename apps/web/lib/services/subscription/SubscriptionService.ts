@@ -288,7 +288,7 @@ export class SubscriptionService {
 
       // Get trial info from user
       const { data: user } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('trial_started_at, trial_ends_at')
         .eq('id', contractorId)
         .single();
@@ -339,7 +339,7 @@ export class SubscriptionService {
 
       // Update user subscription status
       await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({
           subscription_status: status,
         })

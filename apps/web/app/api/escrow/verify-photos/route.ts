@@ -9,16 +9,18 @@ import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
-/** Type for escrow with job relation from Supabase */
+/** Type for escrow with job relation from Supabase (!inner join returns jobs as array) */
+interface EscrowJob {
+  id: string;
+  contractor_id: string;
+  homeowner_id: string;
+}
+
 interface EscrowWithJob {
   id: string;
   payer_id: string;
   payee_id: string;
-  jobs: {
-    id: string;
-    contractor_id: string;
-    homeowner_id: string;
-  };
+  jobs: EscrowJob | EscrowJob[];
 }
 
 const verifyPhotosSchema = z.object({
@@ -83,8 +85,8 @@ export async function POST(request: NextRequest) {
       throw new NotFoundError('Escrow not found');
     }
 
-    const typedEscrow = escrow as EscrowWithJob;
-    const job = typedEscrow.jobs;
+    const typedEscrow = escrow as unknown as EscrowWithJob;
+    const job = Array.isArray(typedEscrow.jobs) ? typedEscrow.jobs[0] : typedEscrow.jobs;
     const canVerify =
       user.role === 'admin' ||
       (user.role === 'contractor' && job.contractor_id === user.id) ||

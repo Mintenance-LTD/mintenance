@@ -17,7 +17,7 @@ export class HomeownerVerificationService {
   }> {
     try {
       const { data: user, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email_verified, phone_verified, role')
         .eq('id', userId)
         .single();
@@ -78,7 +78,7 @@ export class HomeownerVerificationService {
   }> {
     try {
       const { data: user, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email_verified, phone_verified, phone, role')
         .eq('id', userId)
         .single();

@@ -84,7 +84,7 @@ async function testDatabaseSchema() {
 
     // Check users table has stripe_customer_id
     const { data: usersData, error: usersError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id')
       .limit(1);
 
@@ -95,7 +95,7 @@ async function testDatabaseSchema() {
 
     // Try to query stripe_customer_id specifically
     const { data: stripeCheck, error: stripeError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('stripe_customer_id')
       .limit(1);
 

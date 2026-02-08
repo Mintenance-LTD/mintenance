@@ -1,7 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
-import { PaymentService, PaymentMethod } from '../../../services/PaymentService';
+import { PaymentService } from '../../../services/PaymentService';
 import { logger } from '../../../utils/logger';
+
+interface PaymentMethod {
+  id: string;
+  type: string;
+  card?: {
+    brand: string;
+    last4: string;
+    expiryMonth: number;
+    expiryYear: number;
+  };
+  isDefault: boolean;
+  createdAt: string;
+}
 
 interface UsePaymentOptions {
   userId: string | undefined;
@@ -28,8 +41,9 @@ export function usePayment({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const platformFee = PaymentService.calculatePlatformFee(amount);
-  const contractorPayout = PaymentService.calculateContractorPayout(amount);
+  const fees = PaymentService.calculateFees(amount);
+  const platformFee = fees.platformFee;
+  const contractorPayout = fees.contractorAmount;
   const totalAmount = useEscrow ? amount : amount + platformFee;
 
   useEffect(() => {
@@ -40,10 +54,16 @@ export function usePayment({
     if (!userId) return;
 
     try {
-      const methods = await PaymentService.getPaymentMethods(userId);
-      setPaymentMethods(methods);
+      const result = await PaymentService.getPaymentMethods();
 
-      const defaultMethod = methods.find(m => m.isDefault);
+      if (result.error || !result.methods) {
+        setError(result.error || 'Failed to load payment methods');
+        return;
+      }
+
+      setPaymentMethods(result.methods);
+
+      const defaultMethod = result.methods.find((m: PaymentMethod) => m.isDefault);
       if (defaultMethod) {
         setSelectedMethod(defaultMethod);
       }
@@ -66,13 +86,29 @@ export function usePayment({
     setProcessing(true);
     try {
       if (useEscrow) {
-        await PaymentService.createEscrowPayment(
+        // Step 1: Create payment intent via API
+        const intentResult = await PaymentService.createPaymentIntent(jobId, amount, selectedMethod.id);
+
+        if (intentResult.error || !intentResult.clientSecret) {
+          throw new Error(intentResult.error || 'Failed to create payment intent');
+        }
+
+        // Step 2: Confirm with Stripe SDK
+        const confirmed = await PaymentService.confirmPayment({
+          clientSecret: intentResult.clientSecret,
+          paymentMethodId: selectedMethod.id,
+        });
+
+        if (confirmed.status !== 'Succeeded') {
+          throw new Error('Payment confirmation failed');
+        }
+
+        // Step 3: Create escrow transaction record
+        await PaymentService.createEscrowTransaction(
           jobId,
-          contractorId,
           userId,
-          amount,
-          'usd',
-          ['Job completed successfully', 'Client approval']
+          contractorId,
+          amount
         );
 
         Alert.alert(
@@ -81,27 +117,32 @@ export function usePayment({
           [{ text: 'OK', onPress: onSuccess }]
         );
       } else {
-        const intent = await PaymentService.createPaymentIntent(amount, 'usd', {
+        // Direct payment using processJobPayment (handles 3DS)
+        const result = await PaymentService.processJobPayment(
           jobId,
-          contractorId,
-          clientId: userId,
-          description: `Payment for ${jobTitle}`,
-        });
-
-        const confirmedIntent = await PaymentService.confirmPaymentIntent(
-          intent.id,
+          amount,
           selectedMethod.id
         );
 
-        if (confirmedIntent.status === 'succeeded') {
-          Alert.alert(
-            'Payment Successful',
-            'Your payment has been processed successfully.',
-            [{ text: 'OK', onPress: onSuccess }]
-          );
-        } else {
-          throw new Error('Payment confirmation failed');
+        if (result.requiresAction && result.clientSecret) {
+          // Handle 3D Secure
+          const confirmed = await PaymentService.confirmPayment({
+            clientSecret: result.clientSecret,
+            paymentMethodId: selectedMethod.id,
+          });
+
+          if (confirmed.status !== 'Succeeded') {
+            throw new Error('Payment confirmation failed');
+          }
+        } else if (!result.success) {
+          throw new Error(result.error || 'Payment failed');
         }
+
+        Alert.alert(
+          'Payment Successful',
+          'Your payment has been processed successfully.',
+          [{ text: 'OK', onPress: onSuccess }]
+        );
       }
     } catch (err) {
       Alert.alert('Payment Failed', 'Please try again or contact support.');

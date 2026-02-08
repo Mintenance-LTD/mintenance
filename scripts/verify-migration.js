@@ -36,7 +36,7 @@ async function verifyMigration() {
 
   // First, get a homeowner user
   const { data: homeowner } = await supabase
-    .from('users')
+    .from('profiles')
     .select('id')
     .eq('role', 'homeowner')
     .limit(1)

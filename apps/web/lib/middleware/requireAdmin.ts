@@ -65,7 +65,7 @@ export async function requireAdmin(request: NextRequest): Promise<{
     const supabase = createClient();
 
     const { data: dbUser, error: dbError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id, email, role, verified')
       .eq('id', user.id)
       .single();

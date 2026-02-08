@@ -117,7 +117,7 @@ export class AuthService {
       // Get user profile
       if (data.user) {
         const { data: userProfile, error: profileError } = await supabase
-          .from('users')
+          .from('profiles')
           .select('*')
           .eq('id', data.user.id)
           .single();
@@ -185,7 +185,7 @@ export class AuthService {
       if (!session?.user) return null;
 
       const { data: userProfile, error } = await supabase
-        .from('users')
+        .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .single();
@@ -243,7 +243,7 @@ export class AuthService {
     }
 
     const { data, error } = await supabase
-      .from('users')
+      .from('profiles')
       .update(updates)
       .eq('id', userId)
       .select()

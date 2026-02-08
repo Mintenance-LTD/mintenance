@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 import { AutomationPreferencesService } from '@/lib/services/agents/AutomationPreferencesService';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { updateProfileSchema } from '@/lib/validation/schemas';
 
 // Type definition for user profile update data
 interface UserProfileUpdateData {
@@ -17,10 +19,7 @@ interface UserProfileUpdateData {
   profile_image_url?: string | null;
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = serverSupabase;
 
 // Profile image security configuration
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -186,26 +185,33 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Handle JSON update (no file upload)
-      const body = await request.json();
+      // Use extended schema that also accepts automationPreferences passthrough
+      const { z } = await import('zod');
+      const extendedProfileSchema = updateProfileSchema.extend({
+        automationPreferences: z.record(z.string(), z.unknown()).optional(),
+      });
+
+      const validation = await validateRequest(request, extendedProfileSchema);
+      if (validation instanceof NextResponse) return validation;
+      const { data: validatedBody } = validation;
+
       const updateData: UserProfileUpdateData = {};
 
-      if (body.first_name !== undefined) updateData.first_name = sanitizeText(body.first_name, 50);
-      if (body.last_name !== undefined) updateData.last_name = sanitizeText(body.last_name, 50);
-      if (body.email !== undefined) updateData.email = sanitizeText(body.email, 255);
-      if (body.phone !== undefined) updateData.phone = body.phone ? sanitizeText(body.phone, 20) : null;
-      if (body.location !== undefined) updateData.location = body.location ? sanitizeText(body.location, 256) : null;
-      if (body.profile_image_url !== undefined) updateData.profile_image_url = body.profile_image_url;
+      if (validatedBody.firstName !== undefined) updateData.first_name = validatedBody.firstName;
+      if (validatedBody.lastName !== undefined) updateData.last_name = validatedBody.lastName;
+      if (validatedBody.phone !== undefined) updateData.phone = validatedBody.phone || null;
+      if (validatedBody.profileImageUrl !== undefined) updateData.profile_image_url = validatedBody.profileImageUrl;
 
       // Handle automation preferences if provided
-      if (body.automationPreferences) {
+      if (validatedBody.automationPreferences) {
         await AutomationPreferencesService.updatePreferences(
           user.id,
-          body.automationPreferences
+          validatedBody.automationPreferences
         );
       }
 
       // Don't attempt update if no fields to update
-      if (Object.keys(updateData).length === 0 && !body.automationPreferences) {
+      if (Object.keys(updateData).length === 0 && !validatedBody.automationPreferences) {
         return NextResponse.json({
           success: true,
           message: 'No changes to update',

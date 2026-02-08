@@ -26,7 +26,7 @@ export default async function ContractorPublicProfilePage(props: {
 
   // Fetch contractor data
   const { data: contractor, error } = await supabase
-    .from('users')
+    .from('profiles')
     .select(`
       *,
       contractor_skills(skill_name)

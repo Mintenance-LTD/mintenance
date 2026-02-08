@@ -47,7 +47,7 @@ export class PaymentService {
       throw new Error('Amount must be greater than 0');
     }
     if (amount > 10000) {
-      throw new Error('Amount cannot exceed $10,000');
+      throw new Error('Amount cannot exceed £10,000');
     }
 
     const amountInCents = Math.round(amount * 100);
@@ -435,8 +435,8 @@ export class PaymentService {
     totalFees: number;
   } {
     const platformRate = 0.05;
-    const stripeRate = 0.029;
-    const stripeFixed = 0.3;
+    const stripeRate = 0.015; // UK Stripe rate
+    const stripeFixed = 0.20; // £0.20 UK fixed fee
     const minPlatformFee = 0.5;
     const maxPlatformFee = 50;
 

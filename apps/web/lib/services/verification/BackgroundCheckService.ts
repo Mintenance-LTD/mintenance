@@ -57,7 +57,7 @@ export class BackgroundCheckService {
     try {
       // Get user data
       const { data: user, error: userError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, first_name, last_name, email, phone, role')
         .eq('id', userId)
         .single();
@@ -77,7 +77,7 @@ export class BackgroundCheckService {
 
       // Update status to in_progress
       const { error: updateError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({
           background_check_status: 'in_progress',
           background_check_provider: provider,
@@ -118,7 +118,7 @@ export class BackgroundCheckService {
         });
         // Revert status
         await serverSupabase
-          .from('users')
+          .from('profiles')
           .update({ background_check_status: 'pending' })
           .eq('id', userId);
         return { success: false, error: 'Failed to initiate background check with provider' };
@@ -126,7 +126,7 @@ export class BackgroundCheckService {
 
       // Store check ID
       await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({
           background_check_id: checkId,
         })
@@ -261,7 +261,7 @@ export class BackgroundCheckService {
       }
 
       const { error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .update(updateData)
         .eq('id', userId);
 
@@ -296,7 +296,7 @@ export class BackgroundCheckService {
   static async getCheckStatus(userId: string): Promise<BackgroundCheckResult | null> {
     try {
       const { data: user, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('background_check_status, background_check_provider, background_check_id, background_check_completed_at, background_check_result')
         .eq('id', userId)
         .single();

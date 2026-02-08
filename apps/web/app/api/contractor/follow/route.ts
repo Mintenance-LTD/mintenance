@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = serverSupabase;
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,12 +43,14 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Contractor access required to follow other contractors');
     }
 
-    const body = await request.json();
-    const { contractor_id } = body;
+    const followSchema = z.object({
+      contractor_id: z.string().uuid('contractor_id must be a valid UUID'),
+    });
 
-    if (!contractor_id) {
-      throw new BadRequestError('contractor_id is required');
-    }
+    const validation = await validateRequest(request, followSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
+    const { contractor_id } = data;
 
     if (contractor_id === user.id) {
       throw new BadRequestError('You cannot follow yourself');

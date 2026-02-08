@@ -55,7 +55,7 @@ serve(async (req) => {
 
     // Get contractor information
     const { data: contractor, error: contractorError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('email, first_name, last_name, country, stripe_connect_account_id')
       .eq('id', contractorId)
       .eq('role', 'contractor')
@@ -174,7 +174,7 @@ serve(async (req) => {
 
     // Also update users table with stripe_connect_account_id for payment setup checks
     const { error: userUpdateError } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         stripe_connect_account_id: account.id,
       })

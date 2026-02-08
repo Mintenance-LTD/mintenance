@@ -198,14 +198,14 @@ export function ProductionLandingPage() {
 
       // Fetch real stats from Supabase
       const [contractorsResult, jobsResult, ratingsResult] = await Promise.all([
-        supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'contractor'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'contractor'),
         supabase.from('jobs').select('id', { count: 'exact', head: true }),
         supabase.from('reviews').select('rating'),
       ]);
 
       // Fetch featured contractors with their profiles
       const { data: contractors, error: contractorsError } = await supabase
-        .from('users')
+        .from('profiles')
         .select(`
           id,
           full_name,

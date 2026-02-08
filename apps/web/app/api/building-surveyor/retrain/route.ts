@@ -10,6 +10,7 @@ import { YOLOCorrectionService } from '@/lib/services/building-surveyor/YOLOCorr
 import { logger } from '@mintenance/shared';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
+import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
@@ -40,13 +41,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-    const user = await getCurrentUserFromCookies();
-    if (!user?.id) {
-      throw new UnauthorizedError('Authentication required');
+    const adminResult = await requireAdmin(request);
+    if (isAdminError(adminResult)) {
+      return adminResult.error;
     }
-
-    // TODO: Check if user has permission (admin only)
-    // For now, allow any authenticated user
+    const user = adminResult.user;
 
     const { searchParams } = new URL(request.url);
     const force = searchParams.get('force') === 'true';

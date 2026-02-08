@@ -13,7 +13,7 @@ export class AdminNotificationService {
     try {
       // Get count of pending verifications
       const { count, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id', { count: 'exact', head: true })
         .eq('role', 'contractor')
         .eq('admin_verified', false)
@@ -123,7 +123,7 @@ This is an automated notification. You can manage notification preferences in th
   ): Promise<boolean> {
     try {
       const { data: contractor, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('email, first_name, last_name, company_name')
         .eq('id', contractorId)
         .single();

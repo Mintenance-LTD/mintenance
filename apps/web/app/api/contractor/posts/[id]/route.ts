@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
+
+const updatePostSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  content: z.string().min(1).max(10000).optional(),
+  images: z.array(z.string().url()).optional(),
+});
 
 // Type definitions for post operations
 interface PostUpdateData {
@@ -14,10 +22,7 @@ interface PostUpdateData {
   images?: string[];
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = serverSupabase;
 
 export async function GET(
   request: NextRequest,
@@ -160,8 +165,9 @@ export async function PATCH(
 
     const { id } = await params;
     const postId = id;
-    const body = await request.json();
-    const { title, content, images } = body;
+    const validation = await validateRequest(request, updatePostSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { title, content, images } = validation.data;
 
     // Verify post exists and belongs to user
     const { data: existingPost, error: fetchError } = await supabase
@@ -184,21 +190,15 @@ export async function PATCH(
     };
 
     if (title !== undefined) {
-      if (title.trim().length === 0) {
-        throw new BadRequestError('Title cannot be empty');
-      }
       updateData.title = title.trim();
     }
 
     if (content !== undefined) {
-      if (content.trim().length === 0) {
-        throw new BadRequestError('Content cannot be empty');
-      }
       updateData.content = content.trim();
     }
 
     if (images !== undefined) {
-      updateData.images = Array.isArray(images) ? images : [];
+      updateData.images = images;
     }
 
     // Update post

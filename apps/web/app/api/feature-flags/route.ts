@@ -12,6 +12,17 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { featureFlags, FeatureFlag } from '@/lib/config/feature-flags';
 import { HybridInferenceService } from '@/lib/services/building-surveyor/HybridInferenceService';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
+
+const featureFlagMetricsSchema = z.object({
+  flag: z.string().min(1).max(200),
+  metrics: z.record(z.unknown()).optional(),
+  userId: z.string().uuid().optional(),
+  sessionId: z.string().max(200).optional(),
+  reason: z.string().min(1).max(1000).optional(),
+  automatic: z.boolean().optional(),
+});
 
 async function requireAdminAccess(request: NextRequest): Promise<NextResponse | null> {
     const user = await getCurrentUserFromCookies();
@@ -176,17 +187,18 @@ export async function POST(request: NextRequest) {
             return adminError;
         }
 
-        const body = await request.json();
-        const { flag, metrics, userId, sessionId, reason, automatic } = body;
+        const validation = await validateRequest(request, featureFlagMetricsSchema);
+        if (validation instanceof NextResponse) return validation;
+        const { flag, metrics, userId, sessionId, reason, automatic } = validation.data;
 
         if (flag && reason) {
-            return postRollbackResponse(request, body);
+            return postRollbackResponse(request, validation.data as Record<string, unknown>);
         }
 
         // Validate input (metrics)
-        if (!flag || !metrics) {
+        if (!metrics) {
             return NextResponse.json(
-                { error: 'Missing required fields: flag, metrics' },
+                { error: 'Missing required field: metrics' },
                 { status: 400 }
             );
         }
@@ -240,7 +252,7 @@ async function getStatusResponse(request: NextRequest): Promise<NextResponse> {
         const timeRangeMs = parseTimeRange(timeRange);
         const startTime = new Date(Date.now() - timeRangeMs).toISOString();
 
-        let query = supabase
+        let query = serverSupabase
             .from('feature_flag_metrics')
             .select('*')
             .gte('recorded_at', startTime)
@@ -258,7 +270,7 @@ async function getStatusResponse(request: NextRequest): Promise<NextResponse> {
 
         const aggregateMetrics = calculateAggregateMetrics(metricsData);
 
-        const { data: rollbacks } = await supabase
+        const { data: rollbacks } = await serverSupabase
             .from('feature_flag_rollbacks')
             .select('*')
             .gte('triggered_at', startTime)
@@ -305,7 +317,7 @@ async function postRollbackResponse(request: NextRequest, body: Record<string, u
             metrics,
         });
 
-        const { data: rollbackData, error: rollbackError } = await supabase
+        const { data: rollbackData, error: rollbackError } = await serverSupabase
             .from('feature_flag_rollbacks')
             .insert({
                 flag_name: flag,
@@ -361,7 +373,7 @@ async function getSAM3Metrics() {
     };
 
     // Get recent performance from database
-    const { data: recentMetrics } = await supabase
+    const { data: recentMetrics } = await serverSupabase
         .from('hybrid_routing_decisions')
         .select('yolo_skipped, presence_detection, inference_time_ms')
         .gte('created_at', new Date(Date.now() - 3600000).toISOString()) // Last hour
@@ -471,7 +483,7 @@ async function genericRollback(flag: string) {
 async function updateFeatureFlag(flag: string, value: unknown) {
     // In production, this would update LaunchDarkly
     // For now, update local state and database
-    const { data, error } = await supabase
+    const { data, error } = await serverSupabase
         .from('feature_flag_config')
         .upsert({
             flag_name: flag,

@@ -21,7 +21,7 @@ export default async function PayoutRefreshPage() {
   }
 
   const { data: contractor } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('first_name, last_name, email')
     .eq('id', user.id)
     .single();

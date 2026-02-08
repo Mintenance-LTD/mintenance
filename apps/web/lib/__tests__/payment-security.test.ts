@@ -226,7 +226,7 @@ describe('Payment Security', () => {
           // Create Stripe payment intent
           const paymentIntent = await mockStripe.paymentIntents.create({
             amount: amount * 100, // Convert to cents
-            currency: 'usd',
+            currency: 'gbp',
             metadata: { userId },
           });
 

@@ -233,7 +233,7 @@ export class LearningMatchingService {
 
     // Get contractor features
     const { data: contractor } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, rating, total_jobs_completed')
       .eq('id', contractorId)
       .single();
@@ -340,7 +340,7 @@ export class LearningMatchingService {
         .single();
 
       const { data: contractor } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, rating, total_jobs_completed')
         .eq('id', contractorId)
         .single();
@@ -435,7 +435,7 @@ export class LearningMatchingService {
 
     // Get contractor features
     const { data: contractor } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, rating, total_jobs_completed')
       .eq('id', contractorId)
       .single();

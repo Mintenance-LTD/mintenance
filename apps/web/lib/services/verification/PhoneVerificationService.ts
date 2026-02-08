@@ -81,7 +81,7 @@ export class PhoneVerificationService {
 
       // Store phone number in our users table for tracking
       await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({ phone: phoneNumber })
         .eq('id', userId);
 
@@ -325,7 +325,7 @@ export class PhoneVerificationService {
     try {
       // Get user's phone number
       const { data: user, error: fetchError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('phone, phone_verified')
         .eq('id', userId)
         .single();
@@ -380,7 +380,7 @@ export class PhoneVerificationService {
 
       // Mark phone as verified in our users table
       const { data: updateData, error: updateError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .update({
           phone_verified: true,
           phone_verified_at: new Date().toISOString(),
@@ -430,7 +430,7 @@ export class PhoneVerificationService {
   static async isPhoneVerified(userId: string): Promise<boolean> {
     try {
       const { data: user, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('phone_verified')
         .eq('id', userId)
         .single();
@@ -502,7 +502,7 @@ export class PhoneVerificationService {
   static async resendCode(userId: string): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: user, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('phone')
         .eq('id', userId)
         .single();

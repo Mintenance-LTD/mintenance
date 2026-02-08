@@ -59,7 +59,7 @@ export async function getFeaturedContractorsOptimized(limit = 12): Promise<Contr
       try {
         // Single optimized query with all relations
         const { data: contractors, error } = await supabase
-          .from('users')
+          .from('profiles')
           .select(`
             id,
             first_name,
@@ -178,7 +178,7 @@ export async function searchContractorsOptimized(
       try {
         // Build the query
         let query = supabase
-          .from('users')
+          .from('profiles')
           .select(`
             id,
             first_name,
@@ -314,7 +314,7 @@ export async function getContractorProfileOptimized(contractorId: string): Promi
       try {
         // Single query to get all contractor data
         const { data: contractor, error } = await supabase
-          .from('users')
+          .from('profiles')
           .select(`
             id,
             first_name,

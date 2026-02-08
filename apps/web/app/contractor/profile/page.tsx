@@ -24,7 +24,7 @@ export default async function ContractorProfilePage2025() {
   // Fetch all data in parallel
   const [contractorResult, skillsResult, reviewsResult, completedJobsResult, postsResult, bidsResult] = await Promise.all([
     supabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single(),

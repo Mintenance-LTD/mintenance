@@ -33,7 +33,7 @@ export default async function ContractorDashboard2025() {
     notificationsResponse,
   ] = await Promise.all([
     serverSupabase
-      .from('users')
+      .from('profiles')
       .select('first_name, last_name, company_name, profile_image_url, city, country, email, stripe_connect_account_id')
       .eq('id', user.id)
       .single(),

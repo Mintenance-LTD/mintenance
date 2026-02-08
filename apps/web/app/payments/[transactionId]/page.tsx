@@ -126,15 +126,15 @@ export default function TransactionDetailPage2025() {
           jobTitle: found.job?.title || 'Service',
           contractor: {
             id: found.payee_id || 'unknown',
-            name: `${found.payee?.first_name || ''} ${found.payee?.last_name || ''}`.trim(),
+            name: `${found.payee?.first_name || ''} ${found.payee?.last_name || ''}`.trim() || 'Contractor',
             email: found.payee?.email || 'Not available',
-            phone: '+44 7700 900000',
-            company: 'Professional Services Ltd',
+            phone: found.payee?.phone || '',
+            company: found.payee?.company_name || '',
           },
           paymentMethod: {
             type: 'card',
-            last4: '4242',
-            brand: 'Visa',
+            last4: found.payment_method_last4 || '••••',
+            brand: found.payment_method_brand || 'Card',
           },
           invoice: {
             id: `inv_${found.id}`,
@@ -174,68 +174,6 @@ export default function TransactionDetailPage2025() {
 
     if (user) fetchTransaction();
   }, [user, transactionId, router]);
-
-  // Mock state for the original data structure
-  const [mockTransaction] = useState<Transaction>({
-    id: transactionId,
-    type: 'payment',
-    status: 'completed',
-    amount: 2450.00,
-    currency: 'GBP',
-    date: '2025-01-28T14:30:00Z',
-    description: 'Payment for Kitchen Renovation - Final Payment',
-    jobId: 'job_123',
-    jobTitle: 'Kitchen Renovation',
-    contractor: {
-      id: 'contractor_456',
-      name: 'John Smith',
-      email: 'john.smith@example.com',
-      phone: '+44 7700 900123',
-      company: 'Smith Construction Ltd',
-    },
-    paymentMethod: {
-      type: 'card',
-      last4: '4242',
-      brand: 'Visa',
-    },
-    invoice: {
-      id: 'inv_789',
-      number: 'INV-2025-001234',
-      url: '/invoices/inv_789.pdf',
-    },
-    receipt: {
-      url: '/receipts/rcpt_789.pdf',
-    },
-    refundable: true,
-    timeline: [
-      {
-        status: 'Payment initiated',
-        date: '2025-01-28T14:30:00Z',
-        description: 'Payment request created',
-      },
-      {
-        status: 'Payment authorized',
-        date: '2025-01-28T14:30:15Z',
-        description: 'Card authorization successful',
-      },
-      {
-        status: 'Payment captured',
-        date: '2025-01-28T14:30:30Z',
-        description: 'Funds captured from card',
-      },
-      {
-        status: 'Payment completed',
-        date: '2025-01-28T14:31:00Z',
-        description: 'Transaction successfully completed',
-      },
-    ],
-    metadata: {
-      processingFee: 49.00,
-      platformFee: 122.50,
-      netAmount: 2278.50,
-      taxAmount: 490.00,
-    },
-  });
 
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundAmount, setRefundAmount] = useState(transaction?.amount?.toString() || '0');

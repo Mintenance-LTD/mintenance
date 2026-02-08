@@ -275,7 +275,7 @@ async function seedTestData() {
     // Get homeowner user ID by querying users table directly
     // Note: This requires the service role key to bypass RLS
     const { data: users, error: userError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id')
       .eq('email', TEST_USERS.homeowner.email)
       .single();

@@ -11,7 +11,7 @@ export class ContractorDataService {
     try {
       // Get contractors with their profile data joined from contractor_profiles table
       const { data: contractors, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select(`
           id,
           email,

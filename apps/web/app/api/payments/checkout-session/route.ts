@@ -12,7 +12,7 @@ const bodySchema = z.object({
   amount: z.number().int().positive(),
   jobId: z.string().uuid(),
   contractorId: z.string().uuid(),
-  currency: z.string().trim().min(3).max(10).optional().default('usd'),
+  currency: z.string().trim().min(3).max(10).optional().default('gbp'),
 });
 
 export async function POST(request: NextRequest) {

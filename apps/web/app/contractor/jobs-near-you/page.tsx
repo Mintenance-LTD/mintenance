@@ -17,7 +17,7 @@ export default async function JobsNearYouPage() {
 
   // Fetch contractor location
   const { data: contractor } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('latitude, longitude, city, country, address')
     .eq('id', user.id)
     .single();

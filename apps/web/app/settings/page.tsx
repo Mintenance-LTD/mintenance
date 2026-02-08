@@ -128,19 +128,29 @@ export default function SettingsPage2025({
                   <p className="text-gray-600 mb-6">Manage your payment methods</p>
                   <div className="bg-white rounded-xl border border-gray-200 p-8">
                     <h2 className="text-xl font-semibold text-gray-900 mb-6">Payment methods</h2>
-                    <div className="space-y-4 mb-6">
-                      <div className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
-                        <input type="radio" name="payment" defaultChecked className="w-4 h-4 text-teal-600" />
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">Visa ending in 4242</p>
-                          <p className="text-sm text-gray-500">Expires 12/2025</p>
-                        </div>
-                        <button className="text-sm text-red-600 hover:text-red-700">Remove</button>
+                    {settings.loadingPayments ? (
+                      <p className="text-gray-500 py-4">Loading payment methods...</p>
+                    ) : settings.paymentMethods.length === 0 ? (
+                      <p className="text-gray-500 py-4">No payment methods on file. Add one to get started.</p>
+                    ) : (
+                      <div className="space-y-4 mb-6">
+                        {settings.paymentMethods.map((pm) => (
+                          <div key={pm.id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
+                            <input type="radio" name="payment" defaultChecked={pm.isDefault} className="w-4 h-4 text-teal-600" readOnly />
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900 capitalize">{pm.brand} ending in {pm.last4}</p>
+                              <p className="text-sm text-gray-500">Expires {String(pm.expMonth).padStart(2, '0')}/{pm.expYear}</p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                    <button className="px-6 py-3 border-2 border-teal-600 text-teal-600 rounded-lg font-medium hover:bg-teal-50 transition-colors">
-                      + Add new card
-                    </button>
+                    )}
+                    <a
+                      href="/payment-methods"
+                      className="inline-block px-6 py-3 border-2 border-teal-600 text-teal-600 rounded-lg font-medium hover:bg-teal-50 transition-colors"
+                    >
+                      Manage payment methods
+                    </a>
                   </div>
                 </div>
               )}

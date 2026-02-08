@@ -49,7 +49,7 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     .single() : { data: null };
 
   const { data: contractor } = job.contractor_id ? await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('id, first_name, last_name, email, phone, profile_image_url, admin_verified, company_name, license_number')
     .eq('id', job.contractor_id)
     .single() : { data: null };
@@ -194,7 +194,7 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     : user.email;
 
   const { data: userProfile } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('profile_image_url, email, first_name, last_name, phone')
     .eq('id', user.id)
     .single();

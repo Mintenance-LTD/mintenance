@@ -513,10 +513,7 @@ export class UnifiedAIService {
     const retryAfter = error.response?.headers?.['retry-after'];
     const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
     await new Promise(resolve => setTimeout(resolve, waitTime));
-    config.headers = {
-      ...config.headers,
-      'X-Retry-Count': retryCount + 1
-    };
+    config.headers.set('X-Retry-Count', retryCount + 1);
     return this.apiClient.request(config);
   }
   /**

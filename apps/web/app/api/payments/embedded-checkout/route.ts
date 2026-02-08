@@ -67,7 +67,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Get price details to calculate amount
     let paymentAmount: number | null = null;
-    let currency = 'usd';
+    let currency = 'gbp';
 
     try {
       const price = await stripe.prices.retrieve(priceId);
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         contractorStripeAccountId = contractor.stripe_connect_account_id;
 
         // Calculate platform fee for marketplace payment
-        const totalAmount = paymentAmount * quantity;
+        const totalAmount = paymentAmount * (quantity ?? 1);
         const feeBreakdown = FeeCalculationService.calculateFees(totalAmount, {
           paymentType: paymentType as PaymentType,
         });
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const metadata: Record<string, string> = {
       userId: user.id,
       userEmail: user.email || '',
-      paymentType,
+      paymentType: paymentType ?? 'final',
     };
 
     if (jobId) {
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       metadata.platformFeeAmount = applicationFeeAmount ? (applicationFeeAmount / 100).toString() : '0';
       
       // Calculate total amount for metadata
-      const totalAmount = paymentAmount * quantity;
+      const totalAmount = paymentAmount * (quantity ?? 1);
       metadata.totalAmount = totalAmount.toString();
     }
 
@@ -208,8 +208,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // If this is a marketplace payment, create escrow transaction record
     if (jobId && contractorStripeAccountId) {
-      const totalAmount = paymentAmount * quantity;
-      
+      const totalAmount = paymentAmount * (quantity ?? 1);
+
       // Get job to find contractor_id
       const { data: job } = await serverSupabase
         .from('jobs')

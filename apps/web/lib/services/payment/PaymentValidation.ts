@@ -9,7 +9,7 @@ export class PaymentValidation {
       throw new Error('Amount must be greater than 0');
     }
     if (amount > 10000) {
-      throw new Error('Amount cannot exceed $10,000');
+      throw new Error('Amount cannot exceed £10,000');
     }
   }
 
@@ -39,10 +39,10 @@ export class PaymentValidation {
    * Calculate fees
    */
   static calculateFees(amount: number): FeeCalculation {
-    let platformFee = Math.max(amount * 0.05, 0.5); // 5% with minimum $0.50
-    platformFee = Math.min(platformFee, 50); // Cap at $50
+    let platformFee = Math.max(amount * 0.05, 0.5); // 5% with minimum £0.50
+    platformFee = Math.min(platformFee, 50); // Cap at £50
 
-    const stripeFee = Math.round((amount * 0.029 + 0.3) * 100) / 100; // 2.9% + $0.30
+    const stripeFee = Math.round((amount * 0.015 + 0.20) * 100) / 100; // 1.5% + £0.20 (UK rates)
     const totalFees = platformFee + stripeFee;
     const contractorAmount = Math.round((amount - totalFees) * 100) / 100;
 

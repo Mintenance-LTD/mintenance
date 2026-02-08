@@ -120,7 +120,7 @@ export function cacheQuery<T>(
 export const getCachedUser = unstable_cache(
   async (userId: string) => {
     const { data, error } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('id, first_name, last_name, email, profile_image_url, role, company_name, city, country')
       .eq('id', userId)
       .single();
@@ -151,7 +151,7 @@ export const getCachedUser = unstable_cache(
 export const getCachedContractors = unstable_cache(
   async (limit = 20, offset = 0) => {
     const { data: contractors, error } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select(`
         id,
         first_name,
@@ -232,7 +232,7 @@ export const getCachedJobs = unstable_cache(
       if (homeownerIds.length > 0) {
         try {
           const { data: homeowners } = await serverSupabase
-            .from('users')
+            .from('profiles')
             .select('id, first_name, last_name, city, profile_image_url')
             .in('id', homeownerIds);
           
@@ -373,7 +373,7 @@ export const getCachedServiceCategories = unstable_cache(
 export const getCachedContractorById = unstable_cache(
   async (contractorId: string) => {
     const { data: contractor, error } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select(`
         id,
         first_name,
@@ -665,7 +665,7 @@ export const getCachedUserSubscriptions = unstable_cache(
   async (userId: string, limit: number = 20) => {
     // Check if user is a contractor first
     const { data: userData } = await serverSupabase
-      .from('users')
+      .from('profiles')
       .select('role')
       .eq('id', userId)
       .single();

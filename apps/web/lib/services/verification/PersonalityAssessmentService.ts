@@ -136,7 +136,7 @@ export class PersonalityAssessmentService {
     try {
       // Verify contractor exists
       const { data: contractor, error: contractorError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, role')
         .eq('id', contractorId)
         .single();

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = serverSupabase;
 
 /**
  * Geocode Manager
@@ -131,12 +130,18 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Contractor access required');
     }
 
-    const body = await request.json();
-    const { city, state, zipCode, serviceRadius, country = 'USA' } = body;
+    const addServiceAreaSchema = z.object({
+      city: z.string().min(1, 'City is required').max(200),
+      state: z.string().min(1, 'State is required').max(200),
+      zipCode: z.string().max(20).optional(),
+      serviceRadius: z.number().min(1).max(500).optional(),
+      country: z.string().max(100).default('USA'),
+    });
 
-    if (!city || !state) {
-      throw new BadRequestError('City and state are required');
-    }
+    const validation = await validateRequest(request, addServiceAreaSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
+    const { city, state, zipCode, serviceRadius, country } = data;
 
     // Build location string for geocoding
     const locationString = `${city}, ${state}, ${country}`;

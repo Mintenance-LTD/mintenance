@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function FindContractorsPage() {
   // Fetch contractors with their related data
   const { data: contractors } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select(`
       id,
       first_name,

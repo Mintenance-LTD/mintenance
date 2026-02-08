@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit';
@@ -15,7 +15,7 @@ interface ProfileUpdateData {
   bio: string;
   city: string;
   country: string;
-  phone: string;
+  phone?: string;
   company_name: string | null;
   license_number: string | null;
   is_available: boolean;
@@ -26,10 +26,7 @@ interface ProfileUpdateData {
   profile_image_url?: string;
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = serverSupabase;
 
 // Geocoding service for converting city/country to coordinates
 class GeocodingService {

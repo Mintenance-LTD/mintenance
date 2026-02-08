@@ -110,7 +110,7 @@ export class VerificationService {
   static async automatedVerificationCheck(userId: string): Promise<AutomatedVerificationResult> {
     try {
       const { data: user, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('company_name, business_address, license_number, latitude, longitude, insurance_expiry_date, admin_verified, background_check_status')
         .eq('id', userId)
         .single();

@@ -358,7 +358,7 @@ export class ProfileBoostService {
     try {
       // Get all contractors
       const { data: contractors, error } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id')
         .eq('role', 'contractor');
 

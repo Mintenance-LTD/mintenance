@@ -5,6 +5,8 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { validateRequest } from '@/lib/validation/validator';
+import { z } from 'zod';
 
 /**
  * DELETE /api/account/delete
@@ -45,16 +47,19 @@ export async function DELETE(request: NextRequest) {
       throw new UnauthorizedError('Authentication required to delete account');
     }
 
+    // Validate request body
+    const accountDeleteSchema = z.object({
+      userId: z.string().uuid('Invalid user ID'),
+      confirmation: z.literal('DELETE'),
+    });
+
+    const validation = await validateRequest(request, accountDeleteSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { data } = validation;
+
     // Verify the user is trying to delete their own account
-    const body = await request.json().catch(() => ({}));
-    const { userId, confirmation } = body;
-
-    if (!userId || userId !== user.id) {
+    if (data.userId !== user.id) {
       throw new ForbiddenError('You can only delete your own account');
-    }
-
-    if (confirmation !== 'DELETE') {
-      throw new BadRequestError('Confirmation text must be "DELETE"');
     }
 
     // Check if account is already deleted

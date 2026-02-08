@@ -58,7 +58,7 @@ export default async function JobDetailPageProfessional({
   // FETCH HOMEOWNER
   // ===========================================
   const { data: homeowner } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('id, first_name, last_name, email, phone, profile_image_url')
     .eq('id', job.user_id)
     .single();
@@ -68,7 +68,7 @@ export default async function JobDetailPageProfessional({
   // ===========================================
   const { data: contractor } = job.contractor_id
     ? await serverSupabase
-        .from('users')
+        .from('profiles')
         .select(`
           id,
           first_name,

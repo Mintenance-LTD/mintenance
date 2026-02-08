@@ -19,7 +19,7 @@ export default async function PayoutSuccessPage() {
 
   // Verify payment setup is complete
   const { data: contractor } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('stripe_connect_account_id, first_name, last_name, email')
     .eq('id', user.id)
     .single();

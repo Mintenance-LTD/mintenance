@@ -55,7 +55,7 @@ export async function loginAction(prevState: unknown, formData: FormData) {
 
     // Authenticate user
     const { data: user, error: authError } = await supabase
-      .from('users')
+      .from('profiles')
       .select('*')
       .eq('email', email)
       .single();
@@ -150,7 +150,7 @@ export async function registerAction(prevState: unknown, formData: FormData) {
 
     // Check if user exists
     const { data: existingUser } = await supabase
-      .from('users')
+      .from('profiles')
       .select('id')
       .eq('email', email)
       .single();
@@ -167,7 +167,7 @@ export async function registerAction(prevState: unknown, formData: FormData) {
 
     // Create user
     const { data: newUser, error: createError } = await supabase
-      .from('users')
+      .from('profiles')
       .insert({
         email,
         password_hash: passwordHash,
@@ -271,7 +271,7 @@ export async function resetPasswordAction(prevState: unknown, formData: FormData
 
     // Update user password
     const { error: updateError } = await supabase
-      .from('users')
+      .from('profiles')
       .update({ password_hash: passwordHash })
       .eq('id', resetRequest.user_id);
 
@@ -343,7 +343,7 @@ export async function updateProfileAction(prevState: unknown, formData: FormData
 
     // Update user profile
     const { error: updateError } = await supabase
-      .from('users')
+      .from('profiles')
       .update({
         name,
         phone,

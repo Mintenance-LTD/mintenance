@@ -91,7 +91,7 @@ export class PaymentService {
     return {
       id: `pi_${Date.now()}`,
       amount: Math.round(amount * 100),
-      currency: 'usd',
+      currency: 'gbp',
       status: 'requires_payment_method',
       client_secret,
     };

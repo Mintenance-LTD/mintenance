@@ -26,6 +26,17 @@ export function useSettingsState() {
   const [verificationPhoneNumber, setVerificationPhoneNumber] = useState('');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
+  interface PaymentMethod {
+    id: string;
+    brand: string;
+    last4: string;
+    expMonth: number;
+    expYear: number;
+    isDefault: boolean;
+  }
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+
   const [profileData, setProfileData] = useState<ProfileData>({
     first_name: '',
     last_name: '',
@@ -86,6 +97,29 @@ export function useSettingsState() {
         postcode: userLoc.postcode || '',
       });
     }
+  }, [user]);
+
+  // Fetch payment methods when user is available
+  useEffect(() => {
+    if (!user) return;
+    setLoadingPayments(true);
+    fetch('/api/payments/methods')
+      .then(res => res.ok ? res.json() : Promise.reject(res))
+      .then(data => {
+        const methods = (data.paymentMethods || []).map((pm: Record<string, unknown>) => ({
+          id: pm.id as string,
+          brand: (pm.card as Record<string, unknown>)?.brand as string || 'card',
+          last4: (pm.card as Record<string, unknown>)?.last4 as string || '****',
+          expMonth: (pm.card as Record<string, unknown>)?.exp_month as number || 0,
+          expYear: (pm.card as Record<string, unknown>)?.exp_year as number || 0,
+          isDefault: pm.isDefault as boolean || false,
+        }));
+        setPaymentMethods(methods);
+      })
+      .catch(() => {
+        setPaymentMethods([]);
+      })
+      .finally(() => setLoadingPayments(false));
   }, [user]);
 
   // Redirect to login if not authenticated
@@ -387,6 +421,8 @@ export function useSettingsState() {
     setNotificationPrefs,
     twoFactorEnabled,
     setTwoFactorEnabled,
+    paymentMethods,
+    loadingPayments,
     csrfToken,
     handleSaveProfile,
     handleResetProfile,

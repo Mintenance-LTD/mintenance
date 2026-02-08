@@ -207,7 +207,7 @@ export async function GET(request: NextRequest) {
         // Create transfer to contractor (amount after platform fee)
         const transfer = await stripe.transfers.create({
           amount: contractorAmountCents,
-          currency: 'usd',
+          currency: 'gbp',
           destination: contractorStripeAccountId,
           description: `Auto-release: ${job.title}`,
           metadata: {

@@ -26,7 +26,7 @@ interface EscrowRecord {
   amount: number;
   homeowner_approval: boolean | null;
   auto_approval_date: string | null;
-  jobs: JobWithPhotos;
+  jobs: JobWithPhotos | JobWithPhotos[];
 }
 
 /**
@@ -99,11 +99,17 @@ export async function GET(
       throw new NotFoundError('Escrow not found');
     }
 
-    const typedEscrow = escrow as EscrowRecord | { jobs: JobWithPhotos[] };
+    const typedEscrow = escrow as unknown as EscrowRecord;
     const job = Array.isArray(typedEscrow.jobs) ? typedEscrow.jobs[0] : typedEscrow.jobs;
     if (!job || (job.homeowner_id !== user.id && user.role !== 'admin')) {
       throw new ForbiddenError('Unauthorized');
     }
+
+    // Narrow to a consistent shape after handling array/object ambiguity
+    const escrowId_val = typedEscrow.id;
+    const amount_val = typedEscrow.amount;
+    const homeownerApproval_val = typedEscrow.homeowner_approval;
+    const autoApprovalDate_val = typedEscrow.auto_approval_date;
 
     // Filter photos by type
     const beforePhotos = (job.before_photos || []).filter((p: PhotoMetadata) => p.photo_type === 'before');
@@ -112,11 +118,11 @@ export async function GET(
     return NextResponse.json({
       success: true,
       data: {
-        escrowId: typedEscrow.id,
-        amount: typedEscrow.amount,
+        escrowId: escrowId_val,
+        amount: amount_val,
         jobTitle: job.title,
-        homeownerApproval: typedEscrow.homeowner_approval,
-        autoApprovalDate: typedEscrow.auto_approval_date,
+        homeownerApproval: homeownerApproval_val,
+        autoApprovalDate: autoApprovalDate_val,
         beforePhotos: beforePhotos.map((p: PhotoMetadata) => ({
           url: p.photo_url,
           angleType: p.angle_type,

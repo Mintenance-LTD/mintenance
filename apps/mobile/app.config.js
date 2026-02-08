@@ -212,8 +212,10 @@ module.exports = {
       ["expo-local-authentication", {
         faceIDPermission: "This app uses Face ID for secure authentication and faster login."
       }],
-      "sentry-expo",
-      "@sentry/react-native",
+      ["@sentry/react-native/expo", {
+        organization: process.env.SENTRY_ORG || "mintenance",
+        project: process.env.SENTRY_PROJECT || "mintenance-mobile",
+      }],
       ["@stripe/stripe-react-native", {
         "merchantIdentifier": "merchant.com.mintenance.app",
         "enableGooglePay": true

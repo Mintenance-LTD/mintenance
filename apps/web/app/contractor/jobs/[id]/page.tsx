@@ -60,7 +60,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
 
   // Fetch homeowner details
   const { data: homeowner } = job.homeowner_id ? await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('id, first_name, last_name, email, phone, profile_image_url')
     .eq('id', job.homeowner_id)
     .single() : { data: null };
@@ -94,7 +94,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
 
   // Fetch contractor profile for company info
   const { data: contractorProfile } = await serverSupabase
-    .from('users')
+    .from('profiles')
     .select('id, company_name, skills, portfolio_images, profile_image_url')
     .eq('id', user.id)
     .single();

@@ -92,7 +92,7 @@ async function exploreDatabase() {
 
   // Users by role
   const { data: userRoles } = await supabase
-    .from('users')
+    .from('profiles')
     .select('role')
     .not('role', 'is', null);
 

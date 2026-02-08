@@ -45,7 +45,7 @@ export function NeighborhoodRecommendations(props: NeighborhoodRecommendationsPr
 
       try {
         let query = supabase
-          .from('users')
+          .from('profiles')
           .select(`
             id,
             first_name,

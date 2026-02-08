@@ -180,7 +180,7 @@ export class RevenueAnalytics {
     try {
       // Get total contractors who started trials
       const { data: trials, error: trialsError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id')
         .eq('role', 'contractor')
         .not('trial_started_at', 'is', null);

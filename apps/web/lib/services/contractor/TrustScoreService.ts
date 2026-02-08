@@ -17,7 +17,7 @@ export class TrustScoreService {
     try {
       // Get contractor data
       const { data: contractor, error: contractorError } = await serverSupabase
-        .from('users')
+        .from('profiles')
         .select('id, created_at')
         .eq('id', contractorId)
         .eq('role', 'contractor')

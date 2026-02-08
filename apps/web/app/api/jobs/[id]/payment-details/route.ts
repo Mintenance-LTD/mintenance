@@ -92,15 +92,15 @@ export async function GET(
         platformFeeRate: feeBreakdown.platformFeeRate,
         stripeFee: feeBreakdown.stripeFee,
         totalFees: feeBreakdown.totalFees,
-        totalAmount: feeBreakdown.totalAmount,
-        contractorPayout: feeBreakdown.contractorPayout,
+        totalAmount: feeBreakdown.originalAmount,
+        contractorPayout: feeBreakdown.contractorAmount,
       },
       breakdown: {
         jobBudget: job.budget,
         platformFee: feeBreakdown.platformFee,
         stripeFee: feeBreakdown.stripeFee,
-        totalToPay: feeBreakdown.totalAmount,
-        contractorReceives: feeBreakdown.contractorPayout,
+        totalToPay: feeBreakdown.originalAmount,
+        contractorReceives: feeBreakdown.contractorAmount,
       },
     });
   } catch (error) {

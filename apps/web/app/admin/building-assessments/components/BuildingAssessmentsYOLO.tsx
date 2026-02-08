@@ -45,7 +45,7 @@ export function BuildingAssessmentsYOLO({ correctionStats, hasAssessments }: Bui
       </div>
 
       {hasAssessments && (
-        <div style={{ padding: theme.spacing[4], backgroundColor: '#F0F9FF', borderRadius: '12px', border: '1px solid #BAE6FD � }}>
+        <div style={{ padding: theme.spacing[4], backgroundColor: '#F0F9FF', borderRadius: '12px', border: '1px solid #BAE6FD' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ fontSize: '14px', fontWeight: 600, color: '#0F172A', margin: 0, marginBottom: '4px' }}>Start Improving the AI Model</p>
