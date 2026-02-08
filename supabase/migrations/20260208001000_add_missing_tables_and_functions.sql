@@ -8,7 +8,7 @@
 
 CREATE TABLE IF NOT EXISTS public.password_reset_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   token TEXT NOT NULL UNIQUE,
   expires_at TIMESTAMPTZ NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON public.password_
 
 CREATE TABLE IF NOT EXISTS public.password_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   password_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -26,7 +26,7 @@ CREATE INDEX IF NOT EXISTS idx_password_history_user_id ON public.password_histo
 
 CREATE TABLE IF NOT EXISTS public.login_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   email TEXT,
   ip_address TEXT,
   user_agent TEXT,
@@ -109,53 +109,13 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- 3. PROFILES <-> USERS SYNC TRIGGER
--- Keeps users table in sync when profiles are modified
--- (150+ FK constraints reference users, code queries profiles)
+-- 3. HANDLE NEW USER TRIGGER (profiles only - users table eliminated)
 -- ============================================================
 
-CREATE OR REPLACE FUNCTION public.sync_profile_to_users()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF TG_OP = 'INSERT' THEN
-    INSERT INTO public.users (id, email, first_name, last_name, role, phone, created_at, updated_at)
-    VALUES (NEW.id, NEW.email, NEW.first_name, NEW.last_name, NEW.role, NEW.phone, NEW.created_at, NEW.updated_at)
-    ON CONFLICT (id) DO UPDATE SET
-      email = EXCLUDED.email,
-      first_name = EXCLUDED.first_name,
-      last_name = EXCLUDED.last_name,
-      role = EXCLUDED.role,
-      phone = EXCLUDED.phone,
-      updated_at = EXCLUDED.updated_at;
-  ELSIF TG_OP = 'UPDATE' THEN
-    UPDATE public.users SET
-      email = NEW.email,
-      first_name = NEW.first_name,
-      last_name = NEW.last_name,
-      role = NEW.role,
-      phone = NEW.phone,
-      updated_at = NEW.updated_at
-    WHERE id = NEW.id;
-  ELSIF TG_OP = 'DELETE' THEN
-    DELETE FROM public.users WHERE id = OLD.id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS sync_profiles_to_users ON public.profiles;
-CREATE TRIGGER sync_profiles_to_users
-  AFTER INSERT OR UPDATE OR DELETE ON public.profiles
-  FOR EACH ROW EXECUTE FUNCTION public.sync_profile_to_users();
-
--- Update handle_new_user to also create users row
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, role)
-  VALUES (NEW.id, NEW.email, 'homeowner')
-  ON CONFLICT (id) DO NOTHING;
-  INSERT INTO public.users (id, email, role)
   VALUES (NEW.id, NEW.email, 'homeowner')
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;
@@ -167,7 +127,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS public.contractor_profiles (
-  id UUID PRIMARY KEY REFERENCES public.users(id) ON DELETE CASCADE,
+  id UUID PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
   stripe_account_id TEXT,
   stripe_charges_enabled BOOLEAN DEFAULT false,
   stripe_payouts_enabled BOOLEAN DEFAULT false,
@@ -183,7 +143,7 @@ ALTER TABLE public.contractor_profiles ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.invoice_payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   invoice_id TEXT NOT NULL,
-  contractor_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+  contractor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   subscription_id TEXT,
   amount_paid DECIMAL(10,2) DEFAULT 0,
   currency TEXT DEFAULT 'gbp',
@@ -267,7 +227,7 @@ ALTER TABLE public.feature_flag_config ENABLE ROW LEVEL SECURITY;
 
 CREATE TABLE IF NOT EXISTS public.contractor_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  contractor_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  contractor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   title TEXT,
   description TEXT,
   photos TEXT[],
