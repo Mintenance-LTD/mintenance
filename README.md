@@ -46,24 +46,30 @@
 ### Current Status
 
 - **Version**: 1.2.4 (Monorepo) / 1.2.3 (Web App)
-- **Status**: Production Ready
-- **Test Coverage**: 87.7% (804/917 tests passing)
+- **Status**: Active Development
 - **Deployment**: Ready for mintenance.co.uk
 - **Location**: Greater Manchester, UK
 - **Latest Updates** (February 2026):
+  - Comprehensive codebase audit with P0/P1/P2 fixes (264 files)
+  - CSRF protection hardened across all auth paths
+  - Database query layer corrected (`profiles` table alignment)
+  - Zod input validation added to 75+ API routes
+  - Error boundaries added to 55+ page directories
+  - Payment flow test suite (6 critical endpoints)
+  - UK Stripe fee rates corrected (1.5% + £0.20)
   - Materials database system with UK supplier pricing
   - Property favorites and health scoring
   - Demo feedback collection for AI training
-  - Enhanced property-job linking
 
 ### Platform Statistics
 
 | Metric | Value |
 |--------|-------|
-| **Test Coverage** | 87.7% (804/917 tests passing) |
-| **Architecture** | Next.js 16.0.4 + Expo SDK ~54 (React Native 0.82) |
-| **Database Migrations** | 140+ migrations (including recent materials, properties, demo feedback) |
-| **API Endpoints** | 200+ routes across 50+ feature areas |
+| **Architecture** | Next.js 16.0.4 + Expo SDK ~54 (React Native 0.81.5) |
+| **Database Migrations** | 180+ migrations (38 active + 144 archived) |
+| **API Endpoints** | 260+ routes across 50+ feature areas |
+| **Input Validation** | 75+ routes with Zod schema validation |
+| **Error Boundaries** | 55+ page-level error boundaries |
 | **Web Pages** | 100+ pages and routes |
 | **Mobile Screens** | 100+ screens |
 | **AI Services** | Building Surveyor AI + 6 major flows |
@@ -73,12 +79,21 @@
 
 ---
 
-## 🆕 Recent Features (February 2026)
+## 🆕 Recent Updates (February 2026)
 
+- **Codebase Audit & Hardening**: Comprehensive P0/P1/P2 fixes across 264 files
+  - CSRF protection gap fixed on Supabase auth path
+  - Database queries aligned to `profiles` table (82 files corrected)
+  - UK Stripe fee rates corrected (1.5% + £0.20, was using US rates)
+  - Zod input validation added to 75+ API routes
+  - 55+ error boundaries for graceful error handling
+  - Payment flow test suite covering 6 critical endpoints
+  - Idempotency and retry logic for Stripe refunds
+  - Webhook handler registry cleaned up
 - **Materials Database System**: UK supplier pricing catalog integrated with AI damage assessments
   - Real pricing from Screwfix, B&Q, Wickes, Travis Perkins
   - Fuzzy search matching for AI-detected materials
-  - Cost breakdown with verified pricing badges (✓ DB)
+  - Cost breakdown with verified pricing badges
 - **Property Favorites**: Bookmark and manage favorite properties
 - **Property Health Scoring**: Track property condition and spending analytics
 - **Demo Feedback Collection**: Public demo (`/try-mint-ai`) collects user corrections for AI training
@@ -132,16 +147,16 @@
 ### Web Application
 - **Framework**: Next.js 16.0.4 (App Router)
 - **UI Library**: React 19.1.0
-- **Language**: TypeScript 5.4.5 (strict mode)
+- **Language**: TypeScript 5.9.3 (strict mode)
 - **Styling**: Tailwind CSS 3.4.18 + Radix UI + Shadcn UI
-- **State Management**: TanStack Query 5.32.0
+- **State Management**: TanStack Query 5.90.0
 - **Forms**: React Hook Form 7.66.1 + Zod 3.23.4
 - **Animations**: Framer Motion 12.23.24
 - **Testing**: Vitest 4.0.15 + Playwright 1.58.0
 
 ### Mobile Application
 - **Framework**: Expo SDK ~54
-- **UI Library**: React Native 0.82
+- **UI Library**: React Native 0.81.5
 - **Language**: TypeScript 5.9 (strict mode)
 - **Navigation**: React Navigation 7
 - **State Management**: TanStack Query 5.90 + React Context
@@ -172,7 +187,7 @@
 - `@mintenance/shared-ui` - Shared UI components (web/native)
 - `@mintenance/design-tokens` - Design system tokens
 - `@mintenance/api-client` - API client wrapper
-- `@mintenance/services` - Shared service layer (Auth, Payment, Job, Notification, etc.)
+- `@mintenance/security` - Security utilities (rate limiting, CSRF, input sanitization)
 - `@mintenance/ai-core` - AI/ML core utilities and model interfaces
 
 ---
@@ -190,7 +205,7 @@ mintenance/
 │   │   │   ├── dashboard/    # Homeowner dashboard
 │   │   │   ├── contractor/   # Contractor features
 │   │   │   ├── jobs/         # Job management
-│   │   │   ├── api/          # API routes (200+ endpoints)
+│   │   │   ├── api/          # API routes (260+ endpoints)
 │   │   │   └── ...
 │   │   ├── components/       # React components
 │   │   ├── lib/              # Utilities and services
@@ -213,10 +228,10 @@ mintenance/
 │   ├── shared-ui/            # Shared UI components
 │   ├── design-tokens/        # Design system
 │   ├── api-client/           # API client
-│   ├── services/             # Shared service layer
+│   ├── security/             # Security utilities
 │   └── ai-core/              # AI/ML core utilities
 ├── supabase/
-│   ├── migrations/          # Database migrations (120+)
+│   ├── migrations/          # Database migrations (180+)
 │   │   ├── 001_core_tables.sql
 │   │   ├── 002_job_system.sql
 │   │   ├── 003_payment_system.sql
@@ -240,7 +255,7 @@ mintenance/
 - **Server Actions**: 'use server' functions for form submissions and mutations
 - **Type Safety**: Strict TypeScript with shared types from `@mintenance/types`
 - **Design Tokens**: Centralized design system via `@mintenance/design-tokens`
-- **Service Layer**: Shared business logic in `@mintenance/services` package
+- **Security Layer**: Rate limiting, CSRF, input validation via `@mintenance/security`
 - **Monorepo**: npm workspaces for code sharing between web and mobile
 
 ---
@@ -396,7 +411,7 @@ npm run audit:console    # Find console statements
 - **Imports**: Use `@/` alias for app-specific, package names for shared
 - **File Size**: Keep files under 500 lines, split if approaching 400 lines
 
-See `AGENTS.md` for comprehensive coding standards and conventions.
+See `.claude/CLAUDE.md` for coding standards and conventions.
 
 ---
 
@@ -451,11 +466,13 @@ AI-powered search using OpenAI embeddings for:
 
 ## 🧪 Testing
 
-### Test Coverage
+### Test Suites
 
-- **Overall**: 87.7% (804/917 tests passing)
-- **Service Layer**: 80.8% (346/428 passing)
-- **Core Services**: 100% (JobSheetOperations, PaymentGateway, BidService)
+- **Payment Flow Tests**: 6 critical endpoints (create-intent, refund, release-escrow, payment methods, fee calculations)
+- **Stripe Webhook Tests**: Event handler coverage for subscriptions, invoices, charges, checkout
+- **Validation Schema Tests**: Zod schema validation for 75+ API routes
+- **Mobile Tests**: Component and integration tests for React Native screens
+- **OWASP Security Tests**: Critical fixes integration tests
 
 ### Running Tests
 
@@ -513,7 +530,22 @@ eas build --platform all --profile production
 eas submit --platform all
 ```
 
-### Security Checklist
+### Security
+
+The platform includes multiple layers of security:
+
+- **CSRF Protection**: Double-submit cookie pattern enforced globally via middleware for all mutating requests (`__Host-csrf-token` in production)
+- **Rate Limiting**: Per-endpoint rate limiting via Upstash Redis (payments, auth, API routes)
+- **Input Validation**: Zod schema validation on 75+ API routes with sanitized error responses
+- **Idempotency**: Distributed locking for payment operations to prevent duplicate charges/refunds
+- **MFA**: Multi-factor authentication required for high-risk payment operations (refunds above threshold)
+- **Row Level Security**: PostgreSQL RLS policies on all tables via Supabase
+- **JWT Authentication**: HS256 symmetric tokens via `@mintenance/auth` with middleware enforcement
+- **Error Boundaries**: 55+ page-level error boundaries for graceful error handling
+- **Payment Monitoring**: Anomaly detection service that blocks suspicious transactions
+- **Security Headers**: CSP, HSTS, X-Frame-Options configured in middleware
+
+### Deployment Security Checklist
 
 Before production deployment:
 
@@ -533,7 +565,7 @@ Before production deployment:
 
 ### Key Documentation Files
 
-- **`AGENTS.md`**: Coding standards and architectural guidelines
+- **`.claude/CLAUDE.md`**: Coding standards and development conventions
 - **`docs/technical/architecture/`**: Technical architecture documentation
 - **`docs/technical/ai/`**: AI features and implementation guides
 - **`docs/user-guides/`**: User-facing documentation
@@ -562,7 +594,7 @@ Before production deployment:
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes following `AGENTS.md` guidelines
+3. Make your changes following project conventions
 4. Run tests: `npm run test && npm run e2e`
 5. Run linting: `npm run lint && npm run type-check`
 6. Commit your changes: `git commit -m 'feat: add amazing feature'`
@@ -571,7 +603,7 @@ Before production deployment:
 
 ### Contribution Guidelines
 
-- Follow the coding standards in `AGENTS.md`
+- Follow the coding standards in `.claude/CLAUDE.md`
 - Write tests for new features
 - Keep files under 500 lines
 - Use TypeScript strict mode
