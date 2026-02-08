@@ -109,7 +109,7 @@ async function fixJobHomeownerRelationships() {
           .insert({
             ...homeowner,
             phone_verified: true,
-            email_verified: true,
+            verified: true,
           })
           .select()
           .single();

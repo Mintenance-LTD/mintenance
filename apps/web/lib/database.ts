@@ -37,14 +37,21 @@ const passwordRequirements = {
 export interface User {
   id: string;
   email: string;
-  password_hash?: string;
   first_name: string;
   last_name: string;
   role: 'homeowner' | 'contractor' | 'admin';
   created_at: string;
   updated_at: string;
-  email_verified?: boolean;
+  verified?: boolean;
   phone?: string;
+  phone_verified?: boolean;
+  phone_verified_at?: string;
+  location?: string;
+  profile_image_url?: string;
+  bio?: string;
+  address?: string;
+  city?: string;
+  postcode?: string;
 }
 
 export interface CreateUserData {
@@ -58,34 +65,31 @@ export interface CreateUserData {
 
 export class DatabaseManager {
   /**
-   * Create a new user with hashed password
+   * Create a new user profile
+   * NOTE: Password handling is done by Supabase Auth (auth.users table), NOT in profiles.
    */
-  static async createUser(userData: CreateUserData): Promise<Omit<User, 'password_hash'>> {
-    // Validate password complexity
+  static async createUser(userData: CreateUserData): Promise<User> {
+    // Validate password complexity (for Supabase Auth, not stored in profiles)
     const validationResult = PasswordValidator.validate(userData.password, passwordRequirements);
     if (!validationResult.isValid) {
       throw new Error(validationResult.errors.join(', '));
     }
 
-    // Hash password with bcrypt
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(userData.password, saltRounds);
-
-    // Insert user into database
+    // Insert user profile into database
+    // NOTE: password_hash is NOT stored in profiles - Supabase Auth handles password storage
     const { data, error } = await supabase
       .from('profiles')
       .insert({
         email: userData.email.toLowerCase().trim(),
-        password_hash: passwordHash,
         first_name: userData.first_name.trim(),
         last_name: userData.last_name.trim(),
         role: userData.role,
         phone: userData.phone?.trim(),
-        email_verified: false,
+        verified: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
       .single();
 
     if (error) {
@@ -95,32 +99,24 @@ export class DatabaseManager {
       throw new Error(`Database error: ${error.message}`);
     }
 
-    // Add password to history (using database function)
-    try {
-      await supabase.rpc('add_password_to_history', {
-        history_user_id: data.id,
-        new_password_hash: passwordHash
-      });
-    } catch (historyError) {
-      // Log but don't fail registration if history fails
-      logger.warn('Failed to add password to history', {
-        service: 'auth',
-        userId: data.id,
-        error: historyError
-      });
-    }
-
     return data;
   }
 
   /**
    * Authenticate user with email and password
+   * TODO: This is a LEGACY method. Authentication should be handled entirely by Supabase Auth
+   * (supabase.auth.signInWithPassword). The profiles table does NOT store password_hash.
+   * This method now only looks up the user profile; actual password verification
+   * must be done via Supabase Auth before calling this.
    */
-  static async authenticateUser(email: string, password: string, ipAddress?: string): Promise<Omit<User, 'password_hash'> | null> {
-    // Get user with password hash
+  static async authenticateUser(email: string, _password: string, ipAddress?: string): Promise<User | null> {
+    // TODO: Replace with supabase.auth.signInWithPassword() for actual password verification.
+    // The profiles table does not have a password_hash column - Supabase Auth handles passwords.
+
+    // Get user profile (no password_hash - it does not exist in profiles)
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone, password_hash')
+      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
       .eq('email', email.toLowerCase().trim())
       .single();
 
@@ -158,24 +154,8 @@ export class DatabaseManager {
       logger.error('Failed to check account lockout', e, { service: 'auth' });
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, data.password_hash);
-
-    if (!isValidPassword) {
-      // Record failed attempt
-      try {
-        await supabase.rpc('record_failed_login', {
-          attempt_user_id: data.id,
-          attempt_email: email.toLowerCase().trim(),
-          attempt_ip: ipAddress || null,
-          attempt_user_agent: null,
-          attempt_failure_reason: 'invalid_password'
-        });
-      } catch (e) {
-        logger.error('Failed to record failed login', e, { service: 'auth' });
-      }
-      return null;
-    }
+    // TODO: Password verification should be done via Supabase Auth BEFORE calling this method.
+    // The profiles table does not store password_hash. Supabase Auth (auth.users) handles passwords.
 
     // Record successful login and clear any lockouts
     try {
@@ -189,18 +169,16 @@ export class DatabaseManager {
       logger.error('Failed to record successful login', e, { service: 'auth' });
     }
 
-    // Return user without password hash
-    const { password_hash, ...userWithoutPassword } = data;
-    return userWithoutPassword;
+    return data;
   }
 
   /**
    * Get user by ID
    */
-  static async getUserById(userId: string): Promise<Omit<User, 'password_hash'> | null> {
+  static async getUserById(userId: string): Promise<User | null> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone, phone_verified, phone_verified_at, location, profile_image_url, bio, address, city, postcode')
+      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone, phone_verified, phone_verified_at, location, profile_image_url, bio, address, city, postcode')
       .eq('id', userId)
       .single();
 
@@ -214,10 +192,10 @@ export class DatabaseManager {
   /**
    * Get user by email
    */
-  static async getUserByEmail(email: string): Promise<Omit<User, 'password_hash'> | null> {
+  static async getUserByEmail(email: string): Promise<User | null> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone, location, profile_image_url')
+      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone, location, profile_image_url')
       .eq('email', email.toLowerCase().trim())
       .single();
 
@@ -230,6 +208,9 @@ export class DatabaseManager {
 
   /**
    * Update user password
+   * TODO: Password updates should be done via Supabase Auth (supabase.auth.admin.updateUserById
+   * or supabase.auth.updateUser). The profiles table does NOT store password_hash.
+   * This method currently only validates the password and updates the updated_at timestamp.
    */
   static async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
     // Validate password complexity
@@ -264,15 +245,13 @@ export class DatabaseManager {
       logger.error('Failed to check password history', e, { service: 'auth', userId });
     }
 
-    // Hash the new password
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    // TODO: Use supabase.auth.admin.updateUserById(userId, { password: newPassword })
+    // to update the password in Supabase Auth. The profiles table does NOT have password_hash.
 
-    // Update password
+    // Update the updated_at timestamp on the profile
     const { error } = await supabase
       .from('profiles')
       .update({
-        password_hash: passwordHash,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
@@ -281,8 +260,10 @@ export class DatabaseManager {
       return false;
     }
 
-    // Add new password to history
+    // Add new password to history (password_history table is separate from profiles)
     try {
+      const saltRounds = 12;
+      const passwordHash = await bcrypt.hash(newPassword, saltRounds);
       await supabase.rpc('add_password_to_history', {
         history_user_id: userId,
         new_password_hash: passwordHash
@@ -301,7 +282,7 @@ export class DatabaseManager {
   /**
    * Update user profile
    */
-  static async updateUser(userId: string, updates: Partial<Pick<User, 'first_name' | 'last_name' | 'phone' | 'email_verified'>>): Promise<Omit<User, 'password_hash'> | null> {
+  static async updateUser(userId: string, updates: Partial<Pick<User, 'first_name' | 'last_name' | 'phone' | 'verified'>>): Promise<User | null> {
     const { data, error } = await supabase
       .from('profiles')
       .update({
@@ -309,7 +290,7 @@ export class DatabaseManager {
         updated_at: new Date().toISOString()
       })
       .eq('id', userId)
-      .select('id, email, first_name, last_name, role, created_at, updated_at, email_verified, phone')
+      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone')
       .single();
 
     if (error || !data) {

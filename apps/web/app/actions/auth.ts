@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@mintenance/shared';
-import { hashPassword, comparePassword, generateJWT, ConfigManager } from '@mintenance/auth';
+import { generateJWT, ConfigManager } from '@mintenance/auth';
 
 // Initialize config manager for JWT secrets
 const config = ConfigManager.getInstance();
@@ -53,14 +53,13 @@ export async function loginAction(prevState: unknown, formData: FormData) {
     const { email, password, remember } = validatedFields.data;
     const supabase = await createServerSupabaseClient();
 
-    // Authenticate user
-    const { data: user, error: authError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', email)
-      .single();
+    // Authenticate via Supabase Auth
+    const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    if (authError || !user) {
+    if (signInError || !authData?.user) {
       logger.warn('Login attempt failed', { email });
       return {
         success: false,
@@ -68,10 +67,15 @@ export async function loginAction(prevState: unknown, formData: FormData) {
       };
     }
 
-    // Verify password
-    const isValidPassword = await comparePassword(password, user.password_hash);
-    if (!isValidPassword) {
-      logger.warn('Invalid password attempt', { email });
+    // Get user profile
+    const { data: user, error: authError } = await supabase
+      .from('profiles')
+      .select('id, email, first_name, last_name, role')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (authError || !user) {
+      logger.warn('User profile not found after auth', { email });
       return {
         success: false,
         error: 'Invalid email or password',
@@ -162,16 +166,33 @@ export async function registerAction(prevState: unknown, formData: FormData) {
       };
     }
 
-    // Hash password
-    const passwordHash = await hashPassword(password);
+    // Create user via Supabase Auth (handles password storage)
+    const { data: authData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-    // Create user
+    if (signUpError || !authData?.user) {
+      logger.error('Supabase Auth signup failed', signUpError);
+      return {
+        success: false,
+        error: 'Failed to create account. Please try again.',
+      };
+    }
+
+    // Parse name into first/last
+    const nameParts = name.trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    // Create user profile
     const { data: newUser, error: createError } = await supabase
       .from('profiles')
       .insert({
+        id: authData.user.id,
         email,
-        password_hash: passwordHash,
-        name,
+        first_name: firstName,
+        last_name: lastName,
         role,
         phone,
         created_at: new Date().toISOString(),
@@ -266,14 +287,11 @@ export async function resetPasswordAction(prevState: unknown, formData: FormData
       };
     }
 
-    // Hash new password
-    const passwordHash = await hashPassword(password);
-
-    // Update user password
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ password_hash: passwordHash })
-      .eq('id', resetRequest.user_id);
+    // Update password via Supabase Auth
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      resetRequest.user_id,
+      { password }
+    );
 
     if (updateError) {
       logger.error('Password update failed', updateError);
@@ -341,11 +359,17 @@ export async function updateProfileAction(prevState: unknown, formData: FormData
     // Decode token to get user ID (simplified - use proper JWT verification)
     const payload = JSON.parse(atob(token.split('.')[1]));
 
+    // Parse name into first/last
+    const nameParts = name.trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
     // Update user profile
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        name,
+        first_name: firstName,
+        last_name: lastName,
         phone,
         bio,
         updated_at: new Date().toISOString(),

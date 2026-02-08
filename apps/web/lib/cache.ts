@@ -121,7 +121,7 @@ export const getCachedUser = unstable_cache(
   async (userId: string) => {
     const { data, error } = await serverSupabase
       .from('profiles')
-      .select('id, first_name, last_name, email, profile_image_url, role, company_name, city, country')
+      .select('id, first_name, last_name, email, avatar_url, role, bio, phone')
       .eq('id', userId)
       .single();
 
@@ -162,7 +162,7 @@ export const getCachedContractors = unstable_cache(
         rating,
         total_jobs_completed,
         is_available,
-        email_verified,
+        verified,
         city,
         country,
         created_at,

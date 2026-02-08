@@ -7,7 +7,7 @@ export interface User {
   role: 'homeowner' | 'contractor' | 'admin';
   created_at: string;
   updated_at: string;
-  email_verified?: boolean;
+  verified?: boolean;
   phone?: string;
   phone_verified?: boolean;
   location?: string;
