@@ -376,7 +376,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
   try {
     // Get counts in parallel
     const [contractorsResult, jobsResult, homeownersResult, reviewsResult] = await Promise.all([
-      supabase.from('contractors').select('id', { count: 'exact', head: true }),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'contractor'),
       supabase.from('jobs').select('id', { count: 'exact', head: true }),
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'homeowner'),
       supabase.from('reviews').select('rating')
