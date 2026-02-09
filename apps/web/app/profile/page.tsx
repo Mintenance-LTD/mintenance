@@ -43,8 +43,8 @@ export default function ProfilePage2025() {
         lastName: user.last_name || user.lastName || '',
         email: user.email || '',
         phone: user.phone || '',
-        address: user.location || '',
-        postcode: '',
+        address: (user as typeof user & { address?: string }).address || user.location || '',
+        postcode: (user as typeof user & { postcode?: string }).postcode || '',
         city: user.city || '',
         country: user.country || '',
         bio: user.bio || '',
@@ -157,11 +157,13 @@ export default function ProfilePage2025() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          first_name: userData.firstName,
-          last_name: userData.lastName,
-          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
           phone: userData.phone,
-          location: userData.address,
+          bio: userData.bio,
+          address: userData.address,
+          city: userData.city,
+          postcode: userData.postcode,
         }),
       });
 

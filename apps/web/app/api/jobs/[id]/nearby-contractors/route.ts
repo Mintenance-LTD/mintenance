@@ -66,7 +66,7 @@ export async function GET(
     const { data: views, error: viewsError } = await serverSupabase
       .from('job_views')
       .select(`
-        contractor:users!job_views_contractor_id_fkey (
+        contractor:profiles!job_views_contractor_id_fkey (
           id,
           first_name,
           last_name,

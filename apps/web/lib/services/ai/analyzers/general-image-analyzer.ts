@@ -16,7 +16,7 @@ export async function analyzeGeneralImage(
 ): Promise<AnalysisResult<GeneralImageAnalysis>> {
   try {
     const analysisPromises = images.map(image =>
-      ImageAnalysisService.analyzeImage(image)
+      ImageAnalysisService.analyzePropertyImages([image])
     );
 
     const results = await Promise.all(analysisPromises);
@@ -38,15 +38,16 @@ export async function analyzeGeneralImage(
 
     for (const result of results) {
       if (result) {
-        aggregated.labels.push(...(result.labels || []));
-        aggregated.objects.push(...(result.objects || []));
+        aggregated.labels.push(...(result.labels || []).map(l => ({ name: l.description, confidence: l.score })));
+        aggregated.objects.push(...(result.objects || []).map(o => ({ name: o.name, confidence: o.score })));
         aggregated.text.push(...(result.text || []));
-        if (result.safeSearch) {
-          if (compareSafeSearchLevel(result.safeSearch.adult, aggregated.safeSearch.adult) > 0) {
-            aggregated.safeSearch.adult = result.safeSearch.adult;
+        const safeSearch = (result as unknown as Record<string, unknown>).safeSearch as { adult?: string; violence?: string } | undefined;
+        if (safeSearch) {
+          if (compareSafeSearchLevel(safeSearch.adult || '', aggregated.safeSearch.adult) > 0) {
+            aggregated.safeSearch.adult = safeSearch.adult || aggregated.safeSearch.adult;
           }
-          if (compareSafeSearchLevel(result.safeSearch.violence, aggregated.safeSearch.violence) > 0) {
-            aggregated.safeSearch.violence = result.safeSearch.violence;
+          if (compareSafeSearchLevel(safeSearch.violence || '', aggregated.safeSearch.violence) > 0) {
+            aggregated.safeSearch.violence = safeSearch.violence || aggregated.safeSearch.violence;
           }
         }
       }

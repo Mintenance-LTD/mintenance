@@ -64,14 +64,39 @@ const clientOptions: SupabaseClientOptions<'public'> = {
   },
 };
 
-// Singleton service-role client. Never import this in client-side code.
+/**
+ * SECURITY WARNING: This client uses SUPABASE_SERVICE_ROLE_KEY and bypasses ALL RLS policies.
+ * Only use for operations that genuinely require elevated privileges (webhooks, admin tasks,
+ * background jobs). For user-scoped queries, use createUserScopedClient() instead.
+ */
 export const serverSupabase = createClient(supabaseUrl, supabaseServiceKey, clientOptions);
 
 /**
- * Create a new client instance for isolated operations
- * Use this when you need a fresh connection (e.g., for long-running operations)
+ * Create a new service-role client instance for isolated operations.
+ * SECURITY WARNING: Bypasses ALL RLS — prefer createUserScopedClient() for user requests.
  */
 export function createServerSupabaseClient(): ReturnType<typeof createClient> {
-  return createClient(supabaseUrl, supabaseServiceKey, clientOptions);
+  return createClient(supabaseUrl!, supabaseServiceKey!, clientOptions as unknown as Parameters<typeof createClient>[2]);
+}
+
+/**
+ * Create a Supabase client scoped to the requesting user via their JWT.
+ * This client respects RLS policies and should be used for all user-facing API routes.
+ */
+export function createUserScopedClient(userJwt: string): ReturnType<typeof createClient> {
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKey) {
+    throw new Error('[Supabase] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY for user-scoped client');
+  }
+  return createClient(supabaseUrl!, anonKey, {
+    ...clientOptions as unknown as Parameters<typeof createClient>[2],
+    global: {
+      ...clientOptions.global,
+      headers: {
+        ...clientOptions.global?.headers,
+        Authorization: `Bearer ${userJwt}`,
+      },
+    },
+  });
 }
 

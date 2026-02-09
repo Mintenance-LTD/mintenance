@@ -60,8 +60,8 @@ export async function securityMiddleware(request: NextRequest): Promise<NextResp
   const method = request.method;
   try {
     // 1. Apply rate limiting
-    const clientIdentifier = getClientIdentifier(request);
-    const rateLimitResult = await checkRateLimit(clientIdentifier, pathname);
+    const clientIdentifier = await getClientIdentifier(request);
+    const rateLimitResult = await checkRateLimit(clientIdentifier, { path: pathname });
     if (!rateLimitResult.allowed) {
       logger.warn('Rate limit exceeded', {
         clientId: clientIdentifier,
@@ -170,14 +170,17 @@ export async function securityMiddleware(request: NextRequest): Promise<NextResp
 /**
  * Get client identifier for rate limiting and logging
  */
-function getClientIdentifier(request: NextRequest): string {
+async function getClientIdentifier(request: NextRequest): Promise<string> {
   // Try authenticated user first
   const authToken = request.cookies.get('auth-token')?.value;
   if (authToken) {
     try {
-      const decoded = verifyJWT(authToken, configManager.get('JWT_SECRET'));
-      if (decoded && decoded.sub) {
-        return `user:${decoded.sub}`;
+      const jwtSecret = configManager.get('JWT_SECRET');
+      if (jwtSecret) {
+        const decoded = await verifyJWT(authToken, jwtSecret);
+        if (decoded && decoded.sub) {
+          return `user:${decoded.sub}`;
+        }
       }
     } catch {
       // Invalid token, fall through to IP
@@ -185,7 +188,7 @@ function getClientIdentifier(request: NextRequest): string {
   }
   // Fall back to IP address
   const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0].trim() : request.ip || 'unknown';
+  const ip = forwarded ? forwarded.split(',')[0].trim() : (request as NextRequest & { ip?: string }).ip || 'unknown';
   return `ip:${ip}`;
 }
 /**
@@ -233,12 +236,16 @@ async function handleAuthentication(request: NextRequest): Promise<{
   }
   try {
     // Check token blacklist
-    const isBlacklisted = await tokenBlacklist.isBlacklisted(token);
+    const isBlacklisted = await tokenBlacklist.isTokenBlacklisted(token);
     if (isBlacklisted) {
       return { authenticated: false, error: 'Token has been revoked' };
     }
     // Verify JWT
-    const decoded = verifyJWT(token, configManager.get('JWT_SECRET'));
+    const jwtSecret = configManager.get('JWT_SECRET');
+    if (!jwtSecret) {
+      return { authenticated: false, error: 'JWT secret not configured' };
+    }
+    const decoded = await verifyJWT(token, jwtSecret);
     if (!decoded) {
       return { authenticated: false, error: 'Invalid token' };
     }

@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
     const { data: profile, error } = await serverSupabase
       .from('profiles')
       .select(
-        'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at'
+        'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, verified, phone_verified'
       )
       .eq('id', user.id)
       .single();

@@ -20,9 +20,15 @@ export interface User {
   bio?: string;
   city?: string;
   country?: string;
+  address?: string;
+  postcode?: string;
   company_name?: string;
   admin_verified?: boolean;
+  is_available?: boolean;
+  onboarding_completed?: boolean;
   rating?: number;
+  total_jobs_completed?: number;
+  /** @deprecated Use total_jobs_completed */
   jobs_count?: number;
 }
 

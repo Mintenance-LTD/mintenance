@@ -351,7 +351,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                       gap: '6px',
                     }}>
                       <Icon name="clock" size={14} color="#64748B" aria-hidden="true" />
-                      Expires: {new Date(announcement.expires_at).toLocaleDateString()}
+                      Expires: {new Date(announcement.expires_at).toLocaleDateString('en-GB')}
                     </span>
                   )}
                 </div>

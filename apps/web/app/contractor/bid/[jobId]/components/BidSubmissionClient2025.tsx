@@ -52,6 +52,39 @@ interface LineItem {
   total: number;
 }
 
+interface PricingSuggestion {
+  priceRange: {
+    min: number;
+    recommended: number;
+    max: number;
+  };
+  marketData: {
+    averageBid: number;
+    medianBid: number;
+    rangeMin: number;
+    rangeMax: number;
+  };
+  winProbability: number;
+  competitivenessLevel: 'too_low' | 'competitive' | 'premium' | 'too_high';
+  competitivenessScore: number;
+  confidenceScore: number;
+  reasoning: string;
+  factors?: {
+    complexityFactor?: number;
+    locationFactor?: number;
+    contractorTierFactor?: number;
+    marketDemandFactor?: number;
+    sampleSize?: number;
+  };
+  costBreakdown?: {
+    materials: number;
+    labor: number;
+    overhead: number;
+    profit: number;
+    total: number;
+  };
+}
+
 export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   // Defensive prop destructuring with defaults to prevent test crashes
   const {
@@ -64,7 +97,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   const [description, setDescription] = useState(existingBid?.description || '');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [lineItems, setLineItems] = useState<LineItem[]>(
-    existingBid?.lineItems?.map(item => ({ ...item, id: Math.random().toString() })) || []
+    existingBid?.lineItems?.map(item => ({ ...item, id: Math.random().toString(), type: 'labor' as const })) || []
   );
   const [taxRate, setTaxRate] = useState(existingBid?.taxRate ?? 20);
   const [terms, setTerms] = useState(existingBid?.terms || '');
@@ -74,7 +107,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
 
   // Pricing suggestion state
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
-  const [pricingSuggestion, setPricingSuggestion] = useState<unknown>(null);
+  const [pricingSuggestion, setPricingSuggestion] = useState<PricingSuggestion | null>(null);
   const [showPricingSuggestion, setShowPricingSuggestion] = useState(false);
 
   const homeownerName = job?.homeowner?.first_name && job?.homeowner?.last_name
@@ -294,7 +327,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
       const csrfHeaders = await getCsrfHeaders();
 
       // Ensure estimatedDuration is a number
-      const durationValue = estimatedDuration !== '' && typeof estimatedDuration === 'number'
+      const durationValue = typeof estimatedDuration === 'number'
         ? estimatedDuration
         : undefined;
 
@@ -473,7 +506,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                       <p className="font-medium text-gray-900">{homeownerName}</p>
                       <p className="text-xs text-gray-500">
                         {job?.createdAt
-                          ? new Date(job.createdAt).toLocaleDateString('en-US', {
+                          ? new Date(job.createdAt).toLocaleDateString('en-GB', {
                               month: 'short',
                               day: 'numeric',
                               year: 'numeric',

@@ -105,7 +105,7 @@ export default function TransactionDetailPage2025() {
         if (!response.ok) throw new Error('Failed to fetch');
 
         const { payments } = await response.json();
-        const found = payments.find((p: unknown) => p.id === transactionId);
+        const found = payments.find((p: { id: string }) => p.id === transactionId);
 
         if (!found) {
           toast.error('Transaction not found');
@@ -158,10 +158,10 @@ export default function TransactionDetailPage2025() {
             },
           ],
           metadata: {
-            processingFee: found.amount * 0.02,
-            platformFee: found.amount * 0.05,
-            netAmount: found.amount * 0.93,
-            taxAmount: (found.amount / 1.2) * 0.2,
+            processingFee: found.platform_fee_stripe ?? found.amount * 0.015 + 0.20,
+            platformFee: found.platform_fee ?? found.amount * 0.05,
+            netAmount: found.contractor_amount ?? found.amount * 0.935 - 0.20,
+            taxAmount: found.vat_amount ?? (found.amount / 1.2) * 0.2,
           },
         });
       } catch (error) {
@@ -218,7 +218,7 @@ export default function TransactionDetailPage2025() {
     window.print();
   };
 
-  const handleRefund = () => {
+  const handleRefund = async () => {
     if (!transaction) return;
 
     if (!refundReason.trim()) {
@@ -226,16 +226,45 @@ export default function TransactionDetailPage2025() {
       return;
     }
 
-    const amount = parseFloat(refundAmount);
-    if (isNaN(amount) || amount <= 0 || amount > transaction.amount) {
+    const parsedRefundAmount = parseFloat(refundAmount);
+    if (isNaN(parsedRefundAmount) || parsedRefundAmount <= 0 || parsedRefundAmount > transaction.amount) {
       toast.error('Invalid refund amount');
       return;
     }
 
-    toast.success('Refund request submitted successfully');
-    setShowRefundModal(false);
-    setRefundAmount(transaction.amount.toString());
-    setRefundReason('');
+    try {
+      // Fetch CSRF token
+      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
+      if (csrfToken) await new Promise(r => setTimeout(r, 50));
+
+      const response = await fetch('/api/payments/refund', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          jobId: transaction.jobId,
+          escrowTransactionId: transaction.id,
+          amount: parsedRefundAmount,
+          reason: refundReason,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to process refund');
+      }
+
+      toast.success('Refund request submitted successfully');
+      setShowRefundModal(false);
+      setRefundAmount(transaction.amount.toString());
+      setRefundReason('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to process refund');
+    }
   };
 
   if (loading) {

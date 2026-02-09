@@ -67,72 +67,7 @@ export default function ContractorPortfolioPage2025() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // TODO: Replace with real API data
-  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([
-    {
-      id: 'PORT-001',
-      title: 'Modern Kitchen Renovation',
-      description: 'Complete kitchen remodel with custom cabinetry, quartz countertops, and modern appliances. Included plumbing updates and electrical work.',
-      category: 'Kitchen',
-      location: 'London, SW1A',
-      completedDate: '2024-12-15',
-      cost: 18500,
-      duration: '3 weeks',
-      images: ['/placeholder1.jpg', '/placeholder2.jpg', '/placeholder3.jpg'],
-      featured: true,
-      verified: true,
-      rating: 5,
-      client: 'Sarah Johnson',
-      tags: ['Renovation', 'Plumbing', 'Electrical'],
-    },
-    {
-      id: 'PORT-002',
-      title: 'Luxury Bathroom Suite',
-      description: 'High-end bathroom installation with walk-in shower, freestanding bath, and heated floors.',
-      category: 'Bathroom',
-      location: 'Manchester, M1',
-      completedDate: '2024-11-28',
-      cost: 12300,
-      duration: '2 weeks',
-      images: ['/placeholder1.jpg', '/placeholder2.jpg'],
-      featured: false,
-      verified: true,
-      rating: 5,
-      client: 'Michael Brown',
-      tags: ['Installation', 'Heating', 'Tiling'],
-    },
-    {
-      id: 'PORT-003',
-      title: 'Boiler Replacement & System Upgrade',
-      description: 'Replaced old boiler with energy-efficient condensing boiler and upgraded entire heating system.',
-      category: 'Heating',
-      location: 'Birmingham, B1',
-      completedDate: '2024-10-20',
-      cost: 5200,
-      duration: '2 days',
-      images: ['/placeholder1.jpg'],
-      featured: false,
-      verified: true,
-      rating: 4,
-      client: 'Emma Wilson',
-      tags: ['Boiler', 'Heating', 'Gas'],
-    },
-    {
-      id: 'PORT-004',
-      title: 'Emergency Leak Repair',
-      description: 'Emergency response to major leak. Replaced damaged pipes and restored water supply.',
-      category: 'Repair',
-      location: 'Leeds, LS1',
-      completedDate: '2024-09-15',
-      cost: 850,
-      duration: '1 day',
-      images: ['/placeholder1.jpg'],
-      featured: false,
-      verified: false,
-      client: 'David Lee',
-      tags: ['Emergency', 'Repair', 'Pipes'],
-    },
-  ]);
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
 
   const categories = ['all', 'Kitchen', 'Bathroom', 'Heating', 'Repair', 'Installation'];
 

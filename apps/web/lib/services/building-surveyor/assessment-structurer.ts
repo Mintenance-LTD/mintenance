@@ -3,7 +3,7 @@
  * Structures AI responses into Phase1BuildingAssessment format
  */
 
-import type { Phase1BuildingAssessment, VisionAnalysisSummary } from './types';
+import type { Phase1BuildingAssessment, Material, VisionAnalysisSummary } from './types';
 import type { AiAssessmentPayload } from './validation-schemas';
 import { SafetyAnalysisService } from './SafetyAnalysisService';
 import { ComplianceService } from './ComplianceService';
@@ -11,6 +11,7 @@ import { InsuranceRiskService } from './InsuranceRiskService';
 import { normalizeSeverity, normalizeUrgency } from './normalization-utils';
 import { processUrgency } from './urgency-processor';
 import { enrichMaterialsWithDatabase } from './material-enrichment';
+import { logger } from '@mintenance/shared';
 
 /**
  * Structure AI response into Phase1BuildingAssessment
@@ -61,7 +62,7 @@ export async function structureAssessment(
   };
 
   // Ensure contractor advice exists
-  const normalizedMaterials = (aiResponse.contractorAdvice?.materials || []).map((material) => ({
+  const normalizedMaterials: Material[] = (aiResponse.contractorAdvice?.materials || []).map((material) => ({
     name: material.name || 'unspecified material',
     quantity: material.quantity || 'quantity not provided',
     estimatedCost: material.estimatedCost ?? 0,

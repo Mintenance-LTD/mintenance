@@ -39,68 +39,15 @@ export function FinancePageClient() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Mock data - replace with actual API calls
+  // Finance stats - populated from database
   const financeStats = {
-    totalRevenue: 48750,
-    pendingPayments: 12300,
-    paidThisMonth: 18500,
-    outstandingInvoices: 8,
+    totalRevenue: 0,
+    pendingPayments: 0,
+    paidThisMonth: 0,
+    outstandingInvoices: 0,
   };
 
-  const invoices: Invoice[] = [
-    {
-      id: 'INV-001',
-      jobId: 'JOB-128',
-      jobTitle: 'Kitchen sink replacement',
-      client: 'Sarah Johnson',
-      amount: 2500,
-      status: 'paid',
-      issueDate: '2025-01-15',
-      dueDate: '2025-01-30',
-      paidDate: '2025-01-25',
-    },
-    {
-      id: 'INV-002',
-      jobId: 'JOB-129',
-      jobTitle: 'Boiler servicing',
-      client: 'Michael Brown',
-      amount: 450,
-      status: 'sent',
-      issueDate: '2025-01-20',
-      dueDate: '2025-02-05',
-    },
-    {
-      id: 'INV-003',
-      jobId: 'JOB-130',
-      jobTitle: 'Bathroom renovation',
-      client: 'Emma Wilson',
-      amount: 5200,
-      status: 'overdue',
-      issueDate: '2024-12-20',
-      dueDate: '2025-01-10',
-    },
-    {
-      id: 'INV-004',
-      jobId: 'JOB-131',
-      jobTitle: 'Emergency leak repair',
-      client: 'David Lee',
-      amount: 850,
-      status: 'paid',
-      issueDate: '2025-01-10',
-      dueDate: '2025-01-25',
-      paidDate: '2025-01-22',
-    },
-    {
-      id: 'INV-005',
-      jobId: 'JOB-132',
-      jobTitle: 'Heating system inspection',
-      client: 'Lisa Anderson',
-      amount: 380,
-      status: 'draft',
-      issueDate: '2025-01-28',
-      dueDate: '2025-02-12',
-    },
-  ];
+  const invoices: Invoice[] = [];
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {

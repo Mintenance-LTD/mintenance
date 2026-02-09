@@ -4,7 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 export class AccountHandler {
   async handleUpdated(event: Stripe.Event): Promise<void> {
     const account = event.data.object as Stripe.Account;
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     logger.info('Stripe Connect account updated', {
       service: 'stripe-webhook',
       eventId: event.id,
@@ -47,7 +47,7 @@ export class AccountHandler {
           data: { account_id: account.id },
           created_at: new Date().toISOString(),
         });
-      } else if (account.requirements?.currently_due?.length > 0) {
+      } else if ((account.requirements?.currently_due?.length ?? 0) > 0) {
         // Additional information required
         await supabase.from('notifications').insert({
           user_id: contractorId,
@@ -82,7 +82,7 @@ export class AccountHandler {
     if (account.charges_enabled && account.payouts_enabled) {
       return 'verified';
     }
-    if (account.requirements?.currently_due?.length > 0) {
+    if ((account.requirements?.currently_due?.length ?? 0) > 0) {
       return 'pending_verification';
     }
     if (account.requirements?.disabled_reason) {

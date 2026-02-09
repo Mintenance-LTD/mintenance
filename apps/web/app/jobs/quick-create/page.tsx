@@ -100,7 +100,12 @@ export default function QuickJobPage() {
   const { csrfToken } = useCSRF();
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [primaryProperty, setPrimaryProperty] = useState<unknown>(null);
+  const [primaryProperty, setPrimaryProperty] = useState<{
+    id: string;
+    property_name?: string;
+    address?: string;
+    street_address?: string;
+  } | null>(null);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
 
@@ -243,7 +248,7 @@ export default function QuickJobPage() {
         category: formData.category,
         budget: budgetValue, // Use validated number
         requiredSkills: [],
-        property_id: formData.property_id || primaryProperty?.id || null,
+        property_id: formData.property_id || primaryProperty?.id || undefined,
         // Note: urgency field is not supported in the database schema
         // We've embedded the urgency information in the description instead
       };

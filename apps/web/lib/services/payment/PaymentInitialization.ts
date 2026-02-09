@@ -16,10 +16,26 @@ export class PaymentInitialization {
     const amountInCents = PaymentValidation.amountToCents(params.amount);
 
     try {
+      // Fetch fresh CSRF token before payment mutation
+      let csrfToken = '';
+      try {
+        const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+        if (csrfRes.ok) {
+          const csrfData = await csrfRes.json();
+          csrfToken = csrfData.token;
+          await new Promise(r => setTimeout(r, 50));
+        }
+      } catch {
+        logger.warn('Failed to fetch CSRF token for payment initialization');
+      }
+
       const resp = await fetch('/api/payments/checkout-session', {
         method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({
           amount: amountInCents,
           jobId: params.jobId,

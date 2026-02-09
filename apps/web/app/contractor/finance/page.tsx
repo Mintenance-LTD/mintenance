@@ -181,7 +181,7 @@ export default function ContractorFinancePage2025() {
 
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      const monthName = date.toLocaleDateString('en-GB', { month: 'short' });
 
       const revenue = transactions
         .filter(t => {

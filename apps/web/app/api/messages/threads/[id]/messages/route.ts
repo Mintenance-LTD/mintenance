@@ -158,7 +158,7 @@ export async function POST(request: NextRequest, context: Params) {
         attachment_url,
         read,
         created_at,
-        sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
+        sender:profiles!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
       `)
       .single();
 

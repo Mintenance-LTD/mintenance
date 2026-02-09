@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 
 // Lazy load heavy components
 export const LazyComponent = dynamic(
+  // @ts-expect-error - placeholder for actual heavy component
   () => import('./HeavyComponent'),
   {
     loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded" />,

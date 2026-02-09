@@ -40,7 +40,7 @@ export function ProfileSecurityTab({
               <div>
                 <p className="font-medium text-gray-900">Password</p>
                 <p className="text-sm text-gray-500">
-                  Last changed: {new Date(securitySettings.lastPasswordChange).toLocaleDateString()}
+                  Last changed: {new Date(securitySettings.lastPasswordChange).toLocaleDateString('en-GB')}
                 </p>
               </div>
             </div>

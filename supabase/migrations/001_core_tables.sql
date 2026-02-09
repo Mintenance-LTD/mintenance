@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS public.addresses (
   city TEXT NOT NULL,
   state TEXT NOT NULL,
   postal_code TEXT NOT NULL,
-  country TEXT DEFAULT 'USA',
+  country TEXT DEFAULT 'UK',
   latitude DECIMAL(10,8),
   longitude DECIMAL(11,8),
   is_primary BOOLEAN DEFAULT false,

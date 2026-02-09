@@ -103,10 +103,10 @@ export async function POST(request: NextRequest) {
       throw new ForbiddenError('Unauthorized');
     }
 
-    // Get escrow transaction
+    // Get escrow transaction (query both column names for payment intent ID)
     const { data: escrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, job_id, amount, status, stripe_payment_intent_id, created_at, released_at, refunded_at')
+      .select('id, job_id, amount, status, payment_intent_id, stripe_payment_intent_id, created_at, released_at, refunded_at')
       .eq('id', escrowTransactionId)
       .eq('job_id', jobId)
       .single();
@@ -150,7 +150,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!escrow.stripe_payment_intent_id) {
+    // Use whichever column has the payment intent ID
+    const paymentIntentId = escrow.payment_intent_id || escrow.stripe_payment_intent_id;
+    if (!paymentIntentId) {
       return NextResponse.json(
         { error: 'No payment intent ID found' },
         { status: 400 }
@@ -265,7 +267,7 @@ export async function POST(request: NextRequest) {
 
     // Create Stripe refund
     const refund = await stripe.refunds.create({
-      payment_intent: escrow.stripe_payment_intent_id,
+      payment_intent: paymentIntentId,
       amount: refundAmount,
       reason: reason ? 'requested_by_customer' : undefined,
       metadata: {

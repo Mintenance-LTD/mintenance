@@ -59,7 +59,7 @@ export function useJobForm(initialData?: Partial<JobFormData>) {
         return {
           ...prev,
           [parent]: {
-            ...(prev as unknown)[parent],
+            ...(prev as unknown as Record<string, Record<string, unknown>>)[parent],
             [child]: value,
           },
         };

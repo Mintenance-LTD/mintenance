@@ -283,7 +283,7 @@ function PostCard({ post, onLike }: { post: ContractorPost, onLike: () => void }
                         <div>
                             <div style={{ fontWeight: 'bold' }}>{contractorName}</div>
                             <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
-                                {new Date(post.createdAt).toLocaleDateString()}
+                                {new Date(post.createdAt).toLocaleDateString('en-GB')}
                             </div>
                         </div>
                     </div>

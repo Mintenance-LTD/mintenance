@@ -134,12 +134,12 @@ export function VerificationBadges({
         let label: string = config.label;
 
         if (badge.type === 'dbs' && badge.verified && badge.level) {
-          colorClass = config.colors[badge.level];
-          label = config.labelByLevel[badge.level];
+          colorClass = (config.colors as Record<string, string>)[badge.level];
+          label = ('labelByLevel' in config ? (config.labelByLevel as Record<string, string>)[badge.level] : config.label) || config.label;
         } else {
           colorClass = badge.verified
-            ? (config.colors as any).verified || config.colors.enhanced
-            : (config.colors as any).unverified;
+            ? (config.colors as Record<string, string>).verified || (config.colors as Record<string, string>).enhanced
+            : (config.colors as Record<string, string>).unverified;
         }
 
         return (
@@ -184,9 +184,9 @@ export function CompactVerificationBadges({ badges }: { badges: VerificationBadg
 
         let colorClass: string;
         if (badge.type === 'dbs' && badge.level) {
-          colorClass = config.colors[badge.level];
+          colorClass = (config.colors as Record<string, string>)[badge.level];
         } else {
-          colorClass = (config.colors as any).verified || config.colors.enhanced;
+          colorClass = (config.colors as Record<string, string>).verified || (config.colors as Record<string, string>).enhanced;
         }
 
         return (

@@ -4,7 +4,7 @@
  */
 
 import { vi } from 'vitest';
-import type { User, Job, Contractor, Bid } from '@mintenance/types';
+import type { User, Job, Bid } from '@mintenance/types';
 
 /**
  * Creates a mock user object with all required fields
@@ -12,16 +12,40 @@ import type { User, Job, Contractor, Bid } from '@mintenance/types';
 export const createMockUser = (overrides?: Partial<User>): User => ({
   id: 'user-123',
   email: 'test@example.com',
+  first_name: 'Test',
+  last_name: 'User',
   role: 'homeowner',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   ...overrides,
 });
 
+/** Local contractor type for test mocks (no Contractor type in @mintenance/types). */
+interface MockContractor {
+  id: string;
+  user_id: string;
+  company_name: string;
+  bio: string;
+  skills: string[];
+  experience_years: number;
+  rating: number;
+  reviews_count: number;
+  jobs_completed: number;
+  response_time_hours: number;
+  verified: boolean;
+  insurance_verified: boolean;
+  dbs_checked: boolean;
+  phone: string;
+  postcode: string;
+  service_areas: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Creates a mock contractor profile with all required fields
  */
-export const createMockContractor = (overrides?: Partial<Contractor>): Contractor => ({
+export const createMockContractor = (overrides?: Partial<MockContractor>): MockContractor => ({
   id: 'contractor-123',
   user_id: 'user-123',
   company_name: 'Test Contracting Ltd',
@@ -51,7 +75,7 @@ export const createMockJob = (overrides?: Partial<Job>): Job => ({
   homeowner_id: 'user-123',
   title: 'Fix leaking tap',
   description: 'Kitchen tap is dripping',
-  status: 'posted',
+  status: 'open',
   category: 'plumbing',
   location: 'London, SW1A 1AA',
   budget: 150,
@@ -76,10 +100,21 @@ export const createMockBid = (overrides?: Partial<Bid>): Bid => ({
   ...overrides,
 });
 
+/** Local profile type for test mocks. */
+interface MockProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url: string | null;
+  phone: string;
+  created_at: string;
+  updated_at: string;
+}
+
 /**
  * Creates a mock profile with all required fields
  */
-export const createMockProfile = (overrides?: Partial<Profile>): Profile => ({
+export const createMockProfile = (overrides?: Partial<MockProfile>): MockProfile => ({
   id: 'user-123',
   email: 'test@example.com',
   full_name: 'Test User',

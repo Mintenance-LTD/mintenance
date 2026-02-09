@@ -55,7 +55,8 @@ export default function CertificationsPage2025() {
   const handleDeleteCertification = async (id: string, name: string) => {
     if (!confirm(`Delete certification "${name}"?`)) return;
     try {
-      const response = await fetch(`/api/contractor/certifications/${id}`, { method: 'DELETE', headers: { ...getCsrfHeaders() }, credentials: 'include' });
+      const csrfHeaders = await getCsrfHeaders();
+      const response = await fetch(`/api/contractor/certifications/${id}`, { method: 'DELETE', headers: { ...csrfHeaders }, credentials: 'include' });
       if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Failed to delete certification'); }
       setCertifications(certifications.filter((c) => c.id !== id));
       toast.success('Certification deleted');
@@ -92,7 +93,8 @@ export default function CertificationsPage2025() {
   const handleInitiateDBSCheck = async (dbsType: 'basic' | 'standard' | 'enhanced' = 'basic') => {
     setInitiatingDBS(true);
     try {
-      const response = await fetch('/api/contractor/dbs-check', { method: 'POST', headers: { 'Content-Type': 'application/json', ...getCsrfHeaders() }, credentials: 'include', body: JSON.stringify({ dbsType, provider: 'dbs_online' }) });
+      const csrfHeaders = await getCsrfHeaders();
+      const response = await fetch('/api/contractor/dbs-check', { method: 'POST', headers: { 'Content-Type': 'application/json', ...csrfHeaders }, credentials: 'include', body: JSON.stringify({ dbsType, provider: 'dbs_online' }) });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to initiate DBS check');
       toast.success('DBS check initiated successfully');
@@ -223,7 +225,7 @@ export default function CertificationsPage2025() {
       </div>
 
       {showAddModal && activeTab === 'certifications' && (
-        <AddCertificationModal onClose={() => setShowAddModal(false)} onSuccess={(certification) => { setCertifications([...certifications, certification]); setShowAddModal(false); toast.success('Certification added successfully'); }} getCsrfHeaders={getCsrfHeaders} />
+        <AddCertificationModal onClose={() => setShowAddModal(false)} onSuccess={(certification) => { setCertifications([...certifications, certification]); setShowAddModal(false); toast.success('Certification added successfully'); }} getCsrfHeaders={getCsrfHeaders as unknown as () => Record<string, string>} />
       )}
       {showAddModal && activeTab === 'training' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Get user profile with avatar
     const { data: profile, error } = await supabase
       .from('profiles')
-      .select('avatar_url')
+      .select('profile_image_url')
       .eq('id', user.id)
       .single();
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      avatar_url: profile?.avatar_url || null
+      profile_image_url: profile?.profile_image_url || null
     });
 
   } catch (error) {
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        avatar_url: publicUrl,
+        profile_image_url: publicUrl,
         updated_at: new Date().toISOString()
       })
       .eq('id', user.id);
@@ -126,12 +126,12 @@ export async function POST(request: NextRequest) {
     // Delete old avatar if exists
     const { data: oldProfile } = await supabase
       .from('profiles')
-      .select('avatar_url')
+      .select('profile_image_url')
       .eq('id', user.id)
       .single();
 
-    if (oldProfile?.avatar_url && oldProfile.avatar_url !== publicUrl) {
-      const oldFileName = oldProfile.avatar_url.split('/').pop();
+    if (oldProfile?.profile_image_url && oldProfile.profile_image_url !== publicUrl) {
+      const oldFileName = oldProfile.profile_image_url.split('/').pop();
       if (oldFileName) {
         await supabase.storage.from('avatars').remove([oldFileName]);
       }
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      avatar_url: publicUrl
+      profile_image_url: publicUrl
     });
 
   } catch (error) {
@@ -163,7 +163,7 @@ export async function DELETE(request: NextRequest) {
     // Get current avatar URL
     const { data: profile, error: fetchError } = await supabase
       .from('profiles')
-      .select('avatar_url')
+      .select('profile_image_url')
       .eq('id', user.id)
       .single();
 
@@ -172,9 +172,9 @@ export async function DELETE(request: NextRequest) {
       throw fetchError;
     }
 
-    if (profile?.avatar_url) {
+    if (profile?.profile_image_url) {
       // Extract filename from URL
-      const fileName = profile.avatar_url.split('/').pop();
+      const fileName = profile.profile_image_url.split('/').pop();
 
       if (fileName) {
         // Delete from storage
@@ -192,7 +192,7 @@ export async function DELETE(request: NextRequest) {
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        avatar_url: null,
+        profile_image_url: null,
         updated_at: new Date().toISOString()
       })
       .eq('id', user.id);

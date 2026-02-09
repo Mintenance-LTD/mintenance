@@ -94,10 +94,11 @@ export class DatabaseQueryCache {
   private sortObject(obj: unknown): unknown {
     if (obj === null || typeof obj !== 'object') return obj;
     if (Array.isArray(obj)) return obj.map(item => this.sortObject(item));
-    return Object.keys(obj)
+    const record = obj as Record<string, unknown>;
+    return Object.keys(record)
       .sort()
-      .reduce((sorted: unknown, key) => {
-        sorted[key] = this.sortObject(obj[key]);
+      .reduce((sorted: Record<string, unknown>, key) => {
+        sorted[key] = this.sortObject(record[key]);
         return sorted;
       }, {});
   }
@@ -207,7 +208,8 @@ export class DatabaseQueryCache {
     this.memoryCache.clear();
     if (this.redis) {
       try {
-        await this.redis.eval(
+        // Use Redis Lua script to clear all database cache keys
+        await (this.redis as unknown as { eval: (script: string, keys: string[], args: string[]) => Promise<unknown> }).eval(
           `
           local keys = redis.call('keys', 'db:*')
           for i=1,#keys do
@@ -215,6 +217,7 @@ export class DatabaseQueryCache {
           end
           return #keys
           `,
+          [],
           []
         );
       } catch (redisError) {

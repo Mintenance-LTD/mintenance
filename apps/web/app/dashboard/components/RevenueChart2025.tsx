@@ -67,13 +67,13 @@ export function RevenueChart2025({ data, totalRevenue }: RevenueChart2025Props) 
         <div>
           <div className="text-sm text-gray-600 mb-1">Total Spent</div>
           <div className="text-2xl font-bold text-gray-900">
-            ${totalRevenue.toLocaleString()}
+            £{totalRevenue.toLocaleString()}
           </div>
         </div>
         <div>
           <div className="text-sm text-gray-600 mb-1">Average/Month</div>
           <div className="text-2xl font-bold text-gray-900">
-            ${(totalRevenue / 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            £{(totalRevenue / 12).toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </div>
         </div>
         <div>
@@ -96,7 +96,7 @@ export function RevenueChart2025({ data, totalRevenue }: RevenueChart2025Props) 
           index="date"
           categories={['Revenue']}
           colors={['teal']}
-          valueFormatter={(value) => `$${value.toLocaleString()}`}
+          valueFormatter={(value) => `£${value.toLocaleString()}`}
           showAnimation={true}
           showLegend={false}
           showGridLines={true}

@@ -476,7 +476,7 @@ export function normalizeChartData(
     ...item,
     value: Math.max(
       minValue,
-      Math.min(item.value || emptyValue, maxValue || item.value || emptyValue)
+      Math.min(Number(item.value) || emptyValue, maxValue || Number(item.value) || emptyValue)
     ),
   }));
 }

@@ -23,7 +23,8 @@ function getServerPurify(): typeof DOMPurify {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { JSDOM } = require('jsdom');
   const domWindow = new JSDOM('').window;
-  serverPurify = DOMPurify(domWindow as unknown as Window);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  serverPurify = DOMPurify(domWindow as any);
   
   return serverPurify;
 }

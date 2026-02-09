@@ -19,7 +19,17 @@ export default function DisputeDetailPage() {
   const router = useRouter();
   const disputeId = params.id as string;
   const { user, loading } = useCurrentUser();
-  const [dispute, setDispute] = useState<unknown>(null);
+  const [dispute, setDispute] = useState<{
+    status: string;
+    priority: string;
+    sla_deadline?: string;
+    dispute_reason?: string;
+    dispute_evidence?: unknown[];
+    created_at?: string;
+    mediation_requested_at?: string;
+    resolved_at?: string;
+    resolution?: string;
+  } | null>(null);
   const [timeline, setTimeline] = useState<DisputeTimeline[]>([]);
   const [loadingDispute, setLoadingDispute] = useState(true);
 
@@ -93,7 +103,7 @@ export default function DisputeDetailPage() {
                 Status: {dispute.status}
               </h2>
               <p style={{ color: theme.colors.textSecondary }}>
-                Priority: {dispute.priority} • Estimated resolution: {dispute.sla_deadline ? new Date(dispute.sla_deadline).toLocaleDateString() : 'N/A'}
+                Priority: {dispute.priority} • Estimated resolution: {dispute.sla_deadline ? new Date(dispute.sla_deadline).toLocaleDateString('en-GB') : 'N/A'}
               </p>
             </div>
             {dispute.status === 'disputed' && (

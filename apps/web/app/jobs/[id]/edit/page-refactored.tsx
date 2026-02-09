@@ -12,7 +12,7 @@ import { ImageUploadManager } from './components/ImageUploadManager';
 import { RequirementsManager } from './components/RequirementsManager';
 import { JobMetadata } from './components/JobMetadata';
 import { JobBasicFields } from './components/JobBasicFields';
-import { AIAnalysisService } from './services/aiAnalysisService';
+import { AIAnalysisService, AIAnalysisResult, BuildingSurveyResult } from './services/aiAnalysisService';
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
@@ -42,9 +42,9 @@ export default function JobEditPageRefactored() {
   const [isJobSaved, setIsJobSaved] = useState(false);
   const [savingJob, setSavingJob] = useState(false);
   // AI/Analysis state
-  const [aiAnalysis, setAiAnalysis] = useState<unknown>(null);
-  const [buildingSurvey, setBuildingSurvey] = useState<unknown>(null);
-  const [geocodeData, setGeocodeData] = useState<unknown>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
+  const [buildingSurvey, setBuildingSurvey] = useState<BuildingSurveyResult | null>(null);
+  const [geocodeData, setGeocodeData] = useState<{ verified?: boolean; formattedAddress?: string; coordinates?: { lat: number; lng: number }; confidence?: number } | null>(null);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const aiService = AIAnalysisService.getInstance();
   // Load existing job data

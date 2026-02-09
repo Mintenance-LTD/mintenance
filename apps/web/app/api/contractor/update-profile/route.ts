@@ -23,6 +23,7 @@ interface ProfileUpdateData {
   latitude?: number;
   longitude?: number;
   address?: string;
+  postcode?: string;
   profile_image_url?: string;
 }
 
@@ -172,6 +173,7 @@ const profileUpdateSchema = z.object({
   ]).optional(),
   companyName: z.union([z.string().max(255, 'Company name must be less than 255 characters'), z.literal('')]).optional(),
   licenseNumber: z.union([z.string().max(100, 'License number must be less than 100 characters'), z.literal('')]).optional(),
+  postcode: z.union([z.string().max(20, 'Postcode must be less than 20 characters'), z.literal('')]).optional(),
   isAvailable: z.boolean(),
 });
 
@@ -228,6 +230,7 @@ export async function POST(request: NextRequest) {
       phone: getOptionalField(formData.get('phone')),
       companyName: getOptionalField(formData.get('companyName')),
       licenseNumber: getOptionalField(formData.get('licenseNumber')),
+      postcode: getOptionalField(formData.get('postcode')),
       isAvailable: formData.get('isAvailable') === 'true',
     };
 
@@ -362,6 +365,7 @@ export async function POST(request: NextRequest) {
       phone,
       company_name: rawData.companyName || null,
       license_number: rawData.licenseNumber ? rawData.licenseNumber.trim().toUpperCase() : null,
+      postcode: validatedData.postcode ? sanitizeText(validatedData.postcode, 20) : undefined,
       is_available: isAvailable,
       updated_at: new Date().toISOString(),
     };

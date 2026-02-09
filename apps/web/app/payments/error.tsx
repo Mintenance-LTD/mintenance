@@ -98,7 +98,7 @@ export default function PaymentError({
           </Button>
 
           <Button
-            onClick={() => router.push('/payment-methods')}
+            onClick={() => router.push('/settings/payment-methods')}
             variant="secondary"
             className="w-full flex items-center justify-center"
           >

@@ -88,9 +88,9 @@ export class JobNotificationService {
       }
     }
 
-    if (typeof job.location === 'object' && job.location !== null && 'lat' in job.location && 'lng' in job.location) {
-      const lat = job.location.lat;
-      const lng = job.location.lng;
+    if (typeof job.location === 'object' && job.location !== null && 'lat' in (job.location as Record<string, unknown>) && 'lng' in (job.location as Record<string, unknown>)) {
+      const lat = (job.location as unknown as { lat: unknown }).lat;
+      const lng = (job.location as unknown as { lng: unknown }).lng;
       if (typeof lat === 'number' && typeof lng === 'number') {
         await this.saveCoordinates(job.id, lat, lng);
         return { lat, lng };

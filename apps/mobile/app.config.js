@@ -94,13 +94,13 @@ module.exports = {
   expo: {
     name: "Mintenance",
     slug: "mintenance",
-    owner: "mintanance-ltd",
+    owner: "mintenance-ltd",
     version: "1.2.4",
     orientation: "portrait",
-    icon: "./apps/mobile/assets/icon.png",
+    icon: "./assets/icon.png",
     userInterfaceStyle: "automatic",
     splash: {
-      image: "./apps/mobile/assets/splash.png",
+      image: "./assets/splash.png",
       resizeMode: "contain",
       backgroundColor: "#0EA5E9"
     },
@@ -123,7 +123,7 @@ module.exports = {
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./apps/mobile/assets/adaptive-icon.png",
+        foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#0EA5E9"
       },
       config: { 
@@ -228,7 +228,7 @@ module.exports = {
     extra: {
       eas: {
         projectId: "671d1323-6979-465f-91db-e61471746ab3",
-        owner: "mintanance-ltd"
+        owner: "mintenance-ltd"
       },
       // Supabase runtime config (read by src/config/supabase.ts)
       // Both URL and key MUST be provided via environment variables. No defaults to avoid leaks.

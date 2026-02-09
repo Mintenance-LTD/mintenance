@@ -247,7 +247,7 @@ export function ContractorMapView(props: ContractorMapViewProps) {
         markerClustererRef.current = new MarkerClusterer({
           map: mapInstance,
           markers: markersRef.current,
-          algorithm: new (MarkerClusterer as unknown).SuperClusterAlgorithm({ radius: 100 }),
+          algorithm: new ((MarkerClusterer as unknown as Record<string, unknown>).SuperClusterAlgorithm as new (opts: { radius: number }) => import('@googlemaps/markerclusterer').Algorithm)({ radius: 100 }),
         });
         logger.info(`✅ Marker clustering enabled for ${contractors.length} contractors`);
       }

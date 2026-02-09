@@ -492,7 +492,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
             ) : (
               <>
                 <span style={{ marginRight: theme.spacing.xs }}>🔒</span>
-                Pay {amountNum > 0 ? `$${amountNum.toFixed(2)}` : ''}
+                Pay {amountNum > 0 ? `£${amountNum.toFixed(2)}` : ''}
               </>
             )}
           </Button>

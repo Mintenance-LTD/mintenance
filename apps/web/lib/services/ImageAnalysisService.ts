@@ -154,7 +154,7 @@ export class ImageAnalysisService {
         service: 'ImageAnalysisService',
         invalidUrls: urlValidation.invalid,
       });
-      throw new Error(`Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}`);
+      throw new Error(`Invalid image URLs: ${urlValidation.invalid.map((i: { url: string; error: string }) => i.error).join(', ')}`);
     }
 
     // Use only validated URLs
@@ -177,7 +177,7 @@ export class ImageAnalysisService {
       // Current: Parallel processing (6s for 2 images, 8s for 4 images)
       // Expected improvement: 50-70% faster for multiple images
       const imageResults = await Promise.all(
-        validatedImageUrls.map(async (imageUrl) => {
+        validatedImageUrls.map(async (imageUrl: string) => {
           try {
             // Process all three API calls in parallel for this image
             const [labelResult, objectResult, textResult] = await Promise.all([
@@ -259,28 +259,28 @@ export class ImageAnalysisService {
       for (const { imageUrl, labelResult, objectResult, textResult } of imageResults) {
         // Process labels (only if we got results)
         if (labelResult?.labelAnnotations) {
-          labelResult.labelAnnotations.forEach((label: unknown) => {
+          (labelResult.labelAnnotations as Array<Record<string, unknown>>).forEach((label: Record<string, unknown>) => {
             if (label.description && label.score) {
-              const existingScore = allLabels.get(label.description) || 0;
-              allLabels.set(label.description, Math.max(existingScore, label.score));
+              const existingScore = allLabels.get(label.description as string) || 0;
+              allLabels.set(label.description as string, Math.max(existingScore, label.score as number));
             }
           });
         }
 
         // Process objects (only if we got results)
         if (objectResult?.localizedObjectAnnotations) {
-          objectResult.localizedObjectAnnotations.forEach((obj: unknown) => {
+          (objectResult.localizedObjectAnnotations as Array<Record<string, unknown>>).forEach((obj: Record<string, unknown>) => {
             if (obj.name && obj.score) {
-              const existingScore = allObjects.get(obj.name) || 0;
-              allObjects.set(obj.name, Math.max(existingScore, obj.score));
+              const existingScore = allObjects.get(obj.name as string) || 0;
+              allObjects.set(obj.name as string, Math.max(existingScore, obj.score as number));
             }
           });
         }
 
         // Process text (OCR) (only if we got results)
-        if (textResult?.textAnnotations && textResult.textAnnotations.length > 0) {
+        if (textResult?.textAnnotations && (textResult.textAnnotations as Array<Record<string, unknown>>).length > 0) {
           // Skip the first annotation (full text block)
-          const textLines = textResult.textAnnotations.slice(1).map((ann: unknown) => ann.description || '').filter(Boolean);
+          const textLines = (textResult.textAnnotations as Array<Record<string, unknown>>).slice(1).map((ann: Record<string, unknown>) => (ann.description as string) || '').filter(Boolean);
           allText.push(...textLines);
         }
       }

@@ -5,8 +5,8 @@
 CREATE TABLE IF NOT EXISTS public.contractor_meetings (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     job_id UUID REFERENCES public.jobs(id) ON DELETE CASCADE,
-    contractor_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    homeowner_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    contractor_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    homeowner_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     meeting_type TEXT NOT NULL CHECK (meeting_type IN ('site_visit', 'consultation', 'work_session')),
     scheduled_datetime TIMESTAMPTZ NOT NULL,
     duration INTEGER DEFAULT 60, -- duration in minutes
@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.contractor_meetings (
     address TEXT,
     notes TEXT,
     cancellation_reason TEXT,
-    cancelled_by UUID REFERENCES public.users(id),
+    cancelled_by UUID REFERENCES public.profiles(id),
     cancelled_at TIMESTAMPTZ,
     rescheduled_from UUID REFERENCES public.contractor_meetings(id),
     rescheduled_to UUID REFERENCES public.contractor_meetings(id),
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS public.meeting_updates (
         'no_show'
     )),
     message TEXT NOT NULL,
-    updated_by UUID NOT NULL REFERENCES public.users(id),
+    updated_by UUID NOT NULL REFERENCES public.profiles(id),
     old_value JSONB,
     new_value JSONB,
     timestamp TIMESTAMPTZ DEFAULT now()

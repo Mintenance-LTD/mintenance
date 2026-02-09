@@ -220,7 +220,7 @@ export function ContractorProfileClient2025({
           // Try to extract specific validation errors
           if (Array.isArray(data.details)) {
             const validationErrors = data.details
-              .map((err: unknown) => err.message || err.path?.join('.') || 'Invalid field')
+              .map((err: { message?: string; path?: string[] }) => err.message || err.path?.join('.') || 'Invalid field')
               .join(', ');
             if (validationErrors) {
               errorMessage = `Validation error: ${validationErrors}`;
@@ -666,7 +666,7 @@ export function ContractorProfileClient2025({
                       <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg">
                         <Shield className="w-5 h-5 text-gray-600" />
                         <div>
-                          <span className="text-sm text-gray-600">License Number:</span>
+                          <span className="text-sm text-gray-600">Licence Number:</span>
                           <span className="ml-2 text-gray-900 font-medium">{contractor.license_number}</span>
                         </div>
                       </div>
@@ -924,7 +924,7 @@ export function ContractorProfileClient2025({
                                   : 'Anonymous'}
                               </h4>
                               <span className="text-sm text-slate-500">
-                                {new Date(review.created_at).toLocaleDateString('en-US', {
+                                {new Date(review.created_at).toLocaleDateString('en-GB', {
                                   month: 'long',
                                   year: 'numeric',
                                 })}
@@ -959,7 +959,7 @@ export function ContractorProfileClient2025({
             >
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Certifications & Licenses</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">Certifications & Licences</h2>
                   <p className="text-sm text-gray-600 mt-1">Professional credentials and qualifications</p>
                 </div>
                 {isEditMode && (

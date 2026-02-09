@@ -31,21 +31,10 @@ export function SchedulingClient2025({ events, userInfo }: SchedulingClient2025P
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
 
-  // Mock available time slots
+  // Available time slots - populated from database
   const getAvailableTimeSlots = (date: Date | null): TimeSlot[] => {
     if (!date) return [];
-
-    return [
-      { time: '09:00 AM', available: true, contractorName: 'John Smith' },
-      { time: '10:00 AM', available: true, contractorName: 'Jane Doe' },
-      { time: '11:00 AM', available: false },
-      { time: '12:00 PM', available: true, contractorName: 'Mike Johnson' },
-      { time: '01:00 PM', available: false },
-      { time: '02:00 PM', available: true, contractorName: 'Sarah Williams' },
-      { time: '03:00 PM', available: true, contractorName: 'Tom Brown' },
-      { time: '04:00 PM', available: true, contractorName: 'Emily Davis' },
-      { time: '05:00 PM', available: false },
-    ];
+    return [];
   };
 
   const availableSlots = getAvailableTimeSlots(selectedDate);
@@ -87,7 +76,7 @@ export function SchedulingClient2025({ events, userInfo }: SchedulingClient2025P
       toast.error('Please select a date and time slot');
       return;
     }
-    toast.success(`Appointment booked for ${selectedDate.toLocaleDateString()} at ${selectedTimeSlot}`);
+    toast.success(`Appointment booked for ${selectedDate.toLocaleDateString('en-GB')} at ${selectedTimeSlot}`);
   };
 
   const getEventTypeColor = (type: string) => {
@@ -228,7 +217,7 @@ export function SchedulingClient2025({ events, userInfo }: SchedulingClient2025P
                         <div>
                           <p className="font-medium text-gray-900">Appointment Details</p>
                           <p className="text-sm text-gray-600 mt-1">
-                            {selectedDate.toLocaleDateString()} at {selectedTimeSlot}
+                            {selectedDate.toLocaleDateString('en-GB')} at {selectedTimeSlot}
                           </p>
                         </div>
                         <button

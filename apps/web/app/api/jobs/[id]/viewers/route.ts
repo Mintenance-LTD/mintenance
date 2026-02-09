@@ -67,7 +67,7 @@ export async function GET(
         id,
         contractor_id,
         viewed_at,
-        contractor:users!job_views_contractor_id_fkey (
+        contractor:profiles!job_views_contractor_id_fkey (
           id,
           first_name,
           last_name,

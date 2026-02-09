@@ -178,7 +178,7 @@ export class DatabaseManager {
   static async getUserById(userId: string): Promise<User | null> {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone, phone_verified, phone_verified_at, location, profile_image_url, bio, address, city, postcode')
+      .select('id, email, first_name, last_name, role, created_at, updated_at, verified, phone, phone_verified, phone_verified_at, location, profile_image_url, bio, address, city, postcode, country, company_name, admin_verified, is_available, onboarding_completed, rating, total_jobs_completed')
       .eq('id', userId)
       .single();
 

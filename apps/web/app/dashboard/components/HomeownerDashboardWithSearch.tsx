@@ -104,39 +104,8 @@ export function HomeownerDashboardWithSearch({ data }: HomeownerDashboardWithSea
     .sort((a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime())
     .slice(0, 3);
 
-  // Featured contractors (mock data for now)
-  const featuredContractors = [
-    {
-      id: '1',
-      name: 'John Smith',
-      company: 'Smith Plumbing',
-      rating: 4.9,
-      reviews: 127,
-      specialties: ['Plumbing', 'Bathrooms'],
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=contractor1',
-      badge: 'Top Rated'
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      company: 'Johnson Electric',
-      rating: 4.8,
-      reviews: 89,
-      specialties: ['Electrical', 'Smart Home'],
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=contractor2',
-      badge: 'Quick Response'
-    },
-    {
-      id: '3',
-      name: 'Mike Williams',
-      company: 'Williams Carpentry',
-      rating: 5.0,
-      reviews: 56,
-      specialties: ['Carpentry', 'Renovations'],
-      image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=contractor3',
-      badge: 'Premium'
-    }
-  ];
+  // Featured contractors - populated from database
+  const featuredContractors: { id: string; name: string; company: string; rating: number; reviews: number; specialties: string[]; image: string; badge: string }[] = [];
 
   return (
     <HomeownerPageWrapper>

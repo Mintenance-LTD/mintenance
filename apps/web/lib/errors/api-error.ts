@@ -48,7 +48,7 @@ export class APIError extends Error {
       error: {
         code: this.code,
         message: this.userMessage,
-        ...(this.details && { details: this.details }),
+        ...(this.details ? { details: this.details } : {}),
         ...(this.field && { field: this.field }),
       },
       timestamp: new Date().toISOString(),
@@ -161,8 +161,8 @@ export function handleAPIError(
         status: error.statusCode,
         headers: getResponseHeaders({
           'Content-Type': 'application/json',
-          ...(error instanceof RateLimitError && error.details?.retryAfter
-            ? { 'Retry-After': String(error.details.retryAfter) }
+          ...(error instanceof RateLimitError && (error.details as { retryAfter?: number })?.retryAfter
+            ? { 'Retry-After': String((error.details as { retryAfter: number }).retryAfter) }
             : {}),
         }),
       }

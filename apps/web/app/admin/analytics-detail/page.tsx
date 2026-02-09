@@ -313,31 +313,7 @@ export default function AnalyticsDetailPage2025() {
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Contractors</h3>
             <div className="space-y-3">
-              {[
-                { name: 'John Smith', jobs: 42, rating: 4.9, revenue: '£42,300' },
-                { name: 'Emma Wilson', jobs: 38, rating: 4.8, revenue: '£38,900' },
-                { name: 'Michael Brown', jobs: 35, rating: 4.7, revenue: '£35,600' },
-                { name: 'Sarah Davis', jobs: 32, rating: 4.9, revenue: '£32,100' },
-                { name: 'James Taylor', jobs: 29, rating: 4.6, revenue: '£29,800' },
-              ].map((contractor, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center font-bold text-purple-600">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{contractor.name}</p>
-                      <p className="text-sm text-gray-600">
-                        {contractor.jobs} jobs • ⭐ {contractor.rating}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="font-semibold text-gray-900">{contractor.revenue}</p>
-                </div>
-              ))}
+              <p className="text-sm text-gray-500 text-center py-4">No contractor data available yet.</p>
             </div>
           </MotionDiv>
 

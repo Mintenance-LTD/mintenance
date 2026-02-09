@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import type { User } from '@mintenance/types';
 
@@ -62,7 +62,7 @@ export async function requireAdmin(request: NextRequest): Promise<{
 
     // Step 3: CRITICAL - Verify admin role against database
     // This prevents forged JWT attacks
-    const supabase = createClient();
+    const supabase = serverSupabase();
 
     const { data: dbUser, error: dbError } = await supabase
       .from('profiles')
@@ -175,7 +175,7 @@ async function logSecurityEvent(
   details: Record<string, unknown>
 ) {
   try {
-    const supabase = createClient();
+    const supabase = serverSupabase();
 
     await supabase.from('security_events').insert({
       user_id: userId,
@@ -206,7 +206,7 @@ async function logAdminAccess(
   method: string
 ) {
   try {
-    const supabase = createClient();
+    const supabase = serverSupabase();
 
     await supabase.from('audit_logs').insert({
       user_id: userId,

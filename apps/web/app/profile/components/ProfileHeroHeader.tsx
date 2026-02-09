@@ -64,7 +64,7 @@ export function ProfileHeroHeader({
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  <span>Member since {new Date(joinDate).toLocaleDateString()}</span>
+                  <span>Member since {new Date(joinDate).toLocaleDateString('en-GB')}</span>
                 </div>
               </div>
             </div>

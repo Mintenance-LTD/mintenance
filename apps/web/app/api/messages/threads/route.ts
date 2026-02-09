@@ -91,8 +91,8 @@ export async function GET(request: NextRequest) {
         contractor_id,
         created_at,
         updated_at,
-        homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url),
-        contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url)
+        homeowner:profiles!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url),
+        contractor:profiles!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url)
       `)
       .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
       .order('updated_at', { ascending: false })
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     // Also get jobs where user has sent or received messages (in case job association isn't perfect)
     const { data: messageJobsData } = await serverSupabase
       .from('messages')
-      .select('job_id, jobs!inner(id, title, homeowner_id, contractor_id, created_at, updated_at, homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url), contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url))')
+      .select('job_id, jobs!inner(id, title, homeowner_id, contractor_id, created_at, updated_at, homeowner:profiles!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url), contractor:profiles!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url))')
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .limit(50);
     
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
           attachment_url,
           read,
           created_at,
-          sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
+          sender:profiles!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
         `)
         .in('job_id', jobIds)
         .order('created_at', { ascending: false })

@@ -237,24 +237,24 @@ export class ModelDriftDetectionService {
     /**
      * Calculate drift metrics from predictions
      */
-    private static async calculateMetrics(predictions: unknown[]): Promise<DriftMetrics> {
+    private static async calculateMetrics(predictions: Record<string, unknown>[]): Promise<DriftMetrics> {
         // Average confidence
-        const avgConfidence = predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length;
+        const avgConfidence = predictions.reduce((sum: number, p: Record<string, unknown>) => sum + (p.confidence as number), 0) / predictions.length;
 
         // Disagreement rate with GPT-4
-        const withGPT4 = predictions.filter(p => p.gpt4_agreement !== null);
+        const withGPT4 = predictions.filter((p: Record<string, unknown>) => p.gpt4_agreement !== null);
         const disagreementRate = withGPT4.length > 0
-            ? withGPT4.filter(p => !p.gpt4_agreement).length / withGPT4.length
+            ? withGPT4.filter((p: Record<string, unknown>) => !p.gpt4_agreement).length / withGPT4.length
             : 0;
 
         // User correction rate
         const { data: corrections } = await supabase
             .from('user_corrections')
             .select('*')
-            .in('prediction_id', predictions.map(p => p.prediction_id));
+            .in('prediction_id', predictions.map((p: Record<string, unknown>) => p.prediction_id as string));
 
         const userCorrectionRate = corrections && corrections.length > 0
-            ? corrections.filter(c => !c.was_correct).length / corrections.length
+            ? corrections.filter((c: Record<string, unknown>) => !c.was_correct).length / corrections.length
             : 0;
 
         // Input distribution shift (simplified KL divergence on damage types)
@@ -281,7 +281,7 @@ export class ModelDriftDetectionService {
     /**
      * Calculate distribution shift using KL divergence
      */
-    private static async calculateDistributionShift(predictions: unknown[]): Promise<number> {
+    private static async calculateDistributionShift(predictions: Record<string, unknown>[]): Promise<number> {
         if (!this.baselineMetrics) return 0;
 
         // Get damage type distribution
@@ -311,12 +311,13 @@ export class ModelDriftDetectionService {
     /**
      * Get damage type distribution
      */
-    private static getDamageTypeDistribution(predictions: unknown[]): Record<string, number> {
+    private static getDamageTypeDistribution(predictions: Record<string, unknown>[]): Record<string, number> {
         const counts: Record<string, number> = {};
         const total = predictions.length;
 
         for (const pred of predictions) {
-            counts[pred.damage_type] = (counts[pred.damage_type] || 0) + 1;
+            const damageType = pred.damage_type as string;
+            counts[damageType] = (counts[damageType] || 0) + 1;
         }
 
         const distribution: Record<string, number> = {};

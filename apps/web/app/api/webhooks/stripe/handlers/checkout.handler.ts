@@ -4,7 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 export class CheckoutHandler {
   async handleSessionCompleted(event: Stripe.Event): Promise<void> {
     const session = event.data.object as Stripe.Checkout.Session;
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     logger.info('Checkout session completed', {
       service: 'stripe-webhook',
       eventId: event.id,
@@ -36,7 +36,7 @@ export class CheckoutHandler {
     }
   }
   private async handlePaymentSession(session: Stripe.Checkout.Session): Promise<void> {
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     const jobId = session.metadata?.job_id;
     if (!jobId) {
       logger.warn('Checkout session missing job_id in metadata', {
@@ -87,7 +87,7 @@ export class CheckoutHandler {
     }
   }
   private async handleSubscriptionSession(session: Stripe.Checkout.Session): Promise<void> {
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     const contractorId = session.metadata?.contractor_id;
     if (!contractorId) {
       logger.warn('Subscription checkout session missing contractor_id', {
@@ -118,7 +118,7 @@ export class CheckoutHandler {
     });
   }
   private async handleSetupSession(session: Stripe.Checkout.Session): Promise<void> {
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     const userId = session.metadata?.user_id;
     if (!userId) {
       return;

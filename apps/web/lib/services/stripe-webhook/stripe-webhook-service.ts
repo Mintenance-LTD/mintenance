@@ -79,7 +79,7 @@ export class StripeWebhookService {
         });
 
         await this.markProcessed(eventRecordId, 'failed', errorMessage);
-        throw new InternalServerError(`Event processing failed: ${errorMessage}`);
+        throw new InternalServerError('Event processing failed');
       }
     } catch (error: unknown) {
       return handleAPIError(error);
@@ -130,14 +130,14 @@ export class StripeWebhookService {
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       logger.error('Webhook signature verification failed', err, { service: 'stripe-webhook' });
-      throw new BadRequestError(`Webhook signature verification failed: ${errorMessage}`);
+      throw new BadRequestError('Webhook signature verification failed');
     }
   }
 
   private validateTimestamp(event: Stripe.Event): void {
     const eventTimestamp = event.created;
     const currentTimestamp = Math.floor(Date.now() / 1000);
-    const timestampTolerance = 60;
+    const timestampTolerance = 300;
 
     if (Math.abs(currentTimestamp - eventTimestamp) > timestampTolerance) {
       logger.warn('Webhook event timestamp outside tolerance window', {

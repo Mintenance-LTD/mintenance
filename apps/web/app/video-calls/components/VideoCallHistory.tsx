@@ -129,7 +129,7 @@ export function VideoCallHistory({ userId, onScheduleNew, onJoinCall }: VideoCal
                                     <div style={{ fontSize: '0.875rem', color: theme.colors.textSecondary, display: 'flex', gap: theme.spacing[3] }}>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
                                             <Calendar size={14} />
-                                            {new Date(call.scheduled_time || call.created_at).toLocaleDateString()}
+                                            {new Date(call.scheduled_time || call.created_at).toLocaleDateString('en-GB')}
                                         </span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
                                             <Clock size={14} />

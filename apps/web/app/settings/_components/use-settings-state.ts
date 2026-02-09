@@ -152,7 +152,16 @@ export function useSettingsState() {
       const response = await fetch('/api/user/update-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileData),
+        body: JSON.stringify({
+          firstName: profileData.first_name,
+          lastName: profileData.last_name,
+          phone: profileData.phone,
+          bio: profileData.bio,
+          profileImageUrl: profileData.profile_image_url || undefined,
+          address: profileData.address,
+          city: profileData.city,
+          postcode: profileData.postcode,
+        }),
       });
 
       if (response.ok) {

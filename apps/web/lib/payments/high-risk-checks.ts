@@ -415,18 +415,9 @@ async function validateTOTPToken(
   secret: string,
   token: string
 ): Promise<boolean> {
-  // TODO: Implement actual TOTP validation using speakeasy or similar
+  // TODO: Implement actual TOTP validation using otpauth
   // For now, return false to maintain security
-  // In production, this should use proper TOTP validation
-
-  // Placeholder implementation:
-  // const speakeasy = require('speakeasy');
-  // return speakeasy.totp.verify({
-  //   secret: secret,
-  //   encoding: 'base32',
-  //   token: token,
-  //   window: 2 // Allow 2 time steps in either direction
-  // });
+  // In production, use MFAService.verifyTOTP() from @/lib/mfa/mfa-service
 
   logger.warn('TOTP validation not implemented - rejecting token', {
     service: 'payments',
@@ -496,15 +487,7 @@ export async function getMFASetupInfo(
   try {
     // TODO: Implement using speakeasy
     // const speakeasy = require('speakeasy');
-    // const secret = speakeasy.generateSecret({
-    //   name: `Mintenance (${email})`,
-    //   issuer: 'Mintenance'
-    // });
-    //
-    // return {
-    //   secret: secret.base32,
-    //   qrCodeUrl: secret.otpauth_url
-    // };
+    // TODO: Use MFAService.enrollTOTP() from @/lib/mfa/mfa-service instead
 
     logger.warn('MFA setup not implemented', {
       service: 'payments',

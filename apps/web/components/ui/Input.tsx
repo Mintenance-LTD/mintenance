@@ -127,7 +127,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...cleanedProps}
           ref={ref}
           id={stableId}
-          type={type}
+          type={type as WebInputProps['type']}
           size={size}
           label={label}
           helperText={helperText}

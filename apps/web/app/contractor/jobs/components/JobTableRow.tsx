@@ -42,7 +42,7 @@ export function JobTableRow(props: JobTableRowProps) {
     ? `${job.homeowner.first_name[0]}${job.homeowner.last_name[0]}`.toUpperCase()
     : '??';
 
-  const formattedDate = new Date(job.updated_at).toLocaleDateString('en-US', {
+  const formattedDate = new Date(job.updated_at).toLocaleDateString('en-GB', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

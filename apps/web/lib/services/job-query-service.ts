@@ -188,8 +188,9 @@ export class JobQueryService {
     return query;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async fetchJobs(
-    query: ReturnType<typeof serverSupabase.from>,
+    query: any,
     limit: number,
     cursor?: string
   ): Promise<{ rows: JobRow[]; nextCursor?: string }> {

@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
         .select(
           `
           *,
-          user:users!building_assessments_user_id_fkey(id, first_name, last_name, email),
+          user:profiles!building_assessments_user_id_fkey(id, first_name, last_name, email),
           images:assessment_images(image_url, image_index)
         `
         )

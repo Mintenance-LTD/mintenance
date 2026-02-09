@@ -1,7 +1,11 @@
 'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { logger } from '@mintenance/shared';
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 import { AnimatePresence } from 'framer-motion';
-import { staggerContainer } from '@/lib/animations/variants';
+import { staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 // Refactored components
@@ -10,7 +14,6 @@ import { ProfileHeader } from './ProfileHeader';
 import { ProfileMetrics, ProfileCompletionCard } from './ProfileMetrics';
 import { ReviewsSection } from './ReviewsSection';
 import { SkillsManagementModal } from './SkillsManagementModal';
-import { ProfileEditModal } from './ProfileEditModal';
 // Types
 import type { ContractorData, ContractorMetrics } from '../hooks/useContractorProfile';
 import type { ContractorReview } from './ReviewsSection';
@@ -52,6 +55,7 @@ export function ContractorProfileRefactored({
   posts,
   metrics: initialMetrics,
 }: ContractorProfileRefactoredProps) {
+  const router = useRouter();
   const { csrfToken } = useCSRF();
   // Use custom hook for profile management
   const {
@@ -111,14 +115,13 @@ export function ContractorProfileRefactored({
         {/* Profile Header */}
         <ProfileHeader
           contractor={contractor}
-          isOwnProfile={isOwnProfile}
-          onEditClick={() => setIsEditing(true)}
-          onImageUpload={async (file: File) => {
-            if (csrfToken) {
-              return await uploadProfileImage(file, csrfToken);
-            }
-            return null;
+          metrics={{
+            profileCompletion: metrics.profileCompletion,
+            averageRating: metrics.averageRating,
+            totalReviews: metrics.totalReviews,
+            jobsCompleted: metrics.jobsCompleted,
           }}
+          onEditProfile={() => setIsEditing(true)}
         />
         {/* Profile Completion Card (for own profile) */}
         {isOwnProfile && metrics.profileCompletion < 100 && (
@@ -170,15 +173,15 @@ export function ContractorProfileRefactored({
         )}
         {/* Posts Section */}
         {posts.length > 0 && (
-          <PostsSection posts={posts} contractorName={fullName} />
+          <PostsSection posts={posts} contractorName={[contractor.first_name, contractor.last_name].filter(Boolean).join(' ') || 'Contractor'} />
         )}
       </MotionDiv>
       {/* Modals */}
       <AnimatePresence>
         {isEditing && (
           <ProfileEditModal
-            formData={formData}
-            onFieldChange={updateFormField}
+            formData={formData as unknown as Record<string, unknown>}
+            onFieldChange={updateFormField as (field: string, value: unknown) => void}
             onSave={handleSaveProfile}
             onCancel={cancelEdit}
             isSaving={isSaving}
@@ -195,14 +198,8 @@ export function ContractorProfileRefactored({
     </ContractorPageWrapper>
   );
 }
-// These would be separate component files
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
-import { logger } from '@mintenance/shared';
-import { staggerItem } from '@/lib/animations/variants';
 // Placeholder for CompletedJobsGallery component
-function CompletedJobsGallery({ jobs }: { jobs: unknown[] }) {
+function CompletedJobsGallery({ jobs }: { jobs: Array<{ id: string; title: string; category: string; photos?: Array<{ url: string }> }> }) {
   return (
     <MotionDiv variants={staggerItem} className="bg-white rounded-xl shadow-sm p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Portfolio</h2>
@@ -215,7 +212,7 @@ function CompletedJobsGallery({ jobs }: { jobs: unknown[] }) {
   );
 }
 // Placeholder for PostsSection component
-function PostsSection({ posts, contractorName }: { posts: unknown[]; contractorName: string }) {
+function PostsSection({ posts, contractorName }: { posts: Array<{ id: string; title: string; content?: string }>; contractorName: string }) {
   return (
     <MotionDiv variants={staggerItem} className="bg-white rounded-xl shadow-sm p-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Posts</h2>
@@ -231,7 +228,14 @@ function PostsSection({ posts, contractorName }: { posts: unknown[]; contractorN
   );
 }
 // Placeholder for ProfileEditModal
-function ProfileEditModal({ formData, onFieldChange, onSave, onCancel, isSaving }: unknown) {
+interface ProfileEditModalProps {
+  formData: Record<string, unknown>;
+  onFieldChange: (field: string, value: unknown) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  isSaving: boolean;
+}
+function ProfileEditModal({ formData, onFieldChange, onSave, onCancel, isSaving }: ProfileEditModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 max-w-lg w-full">

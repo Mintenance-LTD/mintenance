@@ -363,7 +363,7 @@ export function MessagesClient() {
     if (diffMins < 60) return `${diffMins}m`;
     if (diffHours < 24) return `${diffHours}h`;
     if (diffDays < 7) return `${diffDays}d`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
   };
 
   const formatMessageTime = (timestamp: string) => {
@@ -372,9 +372,9 @@ export function MessagesClient() {
     const isToday = date.toDateString() === now.toDateString();
 
     if (isToday) {
-      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      return date.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true });
     }
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   const getInitials = (name: string) => {
@@ -674,7 +674,7 @@ export function MessagesClient() {
                         {jobContext.deadline && (
                           <div className="flex items-center gap-1.5">
                             <Calendar className="w-4 h-4" />
-                            <span>Due {new Date(jobContext.deadline).toLocaleDateString()}</span>
+                            <span>Due {new Date(jobContext.deadline).toLocaleDateString('en-GB')}</span>
                           </div>
                         )}
                       </div>

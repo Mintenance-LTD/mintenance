@@ -198,29 +198,7 @@ export function ContractorDashboard2025Client({ data }: ContractorDashboard2025C
     },
   ];
 
-  // Mock AI-recommended jobs (in real app, fetch from backend)
-  const recommendedJobs = [
-    {
-      id: '1',
-      title: 'Kitchen Renovation',
-      homeowner: 'Sarah Johnson',
-      budget: 5000,
-      distance: '2.4 miles',
-      postedTime: '2 hours ago',
-      seriousBuyerScore: 85,
-      category: 'Renovation',
-    },
-    {
-      id: '2',
-      title: 'Bathroom Plumbing Repair',
-      homeowner: 'Mike Anderson',
-      budget: 800,
-      distance: '1.1 miles',
-      postedTime: '5 hours ago',
-      seriousBuyerScore: 92,
-      category: 'Plumbing',
-    },
-  ];
+  const recommendedJobs: { id: string; title: string; homeowner: string; budget: number; distance: string; postedTime: string; seriousBuyerScore: number; category: string; }[] = [];
 
   return (
     <ContractorPageWrapper>
@@ -548,7 +526,7 @@ export function ContractorDashboard2025Client({ data }: ContractorDashboard2025C
                             </div>
                             {job.dueDate && (
                               <div className="text-sm text-gray-500">
-                                Due: {new Date(job.dueDate).toLocaleDateString()}
+                                Due: {new Date(job.dueDate).toLocaleDateString('en-GB')}
                               </div>
                             )}
                           </div>

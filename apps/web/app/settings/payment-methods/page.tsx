@@ -74,10 +74,17 @@ export default function PaymentMethodsPage() {
 
     try {
       setRemovingId(methodId);
+      // Fetch fresh CSRF token before mutation
+      const csrfResponse = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const { token: csrfToken } = csrfResponse.ok ? await csrfResponse.json() : { token: '' };
+      if (csrfToken) await new Promise(resolve => setTimeout(resolve, 50));
+
       const response = await fetch('/api/payments/remove-method', {
         method: 'DELETE',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({ paymentMethodId: methodId }),
       });
@@ -100,10 +107,17 @@ export default function PaymentMethodsPage() {
     try {
       setSettingDefaultId(methodId);
       setError('');
+      // Fetch fresh CSRF token before mutation
+      const csrfResponse = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const { token: csrfToken } = csrfResponse.ok ? await csrfResponse.json() : { token: '' };
+      if (csrfToken) await new Promise(resolve => setTimeout(resolve, 50));
+
       const response = await fetch('/api/payments/set-default', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({ paymentMethodId: methodId }),
       });

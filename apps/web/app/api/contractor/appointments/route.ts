@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       .from('appointments')
       .select(`
         *,
-        client:users!appointments_client_id_fkey(
+        client:profiles!appointments_client_id_fkey(
           id,
           first_name,
           last_name,

@@ -365,7 +365,7 @@ export default async function ContractorPublicProfilePage(props: {
                         fontSize: theme.typography.fontSize.sm,
                         color: theme.colors.textSecondary,
                       }}>
-                        {new Date(review.created_at).toLocaleDateString()}
+                        {new Date(review.created_at).toLocaleDateString('en-GB')}
                       </p>
                     </div>
 

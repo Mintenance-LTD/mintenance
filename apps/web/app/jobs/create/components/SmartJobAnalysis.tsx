@@ -11,6 +11,10 @@ interface DetectedMaterial {
   quantity?: number;
   unit?: string;
   confidence: number;
+  source?: string;
+  unit_price?: number;
+  total_cost?: number;
+  supplier_name?: string;
 }
 
 interface JobAnalysisResult {

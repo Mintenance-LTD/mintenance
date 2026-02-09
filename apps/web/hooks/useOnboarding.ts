@@ -191,7 +191,7 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
    * Get profile completion items based on user type
    */
   const getProfileCompletionItems = useCallback(
-    (userData: unknown): ProfileCompletionItem[] => {
+    (userData: Record<string, unknown>): ProfileCompletionItem[] => {
       if (userType === 'homeowner') {
         return [
           {
@@ -212,21 +212,21 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
             id: 'bio',
             label: 'Complete your bio',
             weight: 10,
-            completed: !!userData?.bio && userData.bio.length > 20,
+            completed: !!userData?.bio && typeof userData.bio === 'string' && userData.bio.length > 20,
             action: '/profile',
           },
           {
             id: 'property',
             label: 'Add a property',
             weight: 25,
-            completed: userData?.properties_count > 0,
+            completed: (userData?.properties_count as number) > 0,
             action: '/properties',
           },
           {
             id: 'first-job',
             label: 'Post your first job',
             weight: 30,
-            completed: userData?.jobs_count > 0,
+            completed: (userData?.jobs_count as number) > 0,
             action: '/jobs/create',
           },
         ];
@@ -251,14 +251,14 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
             id: 'bio',
             label: 'Write your bio',
             weight: 10,
-            completed: !!userData?.bio && userData.bio.length > 50,
+            completed: !!userData?.bio && typeof userData.bio === 'string' && userData.bio.length > 50,
             action: '/contractor/profile',
           },
           {
             id: 'skills',
             label: 'Add skills (3+)',
             weight: 15,
-            completed: userData?.skills_count >= 3,
+            completed: (userData?.skills_count as number) >= 3,
             action: '/contractor/profile',
           },
           {
@@ -272,14 +272,14 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
             id: 'portfolio',
             label: 'Upload portfolio (3+ photos)',
             weight: 25,
-            completed: userData?.portfolio_count >= 3,
+            completed: (userData?.portfolio_count as number) >= 3,
             action: '/contractor/profile',
           },
           {
             id: 'verification',
             label: 'Verify credentials',
             weight: 10,
-            completed: userData?.is_verified,
+            completed: !!userData?.is_verified,
             action: '/contractor/verification',
           },
         ];
@@ -292,7 +292,7 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
    * Calculate profile completion percentage
    */
   const getProfileCompletion = useCallback(
-    (userData: unknown): number => {
+    (userData: Record<string, unknown>): number => {
       const items = getProfileCompletionItems(userData);
       return calculateProfileCompletion(items);
     },

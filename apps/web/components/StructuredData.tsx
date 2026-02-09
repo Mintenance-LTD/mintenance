@@ -25,7 +25,7 @@ function sanitizeObjectForJsonLd(obj: unknown): unknown {
     return obj.map(sanitizeObjectForJsonLd);
   }
   if (obj && typeof obj === 'object') {
-    const sanitized: unknown = {};
+    const sanitized: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj)) {
       sanitized[key] = sanitizeObjectForJsonLd(value);
     }

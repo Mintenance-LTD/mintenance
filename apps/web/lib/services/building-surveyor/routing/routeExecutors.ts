@@ -160,7 +160,7 @@ export function convertInternalPredictionToAssessment(
             detectedItems: [],
         },
         safetyHazards: {
-            hazards: prediction.safetyHazards as unknown[],
+            hazards: (prediction.safetyHazards || []) as import('../types').SafetyHazard[],
             hasCriticalHazards: prediction.urgency === 'immediate',
             overallSafetyScore: calculateSafetyScore(prediction.urgency),
         },

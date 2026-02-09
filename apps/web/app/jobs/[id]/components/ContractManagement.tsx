@@ -356,7 +356,7 @@ export function ContractManagement(props: ContractManagementProps) {
               Contractor {contract.contractor_signed_at ? 'signed' : 'pending'}
               {contract.contractor_signed_at && (
                 <span style={{ marginLeft: theme.spacing[2], color: theme.colors.textTertiary }}>
-                  {new Date(contract.contractor_signed_at).toLocaleDateString()}
+                  {new Date(contract.contractor_signed_at).toLocaleDateString('en-GB')}
                 </span>
               )}
             </span>
@@ -374,7 +374,7 @@ export function ContractManagement(props: ContractManagementProps) {
               Homeowner {contract.homeowner_signed_at ? 'signed' : 'pending'}
               {contract.homeowner_signed_at && (
                 <span style={{ marginLeft: theme.spacing[2], color: theme.colors.textTertiary }}>
-                  {new Date(contract.homeowner_signed_at).toLocaleDateString()}
+                  {new Date(contract.homeowner_signed_at).toLocaleDateString('en-GB')}
                 </span>
               )}
             </span>

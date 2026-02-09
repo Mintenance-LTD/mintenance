@@ -189,14 +189,14 @@ export class AdvancedSearchService {
         rating: profile.rating || 0,
         total_jobs: profile.total_jobs || 0,
         portfolioImages: profile.portfolio_images || [],
-        reviews: (profile as Record<string, unknown>).reviews ?? []
+        reviews: ((profile as Record<string, unknown>).reviews ?? []) as ContractorProfile['reviews']
       }));
 
       // Calculate facets for refined search
       const facets = await this.calculateContractorFacets(filters);
 
       return {
-        items: contractors,
+        items: contractors as ContractorProfile[],
         totalCount: count || 0,
         hasMore: (count || 0) > offset + limit,
         facets,
@@ -465,7 +465,7 @@ export class AdvancedSearchService {
         contractorId: undefined,
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date().toISOString(),
-      } as Job,
+      } as unknown as Job,
       {
         id: 'job_search_2',
         title: 'Bathroom Electrical Work',
@@ -485,7 +485,7 @@ export class AdvancedSearchService {
         contractorId: undefined,
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date().toISOString(),
-      } as Job,
+      } as unknown as Job,
       {
         id: 'job_search_3',
         title: 'Deck Painting',
@@ -505,7 +505,7 @@ export class AdvancedSearchService {
         contractorId: undefined,
         createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
         updatedAt: new Date().toISOString(),
-      } as Job
+      } as unknown as Job
     ];
 
     return {

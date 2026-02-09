@@ -211,7 +211,7 @@ export class TrustScoreService {
       }
 
       const job = (escrow as Record<string, unknown>).jobs as Record<string, unknown>;
-      const contractorId = job.contractor_id;
+      const contractorId = job.contractor_id as string;
 
       // Get hold period
       const holdPeriodDays = await this.getHoldPeriodDays(contractorId);

@@ -145,7 +145,7 @@ export function getSecureConfig(): SecureConfig {
   const bcryptRounds = isProduction ? 14 : 12;
   return {
     JWT_SECRET: jwtSecret!,
-    JWT_REFRESH_SECRET: jwtRefreshSecret || jwtSecret! + '-refresh',
+    JWT_REFRESH_SECRET: jwtRefreshSecret || generateSecureSecret(64),
     NODE_ENV: process.env.NODE_ENV || 'development',
     DATABASE_URL: process.env.DATABASE_URL,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

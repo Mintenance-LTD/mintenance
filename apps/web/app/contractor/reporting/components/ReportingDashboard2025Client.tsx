@@ -401,9 +401,9 @@ export function ReportingDashboard2025Client({ analytics }: ReportingDashboard20
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       padding: '12px'
                     }}
-                    formatter={(value: unknown, name: unknown, props: unknown) => [
+                    formatter={(value: unknown, _name: unknown, entry: { payload?: { status?: string } }) => [
                       `${value} jobs`,
-                      props.payload.status
+                      entry.payload?.status ?? ''
                     ]}
                   />
                 </DynamicPieChart>
@@ -521,7 +521,7 @@ export function ReportingDashboard2025Client({ analytics }: ReportingDashboard20
                     padding: '12px'
                   }}
                   formatter={(value: unknown, name: string) => [
-                    name === 'revenue' ? `£${value}` : value,
+                    name === 'revenue' ? `£${value}` : String(value),
                     name === 'revenue' ? 'Revenue' : 'Jobs'
                   ]}
                   labelStyle={{ fontWeight: 600, color: '#111827', marginBottom: '4px' }}

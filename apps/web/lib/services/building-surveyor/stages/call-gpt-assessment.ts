@@ -110,7 +110,7 @@ export async function callGptAssessment(
 
     await CostControlService.recordUsage('building-surveyor', genResult.model, actualCost, {
       tokens: usage.total_tokens,
-      job_id: context?.jobId,
+      job_id: (context as Record<string, unknown> | undefined)?.jobId as string | undefined,
       success: true,
     });
 

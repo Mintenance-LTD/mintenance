@@ -27,7 +27,7 @@ import {
   Star,
   Info
 } from 'lucide-react';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
 
 // Maintenance categories

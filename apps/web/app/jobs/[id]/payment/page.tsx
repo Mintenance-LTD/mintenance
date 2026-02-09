@@ -120,50 +120,16 @@ function JobPaymentPageContent() {
   };
 
   const handlePaymentSuccess = async (_paymentIntentId: string) => {
-    try {
-      // Create escrow transaction
-      if (job && user) {
-        const contractorId = job.contractor_id || '';
-        await PaymentService.createEscrowTransaction(
-          job.id,
-          user.id,
-          contractorId,
-          job.budget
-        );
-      }
+    // Escrow transaction is already created server-side by the create-intent/checkout-session API.
+    // No need to create it again client-side (that causes duplicate records).
+    toast.success('Payment successful! Funds are now held securely in escrow.', {
+      duration: 5000,
+      position: 'top-center',
+    });
 
-      // UX FIX: Use toast instead of alert for better user experience
-      toast.success('Payment successful! Funds are now held securely in escrow.', {
-        duration: 5000,
-        icon: '✅',
-        position: 'top-center',
-      });
-
-      // Delay navigation to allow user to see success message
-      setTimeout(() => {
-        router.push('/payments');
-      }, 1500);
-    } catch (error) {
-      logger.error('Error creating escrow transaction:', error);
-
-      // CRITICAL ERROR: Use prominent toast notification
-      toast.error(
-        'Payment processed but escrow creation failed. Please contact support immediately.',
-        {
-          duration: 10000,
-          icon: '⚠️',
-          position: 'top-center',
-          style: {
-            background: '#FEE2E2',
-            color: '#991B1B',
-            border: '2px solid #DC2626',
-            padding: '16px',
-            fontSize: '16px',
-            fontWeight: '600',
-          },
-        }
-      );
-    }
+    setTimeout(() => {
+      router.push('/payments');
+    }, 1500);
   };
 
   const handlePaymentError = (error: string) => {
@@ -202,7 +168,7 @@ function JobPaymentPageContent() {
   if (!paymentDetails) {
     return (
       <HomeownerPageWrapper>
-        <LoadingSpinner size="large" />
+        <LoadingSpinner size="lg" />
       </HomeownerPageWrapper>
     );
   }

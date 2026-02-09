@@ -1,5 +1,6 @@
 'use client';
 
+import type { JSX } from 'react';
 import React, { useEffect, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
@@ -7,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 // Initialize Stripe promise
-let stripePromise: Promise<unknown> | null = null;
+let stripePromise: ReturnType<typeof loadStripe> | null = null;
 
 const getStripe = () => {
   if (!stripePromise) {
@@ -70,10 +71,17 @@ export function EmbeddedCheckoutComponent({
         setIsLoading(true);
         setError(null);
 
+        // Fetch fresh CSRF token before payment mutation
+        const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+        const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
+        if (csrfToken) await new Promise(r => setTimeout(r, 50));
+
         const response = await fetch('/api/payments/embedded-checkout', {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
           },
           body: JSON.stringify({
             priceId,

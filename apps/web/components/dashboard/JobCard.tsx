@@ -49,7 +49,7 @@ export function JobCard({ job, variant = 'default' }: JobCardProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Not scheduled';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const progress = getStatusProgress(job.status);

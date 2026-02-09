@@ -62,8 +62,8 @@ export async function GET(request: NextRequest) {
         display: {
           theme: 'system',
           language: 'en',
-          timezone: 'America/New_York',
-          date_format: 'MM/DD/YYYY'
+          timezone: 'Europe/London',
+          date_format: 'DD/MM/YYYY'
         }
       },
       timestamp: new Date().toISOString()

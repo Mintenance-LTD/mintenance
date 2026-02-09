@@ -66,32 +66,7 @@ export default function AboutPageClient() {
     },
   ];
 
-  const team = [
-    {
-      name: 'Sarah Johnson',
-      role: 'CEO & Founder',
-      image: '/placeholder-avatar.jpg',
-      bio: 'Former contractor with 15 years of experience in the home services industry.',
-    },
-    {
-      name: 'Michael Chen',
-      role: 'CTO',
-      image: '/placeholder-avatar.jpg',
-      bio: 'Tech veteran with expertise in AI, machine learning, and platform development.',
-    },
-    {
-      name: 'Emma Williams',
-      role: 'Head of Operations',
-      image: '/placeholder-avatar.jpg',
-      bio: 'Operations specialist ensuring smooth platform performance and user satisfaction.',
-    },
-    {
-      name: 'David Brown',
-      role: 'Head of Contractor Relations',
-      image: '/placeholder-avatar.jpg',
-      bio: 'Building strong relationships with contractors and ensuring quality standards.',
-    },
-  ];
+  const team: { name: string; role: string; image: string; bio: string }[] = [];
 
   const milestones = [
     { year: '2025', title: 'Company Founded', description: 'Mintenance was born from a vision to revolutionise home maintenance' },

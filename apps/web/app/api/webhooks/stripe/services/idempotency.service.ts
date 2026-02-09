@@ -10,7 +10,7 @@ export class IdempotencyService {
    */
   async isEventProcessed(eventId: string): Promise<boolean> {
     try {
-      const supabase = serverSupabase();
+      const supabase = serverSupabase;
       const { data, error } = await supabase
         .from('webhook_events')
         .select('id')
@@ -58,7 +58,7 @@ export class IdempotencyService {
     eventData: unknown
   ): Promise<void> {
     try {
-      const supabase = serverSupabase();
+      const supabase = serverSupabase;
       const { error } = await supabase.from('webhook_events').insert({
         event_id: eventId,
         event_type: eventType,
@@ -98,7 +98,7 @@ export class IdempotencyService {
    */
   async cleanupOldEvents(): Promise<void> {
     try {
-      const supabase = serverSupabase();
+      const supabase = serverSupabase;
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const { error, data } = await supabase

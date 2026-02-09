@@ -6,13 +6,45 @@
 import type { AssessmentContext } from './types';
 
 /**
+ * Sanitise user-provided text before injecting into prompts.
+ * Strips control characters, prompt injection patterns, and excessive length.
+ */
+function sanitisePromptInput(input: string, maxLength = 500): string {
+  let sanitised = input
+    // Remove control characters except newlines/tabs
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    // Collapse multiple newlines
+    .replace(/\n{3,}/g, '\n\n')
+    // Strip common prompt injection patterns
+    .replace(/ignore\s+(all\s+)?previous\s+instructions/gi, '[filtered]')
+    .replace(/you\s+are\s+now\s+/gi, '[filtered]')
+    .replace(/system\s*:\s*/gi, '[filtered]')
+    .replace(/assistant\s*:\s*/gi, '[filtered]')
+    .replace(/\bdo\s+not\s+follow\b/gi, '[filtered]')
+    .replace(/\boverride\b/gi, '[filtered]')
+    .replace(/\bdisregard\b/gi, '[filtered]');
+
+  // Truncate to max length
+  if (sanitised.length > maxLength) {
+    sanitised = sanitised.slice(0, maxLength) + '...';
+  }
+
+  return sanitised.trim();
+}
+
+/**
  * Build system prompt for GPT-4 Vision API.
  * When damageTypes are provided (from damage_taxonomy), they are injected so new types appear without code change (Phase 6).
  */
 export function buildSystemPrompt(damageTypes?: string[]): string {
+  // Sanitise damage types from database
+  const safeDamageTypes = damageTypes
+    ?.map(dt => dt.replace(/[^\w\s\-\/(),.]/g, '').slice(0, 100))
+    .filter(dt => dt.length > 0);
+
   const damageTypeGuidance =
-    damageTypes && damageTypes.length > 0
-      ? `\nRecognized damage types (use one of these for damageType when applicable): ${damageTypes.join(', ')}.`
+    safeDamageTypes && safeDamageTypes.length > 0
+      ? `\nRecognized damage types (use one of these for damageType when applicable): ${safeDamageTypes.join(', ')}.`
       : '';
 
   return `You are an expert UK building surveyor with decades of experience in property damage assessment, safety compliance, and insurance risk evaluation.
@@ -22,7 +54,7 @@ ${damageTypeGuidance}
 
 You must respond with valid JSON matching this exact structure:
 {
-  "damageType": "string (e.g., 'water damage', 'structural crack', 'mold growth'${damageTypes?.length ? ` or one of: ${damageTypes.slice(0, 5).join(', ')}` : ''})",
+  "damageType": "string (e.g., 'water damage', 'structural crack', 'mold growth'${safeDamageTypes?.length ? ` or one of: ${safeDamageTypes.slice(0, 5).join(', ')}` : ''})",
   "severity": "early" | "midway" | "full",
   "confidence": number (0-100),
   "location": "string (specific location in property)",
@@ -109,19 +141,20 @@ export function buildUserPrompt(
   let prompt = `Analyze these building damage photos and provide a comprehensive assessment.\n\n`;
 
   if (context?.location) {
-    prompt += `Location: ${context.location}\n`;
+    prompt += `Location: ${sanitisePromptInput(context.location, 200)}\n`;
   }
 
   if (context?.propertyType) {
-    prompt += `Property Type: ${context.propertyType}\n`;
+    prompt += `Property Type: ${sanitisePromptInput(context.propertyType, 100)}\n`;
   }
 
   if (context?.ageOfProperty) {
-    prompt += `Property Age: ${context.ageOfProperty} years\n`;
+    const age = String(context.ageOfProperty).replace(/[^\d.]/g, '');
+    prompt += `Property Age: ${age} years\n`;
   }
 
   if (context?.propertyDetails) {
-    prompt += `Additional Context: ${context.propertyDetails}\n`;
+    prompt += `Additional Context: ${sanitisePromptInput(context.propertyDetails, 500)}\n`;
   }
 
   if (!hasMachineEvidence) {

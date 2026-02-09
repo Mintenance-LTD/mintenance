@@ -64,8 +64,8 @@ function AnimatedStat({
   }, [isInView, hasAnimated]);
 
   return (
+    <div ref={ref}>
     <MotionDiv
-      ref={ref}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -83,6 +83,7 @@ function AnimatedStat({
       <p className="text-lg font-semibold text-gray-700 mb-2">{label}</p>
       <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
     </MotionDiv>
+    </div>
   );
 }
 

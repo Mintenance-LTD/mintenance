@@ -38,8 +38,8 @@ export function prepareFusionInput(
       confidence: number;
       numInstances: number;
       presenceScore: number;
-      masks?: unknown;
-      boxes?: unknown;
+      masks?: number[][][];
+      boxes?: number[][];
     }> = {};
 
     if (sam3Output.presenceResults) {
@@ -58,8 +58,8 @@ export function prepareFusionInput(
     if (sam3Output.masks) {
       for (const [damageType, maskData] of Object.entries(sam3Output.masks as Record<string, Record<string, unknown>>)) {
         if (damageTypes[damageType]) {
-          damageTypes[damageType].masks = maskData.masks;
-          damageTypes[damageType].boxes = maskData.boxes;
+          damageTypes[damageType].masks = maskData.masks as number[][][];
+          damageTypes[damageType].boxes = maskData.boxes as number[][];
           damageTypes[damageType].numInstances = (maskData.num_instances as number) || 1;
         }
       }
@@ -119,16 +119,16 @@ function enhanceGPT4Assessment(
     if (!assessment.evidence) {
       assessment.evidence = {} as Phase1BuildingAssessment['evidence'];
     }
-    assessment.evidence.sam3Segmentation = {
+    assessment.evidence!.sam3Segmentation = {
       presenceDetection: {
         damageDetected: sam3Output.damageTypes,
         averagePresenceScore: sam3Output.averagePresenceScore
       }
-    } as unknown as Phase1BuildingAssessment['evidence']['sam3Segmentation'];
+    } as unknown as NonNullable<Phase1BuildingAssessment['evidence']>['sam3Segmentation'];
   }
 
   if (fusionOutput.refinedBoundingBoxes && assessment.evidence) {
-    assessment.evidence.refinedBoxes = fusionOutput.refinedBoundingBoxes;
+    (assessment.evidence as Record<string, unknown>).refinedBoxes = fusionOutput.refinedBoundingBoxes;
   }
 
   if (fusionOutput.uncertaintyLevel === 'high') {
@@ -176,7 +176,7 @@ function generateAssessmentFromFusion(
       confidence: fusionOutput.mean * 100,
       location: context?.location || 'Property',
       description: `Fusion-based assessment: ${primaryDamageType} detected with ${(fusionOutput.mean * 100).toFixed(1)}% probability`,
-      detectedItems: yoloOutput?.detections || []
+      detectedItems: yoloOutput?.detections.map(d => d.className) || []
     },
     safetyHazards: {
       hazards: [],
@@ -221,9 +221,8 @@ function generateAssessmentFromFusion(
           damageDetected: sam3Output.damageTypes,
           averagePresenceScore: sam3Output.averagePresenceScore
         }
-      } as unknown as Phase1BuildingAssessment['evidence']['sam3Segmentation'] : undefined,
-      refinedBoxes: fusionOutput.refinedBoundingBoxes
-    }
+      } as unknown as NonNullable<Phase1BuildingAssessment['evidence']>['sam3Segmentation'] : undefined,
+    } as Phase1BuildingAssessment['evidence']
   };
 }
 

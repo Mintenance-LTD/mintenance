@@ -197,8 +197,8 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
             <div className="text-sm text-gray-600 mt-0.5">
               {selectedDates.start ? (
                 selectedDates.end ?
-                  `${selectedDates.start.toLocaleDateString()} - ${selectedDates.end.toLocaleDateString()}` :
-                  selectedDates.start.toLocaleDateString()
+                  `${selectedDates.start.toLocaleDateString('en-GB')} - ${selectedDates.end.toLocaleDateString('en-GB')}` :
+                  selectedDates.start.toLocaleDateString('en-GB')
               ) : (
                 selectedUrgency === 'today' ? 'Today' :
                 selectedUrgency === 'tomorrow' ? 'Tomorrow' :

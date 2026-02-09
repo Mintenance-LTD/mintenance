@@ -146,7 +146,7 @@ export default function SettingsPage2025({
                       </div>
                     )}
                     <a
-                      href="/payment-methods"
+                      href="/settings/payment-methods"
                       className="inline-block px-6 py-3 border-2 border-teal-600 text-teal-600 rounded-lg font-medium hover:bg-teal-50 transition-colors"
                     >
                       Manage payment methods

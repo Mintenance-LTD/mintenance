@@ -96,7 +96,12 @@ export default function ContractorSettingsPage() {
     if (!confirm('Are you sure you want to remove this payment method?')) return;
     try {
       setRemovingId(methodId);
-      const response = await fetch('/api/payments/remove-method', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentMethodId: methodId }) });
+      // Fetch fresh CSRF token before mutation
+      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
+      if (csrfToken) await new Promise(r => setTimeout(r, 50));
+
+      const response = await fetch('/api/payments/remove-method', { method: 'DELETE', credentials: 'include', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ paymentMethodId: methodId }) });
       if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Failed to remove payment method'); }
       toast.success('Payment method removed');
       await loadPaymentMethods();
@@ -108,7 +113,12 @@ export default function ContractorSettingsPage() {
   const handleSetDefault = async (methodId: string) => {
     try {
       setSettingDefaultId(methodId);
-      const response = await fetch('/api/payments/set-default', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentMethodId: methodId }) });
+      // Fetch fresh CSRF token before mutation
+      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
+      if (csrfToken) await new Promise(r => setTimeout(r, 50));
+
+      const response = await fetch('/api/payments/set-default', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }, body: JSON.stringify({ paymentMethodId: methodId }) });
       if (!response.ok) { const data = await response.json(); throw new Error(data.error || 'Failed to set default payment method'); }
       toast.success('Default payment method updated');
       await loadPaymentMethods();
@@ -135,7 +145,15 @@ export default function ContractorSettingsPage() {
     setIsSaving(true);
     try {
       const formData = new FormData();
-      Object.entries(profileData).forEach(([key, value]) => { if (value) formData.append(key, value); });
+      formData.append('firstName', profileData.first_name);
+      formData.append('lastName', profileData.last_name);
+      if (profileData.bio) formData.append('bio', profileData.bio);
+      if (profileData.city) formData.append('city', profileData.city);
+      if (profileData.phone) formData.append('phone', profileData.phone);
+      if (profileData.company_name) formData.append('companyName', profileData.company_name);
+      if (profileData.address) formData.append('address', profileData.address);
+      if (profileData.postcode) formData.append('postcode', profileData.postcode);
+      formData.append('isAvailable', String((user as typeof user & { is_available?: boolean }).is_available !== false));
       const response = await fetch('/api/contractor/update-profile', { method: 'POST', body: formData });
       if (response.ok) { toast.success('Profile updated successfully. Location geocoded.'); refresh(); }
       else { const error = await response.json(); toast.error(error.message || 'Failed to update profile'); }
@@ -236,7 +254,7 @@ export default function ContractorSettingsPage() {
             )}
             {activeSection === 'account' && (
               <AccountSecuritySection
-                email={user.email} emailVerified={user.email_verified} passwordData={passwordData}
+                email={user.email} emailVerified={user.email_verified ?? false} passwordData={passwordData}
                 twoFactorEnabled={twoFactorEnabled} showDeleteConfirm={showDeleteConfirm} isSaving={isSaving}
                 onPasswordDataChange={setPasswordData} onTwoFactorChange={setTwoFactorEnabled}
                 onChangePassword={handleChangePassword} onShowDeleteConfirm={setShowDeleteConfirm} onDeleteAccount={handleDeleteAccount}

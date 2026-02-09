@@ -51,7 +51,7 @@ export async function runYOLOInference(
     let totalConfidence = 0;
 
     for (const detection of detections) {
-      const damageType = detection.class || detection.label || 'unknown';
+      const damageType = detection.className || 'unknown';
       damageTypes[damageType] = (damageTypes[damageType] || 0) + 1;
       totalConfidence += detection.confidence;
     }
@@ -95,20 +95,28 @@ export async function runSAM3Inference(imageUrls: string[]): Promise<SAM3Output>
       'deterioration', 'structural damage', 'peeling paint', 'rust', 'corrosion'
     ];
 
-    const presenceResult = await SAM3Service.checkDamagePresence(
-      imageBase64,
+    const presenceResult = await SAM3Service.segmentDamageTypes(
+      imageUrls[0],
       damageTypesToCheck
     );
 
-    if (!presenceResult || !presenceResult.success) {
+    if (!presenceResult) {
       throw new Error('SAM3 presence check failed');
     }
 
+    // The SAM3 presence check returns additional properties beyond DamageTypeSegmentation
+    const presenceData = presenceResult as unknown as {
+      damage_detected: string[];
+      damage_not_detected: string[];
+      summary: { average_presence_score: number; detection_rate: number };
+      presence_results: Record<string, unknown>;
+    };
+
     let masks = null;
-    if (presenceResult.damage_detected.length > 0) {
+    if (presenceData.damage_detected.length > 0) {
       const segmentationResult = await SAM3Service.segmentDamageTypes(
         imageUrls[0],
-        presenceResult.damage_detected.slice(0, 5)
+        presenceData.damage_detected.slice(0, 5)
       );
 
       if (segmentationResult && segmentationResult.success) {
@@ -117,14 +125,14 @@ export async function runSAM3Inference(imageUrls: string[]): Promise<SAM3Output>
     }
 
     return {
-      damageDetected: presenceResult.damage_detected.length > 0,
-      damageTypes: presenceResult.damage_detected,
-      damageNotDetected: presenceResult.damage_not_detected,
-      averagePresenceScore: presenceResult.summary.average_presence_score,
-      detectionRate: presenceResult.summary.detection_rate,
+      damageDetected: presenceData.damage_detected.length > 0,
+      damageTypes: presenceData.damage_detected,
+      damageNotDetected: presenceData.damage_not_detected,
+      averagePresenceScore: presenceData.summary.average_presence_score,
+      detectionRate: presenceData.summary.detection_rate,
       masks,
       inferenceMs: Date.now() - startTime,
-      presenceResults: presenceResult.presence_results
+      presenceResults: presenceData.presence_results
     };
   } catch (error) {
     logger.error('SAM3 inference failed', error, { service: SERVICE_NAME });

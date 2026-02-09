@@ -103,7 +103,7 @@ export function useImageUpload({
         }
       } catch (tokenError) {
         // Fallback to provided token if fetch fails
-        logger.warn('[Upload] Error fetching fresh CSRF token, using provided token:', tokenError);
+        logger.warn(`[Upload] Error fetching fresh CSRF token, using provided token: ${tokenError}`);
       }
 
       if (!tokenToUse) {

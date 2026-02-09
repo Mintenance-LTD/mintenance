@@ -133,7 +133,6 @@ export async function submitJob({
     description: formData.description?.trim() || '',
     location: formData.location?.trim() || '',
     category: formData.category,
-    urgency: formData.urgency || 'medium',
     budget: budgetValue,
     requiredSkills: formData.requiredSkills || [],
     property_id: propertyIdValue,

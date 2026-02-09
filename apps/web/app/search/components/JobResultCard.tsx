@@ -76,7 +76,7 @@ export function JobResultCard({ job, onClick }: JobResultCardProps) {
           fontSize: theme.typography.fontSize.xs,
           color: theme.colors.textSecondary
         }}>
-          Posted {new Date(job.createdAt || job.created_at || new Date()).toLocaleDateString()}
+          Posted {new Date(job.createdAt || job.created_at || new Date()).toLocaleDateString('en-GB')}
         </span>
         <div style={{
           backgroundColor: theme.colors.primary,

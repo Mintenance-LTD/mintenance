@@ -76,6 +76,20 @@ export default defineConfig({
       },
     },
 
+    // Accessibility tests (unauthenticated pages)
+    {
+      name: 'accessibility',
+      testMatch: /accessibility\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
+    // Visual regression tests
+    {
+      name: 'visual-regression',
+      testMatch: /visual-regression\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+
     // Contractor authenticated tests
     {
       name: 'contractor',

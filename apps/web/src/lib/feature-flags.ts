@@ -3,7 +3,7 @@
  *
  * Simple feature flag implementation for gradual rollout of new API controllers
  */
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@mintenance/shared';
 export interface FeatureFlag {
   name: string;
@@ -36,7 +36,7 @@ export async function isFeatureFlagEnabled(
   }
   // Check database for flag configuration (optional)
   try {
-    const supabase = await createClient();
+    const supabase = await createServerSupabaseClient();
     const { data: flag } = await supabase
       .from('feature_flags')
       .select('*')
@@ -158,7 +158,7 @@ export async function logControllerUsage(
   metadata?: Record<string, unknown>
 ): Promise<void> {
   try {
-    const supabase = await createClient();
+    const supabase = await createServerSupabaseClient();
     await supabase.from('controller_usage_logs').insert({
       module,
       is_new_controller: isNew,
@@ -182,11 +182,18 @@ export function isEmergencyKillSwitchActive(): boolean {
 /**
  * Middleware to check feature flags for API routes
  */
+interface FeatureFlagRequest {
+  userId?: string;
+  user?: { id?: string };
+  url?: string;
+  method?: string;
+}
+
 export async function withFeatureFlag(
   flagName: string,
-  newHandler: Function,
-  oldHandler: Function,
-  request: unknown
+  newHandler: (request: FeatureFlagRequest) => unknown,
+  oldHandler: (request: FeatureFlagRequest) => unknown,
+  request: FeatureFlagRequest
 ) {
   // Emergency kill switch
   if (isEmergencyKillSwitchActive()) {
