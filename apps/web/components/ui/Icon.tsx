@@ -1,5 +1,6 @@
 'use client';
 
+import type { JSX } from 'react';
 import React, { useMemo } from 'react';
 import { logger } from '@mintenance/shared';
 import * as LucideIcons from 'lucide-react';

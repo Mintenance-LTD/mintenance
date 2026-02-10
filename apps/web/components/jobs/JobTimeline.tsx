@@ -33,7 +33,7 @@ export function JobTimeline({ events }: JobTimelineProps) {
 
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('en-GB', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',

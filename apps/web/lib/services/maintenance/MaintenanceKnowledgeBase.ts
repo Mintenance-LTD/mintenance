@@ -397,25 +397,25 @@ export class MaintenanceKnowledgeBase {
   /**
    * Transform database record to our interface
    */
-  private static transformDatabaseRecord(record: unknown): MaintenanceKnowledge {
+  private static transformDatabaseRecord(record: Record<string, unknown>): MaintenanceKnowledge {
     return {
-      issue_type: record.issue_type,
-      issue_category: record.issue_category,
-      primary_contractor: record.primary_contractor,
-      contractor_types: record.contractor_types || [record.primary_contractor],
+      issue_type: record.issue_type as string,
+      issue_category: record.issue_category as string,
+      primary_contractor: record.primary_contractor as string,
+      contractor_types: (record.contractor_types as string[]) || [record.primary_contractor as string],
       time_estimate: `${record.time_estimate_min}-${record.time_estimate_max} minutes`,
-      cost_estimate_min: record.cost_estimate_min,
-      cost_estimate_max: record.cost_estimate_max,
-      common_materials: record.common_materials || [],
-      common_tools: record.common_tools || [],
-      specialized_equipment: record.specialized_equipment,
-      homeowner_immediate_actions: record.homeowner_immediate_actions || [],
-      homeowner_tips: record.homeowner_tips || [],
-      safety_precautions: record.safety_precautions || [],
-      when_to_call_emergency: record.when_to_call_emergency,
-      diy_difficulty: record.diy_difficulty,
-      diy_instructions: record.diy_instructions,
-      diy_video_urls: record.diy_video_urls
+      cost_estimate_min: record.cost_estimate_min as number,
+      cost_estimate_max: record.cost_estimate_max as number,
+      common_materials: (record.common_materials as string[]) || [],
+      common_tools: (record.common_tools as string[]) || [],
+      specialized_equipment: record.specialized_equipment as string[] | undefined,
+      homeowner_immediate_actions: (record.homeowner_immediate_actions as string[]) || [],
+      homeowner_tips: (record.homeowner_tips as string[]) || [],
+      safety_precautions: (record.safety_precautions as string[]) || [],
+      when_to_call_emergency: record.when_to_call_emergency as string[] | undefined,
+      diy_difficulty: record.diy_difficulty as MaintenanceKnowledge['diy_difficulty'],
+      diy_instructions: record.diy_instructions as string | undefined,
+      diy_video_urls: record.diy_video_urls as string[] | undefined
     };
   }
 }

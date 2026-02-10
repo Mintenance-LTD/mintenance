@@ -75,7 +75,7 @@ export async function getCached<T>(
           });
         }
 
-        return typeof cached === 'string' ? JSON.parse(cached) : cached;
+        return (typeof cached === 'string' ? JSON.parse(cached) : cached) as T;
       }
     }
 
@@ -166,7 +166,7 @@ export async function deleteCachePattern(pattern: string): Promise<number> {
         count: 100,
       });
 
-      cursor = result[0];
+      cursor = Number(result[0]);
       keys.push(...result[1]);
     } while (cursor !== 0);
 
@@ -342,7 +342,7 @@ export async function getCacheStats(): Promise<{
   hitRate?: number;
 }> {
   try {
-    const info = await redis.info();
+    const info = await (redis as unknown as { info: () => Promise<string> }).info();
 
     // Parse info string
     const lines = info.split('\r\n');

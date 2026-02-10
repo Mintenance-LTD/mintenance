@@ -1,5 +1,6 @@
 'use client';
 
+import type { JSX } from 'react';
 import React, { useState, useCallback, useRef } from 'react';
 import { DynamicGoogleMap } from '@/components/maps';
 import {

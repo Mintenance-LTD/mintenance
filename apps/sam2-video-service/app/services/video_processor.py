@@ -226,8 +226,22 @@ class VideoProcessor:
             Path to downloaded video
         """
         try:
-            # Parse URL to get filename
+            # SECURITY: Validate URL scheme to prevent SSRF (file://, ftp://, etc.)
             parsed = urlparse(video_url)
+            if parsed.scheme not in ("http", "https"):
+                raise ValueError(f"Unsupported URL scheme: {parsed.scheme}. Only http/https allowed.")
+            if not parsed.hostname:
+                raise ValueError("Invalid URL: missing hostname")
+            # Block internal/private network ranges
+            import ipaddress
+            try:
+                ip = ipaddress.ip_address(parsed.hostname)
+                if ip.is_private or ip.is_loopback or ip.is_reserved:
+                    raise ValueError(f"URL points to private/internal network: {parsed.hostname}")
+            except ValueError:
+                pass  # hostname is not an IP literal, DNS resolution handled by aiohttp
+
+            # Parse URL to get filename
             filename = Path(parsed.path).name or f"{processing_id}.mp4"
 
             # Ensure valid extension

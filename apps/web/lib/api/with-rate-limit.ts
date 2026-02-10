@@ -21,7 +21,7 @@ type ApiHandler = (context: ApiHandlerContext) => Promise<NextResponse> | NextRe
  * Rate limiting is already applied in middleware, but this ensures headers are included
  */
 export function withRateLimit(handler: ApiHandler) {
-  return async (request: NextRequest, context?: unknown): Promise<NextResponse> => {
+  return async (request: NextRequest, context?: Record<string, unknown>): Promise<NextResponse> => {
     try {
       // Get rate limit status (should already be checked in middleware)
       const rateLimitResult = await checkRateLimit(request);
@@ -136,7 +136,7 @@ export function createErrorResponse(
     JSON.stringify({
       error: getErrorName(status),
       message,
-      ...(details && { details }),
+      ...(details ? { details } : {}),
     }),
     {
       status,

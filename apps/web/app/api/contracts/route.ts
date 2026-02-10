@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
       .select(`
         *,
         job:jobs!inner(id, title, status),
-        contractor:users!contracts_contractor_id_fkey(id, first_name, last_name, email),
-        homeowner:users!contracts_homeowner_id_fkey(id, first_name, last_name, email)
+        contractor:profiles!contracts_contractor_id_fkey(id, first_name, last_name, email),
+        homeowner:profiles!contracts_homeowner_id_fkey(id, first_name, last_name, email)
       `);
 
     // Filter by role

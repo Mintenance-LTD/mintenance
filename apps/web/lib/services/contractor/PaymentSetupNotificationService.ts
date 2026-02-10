@@ -83,7 +83,7 @@ export class PaymentSetupNotificationService {
     }
 
     // Get unique contractor IDs
-    const contractorIds = [...new Set(escrows.map((e) => (e.jobs as { contractor_id: string }).contractor_id))];
+    const contractorIds = [...new Set(escrows.map((e) => (e.jobs as unknown as { contractor_id: string }).contractor_id))];
 
     // Get contractors without payment setup
     const { data: contractors, error: contractorsError } = await serverSupabase
@@ -109,7 +109,7 @@ export class PaymentSetupNotificationService {
     }>();
 
     for (const escrow of escrows) {
-      const job = escrow.jobs as { contractor_id: string };
+      const job = escrow.jobs as unknown as { contractor_id: string };
       const contractorId = job.contractor_id;
 
       // Only include contractors without setup

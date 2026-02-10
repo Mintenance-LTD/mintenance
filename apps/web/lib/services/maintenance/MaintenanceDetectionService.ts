@@ -214,17 +214,17 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
       logger.warn('Local model found but detectWithLocalModel not yet implemented, using Roboflow fallback');
       const { RoboflowDetectionService } = await import('../building-surveyor/RoboflowDetectionService');
       const roboflowResults = await RoboflowDetectionService.detect([imageUrl]);
-      detections = this.convertRoboflowToLocal(roboflowResults);
+      detections = this.convertRoboflowToLocal(roboflowResults as unknown as Record<string, unknown>[]);
     } else {
       // Fallback to Roboflow during bootstrap phase
       logger.warn('Local model not found, using Roboflow fallback');
       const { RoboflowDetectionService } = await import('../building-surveyor/RoboflowDetectionService');
       const roboflowResults = await RoboflowDetectionService.detect([imageUrl]);
-      detections = this.convertRoboflowToLocal(roboflowResults);
+      detections = this.convertRoboflowToLocal(roboflowResults as unknown as Record<string, unknown>[]);
     }
 
     // Map to maintenance-specific format
-    return detections.map((d: unknown) => this.mapToMaintenanceDetection(d));
+    return detections.map((d: Record<string, unknown>) => this.mapToMaintenanceDetection(d));
   }
 
   /**
@@ -249,15 +249,15 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
   /**
    * Convert Roboflow format to local format
    */
-  private static convertRoboflowToLocal(roboflowDetections: unknown[]): unknown[] {
-    return roboflowDetections.map(d => ({
-      class_id: this.getClassIdFromName(d.class),
-      confidence: d.confidence,
+  private static convertRoboflowToLocal(roboflowDetections: Record<string, unknown>[]): Record<string, unknown>[] {
+    return roboflowDetections.map((d: Record<string, unknown>) => ({
+      class_id: this.getClassIdFromName(d.class as string),
+      confidence: d.confidence as number,
       bbox: {
-        x: d.x - d.width / 2,
-        y: d.y - d.height / 2,
-        width: d.width,
-        height: d.height
+        x: (d.x as number) - (d.width as number) / 2,
+        y: (d.y as number) - (d.height as number) / 2,
+        width: d.width as number,
+        height: d.height as number
       }
     }));
   }
@@ -275,19 +275,20 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
   /**
    * Map detection to maintenance format
    */
-  private static mapToMaintenanceDetection(detection: unknown): MaintenanceDetection {
-    const issueType = Object.keys(MAINTENANCE_CATEGORIES)[detection.class_id];
+  private static mapToMaintenanceDetection(detection: Record<string, unknown>): MaintenanceDetection {
+    const issueType = Object.keys(MAINTENANCE_CATEGORIES)[detection.class_id as number];
     const category = MAINTENANCE_CATEGORIES[issueType as keyof typeof MAINTENANCE_CATEGORIES];
 
     if (!category) {
       throw new Error(`Unknown class ID: ${detection.class_id}`);
     }
 
+    const bbox = detection.bbox as { x: number; y: number; width: number; height: number };
     return {
       issue_type: issueType,
-      confidence: detection.confidence,
-      bbox: detection.bbox,
-      severity: this.estimateSeverity(detection),
+      confidence: detection.confidence as number,
+      bbox,
+      severity: this.estimateSeverity(bbox),
       requires_immediate_attention: this.isUrgent(category.urgency),
       category: category.category,
       contractor_type: category.contractor,
@@ -298,9 +299,9 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
   /**
    * Estimate severity based on detection
    */
-  private static estimateSeverity(detection: unknown): 'minor' | 'moderate' | 'major' | 'critical' {
+  private static estimateSeverity(bbox: { width: number; height: number }): 'minor' | 'moderate' | 'major' | 'critical' {
     // Use bounding box size as proxy for severity
-    const area = detection.bbox.width * detection.bbox.height;
+    const area = bbox.width * bbox.height;
     const imageArea = 640 * 640; // Assuming standard YOLO input size
     const percentage = (area / imageArea) * 100;
 

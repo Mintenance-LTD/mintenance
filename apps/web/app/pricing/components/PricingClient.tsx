@@ -209,7 +209,7 @@ export function PricingClient() {
   const handleSelectPlan = async (planId: string) => {
     // For homeowners - just show the plans
     if (userType === 'homeowner') {
-      toast.info('Homeowner plans are free to use! Sign up to get started.');
+      toast('Homeowner plans are free to use! Sign up to get started.');
       router.push('/register?type=homeowner');
       return;
     }
@@ -230,14 +230,14 @@ export function PricingClient() {
 
     // Handle free plan
     if (planId === 'free') {
-      toast.info('You\'re on the free plan! Upgrade anytime for more features.');
+      toast('You\'re on the free plan! Upgrade anytime for more features.');
       router.push('/contractor/subscription');
       return;
     }
 
     // Handle enterprise plan
     if (planId === 'enterprise') {
-      toast.info('Please contact our sales team for enterprise pricing.');
+      toast('Please contact our sales team for enterprise pricing.');
       router.push('/contact?subject=Enterprise%20Plan%20Enquiry');
       return;
     }

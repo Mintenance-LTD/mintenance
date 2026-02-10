@@ -204,9 +204,9 @@
         "releaseStatus": "draft"
       },
       "ios": {
-        "appleId": "YOUR_APPLE_ID_EMAIL_HERE",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID_HERE",
-        "appleTeamId": "YOUR_APPLE_TEAM_ID_HERE"
+        "appleId": "${APPLE_ID_EMAIL}",
+        "ascAppId": "${ASC_APP_ID}",
+        "appleTeamId": "${APPLE_TEAM_ID}"
       }
     }
   }

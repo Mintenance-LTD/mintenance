@@ -413,9 +413,9 @@ export function QuoteBuilderClient({ quotes, stats }: QuoteBuilderClientProps) {
                         flexWrap: 'wrap',
                       }}
                     >
-                      <span>Created {new Date(quote.created_at).toLocaleDateString()}</span>
+                      <span>Created {new Date(quote.created_at).toLocaleDateString('en-GB')}</span>
                       <Icon name="dot" size={8} color={theme.colors.textQuaternary} />
-                      <span>Valid until {new Date(quote.valid_until).toLocaleDateString()}</span>
+                      <span>Valid until {new Date(quote.valid_until).toLocaleDateString('en-GB')}</span>
                     </div>
 
                     <footer style={{ display: 'flex', gap: theme.spacing[3], flexWrap: 'wrap' }}>

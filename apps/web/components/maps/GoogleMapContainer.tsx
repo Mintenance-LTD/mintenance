@@ -1,5 +1,6 @@
 'use client';
 
+import type { JSX } from 'react';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { logger } from '@mintenance/shared';
 import { theme } from '@/lib/theme';

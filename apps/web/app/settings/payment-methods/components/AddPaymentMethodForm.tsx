@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 // Initialize Stripe promise
-let stripePromise: Promise<unknown> | null = null;
+let stripePromise: ReturnType<typeof loadStripe> | null = null;
 
 const getStripe = () => {
   if (!stripePromise) {
@@ -74,11 +74,25 @@ function PaymentForm({ onSuccess, onCancel }: AddPaymentMethodFormProps) {
         throw new Error('Failed to create payment method');
       }
 
+      // Fetch fresh CSRF token before mutation
+      const csrfResponse = await fetch('/api/csrf', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      if (!csrfResponse.ok) {
+        throw new Error('Failed to initialise security token. Please refresh the page.');
+      }
+      const { token: csrfToken } = await csrfResponse.json();
+      // Small delay to ensure cookie is processed by browser
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Add payment method to user's account
       const response = await fetch('/api/payments/add-method', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
           paymentMethodId: paymentMethod.id,

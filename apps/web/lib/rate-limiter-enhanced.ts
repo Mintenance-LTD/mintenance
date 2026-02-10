@@ -47,8 +47,15 @@ interface RateLimitStore {
 /**
  * Upstash Redis backend (recommended for production)
  */
+interface RedisLikeClient {
+  ping(): Promise<unknown>;
+  incr(key: string): Promise<number>;
+  expire(key: string, seconds: number): Promise<unknown>;
+  ttl(key: string): Promise<number>;
+}
+
 class UpstashStore implements RateLimitStore {
-  private client: unknown;
+  private client: RedisLikeClient | null = null;
   private initialized = false;
 
   async init() {
@@ -63,7 +70,7 @@ class UpstashStore implements RateLimitStore {
       this.client = new Redis({
         url: process.env.UPSTASH_REDIS_REST_URL,
         token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      });
+      }) as RedisLikeClient;
 
       // Test connection
       await this.client.ping();
@@ -77,23 +84,23 @@ class UpstashStore implements RateLimitStore {
 
   async incr(key: string): Promise<number> {
     if (!this.initialized) await this.init();
-    return await this.client.incr(key);
+    return await this.client!.incr(key);
   }
 
   async expire(key: string, seconds: number): Promise<void> {
     if (!this.initialized) await this.init();
-    await this.client.expire(key, seconds);
+    await this.client!.expire(key, seconds);
   }
 
   async ttl(key: string): Promise<number> {
     if (!this.initialized) await this.init();
-    return await this.client.ttl(key);
+    return await this.client!.ttl(key);
   }
 
   async isHealthy(): Promise<boolean> {
     try {
       if (!this.initialized) await this.init();
-      await this.client.ping();
+      await this.client!.ping();
       return true;
     } catch {
       return false;

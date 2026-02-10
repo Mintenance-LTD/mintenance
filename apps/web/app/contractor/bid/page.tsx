@@ -236,7 +236,7 @@ export default function ContractorBidsOverviewPage() {
                 </div>
                 <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                   <span className="text-sm text-gray-500">
-                    Submitted {new Date(bid.created_at).toLocaleDateString()}
+                    Submitted {new Date(bid.created_at).toLocaleDateString('en-GB')}
                   </span>
                   <button
                     onClick={(e) => {

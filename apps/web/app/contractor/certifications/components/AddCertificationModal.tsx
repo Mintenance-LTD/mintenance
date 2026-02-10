@@ -175,7 +175,7 @@ export function AddCertificationModal({ onClose, onSuccess, getCsrfHeaders }: Ad
 
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2">
-              Credential ID / License Number
+              Credential ID / Licence Number
             </label>
             <input
               type="text"

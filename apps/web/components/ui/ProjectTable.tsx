@@ -116,7 +116,7 @@ export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: Project
                       </div>
                     </td>
                     <td className="py-4 px-6 text-sm font-[460] text-gray-600">
-                      {new Date(project.dueDate).toLocaleDateString('en-US', {
+                      {new Date(project.dueDate).toLocaleDateString('en-GB', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',

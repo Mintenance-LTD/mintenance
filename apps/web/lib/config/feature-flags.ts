@@ -400,12 +400,18 @@ export function useFeatureFlag<T = unknown>(
 }
 
 // Next.js API route helper
-export async function initializeFeatureFlags(req: unknown): Promise<void> {
-    const userId = req.cookies?.userId || req.headers['x-user-id'];
+interface FeatureFlagRequest {
+    cookies?: Record<string, string>;
+    headers: Record<string, string | string[] | undefined>;
+    connection?: { remoteAddress?: string };
+}
+
+export async function initializeFeatureFlags(req: FeatureFlagRequest): Promise<void> {
+    const userId = req.cookies?.userId || (req.headers['x-user-id'] as string | undefined);
     const attributes = {
-        ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-        userAgent: req.headers['user-agent'],
-        referer: req.headers['referer'],
+        ip: (req.headers['x-forwarded-for'] as string | undefined) || req.connection?.remoteAddress,
+        userAgent: req.headers['user-agent'] as string | undefined,
+        referer: req.headers['referer'] as string | undefined,
     };
 
     await featureFlags.initialize(userId, attributes);

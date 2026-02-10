@@ -5,7 +5,8 @@
 
 export enum PaymentState {
   PENDING = 'pending',
-  PROCESSING = 'processing', 
+  PROCESSING = 'processing',
+  HELD = 'held',
   COMPLETED = 'completed',
   FAILED = 'failed',
   CANCELLED = 'cancelled',
@@ -37,11 +38,20 @@ const VALID_TRANSITIONS: StateTransition[] = [
   { from: PaymentState.PENDING, to: PaymentState.CANCELLED, action: PaymentAction.CANCEL, allowed: true },
   
   // From PROCESSING
+  { from: PaymentState.PROCESSING, to: PaymentState.HELD, action: PaymentAction.CONFIRM, allowed: true },
   { from: PaymentState.PROCESSING, to: PaymentState.COMPLETED, action: PaymentAction.COMPLETE, allowed: true },
   { from: PaymentState.PROCESSING, to: PaymentState.FAILED, action: PaymentAction.FAIL, allowed: true },
   { from: PaymentState.PROCESSING, to: PaymentState.CANCELLED, action: PaymentAction.CANCEL, allowed: true },
   { from: PaymentState.PROCESSING, to: PaymentState.DISPUTED, action: PaymentAction.DISPUTE, allowed: true },
-  
+
+  // From HELD (escrow: payment confirmed, funds held on platform)
+  { from: PaymentState.HELD, to: PaymentState.COMPLETED, action: PaymentAction.COMPLETE, allowed: true },
+  { from: PaymentState.HELD, to: PaymentState.REFUNDED, action: PaymentAction.REFUND, allowed: true },
+  { from: PaymentState.HELD, to: PaymentState.DISPUTED, action: PaymentAction.DISPUTE, allowed: true },
+
+  // From PENDING directly to HELD (webhook confirms payment)
+  { from: PaymentState.PENDING, to: PaymentState.HELD, action: PaymentAction.CONFIRM, allowed: true },
+
   // From COMPLETED
   { from: PaymentState.COMPLETED, to: PaymentState.DISPUTED, action: PaymentAction.DISPUTE, allowed: true },
   { from: PaymentState.COMPLETED, to: PaymentState.REFUNDED, action: PaymentAction.REFUND, allowed: true },
@@ -123,21 +133,21 @@ export class PaymentStateMachine {
    * Check if state allows modifications
    */
   static isModifiableState(state: PaymentState): boolean {
-    return [PaymentState.PENDING, PaymentState.PROCESSING].includes(state);
+    return [PaymentState.PENDING, PaymentState.PROCESSING, PaymentState.HELD].includes(state);
   }
 
   /**
    * Check if state allows disputes
    */
   static allowsDisputes(state: PaymentState): boolean {
-    return [PaymentState.PROCESSING, PaymentState.COMPLETED].includes(state);
+    return [PaymentState.PROCESSING, PaymentState.HELD, PaymentState.COMPLETED].includes(state);
   }
 
   /**
    * Check if state allows refunds
    */
   static allowsRefunds(state: PaymentState): boolean {
-    return [PaymentState.COMPLETED, PaymentState.DISPUTED].includes(state);
+    return [PaymentState.HELD, PaymentState.COMPLETED, PaymentState.DISPUTED].includes(state);
   }
 }
 

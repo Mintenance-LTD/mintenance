@@ -353,8 +353,8 @@ export class ModelABTestingService {
       }
 
       // Separate by variant
-      const controlData = inferences.filter(i => i.model_variant === 'control');
-      const treatmentData = inferences.filter(i => i.model_variant === 'treatment');
+      const controlData = inferences.filter((i: Record<string, unknown>) => i.model_variant === 'control');
+      const treatmentData = inferences.filter((i: Record<string, unknown>) => i.model_variant === 'treatment');
 
       // Calculate metrics for each variant
       const controlMetrics = this.calculateVariantMetrics(controlData);
@@ -535,7 +535,7 @@ export class ModelABTestingService {
   // HELPER METHODS
   // ============================================================================
 
-  private static calculateVariantMetrics(data: unknown[]): unknown {
+  private static calculateVariantMetrics(data: Record<string, unknown>[]): ABTestResult['control_metrics'] {
     if (data.length === 0) {
       return {
         mAP50: 0,
@@ -547,10 +547,10 @@ export class ModelABTestingService {
       };
     }
 
-    const successfulInferences = data.filter(d => d.success);
-    const avgLatency = data.reduce((sum, d) => sum + d.latency_ms, 0) / data.length;
+    const successfulInferences = data.filter((d: Record<string, unknown>) => d.success);
+    const avgLatency = data.reduce((sum: number, d: Record<string, unknown>) => sum + ((d.latency_ms as number) || 0), 0) / data.length;
     const errorRate = (data.length - successfulInferences.length) / data.length;
-    const avgConfidence = successfulInferences.reduce((sum, d) => sum + (d.avg_confidence || 0), 0) /
+    const avgConfidence = successfulInferences.reduce((sum: number, d: Record<string, unknown>) => sum + ((d.avg_confidence as number) || 0), 0) /
                          (successfulInferences.length || 1);
 
     // These would come from actual model evaluation
@@ -566,11 +566,11 @@ export class ModelABTestingService {
   }
 
   private static calculateStatisticalSignificance(
-    controlMetrics: unknown,
-    treatmentMetrics: unknown,
+    controlMetrics: ABTestResult['control_metrics'],
+    treatmentMetrics: ABTestResult['treatment_metrics'],
     controlN: number,
     treatmentN: number
-  ): unknown {
+  ): ABTestResult['statistical_significance'] {
     // Simplified statistical test - would use proper test in production
     const controlMean = controlMetrics.f1_score;
     const treatmentMean = treatmentMetrics.f1_score;
@@ -640,9 +640,9 @@ export class ModelABTestingService {
 
   private static generateABTestRecommendation(
     config: ABTestConfig,
-    controlMetrics: unknown,
-    treatmentMetrics: unknown,
-    significance: unknown,
+    controlMetrics: ABTestResult['control_metrics'],
+    treatmentMetrics: ABTestResult['treatment_metrics'],
+    significance: ABTestResult['statistical_significance'],
     controlN: number,
     treatmentN: number
   ): {
@@ -663,15 +663,15 @@ export class ModelABTestingService {
 
     // Calculate improvement on primary metric
     const primaryMetric = config.success_metrics.primary_metric;
-    const controlValue = controlMetrics[primaryMetric];
-    const treatmentValue = treatmentMetrics[primaryMetric];
+    const controlValue = controlMetrics[primaryMetric as keyof ABTestResult['control_metrics']] as number;
+    const treatmentValue = treatmentMetrics[primaryMetric as keyof ABTestResult['treatment_metrics']] as number;
     const improvement = ((treatmentValue - controlValue) / controlValue) * 100;
 
     // Check guardrail metrics
     let guardrailViolation = false;
     for (const guardrail of config.success_metrics.guardrail_metrics) {
-      const controlGuardrail = controlMetrics[guardrail.metric];
-      const treatmentGuardrail = treatmentMetrics[guardrail.metric];
+      const controlGuardrail = controlMetrics[guardrail.metric as keyof ABTestResult['control_metrics']] as number;
+      const treatmentGuardrail = treatmentMetrics[guardrail.metric as keyof ABTestResult['treatment_metrics']] as number;
       const degradation = ((controlGuardrail - treatmentGuardrail) / controlGuardrail) * 100;
 
       if (degradation > guardrail.max_degradation) {
@@ -789,6 +789,6 @@ export async function recordModelPerformance(
     latency_ms: latencyMs,
     success,
     detections_count: detections.length,
-    confidence_scores: detections.map(d => d.confidence || 0)
+    confidence_scores: detections.map((d) => ((d as Record<string, unknown>).confidence as number) || 0)
   });
 }

@@ -310,6 +310,10 @@ export async function middleware(request: NextRequest) {
     }
 
     // Verify the JWT token using shared auth package
+    // At this point, token must be defined (undefined case handled above)
+    if (!token) {
+      return redirectToLogin(request);
+    }
     let jwtPayload;
     try {
       const jwtSecret = configManager.getRequired('JWT_SECRET');
@@ -482,14 +486,17 @@ export async function middleware(request: NextRequest) {
 
     const response = NextResponse.next({ request: { headers: requestHeaders } });
     
-    // Set CSP header with nonce
+    // Set CSP header with nonce — localhost only allowed in development
+    const connectSrc = isDevelopment
+      ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"
+      : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com wss:";
     const cspHeader = [
       "default-src 'self'",
       `script-src 'self' 'nonce-${nonce}' https://js.stripe.com https://maps.googleapis.com`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:",
+      connectSrc,
       "frame-src https://js.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
@@ -498,7 +505,13 @@ export async function middleware(request: NextRequest) {
     ].join('; ');
     
     response.headers.set('Content-Security-Policy', cspHeader);
-    
+
+    // API versioning header for all /api/ routes
+    if (pathname.startsWith('/api/')) {
+      response.headers.set('X-API-Version', process.env.API_VERSION || '2026-02-09');
+      response.headers.set('X-API-Deprecation', 'false');
+    }
+
     return response;
 
   } catch (error) {

@@ -2,7 +2,7 @@
  * Optimized Airbnb-style queries with N+1 query fixes and caching
  * Version 2: Performance optimized with single queries and proper caching
  */
-import { createServerClient } from '../api/supabaseServer';
+import { createServerSupabaseClient } from '../api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { queryCache, DatabaseQueryCache } from '../services/cache/DatabaseQueryCache';
 interface JobWithStatus {
@@ -50,7 +50,7 @@ export interface ContractorProfile {
  * Fixes N+1 query problem by using Supabase's nested selects
  */
 export async function getFeaturedContractorsOptimized(limit = 12): Promise<ContractorProfile[]> {
-  const supabase = createServerClient();
+  const supabase = createServerSupabaseClient();
   // Use cache for featured contractors (10 minute TTL)
   const cacheOptions = DatabaseQueryCache.CachePresets.featuredContractors();
   return queryCache.get(
@@ -91,8 +91,8 @@ export async function getFeaturedContractorsOptimized(limit = 12): Promise<Contr
         if (error) {
           logger.error('[getFeaturedContractorsOptimized] Query error:', {
             message: error.message,
-            code: error.code,
-            details: error.details,
+            ...('code' in error ? { code: (error as Record<string, unknown>).code } : {}),
+            ...('details' in error ? { details: (error as Record<string, unknown>).details } : {}),
           });
           return [];
         }
@@ -169,7 +169,7 @@ export async function searchContractorsOptimized(
   },
   limit = 20
 ): Promise<ContractorProfile[]> {
-  const supabase = createServerClient();
+  const supabase = createServerSupabaseClient();
   // Cache search results for 2 minutes
   const cacheKey = `contractor-search:${JSON.stringify(searchParams)}`;
   return queryCache.get(
@@ -205,16 +205,22 @@ export async function searchContractorsOptimized(
             )
           `)
           .eq('role', 'contractor');
-        // Apply filters
+        // Apply filters — sanitise user input to prevent PostgREST filter injection
         if (searchParams.query) {
-          const searchTerm = `%${searchParams.query}%`;
-          query = query.or(
-            `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},company_name.ilike.${searchTerm}`
-          );
+          const sanitised = searchParams.query.replace(/[%_\\(),."']/g, '');
+          if (sanitised.length > 0) {
+            const searchTerm = `%${sanitised}%`;
+            query = query.or(
+              `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},company_name.ilike.${searchTerm}`
+            );
+          }
         }
         if (searchParams.location) {
-          const locationTerm = `%${searchParams.location}%`;
-          query = query.or(`city.ilike.${locationTerm},country.ilike.${locationTerm}`);
+          const sanitised = searchParams.location.replace(/[%_\\(),."']/g, '');
+          if (sanitised.length > 0) {
+            const locationTerm = `%${sanitised}%`;
+            query = query.or(`city.ilike.${locationTerm},country.ilike.${locationTerm}`);
+          }
         }
         if (searchParams.verified) {
           query = query.eq('admin_verified', true);
@@ -305,7 +311,7 @@ export async function searchContractorsOptimized(
  * Get contractor profile with all details - optimized version
  */
 export async function getContractorProfileOptimized(contractorId: string): Promise<ContractorProfile | null> {
-  const supabase = createServerClient();
+  const supabase = createServerSupabaseClient();
   // Use cache for individual contractor profiles (15 minute TTL)
   const cacheOptions = DatabaseQueryCache.CachePresets.contractorProfile(contractorId);
   return queryCache.get(
@@ -356,24 +362,24 @@ export async function getContractorProfileOptimized(contractorId: string): Promi
           `)
           .eq('id', contractorId)
           .eq('role', 'contractor')
-          .single() as { data: unknown; error: Error | { message: string; code?: string } | null };
+          .single() as { data: ContractorWithRelations & { bio?: string; license_number?: string; insurance_verified?: boolean; background_check_verified?: boolean } | null; error: Error | { message: string; code?: string } | null };
         if (error || !contractor) {
           logger.error('[getContractorProfileOptimized] Error or no data:', error);
           return null;
         }
         // Process all reviews
-        const allReviews = contractor.contractor_reviews?.flatMap((job: unknown) =>
+        const allReviews = contractor.contractor_reviews?.flatMap((job: { reviews?: ReviewData[] }) =>
           job.reviews || []
         ) || [];
-        const totalRating = allReviews.reduce((sum: number, r: unknown) => sum + r.rating, 0);
+        const totalRating = allReviews.reduce((sum: number, r: ReviewData) => sum + r.rating, 0);
         const reviewCount = allReviews.length;
         const averageRating = reviewCount > 0 ? totalRating / reviewCount : 0;
         // Count completed jobs
         const completedJobs = contractor.contractor_jobs?.filter(
-          (job: unknown) => job.status === 'completed'
+          (job: JobWithStatus) => job.status === 'completed'
         ).length || 0;
         // Extract skills
-        const skills = contractor.contractor_skills?.map((s: unknown) => s.skill_name) || [];
+        const skills = contractor.contractor_skills?.map((s: { skill_name: string }) => s.skill_name) || [];
         // Build profile
         const contractorName = contractor.first_name && contractor.last_name
           ? `${contractor.first_name} ${contractor.last_name}`.trim()

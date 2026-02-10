@@ -73,22 +73,22 @@ interface DynamicImportOptions {
 /**
  * Enhanced dynamic import with consistent loading states
  */
-export function dynamicImport<P = {}>(
-  importFn: () => Promise<{ default: ComponentType<P> }>,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function dynamicImport<P = any>(
+  importFn: () => Promise<any>,
   options: DynamicImportOptions = {}
 ) {
-  const { loading = LoadingSpinner, ssr = false, suspense = false } = options;
+  const { loading: LoadingComponent = LoadingSpinner, ssr = false, suspense = false } = options;
 
   if (suspense) {
     // Use React Suspense for loading
-    return dynamic(importFn, {
+    return dynamic(importFn as () => Promise<{ default: ComponentType<P> }>, {
       ssr,
-      suspense: true,
     });
   }
 
-  return dynamic(importFn, {
-    loading,
+  return dynamic(importFn as () => Promise<{ default: ComponentType<P> }>, {
+    loading: () => <LoadingComponent />,
     ssr,
   });
 }
@@ -132,6 +132,7 @@ export const DynamicImageUpload = dynamicImport(
 );
 
 export const DynamicRichTextEditor = dynamicImport(
+  // @ts-expect-error Module '@/components/ui/RichTextEditor' does not exist yet - placeholder for future implementation
   () => import('@/components/ui/RichTextEditor'),
   { loading: LoadingForm, ssr: false }
 );

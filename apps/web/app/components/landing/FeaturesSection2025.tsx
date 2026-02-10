@@ -70,7 +70,7 @@ export function FeaturesSection2025() {
       y: 0,
       transition: {
         duration: 0.6,
-        ease: [0.22, 1, 0.36, 1],
+        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
       },
     },
   };
@@ -130,13 +130,13 @@ function FeatureCard({
   feature: typeof features[0];
   index: number;
   prefersReducedMotion: boolean;
-  itemVariants: unknown;
+  itemVariants: Record<string, unknown>;
 }) {
   const Icon = feature.icon;
 
   return (
     <motion.div
-      variants={!prefersReducedMotion ? itemVariants : undefined}
+      variants={!prefersReducedMotion ? itemVariants as import('framer-motion').Variants : undefined}
       whileHover={!prefersReducedMotion ? { y: -8, transition: { duration: 0.3 } } : undefined}
       className="group relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100"
     >

@@ -4,7 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 export class ChargeHandler {
   async handleRefunded(event: Stripe.Event): Promise<void> {
     const charge = event.data.object as Stripe.Charge;
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     logger.info('Charge refunded', {
       service: 'stripe-webhook',
       eventId: event.id,

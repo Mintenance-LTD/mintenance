@@ -93,8 +93,8 @@ export async function GET(request: NextRequest, context: Params) {
         contractor_id,
         created_at,
         updated_at,
-        homeowner:users!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name),
-        contractor:users!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name)
+        homeowner:profiles!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name),
+        contractor:profiles!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name)
       `)
       .eq('id', threadId)
       .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest, context: Params) {
         attachment_url,
         read,
         created_at,
-        sender:users!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
+        sender:profiles!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
       `)
       .eq('job_id', threadId)
       .order('created_at', { ascending: false })

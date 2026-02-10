@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     // Fetch contractor data
     const { data: contractor } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry_date, created_at, updated_at')
+      .select('id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry_date, is_available, latitude, longitude, address, postcode, created_at, updated_at')
       .eq('id', user.id)
       .single();
 
@@ -87,14 +87,23 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
       .limit(20);
 
+    // Fetch hourly rate from contractor_profiles
+    const { data: contractorProfile } = await supabase
+      .from('contractor_profiles')
+      .select('hourly_rate')
+      .eq('id', user.id)
+      .single();
+
     // Calculate profile completion
     const profileFields = [
       contractor?.first_name,
       contractor?.last_name,
       contractor?.bio,
       contractor?.city,
-      contractor?.country,
       contractor?.profile_image_url,
+      contractor?.phone,
+      contractor?.company_name,
+      contractor?.address,
       skills && skills.length > 0,
     ];
 
@@ -107,7 +116,10 @@ export async function GET(request: NextRequest) {
       : 0;
 
     return NextResponse.json({
-      contractor,
+      contractor: {
+        ...contractor,
+        hourly_rate: contractorProfile?.hourly_rate ?? null,
+      },
       skills: skills || [],
       reviews: reviews || [],
       completedJobs: completedJobs || [],

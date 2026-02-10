@@ -29,7 +29,10 @@ BEGIN
     EXECUTE 'CREATE POLICY "profiles_update_own" ON public.profiles
              FOR UPDATE
              USING (id = auth.uid())
-             WITH CHECK (id = auth.uid())';
+             WITH CHECK (
+               id = auth.uid()
+               AND (role IS NOT DISTINCT FROM (SELECT role FROM public.profiles WHERE id = auth.uid()))
+             )';
 
     EXECUTE 'CREATE POLICY "profiles_delete_admin" ON public.profiles
              FOR DELETE
@@ -168,19 +171,19 @@ BEGIN
   END IF;
 END $$;
 
--- Saved jobs (schema: contractor_id)
+-- Saved jobs (schema: user_id, NOT contractor_id)
 DO $$
 BEGIN
   IF to_regclass('public.saved_jobs') IS NOT NULL THEN
     EXECUTE 'DROP POLICY IF EXISTS "saved_jobs_manage_own" ON public.saved_jobs';
     EXECUTE 'CREATE POLICY "saved_jobs_manage_own" ON public.saved_jobs
              FOR ALL
-             USING (contractor_id = auth.uid())
-             WITH CHECK (contractor_id = auth.uid())';
+             USING (user_id = auth.uid())
+             WITH CHECK (user_id = auth.uid())';
   END IF;
 END $$;
 
--- Job views (schema: contractor_id; homeowner sees views on their job)
+-- Job views (schema: viewer_id, NOT contractor_id; homeowner sees views on their job)
 DO $$
 BEGIN
   IF to_regclass('public.job_views') IS NOT NULL THEN
@@ -189,12 +192,12 @@ BEGIN
 
     EXECUTE 'CREATE POLICY "job_views_insert" ON public.job_views
              FOR INSERT
-             WITH CHECK (contractor_id IS NULL OR contractor_id = auth.uid())';
+             WITH CHECK (viewer_id IS NULL OR viewer_id = auth.uid())';
 
     EXECUTE 'CREATE POLICY "job_views_select_owner" ON public.job_views
              FOR SELECT
              USING (
-               contractor_id = auth.uid()
+               viewer_id = auth.uid()
                OR EXISTS (
                  SELECT 1 FROM public.jobs j
                  WHERE j.id = job_views.job_id AND j.homeowner_id = auth.uid()
@@ -229,7 +232,7 @@ BEGIN
   END IF;
 END $$;
 
--- Job guarantees (schema: job_id, contractor_id, homeowner_id)
+-- Job guarantees (schema: job_id, bid_id — access via job owner or bid contractor)
 DO $$
 BEGIN
   IF to_regclass('public.job_guarantees') IS NOT NULL THEN
@@ -237,12 +240,20 @@ BEGIN
     EXECUTE 'CREATE POLICY "job_guarantees_access" ON public.job_guarantees
              FOR ALL
              USING (
-               contractor_id = auth.uid()
-               OR homeowner_id = auth.uid()
+               EXISTS (
+                 SELECT 1 FROM public.jobs j
+                 WHERE j.id = job_guarantees.job_id
+                   AND (j.homeowner_id = auth.uid()
+                        OR EXISTS (SELECT 1 FROM public.bids b WHERE b.job_id = j.id AND b.contractor_id = auth.uid()))
+               )
              )
              WITH CHECK (
-               contractor_id = auth.uid()
-               OR homeowner_id = auth.uid()
+               EXISTS (
+                 SELECT 1 FROM public.jobs j
+                 WHERE j.id = job_guarantees.job_id
+                   AND (j.homeowner_id = auth.uid()
+                        OR EXISTS (SELECT 1 FROM public.bids b WHERE b.job_id = j.id AND b.contractor_id = auth.uid()))
+               )
              )';
   END IF;
 END $$;

@@ -87,7 +87,7 @@ export function FeaturedArticle({
     if (!publishedDate) {
       // Use a fixed fallback date to ensure consistency between server and client
       const fallbackDate = new Date('2024-01-01');
-      return fallbackDate.toLocaleDateString('en-US', {
+      return fallbackDate.toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
@@ -99,7 +99,7 @@ export function FeaturedArticle({
       if (isNaN(date.getTime())) {
         return '';
       }
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',

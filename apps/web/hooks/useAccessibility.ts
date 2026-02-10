@@ -1,10 +1,10 @@
-import { useEffect, useRef, RefObject, useCallback } from 'react';
+import { useEffect, useRef, RefObject, useCallback, useState } from 'react';
 
 /**
  * Hook to manage focus for accessibility
  */
-export function useFocusManagement(shouldFocus: boolean = false): RefObject<HTMLElement> {
-  const ref = useRef<HTMLElement>(null);
+export function useFocusManagement(shouldFocus: boolean = false): RefObject<HTMLElement | null> {
+  const ref = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (shouldFocus && ref.current) {
@@ -65,8 +65,8 @@ export function useAnnounce() {
 /**
  * Hook to trap focus within an element (useful for modals)
  */
-export function useFocusTrap(active: boolean = false): RefObject<HTMLElement> {
-  const ref = useRef<HTMLElement>(null);
+export function useFocusTrap(active: boolean = false): RefObject<HTMLElement | null> {
+  const ref = useRef<HTMLElement | null>(null);
   const lastFocusedElement = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -316,6 +316,3 @@ export function useAccessibleFormValidation() {
     getFieldProps,
   };
 }
-
-// Add missing import
-import { useState } from 'react';

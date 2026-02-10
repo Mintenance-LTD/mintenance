@@ -47,11 +47,11 @@ export async function POST(request: NextRequest) {
     const supabase = await createServerSupabaseClient();
     const { data: profile } = await supabase
       .from('profiles')
-      .select('user_type')
+      .select('role')
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.user_type !== 'contractor') {
+    if (!profile || profile.role !== 'contractor') {
       return NextResponse.json(
         { error: 'Only contractors can provide feedback' },
         { status: 403 }

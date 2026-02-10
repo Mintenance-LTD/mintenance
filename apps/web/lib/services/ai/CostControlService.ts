@@ -48,11 +48,12 @@ export class CostControlService {
     'aws-rekognition': { perImage: 0.001 }, // per image
   };
 
-  // In-memory cache for current period spending
+  // In-memory cache for current period spending (hydrated from DB on first access)
   private static currentDaySpend = 0;
   private static currentMonthSpend = 0;
-  private static lastResetDay = new Date().toISOString().split('T')[0];
-  private static lastResetMonth = new Date().toISOString().slice(0, 7);
+  private static lastResetDay = '';
+  private static lastResetMonth = '';
+  private static initialized = false;
 
   /**
    * Check if a request can proceed within budget constraints
@@ -281,23 +282,27 @@ export class CostControlService {
   }
 
   /**
-   * Reset counters at day/month boundaries
+   * Reset counters at day/month boundaries or hydrate from DB on first access.
+   * Fixes P0-7: In-memory counters now always load from DB on startup,
+   * preventing budget overruns after process restarts or deployments.
    */
   private static async resetCountersIfNeeded(): Promise<void> {
     const today = new Date().toISOString().split('T')[0];
     const thisMonth = new Date().toISOString().slice(0, 7);
 
-    // Reset daily counter
-    if (today !== this.lastResetDay) {
+    // On first access or day boundary, hydrate daily spend from DB
+    if (!this.initialized || today !== this.lastResetDay) {
       this.currentDaySpend = await this.getTodaySpendFromDB();
       this.lastResetDay = today;
     }
 
-    // Reset monthly counter
-    if (thisMonth !== this.lastResetMonth) {
+    // On first access or month boundary, hydrate monthly spend from DB
+    if (!this.initialized || thisMonth !== this.lastResetMonth) {
       this.currentMonthSpend = await this.getMonthSpendFromDB();
       this.lastResetMonth = thisMonth;
     }
+
+    this.initialized = true;
   }
 
   /**

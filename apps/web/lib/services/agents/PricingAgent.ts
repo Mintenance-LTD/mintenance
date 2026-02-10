@@ -186,10 +186,10 @@ export class PricingAgent {
       const { JobAnalysisService } = await import('../JobAnalysisService');
 
       // Run job analysis to get material estimates
-      const analysis = await JobAnalysisService.analyzeJob({
-        description: jobDescription,
-        photos: [], // We don't need photos for cost estimation
-      });
+      const analysis = await JobAnalysisService.analyzeJobDescription(
+        '', // title
+        jobDescription,
+      );
 
       const estimatedMaterialCost = analysis.estimatedMaterialCost || 0;
 

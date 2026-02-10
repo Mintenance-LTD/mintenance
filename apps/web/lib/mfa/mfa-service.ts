@@ -2,9 +2,9 @@
  * Multi-Factor Authentication (MFA) Service
  *
  * Provides TOTP, SMS, email, and backup code functionality for MFA.
+ * Uses otpauth library (replaces unmaintained speakeasy@2.0.0).
  *
- * IMPORTANT: Before using this service, install required dependencies:
- * npm install speakeasy qrcode @types/speakeasy @types/qrcode
+ * Dependencies: npm install otpauth qrcode @types/qrcode
  */
 
 if (typeof window !== 'undefined') {
@@ -15,18 +15,8 @@ import { randomBytes, createHash } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-
-// Import types - actual imports commented until packages installed
-// import speakeasy from 'speakeasy';
-// import QRCode from 'qrcode';
-
-// Type definitions for when packages are installed
-type SpeakeasyGeneratedSecret = {
-  ascii: string;
-  hex: string;
-  base32: string;
-  otpauth_url?: string;
-};
+import * as OTPAuth from 'otpauth';
+import QRCode from 'qrcode';
 
 interface TOTPEnrollmentData {
   secret: string;
@@ -85,32 +75,23 @@ export class MFAService {
         throw new Error('User not found');
       }
 
-      // Generate TOTP secret
-      // NOTE: Uncomment when speakeasy is installed
-      /*
-      const secret = speakeasy.generateSecret({
-        name: `Mintenance (${user.email})`,
+      // Generate TOTP secret using otpauth
+      const totp = new OTPAuth.TOTP({
         issuer: 'Mintenance',
-        length: 32,
+        label: user.email,
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: new OTPAuth.Secret({ size: 32 }),
       });
-      */
 
-      // Temporary mock until speakeasy is installed
       const secret = {
-        base32: this.generateMockSecret(),
-        ascii: '',
-        hex: '',
-        otpauth_url: `otpauth://totp/Mintenance:${user.email}?secret=MOCKBASE32SECRET&issuer=Mintenance`,
-      } as SpeakeasyGeneratedSecret;
+        base32: totp.secret.base32,
+        otpauth_url: totp.toString(),
+      };
 
       // Generate QR code
-      // NOTE: Uncomment when qrcode is installed
-      /*
-      const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url || '');
-      */
-
-      // Temporary mock until qrcode is installed
-      const qrCodeDataUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const qrCodeDataUrl = await QRCode.toDataURL(secret.otpauth_url);
 
       // Generate backup codes
       const backupCodes = this._createBackupCodeArray();
@@ -183,19 +164,17 @@ export class MFAService {
         return { success: false, error: 'MFA already enabled' };
       }
 
-      // Verify token
-      // NOTE: Uncomment when speakeasy is installed
-      /*
-      const verified = speakeasy.totp.verify({
-        secret: user.totp_secret,
-        encoding: 'base32',
-        token,
-        window: this.TOTP_WINDOW,
+      // Verify token using otpauth (constant-time comparison)
+      const totp = new OTPAuth.TOTP({
+        issuer: 'Mintenance',
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: OTPAuth.Secret.fromBase32(user.totp_secret),
       });
-      */
 
-      // Temporary mock verification
-      const verified = token === '123456' || token.length === 6;
+      const delta = totp.validate({ token, window: this.TOTP_WINDOW });
+      const verified = delta !== null;
 
       if (!verified) {
         await this.recordVerificationAttempt(userId, 'totp', false);
@@ -660,18 +639,16 @@ export class MFAService {
       return false;
     }
 
-    // NOTE: Uncomment when speakeasy is installed
-    /*
-    return speakeasy.totp.verify({
-      secret: user.totp_secret,
-      encoding: 'base32',
-      token,
-      window: this.TOTP_WINDOW,
+    const totp = new OTPAuth.TOTP({
+      issuer: 'Mintenance',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: OTPAuth.Secret.fromBase32(user.totp_secret),
     });
-    */
 
-    // Temporary mock
-    return token.length === 6;
+    const delta = totp.validate({ token, window: this.TOTP_WINDOW });
+    return delta !== null;
   }
 
   private static async verifyBackupCode(
@@ -768,13 +745,4 @@ export class MFAService {
     return randomBytes(32).toString('base64url');
   }
 
-  private static generateMockSecret(): string {
-    // Generate a valid base32 string for mock
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-    let secret = '';
-    for (let i = 0; i < 32; i++) {
-      secret += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return secret;
-  }
 }

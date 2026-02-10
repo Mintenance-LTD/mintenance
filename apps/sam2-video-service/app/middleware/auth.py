@@ -59,13 +59,18 @@ class APIKeyAuthMiddleware(BaseHTTPMiddleware):
 
         expected_key = _get_api_key()
 
-        # If no API_KEY configured, log warning and allow (dev mode)
+        # SECURITY: Reject all requests if API_KEY is not configured.
+        # Previously this allowed all requests through (dev mode bypass) which is
+        # dangerous if deployed to production without setting API_KEY.
         if not expected_key:
-            logger.warning(
+            logger.error(
                 "API_KEY environment variable not set. "
-                "Authentication is disabled. Set API_KEY in production."
+                "All requests are rejected. Set API_KEY to enable the service."
             )
-            return await call_next(request)
+            return JSONResponse(
+                status_code=503,
+                content={"detail": "Service misconfigured: API_KEY not set. Contact administrator."},
+            )
 
         # Check X-API-Key header
         provided_key = request.headers.get("X-API-Key")
@@ -109,7 +114,10 @@ async def require_api_key(
     expected_key = _get_api_key()
 
     if not expected_key:
-        return "dev-mode"
+        raise HTTPException(
+            status_code=503,
+            detail="Service misconfigured: API_KEY not set. Contact administrator.",
+        )
 
     provided_key = api_key or (bearer.credentials if bearer else None)
 

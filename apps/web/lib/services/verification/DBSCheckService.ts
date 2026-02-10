@@ -297,7 +297,7 @@ export class DBSCheckService {
     }
   ): Promise<boolean> {
     try {
-      const updateData: unknown = {
+      const updateData: Record<string, unknown> = {
         status,
         updated_at: new Date().toISOString(),
       };
@@ -450,20 +450,20 @@ export class DBSCheckService {
         return [];
       }
 
-      return checks.map(check => ({
-        id: check.id,
-        contractorId: check.contractor_id,
+      return checks.map((check: Record<string, unknown>) => ({
+        id: check.id as string,
+        contractorId: check.contractor_id as string,
         dbsType: check.dbs_type as DBSCheckLevel,
         status: check.status as DBSCheckStatus,
-        certificateNumber: check.certificate_number || undefined,
-        checkDate: check.check_date ? new Date(check.check_date) : undefined,
-        issueDate: check.issue_date ? new Date(check.issue_date) : undefined,
-        expiryDate: check.expiry_date ? new Date(check.expiry_date) : undefined,
+        certificateNumber: (check.certificate_number as string) || undefined,
+        checkDate: check.check_date ? new Date(check.check_date as string) : undefined,
+        issueDate: check.issue_date ? new Date(check.issue_date as string) : undefined,
+        expiryDate: check.expiry_date ? new Date(check.expiry_date as string) : undefined,
         provider: check.provider as DBSProvider,
-        providerCheckId: check.provider_check_id || undefined,
-        boostPercentage: check.boost_percentage || 0,
-        createdAt: new Date(check.created_at),
-        updatedAt: new Date(check.updated_at),
+        providerCheckId: (check.provider_check_id as string) || undefined,
+        boostPercentage: (check.boost_percentage as number) || 0,
+        createdAt: new Date(check.created_at as string),
+        updatedAt: new Date(check.updated_at as string),
       }));
     } catch (error) {
       logger.error('Error getting expiring DBS checks', error, {

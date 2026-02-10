@@ -1,5 +1,6 @@
 'use client';
 
+import type { JSX } from 'react';
 import React, { useState } from 'react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 

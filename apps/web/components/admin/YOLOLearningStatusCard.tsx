@@ -202,7 +202,7 @@ export function YOLOLearningStatusCard() {
             )}
             {retrainingStatus.lastJob.completedAt && (
               <p className="text-xs text-slate-500">
-                {new Date(retrainingStatus.lastJob.completedAt).toLocaleDateString()}
+                {new Date(retrainingStatus.lastJob.completedAt).toLocaleDateString('en-GB')}
               </p>
             )}
           </div>

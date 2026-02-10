@@ -67,6 +67,10 @@ async function getContractor(context: Params) {
         company_name,
         city,
         country,
+        address,
+        latitude,
+        longitude,
+        is_available,
         total_jobs_completed,
         created_at
       `)
@@ -75,10 +79,17 @@ async function getContractor(context: Params) {
       .single();
 
     // Fetch skills separately from contractor_skills table
-    const { data: skillsData, error: skillsError } = await serverSupabase
+    const { data: skillsData } = await serverSupabase
       .from('contractor_skills')
       .select('skill_name')
       .eq('contractor_id', id);
+
+    // Fetch hourly rate from contractor_profiles
+    const { data: contractorProfileData } = await serverSupabase
+      .from('contractor_profiles')
+      .select('hourly_rate')
+      .eq('id', id)
+      .single();
 
     const skills = skillsData?.map(s => s.skill_name) || [];
 
@@ -105,6 +116,10 @@ async function getContractor(context: Params) {
       company_name?: string;
       city?: string;
       country?: string;
+      address?: string;
+      latitude?: number;
+      longitude?: number;
+      is_available?: boolean;
       total_jobs_completed?: number;
       phone?: string;
       email?: string;
@@ -122,11 +137,15 @@ async function getContractor(context: Params) {
       company_name: contractor.company_name,
       city: contractor.city,
       country: contractor.country,
+      address: contractor.address,
+      latitude: contractor.latitude,
+      longitude: contractor.longitude,
+      is_available: contractor.is_available,
       total_jobs_completed: contractor.total_jobs_completed || 0,
       phone: contractor.phone,
       email: contractor.email,
       skills: skills,
-      hourly_rate: undefined, // Stored in contractor_profiles table, fetch separately if needed
+      hourly_rate: contractorProfileData?.hourly_rate ?? undefined,
       created_at: contractor.created_at,
       verified: contractor.admin_verified || false,
     };

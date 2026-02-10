@@ -294,21 +294,22 @@ export class PhoneVerificationService {
 
       return { success: true };
     } catch (error: unknown) {
+      const err = error as Record<string, unknown>;
       logger.error('Error sending SMS via Twilio Verify', error, {
         service: 'PhoneVerificationService',
-        errorCode: error?.code,
-        errorStatus: error?.status,
-        errorMessage: error?.message,
+        errorCode: err?.code,
+        errorStatus: err?.status,
+        errorMessage: err?.message,
       });
 
       // Provide user-friendly error messages
       let errorMessage = 'Failed to send SMS via Twilio';
-      if (error?.message === 'Authenticate' || error?.code === 20003) {
+      if (err?.message === 'Authenticate' || err?.code === 20003) {
         errorMessage = 'Twilio authentication failed. Please check your TWILIO_AUTH_TOKEN in .env.local. The token may need to be regenerated in Twilio Console.';
-      } else if (error?.code === 20429 || error?.code === 20001) {
-        errorMessage = `Twilio API error: ${error.message}. Please check your Twilio account status.`;
-      } else if (error?.message) {
-        errorMessage = `Failed to send SMS via Twilio: ${error.message}`;
+      } else if (err?.code === 20429 || err?.code === 20001) {
+        errorMessage = `Twilio API error: ${err.message}. Please check your Twilio account status.`;
+      } else if (err?.message) {
+        errorMessage = `Failed to send SMS via Twilio: ${err.message}`;
       }
       
       return { 
@@ -487,12 +488,13 @@ export class PhoneVerificationService {
       logger.error('Error verifying code via Twilio Verify', error, {
         service: 'PhoneVerificationService',
       });
-      
-      if (error?.code === 20404) {
+
+      const err = error as Record<string, unknown>;
+      if (err?.code === 20404) {
         return { success: false, error: 'Verification code not found. Please request a new code.' };
       }
-      
-      return { success: false, error: error?.message || 'Failed to verify code' };
+
+      return { success: false, error: (err?.message as string) || 'Failed to verify code' };
     }
   }
 

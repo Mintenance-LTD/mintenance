@@ -175,8 +175,8 @@ export async function validateFileUpload(
     }
 
     // Step 5: Check if detected type is in allowed list
-    const allowedMimeTypes = options.allowedTypes.flatMap(
-      (type) => ALLOWED_MIME_TYPES[type]
+    const allowedMimeTypes: string[] = options.allowedTypes.flatMap(
+      (type) => [...ALLOWED_MIME_TYPES[type]]
     );
 
     if (!allowedMimeTypes.includes(detectedFileType.mime)) {
@@ -335,8 +335,8 @@ function validateDetectedType(
   declaredMimeType: string,
   warnings: string[]
 ): FileValidationResult {
-  const allowedMimeTypes = options.allowedTypes.flatMap(
-    (type) => ALLOWED_MIME_TYPES[type]
+  const allowedMimeTypes: string[] = options.allowedTypes.flatMap(
+    (type) => [...ALLOWED_MIME_TYPES[type]]
   );
 
   if (!allowedMimeTypes.includes(detectedType)) {

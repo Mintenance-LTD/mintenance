@@ -173,7 +173,7 @@ export function useUpdateProfile() {
 
       // Optimistically update
       queryClient.setQueryData(['user', 'profile', 'current'], (old: unknown) => ({
-        ...old,
+        ...(old as Record<string, unknown>),
         ...updates,
       }));
 

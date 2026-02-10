@@ -273,8 +273,8 @@ export class GPT4CacheService {
         const relevant = {
             propertyType: context.propertyType,
             location: context.location,
-            urgency: context.urgency,
-            weatherConditions: context.weatherConditions,
+            region: context.region,
+            propertyAge: context.propertyAge,
         };
 
         return crypto

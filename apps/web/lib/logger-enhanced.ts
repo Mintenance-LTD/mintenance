@@ -5,7 +5,9 @@
  * Integrates with monitoring services and provides structured logging
  */
 
+// @ts-expect-error Subpath import - module resolution may not find this at compile time but it exists at runtime via dist
 import { createLogger } from '@mintenance/shared/lib/logger-config';
+// @ts-expect-error Subpath import - module resolution may not find this at compile time but it exists at runtime via dist
 import type { EnhancedLogger } from '@mintenance/shared/enhanced-logger';
 
 // Create web-specific logger instance
@@ -201,8 +203,21 @@ export function createPageLogger(pageName: string): EnhancedLogger {
 /**
  * Middleware for Next.js API routes
  */
-export function withLogging(handler: unknown) {
-  return async (req: unknown, res: unknown) => {
+interface LoggingRequest {
+  headers: Record<string, string | string[] | undefined>;
+  method?: string;
+  url?: string;
+  connection?: { remoteAddress?: string };
+  logger?: EnhancedLogger;
+}
+
+interface LoggingResponse {
+  setHeader(name: string, value: string): void;
+  statusCode?: number;
+}
+
+export function withLogging(handler: (req: LoggingRequest, res: LoggingResponse) => Promise<unknown>) {
+  return async (req: LoggingRequest, res: LoggingResponse) => {
     const startTime = Date.now();
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
@@ -215,7 +230,7 @@ export function withLogging(handler: unknown) {
       requestId,
       method: req.method,
       url: req.url,
-      ip: req.headers['x-forwarded-for'] || req.connection?.remoteAddress
+      ip: (req.headers['x-forwarded-for'] as string) || req.connection?.remoteAddress
     });
 
     // Log request

@@ -42,14 +42,15 @@ export function ContractorTravelTracking({
     filter: `contractor_id=eq.${contractorId} AND job_id=eq.${jobId}${meetingId ? ` AND meeting_id=eq.${meetingId}` : ''} AND is_active=eq.true`,
     onUpdate: (payload) => {
       if (payload.new) {
+        const newData = payload.new as Record<string, unknown>;
         const locationData: ContractorLocationData = {
-          latitude: payload.new.latitude,
-          longitude: payload.new.longitude,
-          eta: payload.new.eta_minutes || 0,
-          heading: payload.new.heading,
-          speed: payload.new.speed,
-          timestamp: payload.new.timestamp,
-          context: payload.new.context || 'traveling',
+          latitude: newData.latitude as number,
+          longitude: newData.longitude as number,
+          eta: (newData.eta_minutes as number) || 0,
+          heading: newData.heading as number | undefined,
+          speed: newData.speed as number | undefined,
+          timestamp: newData.timestamp as string,
+          context: (newData.context as string) || 'traveling',
         };
 
         setContractorLocation(locationData);
@@ -121,7 +122,7 @@ export function ContractorTravelTracking({
     const bounds = new google.maps.LatLngBounds();
     bounds.extend(contractorPosition);
     bounds.extend(destination);
-    mapRef.current.fitBounds(bounds, { padding: 50 });
+    mapRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
   };
 
   const handleMapLoad = (map: google.maps.Map) => {

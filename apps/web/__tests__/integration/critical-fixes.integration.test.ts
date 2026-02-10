@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
-import * as speakeasy from 'speakeasy';
+import * as OTPAuth from 'otpauth';
 
 // Create mock objects using vi.hoisted so they survive mockReset
 const { redis, isRedisAvailable, logger, monitoring } = vi.hoisted(() => ({
@@ -29,7 +29,7 @@ const { redis, isRedisAvailable, logger, monitoring } = vi.hoisted(() => ({
 // Mock all external dependencies
 vi.mock('@supabase/supabase-js');
 vi.mock('stripe');
-vi.mock('speakeasy');
+vi.mock('otpauth');
 
 // Use virtual modules for @/lib/redis since the file does not exist
 vi.mock('@/lib/redis', () => ({
@@ -83,13 +83,15 @@ describe('Critical Fixes Integration Tests', () => {
 
     (Stripe as any).mockImplementation(() => mockStripe);
 
-    // Mock speakeasy
-    vi.mocked(speakeasy.generateSecret).mockReturnValue({
-      base32: 'JBSWY3DPEHPK3PXP',
-      otpauth_url: 'otpauth://totp/App:user@example.com?secret=JBSWY3DPEHPK3PXP',
-    });
-
-    vi.mocked(speakeasy.totp.verify).mockReturnValue(true);
+    // Mock otpauth TOTP
+    const mockTotp = {
+      secret: { base32: 'JBSWY3DPEHPK3PXP' },
+      toString: vi.fn().mockReturnValue('otpauth://totp/Mintenance:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Mintenance'),
+      validate: vi.fn().mockReturnValue(0),
+    };
+    vi.mocked(OTPAuth.TOTP).mockImplementation(() => mockTotp as any);
+    vi.mocked(OTPAuth.Secret).mockImplementation(() => ({ base32: 'JBSWY3DPEHPK3PXP' }) as any);
+    (OTPAuth.Secret as any).fromBase32 = vi.fn().mockReturnValue({ base32: 'JBSWY3DPEHPK3PXP' });
 
     // Mock Redis availability
     vi.mocked(isRedisAvailable).mockResolvedValue(true);

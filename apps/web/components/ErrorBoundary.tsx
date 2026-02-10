@@ -40,7 +40,7 @@ const focusRing = {
 };
 
 // Sentry is optional - will be undefined if not installed
-const Sentry: unknown = null; // Disabled until @sentry/nextjs is installed
+const Sentry: { captureException: (error: Error, options?: Record<string, unknown>) => string; showReportDialog: (options: { eventId: string }) => void } | null = null; // Disabled until @sentry/nextjs is installed
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -89,7 +89,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
-      logger.error('ErrorBoundary caught an error:', error, errorInfo);
+      logger.error('ErrorBoundary caught an error:', error, errorInfo as unknown as Record<string, unknown>);
     }
 
     // Call custom error handler if provided

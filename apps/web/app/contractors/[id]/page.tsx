@@ -293,7 +293,7 @@ function ContractorPublicProfilePage2025() {
     if (loadingUser) { toast.loading('Loading...', { id: 'loading-user' }); return; }
     if (!user) { toast.error('Please log in to send a message'); router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`); return; }
     if (user.role !== 'homeowner') { toast.error('Only homeowners can message contractors'); return; }
-    toast.info('Create a job first to message this contractor');
+    toast('Create a job first to message this contractor');
     router.push(`/jobs/create?contractorId=${contractor.id}&action=message`);
   };
 
@@ -301,7 +301,7 @@ function ContractorPublicProfilePage2025() {
     if (loadingUser) { toast.loading('Loading...', { id: 'loading-user' }); return; }
     if (!user) { toast.error('Please log in to request a quote'); router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`); return; }
     if (user.role !== 'homeowner') { toast.error('Only homeowners can request quotes'); return; }
-    if (jobId) { toast.info('Returning to job to request quote'); router.push(`/jobs/${jobId}`); return; }
+    if (jobId) { toast('Returning to job to request quote'); router.push(`/jobs/${jobId}`); return; }
     router.push(`/jobs/create?contractorId=${contractor.id}&action=request-quote`);
   };
 

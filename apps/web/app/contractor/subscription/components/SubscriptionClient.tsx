@@ -267,7 +267,7 @@ export function SubscriptionClient({
               color: theme.colors.textSecondary,
               marginBottom: theme.spacing[4],
             }}>
-              Next billing date: {new Date(currentSubscription.currentPeriodEnd).toLocaleDateString()}
+              Next billing date: {new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB')}
             </p>
           )}
 

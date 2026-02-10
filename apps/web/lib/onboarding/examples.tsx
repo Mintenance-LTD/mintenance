@@ -20,7 +20,7 @@ import { trackOnboardingStarted, trackProfileCompletion } from '@/lib/onboarding
 /**
  * Example 1: Dashboard Integration
  */
-export function DashboardWithOnboarding({ user }: { user: unknown }) {
+export function DashboardWithOnboarding({ user }: { user: Record<string, unknown> }) {
   const {
     complete,
     startOnboarding,
@@ -28,7 +28,7 @@ export function DashboardWithOnboarding({ user }: { user: unknown }) {
     getProfileCompletionItems,
     getProfileCompletion
   } = useOnboarding({
-    userType: user?.role || 'homeowner',
+    userType: (user?.role as 'homeowner' | 'contractor') || 'homeowner',
   });
 
   const items = getProfileCompletionItems(user);
@@ -48,7 +48,7 @@ export function DashboardWithOnboarding({ user }: { user: unknown }) {
         <div className="mb-6">
           <ProfileCompletionCard
             items={items}
-            userType={user?.role}
+            userType={user?.role as 'homeowner' | 'contractor'}
           />
         </div>
       )}
@@ -57,7 +57,7 @@ export function DashboardWithOnboarding({ user }: { user: unknown }) {
       {complete && (
         <button
           onClick={() => {
-            trackOnboardingStarted(user?.role);
+            trackOnboardingStarted(user?.role as 'homeowner' | 'contractor');
             startOnboarding();
           }}
           className="mb-4 text-blue-600 hover:text-blue-700"
@@ -78,18 +78,18 @@ export function DashboardWithOnboarding({ user }: { user: unknown }) {
 /**
  * Example 2: Jobs List with Empty State
  */
-export function JobsListWithEmptyState({ jobs, user }: { jobs: unknown[]; user: unknown }) {
+export function JobsListWithEmptyState({ jobs, user }: { jobs: Array<{ id: string }>; user: Record<string, unknown> }) {
   if (jobs.length === 0) {
     return (
       <FirstUseEmptyState
-        type={user?.role === 'contractor' ? 'no-jobs-contractor' : 'no-jobs-homeowner'}
+        type={(user?.role as string) === 'contractor' ? 'no-jobs-contractor' : 'no-jobs-homeowner'}
       />
     );
   }
 
   return (
     <div className="grid gap-4">
-      {jobs.map(job => (
+      {jobs.map((job) => (
         <div key={job.id}>{/* Job card */}</div>
       ))}
     </div>
@@ -213,11 +213,11 @@ export function RootLayoutWithOnboarding({
   user,
 }: {
   children: React.ReactNode;
-  user: unknown;
+  user: Record<string, unknown>;
 }) {
   return (
     <OnboardingWrapper
-      userType={user?.role || 'homeowner'}
+      userType={(user?.role as 'homeowner' | 'contractor') || 'homeowner'}
       autoStart={!user?.onboarding_completed}
     >
       <AppWithAnnouncements>
@@ -230,7 +230,7 @@ export function RootLayoutWithOnboarding({
 /**
  * Example 6: Contractor Profile with Completion
  */
-export function ContractorProfileWithCompletion({ contractor }: { contractor: unknown }) {
+export function ContractorProfileWithCompletion({ contractor }: { contractor: Record<string, unknown> }) {
   const { getProfileCompletionItems } = useOnboarding({
     userType: 'contractor',
   });
@@ -239,9 +239,9 @@ export function ContractorProfileWithCompletion({ contractor }: { contractor: un
     profile_photo: contractor.profile_photo,
     business_name: contractor.business_name,
     bio: contractor.bio,
-    skills_count: contractor.skills?.length || 0,
+    skills_count: Array.isArray(contractor.skills) ? contractor.skills.length : 0,
     service_radius: contractor.service_radius,
-    portfolio_count: contractor.portfolio?.length || 0,
+    portfolio_count: Array.isArray(contractor.portfolio) ? contractor.portfolio.length : 0,
     is_verified: contractor.is_verified,
   });
 
@@ -263,14 +263,14 @@ export function ContractorProfileWithCompletion({ contractor }: { contractor: un
 /**
  * Example 7: Messages with Empty State
  */
-export function MessagesWithEmptyState({ conversations }: { conversations: unknown[] }) {
+export function MessagesWithEmptyState({ conversations }: { conversations: Array<{ id: string }> }) {
   if (conversations.length === 0) {
     return <FirstUseEmptyState type="no-messages" />;
   }
 
   return (
     <div>
-      {conversations.map(conv => (
+      {conversations.map((conv) => (
         <div key={conv.id}>{/* Conversation item */}</div>
       ))}
     </div>
@@ -280,14 +280,14 @@ export function MessagesWithEmptyState({ conversations }: { conversations: unkno
 /**
  * Example 8: Properties with Empty State
  */
-export function PropertiesWithEmptyState({ properties }: { properties: unknown[] }) {
+export function PropertiesWithEmptyState({ properties }: { properties: Array<{ id: string }> }) {
   if (properties.length === 0) {
     return <FirstUseEmptyState type="no-properties" />;
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {properties.map(property => (
+      {properties.map((property) => (
         <div key={property.id}>{/* Property card */}</div>
       ))}
     </div>

@@ -20,7 +20,7 @@ export async function analyzeBuildingDamage(
   startTime: number
 ): Promise<AnalysisResult<Phase1BuildingAssessment>> {
   try {
-    const buildingContext = {
+    const buildingContext: Record<string, unknown> = {
       jobId: context.jobId,
       propertyType: context.propertyType || 'residential',
       roomType: context.roomType,
@@ -28,12 +28,12 @@ export async function analyzeBuildingDamage(
     };
 
     if (context.userId) {
-      const agentResult = await tryAgentAnalysis(images, context, buildingContext, startTime);
+      const agentResult = await tryAgentAnalysis(images, context, buildingContext as unknown as BuildingContext, startTime);
       if (agentResult) return agentResult;
     }
 
-    const assessment = await BuildingSurveyorService.assessDamage(images, buildingContext);
-    const cost = assessment.metadata?.apiCost || 0;
+    const assessment = await BuildingSurveyorService.assessDamage(images, buildingContext as unknown as import('../../building-surveyor/types').AssessmentContext);
+    const cost = (assessment as unknown as { metadata?: { apiCost?: number } }).metadata?.apiCost || 0;
 
     return {
       success: true,
@@ -158,7 +158,7 @@ async function tryAgentAnalysis(
     })
     .eq('id', placeholderRow.id);
 
-  const cost = assessment.metadata?.apiCost || 0;
+  const cost = (assessment as unknown as { metadata?: { apiCost?: number } }).metadata?.apiCost || 0;
   return {
     success: true,
     data: assessment,

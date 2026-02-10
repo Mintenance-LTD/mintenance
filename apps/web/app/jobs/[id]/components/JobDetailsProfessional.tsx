@@ -108,7 +108,7 @@ export interface JobDetailsProfessionalProps {
   photos?: string[];
   currentUserId: string;
   userRole: 'homeowner' | 'contractor';
-  buildingAssessment?: unknown;
+  buildingAssessment?: Record<string, unknown> | null;
 }
 
 /* ==========================================
@@ -221,7 +221,7 @@ export function JobDetailsProfessional({
             {buildingAssessment && (
               <div className="mb-6">
                 <BuildingAssessmentDisplay
-                  assessment={buildingAssessment}
+                  assessment={buildingAssessment as unknown as React.ComponentProps<typeof BuildingAssessmentDisplay>['assessment']}
                   onCorrection={(assessmentId, corrections) => {
                     logger.info('Training data corrections submitted:', {
                       assessmentId,

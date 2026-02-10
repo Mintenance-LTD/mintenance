@@ -21,7 +21,7 @@ interface Job {
   photos?: string[];
   created_at: string;
   view_count?: number;
-  ai_assessment?: Record<string, unknown>;
+  ai_assessment?: React.ComponentProps<typeof JobCard2025>['job']['ai_assessment'];
 }
 
 interface JobsGridProps {
@@ -117,7 +117,7 @@ export function JobsGrid({
   return (
     <MotionDiv
       className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6' : 'flex flex-col gap-4'}
-      variants={prefersReducedMotion ? {} : staggerContainer}
+      variants={prefersReducedMotion ? undefined : staggerContainer}
       initial={prefersReducedMotion ? false : "initial"}
       animate={prefersReducedMotion ? false : "animate"}
     >
@@ -125,11 +125,11 @@ export function JobsGrid({
         {jobs.map((job, index) => (
           <MotionDiv
             key={job.id}
-            variants={prefersReducedMotion ? {} : staggerItem}
+            variants={prefersReducedMotion ? undefined : staggerItem}
             layout={!prefersReducedMotion}
-            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
-            animate={prefersReducedMotion ? false : { opacity: 1, scale: 1 }}
-            exit={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
+            initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9 }}
+            animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9 }}
             transition={prefersReducedMotion ? { duration: 0 } : { delay: index * 0.05 }}
           >
             <JobCard2025

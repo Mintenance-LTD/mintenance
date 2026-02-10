@@ -169,7 +169,7 @@ export class AIResponseCache {
     // Normalize input for consistent hashing
     const normalized = typeof input === 'string'
       ? input
-      : JSON.stringify(input, Object.keys(input).sort());
+      : JSON.stringify(input, Object.keys(input as Record<string, unknown>).sort());
 
     // Create SHA-256 hash
     const hash = crypto

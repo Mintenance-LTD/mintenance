@@ -113,7 +113,7 @@ export default async function PropertiesPage2025() {
       userInfo={{
         name: userDisplayName,
         email: userProfile?.email || user.email,
-        avatar: userProfile?.profile_image_url,
+        avatar: (userProfile as typeof userProfile & { profile_image_url?: string })?.profile_image_url ?? (userProfile as typeof userProfile & { avatar_url?: string })?.avatar_url,
       }}
     />
   );

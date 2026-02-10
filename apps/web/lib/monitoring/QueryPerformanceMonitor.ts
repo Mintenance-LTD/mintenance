@@ -317,7 +317,7 @@ export class QueryPerformanceMonitor {
    */
   public exportMetrics(): {
     timestamp: number;
-    stats: typeof this.stats;
+    stats: Record<string, unknown>;
     slowQueries: QueryMetrics[];
     patterns: Array<{ pattern: string; count: number }>;
   } {
@@ -339,16 +339,16 @@ export const queryMonitor = QueryPerformanceMonitor.getInstance();
 /**
  * Supabase client wrapper with automatic performance monitoring
  */
-export function createMonitoredSupabaseClient(supabase: unknown, source: string) {
+export function createMonitoredSupabaseClient(supabase: Record<string, unknown>, source: string) {
   return new Proxy(supabase, {
-    get(target, prop) {
+    get(target: Record<string, unknown>, prop: string | symbol) {
       if (prop === 'from') {
         return (table: string) => {
-          const query = target.from(table);
+          const query = (target as Record<string, (...args: unknown[]) => unknown>).from(table) as Record<string, unknown>;
           return createMonitoredQuery(query, table, source);
         };
       }
-      return target[prop];
+      return target[prop as string];
     },
   });
 }
@@ -356,12 +356,12 @@ export function createMonitoredSupabaseClient(supabase: unknown, source: string)
 /**
  * Create a monitored query object
  */
-function createMonitoredQuery(query: unknown, table: string, source: string) {
+function createMonitoredQuery(query: Record<string, unknown>, table: string, source: string) {
   const queryParts: string[] = [`from('${table}')`];
 
   return new Proxy(query, {
-    get(target, prop) {
-      const original = target[prop];
+    get(target: Record<string, unknown>, prop: string | symbol) {
+      const original = target[prop as string];
 
       if (typeof original === 'function') {
         return (...args: unknown[]) => {
@@ -379,7 +379,7 @@ function createMonitoredQuery(query: unknown, table: string, source: string) {
 
             if (prop === 'then') {
               // Wrap the promise
-              const originalThen = args[0];
+              const originalThen = args[0] as (data: unknown) => unknown;
               args[0] = (data: unknown) => {
                 const duration = performance.now() - startTime;
                 queryMonitor.recordQuery(queryString, duration, source);

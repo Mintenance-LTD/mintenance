@@ -19,6 +19,10 @@ interface DiscoverJobData extends Omit<Job, 'homeowner_id'> {
   skills?: string[];
   timeline?: string;
   homeowner_id?: string;
+  show_budget_to_contractors?: boolean;
+  budget_min?: number;
+  budget_max?: number;
+  require_itemized_bids?: boolean;
   homeowner?: {
     id: string;
     first_name?: string;

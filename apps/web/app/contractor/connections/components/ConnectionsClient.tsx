@@ -108,7 +108,7 @@ export function ConnectionsClient({
       ),
     },
     {
-      key: 'role',
+      key: 'id' as keyof ConnectionRequest & string,
       label: 'Role',
       align: 'center' as const,
       render: (request) => (
@@ -143,7 +143,7 @@ export function ConnectionsClient({
       render: (request) => <StatusBadge status={request.status as BadgeStatus} size="sm" />,
     },
     {
-      key: 'actions',
+      key: 'id' as keyof ConnectionRequest & string,
       label: 'Actions',
       align: 'right' as const,
       render: (request) => (
@@ -161,7 +161,7 @@ export function ConnectionsClient({
 
   const connectionColumns: Column<MutualConnection>[] = [
     {
-      key: 'user',
+      key: 'id' as keyof MutualConnection & string,
       label: 'Connection',
       render: (connection) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
@@ -188,7 +188,7 @@ export function ConnectionsClient({
       ),
     },
     {
-      key: 'role',
+      key: 'id' as keyof MutualConnection & string,
       label: 'Role',
       align: 'center' as const,
       render: (connection) => (
@@ -217,13 +217,13 @@ export function ConnectionsClient({
         }),
     },
     {
-      key: 'status',
+      key: 'id' as keyof MutualConnection & string,
       label: 'Status',
       align: 'center' as const,
       render: () => <StatusBadge status="active" size="sm" />,
     },
     {
-      key: 'actions',
+      key: 'id' as keyof MutualConnection & string,
       label: 'Actions',
       align: 'right' as const,
       render: () => (

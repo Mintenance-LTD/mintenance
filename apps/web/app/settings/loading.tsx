@@ -51,8 +51,8 @@ export default function SettingsLoading() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormFieldSkeleton label="Street Address" fullWidth />
                   <FormFieldSkeleton label="City" />
-                  <FormFieldSkeleton label="State" />
-                  <FormFieldSkeleton label="ZIP Code" />
+                  <FormFieldSkeleton label="County" />
+                  <FormFieldSkeleton label="Postcode" />
                   <FormFieldSkeleton label="Country" />
                 </div>
               </div>

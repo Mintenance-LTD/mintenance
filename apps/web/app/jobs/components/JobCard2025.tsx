@@ -375,10 +375,10 @@ export const JobCard2025 = React.memo(function JobCard2025({
                     <div
                       key={level}
                       className={`w-1.5 h-3 rounded-sm ${
-                        i <= ['low', 'medium', 'high'].indexOf(job.ai_assessment.assessment_data?.contractorAdvice?.complexity || 'low')
-                          ? job.ai_assessment.assessment_data?.contractorAdvice?.complexity === 'high'
+                        i <= ['low', 'medium', 'high'].indexOf(job.ai_assessment?.assessment_data?.contractorAdvice?.complexity || 'low')
+                          ? job.ai_assessment?.assessment_data?.contractorAdvice?.complexity === 'high'
                             ? 'bg-red-400'
-                            : job.ai_assessment.assessment_data?.contractorAdvice?.complexity === 'medium'
+                            : job.ai_assessment?.assessment_data?.contractorAdvice?.complexity === 'medium'
                             ? 'bg-amber-400'
                             : 'bg-green-400'
                           : 'bg-gray-200'

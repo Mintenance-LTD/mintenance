@@ -16,8 +16,8 @@ const AGENT_NAME = 'building-surveyor';
 
 export interface FeatureExtractionResult {
   finalFeatures: number[];
-  sceneGraphFeatures: ReturnType<Awaited<ReturnType<typeof import('../scene_graph_features').then>>['SceneGraphFeatureExtractor']['extractFeatures']> | null;
-  sceneGraph: Awaited<ReturnType<typeof import('../scene_graph').then>>['SceneGraphBuilder'] extends { buildSceneGraph: (...args: unknown[]) => infer R } ? R : unknown;
+  sceneGraphFeatures: unknown;
+  sceneGraph: unknown;
   memoryAdjustments: number[];
   imageQuality: { lightingQuality: number; imageClarity: number };
 }

@@ -18,6 +18,7 @@ import type {
   VisionAnalysisSummary,
 } from '../types';
 import type { DamageTypeSegmentation } from '../SAM3Service';
+import type { SceneGraphFeatures } from '../scene_graph_features';
 
 interface PostProcessInput {
   aiResponse: AiAssessmentPayload;
@@ -53,7 +54,7 @@ export async function postProcessAssessment(
     roboflowDetections,
     visionAnalysis: visionAnalysis || undefined,
     sam3Segmentation: sam3Segmentation ? sam3Segmentation : undefined,
-    sceneGraphFeatures: sceneGraphFeatures ? sceneGraphFeatures : undefined,
+    sceneGraphFeatures: (sceneGraphFeatures ? sceneGraphFeatures : undefined) as SceneGraphFeatures | undefined,
   });
 
   // Apply memory adjustments
@@ -69,7 +70,7 @@ export async function postProcessAssessment(
       damageType: assessment.damageAssessment.damageType,
       hasCriticalHazards: assessment.safetyHazards.hasCriticalHazards,
     },
-    sceneGraphFeatures: sceneGraphFeatures || null,
+    sceneGraphFeatures: (sceneGraphFeatures || null) as SceneGraphFeatures | null,
   });
 
   // Mondrian Conformal Prediction

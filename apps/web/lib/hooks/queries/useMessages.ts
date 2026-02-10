@@ -219,7 +219,8 @@ export function useSendMessage() {
         const previousMessages = queryClient.getQueryData(conversationKey);
 
         queryClient.setQueryData(conversationKey, (old: unknown) => {
-          if (!old?.pages) return old;
+          const typedOld = old as { pages?: Array<{ messages: Message[] }> } | undefined;
+          if (!typedOld?.pages) return old;
 
           const optimisticMessage: Message = {
             id: `temp-${Date.now()}`,
@@ -230,7 +231,7 @@ export function useSendMessage() {
             created_at: new Date().toISOString(),
           };
 
-          const newPages = [...old.pages];
+          const newPages = [...typedOld.pages];
           if (newPages[0]) {
             newPages[0] = {
               ...newPages[0],
@@ -239,7 +240,7 @@ export function useSendMessage() {
           }
 
           return {
-            ...old,
+            ...(old as Record<string, unknown>),
             pages: newPages,
           };
         });

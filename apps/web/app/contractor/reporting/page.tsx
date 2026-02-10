@@ -86,13 +86,13 @@ export default async function ContractorReportingPage2025() {
 
   for (let i = 11; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const monthKey = date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
     monthsMap.set(monthKey, { revenue: 0, jobs: 0 });
   }
 
   payments.forEach((payment) => {
     const date = new Date(payment.created_at);
-    const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const monthKey = date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
     if (monthsMap.has(monthKey)) {
       const existing = monthsMap.get(monthKey)!;
       monthsMap.set(monthKey, {
@@ -119,9 +119,10 @@ export default async function ContractorReportingPage2025() {
 
   // Calculate top clients by revenue
   const clientRevenueMap = new Map<string, { name: string; revenue: number; jobs: number }>();
-  (clientJobsResult.data || []).forEach((job: unknown) => {
-    if (job.homeowner_id && job.homeowner) {
-      const clientName = `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim();
+  (clientJobsResult.data || []).forEach((job) => {
+    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+    if (job.homeowner_id && homeowner) {
+      const clientName = `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim();
       const existing = clientRevenueMap.get(job.homeowner_id) || { name: clientName, revenue: 0, jobs: 0 };
       clientRevenueMap.set(job.homeowner_id, {
         name: clientName,

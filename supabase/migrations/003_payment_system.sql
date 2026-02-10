@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.payments (
   amount DECIMAL(10,2) NOT NULL,
   platform_fee DECIMAL(10,2),
   net_amount DECIMAL(10,2),
-  currency TEXT DEFAULT 'USD',
+  currency TEXT DEFAULT 'GBP',
   status TEXT DEFAULT 'pending' CHECK (status IN (
     'pending', 'processing', 'in_escrow', 'released',
     'completed', 'failed', 'refunded', 'disputed'

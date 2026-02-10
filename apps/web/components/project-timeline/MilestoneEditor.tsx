@@ -503,7 +503,7 @@ export const MilestoneEditor: React.FC<MilestoneEditorProps> = ({
             color: theme.colors.info,
             textAlign: 'center'
           }}>
-            💡 Timeline: {new Date(timeline.startDate).toLocaleDateString()} → {new Date(timeline.estimatedEndDate).toLocaleDateString()}
+            💡 Timeline: {new Date(timeline.startDate).toLocaleDateString('en-GB')} → {new Date(timeline.estimatedEndDate).toLocaleDateString('en-GB')}
           </div>
         </div>
       </Card>

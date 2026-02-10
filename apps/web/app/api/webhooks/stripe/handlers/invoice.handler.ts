@@ -4,7 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 export class InvoiceHandler {
   async handlePaymentSucceeded(event: Stripe.Event): Promise<void> {
     const invoice = event.data.object as Stripe.Invoice;
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     logger.info('Invoice payment succeeded', {
       service: 'stripe-webhook',
       eventId: event.id,
@@ -80,7 +80,7 @@ export class InvoiceHandler {
   }
   async handlePaymentFailed(event: Stripe.Event): Promise<void> {
     const invoice = event.data.object as Stripe.Invoice;
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     logger.warn('Invoice payment failed', {
       service: 'stripe-webhook',
       eventId: event.id,
@@ -124,7 +124,7 @@ export class InvoiceHandler {
       }
       // Send urgent notification
       const message = invoice.next_payment_attempt
-        ? `Your subscription payment failed. We'll retry on ${new Date(invoice.next_payment_attempt * 1000).toLocaleDateString()}.`
+        ? `Your subscription payment failed. We'll retry on ${new Date(invoice.next_payment_attempt * 1000).toLocaleDateString('en-GB')}.`
         : 'Your subscription payment failed. Please update your payment method to avoid service interruption.';
       await supabase.from('notifications').insert({
         user_id: contractorId,

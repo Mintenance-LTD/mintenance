@@ -149,7 +149,7 @@ export default function ContractorCalendarPage2025() {
   };
 
   const days = getDaysInMonth(currentDate);
-  const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthName = currentDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
   const previousMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
@@ -203,7 +203,7 @@ export default function ContractorCalendarPage2025() {
 
   const handleDrop = (day: Date) => {
     if (draggedEvent) {
-      toast.success(`Event "${draggedEvent.title}" moved to ${day.toLocaleDateString()}`);
+      toast.success(`Event "${draggedEvent.title}" moved to ${day.toLocaleDateString('en-GB')}`);
       setDraggedEvent(null);
     }
   };
@@ -415,7 +415,7 @@ export default function ContractorCalendarPage2025() {
             <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 {selectedDate
-                  ? selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                  ? selectedDate.toLocaleDateString('en-GB', { month: 'long', day: 'numeric', year: 'numeric' })
                   : 'Select a date'}
               </h3>
               <div className="space-y-3">

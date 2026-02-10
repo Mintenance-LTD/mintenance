@@ -89,7 +89,7 @@ const articles: Article[] = [
 
 function FeaturedArticleCard({ article }: { article: Article }) {
   const formattedDate = article.publishedDate
-    ? new Date(article.publishedDate).toLocaleDateString('en-US', {
+    ? new Date(article.publishedDate).toLocaleDateString('en-GB', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
@@ -169,7 +169,7 @@ function FeaturedArticleCard({ article }: { article: Article }) {
 
 function ArticleCard({ article }: { article: Article }) {
   const formattedDate = article.publishedDate
-    ? new Date(article.publishedDate).toLocaleDateString('en-US', {
+    ? new Date(article.publishedDate).toLocaleDateString('en-GB', {
         month: 'short',
         day: 'numeric',
       })

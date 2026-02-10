@@ -21,7 +21,7 @@ import { join } from 'path';
 import type { DamageTypeSegmentation, SAM3SegmentationResponse } from './SAM3Service';
 import type { Phase1BuildingAssessment, DamageSeverity } from './types';
 import type { SceneGraphFeatures } from './scene_graph_features';
-import type { RoboflowDetection } from './RoboflowDetectionService';
+import type { RoboflowDetection } from './types';
 
 export interface EnhancedFusionInput {
   // YOLO evidence
@@ -496,7 +496,7 @@ export class EnhancedBayesianFusionService {
 
     for (const detection of yoloDetections) {
       // Find corresponding SAM3 mask for this damage type
-      const damageType = detection.class || detection.label;
+      const damageType = detection.className;
       const sam3Data = sam3Evidence.damageTypes[damageType];
 
       if (sam3Data && sam3Data.boxes && sam3Data.boxes.length > 0) {
@@ -504,9 +504,10 @@ export class EnhancedBayesianFusionService {
         let bestBox = sam3Data.boxes[0];
         let bestIoU = 0;
 
+        const bb = detection.boundingBox;
         for (const sam3Box of sam3Data.boxes) {
           const iou = this.calculateIoU(
-            [detection.x, detection.y, detection.width, detection.height],
+            [bb.x, bb.y, bb.width, bb.height],
             sam3Box
           );
 
@@ -519,7 +520,7 @@ export class EnhancedBayesianFusionService {
         // If good match, use SAM3's more precise box
         if (bestIoU > 0.3) {
           refinedBoxes.push({
-            original: [detection.x, detection.y, detection.width, detection.height],
+            original: [bb.x, bb.y, bb.width, bb.height],
             refined: bestBox,
             iou: bestIoU
           });
@@ -652,7 +653,7 @@ export class EnhancedBayesianFusionService {
     const learningRate = this.LEARNING_RATE * consensus; // Adaptive learning rate
 
     for (const key in currentWeights) {
-      const current = currentWeights[key as keyof AttentionWeights];
+      const current = currentWeights[key as keyof AttentionWeights] ?? 0;
       // Move towards equal weights when agreement is high
       const target = 1 / Object.keys(currentWeights).length;
       gradients[key as keyof AttentionWeights] = learningRate * (target - current);
@@ -661,8 +662,8 @@ export class EnhancedBayesianFusionService {
     // Apply weight decay
     const suggested: AttentionWeights = { yolo: 0, sam3: 0, gpt4: 0 };
     for (const key in currentWeights) {
-      const current = currentWeights[key as keyof AttentionWeights];
-      const gradient = gradients[key as keyof AttentionWeights];
+      const current = currentWeights[key as keyof AttentionWeights] ?? 0;
+      const gradient = gradients[key as keyof AttentionWeights] ?? 0;
       suggested[key as keyof AttentionWeights] = Math.max(
         this.MIN_WEIGHT,
         Math.min(1, current + gradient - this.WEIGHT_DECAY * current)
@@ -748,8 +749,8 @@ export class EnhancedBayesianFusionService {
       const alpha = 0.1; // Update rate
 
       for (const key in this.currentWeights) {
-        const current = this.currentWeights[key as keyof AttentionWeights];
-        const used = usedWeights[key as keyof AttentionWeights];
+        const current = this.currentWeights[key as keyof AttentionWeights] ?? 0;
+        const used = usedWeights[key as keyof AttentionWeights] ?? 0;
         this.currentWeights[key as keyof AttentionWeights] =
           (1 - alpha) * current + alpha * used * performanceMetric;
       }
@@ -807,13 +808,16 @@ export class EnhancedBayesianFusionService {
    * Validate weight structure
    */
   private static validateWeights(weights: unknown): weights is AttentionWeights {
-    return weights &&
-      typeof weights.yolo === 'number' &&
-      typeof weights.sam3 === 'number' &&
-      typeof weights.gpt4 === 'number' &&
-      weights.yolo >= 0 && weights.yolo <= 1 &&
-      weights.sam3 >= 0 && weights.sam3 <= 1 &&
-      weights.gpt4 >= 0 && weights.gpt4 <= 1;
+    if (!weights || typeof weights !== 'object') return false;
+    const w = weights as Record<string, unknown>;
+    return (
+      typeof w.yolo === 'number' &&
+      typeof w.sam3 === 'number' &&
+      typeof w.gpt4 === 'number' &&
+      w.yolo >= 0 && w.yolo <= 1 &&
+      w.sam3 >= 0 && w.sam3 <= 1 &&
+      w.gpt4 >= 0 && w.gpt4 <= 1
+    );
   }
 
   /**
@@ -833,7 +837,7 @@ export class EnhancedBayesianFusionService {
     let weightVariance = 0;
     if (this.weightHistory.length > 1) {
       for (const key in this.currentWeights) {
-        const values = this.weightHistory.map(w => w[key as keyof AttentionWeights]);
+        const values = this.weightHistory.map(w => w[key as keyof AttentionWeights] ?? 0);
         const mean = values.reduce((a, b) => a + b, 0) / values.length;
         const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
         weightVariance += variance;

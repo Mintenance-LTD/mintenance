@@ -560,8 +560,8 @@ export class InternalDamageClassifier {
                 urgency = 'urgent';
                 safetyHazards.push({
                     type: className,
-                    severity: 'high',
-                    confidence: detection.confidence,
+                    description: `High severity ${className} detected with ${(detection.confidence * 100).toFixed(0)}% confidence`,
+                    recommendation: 'Immediate professional assessment recommended',
                 });
                 break; // Severe damage takes priority
             } else if (moderateClasses.some(c => className.includes(c))) {

@@ -11,7 +11,7 @@ interface Article {
   title: string;
   description: string;
   category: string;
-  views: number;
+  views?: number;
 }
 
 interface Category {
@@ -37,28 +37,24 @@ export default function HelpCentrePage() {
       title: 'How to post your first job',
       description: 'Step-by-step guide to creating and posting a job listing',
       category: 'Getting Started',
-      views: 2543,
     },
     {
       id: '2',
       title: 'How to choose the right contractor',
       description: 'Tips for evaluating contractor profiles and selecting the best match',
       category: 'Finding Contractors',
-      views: 1876,
     },
     {
       id: '3',
       title: 'Understanding escrow payments',
       description: 'Learn how our secure payment system protects your funds',
       category: 'Payments & Billing',
-      views: 1654,
     },
     {
       id: '4',
       title: 'Managing job milestones',
       description: 'How to set up and track project milestones',
       category: 'Posting Jobs',
-      views: 1432,
     },
   ];
 
@@ -175,7 +171,7 @@ export default function HelpCentrePage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        {article.views.toLocaleString()} views
+                        {(article.views ?? 0).toLocaleString()} views
                       </span>
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">

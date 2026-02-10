@@ -420,7 +420,7 @@ export function NotificationsClient(props: NotificationsClientProps) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
                       <Icon name="clock" size={14} color={theme.colors.textSecondary} />
                       <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
-                        {new Date(notification.createdAt).toLocaleDateString()} at{' '}
+                        {new Date(notification.createdAt).toLocaleDateString('en-GB')} at{' '}
                         {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>

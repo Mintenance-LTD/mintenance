@@ -314,7 +314,7 @@ export function redactSensitiveData(data: unknown): unknown {
   }
 
   if (typeof data === 'object' && data !== null) {
-    const redacted: unknown = Array.isArray(data) ? [] : {};
+    const redacted: Record<string, unknown> = Array.isArray(data) ? [] as unknown as Record<string, unknown> : {};
 
     for (const key in data) {
       // Check if key name suggests sensitive data
@@ -332,7 +332,7 @@ export function redactSensitiveData(data: unknown): unknown {
       if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
         redacted[key] = '***REDACTED***';
       } else {
-        redacted[key] = redactSensitiveData(data[key]);
+        redacted[key] = redactSensitiveData((data as Record<string, unknown>)[key]);
       }
     }
 

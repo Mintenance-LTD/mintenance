@@ -43,48 +43,9 @@ export default function ContractorConnectionsPage2025() {
   const { user } = useCurrentUser();
   const [activeTab, setActiveTab] = useState<'connections' | 'requests' | 'suggestions'>('connections');
 
-  // TODO: Replace with real API data
-  const [connections, setConnections] = useState<Connection[]>([
-    {
-      id: '1',
-      user: {
-        id: 'u1',
-        name: 'John Smith',
-        email: 'john@example.com',
-        role: 'homeowner',
-        company: 'ABC Properties',
-      },
-      connectedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-      mutualConnections: 3,
-    },
-    {
-      id: '2',
-      user: {
-        id: 'u2',
-        name: 'Sarah Johnson',
-        email: 'sarah@example.com',
-        role: 'contractor',
-        company: 'Elite Contractors',
-      },
-      connectedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
-      mutualConnections: 5,
-    },
-  ]);
+  const [connections, setConnections] = useState<Connection[]>([]);
 
-  const [requests, setRequests] = useState<ConnectionRequest[]>([
-    {
-      id: 'r1',
-      requester: {
-        id: 'u3',
-        name: 'Mike Wilson',
-        email: 'mike@example.com',
-        role: 'homeowner',
-      },
-      status: 'pending',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      message: 'Looking to hire for a kitchen renovation project',
-    },
-  ]);
+  const [requests, setRequests] = useState<ConnectionRequest[]>([]);
 
   const userDisplayName = user?.first_name && user?.last_name
     ? `${user.first_name} ${user.last_name}`.trim()
@@ -267,7 +228,7 @@ export default function ContractorConnectionsPage2025() {
                         )}
 
                         <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                          <span>Connected {new Date(connection.connectedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+                          <span>Connected {new Date(connection.connectedAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span>
                           {connection.mutualConnections && connection.mutualConnections > 0 && (
                             <span className="text-teal-600 font-medium">{connection.mutualConnections} mutual</span>
                           )}
@@ -327,7 +288,7 @@ export default function ContractorConnectionsPage2025() {
                                 </div>
                               )}
                               <p className="text-xs text-gray-500 mt-3">
-                                Requested {new Date(request.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                Requested {new Date(request.createdAt).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' })}
                               </p>
                             </div>
                           </div>

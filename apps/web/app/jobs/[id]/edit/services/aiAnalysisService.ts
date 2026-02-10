@@ -114,8 +114,9 @@ export class AIAnalysisService {
         hasEstimate: !!result.estimatedCost,
       });
       if (result.defectsFound > 0) {
-        toast.warning(
-          `${result.defectsFound} potential issue${result.defectsFound !== 1 ? 's' : ''} detected`
+        toast(
+          `${result.defectsFound} potential issue${result.defectsFound !== 1 ? 's' : ''} detected`,
+          { icon: '\u26A0\uFE0F' }
         );
       } else {
         toast.success('Building survey completed - no major issues found');
@@ -166,7 +167,15 @@ export class AIAnalysisService {
       return null;
     }
   }
-  async validateJobData(jobData: unknown): Promise<{
+  async validateJobData(jobData: {
+    title: string;
+    description: string;
+    category: string;
+    location: { postcode: string };
+    budget: { min: string; max: string };
+    timeline: { startDate: string; endDate: string };
+    images: string[];
+  }): Promise<{
     isValid: boolean;
     errors: string[];
     warnings: string[];

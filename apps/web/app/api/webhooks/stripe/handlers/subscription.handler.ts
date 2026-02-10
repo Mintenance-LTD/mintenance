@@ -4,7 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 export class SubscriptionHandler {
   async handleCreated(event: Stripe.Event): Promise<void> {
     const subscription = event.data.object as Stripe.Subscription;
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     logger.info('Subscription created', {
       service: 'stripe-webhook',
       eventId: event.id,
@@ -69,8 +69,8 @@ export class SubscriptionHandler {
   }
   async handleUpdated(event: Stripe.Event): Promise<void> {
     const subscription = event.data.object as Stripe.Subscription;
-    const previousAttributes = (event.data as unknown).previous_attributes || {};
-    const supabase = serverSupabase();
+    const previousAttributes = (event.data as unknown as Record<string, unknown>).previous_attributes as Record<string, unknown> || {};
+    const supabase = serverSupabase;
     logger.info('Subscription updated', {
       service: 'stripe-webhook',
       eventId: event.id,
@@ -142,7 +142,7 @@ export class SubscriptionHandler {
   }
   async handleDeleted(event: Stripe.Event): Promise<void> {
     const subscription = event.data.object as Stripe.Subscription;
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     logger.info('Subscription deleted', {
       service: 'stripe-webhook',
       eventId: event.id,

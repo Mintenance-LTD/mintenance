@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Briefcase, CheckCircle2, DollarSign, FileText } from 'lucide-react';
+import { Briefcase, CheckCircle2, PoundSterling, FileText } from 'lucide-react';
 
 interface AirbnbStatsGridProps {
   activeJobsCount: number;
@@ -42,8 +42,8 @@ export function AirbnbStatsGrid({
     },
     {
       label: 'Total Spent',
-      value: `$${totalSpent.toLocaleString()}`,
-      icon: DollarSign,
+      value: `£${totalSpent.toLocaleString()}`,
+      icon: PoundSterling,
       color: 'text-gray-600',
       bgColor: 'bg-gray-50',
       href: '/payments',

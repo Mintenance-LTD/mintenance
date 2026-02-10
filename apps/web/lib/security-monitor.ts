@@ -124,8 +124,8 @@ export class SecurityMonitor {
       user_agent: request.headers.get('user-agent') || 'unknown',
       endpoint: request.nextUrl.pathname,
       method: request.method,
-      payload: JSON.stringify(payload).substring(0, 1000) as unknown, // Truncate for storage
-      details: 'Potential XSS attack detected in input' as unknown,
+      payload: { raw: JSON.stringify(payload).substring(0, 1000) }, // Truncate for storage
+      details: 'Potential XSS attack detected in input',
     });
   }
 
@@ -146,8 +146,8 @@ export class SecurityMonitor {
       user_agent: request.headers.get('user-agent') || 'unknown',
       endpoint: request.nextUrl.pathname,
       method: request.method,
-      payload: JSON.stringify(payload).substring(0, 1000) as unknown,
-      details: `Potential ${injectionType} injection detected` as unknown,
+      payload: { raw: JSON.stringify(payload).substring(0, 1000) },
+      details: `Potential ${injectionType} injection detected`,
     });
   }
 

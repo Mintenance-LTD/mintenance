@@ -137,7 +137,7 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       ),
     },
     {
-      key: 'coverage',
+      key: 'coverage' as keyof ServiceArea,
       label: 'Total Area',
       align: 'center' as const,
       render: (area) => (
@@ -171,7 +171,7 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       render: (area) => <StatusBadge status={area.is_active ? 'active' : 'inactive'} size="sm" />,
     },
     {
-      key: 'actions',
+      key: 'actions' as keyof ServiceArea,
       label: 'Actions',
       align: 'right' as const,
       render: (area) => (

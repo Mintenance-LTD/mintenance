@@ -380,7 +380,7 @@ export class AssessmentOrchestrator {
             // Check cache first
             const cachedResponse = await GPT4CacheService.getCached(validatedImageUrls, context);
 
-            let aiAssessment: unknown;
+            let aiAssessment: Record<string, unknown>;
             let gptDuration = 0;
 
             if (cachedResponse) {
@@ -391,7 +391,7 @@ export class AssessmentOrchestrator {
                     hitCount: cachedResponse.hitCount,
                 });
 
-                aiAssessment = cachedResponse.assessment;
+                aiAssessment = cachedResponse.assessment as unknown as Record<string, unknown>;
 
                 this.recordMetric('gpt.vision', {
                     success: true,
@@ -452,7 +452,7 @@ export class AssessmentOrchestrator {
                     throw new Error('No content in GPT-4 Vision response');
                 }
 
-                aiAssessment = JSON.parse(aiContent);
+                aiAssessment = JSON.parse(aiContent) as Record<string, unknown>;
             }
 
             // Optionally enhance with SAM 3 precise segmentation
@@ -460,7 +460,7 @@ export class AssessmentOrchestrator {
             let sam3Result: Awaited<ReturnType<typeof SAM3Service.segmentDamageTypes>> | null = null;
 
             // Get damage type for targeted segmentation
-            const damageType = aiAssessment.damageType || aiAssessment.damageAssessment?.damageType || 'damage';
+            const damageType = (aiAssessment.damageType as string) || (aiAssessment.damageAssessment as Record<string, unknown>)?.damageType as string || 'damage';
 
             // Start SAM3 segmentation in parallel if available
             const sam3SegmentationPromise = sam3HealthPromise.then(async (isSAM3Available) => {
@@ -493,7 +493,7 @@ export class AssessmentOrchestrator {
                                 preciseMasks: damageSegmentation.masks,
                                 preciseBoxes: damageSegmentation.boxes,
                                 affectedArea,
-                                segmentationConfidence: damageSegmentation.scores[0] || aiAssessment.confidence,
+                                segmentationConfidence: damageSegmentation.scores[0] || (aiAssessment.confidence as number),
                                 masks: damageSegmentation.masks.map((mask, idx) => ({
                                     mask,
                                     box: damageSegmentation.boxes[idx],
@@ -540,7 +540,25 @@ export class AssessmentOrchestrator {
             sam3Result = sam3Data.result;
 
             const assessment = await this.buildFinalAssessment(
-                aiAssessment,
+                aiAssessment as {
+                    damageType?: string;
+                    severity?: string;
+                    confidence?: number;
+                    location?: string;
+                    description?: string;
+                    detectedItems?: string[];
+                    safetyHazards?: unknown[];
+                    complianceIssues?: unknown[];
+                    riskFactors?: unknown[];
+                    riskScore?: number;
+                    premiumImpact?: string;
+                    urgency?: string;
+                    recommendedActionTimeline?: string;
+                    estimatedTimeToWorsen?: string;
+                    urgencyReasoning?: string;
+                    homeownerExplanation?: unknown;
+                    contractorAdvice?: unknown;
+                },
                 context,
                 roboflowDetections,
                 visionAnalysis,
@@ -719,7 +737,7 @@ export class AssessmentOrchestrator {
             const contractorAdvice = aiAssessment.contractorAdvice;
 
             // Normalize and enrich materials
-            const normalizedMaterials = (contractorAdvice.materials || []).map((material) => ({
+            const normalizedMaterials: import('../types').Material[] = (contractorAdvice.materials || []).map((material) => ({
                 name: material.name || 'unspecified material',
                 quantity: material.quantity || 'quantity not provided',
                 estimatedCost: material.estimatedCost ?? 0,
@@ -732,7 +750,7 @@ export class AssessmentOrchestrator {
                 materialsSample: normalizedMaterials.length > 0 ? normalizedMaterials[0] : null
             });
 
-            let enrichedMaterials = normalizedMaterials;  // Default to AI materials
+            let enrichedMaterials: import('../types').Material[] = normalizedMaterials;  // Default to AI materials
             try {
                 if (normalizedMaterials.length > 0) {
                     // Dynamic import to avoid circular dependencies

@@ -150,8 +150,8 @@ const baseJobSchema = z.object({
   location: z.object({
     address: z.string().max(300),
     city: z.string().max(100),
-    state: z.string().max(100),
-    zipCode: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code'),
+    county: z.string().max(100),
+    postcode: z.string().regex(/^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$/i, 'Invalid UK postcode'),
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180),
   }).optional(),
@@ -233,6 +233,18 @@ export const updateProfileSchema = z.object({
     .optional(),
   profileImageUrl: z.string()
     .url('Invalid profile image URL')
+    .optional(),
+  address: z.string()
+    .max(500, 'Address too long')
+    .transform(val => sanitizeText(val, 500))
+    .optional(),
+  city: z.string()
+    .max(100, 'City too long')
+    .transform(val => sanitizeText(val, 100))
+    .optional(),
+  postcode: z.string()
+    .max(20, 'Postcode too long')
+    .transform(val => sanitizeText(val, 20))
     .optional(),
 });
 

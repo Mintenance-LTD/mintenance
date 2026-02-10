@@ -35,6 +35,7 @@ interface AIAssessment {
   damage_type: string;
   confidence: number;
   urgency: 'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor';
+  created_at?: string;
   assessment_data?: {
     contractorAdvice?: {
       estimatedCost?: {

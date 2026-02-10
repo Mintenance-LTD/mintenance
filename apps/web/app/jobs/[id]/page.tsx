@@ -207,7 +207,7 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     status: bid.status,
     created_at: bid.created_at,
     quote_id: bid.quote_id,
-    lineItems: bid.lineItems,
+    lineItems: bid.lineItems?.map(li => ({ ...li, type: li.type || 'labor' as const })),
     contractor: {
       id: bid.contractor?.id || '',
       first_name: bid.contractor?.first_name,
@@ -255,7 +255,7 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
           property={property}
           homeowner={homeownerData}
           contractor={contractor}
-          bids={formattedBids}
+          bids={formattedBids as unknown as import('./components/JobDetailsProfessional').JobDetailsProfessionalProps['bids']}
           photos={photos?.map(p => p.file_url) || []}
           currentUserId={user.id}
           userRole="homeowner"

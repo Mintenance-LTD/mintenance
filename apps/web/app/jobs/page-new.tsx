@@ -74,7 +74,7 @@ export default function JobsPage() {
         priority: (j.priority as Job['priority']) ?? undefined,
         photos: j.photos ?? [],
         assignedTo: j.contractorName ?? undefined,
-        scheduledDate: j.created_at ? new Date(j.created_at).toLocaleDateString() : undefined,
+        scheduledDate: j.created_at ? new Date(j.created_at).toLocaleDateString('en-GB') : undefined,
       }));
     },
     enabled: !!user,

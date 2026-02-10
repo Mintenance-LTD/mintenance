@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -31,7 +31,7 @@ import {
   Radar,
 } from 'recharts';
 import { AlertCircle, TrendingDown, TrendingUp, Activity, RefreshCw, Bell, Settings, Download } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase';
 
 interface DriftMetrics {
   timestamp: string;
@@ -126,19 +126,19 @@ export function ModelMonitoringDashboard() {
         .limit(100);
 
       if (driftData) {
-        setDriftMetrics(driftData.map((d: any) => ({
-          timestamp: d.timestamp,
-          driftScore: d.metrics?.driftScore || 0,
-          driftType: d.metrics?.driftType || 'none',
-          affectedFeatures: d.metrics?.affectedFeatures || []
+        setDriftMetrics(driftData.map((d: Record<string, unknown>) => ({
+          timestamp: d.timestamp as string,
+          driftScore: (d.metrics as Record<string, unknown>)?.driftScore as number || 0,
+          driftType: (d.metrics as Record<string, unknown>)?.driftType as string || 'none',
+          affectedFeatures: (d.metrics as Record<string, unknown>)?.affectedFeatures as string[] || []
         })));
 
-        setPerformanceMetrics(driftData.map((d: any) => ({
-          timestamp: d.timestamp,
-          accuracy: d.metrics?.accuracy || 0,
-          precision: d.metrics?.precision || 0,
-          recall: d.metrics?.recall || 0,
-          f1Score: d.metrics?.f1Score || 0
+        setPerformanceMetrics(driftData.map((d: Record<string, unknown>) => ({
+          timestamp: d.timestamp as string,
+          accuracy: (d.metrics as Record<string, unknown>)?.accuracy as number || 0,
+          precision: (d.metrics as Record<string, unknown>)?.precision as number || 0,
+          recall: (d.metrics as Record<string, unknown>)?.recall as number || 0,
+          f1Score: (d.metrics as Record<string, unknown>)?.f1Score as number || 0
         })));
       }
 
@@ -149,12 +149,12 @@ export function ModelMonitoringDashboard() {
         .in('key', ['current_model_version', 'canary_deployment', 'shadow_deployment']);
 
       if (configData) {
-        const currentVersion = configData.find(c => c.key === 'current_model_version')?.value?.version;
-        const canaryInfo = configData.find(c => c.key === 'canary_deployment')?.value;
-        const shadowInfo = configData.find(c => c.key === 'shadow_deployment')?.value;
+        const currentVersion = (configData.find((c: Record<string, unknown>) => c.key === 'current_model_version')?.value as Record<string, unknown>)?.version;
+        const canaryInfo = configData.find((c: Record<string, unknown>) => c.key === 'canary_deployment')?.value as Record<string, unknown> | undefined;
+        const shadowInfo = configData.find((c: Record<string, unknown>) => c.key === 'shadow_deployment')?.value as Record<string, unknown> | undefined;
 
         setCurrentModel({
-          version: currentVersion || 'unknown',
+          version: (currentVersion as string) || 'unknown',
           deployedAt: new Date().toISOString(),
           status: 'active',
           rolloutPercentage: 100,
@@ -170,10 +170,10 @@ export function ModelMonitoringDashboard() {
         const candidates: ModelVersion[] = [];
         if (canaryInfo?.enabled) {
           candidates.push({
-            version: canaryInfo.newVersion,
-            deployedAt: canaryInfo.startedAt,
+            version: canaryInfo.newVersion as string,
+            deployedAt: canaryInfo.startedAt as string,
             status: 'canary',
-            rolloutPercentage: canaryInfo.percentage,
+            rolloutPercentage: canaryInfo.percentage as number,
             metrics: performanceMetrics[0] || {
               timestamp: new Date().toISOString(),
               accuracy: 0,
@@ -186,8 +186,8 @@ export function ModelMonitoringDashboard() {
 
         if (shadowInfo?.enabled) {
           candidates.push({
-            version: shadowInfo.shadowVersion,
-            deployedAt: shadowInfo.startedAt,
+            version: shadowInfo.shadowVersion as string,
+            deployedAt: shadowInfo.startedAt as string,
             status: 'shadow',
             rolloutPercentage: 0,
             metrics: performanceMetrics[0] || {
@@ -219,12 +219,12 @@ export function ModelMonitoringDashboard() {
         .limit(10);
 
       if (alertData) {
-        setAlerts(alertData.map((a: any) => ({
-          id: a.id,
-          severity: a.severity,
-          type: a.alerts?.type || 'drift_detected',
-          message: a.alerts?.message || 'Alert',
-          timestamp: a.timestamp,
+        setAlerts(alertData.map((a: Record<string, unknown>) => ({
+          id: a.id as string,
+          severity: a.severity as 'low' | 'medium' | 'high' | 'critical',
+          type: (a.alerts as Record<string, unknown>)?.type as string || 'drift_detected',
+          message: (a.alerts as Record<string, unknown>)?.message as string || 'Alert',
+          timestamp: a.timestamp as string,
           acknowledged: false
         })));
       }
@@ -255,17 +255,19 @@ export function ModelMonitoringDashboard() {
     }
   };
 
-  const handleDriftUpdate = (payload: any) => {
+  const handleDriftUpdate = (_payload: Record<string, unknown>) => {
     fetchDashboardData();
   };
 
-  const handleAlertUpdate = (payload: any) => {
+  const handleAlertUpdate = (payload: { new: Record<string, unknown> }) => {
+    const newData = payload.new;
+    const alertsData = newData.alerts as Record<string, unknown> | undefined;
     const newAlert: Alert = {
-      id: payload.new.id,
-      severity: payload.new.severity,
-      type: payload.new.alerts?.type || 'drift_detected',
-      message: payload.new.alerts?.message || 'New alert',
-      timestamp: payload.new.timestamp,
+      id: newData.id as string,
+      severity: newData.severity as 'low' | 'medium' | 'high' | 'critical',
+      type: alertsData?.type as string || 'drift_detected',
+      message: alertsData?.message as string || 'New alert',
+      timestamp: newData.timestamp as string,
       acknowledged: false
     };
     setAlerts(prev => [newAlert, ...prev.slice(0, 9)]);
@@ -459,7 +461,7 @@ export function ModelMonitoringDashboard() {
                 <span>Status: {retrainingJob.status}</span>
                 <span>ETA: {retrainingJob.estimatedCompletion}</span>
               </div>
-              <Progress value={retrainingJob.progress} className="w-full" />
+              <Progress value={retrainingJob.progress} style={{ width: '100%' }} />
             </div>
           </CardContent>
         </Card>
@@ -571,7 +573,7 @@ export function ModelMonitoringDashboard() {
                   </Badge>
                   <span className="font-mono text-sm">{currentModel.version}</span>
                   <span className="text-sm text-gray-500">
-                    Deployed: {new Date(currentModel.deployedAt).toLocaleDateString()}
+                    Deployed: {new Date(currentModel.deployedAt).toLocaleDateString('en-GB')}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">
@@ -588,7 +590,7 @@ export function ModelMonitoringDashboard() {
                   </Badge>
                   <span className="font-mono text-sm">{model.version}</span>
                   <span className="text-sm text-gray-500">
-                    Started: {new Date(model.deployedAt).toLocaleDateString()}
+                    Started: {new Date(model.deployedAt).toLocaleDateString('en-GB')}
                   </span>
                 </div>
                 <div className="flex items-center gap-4">

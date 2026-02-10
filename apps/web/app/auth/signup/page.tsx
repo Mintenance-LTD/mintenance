@@ -101,7 +101,7 @@ export default function SignUpPage() {
       setIsLoading(false);
 
       // If email is not verified, show verification message
-      if (!data.user.email_verified) {
+      if (!(data.user as typeof data.user & { email_verified?: boolean }).email_verified) {
         // User will see success message
         return;
       }

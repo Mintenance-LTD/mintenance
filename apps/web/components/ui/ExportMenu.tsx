@@ -18,7 +18,7 @@ interface ExportMenuProps {
 export function ExportMenu(props: ExportMenuProps) {
   // Defensive prop destructuring with defaults to prevent test crashes
   const {
-    data = [],
+    data = { headers: [], rows: [] },
     filename = 'report',
     exportElementId = 'export-content',
     formats = ['csv', 'json', 'pdf'],

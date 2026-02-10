@@ -49,7 +49,7 @@ function getLimiters() {
   return limiters;
 }
 
-export const publicRateLimiter = { limit: async () => ({ success: true, remaining: 999, reset: Date.now() + 60000 }) } as Ratelimit;
+export const publicRateLimiter = { limit: async () => ({ success: true, remaining: 999, reset: Date.now() + 60000 }) } as unknown as Ratelimit;
 export const searchRateLimiter = publicRateLimiter;
 export const resourceRateLimiter = publicRateLimiter;
 
@@ -85,9 +85,24 @@ export async function checkPublicRateLimit(
 }> {
   const identifier = getClientIdentifier(request);
 
-  // When Redis is not configured, allow request (avoid "Failed to parse URL from /pipeline")
+  // SECURITY: When Redis is not configured, fail closed in production to prevent abuse.
+  // In development, allow requests through so local dev isn't blocked.
   const limiters = getLimiters();
   if (!limiters) {
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (isProduction) {
+      logger.error('Redis not configured in production — rate limiting unavailable, rejecting request', {
+        service: 'rate-limiter-redis',
+        tier,
+        identifier,
+      });
+      return {
+        allowed: false,
+        remaining: 0,
+        reset: Date.now() + 60000,
+        retryAfter: 60,
+      };
+    }
     return {
       allowed: true,
       remaining: 999,
@@ -124,13 +139,27 @@ export async function checkPublicRateLimit(
       reset: result.reset,
     };
   } catch (error) {
-    // Fallback: allow request if Redis is unavailable (fail open)
-    logger.error('Redis rate limit check failed, allowing request', error, {
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (isProduction) {
+      // SECURITY: Fail closed in production when Redis is unavailable
+      logger.error('Redis rate limit check failed — rejecting request (fail closed)', error, {
+        service: 'rate-limiter-redis',
+        tier,
+        identifier,
+      });
+      return {
+        allowed: false,
+        remaining: 0,
+        reset: Date.now() + 60000,
+        retryAfter: 60,
+      };
+    }
+    // In development, allow through to avoid blocking local dev
+    logger.error('Redis rate limit check failed, allowing request (dev mode)', error, {
       service: 'rate-limiter-redis',
       tier,
       identifier,
     });
-
     return {
       allowed: true,
       remaining: 999,

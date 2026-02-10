@@ -249,7 +249,7 @@ export function useUpdateJob(jobId: string) {
 
       // Optimistically update cache
       queryClient.setQueryData(queryKeys.jobs.details(jobId), (old: unknown) => ({
-        ...old,
+        ...(old as Record<string, unknown>),
         ...updates,
       }));
 

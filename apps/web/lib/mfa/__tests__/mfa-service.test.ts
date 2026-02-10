@@ -1,13 +1,10 @@
 import { vi } from 'vitest';
-/**
- * @jest-environment node
- */
-import * as speakeasy from 'speakeasy';
+import * as OTPAuth from 'otpauth';
 import * as qrcode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
 
 // Mock dependencies
-vi.mock('speakeasy');
+vi.mock('otpauth');
 vi.mock('qrcode');
 vi.mock('@supabase/supabase-js');
 vi.mock('@/lib/logger', () => ({
@@ -47,13 +44,15 @@ describe('MFA Service', () => {
 
     vi.mocked(createClient).mockReturnValue(mockSupabase);
 
-    // Mock speakeasy
-    vi.mocked(speakeasy.generateSecret).mockReturnValue({
-      base32: 'JBSWY3DPEHPK3PXP',
-      otpauth_url: 'otpauth://totp/MyApp:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=MyApp',
-    });
-
-    vi.mocked(speakeasy.totp.verify).mockReturnValue(true);
+    // Mock otpauth TOTP
+    const mockTotp = {
+      secret: { base32: 'JBSWY3DPEHPK3PXP' },
+      toString: vi.fn().mockReturnValue('otpauth://totp/Mintenance:user@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Mintenance'),
+      validate: vi.fn().mockReturnValue(0),
+    };
+    vi.mocked(OTPAuth.TOTP).mockImplementation(() => mockTotp as any);
+    vi.mocked(OTPAuth.Secret).mockImplementation(() => ({ base32: 'JBSWY3DPEHPK3PXP' }) as any);
+    (OTPAuth.Secret as any).fromBase32 = vi.fn().mockReturnValue({ base32: 'JBSWY3DPEHPK3PXP' });
 
     // Mock QR code generation
     vi.mocked(qrcode.toDataURL).mockResolvedValue('data:image/png;base64,iVBORw0KG...');

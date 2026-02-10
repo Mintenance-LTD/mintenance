@@ -304,7 +304,7 @@ export class LocalYOLOInferenceService {
           logger.warn('Failed to load from Storage, trying BYTEA fallback', {
             service: 'LocalYOLOInferenceService',
             modelName,
-            error: storageError.message,
+            error: storageError instanceof Error ? storageError.message : String(storageError),
           });
 
           // Fallback to BYTEA if available

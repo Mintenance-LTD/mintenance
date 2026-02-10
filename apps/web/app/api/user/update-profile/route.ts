@@ -15,7 +15,10 @@ interface UserProfileUpdateData {
   last_name?: string;
   email?: string;
   phone?: string | null;
-  location?: string | null;
+  bio?: string | null;
+  address?: string | null;
+  city?: string | null;
+  postcode?: string | null;
   profile_image_url?: string | null;
 }
 
@@ -141,7 +144,10 @@ export async function POST(request: NextRequest) {
       const lastName = formData.get('lastName') as string;
       const email = formData.get('email') as string;
       const phone = formData.get('phone') as string;
-      const location = formData.get('location') as string;
+      const bio = formData.get('bio') as string;
+      const address = formData.get('address') as string;
+      const city = formData.get('city') as string;
+      const postcode = formData.get('postcode') as string;
 
       // Update user profile
       const updateData: UserProfileUpdateData = {};
@@ -149,7 +155,10 @@ export async function POST(request: NextRequest) {
       if (lastName) updateData.last_name = sanitizeText(lastName, 50);
       if (email) updateData.email = sanitizeText(email, 255);
       if (phone !== null && phone !== undefined) updateData.phone = phone ? sanitizeText(phone, 20) : null;
-      if (location !== null && location !== undefined) updateData.location = location ? sanitizeText(location, 256) : null;
+      if (bio !== null && bio !== undefined) updateData.bio = bio ? sanitizeText(bio, 1000) : null;
+      if (address !== null && address !== undefined) updateData.address = address ? sanitizeText(address, 500) : null;
+      if (city !== null && city !== undefined) updateData.city = city ? sanitizeText(city, 100) : null;
+      if (postcode !== null && postcode !== undefined) updateData.postcode = postcode ? sanitizeText(postcode, 20) : null;
       if (profileImageUrl) updateData.profile_image_url = profileImageUrl;
 
       // Don't attempt update if no fields to update
@@ -200,6 +209,10 @@ export async function POST(request: NextRequest) {
       if (validatedBody.firstName !== undefined) updateData.first_name = validatedBody.firstName;
       if (validatedBody.lastName !== undefined) updateData.last_name = validatedBody.lastName;
       if (validatedBody.phone !== undefined) updateData.phone = validatedBody.phone || null;
+      if (validatedBody.bio !== undefined) updateData.bio = validatedBody.bio || null;
+      if (validatedBody.address !== undefined) updateData.address = validatedBody.address || null;
+      if (validatedBody.city !== undefined) updateData.city = validatedBody.city || null;
+      if (validatedBody.postcode !== undefined) updateData.postcode = validatedBody.postcode || null;
       if (validatedBody.profileImageUrl !== undefined) updateData.profile_image_url = validatedBody.profileImageUrl;
 
       // Handle automation preferences if provided

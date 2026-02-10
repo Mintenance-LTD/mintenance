@@ -63,7 +63,7 @@ export function JobsBulkActionsSection({
         location: job.location,
         budget: `\u00A3${job.budget.toLocaleString()}`,
         status: job.status,
-        created: new Date(job.created_at).toLocaleDateString()
+        created: new Date(job.created_at).toLocaleDateString('en-GB')
       }));
 
       const csv = [

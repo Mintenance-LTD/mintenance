@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
           photos,
           created_at,
           homeowner_id,
-          homeowner:users!jobs_homeowner_id_fkey (
+          homeowner:profiles!jobs_homeowner_id_fkey (
             id,
             first_name,
             last_name,
@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
           photos,
           created_at,
           homeowner_id,
-          homeowner:users!jobs_homeowner_id_fkey (
+          homeowner:profiles!jobs_homeowner_id_fkey (
             id,
             first_name,
             last_name,

@@ -113,7 +113,7 @@ export function QuoteDetailsClient({ quote }: QuoteDetailsClientProps) {
                         <div style={{ display: 'flex', gap: theme.spacing[2] }}>
                             <Badge variant={getStatusTone(quote.status)}>{quote.status}</Badge>
                             <span style={{ color: theme.colors.textSecondary }}>
-                                Created: {new Date(quote.created_at).toLocaleDateString()}
+                                Created: {new Date(quote.created_at).toLocaleDateString('en-GB')}
                             </span>
                         </div>
                     </div>

@@ -13,7 +13,7 @@ export enum ErrorType {
   SERVER = 'SERVER',
   UNKNOWN = 'UNKNOWN',
 }
-export interface ApiError {
+export interface IApiError {
   type: ErrorType;
   message: string;
   code: string;
@@ -21,7 +21,7 @@ export interface ApiError {
   details?: unknown;
   originalError?: unknown;
 }
-export class NetworkError extends Error implements ApiError {
+export class NetworkError extends Error implements IApiError {
   type = ErrorType.NETWORK;
   code = 'NETWORK_ERROR';
   statusCode = 0;
@@ -33,7 +33,7 @@ export class NetworkError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-export class ApiError extends Error implements ApiError {
+export class ApiError extends Error implements IApiError {
   type: ErrorType;
   code: string;
   statusCode: number;
@@ -56,7 +56,7 @@ export class ApiError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-export class ValidationError extends Error implements ApiError {
+export class ValidationError extends Error implements IApiError {
   type = ErrorType.VALIDATION;
   code = 'VALIDATION_ERROR';
   statusCode = 400;
@@ -69,7 +69,7 @@ export class ValidationError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-export class AuthenticationError extends Error implements ApiError {
+export class AuthenticationError extends Error implements IApiError {
   type = ErrorType.AUTHENTICATION;
   code = 'AUTHENTICATION_ERROR';
   statusCode = 401;
@@ -82,7 +82,7 @@ export class AuthenticationError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-export class AuthorizationError extends Error implements ApiError {
+export class AuthorizationError extends Error implements IApiError {
   type = ErrorType.AUTHORIZATION;
   code = 'AUTHORIZATION_ERROR';
   statusCode = 403;
@@ -95,7 +95,7 @@ export class AuthorizationError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-export class NotFoundError extends Error implements ApiError {
+export class NotFoundError extends Error implements IApiError {
   type = ErrorType.NOT_FOUND;
   code = 'NOT_FOUND';
   statusCode = 404;
@@ -108,7 +108,7 @@ export class NotFoundError extends Error implements ApiError {
     this.originalError = originalError;
   }
 }
-export class ServerError extends Error implements ApiError {
+export class ServerError extends Error implements IApiError {
   type = ErrorType.SERVER;
   code = 'SERVER_ERROR';
   statusCode = 500;
@@ -137,13 +137,13 @@ const USER_FRIENDLY_MESSAGES: Record<ErrorType, string> = {
 /**
  * Convert error to user-friendly message
  */
-export function getUserFriendlyMessage(error: ApiError): string {
+export function getUserFriendlyMessage(error: IApiError): string {
   return USER_FRIENDLY_MESSAGES[error.type] || USER_FRIENDLY_MESSAGES[ErrorType.UNKNOWN];
 }
 /**
  * Parse error from various sources
  */
-export function parseError(error: unknown): ApiError {
+export function parseError(error: unknown): IApiError {
   // Already an ApiError
   if (error instanceof ApiError || error instanceof NetworkError || 
       error instanceof ValidationError || error instanceof AuthenticationError ||
@@ -203,7 +203,7 @@ export function parseError(error: unknown): ApiError {
 /**
  * Log error for debugging
  */
-export function logError(error: ApiError, context?: string): void {
+export function logError(error: IApiError, context?: string): void {
   const logger = require('@mintenance/shared').logger;
   logger.error({
     type: error.type,

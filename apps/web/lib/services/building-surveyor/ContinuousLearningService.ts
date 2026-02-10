@@ -183,7 +183,7 @@ export class ContinuousLearningService {
           ? Math.floor((Date.now() - new Date(lastJob.completedAt).getTime()) / (1000 * 60 * 60 * 24))
           : 999,
         driftScore: driftResult.driftScore,
-        currentModelMetrics: currentMetrics
+        currentModelMetrics: currentMetrics ? { f1Score: currentMetrics.f1_score } : undefined
       });
 
       return {
@@ -480,7 +480,7 @@ export class ContinuousLearningService {
     pendingCorrections: number;
     daysSinceLastTraining: number;
     driftScore: number;
-    currentModelMetrics?: unknown;
+    currentModelMetrics?: { f1Score?: number };
   }): boolean {
     // Pipeline is unhealthy if:
     // - Too many pending corrections (> 2x batch size)
@@ -501,7 +501,7 @@ export class ContinuousLearningService {
     }
 
     if (params.currentModelMetrics) {
-      if (params.currentModelMetrics.f1Score < 0.6) {
+      if ((params.currentModelMetrics.f1Score ?? 1) < 0.6) {
         return false;
       }
     }

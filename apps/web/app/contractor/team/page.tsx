@@ -64,98 +64,7 @@ export default function ContractorTeamPage2025() {
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [showPermissions, setShowPermissions] = useState(false);
 
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
-    {
-      id: 'TEAM-001',
-      name: 'John Smith',
-      email: 'john@plumbing.com',
-      phone: '+44 7700 900001',
-      role: 'admin',
-      status: 'active',
-      joinDate: '2020-01-15',
-      completedJobs: 342,
-      rating: 4.9,
-      specialties: ['Plumbing', 'Heating', 'Gas Safety'],
-      permissions: {
-        manageJobs: true,
-        manageBids: true,
-        manageFinances: true,
-        manageTeam: true,
-      },
-    },
-    {
-      id: 'TEAM-002',
-      name: 'Mike Johnson',
-      email: 'mike@plumbing.com',
-      phone: '+44 7700 900002',
-      role: 'manager',
-      status: 'active',
-      joinDate: '2021-03-20',
-      completedJobs: 218,
-      rating: 4.7,
-      specialties: ['Plumbing', 'Bathrooms'],
-      permissions: {
-        manageJobs: true,
-        manageBids: true,
-        manageFinances: false,
-        manageTeam: false,
-      },
-    },
-    {
-      id: 'TEAM-003',
-      name: 'Sarah Williams',
-      email: 'sarah@plumbing.com',
-      phone: '+44 7700 900003',
-      role: 'technician',
-      status: 'active',
-      joinDate: '2022-06-10',
-      completedJobs: 156,
-      rating: 4.8,
-      specialties: ['Heating', 'Boilers'],
-      permissions: {
-        manageJobs: true,
-        manageBids: false,
-        manageFinances: false,
-        manageTeam: false,
-      },
-    },
-    {
-      id: 'TEAM-004',
-      name: 'Tom Brown',
-      email: 'tom@plumbing.com',
-      phone: '+44 7700 900004',
-      role: 'apprentice',
-      status: 'active',
-      joinDate: '2024-01-05',
-      completedJobs: 28,
-      rating: 4.5,
-      specialties: ['Plumbing'],
-      permissions: {
-        manageJobs: false,
-        manageBids: false,
-        manageFinances: false,
-        manageTeam: false,
-      },
-    },
-    {
-      id: 'TEAM-005',
-      name: 'Emma Davis',
-      email: 'emma@plumbing.com',
-      phone: '+44 7700 900005',
-      role: 'technician',
-      status: 'pending',
-      joinDate: '2025-01-28',
-      completedJobs: 0,
-      rating: 0,
-      specialties: ['Gas Safety'],
-      permissions: {
-        manageJobs: false,
-        manageBids: false,
-        manageFinances: false,
-        manageTeam: false,
-      },
-    },
-  ]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   const stats = {
     totalMembers: teamMembers.length,
@@ -326,7 +235,7 @@ export default function ContractorTeamPage2025() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
                   <input
                     type="text"
-                    placeholder="John Smith"
+                    placeholder="Full name"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                 </div>
@@ -335,7 +244,7 @@ export default function ContractorTeamPage2025() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                   <input
                     type="email"
-                    placeholder="john@example.com"
+                    placeholder="name@company.co.uk"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
                 </div>

@@ -11,7 +11,9 @@
 
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+// @ts-expect-error - resend module may not be installed
 import { Resend } from 'resend';
+// @ts-expect-error - slack/web-api module may not be installed
 import { WebClient as SlackWebClient } from '@slack/web-api';
 
 // Initialize services

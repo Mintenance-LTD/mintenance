@@ -49,7 +49,7 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
   const formattedDate = useMemo(() => {
     if (!job.createdAt) return '';
     // Use consistent locale to avoid hydration mismatches
-    return new Date(job.createdAt).toLocaleDateString('en-US', {
+    return new Date(job.createdAt).toLocaleDateString('en-GB', {
       year: 'numeric',
       month: 'numeric',
       day: 'numeric',

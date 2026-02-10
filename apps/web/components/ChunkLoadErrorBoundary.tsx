@@ -94,7 +94,7 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
     try {
       sessionStorage.removeItem('next-build-id');
     } catch (e) {
-      logger.warn('[ChunkLoadErrorBoundary] Failed to clear session storage:', e);
+      logger.warn('[ChunkLoadErrorBoundary] Failed to clear session storage:', e as Record<string, unknown>);
     }
 
     // Increment retry count

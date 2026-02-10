@@ -81,7 +81,7 @@ export function TrialStatusBanner({ daysRemaining, trialEndsAt }: TrialStatusBan
           <p className="font-semibold mb-1">{warning.message}</p>
           {trialEndsAt && (
             <p className="text-sm opacity-80">
-              Trial ends: {trialEndsAt.toLocaleDateString()}
+              Trial ends: {trialEndsAt.toLocaleDateString('en-GB')}
             </p>
           )}
         </div>
