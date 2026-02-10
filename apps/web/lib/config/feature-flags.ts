@@ -99,6 +99,7 @@ export class FeatureFlagService {
                 // Dynamic import - package may not be installed in all environments
                 let initialize: (envKey: string, context: Record<string, unknown>) => LDClient;
                 try {
+                    // @ts-expect-error -- optional dependency, not installed in all environments
                     const ld = await import(/* webpackIgnore: true */ 'launchdarkly-js-client-sdk');
                     initialize = ld.initialize;
                 } catch {
