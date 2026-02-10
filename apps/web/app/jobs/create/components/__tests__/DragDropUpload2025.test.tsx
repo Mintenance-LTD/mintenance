@@ -1,4 +1,4 @@
-import { vi, beforeEach, describe, it, expect } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { render, screen, fireEvent } from '@testing-library/react';
 import { DragDropUpload2025 } from '../DragDropUpload2025';
 

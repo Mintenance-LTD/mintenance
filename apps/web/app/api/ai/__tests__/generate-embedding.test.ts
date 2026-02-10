@@ -10,7 +10,7 @@
  * - Input validation
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { POST } from '../generate-embedding/route';
 import { NextRequest } from 'next/server';
 

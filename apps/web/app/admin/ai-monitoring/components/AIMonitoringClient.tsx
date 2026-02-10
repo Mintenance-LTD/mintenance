@@ -298,7 +298,7 @@ export function AIMonitoringClient() {
             <h3 className="text-lg font-bold text-gray-900">Decision Timeline (24h)</h3>
             <select
               value={selectedAgent || 'all'}
-              onChange={(e) => setSelectedAgent(e.target.value === 'all' ? null : e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedAgent(e.target.value === 'all' ? null : e.target.value)}
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
             >
               <option value="all">All Agents</option>

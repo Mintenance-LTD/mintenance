@@ -45,7 +45,7 @@ export function BuildingAssessmentsReviewDialog({ selectedAssessment, validation
               <div className="mt-6 pt-6 border-t border-border space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="validation-notes">Validation Notes (Optional)</Label>
-                  <Textarea id="validation-notes" value={validationNotes} onChange={(e) => onNotesChange(e.target.value)} placeholder="Add notes about this assessment..." rows={3} />
+                  <Textarea id="validation-notes" value={validationNotes} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onNotesChange(e.target.value)} placeholder="Add notes about this assessment..." rows={3} />
                 </div>
                 <div className="flex gap-3 justify-end">
                   <Button variant="secondary" onClick={() => onValidate(selectedAssessment.id, true)} disabled={loading}>Validate</Button>

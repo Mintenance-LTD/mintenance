@@ -40,7 +40,7 @@ export function LocationInput({
           <input
             type="text"
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
             onFocus={onFocus}
             onBlur={onBlur}
             placeholder="Enter your address"

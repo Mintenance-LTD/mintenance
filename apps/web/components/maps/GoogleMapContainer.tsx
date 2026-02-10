@@ -6,6 +6,12 @@ import { logger } from '@mintenance/shared';
 import { theme } from '@/lib/theme';
 import { ErrorBoundary } from '../ErrorBoundary';
 
+interface WindowWithGoogle extends Window {
+  google?: typeof google;
+  gtag?: (...args: unknown[]) => void;
+  [key: string]: unknown;
+}
+
 interface GoogleMapContainerProps {
   center: { lat: number; lng: number };
   zoom?: number;
@@ -83,7 +89,7 @@ function GoogleMapContent({
       if (!mapRef.current) return;
       
       // Type assertion for google maps
-      const google = (window as any).google;
+      const google = (window as unknown as WindowWithGoogle).google;
       if (!google || !google.maps || !google.maps.Map) {
         logger.warn('Google Maps API not fully loaded yet');
         return;
@@ -115,8 +121,8 @@ function GoogleMapContent({
         logger.info(`✅ Map loaded in ${loadTime.toFixed(0)}ms`);
 
         // Track performance
-        if (typeof window !== 'undefined' && (window as any).gtag) {
-          (window as any).gtag('event', 'timing_complete', {
+        if (typeof window !== 'undefined') {
+          (window as unknown as WindowWithGoogle).gtag?.('event', 'timing_complete', {
             name: 'map_load',
             value: Math.round(loadTime),
             event_category: 'Map Performance',
@@ -132,7 +138,7 @@ function GoogleMapContent({
     };
 
     // Check if Google Maps is already fully loaded
-    const google = (window as any).google;
+    const google = (window as unknown as WindowWithGoogle).google;
     if (google && google.maps && google.maps.Map) {
       initializeMap();
       return;
@@ -142,7 +148,7 @@ function GoogleMapContent({
     if (document.getElementById(scriptId)) {
       // Wait for script to load and Maps library to be available
       checkInterval = setInterval(() => {
-        const google = (window as any).google;
+        const google = (window as unknown as WindowWithGoogle).google;
         if (google && google.maps && google.maps.Map) {
           if (checkInterval) clearInterval(checkInterval);
           initializeMap();
@@ -158,9 +164,9 @@ function GoogleMapContent({
     const callbackName = `initGoogleMap_${Date.now()}`;
     
     // Set up callback function
-    (window as any)[callbackName] = () => {
+    (window as unknown as WindowWithGoogle)[callbackName] = () => {
       // Clean up callback
-      delete (window as any)[callbackName];
+      delete (window as unknown as WindowWithGoogle)[callbackName];
       
       // Initialize map after callback fires (ensures Maps library is ready)
       setTimeout(() => {
@@ -177,7 +183,7 @@ function GoogleMapContent({
 
     script.onerror = () => {
       logger.error('Error loading Google Maps script');
-      delete (window as any)[callbackName];
+      delete (window as unknown as WindowWithGoogle)[callbackName];
       setError('Failed to load map. Please try again.');
       setLoading(false);
     };
@@ -188,8 +194,8 @@ function GoogleMapContent({
       // Cleanup
       if (checkInterval) clearInterval(checkInterval);
       // Clean up callback if component unmounts before script loads
-      if ((window as any)[callbackName]) {
-        delete (window as any)[callbackName];
+      if ((window as unknown as WindowWithGoogle)[callbackName]) {
+        delete (window as unknown as WindowWithGoogle)[callbackName];
       }
       // Don't remove script as it might be used by other components
     };

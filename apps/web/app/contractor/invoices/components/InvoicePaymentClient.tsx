@@ -186,11 +186,8 @@ export function InvoicePaymentClient({
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <div style={{
-          fontSize: theme.typography.fontSize.base,
-          color: theme.colors.textSecondary,
-        }}>
-          Loading...
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: 32, height: 32, border: '4px solid #d1d5db', borderTopColor: '#4b5563', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
         </div>
       </div>
     );

@@ -277,13 +277,14 @@ function ChatContent({ params }: ChatPageProps) {
           justifyContent: 'center',
           backgroundColor: theme.colors.backgroundSecondary
         }}>
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
             <div style={{
-              fontSize: theme.typography.fontSize.lg,
-              color: theme.colors.textSecondary
-            }}>
-              Loading...
-            </div>
+              width: 32, height: 32,
+              border: '4px solid #d1d5db',
+              borderTopColor: '#4b5563',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }} />
           </div>
         </div>
       );
@@ -664,7 +665,7 @@ function ChatContent({ params }: ChatPageProps) {
 
 export default function ChatPage({ params }: ChatPageProps) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="text-gray-600">Loading...</div></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600" /></div>}>
       <ChatContent params={params} />
     </Suspense>
   );

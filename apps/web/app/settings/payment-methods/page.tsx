@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { theme } from '@/lib/theme';
+import { PageLoader } from '@/components/LoadingButton';
 import { HomeownerLayoutShell } from '../../dashboard/components/HomeownerLayoutShell';
 import Link from 'next/link';
 import { AddPaymentMethodForm } from './components/AddPaymentMethodForm';
@@ -153,7 +154,7 @@ export default function PaymentMethodsPage() {
   if (loadingUser) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.backgroundSecondary }}>
-        <div>Loading...</div>
+        <PageLoader message="Loading payment methods" />
       </div>
     );
   }

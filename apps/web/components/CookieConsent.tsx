@@ -195,7 +195,7 @@ export default function CookieConsent() {
                         <input
                           type="checkbox"
                           checked={preferences.analytics}
-                          onChange={(e) => setPreferences({ ...preferences, analytics: e.target.checked })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPreferences({ ...preferences, analytics: e.target.checked })}
                           className="w-5 h-5 text-[#10B981] bg-gray-100 border-gray-300 rounded focus:ring-[#10B981] cursor-pointer"
                         />
                       </div>
@@ -223,7 +223,7 @@ export default function CookieConsent() {
                         <input
                           type="checkbox"
                           checked={preferences.marketing}
-                          onChange={(e) => setPreferences({ ...preferences, marketing: e.target.checked })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPreferences({ ...preferences, marketing: e.target.checked })}
                           className="w-5 h-5 text-[#10B981] bg-gray-100 border-gray-300 rounded focus:ring-[#10B981] cursor-pointer"
                         />
                       </div>

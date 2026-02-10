@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const trackViewSchema = z.object({
+  articleTitle: z.string().min(1).max(500),
+  category: z.string().min(1).max(100),
+});
 
 /**
  * Track a view for a help article
@@ -37,11 +43,11 @@ export async function POST(request: NextRequest) {
     // CSRF protection
     await requireCSRF(request);
 const body = await request.json();
-    const { articleTitle, category } = body;
-
-    if (!articleTitle || !category) {
+    const parsed = trackViewSchema.safeParse(body);
+    if (!parsed.success) {
       throw new BadRequestError('Article title and category are required');
     }
+    const { articleTitle, category } = parsed.data;
 
     // Get current user (optional - can be null for anonymous views)
     const user = await getCurrentUserFromCookies();

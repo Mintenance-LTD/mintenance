@@ -500,18 +500,21 @@ export class ContractorAnalyticsService {
       });
     }
 
+    // Market positioning not yet implemented — return zeros as placeholder
     const marketPositioning: MarketPosition = {
-      localRanking: Math.floor(Math.random() * 20) + 1,
-      localTotal: 150,
-      categoryRanking: Math.floor(Math.random() * 50) + 1,
-      categoryTotal: 300,
+      localRanking: 0,
+      localTotal: 0,
+      categoryRanking: 0,
+      categoryTotal: 0,
       competitorComparison: {
-        betterThan: Math.floor(Math.random() * 40) + 40,
-        similarTo: Math.floor(Math.random() * 20) + 15
+        betterThan: 0,
+        similarTo: 0
       }
     };
 
-    const industryRankPercentile = ((marketPositioning.categoryTotal - marketPositioning.categoryRanking) / marketPositioning.categoryTotal) * 100;
+    const industryRankPercentile = (marketPositioning.categoryTotal && marketPositioning.categoryRanking)
+      ? ((marketPositioning.categoryTotal - marketPositioning.categoryRanking) / marketPositioning.categoryTotal) * 100
+      : 0;
 
     return {
       topSkills,

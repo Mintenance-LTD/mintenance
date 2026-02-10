@@ -68,7 +68,7 @@ export function ProfileSecurityTab({
               <input
                 type="checkbox"
                 checked={securitySettings.twoFactorEnabled}
-                onChange={(e) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   onSecurityChange({ ...securitySettings, twoFactorEnabled: e.target.checked })
                 }
                 className="sr-only peer"
@@ -89,7 +89,7 @@ export function ProfileSecurityTab({
               <input
                 type="checkbox"
                 checked={securitySettings.loginNotifications}
-                onChange={(e) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   onSecurityChange({ ...securitySettings, loginNotifications: e.target.checked })
                 }
                 className="sr-only peer"

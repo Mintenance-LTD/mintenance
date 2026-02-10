@@ -66,7 +66,8 @@
     "test:load:ai-cache": "tsx apps/web/scripts/load-test-ai-cache.ts",
     "verify-task": "node scripts/verify-task-completion.js",
     "test:a11y": "node scripts/check-accessibility.js",
-    "test:accessibility": "node scripts/check-accessibility.js"
+    "test:accessibility": "node scripts/check-accessibility.js",
+    "db:gen-types": "npx supabase gen types typescript --local > apps/web/lib/database.types.ts"
   },
   "keywords": [
     "marketplace",
@@ -133,5 +134,9 @@
     "@sentry/browser": "7.119.1",
     "@sentry/react": "7.119.1",
     "fast-xml-parser": "5.3.4"
+  },
+  "dependencies": {
+    "node-cache": "^5.1.2",
+    "otpauth": "^9.5.0"
   }
 }

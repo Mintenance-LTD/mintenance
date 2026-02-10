@@ -179,7 +179,7 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
           <Input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
             placeholder="e.g., Kitchen renovation consultation"
             style={{ width: '100%' }}
           />
@@ -304,7 +304,7 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             <Input
               type="date"
               value={scheduledDate}
-              onChange={(e) => setScheduledDate(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setScheduledDate(e.target.value)}
               min={currentDate}
               style={{ width: '100%' }}
             />
@@ -322,7 +322,7 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             <Input
               type="time"
               value={scheduledTime}
-              onChange={(e) => setScheduledTime(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setScheduledTime(e.target.value)}
               style={{ width: '100%' }}
             />
           </div>
@@ -341,7 +341,7 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
           </label>
           <textarea
             value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
             placeholder="Add any notes or agenda items for this call..."
             style={{
               width: '100%',

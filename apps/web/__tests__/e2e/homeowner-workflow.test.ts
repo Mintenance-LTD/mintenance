@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { test, expect, Page } from '@playwright/test';
 import { login, createMockData, cleanupData } from '../helpers';
 

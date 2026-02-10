@@ -187,7 +187,7 @@ export default function SignUpPage() {
                 id="role"
                 name="role"
                 value={role}
-                onChange={(e) => setRole(e.target.value as 'homeowner' | 'contractor')}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRole(e.target.value as 'homeowner' | 'contractor')}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 disabled={isLoading}
                 aria-label="I'm a"
@@ -210,7 +210,7 @@ export default function SignUpPage() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 disabled={isLoading}
                 aria-label="Email"
               />
@@ -229,7 +229,7 @@ export default function SignUpPage() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 disabled={isLoading}
                 aria-label="Password"
               />
@@ -254,7 +254,7 @@ export default function SignUpPage() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="••••••••"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                 disabled={isLoading}
                 aria-label="Confirm password"
               />

@@ -43,7 +43,7 @@ export const AuthInput = React.forwardRef<HTMLInputElement, AuthInputProps>(
             )}
             error={!!error}
             errorText={error}
-            {...(props as any)}
+            {...(props as Record<string, unknown>)}
           />
           {showSuccess && !error && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-500">

@@ -499,15 +499,18 @@ export class MFAService {
 
   /**
    * Validate trusted device token
-   * Returns user ID if valid, null otherwise
+   * Returns user ID if valid, null otherwise.
+   * Security: Validates IP address and user agent hash to prevent token theft.
    */
   static async validateTrustedDevice(
-    deviceToken: string
+    deviceToken: string,
+    ipAddress?: string,
+    userAgent?: string
   ): Promise<string | null> {
     try {
       const { data, error } = await serverSupabase
         .from('trusted_devices')
-        .select('user_id, expires_at')
+        .select('user_id, expires_at, ip_address, user_agent')
         .eq('device_token', deviceToken)
         .single();
 
@@ -522,6 +525,26 @@ export class MFAService {
           .from('trusted_devices')
           .delete()
           .eq('device_token', deviceToken);
+        return null;
+      }
+
+      // Security: Validate IP address binding (if stored)
+      if (data.ip_address && ipAddress && data.ip_address !== ipAddress) {
+        logger.warn('Trusted device IP mismatch — rejecting token', {
+          service: 'mfa',
+          userId: data.user_id,
+          storedIp: data.ip_address,
+          requestIp: ipAddress,
+        });
+        return null;
+      }
+
+      // Security: Validate user agent binding (if stored)
+      if (data.user_agent && userAgent && data.user_agent !== userAgent) {
+        logger.warn('Trusted device user agent mismatch — rejecting token', {
+          service: 'mfa',
+          userId: data.user_id,
+        });
         return null;
       }
 

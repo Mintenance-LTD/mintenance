@@ -17,7 +17,7 @@
  * - Unit test CheckoutReturnPage component with mocked fetch (session-status endpoint)
  * - E2E test with Playwright + Stripe test mode for full flow
  */
-import { describe, it, expect } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
 describe('Payment Flow Integration Tests', () => {
   it.todo('POST /api/payments/embedded-checkout - creates checkout session');

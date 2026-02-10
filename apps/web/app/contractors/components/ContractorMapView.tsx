@@ -563,7 +563,7 @@ export function ContractorMapView(props: ContractorMapViewProps) {
                     animation: 'spin 1s linear infinite',
                   }}
                 />
-                Loading...
+                <span className="sr-only">Loading</span>
               </>
             ) : (
               <>

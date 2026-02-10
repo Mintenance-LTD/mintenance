@@ -19,6 +19,9 @@ export const runtime = 'nodejs';
  * - payment_intent.payment_failed - Payment failed
  * - payment_intent.canceled - Payment canceled
  * - charge.refunded - Payment refunded
+ * - charge.dispute.created - Dispute opened (freezes escrow)
+ * - charge.dispute.updated - Dispute status changed
+ * - charge.dispute.closed - Dispute resolved (won/lost)
  * - customer.subscription.created - Subscription created
  * - customer.subscription.updated - Subscription updated
  * - customer.subscription.deleted - Subscription canceled

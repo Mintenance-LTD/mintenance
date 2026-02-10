@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 /**
  * Rate Limiter Enhanced Tests
  * Tests fallback behavior, production safeguards, and cross-instance concerns

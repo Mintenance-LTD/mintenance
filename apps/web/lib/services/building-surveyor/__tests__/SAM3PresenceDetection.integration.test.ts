@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 /**
  * SAM3 Presence Detection Integration Tests
  *

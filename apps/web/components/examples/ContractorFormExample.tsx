@@ -158,7 +158,7 @@ export function ContractorForm({ onSubmit, defaultValues }: ContractorFormProps)
       <div className="space-y-2">
         <Label htmlFor="serviceType">Service Type *</Label>
         <Select
-          onValueChange={(value) => setValue('serviceType', value as any)}
+          onValueChange={(value) => setValue('serviceType', value as 'plumbing' | 'electrical' | 'hvac' | 'general')}
           defaultValue={watch('serviceType')}
         >
           <SelectTrigger id="serviceType">
@@ -180,7 +180,7 @@ export function ContractorForm({ onSubmit, defaultValues }: ContractorFormProps)
       <div className="space-y-2">
         <Label>Experience Level *</Label>
         <RadioGroup
-          onValueChange={(value) => setValue('experience', value as any)}
+          onValueChange={(value) => setValue('experience', value as 'beginner' | 'intermediate' | 'expert')}
           defaultValue={watch('experience')}
         >
           <div className="flex items-center space-x-2">

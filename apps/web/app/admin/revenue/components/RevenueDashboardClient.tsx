@@ -129,9 +129,9 @@ export function RevenueDashboardClient({
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2], marginLeft: 'auto' }}>
-            <input type="date" value={dateRange.start.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))} style={{ padding: `${theme.spacing[2]} ${theme.spacing[3]}`, border: `1px solid ${theme.colors.border}`, borderRadius: theme.borderRadius.md, fontSize: theme.typography.fontSize.sm }} />
+            <input type="date" value={dateRange.start.toISOString().split('T')[0]} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, start: new Date(e.target.value) }))} style={{ padding: `${theme.spacing[2]} ${theme.spacing[3]}`, border: `1px solid ${theme.colors.border}`, borderRadius: theme.borderRadius.md, fontSize: theme.typography.fontSize.sm }} />
             <span style={{ color: theme.colors.textSecondary }}>to</span>
-            <input type="date" value={dateRange.end.toISOString().split('T')[0]} onChange={(e) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))} style={{ padding: `${theme.spacing[2]} ${theme.spacing[3]}`, border: `1px solid ${theme.colors.border}`, borderRadius: theme.borderRadius.md, fontSize: theme.typography.fontSize.sm }} />
+            <input type="date" value={dateRange.end.toISOString().split('T')[0]} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDateRange(prev => ({ ...prev, end: new Date(e.target.value) }))} style={{ padding: `${theme.spacing[2]} ${theme.spacing[3]}`, border: `1px solid ${theme.colors.border}`, borderRadius: theme.borderRadius.md, fontSize: theme.typography.fontSize.sm }} />
           </div>
           {loading && <Icon name="loader" size={20} className="animate-spin" />}
         </div>

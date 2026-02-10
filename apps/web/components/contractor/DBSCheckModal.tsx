@@ -236,7 +236,7 @@ export function DBSCheckModal({ isOpen, onClose, onSuccess }: DBSCheckModalProps
                               name="provider"
                               value={provider}
                               checked={selectedProvider === provider as DBSProvider}
-                              onChange={(e) => setSelectedProvider(e.target.value as DBSProvider)}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSelectedProvider(e.target.value as DBSProvider)}
                               className="w-4 h-4 text-purple-600"
                             />
                             <span className="text-sm font-medium text-gray-900">

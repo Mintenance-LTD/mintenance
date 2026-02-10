@@ -40,7 +40,7 @@ export function UserManagementFilters({
           placeholder="Search by name or email..."
           aria-label="Search users by name or email"
           value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
           leftIcon={<Icon name="search" size={20} color={theme.colors.textSecondary} />}
         />
       </div>

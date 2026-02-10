@@ -143,7 +143,7 @@ const UnifiedCard = forwardRef<HTMLDivElement, CardProps>(
       onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          handleClick?.(e as any);
+          handleClick?.(e as unknown as React.MouseEvent<HTMLDivElement>);
         }
       },
     } : {};
@@ -202,7 +202,7 @@ export const CardTitle = forwardRef<HTMLHeadingElement, CardTitleProps>(
   ({ className, as: Component = 'h3', children, ...props }, ref) => {
     return (
       <Component
-        ref={ref as any}
+        ref={ref as React.Ref<HTMLHeadingElement>}
         className={cn(
           "text-xl font-semibold text-gray-900",
           className

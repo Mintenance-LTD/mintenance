@@ -33,12 +33,15 @@ export class ConfigManager {
         missingVars.push(varName);
       }
     }
-    // In development, provide defaults instead of throwing
+    // In development or during next build, provide defaults instead of throwing
     const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    const isBuildTime =
+      process.env.NEXT_PHASE === 'phase-production-build' ||
+      process.env.NEXT_PHASE === 'phase-development-build';
     if (missingVars.length > 0) {
       const errorMessage = `Missing required environment variables: ${missingVars.join(', ')}`;
-      // NEVER use fallbacks in production or CI environments
-      if (!isDev || process.env.CI === 'true') {
+      // NEVER use fallbacks in production or CI environments (except during build)
+      if ((!isDev && !isBuildTime) || process.env.CI === 'true') {
         logger.error('[config] Error:', errorMessage, { service: 'general' });
         throw new Error(errorMessage);
       }

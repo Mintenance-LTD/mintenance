@@ -390,7 +390,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     const reviews = reviewsResult.data || [];
     const averageRating = reviews.length > 0
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-      : 4.8; // Default if no reviews
+      : 0; // No reviews yet — do not fabricate a rating
 
     return {
       totalContractors,
@@ -404,7 +404,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
       totalContractors: 0,
       totalJobs: 0,
       totalHomeowners: 0,
-      averageRating: 4.8
+      averageRating: 0
     };
   }
 }

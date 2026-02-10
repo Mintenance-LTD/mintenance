@@ -1,10 +1,9 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { getCachedContractors, getCachedJobs } from '@/lib/cache';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getCachedContractors } from '@/lib/cache';
 import { theme } from '@/lib/theme';
-import Logo from '../components/Logo';
 import Link from 'next/link';
 import { DiscoverClient } from './components/DiscoverClient';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 
@@ -45,12 +44,14 @@ export default async function DiscoverPage() {
   const contractors = await getCachedContractors(20, 0);
 
   return (
-    <DiscoverClient 
-      user={user}
-      contractors={contractors}
-      jobs={[]}
-      contractorLocation={null}
-      contractorSkills={[]}
-    />
+    <ErrorBoundary>
+      <DiscoverClient
+        user={user}
+        contractors={contractors}
+        jobs={[]}
+        contractorLocation={null}
+        contractorSkills={[]}
+      />
+    </ErrorBoundary>
   );
 }

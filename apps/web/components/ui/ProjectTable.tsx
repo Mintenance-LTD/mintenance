@@ -123,7 +123,7 @@ export function ProjectTable({ projects, jobUrlPattern = '/jobs/{id}' }: Project
                       })}
                     </td>
                     <td className="py-4 px-6">
-                      <StatusBadge status={project.status as any} />
+                      <StatusBadge status={project.status} />
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="inline-flex items-center justify-center relative w-12 h-12">

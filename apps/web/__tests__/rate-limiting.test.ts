@@ -3,7 +3,7 @@
  * Tests the comprehensive rate limiting implementation
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { EnhancedRateLimiter } from '@/lib/rate-limiter-enhanced';
 import { getRateLimitConfig, getUserTier, shouldBypassRateLimit } from '@/lib/constants/rate-limits';
 import type { NextRequest } from 'next/server';

@@ -87,10 +87,7 @@ export async function POST(
       likes_count: updatedComment.likes_count 
     });
   } catch (error) {
-    logger.error('Error in POST /api/contractor/posts/[id]/comments/[commentId]/like', error, {
-      service: 'contractor',
-    });
-    throw new InternalServerError('Internal server error');
+    return handleAPIError(error);
   }
 }
 

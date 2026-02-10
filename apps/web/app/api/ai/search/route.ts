@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { rateLimiter, checkAIUserRateLimit } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
 import type { SearchFilters } from '@mintenance/ai-core';
 
@@ -63,7 +64,37 @@ export async function POST(request: NextRequest) {
 
     // CSRF protection
     await requireCSRF(request);
-const { query, filters, limit = 20 } = await request.json();
+
+    // Per-user rate limit if authenticated
+    try {
+      const supabase = await createServerSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const userRateLimit = await checkAIUserRateLimit(user.id);
+        if (!userRateLimit.allowed) {
+          logger.warn('AI search per-user rate limit exceeded', {
+            service: 'ai_search',
+            userId: user.id,
+          });
+          return NextResponse.json(
+            { error: 'You have exceeded your AI request limit. Please try again shortly.' },
+            {
+              status: 429,
+              headers: {
+                'X-RateLimit-Limit': '3',
+                'X-RateLimit-Remaining': String(userRateLimit.remaining),
+                'X-RateLimit-Reset': String(Math.ceil(userRateLimit.resetTime / 1000)),
+                'Retry-After': String(userRateLimit.retryAfter || 60),
+              },
+            }
+          );
+        }
+      }
+    } catch {
+      // Auth check is best-effort for rate limiting; don't block search if auth fails
+    }
+
+    const { query, filters, limit = 20 } = await request.json();
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(

@@ -99,7 +99,7 @@ export class FeatureFlagService {
                 // Dynamic import - package may not be installed in all environments
                 let initialize: (envKey: string, context: Record<string, unknown>) => LDClient;
                 try {
-                    const ld = await import('launchdarkly-js-client-sdk' as string);
+                    const ld = await import(/* webpackIgnore: true */ 'launchdarkly-js-client-sdk');
                     initialize = ld.initialize;
                 } catch {
                     logger.warn('LaunchDarkly SDK not available, falling back to local flags');

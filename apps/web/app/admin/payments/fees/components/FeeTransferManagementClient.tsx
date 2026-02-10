@@ -269,7 +269,9 @@ export function FeeTransferManagementClient() {
 
       <Card>
         {loading ? (
-          <div style={{ padding: theme.spacing[8], textAlign: 'center' }}>Loading...</div>
+          <div style={{ padding: theme.spacing[8], textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: 32, height: 32, border: '4px solid #d1d5db', borderTopColor: '#4b5563', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          </div>
         ) : transfers.length === 0 ? (
           <div style={{ padding: theme.spacing[8], textAlign: 'center', color: theme.colors.textSecondary }}>
             No pending fee transfers
@@ -283,7 +285,7 @@ export function FeeTransferManagementClient() {
                     <input
                       type="checkbox"
                       checked={selectedTransfers.length === transfers.length && transfers.length > 0}
-                      onChange={(e) => {
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         if (e.target.checked) {
                           setSelectedTransfers(transfers.map((t) => t.id));
                         } else {
@@ -320,7 +322,7 @@ export function FeeTransferManagementClient() {
                       <input
                         type="checkbox"
                         checked={selectedTransfers.includes(transfer.id)}
-                        onChange={(e) => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                           if (e.target.checked) {
                             setSelectedTransfers([...selectedTransfers, transfer.id]);
                           } else {
@@ -405,7 +407,7 @@ export function FeeTransferManagementClient() {
           <div style={{ marginBottom: theme.spacing[4] }}>
             <textarea
               value={holdReason}
-              onChange={(e) => setHoldReason(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setHoldReason(e.target.value)}
               placeholder="Reason for hold..."
               style={{
                 width: '100%',

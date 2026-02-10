@@ -198,7 +198,7 @@ export function TopNavigationBar({
               >
                 {item.icon && (
                   <Icon
-                    name={item.icon as any}
+                    name={item.icon}
                     size={18}
                     color={isActive(item.href) ? theme.colors.primary : theme.colors.textSecondary}
                   />
@@ -479,7 +479,7 @@ export function TopNavigationBar({
               >
                 {item.icon && (
                   <Icon
-                    name={item.icon as any}
+                    name={item.icon}
                     size={20}
                     color={isActive(item.href) ? theme.colors.primary : theme.colors.textSecondary}
                   />

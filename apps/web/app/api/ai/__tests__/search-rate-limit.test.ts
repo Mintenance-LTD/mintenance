@@ -9,7 +9,7 @@
  * - Rate limit resets after window expires
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { POST } from '../search/route';
 import { NextRequest } from 'next/server';
 

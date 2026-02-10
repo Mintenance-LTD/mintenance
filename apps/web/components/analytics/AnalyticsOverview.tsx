@@ -32,7 +32,9 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
               justifyContent: 'center',
               color: theme.colors.textSecondary
             }}>
-              Loading...
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div style={{ width: 24, height: 24, border: '3px solid #d1d5db', borderTopColor: '#6b7280', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+              </div>
             </div>
           </Card>
         ))}

@@ -478,7 +478,7 @@ export function UserDetailModal({ isOpen, onClose, userId, onVerificationUpdate 
                               </label>
                               <textarea
                                 value={reason}
-                                onChange={(e) => setReason(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
                                 placeholder="Enter reason for rejection..."
                                 rows={3}
                                 style={{

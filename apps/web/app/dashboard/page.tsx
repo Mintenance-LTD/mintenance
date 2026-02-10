@@ -3,6 +3,7 @@ import { getCurrentUserFromHeaders, getCurrentUserFromCookies } from '@/lib/auth
 import UnauthenticatedCard from '@/components/UnauthenticatedCard';
 import { OnboardingWrapper } from '@/components/onboarding/OnboardingWrapper';
 import { DashboardClient } from './components/DashboardClient';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import type { Metadata } from 'next';
 import { fetchDashboardData } from './lib/data-fetching';
 import {
@@ -194,12 +195,13 @@ export default async function DashboardPage2025() {
   };
 
   return (
-    <OnboardingWrapper
-      userType="homeowner"
-      autoStart={!onboardingStatus.completed}
-    >
-      {/* Use the new dashboard with Airbnb-style search */}
-      <DashboardClient data={professionalDashboardData} />
-    </OnboardingWrapper>
+    <ErrorBoundary>
+      <OnboardingWrapper
+        userType="homeowner"
+        autoStart={!onboardingStatus.completed}
+      >
+        <DashboardClient data={professionalDashboardData} />
+      </OnboardingWrapper>
+    </ErrorBoundary>
   );
 }

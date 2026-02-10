@@ -169,7 +169,7 @@ export default function PaymentsPage2025() {
   }, [user, loadingUser, router]);
 
   if (loadingUser) {
-    return <LoadingSpinner fullScreen message="Loading..." />;
+    return <LoadingSpinner fullScreen />;
   }
   if (!user) return null;
 

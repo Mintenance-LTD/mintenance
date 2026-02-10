@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { SyntheticDataService } from '@/lib/services/building-surveyor/SyntheticDataService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const generateSyntheticDataSchema = z.object({
+  imageUrls: z.array(z.string().url()).min(1).max(50),
+  variationsPerImage: z.number().int().min(1).max(10).default(2),
+  includeEdgeCases: z.boolean().default(true),
+});
 
 /**
  * POST /api/admin/synthetic-data/generate
@@ -44,11 +51,11 @@ export async function POST(request: NextRequest) {
     const user = auth.user;
 
     const body = await request.json();
-    const { imageUrls, variationsPerImage = 2, includeEdgeCases = true } = body;
-
-    if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
-      throw new BadRequestError('imageUrls array is required');
+    const parsed = generateSyntheticDataSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestError('imageUrls (array of valid URLs, 1-50) is required');
     }
+    const { imageUrls, variationsPerImage, includeEdgeCases } = parsed.data;
 
     // Generate synthetic data
     const syntheticAssessments = await SyntheticDataService.generateTrainingBatch(

@@ -65,6 +65,7 @@ export default async function ContractorPublicProfilePage(props: {
     .select('id, title, category, photos, completed_at')
     .eq('contractor_id', params.id)
     .eq('status', 'completed')
+    .is('deleted_at', null)
     .order('completed_at', { ascending: false })
     .limit(12);
 

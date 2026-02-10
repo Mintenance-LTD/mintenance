@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { UnifiedAIService, type AnalysisContext } from '@/lib/services/ai/UnifiedAIService';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@mintenance/shared';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { rateLimiter, checkAIUserRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,6 +56,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
+      );
+    }
+
+    // Per-user rate limit: prevent a single user from exhausting AI budget
+    const userRateLimit = await checkAIUserRateLimit(user.id);
+    if (!userRateLimit.allowed) {
+      logger.warn('AI analyze per-user rate limit exceeded', {
+        service: 'ai_analyze',
+        userId: user.id,
+        remaining: userRateLimit.remaining,
+      });
+      return NextResponse.json(
+        { error: 'You have exceeded your AI request limit. Please try again shortly.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': '3',
+            'X-RateLimit-Remaining': String(userRateLimit.remaining),
+            'X-RateLimit-Reset': String(Math.ceil(userRateLimit.resetTime / 1000)),
+            'Retry-After': String(userRateLimit.retryAfter || 60),
+          },
+        }
       );
     }
 

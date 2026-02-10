@@ -116,7 +116,7 @@ export function NewsletterSignup({
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
               disabled={isSubmitting}

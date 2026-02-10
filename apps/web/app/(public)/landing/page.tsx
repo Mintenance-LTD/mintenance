@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Mintenance - Find Trusted Local Contractors for Home Maintenance',
-  description: 'Connect with verified contractors for all your home maintenance needs. Get instant quotes, read reviews, and hire trusted professionals. 10,000+ verified contractors nationwide.',
+  description: 'Connect with verified contractors for all your home maintenance needs. Get instant quotes, read reviews, and hire trusted professionals.',
   keywords: 'contractors, home maintenance, home repair, plumber, electrician, handyman, home improvement, contractor near me, trusted contractors, verified professionals',
 
   // Open Graph
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     url: 'https://mintenance.com',
     siteName: 'Mintenance',
     title: 'Mintenance - Find Trusted Local Contractors for Home Maintenance',
-    description: 'Connect with 10,000+ verified contractors. Get instant quotes, compare prices, and hire trusted professionals for your home maintenance needs.',
+    description: 'Connect with verified contractors. Get instant quotes, compare prices, and hire trusted professionals for your home maintenance needs.',
     images: [
       {
         url: 'https://mintenance.com/og-image.jpg',
@@ -124,49 +124,63 @@ export default async function LandingPage() {
               <CheckCircle className="w-5 h-5" />
               <span>Verified professionals</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Star className="w-5 h-5 fill-current" />
-              <span>{platformStats.averageRating} average rating</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              <span>{platformStats.totalContractors}+ contractors</span>
-            </div>
+            {platformStats.averageRating > 0 && (
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 fill-current" />
+                <span>{platformStats.averageRating} average rating</span>
+              </div>
+            )}
+            {platformStats.totalContractors > 0 && (
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                <span>{platformStats.totalContractors} contractors</span>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Platform Stats - Airbnb Style */}
+      {/* Platform Stats - Only shown when real data exists */}
+      {(platformStats.totalContractors > 0 || platformStats.totalJobs > 0 || platformStats.totalHomeowners > 0) && (
       <section className="py-16 bg-gray-50 border-y border-gray-200">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {platformStats.totalContractors > 0 && (
             <div className="text-center animate-slide-up">
               <div className="text-4xl md:text-5xl font-bold text-teal-500 mb-2">
-                {platformStats.totalContractors.toLocaleString()}+
+                {platformStats.totalContractors.toLocaleString()}
               </div>
-              <div className="text-gray-600 text-sm md:text-base">Verified Contractors</div>
+              <div className="text-gray-600 text-sm md:text-base">Contractors</div>
             </div>
+            )}
+            {platformStats.totalJobs > 0 && (
             <div className="text-center animate-slide-up" style={{ animationDelay: '0.1s' }}>
               <div className="text-4xl md:text-5xl font-bold text-teal-500 mb-2">
-                {platformStats.totalJobs.toLocaleString()}+
+                {platformStats.totalJobs.toLocaleString()}
               </div>
-              <div className="text-gray-600 text-sm md:text-base">Jobs Completed</div>
+              <div className="text-gray-600 text-sm md:text-base">Jobs Posted</div>
             </div>
+            )}
+            {platformStats.averageRating > 0 && (
             <div className="text-center animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <div className="text-4xl md:text-5xl font-bold text-teal-500 mb-2">
                 {platformStats.averageRating}
               </div>
               <div className="text-gray-600 text-sm md:text-base">Average Rating</div>
             </div>
+            )}
+            {platformStats.totalHomeowners > 0 && (
             <div className="text-center animate-slide-up" style={{ animationDelay: '0.3s' }}>
               <div className="text-4xl md:text-5xl font-bold text-teal-500 mb-2">
-                {platformStats.totalHomeowners.toLocaleString()}+
+                {platformStats.totalHomeowners.toLocaleString()}
               </div>
-              <div className="text-gray-600 text-sm md:text-base">Happy Homeowners</div>
+              <div className="text-gray-600 text-sm md:text-base">Homeowners</div>
             </div>
+            )}
           </div>
         </div>
       </section>
+      )}
 
       {/* Featured Contractors */}
       <section className="py-20">
@@ -387,7 +401,7 @@ export default async function LandingPage() {
             Ready to get started?
           </h2>
           <p className="text-white/90 text-xl mb-10">
-            Join thousands of homeowners who trust Mintenance for their home projects
+            Join homeowners who trust Mintenance for their home projects
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button

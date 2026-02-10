@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card.unified';
 import { theme } from '@/lib/theme';
 import { DisputeDocumentationService } from '@/lib/services/disputes/DisputeDocumentationService';
 import { Loader2 } from 'lucide-react';
+import { PageLoader } from '@/components/LoadingButton';
 
 function CreateDisputeContent() {
   const router = useRouter();
@@ -70,7 +71,7 @@ function CreateDisputeContent() {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <PageLoader message="Loading dispute form" />;
   }
 
   if (!user) {
@@ -186,7 +187,7 @@ function CreateDisputeContent() {
             </label>
             <select
               value={formData.reason}
-              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, reason: e.target.value })}
               style={{
                 width: '100%',
                 padding: theme.spacing[3],
@@ -215,7 +216,7 @@ function CreateDisputeContent() {
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Provide a detailed description of the issue..."
               rows={6}
               style={{
@@ -240,7 +241,7 @@ function CreateDisputeContent() {
             </label>
             <select
               value={formData.priority}
-              onChange={(e) => setFormData({ ...formData, priority: e.target.value as typeof formData.priority })}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, priority: e.target.value as typeof formData.priority })}
               style={{
                 width: '100%',
                 padding: theme.spacing[3],
@@ -276,7 +277,7 @@ function CreateDisputeContent() {
               type="file"
               multiple
               accept="image/*,.pdf"
-              onChange={(e) => {
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 // Handle file upload (simplified)
                 const files = Array.from(e.target.files || []);
                 // In production, upload to storage and get URLs

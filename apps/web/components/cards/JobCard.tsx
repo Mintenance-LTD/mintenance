@@ -87,10 +87,11 @@ export const JobCard: React.FC<JobCardProps> = ({
 
   return (
     <div
-      className={`bg-white rounded-xl shadow hover:shadow-lg transition-all duration-300 cursor-pointer group hover:-translate-y-1 ${className}`}
+      className={`bg-white rounded-xl shadow hover:shadow-lg transition-all duration-300 cursor-pointer group hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${className}`}
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
+      aria-label={`View job: ${title}`}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           handleCardClick();

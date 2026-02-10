@@ -129,7 +129,7 @@ const StandardHeading = forwardRef<HTMLHeadingElement, StandardHeadingProps>(
 
     return (
       <Component
-        ref={ref as any}
+        ref={ref as React.Ref<HTMLHeadingElement>}
         className={cn(
           headingVariants({ level, color, weight, spacing }),
           className

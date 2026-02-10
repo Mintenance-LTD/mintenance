@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { useContractorProfile } from '../useContractorProfile';
-import { vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
 // Mock dependencies
 vi.mock('next/navigation', () => ({

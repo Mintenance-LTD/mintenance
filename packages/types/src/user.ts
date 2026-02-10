@@ -10,6 +10,7 @@ export interface User {
   verified?: boolean;
   phone?: string;
   phone_verified?: boolean;
+  email_verified?: boolean;
   location?: string;
   profile_image_url?: string;
   // Computed fields for backward compatibility

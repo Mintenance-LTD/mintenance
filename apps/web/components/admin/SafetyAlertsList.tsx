@@ -90,7 +90,11 @@ export function SafetyAlertsList({ alerts, loading }: SafetyAlertsListProps) {
   if (loading) {
     return (
       <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
-        <div className="p-4 text-center text-slate-500 text-sm">Loading...</div>
+        <div className="space-y-3 p-4">
+          <div className="h-4 w-full animate-pulse rounded bg-slate-200" />
+          <div className="h-4 w-5/6 animate-pulse rounded bg-slate-200" />
+          <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+        </div>
       </div>
     );
   }

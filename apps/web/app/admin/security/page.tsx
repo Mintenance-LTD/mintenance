@@ -366,7 +366,7 @@ export default function AdminSecurityDashboard2025() {
                 aria-label="Search security events"
                 placeholder="Search events..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
@@ -375,7 +375,7 @@ export default function AdminSecurityDashboard2025() {
               id="severity-filter"
               aria-label="Filter by severity"
               value={selectedSeverity}
-              onChange={(e) => setSelectedSeverity(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedSeverity(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               <option value="all">All Severities</option>
@@ -389,7 +389,7 @@ export default function AdminSecurityDashboard2025() {
               id="type-filter"
               aria-label="Filter by event type"
               value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedType(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               <option value="all">All Types</option>

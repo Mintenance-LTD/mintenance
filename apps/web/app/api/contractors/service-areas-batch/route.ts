@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const serviceAreasBatchSchema = z.object({
+  contractorIds: z.array(z.string().uuid()).min(1).max(100),
+});
 
 /**
  * Batch fetch service areas for multiple contractors
@@ -40,17 +45,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     // CSRF protection
     await requireCSRF(request);
-const body = await request.json();
-    const { contractorIds } = body;
-
-    if (!Array.isArray(contractorIds) || contractorIds.length === 0) {
-      throw new BadRequestError('contractorIds must be a non-empty array');
+    const body = await request.json();
+    const parsed = serviceAreasBatchSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestError('contractorIds must be a non-empty array of UUIDs (max 100)');
     }
-
-    // Limit to prevent abuse
-    if (contractorIds.length > 100) {
-      throw new BadRequestError('Maximum 100 contractors per request');
-    }
+    const { contractorIds } = parsed.data;
 
     logger.info('Fetching service areas for contractors', {
       count: contractorIds.length,

@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { PortfolioVerificationService } from '@/lib/services/verification/PortfolioVerificationService';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const verifyPortfolioSchema = z.object({
+  portfolioId: z.string().uuid(),
+  action: z.enum(['verify', 'unverify']),
+});
 
 export async function POST(
   request: NextRequest,
@@ -42,11 +48,11 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { portfolioId, action } = body;
-
-    if (!portfolioId) {
-      throw new BadRequestError('Portfolio ID is required');
+    const parsed = verifyPortfolioSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestError('Portfolio ID (UUID) and action (verify/unverify) are required');
     }
+    const { portfolioId, action } = parsed.data;
 
     if (action === 'verify') {
       const success = await PortfolioVerificationService.verifyPortfolioItem(portfolioId, user.id);
@@ -66,8 +72,7 @@ export async function POST(
 
     throw new BadRequestError('Invalid action');
   } catch (error) {
-    logger.error('Error verifying portfolio', error, { service: 'contractor' });
-    throw new InternalServerError('Internal server error');
+    return handleAPIError(error);
   }
 }
 

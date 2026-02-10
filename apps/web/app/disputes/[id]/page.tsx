@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
+import { PageLoader } from '@/components/LoadingButton';
 
 interface DisputeTimeline {
   status: string;
@@ -69,7 +70,7 @@ export default function DisputeDetailPage() {
   }, [disputeId]);
 
   if (loading || loadingDispute) {
-    return <div>Loading...</div>;
+    return <PageLoader message="Loading dispute details" />;
   }
 
   if (!dispute) {

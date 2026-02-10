@@ -17,11 +17,12 @@ export async function AboutStatsSection() {
       .select('id', { count: 'exact', head: true })
       .eq('role', 'contractor')
       .eq('admin_verified', true),
-    // Count completed jobs
+    // Count completed jobs (exclude soft-deleted)
     serverSupabase
       .from('jobs')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'completed'),
+      .eq('status', 'completed')
+      .is('deleted_at', null),
     // Fetch all reviews to calculate average rating and satisfaction
     serverSupabase
       .from('reviews')

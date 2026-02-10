@@ -570,7 +570,7 @@ export default function TransactionDetailPage2025() {
                   <input
                     type="number"
                     value={refundAmount}
-                    onChange={(e) => setRefundAmount(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefundAmount(e.target.value)}
                     max={transaction.amount}
                     step="0.01"
                     className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -587,7 +587,7 @@ export default function TransactionDetailPage2025() {
                 </label>
                 <textarea
                   value={refundReason}
-                  onChange={(e) => setRefundReason(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRefundReason(e.target.value)}
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none"
                   placeholder="Please provide a reason for the refund request..."

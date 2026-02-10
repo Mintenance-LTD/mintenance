@@ -1,4 +1,3 @@
-const { logger } = require('@mintenance/shared');
 const path = require('path');
 
 // Enable bundle analyzer when ANALYZE env is set
@@ -15,11 +14,7 @@ if (process.env.NODE_ENV !== 'test') {
       require('dotenv').config({ path: envPath });
     }
   } catch (error) {
-    // Use console.error for build-time errors (logger not available in config)
-    if (error instanceof Error && error.message) {
-      logger.error('Log output', error.message, { service: 'general' });
-    }
-    logger.error('Build failed: Environment validation error', error, { service: 'general' });
+    console.error('Build failed: Environment validation error', error);
     process.exit(1);
   }
 }
@@ -36,7 +31,7 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
 
-  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui', '@hookform/resolvers'],
+  transpilePackages: ['@mintenance/auth', '@mintenance/shared', '@mintenance/types', '@mintenance/shared-ui', '@mintenance/design-tokens', '@mintenance/ai-core', '@hookform/resolvers'],
 
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -124,8 +119,19 @@ const nextConfig = {
       path.resolve(__dirname, 'node_modules'),
     ];
 
+    // Resolve @mintenance packages from source for monorepo builds
+    // This avoids needing pre-built dist/ directories
+    // Subpath aliases must come before bare package aliases (webpack matches first hit)
     config.resolve.alias = {
       ...config.resolve.alias,
+      '@mintenance/ai-core/types': path.resolve(__dirname, '../../packages/ai-core/src/types/index.ts'),
+      '@mintenance/design-tokens/src/unified-tokens': path.resolve(__dirname, '../../packages/design-tokens/src/unified-tokens.ts'),
+      '@mintenance/types': path.resolve(__dirname, '../../packages/types/src/index.ts'),
+      '@mintenance/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),
+      '@mintenance/auth': path.resolve(__dirname, '../../packages/auth/src/index.ts'),
+      '@mintenance/shared-ui': path.resolve(__dirname, '../../packages/shared-ui/src/index.ts'),
+      '@mintenance/design-tokens': path.resolve(__dirname, '../../packages/design-tokens/src/index.ts'),
+      '@mintenance/ai-core': path.resolve(__dirname, '../../packages/ai-core/src/index.ts'),
       'react-native': false,
       'react-native$': false,
       '@mintenance/shared-ui/dist/components/Card/Card.native': false,

@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
+import { logger } from '@mintenance/shared';
+
 // Dynamic imports for Tremor charts - lazy load heavy charting library
 const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
   loading: () => <ChartSkeleton height="280px" />,
@@ -23,47 +25,60 @@ const DonutChart = dynamic(() => import('@tremor/react').then(mod => ({ default:
   ssr: false,
 });
 
+interface DashboardData {
+  totalUsers: number;
+  totalContractors: number;
+  totalJobs: number;
+  activeSubscriptions: number;
+  mrr: number;
+  pendingVerifications: number;
+  charts?: {
+    userGrowth: Array<{ date: string; users: number; cumulative: number }>;
+    jobGrowth: Array<{ date: string; jobs: number; cumulative: number }>;
+  };
+}
+
 export default function AdminDashboardPage2025() {
   const { user } = useCurrentUser();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const userDisplayName = user?.first_name && user?.last_name
     ? `${user.first_name} ${user.last_name}`.trim()
     : user?.email || '';
 
-  // Mock data
-  const revenueData = [
-    { month: 'Jan', revenue: 45000, users: 120 },
-    { month: 'Feb', revenue: 52000, users: 145 },
-    { month: 'Mar', revenue: 48000, users: 135 },
-    { month: 'Apr', revenue: 61000, users: 168 },
-    { month: 'May', revenue: 55000, users: 152 },
-    { month: 'Jun', revenue: 67000, users: 189 },
-  ];
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('/api/admin/dashboard/metrics');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch metrics: ${response.status}`);
+        }
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        logger.error('Failed to fetch admin dashboard data', err, { service: 'admin' });
+        setError('Failed to load dashboard data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const userGrowthData = [
-    { category: 'Homeowners', count: 450 },
-    { category: 'Contractors', count: 280 },
-    { category: 'Pending', count: 45 },
-  ];
+    fetchDashboardData();
+  }, []);
 
-  const jobsData = [
-    { month: 'Jan', posted: 89, completed: 67 },
-    { month: 'Feb', posted: 102, completed: 78 },
-    { month: 'Mar', posted: 95, completed: 71 },
-    { month: 'Apr', posted: 118, completed: 89 },
-    { month: 'May', posted: 108, completed: 82 },
-    { month: 'Jun', posted: 125, completed: 95 },
-  ];
-
-  const metrics = [
-    { label: 'Total Revenue', value: '£328,000', change: '+18%', changeType: 'positive' as const, icon: '💰' },
-    { label: 'Total Users', value: '775', change: '+12%', changeType: 'positive' as const, icon: '👥' },
-    { label: 'Active Jobs', value: '156', change: '+8%', changeType: 'positive' as const, icon: '🔨' },
-    { label: 'Completion Rate', value: '76%', change: '+3%', changeType: 'positive' as const, icon: '✅' },
-    { label: 'Platform Fee', value: '£32,800', change: '+18%', changeType: 'positive' as const, icon: '💳' },
-    { label: 'Support Tickets', value: '23', change: '-15%', changeType: 'positive' as const, icon: '🎫' },
-  ];
+  const metrics = data ? [
+    { label: 'Total Users', value: data.totalUsers.toLocaleString(), icon: '👥' },
+    { label: 'Contractors', value: data.totalContractors.toLocaleString(), icon: '🔨' },
+    { label: 'Total Jobs', value: data.totalJobs.toLocaleString(), icon: '📋' },
+    { label: 'Active Subscriptions', value: data.activeSubscriptions.toLocaleString(), icon: '💳' },
+    { label: 'Monthly Revenue', value: `£${data.mrr.toLocaleString()}`, icon: '💰' },
+    { label: 'Pending Verifications', value: data.pendingVerifications.toLocaleString(), icon: '🔍' },
+  ] : [];
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-gray-50">
@@ -126,100 +141,113 @@ export default function AdminDashboardPage2025() {
 
         {/* Content */}
         <div className="max-w-[1600px] mx-auto px-8 py-8 w-full">
-          {/* Metrics Grid */}
-          <MotionDiv
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6"
-            aria-live="polite"
-            aria-label="Platform metrics"
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-          >
-            {metrics.map((metric) => (
-              <MotionDiv
-                key={metric.label}
-                className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
-                variants={staggerItem}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl" aria-hidden="true">{metric.icon}</span>
-                  </div>
-                  <div className={`px-3 py-1 rounded-lg text-sm font-semibold ${
-                    metric.changeType === 'positive'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-rose-100 text-rose-700'
-                  }`}>
-                    {metric.change}
-                  </div>
+          {/* Error State */}
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700">
+              <p className="font-semibold">Error loading dashboard</p>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 animate-pulse">
+                  <div className="h-12 w-12 bg-gray-200 rounded-xl mb-4" />
+                  <div className="h-8 bg-gray-200 rounded w-24 mb-2" />
+                  <div className="h-4 bg-gray-200 rounded w-32" />
                 </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{metric.value}</div>
-                <div className="text-sm text-gray-600">{metric.label}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Metrics Grid */}
+          {!loading && data && (
+            <>
+              <MotionDiv
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6"
+                aria-live="polite"
+                aria-label="Platform metrics"
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+              >
+                {metrics.map((metric) => (
+                  <MotionDiv
+                    key={metric.label}
+                    className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+                    variants={staggerItem}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                        <span className="text-2xl" aria-hidden="true">{metric.icon}</span>
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-1">{metric.value}</div>
+                    <div className="text-sm text-gray-600">{metric.label}</div>
+                  </MotionDiv>
+                ))}
               </MotionDiv>
-            ))}
-          </MotionDiv>
 
-          {/* Charts Row */}
-          <section aria-label="Revenue and user charts" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Revenue Trend */}
-            <MotionDiv
-              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
-              variants={fadeIn}
-              initial="initial"
-              animate="animate"
-            >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Revenue Trend</h2>
-              <AreaChart
-                data={revenueData}
-                index="month"
-                categories={['revenue']}
-                colors={['purple']}
-                valueFormatter={(value) => `£${value.toLocaleString()}`}
-                showAnimation={true}
-                showLegend={false}
-                showGridLines={false}
-                className="h-80"
-              />
-            </MotionDiv>
+              {/* Charts Row */}
+              {data.charts && (
+                <section aria-label="Growth charts" className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                  {/* User Growth */}
+                  <MotionDiv
+                    className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+                    variants={fadeIn}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">User Growth (30 days)</h2>
+                    {data.charts.userGrowth.length > 0 ? (
+                      <AreaChart
+                        data={data.charts.userGrowth}
+                        index="date"
+                        categories={['cumulative']}
+                        colors={['purple']}
+                        valueFormatter={(value) => `${value} users`}
+                        showAnimation={true}
+                        showLegend={false}
+                        showGridLines={false}
+                        className="h-80"
+                      />
+                    ) : (
+                      <div className="h-80 flex items-center justify-center text-gray-400">
+                        No user data for the selected period
+                      </div>
+                    )}
+                  </MotionDiv>
 
-            {/* User Distribution */}
-            <MotionDiv
-              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
-              variants={fadeIn}
-              initial="initial"
-              animate="animate"
-            >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">User Distribution</h2>
-              <DonutChart
-                data={userGrowthData}
-                category="count"
-                index="category"
-                colors={['purple', 'indigo', 'violet']}
-                valueFormatter={(value) => `${value} users`}
-                showAnimation={true}
-                className="h-80"
-              />
-            </MotionDiv>
-          </section>
-
-          {/* Jobs Activity */}
-          <MotionDiv
-            className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6"
-            variants={fadeIn}
-            initial="initial"
-            animate="animate"
-          >
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Jobs Activity</h2>
-            <BarChart
-              data={jobsData}
-              index="month"
-              categories={['posted', 'completed']}
-              colors={['purple', 'emerald']}
-              valueFormatter={(value) => `${value} jobs`}
-              showAnimation={true}
-              className="h-80"
-            />
-          </MotionDiv>
+                  {/* Job Growth */}
+                  <MotionDiv
+                    className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
+                    variants={fadeIn}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Job Growth (30 days)</h2>
+                    {data.charts.jobGrowth.length > 0 ? (
+                      <BarChart
+                        data={data.charts.jobGrowth}
+                        index="date"
+                        categories={['jobs']}
+                        colors={['emerald']}
+                        valueFormatter={(value) => `${value} jobs`}
+                        showAnimation={true}
+                        className="h-80"
+                      />
+                    ) : (
+                      <div className="h-80 flex items-center justify-center text-gray-400">
+                        No job data for the selected period
+                      </div>
+                    )}
+                  </MotionDiv>
+                </section>
+              )}
+            </>
+          )}
 
           {/* Quick Actions */}
           <MotionDiv

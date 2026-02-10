@@ -188,13 +188,20 @@ export class JobQueryService {
     return query;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async fetchJobs(
-    query: any,
+    query: unknown,
     limit: number,
     cursor?: string
   ): Promise<{ rows: JobRow[]; nextCursor?: string }> {
-    let pagedQuery = query
+    type QueryBuilder = {
+      order: (column: string, options?: { ascending?: boolean }) => QueryBuilder;
+      limit: (count: number) => QueryBuilder;
+      lt: (column: string, value: string) => QueryBuilder;
+    };
+
+    const queryBuilder = query as QueryBuilder;
+
+    let pagedQuery = queryBuilder
       .order('created_at', { ascending: false })
       .limit(limit + 1);
 
@@ -202,7 +209,7 @@ export class JobQueryService {
       pagedQuery = pagedQuery.lt('created_at', cursor);
     }
 
-    const { data: jobsData, error } = await pagedQuery;
+    const { data: jobsData, error } = await (pagedQuery as unknown as Promise<{ data: JobRow[] | null; error: unknown }>);
     if (error || !jobsData) {
       logger.error('Failed to load jobs', error, { service: 'jobs' });
       throw error || new Error('Failed to load jobs');

@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { NextRequest } from 'next/server';
 
 /**
@@ -54,6 +54,9 @@ vi.mock('@mintenance/auth', () => ({
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
+  serverSupabase: vi.fn(() => ({
+    from: mocks.supabaseFrom,
+  })),
   createClient: vi.fn(() => ({
     from: mocks.supabaseFrom,
   })),
@@ -382,6 +385,29 @@ describe('Admin Security Audit - requireAdmin Middleware', () => {
 });
 
 describe('OWASP Top 10 Compliance Matrix', () => {
+  let requireAdmin: typeof import('@/lib/middleware/requireAdmin').requireAdmin;
+  let isAdminError: typeof import('@/lib/middleware/requireAdmin').isAdminError;
+
+  const dummyRequest = new NextRequest('http://localhost:3000/api/admin/test', {
+    method: 'GET',
+  });
+
+  beforeEach(async () => {
+    mocks.getCurrentUserFromCookies.mockResolvedValue(null);
+    mocks.supabaseFrom.mockReturnValue({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          single: vi.fn(() => ({ data: null, error: null })),
+        })),
+      })),
+      insert: vi.fn(() => ({ error: null })),
+    });
+
+    const mod = await import('@/lib/middleware/requireAdmin');
+    requireAdmin = mod.requireAdmin;
+    isAdminError = mod.isAdminError;
+  });
+
   it('A01:2021 - Broken Access Control - requireAdmin rejects non-admin users', async () => {
     // Verify that non-admin users are rejected
     mocks.getCurrentUserFromCookies.mockResolvedValue({ id: 'user-1', role: 'homeowner' });
@@ -394,7 +420,7 @@ describe('OWASP Top 10 Compliance Matrix', () => {
       insert: vi.fn(() => ({ error: null })),
     });
 
-    const result = await requireAdmin();
+    const result = await requireAdmin(dummyRequest);
     expect(isAdminError(result)).toBe(true);
   });
 
@@ -418,14 +444,14 @@ describe('OWASP Top 10 Compliance Matrix', () => {
   it('A04:2021 - Insecure Design - requireAdmin uses fail-closed pattern', async () => {
     // When auth returns null, access should be denied (fail-closed)
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
-    const result = await requireAdmin();
+    const result = await requireAdmin(dummyRequest);
     expect(isAdminError(result)).toBe(true);
   });
 
   it('A05:2021 - Security Misconfiguration - error responses do not leak internals', async () => {
     // Verify error responses don't contain stack traces or internal details
     mocks.getCurrentUserFromCookies.mockRejectedValue(new Error('DB connection failed'));
-    const result = await requireAdmin();
+    const result = await requireAdmin(dummyRequest);
     expect(isAdminError(result)).toBe(true);
     // The error object should not contain the internal message
     if (isAdminError(result)) {
@@ -438,7 +464,7 @@ describe('OWASP Top 10 Compliance Matrix', () => {
   it('A07:2021 - Identification and Authentication Failures - rejects expired/invalid tokens', async () => {
     // When getCurrentUserFromCookies fails (expired token), access denied
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
-    const result = await requireAdmin();
+    const result = await requireAdmin(dummyRequest);
     expect(isAdminError(result)).toBe(true);
   });
 
@@ -454,14 +480,14 @@ describe('OWASP Top 10 Compliance Matrix', () => {
       insert: vi.fn(() => ({ error: null })),
     });
 
-    const result = await requireAdmin();
+    const result = await requireAdmin(dummyRequest);
     expect(isAdminError(result)).toBe(true);
   });
 
   it('A09:2021 - Security Logging and Monitoring - admin actions are logged', async () => {
     // Verify that auth failures are logged
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
-    await requireAdmin();
+    await requireAdmin(dummyRequest);
     // Logger should have been called with security-relevant info
     expect(mocks.logger.warn).toHaveBeenCalled();
   });

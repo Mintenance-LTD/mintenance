@@ -16,6 +16,10 @@ class TokenBlacklist {
   private redis: RedisClient | null = null;
   private initialized = false;
   private fallbackSet: Set<string> = new Set();
+  // In-memory LRU cache to avoid hitting Redis on every request
+  private cache: Map<string, { isBlacklisted: boolean; expiresAt: number }> = new Map();
+  private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  private static readonly MAX_CACHE_SIZE = 10000;
 
   constructor() {
     this.initializeRedis();
@@ -54,6 +58,9 @@ class TokenBlacklist {
       const tokenId = this.getTokenId(token);
       const key = `blacklist:token:${tokenId}`;
 
+      // Invalidate cache immediately so this token is rejected right away
+      this.invalidateCache(tokenId);
+
       if (this.initialized && this.redis) {
         // Store in Redis with expiration
         await Promise.race([
@@ -84,7 +91,15 @@ class TokenBlacklist {
   async isTokenBlacklisted(token: string): Promise<boolean> {
     try {
       const tokenId = this.getTokenId(token);
+
+      // Check in-memory cache first to avoid Redis round-trip on every request
+      const cached = this.cache.get(tokenId);
+      if (cached && cached.expiresAt > Date.now()) {
+        return cached.isBlacklisted;
+      }
+
       const key = `blacklist:token:${tokenId}`;
+      let isBlacklisted: boolean;
 
       if (this.initialized && this.redis) {
         const result = await Promise.race([
@@ -93,11 +108,16 @@ class TokenBlacklist {
             setTimeout(() => reject(new Error('Redis timeout')), 2000);
           }),
         ]);
-        return result > 0;
+        isBlacklisted = result > 0;
       } else {
         // Fallback to in-memory check
-        return this.fallbackSet.has(tokenId);
+        isBlacklisted = this.fallbackSet.has(tokenId);
       }
+
+      // Cache the result to reduce Redis calls
+      this.setCacheEntry(tokenId, isBlacklisted);
+
+      return isBlacklisted;
     } catch (error) {
       logger.error('Failed to check token blacklist', error, { service: 'auth' });
       // SECURITY: Fail closed in production - treat as blacklisted when we can't verify
@@ -107,6 +127,25 @@ class TokenBlacklist {
       // In development, fail open for developer convenience
       return false;
     }
+  }
+
+  /** Invalidate cache entry when a token is blacklisted (ensures immediate effect) */
+  private invalidateCache(tokenId: string): void {
+    this.cache.delete(tokenId);
+  }
+
+  private setCacheEntry(tokenId: string, isBlacklisted: boolean): void {
+    // Evict oldest entries if cache is full
+    if (this.cache.size >= TokenBlacklist.MAX_CACHE_SIZE) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
+    }
+    this.cache.set(tokenId, {
+      isBlacklisted,
+      expiresAt: Date.now() + TokenBlacklist.CACHE_TTL_MS,
+    });
   }
 
   /**

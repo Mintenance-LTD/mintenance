@@ -7,7 +7,7 @@
  * 2025 UI/UX Revamp: Enhanced with Checkatrade-inspired professional design
  */
 
-const { webTokens } = require('@mintenance/design-tokens');
+const { webTokens } = require('../../packages/design-tokens/src/adapters/web');
 const { tokens } = require('./lib/design-tokens/index.ts');
 
 /** @type {import('tailwindcss').Config} */

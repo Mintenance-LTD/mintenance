@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import { ContractorProfileClient2025 } from './components/ContractorProfileClient2025';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
@@ -110,6 +111,7 @@ export default async function ContractorProfilePage2025() {
     .reduce((sum, b) => sum + (b.bid_amount || 0), 0);
 
   return (
+    <ErrorBoundary>
     <ContractorProfileClient2025
       contractor={{
         id: contractor?.id || user.id,
@@ -146,5 +148,6 @@ export default async function ContractorProfilePage2025() {
         totalBids: bids.length,
       }}
     />
+    </ErrorBoundary>
   );
 }

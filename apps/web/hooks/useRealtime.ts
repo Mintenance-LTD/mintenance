@@ -4,14 +4,15 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { createClient, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { logger } from '@/lib/logger';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables');
-}
+// Placeholder fallbacks prevent module-level throws during next build.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+/** Per-client connection limit to prevent resource exhaustion (Issue 37) */
+const MAX_CHANNELS_PER_CLIENT = 10;
+const activeChannels = new Set<string>();
 
 /**
  * Payload for realtime database changes
@@ -73,6 +74,8 @@ export function useRealtime(config?: RealtimeConfig) {
 
     // Unsubscribe from existing channel
     if (channelRef.current) {
+      const prevName = (channelRef.current as unknown as { topic?: string }).topic;
+      if (prevName) activeChannels.delete(prevName);
       channelRef.current.unsubscribe();
     }
 
@@ -80,6 +83,17 @@ export function useRealtime(config?: RealtimeConfig) {
 
     // Create a unique channel name
     const channelName = `${schema}:${table}${filter ? `:${filter}` : ''}`;
+
+    // Enforce per-client connection limit
+    if (activeChannels.size >= MAX_CHANNELS_PER_CLIENT && !activeChannels.has(channelName)) {
+      logger.error('Realtime channel limit reached', {
+        max: MAX_CHANNELS_PER_CLIENT,
+        active: activeChannels.size,
+        rejected: channelName,
+      });
+      onError?.(new Error(`Channel limit (${MAX_CHANNELS_PER_CLIENT}) reached`));
+      return;
+    }
     
     const channel = supabase
       .channel(channelName)
@@ -112,12 +126,14 @@ export function useRealtime(config?: RealtimeConfig) {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
+          activeChannels.add(channelName);
           setStatus(prev => ({
             ...prev,
             connected: true,
             error: null,
           }));
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          activeChannels.delete(channelName);
           setStatus(prev => ({
             ...prev,
             connected: false,
@@ -132,6 +148,8 @@ export function useRealtime(config?: RealtimeConfig) {
 
   const unsubscribe = useCallback(() => {
     if (channelRef.current) {
+      const topic = (channelRef.current as unknown as { topic?: string }).topic;
+      if (topic) activeChannels.delete(topic);
       channelRef.current.unsubscribe();
       channelRef.current = null;
       setStatus({

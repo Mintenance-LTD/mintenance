@@ -254,7 +254,7 @@ export default function ContractorSettingsPage() {
             )}
             {activeSection === 'account' && (
               <AccountSecuritySection
-                email={user.email} emailVerified={user.email_verified ?? false} passwordData={passwordData}
+                email={user.email} emailVerified={(user as unknown as Record<string, unknown>).email_verified as boolean ?? false} passwordData={passwordData}
                 twoFactorEnabled={twoFactorEnabled} showDeleteConfirm={showDeleteConfirm} isSaving={isSaving}
                 onPasswordDataChange={setPasswordData} onTwoFactorChange={setTwoFactorEnabled}
                 onChangePassword={handleChangePassword} onShowDeleteConfirm={setShowDeleteConfirm} onDeleteAccount={handleDeleteAccount}

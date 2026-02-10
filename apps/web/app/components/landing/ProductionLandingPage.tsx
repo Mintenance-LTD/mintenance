@@ -370,7 +370,7 @@ export function ProductionLandingPage() {
                 <select
                   id="service-select"
                   value={searchState.service}
-                  onChange={(e) => handleServiceChange(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleServiceChange(e.target.value)}
                   className="w-full outline-none border-none bg-transparent text-gray-900 font-medium cursor-pointer"
                 >
                   {SERVICES.map((service) => (

@@ -367,7 +367,7 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
                                 <Textarea
                                   id="rejection-reason"
                                   value={reason}
-                                  onChange={(e) => setReason(e.target.value)}
+                                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReason(e.target.value)}
                                   placeholder="Enter reason for rejection..."
                                   rows={3}
                                 />

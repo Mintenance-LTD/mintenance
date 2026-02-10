@@ -1,5 +1,5 @@
 import React from 'react';
-import { vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { render, screen, fireEvent } from '@testing-library/react';
 import UnifiedCard, { CardHeader, CardTitle, CardDescription, CardContent, CardFooter, CardGrid, StatCard, ActionCard } from '../UnifiedCard';
 

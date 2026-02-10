@@ -11,7 +11,7 @@
  * - Cache hit/miss behavior
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
 // Mock dependencies BEFORE importing the service - Vitest 4.x compatible pattern
 // Note: vi.mock calls are hoisted, so we must define factories inline

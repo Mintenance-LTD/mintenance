@@ -322,7 +322,7 @@ export function VerifyPhoneClient({ userId, currentPhone, userName, userEmail }:
                 <Input
                   type="tel"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhoneNumber(e.target.value)}
                   placeholder="+44 7700 900000"
                   required
                   disabled={isLoading}
@@ -371,14 +371,14 @@ export function VerifyPhoneClient({ userId, currentPhone, userName, userEmail }:
                 <Input
                   type="text"
                   value={verificationCode}
-                  onChange={(e) => {
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                     setVerificationCode(value);
                   }}
                   placeholder="000000"
                   required
                   disabled={isLoading}
-                  style={{ 
+                  style={{
                     width: '100%',
                     textAlign: 'center',
                     fontSize: theme.typography.fontSize['2xl'],

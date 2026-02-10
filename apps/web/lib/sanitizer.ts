@@ -30,8 +30,7 @@ function getPurify(): typeof DOMPurify {
   const jsdomModule = requireFunc('jsdom');
   const { JSDOM } = jsdomModule;
   const domWindow = new JSDOM('').window;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  purify = DOMPurify(domWindow as any);
+  purify = DOMPurify(domWindow as unknown as Window & typeof globalThis);
   
   return purify;
 }

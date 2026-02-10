@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { render, screen } from '@testing-library/react';
 import { ContractorDashboardProfessional } from '../ContractorDashboardProfessional';
 

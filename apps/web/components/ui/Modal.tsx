@@ -67,6 +67,9 @@ export function Modal({
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
         style={{
           backgroundColor: theme.colors.surface,
           borderRadius: theme.borderRadius.xl,
@@ -91,6 +94,7 @@ export function Modal({
           }}
         >
           <h2
+            id="modal-title"
             style={{
               margin: 0,
               fontSize: theme.typography.fontSize['2xl'],

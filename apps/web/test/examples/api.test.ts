@@ -3,7 +3,7 @@
  * Demonstrates testing Next.js 16 API route handlers
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { GET, POST, PUT, DELETE } from '@/app/api/jobs/route';
 import { mockJob, mockUser, mockSupabaseQuery } from '../utils';
 

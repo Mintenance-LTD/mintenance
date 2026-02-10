@@ -131,7 +131,7 @@ export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' 
               </Link>
 
               {/* Status Badge */}
-              <StatusBadge status={task.status as any} />
+              <StatusBadge status={task.status as 'completed' | 'delayed' | 'at_risk' | 'on_going' | 'posted' | 'pending'} />
             </div>
           );
         })}

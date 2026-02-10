@@ -142,7 +142,7 @@ export function Paywall({
                   const pricing = TIER_PRICING[tier];
                   const limit = feature.limits[tier];
                   const isSelected = selectedTier === tier;
-                  const isPopular = (pricing as any).popular || false;
+                  const isPopular = 'popular' in pricing && pricing.popular === true;
 
                   return (
                     <button

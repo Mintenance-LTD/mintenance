@@ -3,7 +3,7 @@
  * Tests Bayesian fusion math, correlation terms, and variance calculations
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { DetectorFusionService } from '../DetectorFusionService';
 import type { RoboflowDetection } from '../types';
 
@@ -36,10 +36,10 @@ describe('DetectorFusionService', () => {
       const result = await DetectorFusionService.fuseDetectors(detections, 80);
 
       // Fusion mean should be weighted average of detector confidences
-      // w = [0.35, 0.50, 0.15] for [yolo, maskrcnn, sam]
-      // yolo = 0.80, maskrcnn = 0.80 * 0.95 = 0.76, sam = 0.80 * 0.90 = 0.72
-      // mean = 0.35 * 0.80 + 0.50 * 0.76 + 0.15 * 0.72 = 0.28 + 0.38 + 0.108 = 0.768
-      expect(result.fusionMean).toBeCloseTo(0.768, 2);
+      // Currently YOLO-only: w = [1.0, 0.0, 0.0] for [yolo, maskrcnn, sam]
+      // yolo = 80/100 = 0.80, maskrcnn = 0 (not deployed), sam = 0 (not deployed)
+      // mean = 1.0 * 0.80 + 0 + 0 = 0.80
+      expect(result.fusionMean).toBeCloseTo(0.80, 2);
     });
 
     it('should include correlation term in variance', async () => {
@@ -89,10 +89,11 @@ describe('DetectorFusionService', () => {
 
       const result = await DetectorFusionService.fuseDetectors(detections, 85);
 
-      // Average confidence = (80 + 90) / 2 = 85%  = 0.85
-      // yolo = 0.85, maskrcnn = 0.85 * 0.95 = 0.8075, sam = 0.85 * 0.90 = 0.765
-      // mean = 0.35 * 0.85 + 0.50 * 0.8075 + 0.15 * 0.765 = 0.2975 + 0.40375 + 0.11475 = 0.816
-      expect(result.fusionMean).toBeCloseTo(0.816, 2);
+      // Average confidence = (80 + 90) / 2 = 85% = 0.85
+      // Currently YOLO-only: w = [1.0, 0.0, 0.0]
+      // yolo = 0.85, maskrcnn = 0 (not deployed), sam = 0 (not deployed)
+      // mean = 1.0 * 0.85 + 0 + 0 = 0.85
+      expect(result.fusionMean).toBeCloseTo(0.85, 2);
     });
   });
 
@@ -127,11 +128,12 @@ describe('DetectorFusionService', () => {
       expect(sum).toBeCloseTo(1.0, 5);
     });
 
-    it('should have positive weights', () => {
+    it('should have positive YOLO weight (maskrcnn and sam not yet deployed)', () => {
       const weights = DetectorFusionService.getDetectorWeights();
       expect(weights.yolo).toBeGreaterThan(0);
-      expect(weights.maskrcnn).toBeGreaterThan(0);
-      expect(weights.sam).toBeGreaterThan(0);
+      // Mask R-CNN and SAM are not yet deployed, weights are 0
+      expect(weights.maskrcnn).toBe(0);
+      expect(weights.sam).toBe(0);
     });
   });
 });

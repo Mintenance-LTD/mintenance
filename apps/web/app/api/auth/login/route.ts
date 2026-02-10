@@ -90,7 +90,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     let isTrustedDevice = false;
     if (trustedDeviceToken && mfaEnabled) {
-      const validatedUserId = await MFAService.validateTrustedDevice(trustedDeviceToken);
+      const requestIp = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || undefined;
+      const requestUa = request.headers.get('user-agent') || undefined;
+      const validatedUserId = await MFAService.validateTrustedDevice(trustedDeviceToken, requestIp, requestUa);
       isTrustedDevice = validatedUserId === result.user.id;
 
       if (isTrustedDevice) {
