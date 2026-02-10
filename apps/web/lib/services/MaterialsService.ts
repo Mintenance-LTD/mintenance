@@ -27,8 +27,8 @@ export class MaterialsService {
 
   constructor(supabaseUrl?: string, supabaseKey?: string) {
     this.supabase = createClient(
-      supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      supabaseKey || process.env.SUPABASE_SERVICE_ROLE_KEY!
+      supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      supabaseKey || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
     );
   }
 
