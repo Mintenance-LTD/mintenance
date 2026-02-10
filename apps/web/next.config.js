@@ -23,6 +23,29 @@ const nextConfig = {
   // Enable standalone output for smaller deployments
   output: 'standalone',
 
+  // Required for monorepo: trace from repo root to include workspace packages
+  outputFileTracingRoot: path.join(__dirname, '../../'),
+
+  // Exclude heavy packages from serverless function bundle to stay under 250MB
+  outputFileTracingExcludes: {
+    '*': [
+      'node_modules/@swc/core-linux-x64-gnu',
+      'node_modules/@swc/core-linux-x64-musl',
+      'node_modules/@esbuild',
+      'node_modules/esbuild',
+      'node_modules/puppeteer',
+      'node_modules/puppeteer-core',
+      'node_modules/canvas',
+      'node_modules/jsdom',
+      'node_modules/@google-cloud',
+      'node_modules/onnxruntime-node',
+      'node_modules/onnxruntime-web',
+      'node_modules/typescript',
+      'node_modules/webpack',
+      'node_modules/terser',
+    ],
+  },
+
   poweredByHeader: false,
 
   // swcMinify is now default in Next.js 16, no need to specify
