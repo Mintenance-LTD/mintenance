@@ -45,6 +45,7 @@
     "install:hero3d": "npm install @react-three/fiber@9.0.0-alpha.0 three --save"
   },
   "dependencies": {
+    "node-cache": "^5.1.2",
     "@chatscope/chat-ui-kit-react": "^2.1.1",
     "@google-cloud/aiplatform": "^6.1.0",
     "@google-cloud/storage": "^7.18.0",
