@@ -254,10 +254,9 @@ function validateEnv(): Env {
                          process.env.NEXT_PHASE === 'phase-development-build';
       
       if (!isBuildTime && (!parsed.UPSTASH_REDIS_REST_URL || !parsed.UPSTASH_REDIS_REST_TOKEN)) {
-        logger.error('Redis is REQUIRED in production for rate limiting', {
+        logger.warn('Redis not configured — rate limiting will use in-memory fallback', {
           service: 'env-validation',
         });
-        throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production');
       }
 
       // Warn if AI features are disabled in production
