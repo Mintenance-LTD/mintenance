@@ -79,7 +79,7 @@
   "author": "Mintenance Team",
   "license": "MIT",
   "engines": {
-    "node": ">=20.19.4 <23.0.0",
+    "node": ">=20.19.4",
     "npm": ">=9.0.0"
   },
   "devDependencies": {

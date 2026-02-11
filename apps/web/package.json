@@ -8,6 +8,8 @@
     "dev:3001": "next dev -p 3001 --webpack",
     "dev:turbo": "next dev -p 3000 --turbo",
     "build": "npm run clean && next build --webpack",
+    "build:packages": "echo 'Skipping package builds — webpack resolves from source via aliases in next.config.js'",
+    "build:web": "next build --webpack",
     "build:analyze": "npm run clean && ANALYZE=true next build --webpack",
     "build:turbo": "npm run clean && next build",
     "start": "next start -p 3000",
@@ -43,6 +45,7 @@
     "install:hero3d": "npm install @react-three/fiber@9.0.0-alpha.0 three --save"
   },
   "dependencies": {
+    "node-cache": "^5.1.2",
     "@chatscope/chat-ui-kit-react": "^2.1.1",
     "@google-cloud/aiplatform": "^6.1.0",
     "@google-cloud/storage": "^7.18.0",

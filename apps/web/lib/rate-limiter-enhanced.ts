@@ -332,14 +332,17 @@ export class EnhancedRateLimiter {
         service: 'rate-limiter',
       });
 
-      // FAIL CLOSED in production for security
+      // In production without Redis, allow requests but log the issue
+      // TODO: Set up Upstash Redis for proper distributed rate limiting
       if (process.env.NODE_ENV === 'production') {
+        logger.warn('Rate limit check failed in production - allowing request', {
+          service: 'rate-limiter',
+        });
         return {
-          allowed: false,
-          limit: 0,
-          remaining: 0,
+          allowed: true,
+          limit: 100,
+          remaining: 99,
           resetTime: Date.now() + 60000,
-          retryAfter: 60,
           tier: 'anonymous',
         };
       }

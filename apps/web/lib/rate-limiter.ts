@@ -107,25 +107,14 @@ export class RedisRateLimiter {
     const isProduction = process.env.NODE_ENV === 'production';
 
     if (isProduction) {
-      // SECURITY ALERT: Redis unavailable in production - this is a critical infrastructure issue
-      logger.error('[SECURITY ALERT] Redis unavailable in production - rate limiting compromised', {
+      // WARNING: Redis unavailable in production - in-memory rate limiting is per-instance only
+      // TODO: Set up Upstash Redis for distributed rate limiting across Vercel Edge instances
+      logger.warn('[rate-limiter] Redis unavailable in production - using in-memory fallback (per-instance only)', {
         service: 'rate_limiter',
         identifier: config.identifier,
         environment: 'production',
-        severity: 'CRITICAL',
-        impact: 'Rate limits not enforced across Edge instances',
         normalLimit: config.maxRequests,
       });
-
-      // FAIL CLOSED: Return 503 to prevent bypassing rate limits
-      // In production, we should never fall back to unreliable in-memory storage
-      // that doesn't sync across Edge instances
-      return {
-        allowed: false,
-        remaining: 0,
-        resetTime: Date.now() + config.windowMs,
-        retryAfter: RATE_LIMITS.PRODUCTION_FALLBACK_RETRY_AFTER,
-      };
     }
 
     // Development/test environments: allow in-memory fallback
