@@ -49,18 +49,22 @@ export function StatsSection({ stats }: StatsSectionProps) {
             suffix="%+"
             subtext="Continuously improving"
           />
-          <AnimatedStat
-            end={stats?.activeContractors || 2847}
-            label="Active Contractors"
-            suffix="+"
-            subtext={`+${stats?.activeContractorsGrowth || 12}% this month`}
-          />
-          <AnimatedStat
-            end={stats?.completedJobs || 12456}
-            label="Jobs Completed"
-            suffix="+"
-            subtext={`+${stats?.completedJobsGrowth || 23}% this month`}
-          />
+          {stats?.activeContractors != null && stats.activeContractors > 0 && (
+            <AnimatedStat
+              end={stats.activeContractors}
+              label="Active Contractors"
+              suffix="+"
+              subtext={stats.activeContractorsGrowth ? `+${stats.activeContractorsGrowth}% this month` : 'And growing'}
+            />
+          )}
+          {stats?.completedJobs != null && stats.completedJobs > 0 && (
+            <AnimatedStat
+              end={stats.completedJobs}
+              label="Jobs Completed"
+              suffix="+"
+              subtext={stats.completedJobsGrowth ? `+${stats.completedJobsGrowth}% this month` : 'And counting'}
+            />
+          )}
         </div>
       </div>
     </section>

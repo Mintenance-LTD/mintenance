@@ -97,11 +97,7 @@ export function HeroCard({
 
           {/* Floating Badge - Top Right */}
           <div className="absolute top-6 right-6 flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-md rounded-full shadow-xl border border-teal-100">
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-              <span className="text-sm font-bold text-slate-900">4.9</span>
-            </div>
-            <div className="w-px h-4 bg-slate-300" />
+            <Shield className="w-4 h-4 text-teal-600" />
             <span className="text-xs font-semibold text-slate-600">Verified Pro</span>
           </div>
 
@@ -156,28 +152,28 @@ export function HeroCard({
               </p>
             </div>
 
-            {/* Stats Row */}
+            {/* Features Row */}
             <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Award className="w-4 h-4 text-amber-400" />
-                  <span className="text-xl font-bold text-white">50K+</span>
+                  <span className="text-sm font-bold text-white">Vetted</span>
                 </div>
-                <div className="text-xs text-slate-400">Verified Pros</div>
+                <div className="text-xs text-slate-400">Background Checked</div>
               </div>
               <div className="text-center border-x border-slate-800">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Clock className="w-4 h-4 text-teal-400" />
-                  <span className="text-xl font-bold text-white">60s</span>
+                  <span className="text-sm font-bold text-white">Fast</span>
                 </div>
-                <div className="text-xs text-slate-400">To Match</div>
+                <div className="text-xs text-slate-400">Quick Matching</div>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Shield className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xl font-bold text-white">£10M+</span>
+                  <span className="text-sm font-bold text-white">Secure</span>
                 </div>
-                <div className="text-xs text-slate-400">Protected</div>
+                <div className="text-xs text-slate-400">Payment Protection</div>
               </div>
             </div>
           </div>
@@ -295,23 +291,23 @@ export function HeroCard({
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full">
                 <Star className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-xs font-medium text-amber-300">Rated 4.8/5</span>
+                <span className="text-xs font-medium text-amber-300">Rated & Reviewed</span>
               </div>
             </div>
 
-            {/* Stats */}
+            {/* Features */}
             <div className="grid grid-cols-3 gap-4 pt-3 border-t border-slate-800">
               <div className="text-center">
-                <div className="text-lg font-bold text-white">1M+</div>
-                <div className="text-xs text-slate-400">Transformations</div>
+                <div className="text-sm font-bold text-white">Photo Proof</div>
+                <div className="text-xs text-slate-400">Before & After</div>
               </div>
               <div className="text-center border-x border-slate-800">
-                <div className="text-lg font-bold text-white">60s</div>
-                <div className="text-xs text-slate-400">AI Analysis</div>
+                <div className="text-sm font-bold text-white">AI Powered</div>
+                <div className="text-xs text-slate-400">Smart Matching</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-white">£10M+</div>
-                <div className="text-xs text-slate-400">Secured</div>
+                <div className="text-sm font-bold text-white">Escrow</div>
+                <div className="text-xs text-slate-400">Payment Protection</div>
               </div>
             </div>
           </div>
@@ -427,19 +423,19 @@ export function HeroCard({
               </div>
             </div>
 
-            {/* Stats */}
+            {/* Features */}
             <div className="grid grid-cols-3 gap-4 pt-3 border-t border-slate-800">
               <div className="text-center">
-                <div className="text-lg font-bold text-white">50K+</div>
-                <div className="text-xs text-slate-400">Happy Homes</div>
+                <div className="text-sm font-bold text-white">Local</div>
+                <div className="text-xs text-slate-400">Nearby Pros</div>
               </div>
               <div className="text-center border-x border-slate-800">
-                <div className="text-lg font-bold text-white">4.8★</div>
-                <div className="text-xs text-slate-400">Average Rating</div>
+                <div className="text-sm font-bold text-white">Reviewed</div>
+                <div className="text-xs text-slate-400">Real Feedback</div>
               </div>
               <div className="text-center">
-                <div className="text-lg font-bold text-white">60s</div>
-                <div className="text-xs text-slate-400">To Match</div>
+                <div className="text-sm font-bold text-white">Insured</div>
+                <div className="text-xs text-slate-400">Full Cover</div>
               </div>
             </div>
           </div>
@@ -470,8 +466,8 @@ export function HeroCard({
                 <span className="text-xs font-bold text-white">Electrical</span>
               </div>
               <div className="flex items-center gap-1">
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                <span className="text-xs text-white font-semibold">4.9</span>
+                <CheckCircle2 className="w-3 h-3 text-teal-400" />
+                <span className="text-xs text-white font-semibold">Verified</span>
               </div>
             </div>
           </div>
@@ -573,28 +569,28 @@ export function HeroCard({
               </div>
             </div>
 
-            {/* Stats */}
+            {/* Features */}
             <div className="grid grid-cols-3 gap-4 pt-3 border-t border-slate-800">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
                   <Users className="w-4 h-4 text-teal-400" />
-                  <span className="text-lg font-bold text-white">50K+</span>
+                  <span className="text-sm font-bold text-white">Verified</span>
                 </div>
-                <div className="text-xs text-slate-400">Verified Pros</div>
+                <div className="text-xs text-slate-400">All Pros Vetted</div>
               </div>
               <div className="text-center border-x border-slate-800">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
                   <MapPin className="w-4 h-4 text-emerald-400" />
-                  <span className="text-lg font-bold text-white">UK-Wide</span>
+                  <span className="text-sm font-bold text-white">UK-Wide</span>
                 </div>
                 <div className="text-xs text-slate-400">Coverage</div>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-1 mb-0.5">
-                  <Star className="w-4 h-4 text-amber-400" />
-                  <span className="text-lg font-bold text-white">4.8</span>
+                  <Shield className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-bold text-white">Insured</span>
                 </div>
-                <div className="text-xs text-slate-400">Avg Rating</div>
+                <div className="text-xs text-slate-400">Full Protection</div>
               </div>
             </div>
           </div>
