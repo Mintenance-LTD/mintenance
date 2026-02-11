@@ -49,7 +49,7 @@ async function applyMigration() {
 
     console.log('⚠️  Unable to apply migration programmatically.');
     console.log('   Please apply manually in Supabase dashboard:\n');
-    console.log('   1. Go to: https://supabase.com/dashboard/project/ukrjudtlvapiajkjbcrd/sql/new');
+    console.log('   1. Go to: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/sql/new');
     console.log('   2. Paste the SQL above');
     console.log('   3. Click "Run"\n');
 

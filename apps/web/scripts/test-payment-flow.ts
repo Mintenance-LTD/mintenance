@@ -36,7 +36,7 @@ if (!SUPABASE_URL) {
 
 if (!SUPABASE_SERVICE_ROLE_KEY) {
   console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY in .env');
-  console.error('   Get it from: https://supabase.com/dashboard/project/ukrjudtlvapiajkjbcrd/settings/api');
+  console.error('   Get it from: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/settings/api');
   process.exit(1);
 }
 

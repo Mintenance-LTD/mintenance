@@ -10,11 +10,11 @@ import * as path from 'path';
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ukrjudtlvapiajkjbcrd.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_AMoaugS1OiiCYsvyXtRJNw_uVUJwLan';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseKey) {
-  console.error('❌ SUPABASE_SERVICE_ROLE_KEY not found');
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Missing required env vars: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
   process.exit(1);
 }
 

@@ -42,7 +42,7 @@ async function applyMigration() {
         if (error.message?.includes('exec_sql') || error.code === 'PGRST202') {
           console.log('\n⚠️  exec_sql function not available.');
           console.log('📋 Please apply the migration manually using Supabase SQL Editor:');
-          console.log('   1. Go to https://supabase.com/dashboard/project/ukrjudtlvapiajkjbcrd/sql');
+          console.log('   1. Go to https://supabase.com/dashboard/project/YOUR_PROJECT_REF/sql');
           console.log('   2. Copy and paste the contents of:');
           console.log('      supabase/migrations/20260202120000_add_materials_system.sql');
           console.log('   3. Execute the SQL');

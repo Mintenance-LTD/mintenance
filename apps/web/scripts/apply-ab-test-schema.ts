@@ -65,7 +65,7 @@ async function applyMigration() {
         console.log('\n📋 Manual Application Required:\n');
         console.log('   Option 1: Supabase Dashboard (Recommended)');
         console.log('   ────────────────────────────────────────────');
-        console.log('   1. Go to: https://app.supabase.com/project/ukrjudtlvapiajkjbcrd/sql');
+        console.log('   1. Go to: https://app.supabase.com/project/YOUR_PROJECT_REF/sql');
         console.log('   2. Click "New query"');
         console.log('   3. Copy the contents of:');
         console.log(`      supabase/migrations/${migrationFile}`);
@@ -75,9 +75,9 @@ async function applyMigration() {
         console.log('   Option 2: Using psql (if you have database password)');
         console.log('   ──────────────────────────────────────────────────────');
         console.log('   Get your database password from:');
-        console.log('   https://app.supabase.com/project/ukrjudtlvapiajkjbcrd/settings/database');
+        console.log('   https://app.supabase.com/project/YOUR_PROJECT_REF/settings/database');
         console.log('\n   Then run:');
-        console.log(`   psql "postgresql://postgres:[PASSWORD]@db.ukrjudtlvapiajkjbcrd.supabase.co:5432/postgres" -f supabase/migrations/${migrationFile}\n`);
+        console.log(`   psql "postgresql://postgres:[PASSWORD]@db.YOUR_PROJECT_REF.supabase.co:5432/postgres" -f supabase/migrations/${migrationFile}\n`);
         
         console.log('   Option 3: Create exec_sql function first');
         console.log('   ──────────────────────────────────────────');

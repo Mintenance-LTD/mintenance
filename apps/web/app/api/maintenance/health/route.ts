@@ -38,7 +38,7 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
       message: 'Service is running. Model health checks should be performed client-side.',
       loaded: false,
-      url: process.env.NEXT_PUBLIC_YOLO_MODEL_URL || 'https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/yolo-models/maintenance-v1.0.onnx',
+      url: process.env.NEXT_PUBLIC_YOLO_MODEL_URL || `${process.env.NEXT_PUBLIC_SUPABASE_URL || ''}/storage/v1/object/public/yolo-models/maintenance-v1.0.onnx`,
       ready: false
     });
   } catch (error) {
