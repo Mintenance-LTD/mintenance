@@ -267,14 +267,20 @@ export function JobDetailsProfessional({
             )}
 
             {/* Bids Section (Homeowner View Only) */}
-            {isOwner && bids.length > 0 && (
-              <ContentCard title={`Bids Received (${bids.length})`}>
-                <div className="space-y-4">
-                  {bids.map((bid) => (
-                    <BidCard key={bid.id} bid={bid} jobId={job.id} />
-                  ))}
-                </div>
-              </ContentCard>
+            {isOwner && (
+              <div id="bids-section">
+                <ContentCard title={`Bids Received (${bids.length})`}>
+                  {bids.length > 0 ? (
+                    <div className="space-y-4">
+                      {bids.map((bid) => (
+                        <BidCard key={bid.id} bid={bid} jobId={job.id} />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No bids received yet. Contractors will be able to submit bids for this job.</p>
+                  )}
+                </ContentCard>
+              </div>
             )}
 
             {/* Timeline/Schedule */}
@@ -376,10 +382,24 @@ export function JobDetailsProfessional({
                   </button>
                 )}
 
-                <button className="btn-secondary w-full flex items-center justify-center gap-2">
-                  <MessageCircle className="w-5 h-5" />
-                  Contact {isOwner ? 'Contractor' : 'Homeowner'}
-                </button>
+                {isOwner && bids.length > 0 ? (
+                  <a
+                    href="#bids-section"
+                    className="btn-secondary w-full flex items-center justify-center gap-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById('bids-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <Star className="w-5 h-5" />
+                    View {bids.length} {bids.length === 1 ? 'Bid' : 'Bids'}
+                  </a>
+                ) : (
+                  <button className="btn-secondary w-full flex items-center justify-center gap-2">
+                    <MessageCircle className="w-5 h-5" />
+                    Contact {isOwner ? 'Contractor' : 'Homeowner'}
+                  </button>
+                )}
               </div>
 
               {/* Help Card */}

@@ -65,7 +65,7 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
       created_at,
       contractor_id,
       quote_id,
-      contractor:users!bids_contractor_id_fkey (
+      contractor:profiles!bids_contractor_id_fkey (
         id,
         first_name,
         last_name,
@@ -82,6 +82,10 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
       )
     `)
     .eq('job_id', resolvedParams.id);
+
+  if (bidsError) {
+    logger.error('JobDetailPage2025 - Bids query error', { jobId: resolvedParams.id, error: bidsError.message });
+  }
 
   // Fetch portfolio images in batch
   const contractorIds = bids?.map(b => b.contractor_id).filter(Boolean) || [];
