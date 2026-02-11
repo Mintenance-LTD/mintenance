@@ -20,8 +20,9 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 const nextConfig = {
-  // Enable standalone output for smaller deployments
-  output: 'standalone',
+  // NOTE: output: 'standalone' removed — Vercel has its own serverless function
+  // packaging pipeline and standalone mode interferes with it, causing all
+  // serverless functions to crash on cold start with no runtime logs.
 
   // Required for monorepo: trace from repo root to include workspace packages
   outputFileTracingRoot: path.join(__dirname, '../../'),
@@ -336,28 +337,11 @@ const nextConfig = {
       { key: 'Permissions-Policy', value: 'geolocation=(), camera=(), microphone=(), payment=(self "https://js.stripe.com")' },
     ];
 
-    // In development, CSP is handled by middleware.ts to allow debug server connections
-    // Only set CSP in production via next.config.js
+    // CSP is handled by middleware.ts (supports nonce for authenticated routes)
+    // Only add HSTS here (not CSP) to avoid duplicate/conflicting CSP headers
     if (!isDev) {
       baseHeaders.push(
         { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-        {
-          key: 'Content-Security-Policy',
-          value: [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
-            "font-src 'self' data: https://fonts.gstatic.com",
-            "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com",
-            "frame-src https://js.stripe.com",
-            "object-src 'none'",
-            "base-uri 'self'",
-            "form-action 'self'",
-            "frame-ancestors 'none'",
-            "upgrade-insecure-requests",
-          ].join('; '),
-        }
       );
     }
 

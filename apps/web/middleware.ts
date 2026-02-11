@@ -39,12 +39,67 @@ import type { JWTPayload } from '@mintenance/types';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Define public routes that don't require authentication
+  // IMPORTANT: Public route check MUST happen before ConfigManager to ensure
+  // login, CSRF, session-status, and diag routes work even if config fails
+  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search', '/try-mint-ai'];
+  const publicApiRoutes = ['/api/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform', '/api/diag'];
+  const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
+  const isPublicContractorProfile = /^\/contractor\/[^\/]+$/.test(pathname);
+  const isPublicContractorsPage = /^\/contractors(\/|$)/.test(pathname);
+  const isPublicRoute = pathname === '/' ||
+    publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
+    publicApiRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
+    isPublicContractorProfile ||
+    isPublicContractorsPage ||
+    adminAuthRoutes.includes(pathname);
+
+  // Skip auth middleware for public routes — no ConfigManager needed
+  if (isPublicRoute) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-pathname', pathname);
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+    // Generate CSRF token on first visit if not present
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+
+    if (!request.cookies.get(csrfCookieName)) {
+      const csrfToken = crypto.randomUUID();
+      response.cookies.set(csrfCookieName, csrfToken, {
+        httpOnly: false, // SECURITY: Must be false for double-submit cookie pattern
+        secure: !isDevelopment, // Only secure in production
+        sameSite: 'strict',
+        path: '/',
+        maxAge: 24 * 60 * 60, // 24 hours
+      });
+    }
+
+    // Set CSP for public routes (no nonce needed since these are login/register pages)
+    if (!isDevelopment) {
+      response.headers.set('Content-Security-Policy', [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com",
+        "frame-src https://js.stripe.com",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+      ].join('; '));
+    }
+
+    return response;
+  }
+
   // SECURITY: Validate request body size and content type for POST/PUT/PATCH requests
   if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
     const contentType = request.headers.get('content-type') || '';
     const contentLength = request.headers.get('content-length');
 
-    // Reject requests without content-type for state-changing methods
     if (!contentType && request.method !== 'GET') {
       logger.warn('Request missing content-type header', {
         service: 'middleware',
@@ -57,7 +112,6 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    // Reject requests with body size > 10MB (configurable)
     const maxBodySize = 10 * 1024 * 1024; // 10MB
     if (contentLength && parseInt(contentLength, 10) > maxBodySize) {
       logger.warn('Request body size exceeds limit', {
@@ -72,8 +126,7 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    // Validate content-type for JSON requests
-    if (contentType && !contentType.includes('application/json') && 
+    if (contentType && !contentType.includes('application/json') &&
         !contentType.includes('multipart/form-data') &&
         !contentType.includes('application/x-www-form-urlencoded') &&
         !contentType.includes('text/')) {
@@ -82,7 +135,6 @@ export async function middleware(request: NextRequest) {
         pathname,
         contentType,
       });
-      // Allow through but log - some APIs may accept other content types
     }
   }
 
@@ -95,49 +147,6 @@ export async function middleware(request: NextRequest) {
       configError: configInitError,
     });
     return new NextResponse('Service Unavailable', { status: 503 });
-  }
-
-  // Define public routes that don't require authentication
-  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search', '/try-mint-ai'];
-  // Auth API routes must be public (can't require auth to log in)
-  const publicApiRoutes = ['/api/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform'];
-  // Admin auth routes (login, register, forgot-password) are also public
-  const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
-  // Public contractor profile pages (e.g., /contractor/[id] for viewing contractor profiles)
-  // All other contractor routes require authentication
-  const isPublicContractorProfile = /^\/contractor\/[^\/]+$/.test(pathname);
-  // Public contractor listing and detail pages (homeowner-facing)
-  const isPublicContractorsPage = /^\/contractors(\/|$)/.test(pathname);
-  const isPublicRoute = pathname === '/' ||
-    publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
-    publicApiRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
-    isPublicContractorProfile ||
-    isPublicContractorsPage ||
-    adminAuthRoutes.includes(pathname);
-
-  // Skip middleware for public routes
-  if (isPublicRoute) {
-    const requestHeaders = new Headers(request.headers);
-    // Add pathname for consistent server-side rendering
-    requestHeaders.set('x-pathname', pathname);
-    const response = NextResponse.next({ request: { headers: requestHeaders } });
-    
-    // Generate CSRF token on first visit if not present
-    const isDevelopment = process.env.NODE_ENV !== 'production';
-    const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
-    
-    if (!request.cookies.get(csrfCookieName)) {
-      const csrfToken = crypto.randomUUID();
-      response.cookies.set(csrfCookieName, csrfToken, {
-        httpOnly: false, // SECURITY: Must be false for double-submit cookie pattern
-        secure: !isDevelopment, // Only secure in production
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 24 * 60 * 60, // 24 hours
-      });
-    }
-    
-    return response;
   }
 
   // Skip middleware for static files only
