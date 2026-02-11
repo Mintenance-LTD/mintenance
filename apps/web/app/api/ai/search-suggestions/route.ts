@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const searchSuggestionsSchema = z.object({
+  query: z.string().min(1).max(200),
+  limit: z.number().int().min(1).max(50).default(10),
+});
 
 /**
  * AI-powered search suggestions endpoint
@@ -44,14 +50,15 @@ export async function POST(request: NextRequest) {
 
     // CSRF protection
     await requireCSRF(request);
-    const { query, limit = 10 } = await request.json();
-
-    if (!query || typeof query !== 'string') {
+    const body = await request.json();
+    const parsed = searchSuggestionsSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Query is required' },
+        { error: 'query (string, 1-200 chars) is required' },
         { status: 400 }
       );
     }
+    const { query, limit } = parsed.data;
 
     const [querySuggestions, categorySuggestions, locationSuggestions] = await Promise.all([
       getQuerySuggestions(query, limit),

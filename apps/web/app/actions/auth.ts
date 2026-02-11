@@ -356,8 +356,14 @@ export async function updateProfileAction(prevState: unknown, formData: FormData
 
     const supabase = await createServerSupabaseClient();
 
-    // Decode token to get user ID (simplified - use proper JWT verification)
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    // Verify the user's session server-side (not just decode the JWT)
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return {
+        success: false,
+        error: 'Session expired. Please log in again.',
+      };
+    }
 
     // Parse name into first/last
     const nameParts = name.trim().split(/\s+/);
@@ -374,7 +380,7 @@ export async function updateProfileAction(prevState: unknown, formData: FormData
         bio,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', payload.userId);
+      .eq('id', user.id);
 
     if (updateError) {
       logger.error('Profile update failed', updateError);
@@ -384,7 +390,7 @@ export async function updateProfileAction(prevState: unknown, formData: FormData
       };
     }
 
-    logger.info('Profile updated successfully', { userId: payload.userId });
+    logger.info('Profile updated successfully', { userId: user.id });
 
     return {
       success: true,

@@ -74,7 +74,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     // Normalize style prop to remove any border shorthand properties
     // The shared Input component uses separate border properties (borderWidth, borderStyle, borderColor)
     // so we must remove any shorthand 'border' properties to prevent React warnings
-    const propsStyle = (props as any).style;
+    const propsStyle = (props as { style?: React.CSSProperties }).style;
     const allStyles = [style, propsStyle].filter(Boolean);
     const mergedStyle = allStyles.length > 0 
       ? Object.assign({}, ...allStyles) 

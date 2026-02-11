@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { memoryManager } from '@/lib/services/ml-engine/memory/MemoryManager';
-import { MemoryAnalytics } from '@/lib/services/ml-engine/analytics/MemoryAnalytics';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const memoryUpdateSchema = z.object({
+  level: z.number().int().min(0).max(10).optional(),
+  keys: z.array(z.string().min(1).max(200)).optional(),
+  values: z.array(z.unknown()).optional(),
+}).refine(
+  data => (data.keys !== undefined && data.values !== undefined) || data.level !== undefined,
+  { message: 'Provide keys/values or level' }
+);
 
 /**
  * GET /api/ml/memory/[agentName]
@@ -101,11 +110,18 @@ export async function POST(
 
     const { agentName } = await params;
     const body = await request.json();
-    const { level, keys, values } = body;
+    const parsed = memoryUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request: provide keys/values or level (integer 0-10)' },
+        { status: 400 }
+      );
+    }
+    const { level, keys, values } = parsed.data;
 
     if (keys && values) {
       // Add context flow
-      await memoryManager.addContextFlow(agentName, keys, values, level);
+      await memoryManager.addContextFlow(agentName, keys.map(Number), (values as number[]), level);
       return NextResponse.json({ success: true, message: 'Context flow added' });
     } else if (level !== undefined) {
       // Trigger memory update

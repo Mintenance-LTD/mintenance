@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { memoryManager } from '@/lib/services/ml-engine/memory/MemoryManager';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const consolidateSchema = z.object({
+  level: z.number().int().min(0).max(10).optional(),
+});
 
 /**
  * POST /api/ml/memory/[agentName]/consolidate
@@ -39,7 +44,14 @@ export async function POST(
     await requireCSRF(request);
     const { agentName } = await params;
     const body = await request.json();
-    const { level } = body;
+    const parsed = consolidateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'level must be an integer 0-10 if provided' },
+        { status: 400 }
+      );
+    }
+    const { level } = parsed.data;
 
     if (level !== undefined) {
       // Consolidate specific level

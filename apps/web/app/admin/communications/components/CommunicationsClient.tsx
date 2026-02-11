@@ -478,7 +478,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                 id="announcement-title"
                 aria-required="true"
                 value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Announcement title"
               />
             </div>
@@ -489,7 +489,7 @@ export function CommunicationsClient({ initialAnnouncements, adminId }: Communic
                 id="announcement-content"
                 aria-required="true"
                 value={formData.content}
-                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="Announcement content..."
                 rows={6}
               />

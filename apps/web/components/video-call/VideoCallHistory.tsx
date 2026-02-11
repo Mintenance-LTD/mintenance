@@ -142,7 +142,7 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
     return false;
   };
 
-  const filterOptions = [
+  const filterOptions: Array<{ value: typeof filter; label: string; icon: string }> = [
     { value: 'all', label: 'All Calls', icon: '📹' },
     { value: 'upcoming', label: 'Upcoming', icon: '📅' },
     { value: 'completed', label: 'Completed', icon: '✅' },
@@ -202,7 +202,7 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
         {filterOptions.map(option => (
           <button
             key={option.value}
-            onClick={() => setFilter(option.value as any)}
+            onClick={() => setFilter(option.value)}
             style={{
               padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
               borderRadius: theme.borderRadius.md,

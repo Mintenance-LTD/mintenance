@@ -1,75 +1,66 @@
-// Sentry temporarily disabled - install @sentry/nextjs to enable
-// To enable Sentry monitoring:
-// 1. npm install @sentry/nextjs
-// 2. Uncomment the code below
-// 3. Configure NEXT_PUBLIC_SENTRY_DSN in .env
+// Sentry client-side configuration (Issue 41)
+// Requires: npm install @sentry/nextjs
+// Configure: NEXT_PUBLIC_SENTRY_DSN in .env
 
-/*
-import * as Sentry from '@sentry/nextjs';
+// Guard import — only initialise if the package is installed
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let Sentry: any = null;
 
-const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN;
+try {
+  // Dynamic require so the build doesn't fail if @sentry/nextjs is missing
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Sentry = require('@sentry/nextjs');
+} catch {
+  // @sentry/nextjs not installed — Sentry monitoring disabled
+}
 
-Sentry.init({
-  dsn: SENTRY_DSN,
+if (Sentry) {
+  const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN;
 
-  // Adjust this value in production, or use tracesSampler for greater control
-  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+  if (SENTRY_DSN) {
+    Sentry.init({
+      dsn: SENTRY_DSN,
 
-  // Set sampling rate for profiling
-  profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+      tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+      profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
-  // Performance monitoring
-  integrations: [
-    Sentry.browserTracingIntegration({
-      // Set sampling rate for performance monitoring
-      tracePropagationTargets: [
-        'localhost',
-        /^https:\/\/yourserver\.io\/api/,
+      integrations: [
+        Sentry.browserTracingIntegration({
+          tracePropagationTargets: [
+            'localhost',
+            /^https:\/\/.*\.mintenance\.app\/api/,
+          ],
+        }),
+        Sentry.replayIntegration({
+          sessionSampleRate: 0.1,
+          errorSampleRate: 1.0,
+        }),
       ],
-    }),
-    Sentry.replayIntegration({
-      // Capture 10% of all sessions
-      sessionSampleRate: 0.1,
-      // Capture 100% of sessions with an error
-      errorSampleRate: 1.0,
-    }),
-  ],
 
-  // Environment
-  environment: process.env.NODE_ENV,
+      environment: process.env.NODE_ENV,
+      release: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
 
-  // Release version
-  release: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
-
-  // Before send hook to filter sensitive data
-  beforeSend(event: Parameters<NonNullable<Parameters<typeof Sentry.init>[0]['beforeSend']>>[0], hint: Parameters<NonNullable<Parameters<typeof Sentry.init>[0]['beforeSend']>>[1]) {
-    // Filter out sensitive data
-    if (event.request) {
-      if (event.request.cookies) {
-        delete event.request.cookies;
-      }
-
-      // Filter out sensitive headers
-      if (event.request.headers) {
-        const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
-        sensitiveHeaders.forEach(header => {
-          if (event.request && event.request.headers) {
-            delete event.request.headers[header];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      beforeSend(event: any) {
+        if (event.request) {
+          delete event.request.cookies;
+          if (event.request.headers) {
+            const sensitiveHeaders = ['authorization', 'cookie', 'x-api-key'];
+            sensitiveHeaders.forEach((header: string) => {
+              if (event.request?.headers) {
+                delete event.request.headers[header];
+              }
+            });
           }
-        });
-      }
-    }
+        }
+        return event;
+      },
 
-    return event;
-  },
-
-  // Tags for better filtering
-  initialScope: {
-    tags: {
-      component: 'web-app',
-    },
-  },
-});
-*/
+      initialScope: {
+        tags: { component: 'web-app' },
+      },
+    });
+  }
+}
 
 export {};

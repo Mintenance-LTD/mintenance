@@ -167,7 +167,7 @@ export default function AnalyticsDetailPage2025() {
             <div className="flex flex-wrap gap-3">
               <select
                 value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDateRange(e.target.value)}
                 className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30"
               >
                 <option value="7days">Last 7 Days</option>

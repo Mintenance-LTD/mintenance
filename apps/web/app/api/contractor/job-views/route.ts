@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { jobId } = body;
+    const jobId = typeof body?.jobId === 'string' ? body.jobId.trim() : null;
 
     if (!jobId) {
       throw new BadRequestError('Job ID is required');

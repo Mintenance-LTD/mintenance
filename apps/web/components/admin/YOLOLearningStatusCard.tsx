@@ -74,7 +74,10 @@ export function YOLOLearningStatusCard() {
           </div>
           <h3 className="text-sm font-semibold text-slate-900">YOLO Learning</h3>
         </div>
-        <p className="text-sm text-slate-500">Loading...</p>
+        <div className="space-y-2">
+          <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200" />
+          <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
+        </div>
       </AdminCard>
     );
   }

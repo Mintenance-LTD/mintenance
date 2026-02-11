@@ -5,9 +5,11 @@
 
 import '@testing-library/jest-dom';
 import React from 'react';
-import { expect, afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import * as matchers from '@testing-library/jest-dom/matchers';
+
+// With globals: true in vitest.config.ts, beforeEach/afterEach/vi/expect are global.
+// Do NOT import from 'vitest' directly — it causes runner initialization errors in Vitest v4+.
 
 // Extend Vitest's expect with Testing Library matchers
 expect.extend(matchers);

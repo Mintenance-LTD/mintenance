@@ -7,7 +7,7 @@
  * These tests verify security measures and authentication state management.
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {

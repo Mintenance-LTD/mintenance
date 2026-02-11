@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
 // Mock Supabase — used by all agent services
 const mockSupabaseFrom = vi.fn();

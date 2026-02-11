@@ -1,7 +1,28 @@
-import { vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import * as OTPAuth from 'otpauth';
 import * as qrcode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
+
+// Mock speakeasy — use vi.hoisted so the factory survives mockReset: true
+const { speakeasy } = vi.hoisted(() => {
+  const makeGenerateSecret = () => vi.fn().mockImplementation((_opts?: any) => ({
+    ascii: 'test-ascii',
+    hex: 'test-hex',
+    base32: 'JBSWY3DPEHPK3PXP',
+    otpauth_url: 'otpauth://totp/MyApp?secret=JBSWY3DPEHPK3PXP',
+  }));
+  const makeVerify = () => vi.fn().mockImplementation((_opts?: any) => true);
+  return {
+    speakeasy: {
+      generateSecret: makeGenerateSecret(),
+      totp: { verify: makeVerify() },
+      _resetMocks() {
+        speakeasy.generateSecret = makeGenerateSecret();
+        speakeasy.totp.verify = makeVerify();
+      },
+    },
+  };
+});
 
 // Mock dependencies
 vi.mock('otpauth');
@@ -30,6 +51,7 @@ describe('MFA Service', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    speakeasy._resetMocks();
 
     // Mock Supabase client
     mockSupabase = {

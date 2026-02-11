@@ -37,19 +37,21 @@ export interface DetectorFusionResult {
 }
 
 export class DetectorFusionService {
-  // Learned detector weights (from offline Bayesian training)
-  // These are adjusted dynamically by DriftMonitorService based on distribution drift
+  // Detector weights — YOLO is the only active detector.
+  // Mask R-CNN and SAM weights are 0 until those models are deployed.
+  // These are adjusted dynamically by DriftMonitorService based on distribution drift.
   private static detectorWeights = {
-    yolo: 0.35,
-    maskrcnn: 0.50,
-    sam: 0.15,
+    yolo: 1.0,
+    maskrcnn: 0.0,
+    sam: 0.0,
   };
 
   // Base detector weights (for resetting after drift)
+  // YOLO-only until Mask R-CNN and SAM are deployed
   private static readonly BASE_DETECTOR_WEIGHTS = {
-    yolo: 0.35,
-    maskrcnn: 0.50,
-    sam: 0.15,
+    yolo: 1.0,
+    maskrcnn: 0.0,
+    sam: 0.0,
   };
 
   // Empirical correlation matrix Σ (from validation data)
@@ -116,19 +118,19 @@ export class DetectorFusionService {
       ? roboflowDetections.reduce((sum, d) => sum + d.confidence, 0) / roboflowDetections.length / 100
       : assessmentConfidence / 100;
 
-    // TODO: Integrate real Mask R-CNN and SAM detectors
-    // For now, simulate based on YOLO (remove this when real detectors are integrated)
+    // Mask R-CNN and SAM detectors are not yet integrated.
+    // Only YOLO (Roboflow) provides real detections. Unavailable detectors report 0 confidence.
     const detectorOutputs = {
       yolo: {
         confidence: avgRoboflowConfidence,
         detections: roboflowDetections,
       },
       maskrcnn: {
-        confidence: avgRoboflowConfidence * 0.95, // Simulated
+        confidence: 0, // Not integrated — requires Mask R-CNN model deployment
         detections: [],
       },
       sam: {
-        confidence: avgRoboflowConfidence * 0.90, // Simulated
+        confidence: 0, // Not integrated — requires SAM model deployment
         detections: [],
       },
     };

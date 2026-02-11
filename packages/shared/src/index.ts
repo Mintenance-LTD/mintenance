@@ -77,6 +77,8 @@ export const RATE_LIMITS = {
   AI_SEARCH_PER_MINUTE: 10,
   /** AI suggestions requests per minute */
   AI_SUGGESTIONS_PER_MINUTE: 20,
+  /** Per-user AI requests per minute (prevents single user from exhausting budget) */
+  AI_USER_REQUESTS_PER_MINUTE: 3,
   /** Webhook requests per minute */
   WEBHOOK_REQUESTS_PER_MINUTE: 100,
   /** Maximum entries in fallback rate limiter (memory safety) */

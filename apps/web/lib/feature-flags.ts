@@ -24,7 +24,11 @@ export type FeatureFlagName =
   | 'new-dashboard-2025'
   | 'enhanced-messaging'
   | 'real-time-notifications'
-  | 'advanced-analytics';
+  | 'advanced-analytics'
+  | 'ai-damage-assessment'
+  | 'ai-cost-estimation'
+  | 'ai-recommendations'
+  | 'ml-image-analysis';
 
 interface FeatureFlagConfig {
   name: FeatureFlagName;
@@ -59,6 +63,26 @@ const FEATURE_FLAGS: Record<FeatureFlagName, FeatureFlagConfig> = {
     description: 'Enable advanced analytics dashboard',
     defaultEnabled: false,
     enabledForRoles: ['admin'],
+  },
+  'ai-damage-assessment': {
+    name: 'ai-damage-assessment',
+    description: 'AI-powered building damage assessment (disabled: ML backend not production-ready)',
+    defaultEnabled: false,
+  },
+  'ai-cost-estimation': {
+    name: 'ai-cost-estimation',
+    description: 'AI-powered cost estimation (disabled: ML backend not production-ready)',
+    defaultEnabled: false,
+  },
+  'ai-recommendations': {
+    name: 'ai-recommendations',
+    description: 'AI-powered contractor recommendations (disabled: ML backend not production-ready)',
+    defaultEnabled: false,
+  },
+  'ml-image-analysis': {
+    name: 'ml-image-analysis',
+    description: 'ML image analysis for damage detection (disabled: TF.js backend is mocked)',
+    defaultEnabled: false,
   },
 };
 

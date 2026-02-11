@@ -98,6 +98,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           e.currentTarget.style.backgroundColor = 'transparent';
         }}
         title="Attach file"
+        aria-label="Attach file"
       >
         📎
       </button>
@@ -166,6 +167,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             e.currentTarget.style.backgroundColor = 'transparent';
           }}
           title="Add emoji"
+          aria-label="Add emoji"
         >
           😊
         </button>
@@ -177,6 +179,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         disabled={disabled || !message.trim()}
         variant="primary"
         size="sm"
+        aria-label="Send message"
         style={{
           minWidth: '60px',
           height: '40px',
@@ -184,7 +187,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           fontSize: theme.typography.fontSize.lg,
         }}
       >
-        ↗️
+        <span aria-hidden="true">↗️</span>
       </Button>
 
       {/* File Upload Alert Dialog */}

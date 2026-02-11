@@ -188,6 +188,29 @@ export type Env = z.infer<typeof envSchema>;
  */
 function validateEnv(): Env {
   try {
+    // During `next build`, env vars may not be available on the build machine.
+    // Provide safe defaults so module-level imports don't throw.
+    const isBuildTime =
+      process.env.NEXT_PHASE === 'phase-production-build' ||
+      process.env.NEXT_PHASE === 'phase-development-build';
+
+    // During next build, env vars are not available on the build server.
+    // Return safe placeholder defaults — no real operations run during build.
+    if (isBuildTime) {
+      return {
+        NODE_ENV: (process.env.NODE_ENV || 'production') as 'production' | 'development' | 'test',
+        JWT_SECRET: process.env.JWT_SECRET || 'Build_Phase_Placeholder_Secret_0123456789_ABCDEFGHIJ_klmnopqrstuvwxyz!@#',
+        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder',
+        STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
+        STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder',
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder',
+        ROBOFLOW_MODEL_ID: process.env.ROBOFLOW_MODEL_ID || 'building-defect-detection-7-ks0im',
+        ROBOFLOW_MODEL_VERSION: process.env.ROBOFLOW_MODEL_VERSION || '4',
+        ROBOFLOW_TIMEOUT_MS: parseInt(process.env.ROBOFLOW_TIMEOUT_MS || '10000', 10),
+      } as Env;
+    }
+
     // In test mode, use safeParse and provide defaults for missing values
     if (process.env.NODE_ENV === 'test') {
       const result = envSchema.safeParse(process.env);

@@ -55,7 +55,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     const normalizedStyle: React.CSSProperties = { ...style };
     borderProperties.forEach(prop => {
       if (prop in normalizedStyle) {
-        delete (normalizedStyle as any)[prop];
+        delete (normalizedStyle as Record<string, unknown>)[prop];
       }
     });
 

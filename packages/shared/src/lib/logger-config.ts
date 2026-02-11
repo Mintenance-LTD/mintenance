@@ -153,7 +153,7 @@ export class CloudWatchTransport implements LogTransport {
 export class FileTransport implements LogTransport {
   name = 'file';
   private filePath: string;
-  private stream?: unknown;
+  private stream?: { write(chunk: string): boolean };
 
   constructor(config: { filePath: string }) {
     this.filePath = config.filePath;
@@ -189,7 +189,7 @@ export class FileTransport implements LogTransport {
       } : undefined
     }) + '\n';
 
-    (this.stream as any).write(line);
+    this.stream.write(line);
   }
 }
 
@@ -215,7 +215,7 @@ export function createLogger(customConfig?: {
     service: customConfig?.service || 'mintenance',
     environment: customConfig?.environment || process.env.NODE_ENV || 'development',
     version: process.env.npm_package_version || '1.0.0',
-    minLogLevel: (customConfig?.minLogLevel as any) || (isDevelopment ? 'debug' : 'info'),
+    minLogLevel: (customConfig?.minLogLevel as 'debug' | 'info' | 'warn' | 'error') || (isDevelopment ? 'debug' : 'info'),
     enableBatching: !isDevelopment,
     batchSize: 100,
     flushInterval: 5000,
@@ -240,7 +240,7 @@ export function createLogger(customConfig?: {
 
     // CloudWatch integration (for AWS deployments)
     if (!isDevelopment && customConfig?.enableCloudWatch && customConfig?.cloudWatchConfig) {
-      logger.addTransport(new CloudWatchTransport(customConfig.cloudWatchConfig as any));
+      logger.addTransport(new CloudWatchTransport(customConfig.cloudWatchConfig as { logGroupName: string; logStreamName?: string; region?: string }));
     }
 
     // File logging (for debugging in production)

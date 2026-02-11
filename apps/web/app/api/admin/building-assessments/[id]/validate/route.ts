@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { DataCollectionService } from '@/lib/services/building-surveyor/DataCollectionService';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const validateAssessmentSchema = z.object({
+  validated: z.boolean(),
+  notes: z.string().max(2000).optional(),
+});
 
 /**
  * POST /api/admin/building-assessments/[id]/validate
@@ -51,7 +57,14 @@ export async function POST(
     userId = user.id;
 
     const body = await request.json();
-    const { validated, notes } = body;
+    const parsed = validateAssessmentSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+    const { validated, notes } = parsed.data;
 
     if (validated) {
       await DataCollectionService.validateAssessment(id, user.id, notes);

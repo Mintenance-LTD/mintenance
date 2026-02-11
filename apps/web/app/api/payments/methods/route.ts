@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit';
 import { handleAPIError, UnauthorizedError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10',
-});
+import { stripe } from '@/lib/stripe';
 
 /**
  * GET /api/payments/methods

@@ -8,13 +8,7 @@ import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10',
-});
+import { stripe } from '@/lib/stripe';
 
 const confirmIntentSchema = z.object({
   paymentIntentId: z.string().regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),

@@ -67,7 +67,7 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
             error={!!error}
             errorText={error}
             value={value}
-            {...(props as any)}
+            {...(props as Record<string, unknown>)}
           />
           <button
             type="button"

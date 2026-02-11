@@ -4,7 +4,7 @@
  * Tests the complete flow from route selection through execution,
  * verifying that components integrate correctly.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
 // Mock external dependencies
 vi.mock('@mintenance/shared', () => ({

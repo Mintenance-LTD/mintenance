@@ -162,7 +162,7 @@ export function ExportMenu(props: ExportMenuProps) {
                   justifyContent: 'center',
                 }}
               >
-                <Icon name={option.icon as any} size={18} color={theme.colors.primary} />
+                <Icon name={option.icon} size={18} color={theme.colors.primary} />
               </div>
               <div style={{ flex: 1 }}>
                 <div

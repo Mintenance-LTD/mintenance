@@ -1,6 +1,7 @@
 import type { JSX } from 'react';
 import type { Metadata } from 'next';
 import { EmbeddedCheckoutComponent } from '@/components/payments/EmbeddedCheckout';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { logger } from '@mintenance/shared';
 
@@ -49,27 +50,29 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="container mx-auto p-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Complete Your Payment</CardTitle>
-          <CardDescription>Secure checkout powered by Stripe</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <EmbeddedCheckoutComponent
-            priceId={priceId}
-            jobId={jobId}
-            bidId={bidId}
-            contractorId={contractorId}
-            quantity={quantity ? parseInt(quantity, 10) : 1}
-            onSuccess={() => {
-              logger.info('Payment successful!');
-            }}
-            onError={(error) => {
-              logger.error('Payment error:', error);
-            }}
-          />
-        </CardContent>
-      </Card>
+      <ErrorBoundary>
+        <Card>
+          <CardHeader>
+            <CardTitle>Complete Your Payment</CardTitle>
+            <CardDescription>Secure checkout powered by Stripe</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <EmbeddedCheckoutComponent
+              priceId={priceId}
+              jobId={jobId}
+              bidId={bidId}
+              contractorId={contractorId}
+              quantity={quantity ? parseInt(quantity, 10) : 1}
+              onSuccess={() => {
+                logger.info('Payment successful!');
+              }}
+              onError={(error) => {
+                logger.error('Payment error:', error);
+              }}
+            />
+          </CardContent>
+        </Card>
+      </ErrorBoundary>
     </div>
   );
 }

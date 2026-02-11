@@ -13,6 +13,9 @@ import type {
 
 const AGENT_NAME = 'building-surveyor';
 
+/** Maximum time (ms) for the entire GPT assessment call including retries (Issue 38) */
+const GPT_ASSESSMENT_TIMEOUT_MS = 90_000;
+
 function recordMetric(metric: string, payload: Record<string, unknown>): void {
   MonitoringService.record(metric, { agentName: AGENT_NAME, ...payload });
 }
@@ -95,9 +98,15 @@ export async function callGptAssessment(
     dailyRemaining: budgetCheck.dailyBudgetRemaining,
   });
 
-  // Call generator
+  // Call generator with timeout to prevent indefinite blocking (Issue 38)
   const gptStart = Date.now();
-  const genResult = await getGeneratorContent(messages, openaiApiKey);
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('AI assessment timed out after 90 seconds')), GPT_ASSESSMENT_TIMEOUT_MS),
+  );
+  const genResult = await Promise.race([
+    getGeneratorContent(messages, openaiApiKey),
+    timeoutPromise,
+  ]);
   const gptDuration = Date.now() - gptStart;
 
   // Record usage

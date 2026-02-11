@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
@@ -10,14 +9,7 @@ import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult 
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError, BadRequestError } from '@/lib/errors/api-error';
 import { stripeWithTimeout } from '@/lib/utils/api-timeout';
 import { rateLimiter } from '@/lib/rate-limiter';
-
-// Initialize Stripe with secret key (server-side only)
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10',
-});
+import { stripe } from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {

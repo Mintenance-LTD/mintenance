@@ -57,7 +57,7 @@ export function ProfileInfoTab({
             id="profile-firstName"
             type="text"
             value={userData.firstName}
-            onChange={(e) => onFieldChange('firstName', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFieldChange('firstName', e.target.value)}
             onBlur={() => onFieldBlur('firstName')}
             disabled={!isEditing}
             error={Boolean(isEditing && touchedFields.firstName && errors.firstName)}
@@ -77,7 +77,7 @@ export function ProfileInfoTab({
             id="profile-lastName"
             type="text"
             value={userData.lastName}
-            onChange={(e) => onFieldChange('lastName', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFieldChange('lastName', e.target.value)}
             onBlur={() => onFieldBlur('lastName')}
             disabled={!isEditing}
             error={Boolean(isEditing && touchedFields.lastName && errors.lastName)}
@@ -99,7 +99,7 @@ export function ProfileInfoTab({
               id="profile-email"
               type="email"
               value={userData.email}
-              onChange={(e) => onFieldChange('email', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFieldChange('email', e.target.value)}
               onBlur={() => onFieldBlur('email')}
               disabled={!isEditing}
               error={Boolean(isEditing && touchedFields.email && errors.email)}
@@ -123,7 +123,7 @@ export function ProfileInfoTab({
               id="profile-phone"
               type="tel"
               value={userData.phone}
-              onChange={(e) => onFieldChange('phone', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFieldChange('phone', e.target.value)}
               onBlur={() => onFieldBlur('phone')}
               disabled={!isEditing}
               error={Boolean(isEditing && touchedFields.phone && errors.phone)}
@@ -140,7 +140,7 @@ export function ProfileInfoTab({
             <input
               type="text"
               value={userData.address}
-              onChange={(e) => onFieldChange('address', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFieldChange('address', e.target.value)}
               disabled={!isEditing}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
             />
@@ -152,7 +152,7 @@ export function ProfileInfoTab({
           <input
             type="text"
             value={userData.city}
-            onChange={(e) => onFieldChange('city', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFieldChange('city', e.target.value)}
             disabled={!isEditing}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
           />
@@ -163,7 +163,7 @@ export function ProfileInfoTab({
           <input
             type="text"
             value={userData.postcode}
-            onChange={(e) => onFieldChange('postcode', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onFieldChange('postcode', e.target.value)}
             disabled={!isEditing}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
           />
@@ -173,7 +173,7 @@ export function ProfileInfoTab({
           <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
           <textarea
             value={userData.bio}
-            onChange={(e) => onFieldChange('bio', e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onFieldChange('bio', e.target.value)}
             disabled={!isEditing}
             rows={4}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"

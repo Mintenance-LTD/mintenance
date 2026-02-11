@@ -220,7 +220,7 @@ export default function ContractorNotificationsPage2025() {
   }, [user, loadingUser, router]);
 
   if (loadingUser) {
-    return <LoadingSpinner fullScreen message="Loading..." />;
+    return <LoadingSpinner fullScreen />;
   }
 
   if (!user || user.role !== 'contractor') return null;

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SearchFilters } from '../SearchFilters';

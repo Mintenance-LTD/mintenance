@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 /**
  * SAM 3 Integration Tests
  * Tests the complete SAM 3 integration including:

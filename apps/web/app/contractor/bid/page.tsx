@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { LoadingSpinner } from '@/components/ui';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { Briefcase, TrendingUp, Clock, PoundSterling, AlertCircle, ArrowRight } from 'lucide-react';
@@ -101,6 +102,7 @@ export default function ContractorBidsOverviewPage() {
   };
 
   return (
+    <ErrorBoundary>
     <ContractorPageWrapper>
       {/* Header */}
       <div className="bg-white border border-gray-200 rounded-xl p-8 mb-6">
@@ -254,5 +256,6 @@ export default function ContractorBidsOverviewPage() {
         )}
       </div>
     </ContractorPageWrapper>
+    </ErrorBoundary>
   );
 }

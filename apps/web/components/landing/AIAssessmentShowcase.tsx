@@ -370,7 +370,7 @@ export function AIAssessmentShowcase() {
                                     />
                                     <FeatureItem
                                         icon={<Sparkles className="w-6 h-6" />}
-                                        title="95% Accuracy"
+                                        title="AI-Powered"
                                         description="Powered by advanced GPT-4 Vision AI"
                                     />
                                     <FeatureItem
@@ -388,8 +388,8 @@ export function AIAssessmentShowcase() {
                                             <div className="text-sm text-slate-200">Assessments</div>
                                         </div>
                                         <div>
-                                            <div className="text-3xl font-bold text-[#F59E0B]">95%</div>
-                                            <div className="text-sm text-slate-200">Accuracy</div>
+                                            <div className="text-3xl font-bold text-[#F59E0B]">AI</div>
+                                            <div className="text-sm text-slate-200">Powered</div>
                                         </div>
                                         <div>
                                             <div className="text-3xl font-bold text-[#F59E0B]">10s</div>
@@ -436,6 +436,13 @@ export function AIAssessmentShowcase() {
                                         <ArrowRight className="w-5 h-5" />
                                     </Button>
                                 </div>
+
+                                <p className="mt-4 text-xs text-slate-400 leading-relaxed">
+                                    This AI-generated assessment is for informational purposes only
+                                    and does not constitute a professional building survey or
+                                    structural engineering report. Always consult a qualified
+                                    professional before making repair or safety decisions.
+                                </p>
                             </div>
                         ) : null}
                     </div>

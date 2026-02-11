@@ -1,8 +1,14 @@
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const pricingSuggestSchema = z.object({
+  jobId: z.string().uuid(),
+  proposedPrice: z.number().positive().max(1_000_000).optional(),
+});
 
 export const dynamic = 'force-dynamic';
 
@@ -59,14 +65,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { jobId, proposedPrice } = body;
-
-    if (!jobId) {
+    const parsed = pricingSuggestSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'jobId is required' },
+        { error: 'jobId (UUID) is required. proposedPrice must be a positive number if provided.' },
         { status: 400 }
       );
     }
+    const { jobId, proposedPrice } = parsed.data;
 
     logger.info('Generating pricing suggestion', {
       service: 'PricingSuggestionAPI',

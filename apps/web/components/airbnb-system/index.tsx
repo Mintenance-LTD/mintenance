@@ -240,7 +240,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           type="text"
           placeholder="Service type"
           value={params.service || ''}
-          onChange={(e) => setParams({ ...params, service: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setParams({ ...params, service: e.target.value })}
           onKeyPress={handleKeyPress}
         />
       </div>
@@ -253,7 +253,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           type="text"
           placeholder="Postcode or area"
           value={params.location || ''}
-          onChange={(e) => setParams({ ...params, location: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setParams({ ...params, location: e.target.value })}
           onKeyPress={handleKeyPress}
         />
       </div>
@@ -266,7 +266,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           type="date"
           placeholder="Add date"
           value={params.date || ''}
-          onChange={(e) => setParams({ ...params, date: e.target.value })}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setParams({ ...params, date: e.target.value })}
           onKeyPress={handleKeyPress}
         />
       </div>
@@ -590,7 +590,7 @@ export const Button: React.FC<ButtonProps> = ({
       {loading ? (
         <div className="flex items-center justify-center gap-2">
           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          <span>Loading...</span>
+          <span className="sr-only">Loading</span>
         </div>
       ) : (
         children

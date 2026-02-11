@@ -21,6 +21,7 @@
     },
     "dependencies": {
         "@mintenance/types": "file:../types",
+        "@mintenance/shared": "file:../shared",
         "bcryptjs": "^3.0.2",
         "jose": "^6.1.0"
     },

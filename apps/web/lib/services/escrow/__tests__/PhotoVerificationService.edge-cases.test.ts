@@ -4,7 +4,7 @@
  * Tests error handling, boundary conditions, and validation edge cases
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { PhotoVerificationService } from '../PhotoVerificationService';
 import type { Photo } from '../PhotoVerificationService';
 

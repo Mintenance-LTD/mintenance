@@ -299,7 +299,7 @@ export default function MigrationDashboard() {
             </label>
             <select
               value={refreshInterval}
-              onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRefreshInterval(parseInt(e.target.value))}
               className="border border-gray-300 rounded px-3 py-1 text-sm"
             >
               <option value="10000">10 seconds</option>

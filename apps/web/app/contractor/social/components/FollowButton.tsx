@@ -92,7 +92,7 @@ export function FollowButton(props: FollowButtonProps) {
         disabled
         style={variant === 'small' ? { fontSize: theme.typography.fontSize.xs, padding: `${theme.spacing[1]} ${theme.spacing[2]}` } : {}}
       >
-        Loading...
+        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
       </Button>
     );
   }

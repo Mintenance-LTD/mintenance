@@ -150,7 +150,8 @@ export class BackgroundCheckService {
   }
 
   /**
-   * Checkr integration (placeholder - implement with actual API)
+   * Checkr integration
+   * Requires CHECKR_API_KEY environment variable
    */
   private static async initiateCheckrCheck(user: {
     first_name?: string;
@@ -158,39 +159,37 @@ export class BackgroundCheckService {
     email?: string;
     phone?: string;
   }): Promise<string> {
-    // TODO: Implement Checkr API integration
-    // For now, return a placeholder ID
     const checkrApiKey = process.env.CHECKR_API_KEY;
     if (!checkrApiKey) {
-      logger.warn('Checkr API key not configured', {
-        service: 'BackgroundCheckService',
-      });
-      // In development, return a mock ID
-      return `checkr_mock_${Date.now()}`;
+      throw new Error('Checkr API key not configured. Set CHECKR_API_KEY environment variable.');
     }
 
-    // Example Checkr API call (implement actual integration)
-    // const response = await fetch('https://api.checkr.com/v1/candidates', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Authorization': `Basic ${Buffer.from(checkrApiKey + ':').toString('base64')}`,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     first_name: user.first_name,
-    //     last_name: user.last_name,
-    //     email: user.email,
-    //     phone: user.phone,
-    //   }),
-    // });
-    // const data = await response.json();
-    // return data.id;
+    const response = await fetch('https://api.checkr.com/v1/candidates', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${Buffer.from(checkrApiKey + ':').toString('base64')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone: user.phone,
+      }),
+    });
 
-    return `checkr_${Date.now()}`;
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Checkr API error (${response.status}): ${body}`);
+    }
+
+    const data = await response.json();
+    return data.id;
   }
 
   /**
-   * GoodHire integration (placeholder - implement with actual API)
+   * GoodHire integration
+   * Requires GOODHIRE_API_KEY environment variable
    */
   private static async initiateGoodHireCheck(user: {
     first_name?: string;
@@ -198,16 +197,37 @@ export class BackgroundCheckService {
     email?: string;
     phone?: string;
   }): Promise<string> {
-    // TODO: Implement GoodHire API integration
     const goodHireApiKey = process.env.GOODHIRE_API_KEY;
     if (!goodHireApiKey) {
-      return `goodhire_mock_${Date.now()}`;
+      throw new Error('GoodHire API key not configured. Set GOODHIRE_API_KEY environment variable.');
     }
-    return `goodhire_${Date.now()}`;
+
+    const response = await fetch('https://api.goodhire.com/v1/checks', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${goodHireApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone: user.phone,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`GoodHire API error (${response.status}): ${body}`);
+    }
+
+    const data = await response.json();
+    return data.id;
   }
 
   /**
-   * Sterling integration (placeholder - implement with actual API)
+   * Sterling integration
+   * Requires STERLING_API_KEY environment variable
    */
   private static async initiateSterlingCheck(user: {
     first_name?: string;
@@ -215,12 +235,32 @@ export class BackgroundCheckService {
     email?: string;
     phone?: string;
   }): Promise<string> {
-    // TODO: Implement Sterling API integration
     const sterlingApiKey = process.env.STERLING_API_KEY;
     if (!sterlingApiKey) {
-      return `sterling_mock_${Date.now()}`;
+      throw new Error('Sterling API key not configured. Set STERLING_API_KEY environment variable.');
     }
-    return `sterling_${Date.now()}`;
+
+    const response = await fetch('https://api.sterlingcheck.com/v2/screenings', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${sterlingApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone: user.phone,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`Sterling API error (${response.status}): ${body}`);
+    }
+
+    const data = await response.json();
+    return data.id;
   }
 
   /**

@@ -235,8 +235,8 @@ export function NotificationsDropdown(props: NotificationsDropdownProps) {
           {/* Notifications List */}
           <div style={{ overflowY: 'auto', maxHeight: '400px' }}>
             {loading ? (
-              <div style={{ padding: theme.spacing[6], textAlign: 'center', color: theme.colors.textSecondary }}>
-                Loading...
+              <div style={{ padding: theme.spacing[6], textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
+                <div style={{ width: 24, height: 24, border: '3px solid #d1d5db', borderTopColor: '#6b7280', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
               </div>
             ) : notifications.length === 0 ? (
               <div style={{ padding: theme.spacing[6], textAlign: 'center', color: theme.colors.textSecondary }}>

@@ -3,7 +3,7 @@
  * Demonstrates testing pure functions and utilities
  */
 
-import { describe, it, expect } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
 // Example utility functions to test
 function formatCurrency(amount: number): string {

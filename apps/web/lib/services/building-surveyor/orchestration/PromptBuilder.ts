@@ -10,6 +10,7 @@ import type {
     RoboflowDetection,
     VisionAnalysisSummary,
 } from '../types';
+import { sanitiseMLLabel } from '../evidence-processor';
 
 export class PromptBuilder {
     /**
@@ -127,10 +128,11 @@ Return a JSON object with the following structure:
         if (roboflowDetections.length > 0) {
             parts.push('**Machine Learning Detections:**');
             const detectionsByClass = roboflowDetections.reduce((acc, det) => {
-                if (!acc[det.className]) {
-                    acc[det.className] = [];
+                const safeClass = sanitiseMLLabel(det.className);
+                if (!acc[safeClass]) {
+                    acc[safeClass] = [];
                 }
-                acc[det.className].push(det);
+                acc[safeClass].push(det);
                 return acc;
             }, {} as Record<string, RoboflowDetection[]>);
 
@@ -145,11 +147,11 @@ Return a JSON object with the following structure:
             parts.push(`- Overall confidence: ${visionAnalysis.confidence}%`);
 
             if (visionAnalysis.labels.length > 0) {
-                parts.push(`- Detected labels: ${visionAnalysis.labels.map(l => l.description).join(', ')}`);
+                parts.push(`- Detected labels: ${visionAnalysis.labels.map(l => sanitiseMLLabel(l.description)).join(', ')}`);
             }
 
             if (visionAnalysis.detectedFeatures && visionAnalysis.detectedFeatures.length > 0) {
-                parts.push(`- Key features: ${visionAnalysis.detectedFeatures.join(', ')}`);
+                parts.push(`- Key features: ${visionAnalysis.detectedFeatures.map(f => sanitiseMLLabel(f)).join(', ')}`);
             }
         }
 
@@ -171,16 +173,16 @@ Return a JSON object with the following structure:
         if (context) {
             parts.push('\n**Property Context:**');
             if (context.propertyType) {
-                parts.push(`- Type: ${context.propertyType}`);
+                parts.push(`- Type: ${sanitiseMLLabel(context.propertyType, 100)}`);
             }
             if (context.location) {
-                parts.push(`- Location: ${context.location}`);
+                parts.push(`- Location: ${sanitiseMLLabel(context.location, 200)}`);
             }
             if (context.ageOfProperty) {
-                parts.push(`- Age: ${context.ageOfProperty} years`);
+                parts.push(`- Age: ${String(context.ageOfProperty).replace(/[^\d.]/g, '')} years`);
             }
             if (context.propertyDetails) {
-                parts.push(`- Details: ${context.propertyDetails}`);
+                parts.push(`- Details: ${sanitiseMLLabel(context.propertyDetails, 500)}`);
             }
         }
 

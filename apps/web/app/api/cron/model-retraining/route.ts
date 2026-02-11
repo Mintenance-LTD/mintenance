@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { headers } from 'next/headers';
 import { logger } from '@mintenance/shared';
 import { YOLORetrainingService } from '@/lib/services/building-surveyor/YOLORetrainingService';
@@ -19,6 +20,12 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 import { requireCronAuth } from '@/lib/cron-auth';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const manualRetrainingSchema = z.object({
+  force: z.boolean().default(false),
+  dryRun: z.boolean().optional(),
+  config: z.record(z.unknown()).optional(),
+});
 
 // ============================================================================
 // CONFIGURATION
@@ -477,23 +484,31 @@ export async function POST(request: Request) {
 
     // This endpoint allows manual triggering with custom parameters
     const body = await request.json();
+    const parsed = manualRetrainingSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request: force (boolean) expected' },
+        { status: 400 }
+      );
+    }
+    const validatedBody = parsed.data;
 
     // Verify admin authentication
     const headersList = await headers();
     const authHeader = headersList.get('authorization');
     // In production, verify this is an admin user
 
-    logger.info('Manual retraining trigger requested', { params: body });
+    logger.info('Manual retraining trigger requested', { params: validatedBody });
 
     // Override configuration if provided
     const customConfig = {
       ...CONFIG,
-      ...(body.config || {}),
-      DRY_RUN: body.dryRun ?? CONFIG.DRY_RUN
+      ...(validatedBody.config || {}),
+      DRY_RUN: validatedBody.dryRun ?? CONFIG.DRY_RUN
     };
 
     // Force retraining if requested
-    if (body.force) {
+    if (validatedBody.force) {
       logger.info('Forcing retraining (manual trigger)');
 
       if (customConfig.DRY_RUN) {

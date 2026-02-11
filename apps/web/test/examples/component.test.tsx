@@ -3,7 +3,7 @@
  * Demonstrates testing client components, user interactions, and accessibility
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, mockJob, mockBid } from '../utils';

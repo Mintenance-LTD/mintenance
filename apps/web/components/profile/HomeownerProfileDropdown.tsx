@@ -321,7 +321,7 @@ export function HomeownerProfileDropdown(props: HomeownerProfileDropdownProps) {
                   flexShrink: 0,
                 }}
               >
-                <Icon name={action.icon as any} size={18} color="#1f2937" />
+                <Icon name={action.icon} size={18} color="#1f2937" />
               </div>
               <div style={{ flex: 1 }}>
                 <div

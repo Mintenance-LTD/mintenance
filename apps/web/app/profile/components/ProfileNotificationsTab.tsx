@@ -57,7 +57,7 @@ export function ProfileNotificationsTab({
               <input
                 type="checkbox"
                 checked={value}
-                onChange={(e) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   onNotificationChange({ ...notificationSettings, [key]: e.target.checked })
                 }
                 className="sr-only peer"

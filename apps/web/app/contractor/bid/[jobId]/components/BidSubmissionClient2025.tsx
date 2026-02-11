@@ -580,7 +580,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                             {loadingSuggestion ? (
                               <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                Loading...
+                                <span className="sr-only">Generating</span>
                               </>
                             ) : (
                               <>

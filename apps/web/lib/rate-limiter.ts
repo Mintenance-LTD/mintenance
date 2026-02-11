@@ -323,5 +323,14 @@ export function createRateLimitHeaders(result: RateLimitResult): Record<string, 
   };
 }
 
+// Helper function for per-user AI rate limiting (prevents single user from exhausting AI budget)
+export async function checkAIUserRateLimit(userId: string): Promise<RateLimitResult> {
+  return rateLimiter.checkRateLimit({
+    windowMs: TIME_MS.MINUTE,
+    maxRequests: RATE_LIMITS.AI_USER_REQUESTS_PER_MINUTE ?? 3,
+    identifier: `ai-user:${userId}`,
+  });
+}
+
 // Alias for backward compatibility
 export const checkRateLimit = checkApiRateLimit;

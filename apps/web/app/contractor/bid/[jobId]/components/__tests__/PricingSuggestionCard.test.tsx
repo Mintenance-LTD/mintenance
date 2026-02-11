@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { PricingSuggestionCard } from '../PricingSuggestionCard';
 
 // Mock MotionDiv to avoid animation issues in tests

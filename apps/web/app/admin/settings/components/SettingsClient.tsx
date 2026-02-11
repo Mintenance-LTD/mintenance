@@ -142,7 +142,7 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
             <Input
               type="number"
               value={typeof localValue === 'number' ? localValue.toString() : String(localValue || '')}
-              onChange={(e) => handleChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
               style={{ flex: 1 }}
               className="rounded-lg border-slate-200 focus:border-[#4A67FF] focus:ring-[#4A67FF]"
             />
@@ -172,7 +172,7 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3], maxWidth: '600px' }}>
             <Textarea
               value={typeof localValue === 'string' ? localValue : JSON.stringify(localValue, null, 2)}
-              onChange={(e) => handleChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleChange(e.target.value)}
               rows={6}
               className="font-mono text-sm rounded-lg border-slate-200 focus:border-[#4A67FF] focus:ring-[#4A67FF]"
             />
@@ -205,7 +205,7 @@ export function SettingsClient({ initialSettings, adminId }: SettingsClientProps
             <Input
               type="text"
               value={typeof localValue === 'string' ? localValue : String(localValue || '')}
-              onChange={(e) => handleChange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange(e.target.value)}
               style={{ flex: 1 }}
               className="rounded-lg border-slate-200 focus:border-[#4A67FF] focus:ring-[#4A67FF]"
             />

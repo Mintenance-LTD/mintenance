@@ -16,7 +16,7 @@ export function LazyWithSuspense({ componentPath }: { componentPath: string }) {
   const Component = dynamic(() => import(componentPath));
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="animate-pulse bg-gray-200 h-32 rounded" />}>
       <Component />
     </Suspense>
   );

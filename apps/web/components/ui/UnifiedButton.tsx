@@ -253,9 +253,9 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
         if (!attached) return child;
 
         // Apply rounded corners only to first/last items when attached
-        return React.cloneElement(child as any, {
+        return React.cloneElement(child as React.ReactElement<{ className?: string }>, {
           className: cn(
-            (child as any).props?.className,
+            (child as React.ReactElement<{ className?: string }>).props?.className,
             {
               'rounded-r-none': orientation === 'horizontal' && !isLast,
               'rounded-l-none': orientation === 'horizontal' && !isFirst,

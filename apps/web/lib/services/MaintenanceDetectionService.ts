@@ -194,30 +194,12 @@ export class MaintenanceDetectionService {
   }
 
   /**
-   * Mock detection for development/testing
+   * Fallback when ML model is unavailable — returns empty results
+   * rather than fabricating detections
    */
-  private static mockDetection(imageUrl: string): Detection[] {
-    // Simulate detection based on URL or random
-    const mockDetections: Detection[] = [
-      {
-        class: 'pipe_leak',
-        confidence: 0.85,
-        bbox: [0.3, 0.4, 0.2, 0.3],
-        area: 0.06
-      },
-      {
-        class: 'water_damage',
-        confidence: 0.72,
-        bbox: [0.4, 0.5, 0.25, 0.2],
-        area: 0.05
-      }
-    ];
-
-    // Add some randomness
-    const primaryDetection = mockDetections[Math.floor(Math.random() * mockDetections.length)];
-    primaryDetection.confidence = 0.7 + Math.random() * 0.3;
-
-    return [primaryDetection];
+  private static mockDetection(_imageUrl: string): Detection[] {
+    logger.warn('ML model unavailable, returning empty detections', { service: 'lib' });
+    return [];
   }
 
   /**

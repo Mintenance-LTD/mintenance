@@ -34,7 +34,7 @@ export function ProfilePreferencesTab({
           <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
           <select
             value={preferences.language}
-            onChange={(e) => onPreferencesChange({ ...preferences, language: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onPreferencesChange({ ...preferences, language: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           >
             <option value="en">English</option>
@@ -48,7 +48,7 @@ export function ProfilePreferencesTab({
           <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
           <select
             value={preferences.timezone}
-            onChange={(e) => onPreferencesChange({ ...preferences, timezone: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onPreferencesChange({ ...preferences, timezone: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           >
             <option value="Europe/London">London (GMT)</option>
@@ -62,7 +62,7 @@ export function ProfilePreferencesTab({
           <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
           <select
             value={preferences.currency}
-            onChange={(e) => onPreferencesChange({ ...preferences, currency: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onPreferencesChange({ ...preferences, currency: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           >
             <option value="GBP">GBP (pounds)</option>
@@ -76,7 +76,7 @@ export function ProfilePreferencesTab({
           <label className="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
           <select
             value={preferences.dateFormat}
-            onChange={(e) => onPreferencesChange({ ...preferences, dateFormat: e.target.value })}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onPreferencesChange({ ...preferences, dateFormat: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
           >
             <option value="DD/MM/YYYY">DD/MM/YYYY</option>

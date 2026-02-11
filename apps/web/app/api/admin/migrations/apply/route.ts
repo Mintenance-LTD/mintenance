@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -6,6 +7,13 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, BadRequestError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const applyMigrationSchema = z.object({
+  migrationFile: z.string()
+    .min(1)
+    .max(200)
+    .regex(/^[a-zA-Z0-9_\-]+\.sql$/, 'Migration file must be a valid .sql filename (no path separators)'),
+});
 
 /**
  * Apply SQL migrations to Supabase
@@ -43,11 +51,11 @@ export async function POST(request: NextRequest) {
     const user = auth.user;
 
     const body = await request.json();
-    const { migrationFile } = body;
-
-    if (!migrationFile) {
-      throw new BadRequestError('Migration file name is required');
+    const parsed = applyMigrationSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestError('migrationFile must be a valid .sql filename (no path separators)');
     }
+    const { migrationFile } = parsed.data;
 
     // Read the migration file
     const migrationsDir = join(process.cwd(), 'supabase', 'migrations');

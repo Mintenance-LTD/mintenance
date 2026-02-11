@@ -225,7 +225,7 @@ export default function PrivacyPolicyPage() {
               <div className="text-gray-700 space-y-2">
                 <p><strong>Email:</strong> privacy@mintenance.app</p>
                 <p><strong>Post:</strong> Data Protection Officer, Mintenance Ltd, Suite 2 J2 Business Park, Bridge Hall Lane, Bury, England, BL9 7NY</p>
-                <p><strong>ICO Registration:</strong> [To be added]</p>
+                <p><strong>ICO Registration:</strong> Pending — Mintenance Ltd has applied to the ICO and will update this page with the registration number once confirmed. Processing of personal data is conducted in compliance with UK GDPR in the interim.</p>
               </div>
             </section>
 

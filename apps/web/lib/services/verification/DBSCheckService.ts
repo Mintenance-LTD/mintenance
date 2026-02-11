@@ -194,6 +194,7 @@ export class DBSCheckService {
   /**
    * DBS Online integration (UK provider)
    * https://www.dbscheckonline.org.uk/
+   * Requires DBS_ONLINE_API_KEY environment variable
    */
   private static async initiateDBSOnlineCheck(
     contractor: unknown,
@@ -202,43 +203,44 @@ export class DBSCheckService {
     const apiKey = process.env.DBS_ONLINE_API_KEY;
 
     if (!apiKey) {
-      logger.warn('DBS Online API key not configured, using mock', {
-        service: 'DBSCheckService',
-      });
-      return `dbs_online_mock_${Date.now()}`;
+      throw new Error('DBS Online API key not configured. Set DBS_ONLINE_API_KEY environment variable.');
     }
 
-    // TODO: Implement actual DBS Online API integration
-    // Example API call structure:
-    // const response = await fetch('https://api.dbscheckonline.org.uk/v1/checks', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Authorization': `Bearer ${apiKey}`,
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     first_name: contractor.first_name,
-    //     last_name: contractor.last_name,
-    //     email: contractor.email,
-    //     date_of_birth: contractor.date_of_birth,
-    //     address: {
-    //       line1: contractor.address_line1,
-    //       line2: contractor.address_line2,
-    //       city: contractor.city,
-    //       postcode: contractor.postal_code,
-    //     },
-    //     check_type: dbsType,
-    //   }),
-    // });
-    // const data = await response.json();
-    // return data.check_id;
+    const c = contractor as Record<string, unknown>;
+    const response = await fetch('https://api.dbscheckonline.org.uk/v1/checks', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        first_name: c.first_name,
+        last_name: c.last_name,
+        email: c.email,
+        date_of_birth: c.date_of_birth,
+        address: {
+          line1: c.address_line1,
+          line2: c.address_line2,
+          city: c.city,
+          postcode: c.postal_code,
+        },
+        check_type: dbsType,
+      }),
+    });
 
-    return `dbs_online_${dbsType}_${Date.now()}`;
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`DBS Online API error (${response.status}): ${body}`);
+    }
+
+    const data = await response.json();
+    return data.check_id;
   }
 
   /**
    * GB Group integration (UK provider)
    * https://www.gbgplc.com/en/solutions/identity/criminal-record-checks/
+   * Requires GBGROUP_API_KEY environment variable
    */
   private static async initiateGBGroupCheck(
     contractor: unknown,
@@ -247,16 +249,38 @@ export class DBSCheckService {
     const apiKey = process.env.GBGROUP_API_KEY;
 
     if (!apiKey) {
-      return `gbgroup_mock_${Date.now()}`;
+      throw new Error('GB Group API key not configured. Set GBGROUP_API_KEY environment variable.');
     }
 
-    // TODO: Implement GB Group API integration
-    return `gbgroup_${dbsType}_${Date.now()}`;
+    const c = contractor as Record<string, unknown>;
+    const response = await fetch('https://api.gbgplc.com/v1/criminal-checks', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        first_name: c.first_name,
+        last_name: c.last_name,
+        email: c.email,
+        date_of_birth: c.date_of_birth,
+        check_type: dbsType,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`GB Group API error (${response.status}): ${body}`);
+    }
+
+    const data = await response.json();
+    return data.check_id;
   }
 
   /**
    * uCheck integration (UK provider)
    * https://ucheck.co.uk/
+   * Requires UCHECK_API_KEY environment variable
    */
   private static async initiateUCheckCheck(
     contractor: unknown,
@@ -265,11 +289,32 @@ export class DBSCheckService {
     const apiKey = process.env.UCHECK_API_KEY;
 
     if (!apiKey) {
-      return `ucheck_mock_${Date.now()}`;
+      throw new Error('uCheck API key not configured. Set UCHECK_API_KEY environment variable.');
     }
 
-    // TODO: Implement uCheck API integration
-    return `ucheck_${dbsType}_${Date.now()}`;
+    const c = contractor as Record<string, unknown>;
+    const response = await fetch('https://api.ucheck.co.uk/v1/checks', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        first_name: c.first_name,
+        last_name: c.last_name,
+        email: c.email,
+        date_of_birth: c.date_of_birth,
+        check_type: dbsType,
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`uCheck API error (${response.status}): ${body}`);
+    }
+
+    const data = await response.json();
+    return data.check_id;
   }
 
   /**

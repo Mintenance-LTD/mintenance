@@ -1,4 +1,5 @@
-import { vi, type Mock } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
+type Mock = ReturnType<typeof vi.fn>;
 import { renderHook } from '@testing-library/react';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { useConversations, useMessages, useSendMessage, useMarkAsRead } from '../useMessages';

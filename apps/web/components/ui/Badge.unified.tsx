@@ -132,8 +132,8 @@ export function Badge({
 
   return (
     <SharedBadge
-      {...(props as any)}
-      variant={effectiveVariant as any}
+      {...(props as Record<string, unknown>)}
+      variant={effectiveVariant}
       size={mappedSize}
       icon={iconElement}
       showIcon={!!iconElement}

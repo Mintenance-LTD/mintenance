@@ -222,7 +222,7 @@ export default function ContactForm() {
                 id="contact-name"
                 type="text"
                 value={formData.name}
-                onChange={(e) => handleFieldChange('name', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange('name', e.target.value)}
                 onBlur={() => handleFieldBlur('name')}
                 placeholder="John Smith"
                 error={Boolean(touchedFields.name && errors.name)}
@@ -242,7 +242,7 @@ export default function ContactForm() {
                 id="contact-email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleFieldChange('email', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange('email', e.target.value)}
                 onBlur={() => handleFieldBlur('email')}
                 placeholder="john@example.com"
                 error={Boolean(touchedFields.email && errors.email)}
@@ -261,7 +261,7 @@ export default function ContactForm() {
                 id="contact-phone"
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => handleFieldChange('phone', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange('phone', e.target.value)}
                 onBlur={() => handleFieldBlur('phone')}
                 placeholder="+44 7700 900000"
                 error={Boolean(touchedFields.phone && errors.phone)}
@@ -281,7 +281,7 @@ export default function ContactForm() {
                 id="contact-subject"
                 type="text"
                 value={formData.subject}
-                onChange={(e) => handleFieldChange('subject', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange('subject', e.target.value)}
                 onBlur={() => handleFieldBlur('subject')}
                 placeholder="e.g., Need help with my account"
                 error={Boolean(touchedFields.subject && errors.subject)}
@@ -297,7 +297,7 @@ export default function ContactForm() {
               <ValidatedSelect
                 id="contact-category"
                 value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value as Category })}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, category: e.target.value as Category })}
               >
                 <option value="general">General Enquiry</option>
                 <option value="technical">Technical Support</option>
@@ -320,7 +320,7 @@ export default function ContactForm() {
             <ValidatedTextarea
               id="contact-message"
               value={formData.message}
-              onChange={(e) => handleFieldChange('message', e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleFieldChange('message', e.target.value)}
               onBlur={() => handleFieldBlur('message')}
               placeholder="Tell us how we can help..."
               rows={6}
@@ -334,7 +334,7 @@ export default function ContactForm() {
               type="checkbox"
               id="contact-consent"
               checked={formData.consent}
-              onChange={(e) => handleFieldChange('consent', e.target.checked)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange('consent', e.target.checked)}
               onBlur={() => handleFieldBlur('consent')}
               className={`mt-1 h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500 ${
                 touchedFields.consent && errors.consent ? 'border-red-500' : ''

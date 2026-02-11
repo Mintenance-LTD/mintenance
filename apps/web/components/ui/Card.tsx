@@ -45,6 +45,7 @@ function CardComponent({
   onClick,
   className = '',
   style,
+  children,
   ...props
 }: CardProps) {
   // Map old variants to new variants
@@ -85,8 +86,8 @@ function CardComponent({
 
   return (
     <SharedCard
-      {...(props as any)}
-      variant={mappedVariant as any}
+      {...(props as Record<string, unknown>)}
+      variant={mappedVariant}
       padding={padding}
       hover={hover}
       onClick={onClick}
@@ -95,7 +96,9 @@ function CardComponent({
         ...customStyle,
         ...style,
       }}
-    />
+    >
+      {children}
+    </SharedCard>
   );
 }
 

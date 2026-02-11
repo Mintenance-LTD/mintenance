@@ -160,7 +160,7 @@ export function NeighborhoodRecommendations(props: NeighborhoodRecommendationsPr
       <Card>
         <CardHeader>
           <CardTitle>Local Contractors</CardTitle>
-          <CardDescription>Loading...</CardDescription>
+          <CardDescription>Finding contractors near you...</CardDescription>
         </CardHeader>
       </Card>
     );

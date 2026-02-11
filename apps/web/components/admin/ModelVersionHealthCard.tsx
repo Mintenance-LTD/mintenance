@@ -87,7 +87,10 @@ export function ModelVersionHealthCard() {
       </div>
 
       {loading ? (
-        <div className="p-4 text-center text-slate-500 text-sm">Loading...</div>
+        <div className="space-y-3 p-4">
+          <div className="h-4 w-full animate-pulse rounded bg-slate-200" />
+          <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200" />
+        </div>
       ) : (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">

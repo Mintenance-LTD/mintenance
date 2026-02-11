@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
@@ -9,15 +8,7 @@ import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult 
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { refundRequestSchema } from '@/lib/validation/schemas';
-
-// SECURITY: No fallback for production credentials
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY environment variable is required');
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10',
-});
+import { stripe } from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {

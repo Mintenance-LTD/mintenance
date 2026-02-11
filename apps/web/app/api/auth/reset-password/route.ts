@@ -34,9 +34,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { accessToken, password } = body;
 
-    // Validate access token
-    if (!accessToken) {
+    // Validate access token format (must be a non-empty JWT-like string)
+    if (!accessToken || typeof accessToken !== 'string') {
       logger.warn('Password reset attempted without access token', { service: 'auth' });
+      throw new BadRequestError('Invalid reset link. Please request a new password reset.');
+    }
+
+    // JWT format: three base64url segments separated by dots
+    const jwtPattern = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+    if (!jwtPattern.test(accessToken) || accessToken.length < 50 || accessToken.length > 4096) {
+      logger.warn('Password reset token failed format validation', {
+        service: 'auth',
+        tokenLength: accessToken.length,
+        ip: request.headers.get('x-forwarded-for') || 'unknown',
+      });
       throw new BadRequestError('Invalid reset link. Please request a new password reset.');
     }
 

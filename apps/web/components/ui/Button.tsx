@@ -52,6 +52,7 @@ export function Button({
   rightIcon,
   className = '',
   style,
+  children,
   ...props
 }: ButtonProps) {
   // Map old variants to new variants (only return variants supported by shared Button)
@@ -88,8 +89,8 @@ export function Button({
 
   return (
     <SharedButton
-      {...(props as any)}
-      variant={mappedVariant as any}
+      {...(props as Record<string, unknown>)}
+      variant={mappedVariant}
       size={size}
       loading={loading}
       fullWidth={fullWidth}
@@ -100,7 +101,9 @@ export function Button({
         ...gradientStyle,
         ...style,
       }}
-    />
+    >
+      {children}
+    </SharedButton>
   );
 }
 

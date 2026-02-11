@@ -182,7 +182,7 @@ export default function SystemSettingsPage2025() {
                       <input
                         type="text"
                         value={generalSettings.siteName}
-                        onChange={(e) => setGeneralSettings({ ...generalSettings, siteName: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralSettings({ ...generalSettings, siteName: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                     </div>
@@ -194,7 +194,7 @@ export default function SystemSettingsPage2025() {
                       <input
                         type="url"
                         value={generalSettings.siteUrl}
-                        onChange={(e) => setGeneralSettings({ ...generalSettings, siteUrl: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralSettings({ ...generalSettings, siteUrl: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                     </div>
@@ -206,7 +206,7 @@ export default function SystemSettingsPage2025() {
                       <input
                         type="email"
                         value={generalSettings.supportEmail}
-                        onChange={(e) => setGeneralSettings({ ...generalSettings, supportEmail: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralSettings({ ...generalSettings, supportEmail: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                     </div>
@@ -221,7 +221,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={generalSettings.maintenanceMode}
-                            onChange={(e) => setGeneralSettings({ ...generalSettings, maintenanceMode: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralSettings({ ...generalSettings, maintenanceMode: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
@@ -237,7 +237,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={generalSettings.allowSignups}
-                            onChange={(e) => setGeneralSettings({ ...generalSettings, allowSignups: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralSettings({ ...generalSettings, allowSignups: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
@@ -253,7 +253,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={generalSettings.requireEmailVerification}
-                            onChange={(e) => setGeneralSettings({ ...generalSettings, requireEmailVerification: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGeneralSettings({ ...generalSettings, requireEmailVerification: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
@@ -282,7 +282,7 @@ export default function SystemSettingsPage2025() {
                       </label>
                       <select
                         value={emailSettings.provider}
-                        onChange={(e) => setEmailSettings({ ...emailSettings, provider: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setEmailSettings({ ...emailSettings, provider: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       >
                         <option value="sendgrid">SendGrid</option>
@@ -300,7 +300,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="text"
                           value={emailSettings.fromName}
-                          onChange={(e) => setEmailSettings({ ...emailSettings, fromName: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailSettings({ ...emailSettings, fromName: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -312,7 +312,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="email"
                           value={emailSettings.fromEmail}
-                          onChange={(e) => setEmailSettings({ ...emailSettings, fromEmail: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailSettings({ ...emailSettings, fromEmail: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -326,7 +326,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="text"
                           value={emailSettings.smtpHost}
-                          onChange={(e) => setEmailSettings({ ...emailSettings, smtpHost: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailSettings({ ...emailSettings, smtpHost: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -338,7 +338,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="text"
                           value={emailSettings.smtpPort}
-                          onChange={(e) => setEmailSettings({ ...emailSettings, smtpPort: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailSettings({ ...emailSettings, smtpPort: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -354,7 +354,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={emailSettings.enableNotifications}
-                            onChange={(e) => setEmailSettings({ ...emailSettings, enableNotifications: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailSettings({ ...emailSettings, enableNotifications: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
@@ -370,7 +370,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={emailSettings.enableMarketing}
-                            onChange={(e) => setEmailSettings({ ...emailSettings, enableMarketing: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmailSettings({ ...emailSettings, enableMarketing: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
@@ -400,7 +400,7 @@ export default function SystemSettingsPage2025() {
                       <input
                         type="text"
                         value={paymentSettings.stripePublicKey}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, stripePublicKey: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentSettings({ ...paymentSettings, stripePublicKey: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
                       />
                     </div>
@@ -412,7 +412,7 @@ export default function SystemSettingsPage2025() {
                       <input
                         type="password"
                         value={paymentSettings.stripeSecretKey}
-                        onChange={(e) => setPaymentSettings({ ...paymentSettings, stripeSecretKey: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentSettings({ ...paymentSettings, stripeSecretKey: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
                       />
                     </div>
@@ -425,7 +425,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="number"
                           value={paymentSettings.platformFeePercentage}
-                          onChange={(e) => setPaymentSettings({ ...paymentSettings, platformFeePercentage: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentSettings({ ...paymentSettings, platformFeePercentage: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -437,7 +437,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="number"
                           value={paymentSettings.minimumJobValue}
-                          onChange={(e) => setPaymentSettings({ ...paymentSettings, minimumJobValue: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentSettings({ ...paymentSettings, minimumJobValue: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -449,7 +449,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="number"
                           value={paymentSettings.escrowHoldingPeriod}
-                          onChange={(e) => setPaymentSettings({ ...paymentSettings, escrowHoldingPeriod: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentSettings({ ...paymentSettings, escrowHoldingPeriod: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -465,7 +465,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={paymentSettings.autoReleaseEnabled}
-                            onChange={(e) => setPaymentSettings({ ...paymentSettings, autoReleaseEnabled: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPaymentSettings({ ...paymentSettings, autoReleaseEnabled: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
@@ -496,7 +496,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="number"
                           value={securitySettings.sessionTimeout}
-                          onChange={(e) => setSecuritySettings({ ...securitySettings, sessionTimeout: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSecuritySettings({ ...securitySettings, sessionTimeout: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -508,7 +508,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="number"
                           value={securitySettings.maxLoginAttempts}
-                          onChange={(e) => setSecuritySettings({ ...securitySettings, maxLoginAttempts: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSecuritySettings({ ...securitySettings, maxLoginAttempts: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -520,7 +520,7 @@ export default function SystemSettingsPage2025() {
                         <input
                           type="number"
                           value={securitySettings.passwordMinLength}
-                          onChange={(e) => setSecuritySettings({ ...securitySettings, passwordMinLength: e.target.value })}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSecuritySettings({ ...securitySettings, passwordMinLength: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
@@ -536,7 +536,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={securitySettings.twoFactorRequired}
-                            onChange={(e) => setSecuritySettings({ ...securitySettings, twoFactorRequired: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSecuritySettings({ ...securitySettings, twoFactorRequired: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
@@ -552,7 +552,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={securitySettings.requireStrongPassword}
-                            onChange={(e) => setSecuritySettings({ ...securitySettings, requireStrongPassword: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSecuritySettings({ ...securitySettings, requireStrongPassword: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
@@ -568,7 +568,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={securitySettings.enableCaptcha}
-                            onChange={(e) => setSecuritySettings({ ...securitySettings, enableCaptcha: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSecuritySettings({ ...securitySettings, enableCaptcha: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
@@ -597,7 +597,7 @@ export default function SystemSettingsPage2025() {
                       </label>
                       <select
                         value={apiSettings.apiVersion}
-                        onChange={(e) => setApiSettings({ ...apiSettings, apiVersion: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setApiSettings({ ...apiSettings, apiVersion: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       >
                         <option value="v1">Version 1 (Current)</option>
@@ -612,7 +612,7 @@ export default function SystemSettingsPage2025() {
                       <input
                         type="number"
                         value={apiSettings.rateLimit}
-                        onChange={(e) => setApiSettings({ ...apiSettings, rateLimit: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiSettings({ ...apiSettings, rateLimit: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
                     </div>
@@ -624,7 +624,7 @@ export default function SystemSettingsPage2025() {
                       <input
                         type="text"
                         value={apiSettings.allowedOrigins}
-                        onChange={(e) => setApiSettings({ ...apiSettings, allowedOrigins: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiSettings({ ...apiSettings, allowedOrigins: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         placeholder="https://example.com, https://app.example.com"
                       />
@@ -637,7 +637,7 @@ export default function SystemSettingsPage2025() {
                       <input
                         type="password"
                         value={apiSettings.webhookSecret}
-                        onChange={(e) => setApiSettings({ ...apiSettings, webhookSecret: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiSettings({ ...apiSettings, webhookSecret: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
                       />
                     </div>
@@ -652,7 +652,7 @@ export default function SystemSettingsPage2025() {
                           <input
                             type="checkbox"
                             checked={apiSettings.enableCors}
-                            onChange={(e) => setApiSettings({ ...apiSettings, enableCors: e.target.checked })}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setApiSettings({ ...apiSettings, enableCors: e.target.checked })}
                             className="sr-only peer"
                           />
                           <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>

@@ -69,7 +69,7 @@ export function UserManagementTable({
                   aria-label="Select all pending contractors"
                   checked={allSelected}
                   ref={(input) => { if (input) input.indeterminate = someSelected; }}
-                  onChange={(e) => onSelectAll(e.target.checked)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSelectAll(e.target.checked)}
                   style={{ cursor: 'pointer', width: '16px', height: '16px', borderRadius: '4px', border: '2px solid #CBD5E1', accentColor: '#4A67FF' }}
                   className="rounded-md"
                 />

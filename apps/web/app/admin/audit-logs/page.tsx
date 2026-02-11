@@ -333,7 +333,7 @@ export default function AuditLogsPage2025() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                 id="audit-search"
                 aria-label="Search audit logs"
                 placeholder="Search logs..."
@@ -345,7 +345,7 @@ export default function AuditLogsPage2025() {
               id="action-filter"
               aria-label="Filter by action"
               value={selectedAction}
-              onChange={(e) => setSelectedAction(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedAction(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               {actions.map((action) => (
@@ -359,7 +359,7 @@ export default function AuditLogsPage2025() {
               id="audit-status-filter"
               aria-label="Filter by status"
               value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedStatus(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               {statuses.map((status) => (
@@ -373,7 +373,7 @@ export default function AuditLogsPage2025() {
               id="date-filter"
               aria-label="Filter by date range"
               value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDateRange(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               <option value="today">Today</option>

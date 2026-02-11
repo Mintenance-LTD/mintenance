@@ -81,7 +81,7 @@ export class AdvancedSearchService {
 
       if (error) {
         logger.error('Error searching jobs', error);
-        return this.getMockJobSearchResults(query, filters, page, limit);
+        return { items: [], totalCount: 0, hasMore: false, facets: { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} }, suggestions: [] };
       }
 
       // Calculate facets for refined search
@@ -96,7 +96,7 @@ export class AdvancedSearchService {
       };
     } catch (error) {
       logger.error('Advanced job search error', error);
-      return this.getMockJobSearchResults(query, filters, page, limit);
+      return { items: [], totalCount: 0, hasMore: false, facets: { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} }, suggestions: [] };
     }
   }
 
@@ -166,7 +166,7 @@ export class AdvancedSearchService {
 
       if (error) {
         logger.error('Error searching contractors', error);
-        return this.getMockContractorSearchResults(query, filters, page, limit);
+        return { items: [], totalCount: 0, hasMore: false, facets: { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} }, suggestions: [] };
       }
 
       // Transform data to match Contractor interface
@@ -204,7 +204,7 @@ export class AdvancedSearchService {
       };
     } catch (error) {
       logger.error('Advanced contractor search error', error);
-      return this.getMockContractorSearchResults(query, filters, page, limit);
+      return { items: [], totalCount: 0, hasMore: false, facets: { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} }, suggestions: [] };
     }
   }
 
@@ -247,16 +247,7 @@ export class AdvancedSearchService {
       };
     } catch (error) {
       logger.error('Save search error', error);
-      // Return mock saved search
-      return {
-        id: `saved_${Date.now()}`,
-        userId,
-        name,
-        filters,
-        alertEnabled,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      throw new Error('Failed to save search');
     }
   }
 
@@ -333,44 +324,36 @@ export class AdvancedSearchService {
   }
 
   /**
-   * Calculate facets for job search refinement
+   * Calculate facets for job search refinement from actual DB data
    */
   private static async calculateJobFacets(_filters: AdvancedSearchFilters): Promise<SearchFacets> {
     try {
-      // This would typically be calculated from the database
-      // For now, return mock facets
-      return {
-        skills: {
-          'plumbing': 45,
-          'electrical': 32,
-          'carpentry': 28,
-          'painting': 21,
-          'hvac': 18
-        },
-        priceRanges: {
-          '$0-$500': 120,
-          '$500-$1000': 85,
-          '$1000-$2500': 65,
-          '$2500+': 30
-        },
-        ratings: {
-          '5 stars': 85,
-          '4+ stars': 150,
-          '3+ stars': 45
-        },
-        locations: {
-          'Downtown': 95,
-          'Suburbs': 125,
-          'North Side': 65,
-          'South Side': 85
-        },
-        availability: {
-          'immediate': 45,
-          'this_week': 85,
-          'this_month': 95,
-          'flexible': 120
-        }
+      const { data: jobs, error } = await supabase
+        .from('jobs')
+        .select('category, budget, priority')
+        .eq('status', 'posted');
+
+      if (error || !jobs) {
+        return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
+      }
+
+      const skills: Record<string, number> = {};
+      const priceRanges: Record<string, number> = {
+        '$0-$500': 0, '$500-$1000': 0, '$1000-$2500': 0, '$2500+': 0,
       };
+
+      for (const job of jobs) {
+        if (job.category) {
+          skills[job.category] = (skills[job.category] || 0) + 1;
+        }
+        const budget = job.budget || 0;
+        if (budget <= 500) priceRanges['$0-$500']++;
+        else if (budget <= 1000) priceRanges['$500-$1000']++;
+        else if (budget <= 2500) priceRanges['$1000-$2500']++;
+        else priceRanges['$2500+']++;
+      }
+
+      return { skills, priceRanges, ratings: {}, locations: {}, availability: {} };
     } catch (error) {
       logger.error('Error calculating job facets', error);
       return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
@@ -378,43 +361,51 @@ export class AdvancedSearchService {
   }
 
   /**
-   * Calculate facets for contractor search refinement
+   * Calculate facets for contractor search refinement from actual DB data
    */
   private static async calculateContractorFacets(_filters: AdvancedSearchFilters): Promise<SearchFacets> {
     try {
-      // This would typically be calculated from the database
-      return {
-        skills: {
-          'plumbing': 25,
-          'electrical': 18,
-          'carpentry': 22,
-          'painting': 15,
-          'hvac': 12
-        },
-        priceRanges: {
-          '$25-$50/hr': 45,
-          '$50-$75/hr': 35,
-          '$75-$100/hr': 25,
-          '$100+/hr': 15
-        },
-        ratings: {
-          '5 stars': 35,
-          '4+ stars': 65,
-          '3+ stars': 20
-        },
-        locations: {
-          'Downtown': 30,
-          'Suburbs': 45,
-          'North Side': 25,
-          'South Side': 20
-        },
-        availability: {
-          'immediate': 15,
-          'this_week': 25,
-          'this_month': 35,
-          'flexible': 45
-        }
+      const { data: contractors, error } = await supabase
+        .from('contractor_profiles')
+        .select('skills, hourly_rate, rating, availability');
+
+      if (error || !contractors) {
+        return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
+      }
+
+      const skills: Record<string, number> = {};
+      const priceRanges: Record<string, number> = {
+        '$25-$50/hr': 0, '$50-$75/hr': 0, '$75-$100/hr': 0, '$100+/hr': 0,
       };
+      const ratings: Record<string, number> = {
+        '5 stars': 0, '4+ stars': 0, '3+ stars': 0,
+      };
+      const availability: Record<string, number> = {};
+
+      for (const c of contractors) {
+        if (Array.isArray(c.skills)) {
+          for (const skill of c.skills) {
+            const s = typeof skill === 'string' ? skill : '';
+            if (s) skills[s] = (skills[s] || 0) + 1;
+          }
+        }
+        const rate = c.hourly_rate || 0;
+        if (rate <= 50) priceRanges['$25-$50/hr']++;
+        else if (rate <= 75) priceRanges['$50-$75/hr']++;
+        else if (rate <= 100) priceRanges['$75-$100/hr']++;
+        else priceRanges['$100+/hr']++;
+
+        const r = c.rating || 0;
+        if (r === 5) ratings['5 stars']++;
+        if (r >= 4) ratings['4+ stars']++;
+        if (r >= 3) ratings['3+ stars']++;
+
+        if (c.availability) {
+          availability[c.availability] = (availability[c.availability] || 0) + 1;
+        }
+      }
+
+      return { skills, priceRanges, ratings, locations: {}, availability };
     } catch (error) {
       logger.error('Error calculating contractor facets', error);
       return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
@@ -436,166 +427,4 @@ export class AdvancedSearchService {
     return suggestions.slice(0, 3);
   }
 
-  /**
-   * Mock job search results for demo/fallback
-   */
-  private static getMockJobSearchResults(
-    query: string,
-    filters: AdvancedSearchFilters,
-    page: number,
-    limit: number
-  ): SearchResult<Job> {
-    const mockJobs: Job[] = [
-      {
-        id: 'job_search_1',
-        title: 'Kitchen Sink Repair',
-        description: 'Leaking kitchen sink needs immediate repair',
-        location: 'Downtown District',
-        homeowner_id: 'homeowner_1',
-        contractor_id: undefined,
-        status: 'posted',
-        budget: 250,
-        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-        category: 'plumbing',
-        priority: 'high',
-        photos: ['https://example.com/sink1.jpg'],
-        // Computed fields
-        homeownerId: 'homeowner_1',
-        contractorId: undefined,
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as unknown as Job,
-      {
-        id: 'job_search_2',
-        title: 'Bathroom Electrical Work',
-        description: 'Install new lighting fixtures in master bathroom',
-        location: 'Suburban Area',
-        homeowner_id: 'homeowner_2',
-        contractor_id: undefined,
-        status: 'posted',
-        budget: 450,
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-        category: 'electrical',
-        priority: 'medium',
-        photos: [],
-        // Computed fields
-        homeownerId: 'homeowner_2',
-        contractorId: undefined,
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as unknown as Job,
-      {
-        id: 'job_search_3',
-        title: 'Deck Painting',
-        description: 'Large deck needs complete repainting',
-        location: 'North Side',
-        homeowner_id: 'homeowner_3',
-        contractor_id: undefined,
-        status: 'posted',
-        budget: 800,
-        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-        category: 'painting',
-        priority: 'low',
-        photos: ['https://example.com/deck1.jpg', 'https://example.com/deck2.jpg'],
-        // Computed fields
-        homeownerId: 'homeowner_3',
-        contractorId: undefined,
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as unknown as Job
-    ];
-
-    return {
-      items: mockJobs.slice(0, limit),
-      totalCount: mockJobs.length,
-      hasMore: false,
-      facets: {
-        skills: { 'plumbing': 1, 'electrical': 1, 'painting': 1 },
-        priceRanges: { '$200-$500': 2, '$500+': 1 },
-        ratings: {},
-        locations: { 'Downtown District': 1, 'Suburban Area': 1, 'North Side': 1 },
-        availability: { 'immediate': 1, 'this_week': 1, 'flexible': 1 }
-      },
-      suggestions: [`experienced ${query}`, `affordable ${query}`, `${query} near me`]
-    };
-  }
-
-  /**
-   * Mock contractor search results for demo/fallback
-   */
-  private static getMockContractorSearchResults(
-    query: string,
-    filters: AdvancedSearchFilters,
-    page: number,
-    limit: number
-  ): SearchResult<ContractorProfile> {
-    const mockContractors: ContractorProfile[] = [
-      {
-        id: 'contractor_search_1',
-        email: 'mike.plumber@email.com',
-        first_name: 'Mike',
-        last_name: 'Johnson',
-        phone: '(555) 123-4567',
-        role: 'contractor',
-        profile_image_url: 'https://example.com/mike.jpg',
-        created_at: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-        companyName: 'Mike Johnson Plumbing',
-        skills: [
-          { id: '1', contractorId: 'contractor_search_1', skillName: 'plumbing', createdAt: new Date().toISOString() },
-          { id: '2', contractorId: 'contractor_search_1', skillName: 'water heaters', createdAt: new Date().toISOString() },
-          { id: '3', contractorId: 'contractor_search_1', skillName: 'drain cleaning', createdAt: new Date().toISOString() }
-        ],
-        reviews: [],
-        total_jobs_completed: 127,
-        hourlyRate: 85,
-        yearsExperience: 10,
-        availability: 'immediate',
-        rating: 4.8,
-        portfolioImages: ['https://example.com/portfolio1.jpg']
-      },
-      {
-        id: 'contractor_search_2',
-        email: 'sarah.electric@email.com',
-        first_name: 'Sarah',
-        last_name: 'Williams',
-        phone: '(555) 234-5678',
-        role: 'contractor',
-        profile_image_url: 'https://example.com/sarah.jpg',
-        created_at: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-        companyName: 'Sarah Williams Electrical',
-        skills: [
-          { id: '4', contractorId: 'contractor_search_2', skillName: 'electrical', createdAt: new Date().toISOString() },
-          { id: '5', contractorId: 'contractor_search_2', skillName: 'wiring', createdAt: new Date().toISOString() },
-          { id: '6', contractorId: 'contractor_search_2', skillName: 'lighting', createdAt: new Date().toISOString() },
-          { id: '7', contractorId: 'contractor_search_2', skillName: 'smart home', createdAt: new Date().toISOString() }
-        ],
-        reviews: [],
-        total_jobs_completed: 89,
-        hourlyRate: 95,
-        yearsExperience: 8,
-        availability: 'this_week',
-        rating: 4.9,
-        portfolioImages: ['https://example.com/portfolio2.jpg', 'https://example.com/portfolio3.jpg']
-      }
-    ];
-
-    return {
-      items: mockContractors.slice(0, limit),
-      totalCount: mockContractors.length,
-      hasMore: false,
-      facets: {
-        skills: { 'plumbing': 1, 'electrical': 1, 'lighting': 1, 'wiring': 1 },
-        priceRanges: { '$75-$100/hr': 2 },
-        ratings: { '4+ stars': 2, '5 stars': 1 },
-        locations: { 'Local Area': 2 },
-        availability: { 'immediate': 1, 'this_week': 1 }
-      },
-      suggestions: [`certified ${query}`, `top-rated ${query}`, `local ${query}`]
-    };
-  }
 }

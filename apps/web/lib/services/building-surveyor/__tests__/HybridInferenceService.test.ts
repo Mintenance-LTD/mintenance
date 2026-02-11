@@ -9,7 +9,7 @@
  * 5. Critical safety concern -> GPT-4 Vision (regardless of confidence)
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { HybridInferenceService, CONFIDENCE_THRESHOLDS } from '../HybridInferenceService';
 import { InternalDamageClassifier } from '../InternalDamageClassifier';
 import { AssessmentOrchestrator } from '../orchestration/AssessmentOrchestrator';

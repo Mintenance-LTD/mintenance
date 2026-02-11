@@ -62,6 +62,7 @@ export default function AnalyticsPage2025() {
             )
           `)
           .eq('homeowner_id', user.id)
+          .is('deleted_at', null)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -118,6 +119,7 @@ export default function AnalyticsPage2025() {
           .from('jobs')
           .select('contractor_id')
           .eq('homeowner_id', user.id)
+          .is('deleted_at', null)
           .not('contractor_id', 'is', null);
 
         const contractorCount = new Set(uniqueContractors?.map(j => j.contractor_id)).size;
@@ -327,7 +329,7 @@ export default function AnalyticsPage2025() {
                           </td>
                           <td className="py-3 px-4 text-right text-gray-700">{percentage}%</td>
                           <td className="py-3 px-4 text-right text-gray-700">
-                            {Math.floor(Math.random() * 5) + 1}
+                            —
                           </td>
                         </tr>
                       );

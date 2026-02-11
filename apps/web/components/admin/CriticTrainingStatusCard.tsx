@@ -23,7 +23,10 @@ export function CriticTrainingStatusCard({ health, loading }: CriticTrainingStat
   if (loading) {
     return (
       <div className="rounded-2xl border border-slate-100 bg-white shadow-sm p-4">
-        <div className="p-4 text-center text-slate-500 text-sm">Loading...</div>
+        <div className="space-y-3 p-4">
+          <div className="h-4 w-full animate-pulse rounded bg-slate-200" />
+          <div className="h-4 w-3/4 animate-pulse rounded bg-slate-200" />
+        </div>
       </div>
     );
   }

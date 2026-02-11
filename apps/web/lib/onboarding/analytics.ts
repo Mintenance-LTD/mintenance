@@ -194,18 +194,12 @@ export interface OnboardingMetrics {
 
 /**
  * Get onboarding metrics (for admin dashboard)
+ * Requires analytics database integration to return real data.
  */
 export async function getOnboardingMetrics(): Promise<OnboardingMetrics> {
-  // In production, this would fetch from your analytics database
-  // For now, return mock data structure
-  return {
-    totalUsers: 0,
-    completionRate: 0,
-    averageTimeToComplete: 0,
-    dropOffPoints: [],
-    featureAdoptionRates: [],
-    profileCompletionDistribution: [],
-  };
+  throw new Error(
+    'Onboarding metrics not implemented. Connect an analytics service (PostHog, Mixpanel, etc.) to populate this data.'
+  );
 }
 
 /**

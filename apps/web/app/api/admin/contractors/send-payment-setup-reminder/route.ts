@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
     if (isAdminError(auth)) return auth.error;
     const user = auth.user;
 
-    const { contractorId } = await request.json();
+    const body = await request.json();
+    const contractorId = typeof body?.contractorId === 'string' ? body.contractorId.trim() : null;
 
     if (!contractorId) {
       throw new BadRequestError('Contractor ID required');

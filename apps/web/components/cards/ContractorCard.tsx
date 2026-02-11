@@ -103,10 +103,11 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({
 
   return (
     <div
-      className={`bg-white rounded-xl shadow hover:shadow-lg transition-all duration-300 cursor-pointer group hover:-translate-y-1 ${className}`}
+      className={`bg-white rounded-xl shadow hover:shadow-lg transition-all duration-300 cursor-pointer group hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 ${className}`}
       onClick={handleCardClick}
       role="button"
       tabIndex={0}
+      aria-label={`View contractor: ${name}, ${rating.toFixed(1)} stars, ${trade}`}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           handleCardClick();
@@ -167,7 +168,7 @@ export const ContractorCard: React.FC<ContractorCardProps> = ({
 
           {/* Rating */}
           <div className="flex items-center gap-2 mb-4">
-            <div className="flex items-center gap-1">{renderStars()}</div>
+            <div className="flex items-center gap-1" aria-hidden="true">{renderStars()}</div>
             <span className="text-sm font-medium text-gray-900">
               {rating.toFixed(1)}
             </span>

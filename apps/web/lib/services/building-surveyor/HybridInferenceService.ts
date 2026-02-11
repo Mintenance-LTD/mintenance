@@ -106,7 +106,7 @@ export class HybridInferenceService {
 
                 await ModelDriftDetectionService.recordPrediction(
                     result.routingDecisionId,
-                    'v1.0.0', // TODO: Get actual model version
+                    process.env.ML_MODEL_VERSION || 'unknown',
                     result.internalPrediction.confidence,
                     {
                         damageType: result.internalPrediction.damageType,

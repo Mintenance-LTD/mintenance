@@ -162,7 +162,7 @@ export default function MFAVerifyPage() {
               id="code"
               type="text"
               value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\s/g, ''))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCode(e.target.value.replace(/\s/g, ''))}
               placeholder={method === 'totp' ? '000000' : 'XXXXXXXX'}
               maxLength={method === 'totp' ? 6 : 8}
               className="text-center text-xl tracking-widest font-mono"
@@ -187,7 +187,7 @@ export default function MFAVerifyPage() {
               id="rememberDevice"
               type="checkbox"
               checked={rememberDevice}
-              onChange={(e) => setRememberDevice(e.target.checked)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRememberDevice(e.target.checked)}
               className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
               disabled={loading}
             />

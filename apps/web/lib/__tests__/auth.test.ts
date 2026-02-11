@@ -4,7 +4,7 @@
  * Tests critical authentication functionality including JWT creation, verification, and rotation
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
 // Set JWT_SECRET BEFORE any imports (ConfigManager reads it at module load time)
 process.env.JWT_SECRET = 'test-secret-key-that-is-long-enough-for-security';

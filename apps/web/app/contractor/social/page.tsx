@@ -226,7 +226,7 @@ function ContractorSocialContent() {
   }, [user, loadingUser]);
 
   if (loadingUser) {
-    return <LoadingSpinner fullScreen message="Loading..." />;
+    return <LoadingSpinner fullScreen />;
   }
 
   if (!user) return null;

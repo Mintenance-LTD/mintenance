@@ -14,6 +14,7 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import * as OTPAuth from 'otpauth';
 
 /**
  * High-risk operation types
@@ -408,22 +409,28 @@ async function detectUnusualPattern(
 }
 
 /**
- * Validate TOTP token
- * This is a simplified implementation - in production, use a library like speakeasy
+ * Validate TOTP token using otpauth library
+ * Matches MFAService configuration (SHA1, 6 digits, 30s period, window=1)
  */
 async function validateTOTPToken(
   secret: string,
   token: string
 ): Promise<boolean> {
-  // TODO: Implement actual TOTP validation using otpauth
-  // For now, return false to maintain security
-  // In production, use MFAService.verifyTOTP() from @/lib/mfa/mfa-service
+  try {
+    const totp = new OTPAuth.TOTP({
+      issuer: 'Mintenance',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: OTPAuth.Secret.fromBase32(secret),
+    });
 
-  logger.warn('TOTP validation not implemented - rejecting token', {
-    service: 'payments',
-  });
-
-  return false;
+    const delta = totp.validate({ token, window: 1 });
+    return delta !== null;
+  } catch (error) {
+    logger.error('TOTP validation error', error, { service: 'payments' });
+    return false;
+  }
 }
 
 /**
@@ -478,23 +485,19 @@ export async function userHasMFAEnabled(userId: string): Promise<boolean> {
 
 /**
  * Get MFA setup URL for user
- * Generates QR code URL for authenticator apps
+ * Delegates to MFAService.enrollTOTP() for real TOTP enrollment
  */
 export async function getMFASetupInfo(
   userId: string,
-  email: string
+  _email: string
 ): Promise<{ secret: string; qrCodeUrl: string } | null> {
   try {
-    // TODO: Implement using speakeasy
-    // const speakeasy = require('speakeasy');
-    // TODO: Use MFAService.enrollTOTP() from @/lib/mfa/mfa-service instead
-
-    logger.warn('MFA setup not implemented', {
-      service: 'payments',
-      userId,
-    });
-
-    return null;
+    const { MFAService } = await import('@/lib/mfa/mfa-service');
+    const enrollment = await MFAService.enrollTOTP(userId);
+    return {
+      secret: enrollment.secret,
+      qrCodeUrl: enrollment.qrCodeDataUrl,
+    };
   } catch (error) {
     logger.error('Error generating MFA setup info', error, {
       service: 'payments',

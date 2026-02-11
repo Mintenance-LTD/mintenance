@@ -10,7 +10,7 @@
  * we can test flow control (budget checks, error handling) without deep dependencies.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 import { BuildingSurveyorService } from '../BuildingSurveyorService';
 import { CostControlService } from '../../ai/CostControlService';
 import { CriticModule } from '../critic';

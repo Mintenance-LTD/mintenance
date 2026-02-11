@@ -428,7 +428,7 @@ export function EscrowReviewDashboardClient() {
             <Input
               placeholder="Optional notes (e.g., 'Photos verified, homeowner approved')"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNotes(e.target.value)}
             />
           </div>
           <AlertDialogFooter>
@@ -453,7 +453,7 @@ export function EscrowReviewDashboardClient() {
             <Input
               placeholder="Reason for rejection (required)"
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
             />
           </div>
           <AlertDialogFooter>
@@ -478,7 +478,7 @@ export function EscrowReviewDashboardClient() {
             <Input
               placeholder="Reason for hold (required)"
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReason(e.target.value)}
             />
           </div>
           <AlertDialogFooter>

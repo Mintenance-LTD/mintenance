@@ -1,9 +1,22 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 
 import { createClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import * as OTPAuth from 'otpauth';
+
+// Mock speakeasy — plain functions survive mockReset: true
+const speakeasy = {
+  generateSecret: (_opts?: any) => ({
+    ascii: 'test-ascii',
+    hex: 'test-hex',
+    base32: 'JBSWY3DPEHPK3PXP',
+    otpauth_url: 'otpauth://totp/App?secret=JBSWY3DPEHPK3PXP',
+  }),
+  totp: {
+    verify: (_opts?: any) => true,
+  },
+};
 
 // Create mock objects using vi.hoisted so they survive mockReset
 const { redis, isRedisAvailable, logger, monitoring } = vi.hoisted(() => ({

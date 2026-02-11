@@ -160,7 +160,7 @@ export function VideoCallScheduler(props: VideoCallSchedulerProps) {
                             <label style={{ display: 'block', marginBottom: theme.spacing[2], fontWeight: 'bold' }}>Select Job</label>
                             <select
                                 value={selectedJobId}
-                                onChange={(e) => setSelectedJobId(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedJobId(e.target.value)}
                                 style={{
                                     width: '100%',
                                     padding: theme.spacing[2],
@@ -180,7 +180,7 @@ export function VideoCallScheduler(props: VideoCallSchedulerProps) {
                             <input
                                 type="datetime-local"
                                 value={scheduledTime}
-                                onChange={(e) => setScheduledTime(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setScheduledTime(e.target.value)}
                                 style={{
                                     padding: '8px',
                                     borderRadius: '6px',
@@ -195,7 +195,7 @@ export function VideoCallScheduler(props: VideoCallSchedulerProps) {
                             <label style={{ display: 'block', marginBottom: theme.spacing[2], fontWeight: 'bold' }}>Purpose</label>
                             <select
                                 value={purpose}
-                                onChange={(e) => setPurpose(e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPurpose(e.target.value)}
                                 style={{
                                     width: '100%',
                                     padding: theme.spacing[2],

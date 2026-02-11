@@ -59,7 +59,7 @@ export function ProfileFormField({
           <input
             type={type}
             value={value}
-            onChange={(e) => onChange?.(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange?.(e.target.value)}
             placeholder={placeholder}
             style={{
               width: '100%',

@@ -17,7 +17,7 @@ export function PrimaryMetricCard2025({ metric }: PrimaryMetricCardProps) {
     const trend = metric.trend?.direction === 'up' ? 1 : metric.trend?.direction === 'down' ? -1 : 0;
 
     return Array.from({ length: 12 }, (_, i) => ({
-      value: baseValue + (trend * i * 2) + Math.random() * 10,
+      value: baseValue + (trend * i * 2),
     }));
   };
 

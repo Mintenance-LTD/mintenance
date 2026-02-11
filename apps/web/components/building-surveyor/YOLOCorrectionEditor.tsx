@@ -399,7 +399,7 @@ export function YOLOCorrectionEditor(props: YOLOCorrectionEditorProps) {
                   {showClassSelector === det.id ? (
                     <select
                       value={det.class}
-                      onChange={(e) => handleClassChange(det.id, e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleClassChange(det.id, e.target.value)}
                       onBlur={() => setShowClassSelector(null)}
                       autoFocus
                       className="text-sm border border-gray-300 rounded px-2 py-1"

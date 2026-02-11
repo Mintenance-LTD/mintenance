@@ -1,24 +1,10 @@
 import { createClient, SupabaseClientOptions } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl) {
-  throw new Error(
-    '[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL environment variable. ' +
-    'Please set this in your .env.local file. ' +
-    'For local development: http://127.0.0.1:54321'
-  );
-}
-
-if (!supabaseServiceKey) {
-  throw new Error(
-    '[Supabase] Missing SUPABASE_SERVICE_ROLE_KEY environment variable. ' +
-    'Please set this in your .env.local file. ' +
-    'This is the service role key from your Supabase project settings. ' +
-    'NEVER commit this key to version control.'
-  );
-}
+// Placeholder fallbacks allow module import during `next build` page data
+// collection without throwing. The Supabase SDK requires a valid-looking URL.
+// At runtime on Vercel the real env vars are injected.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
 
 /**
  * Supabase client configuration optimized for server-side usage
@@ -75,20 +61,20 @@ export const serverSupabase = createClient(supabaseUrl, supabaseServiceKey, clie
  * Create a new service-role client instance for isolated operations.
  * SECURITY WARNING: Bypasses ALL RLS — prefer createUserScopedClient() for user requests.
  */
-export function createServerSupabaseClient(): ReturnType<typeof createClient> {
-  return createClient(supabaseUrl!, supabaseServiceKey!, clientOptions as unknown as Parameters<typeof createClient>[2]);
+export function createServerSupabaseClient() {
+  return createClient(supabaseUrl, supabaseServiceKey, clientOptions as unknown as Parameters<typeof createClient>[2]);
 }
 
 /**
  * Create a Supabase client scoped to the requesting user via their JWT.
  * This client respects RLS policies and should be used for all user-facing API routes.
  */
-export function createUserScopedClient(userJwt: string): ReturnType<typeof createClient> {
+export function createUserScopedClient(userJwt: string) {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!anonKey) {
     throw new Error('[Supabase] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY for user-scoped client');
   }
-  return createClient(supabaseUrl!, anonKey, {
+  return createClient(supabaseUrl, anonKey, {
     ...clientOptions as unknown as Parameters<typeof createClient>[2],
     global: {
       ...clientOptions.global,
@@ -99,4 +85,3 @@ export function createUserScopedClient(userJwt: string): ReturnType<typeof creat
     },
   });
 }
-

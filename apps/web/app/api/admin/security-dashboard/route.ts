@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { securityMonitor } from '@/lib/security-monitor';
@@ -8,6 +9,24 @@ import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+
+const securityDashboardActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('resolve_event'),
+    eventId: z.string().uuid(),
+  }),
+  z.object({
+    action: z.literal('block_ip'),
+    ipAddress: z.string().ip(),
+    reason: z.string().min(1).max(500),
+    expiresAt: z.string().datetime().optional(),
+    securityEventIds: z.array(z.string().uuid()).optional(),
+  }),
+  z.object({
+    action: z.literal('unblock_ip'),
+    ipAddress: z.string().ip(),
+  }),
+]);
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,7 +58,11 @@ export async function GET(request: NextRequest) {
 
     // Get timeframe from query params
     const { searchParams } = new URL(request.url);
-    const timeframe = searchParams.get('timeframe') as '1h' | '24h' | '7d' | '30d' || '24h';
+    const VALID_TIMEFRAMES = ['1h', '24h', '7d', '30d'] as const;
+    const rawTimeframe = searchParams.get('timeframe');
+    const timeframe = (VALID_TIMEFRAMES as readonly string[]).includes(rawTimeframe ?? '')
+      ? (rawTimeframe as '1h' | '24h' | '7d' | '30d')
+      : '24h';
 
     // Get security metrics
     const { data: metrics, error } = await serverSupabase
@@ -256,9 +279,14 @@ export async function POST(request: NextRequest) {
     const user = auth.user;
 
     const body = await request.json();
-    const { action, eventId } = body;
+    const parsed = securityDashboardActionSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestError('Invalid request: action must be resolve_event, block_ip, or unblock_ip with required fields');
+    }
+    const validatedBody = parsed.data;
 
-    if (action === 'resolve_event' && eventId) {
+    if (validatedBody.action === 'resolve_event') {
+      const eventId = validatedBody.eventId;
       // Mark security event as resolved
       const { error } = await serverSupabase
         .from('security_events')
@@ -288,12 +316,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Event resolved successfully' });
     }
 
-    if (action === 'block_ip') {
-      const { ipAddress, reason, expiresAt } = body;
-      
-      if (!ipAddress || !reason) {
-        throw new BadRequestError('IP address and reason are required');
-      }
+    if (validatedBody.action === 'block_ip') {
+      const { ipAddress, reason, expiresAt, securityEventIds } = validatedBody;
 
       // Block IP using IPBlockingService
       const blocked = await IPBlockingService.blockIP({
@@ -303,7 +327,7 @@ export async function POST(request: NextRequest) {
         expiresAt: expiresAt ? new Date(expiresAt) : undefined,
         metadata: {
           blocked_from: 'security_dashboard',
-          security_events: body.securityEventIds || [],
+          security_events: securityEventIds || [],
         },
       });
 
@@ -338,12 +362,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (action === 'unblock_ip') {
-      const { ipAddress } = body;
-      
-      if (!ipAddress) {
-        throw new BadRequestError('IP address is required');
-      }
+    if (validatedBody.action === 'unblock_ip') {
+      const { ipAddress } = validatedBody;
 
       const unblocked = await IPBlockingService.unblockIP(ipAddress);
 

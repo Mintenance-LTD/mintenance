@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+// globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
 /**
  * Edge Case Unit Tests for BuildingSurveyorService
  *

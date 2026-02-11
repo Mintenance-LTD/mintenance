@@ -8,14 +8,7 @@ import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
-
-// Initialize Stripe with secret key (server-side only)
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not configured. Payment processing is disabled.');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10',
-});
+import { stripe } from '@/lib/stripe';
 
 const verifyPaymentMethodSchema = z.object({
   paymentMethodId: z.string().min(1, 'Payment method ID is required'),
