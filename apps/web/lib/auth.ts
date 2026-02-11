@@ -5,8 +5,10 @@ import { serverSupabase } from './api/supabaseServer';
 import { logger } from './logger';
 import type { User, JWTPayload } from '@mintenance/types';
 
-// Initialize config manager
-const config = ConfigManager.getInstance();
+// Lazy-initialize config manager to avoid module-level throws on Vercel serverless
+function getConfig(): ConfigManager {
+  return ConfigManager.getInstance();
+}
 
 
 // Centralized cookie names and TTLs
@@ -46,7 +48,7 @@ interface RotateRefreshTokenResult {
  * Create a JWT token for a user
  */
 export async function createToken(user: Pick<User, 'id' | 'email' | 'role'>): Promise<string> {
-  const secret = config.getRequired('JWT_SECRET');
+  const secret = getConfig().getRequired('JWT_SECRET');
   return generateJWT(user, secret, '1h');
 }
 
@@ -68,7 +70,7 @@ export async function createTokenPair(
   sessionStart?: number,
   lastActivity?: number
 ): Promise<{ accessToken: string; refreshToken: string }> {
-  const secret = config.getRequired('JWT_SECRET');
+  const secret = getConfig().getRequired('JWT_SECRET');
 
   // VULN-009: If sessionStart not provided, this is a new session (login)
   const actualSessionStart = sessionStart || Date.now();
@@ -299,7 +301,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
     return null;
   }
 
-  const secret = config.getRequired('JWT_SECRET');
+  const secret = getConfig().getRequired('JWT_SECRET');
   return verifyJWT(token, secret);
 }
 
@@ -310,7 +312,7 @@ export function createAuthCookieHeaders(token: string, rememberMe: boolean = fal
   const headers = new Headers();
   const accessTokenMaxAge = ACCESS_TTL_SEC; // 1 hour
   const refreshTokenMaxAge = rememberMe ? REFRESH_TTL_SEC_LONG : REFRESH_TTL_SEC_SHORT; // 30 days if remember me, else 7 days
-  const isProduction = config.isProduction();
+  const isProduction = getConfig().isProduction();
 
   // Set access token (short-lived)
   headers.append('Set-Cookie', `${AUTH_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${accessTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`);
@@ -339,7 +341,7 @@ export async function setAuthCookie(token: string, rememberMe: boolean = false, 
   // Set access token (short-lived)
   cookieStore.set(AUTH_COOKIE, token, {
     httpOnly: true,
-    secure: config.isProduction(),
+    secure: getConfig().isProduction(),
     sameSite: 'strict',
     maxAge: accessTokenMaxAge,
     path: '/',
@@ -349,7 +351,7 @@ export async function setAuthCookie(token: string, rememberMe: boolean = false, 
   if (refreshToken) {
     cookieStore.set(REFRESH_COOKIE, refreshToken, {
       httpOnly: true, // SECURITY: Never expose refresh token to JavaScript
-      secure: config.isProduction(),
+      secure: getConfig().isProduction(),
       sameSite: 'strict',
       maxAge: refreshTokenMaxAge,
       path: '/',
@@ -360,7 +362,7 @@ export async function setAuthCookie(token: string, rememberMe: boolean = false, 
   if (rememberMe) {
     cookieStore.set(REMEMBER_COOKIE, 'true', {
       httpOnly: false, // Allow client-side access for UI
-      secure: config.isProduction(),
+      secure: getConfig().isProduction(),
       sameSite: 'strict',
       maxAge: refreshTokenMaxAge,
       path: '/',

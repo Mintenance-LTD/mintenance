@@ -6,22 +6,29 @@ import { checkRateLimit, createRateLimitHeaders, type RateLimitResult } from '@/
 import { handlePreflightRequest, addCorsHeaders, shouldSkipCors } from '@/lib/cors';
 import { securityMonitor } from '@/lib/security-monitor';
 
-// CRITICAL FIX: Fail-fast initialization to prevent silent failures
-// If ConfigManager fails to initialize, the entire middleware should fail immediately
-// This prevents undefined behavior and ensures security controls are properly enforced
-let configManager: ConfigManager;
+// Lazy-initialized ConfigManager to avoid module-level throws that crash the middleware Edge Function
+let configManager: ConfigManager | null = null;
+let configInitError: string | null = null;
 
-try {
-  configManager = ConfigManager.getInstance();
-  // Verify configuration is accessible by testing JWT_SECRET availability
-  const jwtSecret = configManager.get('JWT_SECRET');
-  if (!jwtSecret) {
-    throw new Error('JWT_SECRET not available in configuration');
+function getConfigManager(): ConfigManager | null {
+  if (configManager) return configManager;
+  if (configInitError) return null;
+
+  try {
+    configManager = ConfigManager.getInstance();
+    const jwtSecret = configManager.get('JWT_SECRET');
+    if (!jwtSecret) {
+      configInitError = 'JWT_SECRET not available in configuration';
+      logger.error('CRITICAL: ' + configInitError, undefined, { service: 'middleware' });
+      configManager = null;
+      return null;
+    }
+    return configManager;
+  } catch (error) {
+    configInitError = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('CRITICAL: Middleware configuration initialization failed', error, { service: 'middleware' });
+    return null;
   }
-} catch (error) {
-  logger.error('CRITICAL: Middleware configuration initialization failed - authentication will be unavailable', error, { service: 'middleware' });
-  // Throw error to fail fast and prevent server from starting with broken auth
-  throw new Error('Middleware configuration failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
 }
 
 import type { JWTPayload } from '@mintenance/types';
@@ -79,11 +86,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // If configuration failed to load, fail closed for security
-  if (!configManager) {
+  // If configuration failed to load, fail closed for security (non-public routes only)
+  const cfg = getConfigManager();
+  if (!cfg) {
     logger.error('Middleware: Configuration unavailable - rejecting request', undefined, {
       service: 'middleware',
       pathname,
+      configError: configInitError,
     });
     return new NextResponse('Service Unavailable', { status: 503 });
   }
@@ -316,7 +325,7 @@ export async function middleware(request: NextRequest) {
     }
     let jwtPayload;
     try {
-      const jwtSecret = configManager.getRequired('JWT_SECRET');
+      const jwtSecret = cfg.getRequired('JWT_SECRET');
       jwtPayload = await verifyJWT(token, jwtSecret);
     } catch (configError) {
       logger.error('JWT verification failed due to configuration error', configError, {
