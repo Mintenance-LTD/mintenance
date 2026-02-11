@@ -7,9 +7,14 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { createClient } from '@supabase/supabase-js';
 
-// MCP Configuration credentials (from .cursor/mcp.json)
-const SUPABASE_URL = 'https://ukrjudtlvapiajkjbcrd.supabase.co';
-const SUPABASE_SERVICE_ROLE_KEY = 'sb_secret_AMoaugS1OiiCYsvyXtRJNw_uVUJwLan';
+// Load credentials from environment variables
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ Missing required env vars: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: {

@@ -9,12 +9,10 @@ import { StatsSection } from '@/components/landing/stats-section';
 import { BentoFeaturesSection } from '@/components/landing/bento-features-section';
 import { ComparisonTable } from '@/components/landing/comparison-table';
 import { HowItWorks } from '@/components/landing/how-it-works';
-import { TestimonialsSection } from '@/components/landing/testimonials-section';
 import { TrustIndicators } from '@/components/landing/trust-indicators';
 import { FAQSection } from '@/components/landing/faq-section';
 import { ContractorCTA } from '@/components/landing/contractor-cta';
 import { FinalCTA } from '@/components/landing/final-cta';
-import { StickyCTA } from '@/components/landing/sticky-cta';
 import { ExitIntentModal } from '@/components/landing/exit-intent-modal';
 import type { PlatformStats } from '@/components/landing/stats-section';
 
@@ -26,14 +24,14 @@ import type { PlatformStats } from '@/components/landing/stats-section';
  */
 
 const FALLBACK_STATS: PlatformStats = {
-  activeContractors: 2847,
-  activeContractorsGrowth: 12,
-  completedJobs: 12456,
-  completedJobsGrowth: 23,
-  totalSaved: 1250000,
-  totalSavedGrowth: 18,
-  avgResponseTimeHours: 2.4,
-  responseTimeImprovement: 15,
+  activeContractors: 0,
+  activeContractorsGrowth: 0,
+  completedJobs: 0,
+  completedJobsGrowth: 0,
+  totalSaved: 0,
+  totalSavedGrowth: 0,
+  avgResponseTimeHours: 0,
+  responseTimeImprovement: 0,
 };
 
 export default function LandingPage() {
@@ -93,14 +91,6 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gray-50">
       <LandingNavigation />
 
-      {/* Skip to main content link for accessibility */}
-      <a
-        href="#main-content"
-        className="absolute left-4 top-4 z-50 -translate-y-full px-4 py-2 bg-slate-900 text-white rounded-lg outline-none ring-2 ring-slate-500 focus:translate-y-0 focus:outline-none transition-transform"
-      >
-        Skip to main content
-      </a>
-
       <main id="main-content" className="pt-16">
         <HeroSection
           activeContractors={stats?.activeContractors ?? null}
@@ -111,7 +101,6 @@ export default function LandingPage() {
         <BentoFeaturesSection />
         <ComparisonTable />
         <HowItWorks />
-        <TestimonialsSection />
         <TrustIndicators />
         <FAQSection />
         <ContractorCTA />
@@ -119,7 +108,6 @@ export default function LandingPage() {
       </main>
 
       <Footer2025 />
-      <StickyCTA />
       <ExitIntentModal />
     </div>
   );

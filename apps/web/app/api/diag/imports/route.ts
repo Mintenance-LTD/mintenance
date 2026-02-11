@@ -92,6 +92,48 @@ export async function GET() {
     results['@upstash/redis'] = `FAIL: ${e instanceof Error ? e.message : String(e)}`;
   }
 
+  // === LOGIN ROUTE IMPORTS (to diagnose POST /api/auth/login 405/500) ===
+
+  // 12. Test @/lib/auth-manager
+  try {
+    await import('@/lib/auth-manager');
+    results['@/lib/auth-manager'] = 'OK';
+  } catch (e: unknown) {
+    results['@/lib/auth-manager'] = `FAIL: ${e instanceof Error ? e.stack || e.message : String(e)}`;
+  }
+
+  // 13. Test @/lib/validation/validator
+  try {
+    await import('@/lib/validation/validator');
+    results['@/lib/validation/validator'] = 'OK';
+  } catch (e: unknown) {
+    results['@/lib/validation/validator'] = `FAIL: ${e instanceof Error ? e.stack || e.message : String(e)}`;
+  }
+
+  // 14. Test @/lib/validation/schemas
+  try {
+    await import('@/lib/validation/schemas');
+    results['@/lib/validation/schemas'] = 'OK';
+  } catch (e: unknown) {
+    results['@/lib/validation/schemas'] = `FAIL: ${e instanceof Error ? e.stack || e.message : String(e)}`;
+  }
+
+  // 15. Test @/lib/mfa/mfa-service
+  try {
+    await import('@/lib/mfa/mfa-service');
+    results['@/lib/mfa/mfa-service'] = 'OK';
+  } catch (e: unknown) {
+    results['@/lib/mfa/mfa-service'] = `FAIL: ${e instanceof Error ? e.stack || e.message : String(e)}`;
+  }
+
+  // 16. Test @/lib/database
+  try {
+    await import('@/lib/database');
+    results['@/lib/database'] = 'OK';
+  } catch (e: unknown) {
+    results['@/lib/database'] = `FAIL: ${e instanceof Error ? e.stack || e.message : String(e)}`;
+  }
+
   // Environment info
   const envInfo = {
     NODE_ENV: process.env.NODE_ENV,

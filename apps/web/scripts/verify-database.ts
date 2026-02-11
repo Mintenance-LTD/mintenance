@@ -29,7 +29,7 @@ if (!SUPABASE_URL) {
 
 if (!SUPABASE_SERVICE_ROLE_KEY) {
   console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY in .env');
-  console.error('   Get it from: https://supabase.com/dashboard/project/ukrjudtlvapiajkjbcrd/settings/api');
+  console.error('   Get it from: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/settings/api');
   process.exit(1);
 }
 
@@ -235,7 +235,7 @@ async function testRLSPolicies() {
     // This might fail if function doesn't exist, which is fine
     // We'll just note that RLS needs manual verification
     console.log('⚠️  RLS policies require manual verification in Supabase dashboard');
-    console.log('   Go to: https://supabase.com/dashboard/project/ukrjudtlvapiajkjbcrd/database/policies');
+    console.log('   Go to: https://supabase.com/dashboard/project/YOUR_PROJECT_REF/database/policies');
     console.log('\n   Required policies:');
     console.log('   - escrow_transactions: SELECT (homeowner or contractor)');
     console.log('   - escrow_transactions: INSERT (homeowner only)');

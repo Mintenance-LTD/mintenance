@@ -70,8 +70,9 @@ export class MaintenanceDetectionService {
         this.modelUrl = deployments.url;
       } else {
         // Fallback to environment variable or default
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
         this.modelUrl = process.env.NEXT_PUBLIC_YOLO_MODEL_URL ||
-          'https://ukrjudtlvapiajkjbcrd.supabase.co/storage/v1/object/public/yolo-models/maintenance-v1.0.onnx';
+          `${supabaseUrl}/storage/v1/object/public/yolo-models/maintenance-v1.0.onnx`;
       }
 
       // logger.info('Loading YOLO model from:', this.modelUrl', { service: 'lib' });

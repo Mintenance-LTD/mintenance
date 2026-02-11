@@ -13,8 +13,13 @@ if (existsSync(envPath)) {
   config({ path: envPath });
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ukrjudtlvapiajkjbcrd.supabase.co';
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_AMoaugS1OiiCYsvyXtRJNw_uVUJwLan';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !serviceRoleKey) {
+  console.error('❌ Missing required env vars: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
   auth: {

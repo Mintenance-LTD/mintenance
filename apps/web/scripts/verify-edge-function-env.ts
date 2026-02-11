@@ -99,7 +99,7 @@ async function verifyEdgeFunctionEnv() {
         }
         console.error('   Response Status:', response.status);
         console.error('\n💡 Check Supabase Dashboard logs for more details:');
-        console.error('   https://supabase.com/dashboard/project/ukrjudtlvapiajkjbcrd/functions/setup-contractor-payout/logs\n');
+        console.error('   https://supabase.com/dashboard/project/YOUR_PROJECT_REF/functions/setup-contractor-payout/logs\n');
       }
       
       process.exit(1);

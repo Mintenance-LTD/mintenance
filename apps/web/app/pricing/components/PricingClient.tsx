@@ -383,6 +383,7 @@ export function PricingClient() {
       {/* Pricing Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <MotionDiv
+          key={userType}
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"

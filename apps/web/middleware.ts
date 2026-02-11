@@ -248,7 +248,8 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get(authCookieName)?.value;
 
     // Also check for Supabase auth token (for E2E tests and Supabase-only auth)
-    const supabaseAuthCookie = request.cookies.get('sb-ukrjudtlvapiajkjbcrd-auth-token')?.value;
+    const supabaseRef = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] || '';
+    const supabaseAuthCookie = request.cookies.get(`sb-${supabaseRef}-auth-token`)?.value;
 
     if (!token && !supabaseAuthCookie) {
       // No token found, redirect to login

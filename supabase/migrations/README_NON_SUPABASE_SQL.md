@@ -9,7 +9,7 @@
 
 ## Applied via MCP (Supabase MCP `apply_migration`)
 
-- **Service areas** – Tables `service_areas`, `service_area_coverage`, `area_landmarks`, `service_routes`, `area_performance` were applied to your project `ukrjudtlvapiajkjbcrd`. RLS policies for these tables already existed (no second migration needed).
+- **Service areas** – Tables `service_areas`, `service_area_coverage`, `area_landmarks`, `service_routes`, `area_performance` were applied to your project `YOUR_PROJECT_REF`. RLS policies for these tables already existed (no second migration needed).
 - **security_definer_and_constraints** – SECURITY DEFINER `search_path` hardening for `purge_old_email_history`, `purge_old_quote_interactions`, `set_user_integration_secret`, `get_user_integration_secret`, `create_meeting_status_update`; plus NOT NULL and CHECK constraints on `jobs`, `bids`, `payments`, `companies`. Applied 2026-02-08.
 - **core_rls_policies_schema_aligned** – Core RLS for profiles, companies, addresses, jobs, bids, saved_jobs (contractor_id), job_views (contractor_id), job_milestones (job_id), job_guarantees (contractor_id/homeowner_id), payments, payment_methods, escrow_accounts, security_events, audit_logs, ML/AI tables. Local file `20260206009000_core_rls_policies.sql` was updated to match remote schema (saved_jobs/job_views/job_milestones/job_guarantees column names). Applied 2026-02-08.
 

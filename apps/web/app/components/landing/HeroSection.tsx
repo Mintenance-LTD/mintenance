@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Search, MapPin, ChevronDown, Star, Shield, Zap, TrendingUp } from 'lucide-react';
+import { Search, MapPin, ChevronDown, Star, Shield, Zap } from 'lucide-react';
 import { HeroCard } from './HeroCard';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
@@ -146,14 +146,14 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
             {/* Headline */}
             <motion.div variants={!prefersReducedMotion ? itemVariants : undefined}>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1] mb-6">
-                Mint AI{' '}
+                Find Your Nearest{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-teal-200">
-                  in 60 Seconds
+                  Trusted Contractor
                 </span>
-                . Instant Cost Estimates.
+                , and Keep It Mint.
               </h1>
               <p className="text-xl text-blue-100 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Upload photos. Mint AI detects 71 damage types and suggests verified contractors. Swipe to hire.
+                Search by trade, enter your postcode, and get matched with verified local contractors in seconds.
               </p>
             </motion.div>
 
@@ -208,26 +208,19 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
             {/* Trust Indicators */}
             <motion.div
               variants={!prefersReducedMotion ? itemVariants : undefined}
-              className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto lg:mx-0"
+              className="grid grid-cols-3 gap-6 max-w-2xl mx-auto lg:mx-0"
             >
-              <div className="text-center lg:text-left">
-                <div className="text-3xl font-bold text-white mb-1">50K+</div>
-                <div className="text-sm text-blue-200">Verified Pros</div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
+                <Shield className="w-4 h-4 text-teal-400" />
+                <span className="text-sm font-medium text-white">Background Checked</span>
               </div>
-              <div className="text-center lg:text-left">
-                <div className="text-3xl font-bold text-white mb-1">1M+</div>
-                <div className="text-sm text-blue-200">Jobs Completed</div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
+                <Star className="w-4 h-4 text-amber-400" />
+                <span className="text-sm font-medium text-white">Rated & Reviewed</span>
               </div>
-              <div className="text-center lg:text-left">
-                <div className="flex items-center justify-center lg:justify-start gap-1 mb-1">
-                  <span className="text-3xl font-bold text-white">4.8</span>
-                  <Star className="w-6 h-6 fill-amber-400 text-amber-400" />
-                </div>
-                <div className="text-sm text-blue-200">Average Rating</div>
-              </div>
-              <div className="text-center lg:text-left">
-                <div className="text-3xl font-bold text-white mb-1">£10M+</div>
-                <div className="text-sm text-blue-200">Paid Securely</div>
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
+                <Zap className="w-4 h-4 text-teal-400" />
+                <span className="text-sm font-medium text-white">Insured Pros</span>
               </div>
             </motion.div>
 
@@ -240,7 +233,7 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
                 href="/register?role=homeowner"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold text-slate-900 bg-amber-400 rounded-xl hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400 transition-all duration-300 shadow-xl hover:shadow-amber-400/20 hover:scale-105"
               >
-                Post a Job
+                Get Started
                 <motion.span
                   className="inline-block"
                   animate={!prefersReducedMotion ? { x: [0, 4, 0] } : undefined}
@@ -257,24 +250,6 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
               </Link>
             </motion.div>
 
-            {/* Feature Pills */}
-            <motion.div
-              variants={!prefersReducedMotion ? itemVariants : undefined}
-              className="flex flex-wrap justify-center lg:justify-start gap-3"
-            >
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
-                <Shield className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-medium text-white">Secure Escrow</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
-                <Zap className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-medium text-white">Instant Matching</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
-                <TrendingUp className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-medium text-white">AI Assessment</span>
-              </div>
-            </motion.div>
           </div>
 
           {/* Right Column: Hero. SSR-safe: same placeholder until mounted to avoid hydration mismatch. */}
