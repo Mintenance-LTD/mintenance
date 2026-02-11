@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, ConflictError, InternalServerError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, ConflictError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 /** Type for bid data from Supabase query */
@@ -125,118 +124,83 @@ export async function POST(
       throw new NotFoundError('Bid not found');
     }
 
-    // Check if contractor has payment setup before accepting bid
-    // Check both users table and contractor_payout_accounts for completeness
-    const { data: contractor, error: contractorError } = await serverSupabase
+    // Log Stripe payment setup status (non-blocking - payment enforcement comes later)
+    const { data: contractor } = await serverSupabase
       .from('profiles')
       .select('stripe_connect_account_id, first_name, last_name')
       .eq('id', bid.contractor_id)
       .single();
 
-    if (contractorError || !contractor?.stripe_connect_account_id) {
-      throw new BadRequestError('This contractor has not completed payment account setup. They must set up their payment account before accepting jobs.');
+    if (!contractor?.stripe_connect_account_id) {
+      logger.warn('Contractor accepting bid without Stripe setup', {
+        service: 'jobs',
+        contractorId: bid.contractor_id,
+        bidId,
+        jobId,
+      });
     }
 
-    // Also check if the payout account is marked as complete
-    const { data: payoutAccount } = await serverSupabase
-      .from('contractor_payout_accounts')
-      .select('account_complete, stripe_account_id')
-      .eq('contractor_id', bid.contractor_id)
-      .single();
+    // Check if another bid is already accepted for this job
+    const { data: existingAccepted } = await serverSupabase
+      .from('bids')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('status', 'accepted')
+      .limit(1);
 
-    // If payout account exists but is not complete, verify with Stripe
-    // This provides a fallback if webhook didn't update the status
-    if (payoutAccount && !payoutAccount.account_complete && payoutAccount.stripe_account_id) {
-      try {
-        // Only verify if Stripe is configured
-        const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-        if (stripeSecretKey) {
-          const Stripe = (await import('stripe')).default;
-          const stripe = new Stripe(stripeSecretKey, {
-            apiVersion: '2024-04-10',
-          });
-
-          const stripeAccount = await stripe.accounts.retrieve(payoutAccount.stripe_account_id);
-          
-          // Check if account is actually complete
-          const isAccountComplete = stripeAccount.details_submitted && 
-                                    stripeAccount.charges_enabled && 
-                                    stripeAccount.payouts_enabled;
-
-          if (!isAccountComplete) {
-            throw new BadRequestError('This contractor has started payment setup but has not completed the onboarding process. They must finish setting up their payment account before accepting jobs.');
-          }
-
-          // Update database if account is actually complete but not marked as such
-          await serverSupabase
-            .from('contractor_payout_accounts')
-            .update({ account_complete: true })
-            .eq('contractor_id', bid.contractor_id);
-        }
-      } catch (stripeError) {
-        // If Stripe check fails, log but don't block (webhook will sync later)
-        logger.warn('Failed to verify Stripe account status', {
-          service: 'jobs',
-          contractorId: bid.contractor_id,
-          error: stripeError,
-        });
-        // Don't block bid acceptance if verification fails - assume webhook will sync
-      }
+    if (existingAccepted && existingAccepted.length > 0) {
+      throw new ConflictError('A bid has already been accepted for this job. Please refresh the page.');
     }
 
-    // Use atomic function to accept bid, reject others, and update job status
-    // This prevents race conditions where multiple bids could be accepted for the same job
-    const { data: acceptResult, error: acceptError } = await serverSupabase
-      .rpc('accept_bid_atomic', {
-        p_bid_id: bidId,
-        p_job_id: jobId,
-        p_contractor_id: bid.contractor_id,
-        p_homeowner_id: user.id,
-      })
-      .single();
+    // Step 1: Accept this bid
+    const { error: acceptError } = await serverSupabase
+      .from('bids')
+      .update({ status: 'accepted', updated_at: new Date().toISOString() })
+      .eq('id', bidId)
+      .eq('job_id', jobId);
 
     if (acceptError) {
-      logger.error('Failed to accept bid atomically', acceptError, {
+      logger.error('Failed to accept bid', acceptError, {
         service: 'jobs',
         bidId,
         jobId,
       });
-
-      // Handle unique constraint violation (race condition detected)
-      if (acceptError.code === '23505' || acceptError.message?.includes('unique constraint') || acceptError.message?.includes('duplicate key')) {
-        throw new ConflictError('A bid has already been accepted for this job. Please refresh the page.'); // 409 Conflict
-      }
-
       throw new InternalServerError('Failed to accept bid');
     }
 
-    // Check function return value
-    const result = acceptResult as { success?: boolean; error_message?: string; accepted_bid_id?: string } | null;
-    if (!result || !result.success) {
-      const errorMessage = result?.error_message || 'Failed to accept bid';
-      
-      logger.error('Bid acceptance failed', undefined, {
+    // Step 2: Reject other pending bids for this job
+    const { error: rejectError } = await serverSupabase
+      .from('bids')
+      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .eq('job_id', jobId)
+      .eq('status', 'pending')
+      .neq('id', bidId);
+
+    if (rejectError) {
+      logger.warn('Failed to reject other bids', {
         service: 'jobs',
-        bidId,
         jobId,
-        errorMessage,
-        acceptedBidId: result?.accepted_bid_id,
+        error: rejectError.message,
       });
+    }
 
-      // Handle specific error cases
-      if (errorMessage.includes('already been accepted')) {
-        throw new ConflictError('A bid has already been accepted for this job. Please refresh the page.'); // 409 Conflict
-      }
+    // Step 3: Update job status and assign contractor
+    const { error: jobUpdateError } = await serverSupabase
+      .from('jobs')
+      .update({
+        status: 'assigned',
+        contractor_id: bid.contractor_id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
 
-      if (errorMessage.includes('not found')) {
-        throw new NotFoundError(errorMessage);
-      }
-
-      if (errorMessage.includes('Not authorized')) {
-        throw new ForbiddenError(errorMessage);
-      }
-
-      throw new BadRequestError(errorMessage);
+    if (jobUpdateError) {
+      logger.error('Failed to update job status after bid acceptance', jobUpdateError, {
+        service: 'jobs',
+        jobId,
+        contractorId: bid.contractor_id,
+      });
+      // Don't throw - bid is already accepted, job status update is secondary
     }
 
     // Fetch job title for notification (after successful acceptance)
