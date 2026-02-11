@@ -6,12 +6,12 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { PasswordValidator } from '@mintenance/auth';
 import { logger } from '@mintenance/shared';
-import { env } from './env';
 
-
-// Initialize Supabase client for server-side operations with validated env
-const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+// Placeholder fallbacks allow module import during `next build` page-data
+// collection without throwing. The Supabase SDK requires a valid-looking URL.
+// At runtime on Vercel the real env vars are injected.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
 
 logger.info('Supabase client initialized', {
   service: 'database',
