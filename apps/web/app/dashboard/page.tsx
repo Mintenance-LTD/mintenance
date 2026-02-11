@@ -157,6 +157,23 @@ export default async function DashboardPage2025() {
     };
   });
 
+  // Prepare pending bids for the "Bids Received" section
+  const pendingBids = allBids
+    .filter((bid) => bid.status === 'pending')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 10)
+    .map((bid) => ({
+      id: bid.id,
+      amount: Number(bid.amount || bid.total_amount || 0),
+      jobId: bid.job?.id || '',
+      jobTitle: bid.job?.title || 'Untitled Job',
+      contractorName: bid.contractor
+        ? `${bid.contractor.first_name || ''} ${bid.contractor.last_name || ''}`.trim() || 'Contractor'
+        : 'Contractor',
+      contractorImage: bid.contractor?.profile_image_url || undefined,
+      createdAt: bid.created_at,
+    }));
+
   // Prepare timeline events
   const recentActivity = [
     ...jobs.slice(0, 5).map((job) => ({
@@ -191,6 +208,7 @@ export default async function DashboardPage2025() {
       savedContractors: 0, // TODO: Add saved contractors feature
     },
     activeJobs: jobsWithContractors,
+    pendingBids,
     recentActivity,
   };
 

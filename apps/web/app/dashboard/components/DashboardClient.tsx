@@ -32,6 +32,15 @@ interface DashboardClientProps {
       bidsCount: number;
       scheduledDate?: string;
     }>;
+    pendingBids?: Array<{
+      id: string;
+      amount: number;
+      jobId: string;
+      jobTitle: string;
+      contractorName: string;
+      contractorImage?: string;
+      createdAt: string;
+    }>;
     recentActivity: Array<{
       id: string;
       type: string;
