@@ -1,0 +1,11 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#F3F4F6"/>
+  <rect x="100" y="180" width="200" height="150" fill="#D1D5DB"/>
+  <rect x="100" y="180" width="200" height="150" fill="#D1D5DB"/>
+  <polygon points="100,180 200,100 300,180" fill="#9CA3AF"/>
+  <rect x="130" y="210" width="40" height="40" fill="#6B7280"/>
+  <rect x="230" y="210" width="40" height="40" fill="#6B7280"/>
+  <rect x="165" y="270" width="70" height="60" fill="#6B7280"/>
+  <path d="M200 350L200 340M190 345L210 345" stroke="#6B7280" stroke-width="2" stroke-linecap="round"/>
+  <text x="200" y="370" text-anchor="middle" fill="#6B7280" font-family="system-ui" font-size="14">Property Image</text>
+</svg>
