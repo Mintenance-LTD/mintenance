@@ -177,7 +177,7 @@ export async function POST(
         errorMessage: acceptError.message,
         errorCode: acceptError.code,
         errorDetails: acceptError.details,
-        errorHint: (acceptError as Record<string, unknown>).hint,
+        errorHint: (acceptError as unknown as Record<string, unknown>).hint,
       });
       // Include actual DB error for debugging
       throw new InternalServerError(`Failed to accept bid: ${acceptError.message} (code: ${acceptError.code})`);
