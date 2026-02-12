@@ -511,7 +511,7 @@ export async function middleware(request: NextRequest) {
       : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com wss:";
     const cspHeader = [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' https://js.stripe.com https://maps.googleapis.com`,
+      `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'nonce-${nonce}' https://js.stripe.com https://maps.googleapis.com`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
