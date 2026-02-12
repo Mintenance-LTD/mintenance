@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const rateLimitResult = await rateLimiter.checkRateLimit({
     identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
     windowMs: 60000,
-    maxRequests: 30
+    maxRequests: 120
   });
 
   if (!rateLimitResult.allowed) {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         status: 429,
         headers: {
           'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Limit': String(120),
           'X-RateLimit-Remaining': String(rateLimitResult.remaining),
           'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
         }
@@ -364,7 +364,7 @@ export async function PATCH(request: NextRequest) {
   const rateLimitResult = await rateLimiter.checkRateLimit({
     identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
     windowMs: 60000,
-    maxRequests: 30
+    maxRequests: 120
   });
 
   if (!rateLimitResult.allowed) {
@@ -374,7 +374,7 @@ export async function PATCH(request: NextRequest) {
         status: 429,
         headers: {
           'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
+          'X-RateLimit-Limit': String(120),
           'X-RateLimit-Remaining': String(rateLimitResult.remaining),
           'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
         }
