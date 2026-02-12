@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { LandingNavigation } from '../components/landing/LandingNavigation';
 import { Footer2025 } from '../components/landing/Footer2025';
-import { Rocket, FileEdit, Search, CreditCard, MessageSquare, Lock } from 'lucide-react';
+import { Rocket, FileEdit, Search, CreditCard, MessageCircle, Shield, Settings, Banknote, Hammer } from 'lucide-react';
 interface Article {
   id: string;
   title: string;
@@ -18,18 +18,30 @@ interface Article {
 interface Category {
   id: string;
   name: string;
-  icon: React.ReactNode;
+  icon: string;
   articleCount: number;
 }
 
+const HELP_ICON_MAP: Record<string, React.ReactNode> = {
+  rocket: <Rocket size={32} />,
+  'file-edit': <FileEdit size={32} />,
+  search: <Search size={32} />,
+  'credit-card': <CreditCard size={32} />,
+  'message-circle': <MessageCircle size={32} />,
+  shield: <Shield size={32} />,
+  settings: <Settings size={32} />,
+  banknote: <Banknote size={32} />,
+  hammer: <Hammer size={32} />,
+};
+
 export default function HelpCentrePage() {
   const categories: Category[] = [
-    { id: 'getting-started', name: 'Getting Started', icon: <Rocket className="w-12 h-12" />, articleCount: 12 },
-    { id: 'posting-jobs', name: 'Posting Jobs', icon: <FileEdit className="w-12 h-12" />, articleCount: 18 },
-    { id: 'finding-contractors', name: 'Finding Contractors', icon: <Search className="w-12 h-12" />, articleCount: 15 },
-    { id: 'payments', name: 'Payments & Billing', icon: <CreditCard className="w-12 h-12" />, articleCount: 10 },
-    { id: 'messaging', name: 'Messaging', icon: <MessageSquare className="w-12 h-12" />, articleCount: 8 },
-    { id: 'security', name: 'Security & Privacy', icon: <Lock className="w-12 h-12" />, articleCount: 14 },
+    { id: 'getting-started', name: 'Getting Started', icon: 'rocket', articleCount: 12 },
+    { id: 'posting-jobs', name: 'Posting Jobs', icon: 'file-edit', articleCount: 18 },
+    { id: 'finding-contractors', name: 'Finding Contractors', icon: 'search', articleCount: 15 },
+    { id: 'payments', name: 'Payments & Billing', icon: 'credit-card', articleCount: 10 },
+    { id: 'messaging', name: 'Messaging', icon: 'message-circle', articleCount: 8 },
+    { id: 'security', name: 'Security & Privacy', icon: 'shield', articleCount: 14 },
   ];
 
   const popularArticles: Article[] = [
@@ -127,7 +139,7 @@ export default function HelpCentrePage() {
                     href={`/help/${category.id}`}
                     className="block bg-white rounded-2xl border border-gray-200 shadow-sm p-8 hover:shadow-lg transition-all group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
                   >
-                    <div className="mb-4 text-teal-600" aria-hidden="true">{category.icon}</div>
+                    <div className="mb-4 text-teal-600" aria-hidden="true">{HELP_ICON_MAP[category.icon] || category.icon}</div>
                     <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors">
                       {category.name}
                     </h3>

@@ -8,7 +8,7 @@ import type { Category } from './types';
 export const accountCategory: Category = {
   id: 'account',
   name: 'Account Management',
-  icon: '⚙️',
+  icon: 'settings',
   color: '#6B7280',
   articles: [
     { 

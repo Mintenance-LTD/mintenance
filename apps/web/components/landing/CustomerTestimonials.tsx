@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
-import { Star, Quote } from 'lucide-react';
+import { Star, Quote, User } from 'lucide-react';
 
 // Fallback testimonials if no real data is available
 const FALLBACK_TESTIMONIALS = [
@@ -15,7 +15,7 @@ const FALLBACK_TESTIMONIALS = [
         text: 'Found the perfect plumber within minutes. The work was completed on time and exceeded expectations.',
         project: 'Plumbing Repair',
         savings: '£450',
-        avatar: '👩‍💼',
+        avatar: 'SJ',
         verified: true,
     },
     {
@@ -27,7 +27,7 @@ const FALLBACK_TESTIMONIALS = [
         text: 'Great platform for finding reliable contractors. The escrow payment system gives me peace of mind.',
         project: 'Electrical Work',
         savings: '£320',
-        avatar: '👨‍💻',
+        avatar: 'MC',
         verified: true,
     },
     {
@@ -39,7 +39,7 @@ const FALLBACK_TESTIMONIALS = [
         text: 'Excellent service from start to finish. Will definitely use Mintenance again.',
         project: 'Bathroom Renovation',
         savings: '£1,200',
-        avatar: '👩‍🎨',
+        avatar: 'EW',
         verified: true,
     },
 ];
@@ -168,7 +168,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 
             {/* Author */}
             <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-                <div className="text-4xl">{testimonial.avatar}</div>
+                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-sm">{testimonial.avatar}</div>
                 <div>
                     <div className="font-semibold text-[#0F172A]">{testimonial.name}</div>
                     <div className="text-sm text-gray-600">{testimonial.location}</div>

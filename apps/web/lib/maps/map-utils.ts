@@ -118,7 +118,7 @@ export function createContractorInfoWindow(
       </h3>
       ${contractor.city ? `<p style="margin: 0 0 4px 0; font-size: 14px; color: #6B7280;">${contractor.city}</p>` : ''}
       <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 8px;">
-        <span style="color: #F59E0B;">⭐</span>
+        <span style="color: #F59E0B;">&#9733;</span>
         <span style="font-size: 14px; font-weight: 600;">${contractor.rating.toFixed(1)}</span>
       </div>
       <a

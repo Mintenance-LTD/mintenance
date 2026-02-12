@@ -133,17 +133,17 @@ export function AppWithAnnouncements({ children }: { children: React.ReactNode }
         {
           title: 'Natural Language Search',
           description: 'Just describe what you need in plain English',
-          icon: '🔍',
+          icon: 'search',
         },
         {
           title: 'Smart Filters',
           description: 'AI understands your preferences and refines results',
-          icon: '🎯',
+          icon: 'target',
         },
         {
           title: 'Personalized Rankings',
           description: 'Results ranked based on your past interactions',
-          icon: '⭐',
+          icon: 'star',
         },
       ],
       media: {
@@ -169,17 +169,17 @@ export function AppWithAnnouncements({ children }: { children: React.ReactNode }
         {
           title: 'HD Video & Audio',
           description: 'Crystal clear communication',
-          icon: '🎥',
+          icon: 'video',
         },
         {
           title: 'Screen Sharing',
           description: 'Share photos and documents during calls',
-          icon: '📱',
+          icon: 'monitor',
         },
         {
           title: 'Call Recording',
           description: 'Record important discussions (with permission)',
-          icon: '🎬',
+          icon: 'film',
         },
       ],
       releaseDate: '2025-02-01T00:00:00Z',

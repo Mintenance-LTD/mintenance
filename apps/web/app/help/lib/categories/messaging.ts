@@ -8,7 +8,7 @@ import type { Category } from './types';
 export const messagingCategory: Category = {
   id: 'messaging',
   name: 'Messaging & Communication',
-  icon: '💬',
+  icon: 'message-circle',
   color: '#EF4444',
   articles: [
     { 

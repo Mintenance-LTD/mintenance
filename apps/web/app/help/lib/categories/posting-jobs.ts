@@ -9,7 +9,7 @@ import type { Category } from './types';
 export const postingjobsCategory: Category = {
   id: 'posting-jobs',
   name: 'Posting Jobs',
-  icon: '📝',
+  icon: 'file-edit',
   color: '#F59E0B',
   articles: [
     {

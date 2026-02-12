@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
+import { Zap } from 'lucide-react';
 
 const DETECTIONS = [
   { x: 20, y: 15, w: 25, h: 20, label: 'Roof Damage', confidence: 97 },
@@ -79,7 +80,7 @@ export function AIPreviewDemo() {
                 transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
                 className="inline-block"
               >
-                ⚡
+                <Zap className="w-4 h-4" />
               </motion.span>
               Detecting...
             </span>

@@ -1,8 +1,24 @@
 import React from 'react';
 import Image from 'next/image';
+import { Droplets, Zap, Flame, Hammer, Paintbrush, Home, Ruler, Sprout, Sparkles, Wrench, Snowflake, Settings } from 'lucide-react';
 import { SmartJobAnalysis } from '../components/SmartJobAnalysis';
 import { SERVICE_CATEGORIES } from './types';
 import type { Property, JobFormData } from './types';
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  droplets: <Droplets size={28} />,
+  zap: <Zap size={28} />,
+  flame: <Flame size={28} />,
+  hammer: <Hammer size={28} />,
+  paintbrush: <Paintbrush size={28} />,
+  home: <Home size={28} />,
+  ruler: <Ruler size={28} />,
+  sprout: <Sprout size={28} />,
+  sparkles: <Sparkles size={28} />,
+  wrench: <Wrench size={28} />,
+  snowflake: <Snowflake size={28} />,
+  settings: <Settings size={28} />,
+};
 
 interface DetailsStepProps {
   formData: JobFormData;
@@ -122,7 +138,7 @@ export function DetailsStep({
                   : 'border-gray-200 hover:border-gray-300'
               }`}
             >
-              <span className="text-4xl mb-2">{category.icon}</span>
+              <span className="mb-2 text-teal-600">{ICON_MAP[category.icon]}</span>
               <span className="text-sm font-medium text-gray-900 text-center">
                 {category.label}
               </span>

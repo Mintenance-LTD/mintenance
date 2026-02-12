@@ -57,18 +57,18 @@ export interface BuildingAssessmentData {
 }
 
 export const SERVICE_CATEGORIES = [
-  { label: 'Plumbing', value: 'plumbing', icon: '🚰' },
-  { label: 'Electrical', value: 'electrical', icon: '⚡' },
-  { label: 'Heating & Gas', value: 'heating', icon: '🔥' },
-  { label: 'Carpentry', value: 'carpentry', icon: '🔨' },
-  { label: 'Painting', value: 'painting', icon: '🎨' },
-  { label: 'Roofing', value: 'roofing', icon: '🏠' },
-  { label: 'Flooring', value: 'flooring', icon: '📐' },
-  { label: 'Gardening', value: 'gardening', icon: '🌱' },
-  { label: 'Cleaning', value: 'cleaning', icon: '🧹' },
-  { label: 'Handyman', value: 'handyman', icon: '🔧' },
-  { label: 'HVAC', value: 'hvac', icon: '❄️' },
-  { label: 'Other', value: 'other', icon: '⚙️' },
+  { label: 'Plumbing', value: 'plumbing', icon: 'droplets' },
+  { label: 'Electrical', value: 'electrical', icon: 'zap' },
+  { label: 'Heating & Gas', value: 'heating', icon: 'flame' },
+  { label: 'Carpentry', value: 'carpentry', icon: 'hammer' },
+  { label: 'Painting', value: 'painting', icon: 'paintbrush' },
+  { label: 'Roofing', value: 'roofing', icon: 'home' },
+  { label: 'Flooring', value: 'flooring', icon: 'ruler' },
+  { label: 'Gardening', value: 'gardening', icon: 'sprout' },
+  { label: 'Cleaning', value: 'cleaning', icon: 'sparkles' },
+  { label: 'Handyman', value: 'handyman', icon: 'wrench' },
+  { label: 'HVAC', value: 'hvac', icon: 'snowflake' },
+  { label: 'Other', value: 'other', icon: 'settings' },
 ] as const;
 
 export const URGENCY_OPTIONS = [

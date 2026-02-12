@@ -8,7 +8,7 @@ import type { Category } from './types';
 export const paymentsCategory: Category = {
   id: 'payments',
   name: 'Payments & Billing',
-  icon: '💳',
+  icon: 'credit-card',
   color: '#06B6D4',
   articles: [
     { 

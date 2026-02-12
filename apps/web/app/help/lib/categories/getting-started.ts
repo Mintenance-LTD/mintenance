@@ -9,7 +9,7 @@ import type { Category } from './types';
 export const gettingstartedCategory: Category = {
   id: 'getting-started',
   name: 'Getting Started',
-  icon: '🚀',
+  icon: 'rocket',
   color: '#10B981',
   articles: [
     { 

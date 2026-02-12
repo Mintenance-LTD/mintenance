@@ -22,18 +22,18 @@ export const VALIDATION = {
 
 // Job Categories
 export const JOB_CATEGORIES = [
-  { value: 'plumbing', label: 'Plumbing', emoji: '🚰' },
-  { value: 'electrical', label: 'Electrical', emoji: '⚡' },
-  { value: 'heating', label: 'Heating & Gas', emoji: '🔥' },
-  { value: 'carpentry', label: 'Carpentry', emoji: '🔨' },
-  { value: 'painting', label: 'Painting', emoji: '🎨' },
-  { value: 'roofing', label: 'Roofing', emoji: '🏠' },
-  { value: 'flooring', label: 'Flooring', emoji: '📐' },
-  { value: 'gardening', label: 'Gardening', emoji: '🌱' },
-  { value: 'cleaning', label: 'Cleaning', emoji: '🧹' },
-  { value: 'handyman', label: 'Handyman', emoji: '🔧' },
-  { value: 'hvac', label: 'HVAC', emoji: '❄️' },
-  { value: 'other', label: 'Other', emoji: '⚙️' },
+  { value: 'plumbing', label: 'Plumbing', icon: 'droplets' },
+  { value: 'electrical', label: 'Electrical', icon: 'zap' },
+  { value: 'heating', label: 'Heating & Gas', icon: 'flame' },
+  { value: 'carpentry', label: 'Carpentry', icon: 'hammer' },
+  { value: 'painting', label: 'Painting', icon: 'paintbrush' },
+  { value: 'roofing', label: 'Roofing', icon: 'home' },
+  { value: 'flooring', label: 'Flooring', icon: 'ruler' },
+  { value: 'gardening', label: 'Gardening', icon: 'sprout' },
+  { value: 'cleaning', label: 'Cleaning', icon: 'sparkles' },
+  { value: 'handyman', label: 'Handyman', icon: 'wrench' },
+  { value: 'hvac', label: 'HVAC', icon: 'snowflake' },
+  { value: 'other', label: 'Other', icon: 'settings' },
 ] as const;
 
 // Urgency Levels
@@ -42,19 +42,19 @@ export const URGENCY_OPTIONS = [
     value: 'low',
     label: 'Flexible',
     description: 'No rush, can wait a few weeks',
-    emoji: '📅',
+    icon: 'calendar',
   },
   {
     value: 'medium',
     label: 'Soon',
     description: 'Within the next week',
-    emoji: '⏰',
+    icon: 'clock',
   },
   {
     value: 'high',
     label: 'Urgent',
     description: 'Within 1-2 days',
-    emoji: '🚨',
+    icon: 'alert-triangle',
   },
 ] as const;
 

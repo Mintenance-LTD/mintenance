@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Calculator, ArrowRight, Sparkles } from 'lucide-react';
+import { Calculator, ArrowRight, Sparkles, Lock } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 const PROJECT_TYPES = [
@@ -132,7 +132,7 @@ export function QuickQuoteWidget() {
 
                 {/* Trust Badge */}
                 <div className="text-center text-sm text-gray-600 pt-2">
-                    🔒 Your information is secure • No spam, ever
+                    <span className="inline-flex items-center gap-1"><Lock className="w-3.5 h-3.5" /> Your information is secure</span> • No spam, ever
                 </div>
             </div>
         </div>

@@ -8,7 +8,7 @@ import type { Category } from './types';
 export const findingcontractorsCategory: Category = {
   id: 'finding-contractors',
   name: 'Finding Tradespeople',
-  icon: '🔍',
+  icon: 'search',
   color: '#8B5CF6',
   articles: [
     { 
