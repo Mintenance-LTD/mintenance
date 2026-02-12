@@ -5,6 +5,16 @@ import { Card } from '@/components/ui/Card';
 import { VideoCallService } from '@/lib/services/VideoCallService';
 import type { VideoCall, VideoCallParticipant, CallQualityMetrics } from '@mintenance/types';
 import { logger } from '@mintenance/shared';
+import {
+  Video,
+  VideoOff,
+  Mic,
+  MicOff,
+  Monitor,
+  Phone,
+  ClipboardList,
+  BarChart3
+} from 'lucide-react';
 
 interface VideoCallInterfaceProps {
   call: VideoCall;
@@ -209,9 +219,12 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
             fontSize: theme.typography.fontSize.xl,
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text,
-            margin: 0
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing.sm
           }}>
-            📹 {call.title}
+            <Video size={20} /> {call.title}
           </h2>
           <div style={{
             display: 'flex',
@@ -257,9 +270,12 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
             <div style={{
               fontSize: theme.typography.fontSize.xs,
               color: theme.colors.info,
-              textAlign: 'center'
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.xs
             }}>
-              📊 Quality: {callQuality.videoQuality} • {callQuality.latencyMs}ms
+              <BarChart3 size={14} /> Quality: {callQuality.videoQuality} • {callQuality.latencyMs}ms
             </div>
           </Card>
         )}
@@ -322,7 +338,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
               justifyContent: 'center',
               color: theme.colors.white
             }}>
-              📹
+              <VideoOff size={32} />
             </div>
           )}
         </div>
@@ -346,9 +362,12 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           </div>
           <div style={{
             fontSize: theme.typography.fontSize.sm,
-            opacity: 0.8
+            opacity: 0.8,
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing.xs
           }}>
-            {call.job?.title && `📋 ${call.job.title}`}
+            {call.job?.title && <><ClipboardList size={14} /> {call.job.title}</>}
           </div>
         </div>
       </div>
@@ -382,7 +401,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           }}
           title={isAudioEnabled ? 'Mute Audio' : 'Unmute Audio'}
         >
-          {isAudioEnabled ? '🎤' : '🔇'}
+          {isAudioEnabled ? <Mic size={24} /> : <MicOff size={24} />}
         </button>
 
         {/* Video Toggle */}
@@ -404,7 +423,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           }}
           title={isVideoEnabled ? 'Turn Off Video' : 'Turn On Video'}
         >
-          {isVideoEnabled ? '📹' : '📷'}
+          {isVideoEnabled ? <Video size={24} /> : <VideoOff size={24} />}
         </button>
 
         {/* Screen Share Toggle */}
@@ -426,7 +445,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           }}
           title={isScreenSharing ? 'Stop Screen Share' : 'Start Screen Share'}
         >
-          🖥️
+          <Monitor size={24} />
         </button>
 
         {/* End Call */}
@@ -448,7 +467,7 @@ export const VideoCallInterface: React.FC<VideoCallInterfaceProps> = ({
           }}
           title="End Call"
         >
-          📞
+          <Phone size={24} />
         </button>
       </div>
     </div>

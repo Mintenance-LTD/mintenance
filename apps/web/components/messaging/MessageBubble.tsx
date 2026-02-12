@@ -1,4 +1,5 @@
 import React from 'react';
+import { Image as ImageIcon, Paperclip, Phone, Video, ClipboardList } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import type { Message } from '@mintenance/types';
 
@@ -21,19 +22,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   const getMessageTypeIcon = () => {
     switch (message.messageType) {
       case 'image':
-        return '📷';
+        return <ImageIcon size={16} />;
       case 'file':
-        return '📎';
+        return <Paperclip size={16} />;
       case 'video_call_invitation':
-        return '📞';
+        return <Phone size={16} />;
       case 'video_call_started':
-        return '🎥';
+        return <Video size={16} />;
       case 'video_call_ended':
-        return '📞';
+        return <Phone size={16} />;
       case 'video_call_missed':
-        return '📞';
+        return <Phone size={16} />;
       case 'contract_submitted':
-        return '📋';
+        return <ClipboardList size={16} />;
       default:
         return null;
     }
@@ -137,9 +138,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   color: isCurrentUser ? theme.colors.white : theme.colors.primary,
                   textDecoration: 'underline',
                   fontSize: theme.typography.fontSize.sm,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
                 }}
               >
-                📎 View Attachment
+                <Paperclip size={14} /> View Attachment
               </a>
             )}
           </div>

@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button, Card } from '../components/ui';
 import { theme } from '@/lib/theme';
+import { AlertTriangle } from 'lucide-react';
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -33,12 +34,11 @@ export default function Error({ error, reset }: ErrorPageProps) {
         textAlign: 'center',
       }}>
         {/* Error Icon */}
-        <div style={{
-          fontSize: '64px',
+        <div className="flex justify-center" style={{
           marginBottom: '1rem',
           color: theme.colors.error || '#ef4444',
         }}>
-          ⚠️
+          <AlertTriangle className="w-16 h-16" />
         </div>
         
         {/* Error Title */}

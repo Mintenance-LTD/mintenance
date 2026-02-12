@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CreditCard } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { PageLoader } from '@/components/LoadingButton';
 import { HomeownerLayoutShell } from '../../dashboard/components/HomeownerLayoutShell';
@@ -138,12 +138,7 @@ export default function PaymentMethodsPage() {
   };
 
   const getCardBrandIcon = (brand: string) => {
-    const brandLower = brand.toLowerCase();
-    if (brandLower.includes('visa')) return '💳';
-    if (brandLower.includes('mastercard') || brandLower.includes('master')) return '💳';
-    if (brandLower.includes('amex') || brandLower.includes('american')) return '💳';
-    if (brandLower.includes('discover')) return '💳';
-    return '💳';
+    return <CreditCard className="w-6 h-6" />;
   };
 
   const formatExpiry = (month: number, year: number) => {
@@ -298,9 +293,8 @@ export default function PaymentMethodsPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '24px',
                   }}>
-                    {method.card ? getCardBrandIcon(method.card.brand) : '💳'}
+                    {method.card ? getCardBrandIcon(method.card.brand) : <CreditCard className="w-6 h-6" />}
                   </div>
                   <div>
                     <div style={{

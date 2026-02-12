@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Wrench, Zap, Thermometer, Star, Lock, CheckCircle } from 'lucide-react';
 import { SwipeableCarousel } from './ui/SwipeableCarousel';
 import { TouchButton } from './ui/TouchButton';
 import { ResponsiveGrid } from './ui/ResponsiveGrid';
@@ -13,22 +14,22 @@ export const MobileLandingPage: React.FC = () => {
   const services = [
     {
       title: 'Plumbing',
-      icon: '🔧',
+      icon: <Wrench size={32} />,
       description: 'Emergency repairs and installations',
     },
     {
       title: 'Electrical',
-      icon: '⚡',
+      icon: <Zap size={32} />,
       description: 'Safe and certified electrical work',
     },
     {
       title: 'HVAC',
-      icon: '🌡️',
+      icon: <Thermometer size={32} />,
       description: 'Heating and cooling solutions',
     },
     {
       title: 'Cleaning',
-      icon: '🧹',
+      icon: <Wrench size={32} />,
       description: 'Professional cleaning services',
     },
   ];
@@ -37,17 +38,17 @@ export const MobileLandingPage: React.FC = () => {
     {
       title: 'Instant Quotes',
       description: 'Get quotes within minutes from verified contractors',
-      icon: '⚡',
+      icon: <Zap size={32} />,
     },
     {
       title: 'Secure Payments',
       description: 'Payments held in escrow until work is completed',
-      icon: '🔒',
+      icon: <Lock size={32} />,
     },
     {
       title: 'Quality Guarantee',
       description: 'All work backed by our satisfaction guarantee',
-      icon: '✅',
+      icon: <CheckCircle size={32} />,
     },
   ];
 
@@ -152,7 +153,7 @@ export const MobileLandingPage: React.FC = () => {
                   borderRadius: theme.borderRadius.lg,
                 }}
               >
-                <div style={{ fontSize: '2rem', marginBottom: theme.spacing[2] }}>
+                <div style={{ marginBottom: theme.spacing[2] }}>
                   {service.icon}
                 </div>
                 <div style={{ textAlign: 'center' }}>
@@ -180,7 +181,6 @@ export const MobileLandingPage: React.FC = () => {
             {features.map((feature, index) => (
               <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
                 <div style={{
-                  fontSize: '2rem',
                   marginRight: theme.spacing[4],
                   minWidth: '60px',
                   textAlign: 'center',
@@ -226,10 +226,14 @@ export const MobileLandingPage: React.FC = () => {
               <Card key={index} variant="elevated" style={{ padding: theme.spacing[4], height: '100%' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div style={{
-                    fontSize: '2rem',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '4px',
                     marginBottom: theme.spacing[2],
                   }}>
-                    {'⭐'.repeat(testimonial.rating)}
+                    {Array.from({ length: testimonial.rating }).map((_, i) => (
+                      <Star key={i} size={20} fill="currentColor" />
+                    ))}
                   </div>
                   <p style={{
                     fontSize: theme.typography.fontSize.base,

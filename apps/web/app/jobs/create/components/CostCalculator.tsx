@@ -6,7 +6,7 @@ import { Button } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calculator, TrendingUp, Info } from 'lucide-react';
+import { Calculator, TrendingUp, Info, Wrench, Droplets, Lightbulb, Home, Paintbrush, BookOpen, Armchair, DoorClosed } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CostEstimate {
@@ -23,7 +23,7 @@ interface QuickJobTemplate {
   description: string;
   fixedPrice?: { min: number; max: number };
   estimatedDuration: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 /**
@@ -47,7 +47,7 @@ export function CostCalculator() {
       description: 'Repair or replace leaking tap',
       fixedPrice: { min: 50, max: 120 },
       estimatedDuration: '1-2 hours',
-      icon: '🔧',
+      icon: <Wrench size={16} />,
     },
     {
       id: 'unblock-drain',
@@ -56,7 +56,7 @@ export function CostCalculator() {
       description: 'Clear blocked sink, bath, or shower drain',
       fixedPrice: { min: 60, max: 150 },
       estimatedDuration: '1-2 hours',
-      icon: '🚿',
+      icon: <Droplets size={16} />,
     },
     {
       id: 'replace-light-switch',
@@ -65,7 +65,7 @@ export function CostCalculator() {
       description: 'Replace single or double light switch',
       fixedPrice: { min: 50, max: 100 },
       estimatedDuration: '30-60 minutes',
-      icon: '💡',
+      icon: <Lightbulb size={16} />,
     },
     {
       id: 'hang-picture',
@@ -74,7 +74,7 @@ export function CostCalculator() {
       description: 'Hang picture, mirror, or shelf',
       fixedPrice: { min: 30, max: 80 },
       estimatedDuration: '30-60 minutes',
-      icon: '🖼️',
+      icon: <BookOpen size={16} />,
     },
     {
       id: 'assemble-furniture',
@@ -83,7 +83,7 @@ export function CostCalculator() {
       description: 'Assemble flat-pack furniture',
       fixedPrice: { min: 40, max: 120 },
       estimatedDuration: '1-3 hours',
-      icon: '🪑',
+      icon: <Armchair size={16} />,
     },
     {
       id: 'fix-door',
@@ -92,7 +92,7 @@ export function CostCalculator() {
       description: 'Repair sticking door or window',
       fixedPrice: { min: 50, max: 150 },
       estimatedDuration: '1-2 hours',
-      icon: '🚪',
+      icon: <DoorClosed size={16} />,
     },
     {
       id: 'paint-room',
@@ -101,7 +101,7 @@ export function CostCalculator() {
       description: 'Paint walls and ceiling of one room',
       fixedPrice: { min: 200, max: 500 },
       estimatedDuration: '1-2 days',
-      icon: '🎨',
+      icon: <Paintbrush size={16} />,
     },
     {
       id: 'gutter-clean',
@@ -110,7 +110,7 @@ export function CostCalculator() {
       description: 'Clean and clear gutters',
       fixedPrice: { min: 80, max: 200 },
       estimatedDuration: '2-4 hours',
-      icon: '🏠',
+      icon: <Home size={16} />,
     },
   ];
 
@@ -237,7 +237,7 @@ export function CostCalculator() {
                 className="p-4 border rounded-lg hover:border-secondary hover:bg-gray-50 transition-colors text-left"
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">{template.icon}</span>
+                  <div className="text-gray-600">{template.icon}</div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-sm mb-1">{template.title}</h4>
                     {template.fixedPrice && (

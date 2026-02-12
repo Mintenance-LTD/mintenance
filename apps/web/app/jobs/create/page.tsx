@@ -12,7 +12,7 @@ import { submitJob } from './utils/submitJob';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Info } from 'lucide-react';
 import { STEPS } from './_components/types';
 import type { Property } from './_components/types';
 import { ProgressBar } from './_components/progress-bar';
@@ -249,7 +249,12 @@ export default function CreateJobPage2025() {
 
       if (errorMessage.toLowerCase().includes('phone verification required') || errorMessage.toLowerCase().includes('verify your phone')) {
         toast.error('Phone verification required to post jobs');
-        toast('Redirecting to settings for verification...', { icon: 'ℹ️' });
+        toast.custom((t) => (
+          <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200">
+            <Info className="w-5 h-5 text-blue-600" />
+            <span>Redirecting to settings for verification...</span>
+          </div>
+        ));
         setTimeout(() => {
           router.push('/settings?tab=verification');
         }, 2000);

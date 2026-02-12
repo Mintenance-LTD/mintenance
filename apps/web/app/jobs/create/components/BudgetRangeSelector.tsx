@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Info, Eye, EyeOff, TrendingUp, AlertCircle } from 'lucide-react';
+import { Info, Eye, EyeOff, TrendingUp, AlertCircle, Lock, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export interface BudgetData {
@@ -52,15 +52,19 @@ export function BudgetRangeSelector({ value, onChange, hasImages }: BudgetRangeS
     });
 
     if (!newValue) {
-      toast.success('Budget hidden from contractors - they will bid based on fair market value', {
-        icon: '🔒',
-        duration: 4000,
-      });
+      toast.custom((t) => (
+        <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200">
+          <Lock className="w-5 h-5 text-green-600" />
+          <span>Budget hidden from contractors - they will bid based on fair market value</span>
+        </div>
+      ), { duration: 4000 });
     } else {
-      toast('Budget will be shown to contractors', {
-        icon: '👁️',
-        duration: 3000,
-      });
+      toast.custom((t) => (
+        <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200">
+          <Eye className="w-5 h-5 text-blue-600" />
+          <span>Budget will be shown to contractors</span>
+        </div>
+      ), { duration: 3000 });
     }
   };
 
@@ -151,10 +155,11 @@ export function BudgetRangeSelector({ value, onChange, hasImages }: BudgetRangeS
                     </span>
                     <p className="text-sm text-gray-600 mt-1">
                       {!value.show_budget_to_contractors ? (
-                        <>
-                          ✅ Contractors will see a <strong>budget range</strong> (£{value.budget_min}-£{value.budget_max}) instead of your exact maximum.
-                          This encourages competitive pricing and prevents contractors from anchoring to your budget.
-                        </>
+                        <span className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                          <span>Contractors will see a <strong>budget range</strong> (£{value.budget_min}-£{value.budget_max}) instead of your exact maximum.
+                          This encourages competitive pricing and prevents contractors from anchoring to your budget.</span>
+                        </span>
                       ) : (
                         <>
                           Contractors will see your exact budget of <strong>£{budgetNum.toLocaleString()}</strong>.
@@ -217,10 +222,11 @@ export function BudgetRangeSelector({ value, onChange, hasImages }: BudgetRangeS
                     </span>
                     <p className="text-sm text-gray-600 mt-1">
                       {value.require_itemized_bids ? (
-                        <>
-                          ✅ Contractors must provide a detailed breakdown: <strong>materials</strong>, <strong>labor</strong>, and <strong>other costs</strong>.
-                          This makes bids easy to compare and ensures transparency.
-                        </>
+                        <span className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                          <span>Contractors must provide a detailed breakdown: <strong>materials</strong>, <strong>labor</strong>, and <strong>other costs</strong>.
+                          This makes bids easy to compare and ensures transparency.</span>
+                        </span>
                       ) : (
                         <>
                           Contractors can submit simple bids without itemization.

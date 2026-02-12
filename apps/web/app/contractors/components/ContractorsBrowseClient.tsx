@@ -4,6 +4,7 @@ import React, { useState, useId } from 'react';
 import Link from 'next/link';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { Search } from 'lucide-react';
 import { ContractorCard } from './ContractorCard';
 import { ContractorMapView } from './ContractorMapView';
 import { ContractorListView } from './ContractorListView';
@@ -632,10 +633,11 @@ function ContractorsBrowseContent({
               border: '1px solid #E5E7EB',
             }}>
               <div style={{
-                fontSize: '3rem',
+                display: 'flex',
+                justifyContent: 'center',
                 marginBottom: '1rem',
               }}>
-                🔍
+                <Search className="w-16 h-16 text-gray-300" />
               </div>
               <h3 style={{
                 fontSize: '1.5rem',

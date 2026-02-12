@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from './Button';
 import { Card } from './Card';
 import { theme } from '@/lib/theme';
@@ -44,7 +45,7 @@ export const ErrorView: React.FC<ErrorViewProps> = ({
 
   const content = (
     <>
-      <div style={iconStyles}>⚠️</div>
+      <div style={iconStyles}><AlertTriangle size={48} /></div>
       <h2 style={titleStyles}>{title}</h2>
       <p style={messageStyles}>{message}</p>
       {onRetry && (

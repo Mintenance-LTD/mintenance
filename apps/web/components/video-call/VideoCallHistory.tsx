@@ -5,6 +5,23 @@ import { Card } from '@/components/ui/Card';
 import { VideoCallService } from '@/lib/services/VideoCallService';
 import type { VideoCall } from '@mintenance/types';
 import { logger } from '@mintenance/shared';
+import {
+  Video,
+  Calendar,
+  Hourglass,
+  CheckCircle,
+  XCircle,
+  Ban,
+  HelpCircle,
+  MessageSquare,
+  Search,
+  ClipboardList,
+  AlertOctagon,
+  Phone,
+  User,
+  Timer,
+  Rocket
+} from 'lucide-react';
 
 interface VideoCallHistoryProps {
   userId: string;
@@ -83,13 +100,13 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
 
   const getStatusIcon = (status: VideoCall['status']) => {
     switch (status) {
-      case 'scheduled': return '📅';
-      case 'pending': return '⏳';
-      case 'active': return '📹';
-      case 'ended': return '✅';
-      case 'missed': return '❌';
-      case 'cancelled': return '🚫';
-      default: return '❓';
+      case 'scheduled': return <Calendar size={16} />;
+      case 'pending': return <Hourglass size={16} />;
+      case 'active': return <Video size={16} />;
+      case 'ended': return <CheckCircle size={16} />;
+      case 'missed': return <XCircle size={16} />;
+      case 'cancelled': return <Ban size={16} />;
+      default: return <HelpCircle size={16} />;
     }
   };
 
@@ -107,12 +124,12 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
 
   const getTypeIcon = (type: VideoCall['type']) => {
     switch (type) {
-      case 'consultation': return '💬';
-      case 'assessment': return '🔍';
-      case 'project_review': return '📋';
-      case 'emergency': return '🚨';
-      case 'follow_up': return '📞';
-      default: return '📹';
+      case 'consultation': return <MessageSquare size={24} />;
+      case 'assessment': return <Search size={24} />;
+      case 'project_review': return <ClipboardList size={24} />;
+      case 'emergency': return <AlertOctagon size={24} />;
+      case 'follow_up': return <Phone size={24} />;
+      default: return <Video size={24} />;
     }
   };
 
@@ -142,11 +159,11 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
     return false;
   };
 
-  const filterOptions: Array<{ value: typeof filter; label: string; icon: string }> = [
-    { value: 'all', label: 'All Calls', icon: '📹' },
-    { value: 'upcoming', label: 'Upcoming', icon: '📅' },
-    { value: 'completed', label: 'Completed', icon: '✅' },
-    { value: 'missed', label: 'Missed', icon: '❌' }
+  const filterOptions: Array<{ value: typeof filter; label: string; icon: React.ReactNode }> = [
+    { value: 'all', label: 'All Calls', icon: <Video size={16} /> },
+    { value: 'upcoming', label: 'Upcoming', icon: <Calendar size={16} /> },
+    { value: 'completed', label: 'Completed', icon: <CheckCircle size={16} /> },
+    { value: 'missed', label: 'Missed', icon: <XCircle size={16} /> }
   ];
 
   if (loading) {
@@ -176,17 +193,25 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
           fontSize: theme.typography.fontSize.xl,
           fontWeight: theme.typography.fontWeight.bold,
           color: theme.colors.text,
-          margin: 0
+          margin: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing.sm
         }}>
-          📹 Video Calls
+          <Video size={20} /> Video Calls
         </h2>
         {onScheduleNew && (
           <Button
             variant="primary"
             onClick={onScheduleNew}
             size="sm"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.xs
+            }}
           >
-            📅 Schedule New Call
+            <Calendar size={16} /> Schedule New Call
           </Button>
         )}
       </div>
@@ -216,7 +241,10 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
               fontSize: theme.typography.fontSize.sm,
               fontWeight: theme.typography.fontWeight.medium,
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.xs
             }}
           >
             {option.icon} {option.label}
@@ -233,9 +261,11 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
         }}>
           <div style={{
             fontSize: theme.typography.fontSize.lg,
-            marginBottom: theme.spacing.sm
+            marginBottom: theme.spacing.sm,
+            display: 'flex',
+            justifyContent: 'center'
           }}>
-            📹
+            <Video size={32} />
           </div>
           <div style={{
             fontSize: theme.typography.fontSize.md,
@@ -272,9 +302,7 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
                   alignItems: 'center',
                   gap: theme.spacing.xs
                 }}>
-                  <div style={{
-                    fontSize: theme.typography.fontSize['2xl']
-                  }}>
+                  <div>
                     {getTypeIcon(call.type)}
                   </div>
                   <div style={{
@@ -284,7 +312,7 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
                     color: getStatusColor(call.status),
                     fontSize: theme.typography.fontSize.xs
                   }}>
-                    {getStatusIcon(call.status)}
+                    <span style={{ display: 'flex', alignItems: 'center' }}>{getStatusIcon(call.status)}</span>
                     <span style={{ textTransform: 'capitalize' }}>
                       {call.status}
                     </span>
@@ -329,13 +357,13 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
                     marginBottom: theme.spacing.xs
                   }}>
                     {call.participant && (
-                      <span>
-                        👤 {call.participant.first_name} {call.participant.last_name}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+                        <User size={14} /> {call.participant.first_name} {call.participant.last_name}
                       </span>
                     )}
                     {call.job && (
-                      <span>
-                        📋 {call.job.title}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+                        <ClipboardList size={14} /> {call.job.title}
                       </span>
                     )}
                   </div>
@@ -348,18 +376,18 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
                     color: theme.colors.textSecondary
                   }}>
                     {call.scheduledAt && (
-                      <span>
-                        📅 {formatDateTime(call.scheduledAt)}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+                        <Calendar size={14} /> {formatDateTime(call.scheduledAt)}
                       </span>
                     )}
                     {call.duration && (
-                      <span>
-                        ⏱️ {formatDuration(call.duration)}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+                        <Timer size={14} /> {formatDuration(call.duration)}
                       </span>
                     )}
                     {call.recordingUrl && (
-                      <span style={{ color: theme.colors.info }}>
-                        📼 Recorded
+                      <span style={{ color: theme.colors.info, display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+                        <Video size={14} /> Recorded
                       </span>
                     )}
                   </div>
@@ -389,10 +417,13 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
                       onClick={() => handleJoinCall(call)}
                       style={{
                         backgroundColor: theme.colors.success,
-                        borderColor: theme.colors.success
+                        borderColor: theme.colors.success,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: theme.spacing.xs
                       }}
                     >
-                      🚀 Join
+                      <Rocket size={16} /> Join
                     </Button>
                   )}
 
@@ -412,8 +443,13 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => window.open(call.recordingUrl, '_blank')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: theme.spacing.xs
+                      }}
                     >
-                      📼 View Recording
+                      <Video size={16} /> View Recording
                     </Button>
                   )}
                 </div>

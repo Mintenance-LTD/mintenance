@@ -18,6 +18,7 @@ import { CategoryIcon } from '@/components/jobs/CategoryIcon';
 import type { Job, User } from '@mintenance/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import toast from 'react-hot-toast';
+import { MapPin, Info, AlertTriangle } from 'lucide-react';
 
 interface PaymentDetails {
   platformFee: number;
@@ -297,9 +298,12 @@ function JobPaymentPageContent() {
                     <div style={{
                       fontSize: theme.typography.fontSize.sm,
                       color: theme.colors.text,
-                      fontWeight: theme.typography.fontWeight.medium
+                      fontWeight: theme.typography.fontWeight.medium,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
                     }}>
-                      📍 {job.location}
+                      <MapPin size={14} /> {job.location}
                     </div>
                   </div>
                 )}
@@ -338,9 +342,13 @@ function JobPaymentPageContent() {
                   <div style={{
                     color: theme.colors.error,
                     fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium
+                    fontWeight: theme.typography.fontWeight.medium,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
                   }}>
-                    ⚠️ {error}
+                    <AlertTriangle size={16} /> {error}
                   </div>
                 </div>
               )}
@@ -368,9 +376,12 @@ function JobPaymentPageContent() {
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.info,
                   fontWeight: theme.typography.fontWeight.medium,
-                  marginBottom: '8px'
+                  marginBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}>
-                  ℹ️ Payment Terms & Escrow Protection
+                  <Info size={16} /> Payment Terms & Escrow Protection
                 </div>
                 <div style={{
                   fontSize: theme.typography.fontSize.xs,

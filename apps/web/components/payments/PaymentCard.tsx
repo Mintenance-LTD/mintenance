@@ -1,4 +1,5 @@
 import React from 'react';
+import { Clock, Lock, CheckCircle, RotateCcw, HelpCircle } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import type { EscrowTransaction } from '@mintenance/types';
@@ -39,15 +40,15 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return '⏳';
+        return <Clock size={14} />;
       case 'held':
-        return '🔒';
+        return <Lock size={14} />;
       case 'released':
-        return '✅';
+        return <CheckCircle size={14} />;
       case 'refunded':
-        return '↩️';
+        return <RotateCcw size={14} />;
       default:
-        return '❓';
+        return <HelpCircle size={14} />;
     }
   };
 

@@ -2,6 +2,7 @@
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
 
 import React, { useState } from 'react';
+import { Star } from 'lucide-react';
 // REMOVED: import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -176,8 +177,8 @@ export default function ContractorSubscriptionPage2025() {
                 variants={staggerItem}
               >
                 {plan.popular && (
-                  <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-teal-600 to-emerald-600 text-white text-center py-2 text-sm font-bold">
-                    ⭐ Most Popular
+                  <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-teal-600 to-emerald-600 text-white text-center py-2 text-sm font-bold flex items-center justify-center gap-1">
+                    <Star className="w-4 h-4 fill-current" /> Most Popular
                   </div>
                 )}
 

@@ -276,7 +276,7 @@ export function ProfileBoostWidget() {
                 <Zap className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="font-bold text-gray-900">You're at Maximum Visibility! 🎉</p>
+                <p className="font-bold text-gray-900">You&apos;re at Maximum Visibility!</p>
                 <p className="text-sm text-gray-600">Your profile is fully optimized for job discovery</p>
               </div>
             </div>

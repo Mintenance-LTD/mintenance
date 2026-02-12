@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ReactNode, FormEvent } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { useAriaLive } from './AriaLiveRegion';
 
 interface AccessibleFormProps {
@@ -122,7 +123,7 @@ export function AccessibleInput({
 
       {error && (
         <div id={errorId} role="alert" className="error-message">
-          <span className="error-icon" aria-hidden="true">⚠</span>
+          <span className="error-icon" aria-hidden="true"><AlertTriangle size={16} /></span>
           {error}
         </div>
       )}
@@ -208,7 +209,7 @@ export function AccessibleSelect({
 
       {error && (
         <div id={errorId} role="alert" className="error-message">
-          <span className="error-icon" aria-hidden="true">⚠</span>
+          <span className="error-icon" aria-hidden="true"><AlertTriangle size={16} /></span>
           {error}
         </div>
       )}
@@ -270,7 +271,7 @@ export function AccessibleCheckbox({
 
       {error && (
         <div id={errorId} role="alert" className="error-message">
-          <span className="error-icon" aria-hidden="true">⚠</span>
+          <span className="error-icon" aria-hidden="true"><AlertTriangle size={16} /></span>
           {error}
         </div>
       )}

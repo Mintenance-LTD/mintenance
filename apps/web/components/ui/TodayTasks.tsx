@@ -140,7 +140,7 @@ export function TodayTasks({ tasks, onToggleTask, taskUrlPattern = '/jobs/{id}' 
       {tasks.length === 0 && (
         <div className="p-8 text-center">
           <p className="text-base font-[460] text-gray-700 mb-1 leading-[1.5]">
-            No tasks for today. You're all caught up! 🎉
+            No tasks for today. You're all caught up!
           </p>
           <p className="text-sm font-[460] text-gray-500 leading-[1.5]">
             New tasks will appear here as they're assigned

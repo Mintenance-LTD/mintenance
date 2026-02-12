@@ -15,7 +15,7 @@ import type { Message, User } from '@mintenance/types';
 import { CreateContractDialog } from '@/app/contractor/messages/components/CreateContractDialog';
 import { QuoteViewDialog } from './components/QuoteViewDialog';
 import { VideoCallScheduler } from '@/app/video-calls/components/VideoCallScheduler';
-import { FileText, Phone, FileCheck } from 'lucide-react';
+import { FileText, Phone, FileCheck, ClipboardList, RotateCw, MessageSquare } from 'lucide-react';
 
 interface ChatPageProps {
   params: Promise<{
@@ -369,9 +369,12 @@ function ChatContent({ params }: ChatPageProps) {
             <p style={{
               fontSize: theme.typography.fontSize.sm,
               color: theme.colors.textSecondary,
-              margin: 0
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
             }}>
-              📋 {jobTitle || 'Job Discussion'}
+              <ClipboardList size={14} /> {jobTitle || 'Job Discussion'}
             </p>
           </div>
         </div>
@@ -382,7 +385,7 @@ function ChatContent({ params }: ChatPageProps) {
             size="sm"
             disabled={loading}
           >
-            🔄
+            <RotateCw size={16} className={loading ? 'animate-spin' : ''} />
           </Button>
 
           {/* Homeowner Profile Dropdown */}
@@ -544,10 +547,9 @@ function ChatContent({ params }: ChatPageProps) {
             textAlign: 'center'
           }}>
             <div style={{
-              fontSize: theme.typography.fontSize['4xl'],
               marginBottom: theme.spacing.md
             }}>
-              💬
+              <MessageSquare size={64} className="text-gray-400" />
             </div>
             <h3 style={{
               fontSize: theme.typography.fontSize.lg,

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Search, PoundSterling, Calendar, CalendarDays, Clock, AlertOctagon, Zap, Timer, Target, Wrench, Star, Shield, CheckCircle, X } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -62,23 +63,23 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
   };
 
   const availabilityOptions = [
-    { value: 'immediate', label: '🚨 Immediate', color: theme.colors.error },
-    { value: 'this_week', label: '📅 This Week', color: theme.colors.warning },
-    { value: 'this_month', label: '📆 This Month', color: theme.colors.info },
-    { value: 'flexible', label: '⏰ Flexible', color: theme.colors.success }
+    { value: 'immediate', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><AlertOctagon size={14} /> Immediate</span>, color: theme.colors.error },
+    { value: 'this_week', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Calendar size={14} /> This Week</span>, color: theme.colors.warning },
+    { value: 'this_month', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CalendarDays size={14} /> This Month</span>, color: theme.colors.info },
+    { value: 'flexible', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={14} /> Flexible</span>, color: theme.colors.success }
   ] as const;
 
   const urgencyOptions = [
-    { value: 'emergency', label: '🚨 Emergency', color: theme.colors.error },
-    { value: 'urgent', label: '⚡ Urgent', color: theme.colors.warning },
-    { value: 'normal', label: '📋 Normal', color: theme.colors.info },
-    { value: 'flexible', label: '⏱️ Flexible', color: theme.colors.success }
+    { value: 'emergency', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><AlertOctagon size={14} /> Emergency</span>, color: theme.colors.error },
+    { value: 'urgent', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Zap size={14} /> Urgent</span>, color: theme.colors.warning },
+    { value: 'normal', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Target size={14} /> Normal</span>, color: theme.colors.info },
+    { value: 'flexible', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Timer size={14} /> Flexible</span>, color: theme.colors.success }
   ] as const;
 
   const complexityOptions = [
-    { value: 'simple', label: '🟢 Simple', color: theme.colors.success },
-    { value: 'medium', label: '🟡 Medium', color: theme.colors.warning },
-    { value: 'complex', label: '🔴 Complex', color: theme.colors.error }
+    { value: 'simple', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle size={14} /> Simple</span>, color: theme.colors.success },
+    { value: 'medium', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Target size={14} /> Medium</span>, color: theme.colors.warning },
+    { value: 'complex', label: <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><AlertOctagon size={14} /> Complex</span>, color: theme.colors.error }
   ] as const;
 
   const popularSkills = [
@@ -125,9 +126,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
             fontSize: theme.typography.fontSize['2xl'],
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text,
-            margin: 0
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            🔍 Advanced Search Filters
+            <Search size={24} /> Advanced Search Filters
           </h2>
           <Button
             variant="ghost"
@@ -135,7 +139,7 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
             onClick={onClose}
             style={{ fontSize: theme.typography.fontSize.lg }}
           >
-            ✕
+            <X size={20} />
           </Button>
         </div>
 
@@ -150,9 +154,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
               fontSize: theme.typography.fontSize.lg,
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.text,
-              marginBottom: theme.spacing.md
+              marginBottom: theme.spacing.md,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              💰 Price Range
+              <PoundSterling size={18} /> Price Range
             </h3>
             <div style={{
               display: 'grid',
@@ -202,9 +209,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
               fontSize: theme.typography.fontSize.lg,
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.text,
-              marginBottom: theme.spacing.md
+              marginBottom: theme.spacing.md,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              📅 Availability
+              <Calendar size={18} /> Availability
             </h3>
             <div style={{
               display: 'grid',
@@ -247,9 +257,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
               fontSize: theme.typography.fontSize.lg,
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.text,
-              marginBottom: theme.spacing.md
+              marginBottom: theme.spacing.md,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              ⚡ Urgency Level
+              <Zap size={18} /> Urgency Level
             </h3>
             <div style={{
               display: 'grid',
@@ -292,9 +305,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
               fontSize: theme.typography.fontSize.lg,
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.text,
-              marginBottom: theme.spacing.md
+              marginBottom: theme.spacing.md,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              🎯 Project Complexity
+              <Target size={18} /> Project Complexity
             </h3>
             <div style={{
               display: 'grid',
@@ -338,9 +354,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
             fontSize: theme.typography.fontSize.lg,
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text,
-            marginBottom: theme.spacing.md
+            marginBottom: theme.spacing.md,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            🛠️ Skills & Specialties
+            <Wrench size={18} /> Skills & Specialties
           </h3>
           <div style={{
             display: 'flex',
@@ -369,10 +388,13 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
                   fontWeight: theme.typography.fontWeight.medium,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  textTransform: 'capitalize'
+                  textTransform: 'capitalize',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                {localFilters.skills.includes(skill) && '✓ '}{skill}
+                {localFilters.skills.includes(skill) && <CheckCircle size={14} />}{skill}
               </button>
             ))}
           </div>
@@ -384,9 +406,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
             fontSize: theme.typography.fontSize.lg,
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text,
-            marginBottom: theme.spacing.md
+            marginBottom: theme.spacing.md,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            📂 Project Categories
+            <Target size={18} /> Project Categories
           </h3>
           <div style={{
             display: 'flex',
@@ -415,10 +440,13 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
                   fontWeight: theme.typography.fontWeight.medium,
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  textTransform: 'capitalize'
+                  textTransform: 'capitalize',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                {localFilters.projectTypes.includes(type) && '✓ '}{type}
+                {localFilters.projectTypes.includes(type) && <CheckCircle size={14} />}{type}
               </button>
             ))}
           </div>
@@ -430,9 +458,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
             fontSize: theme.typography.fontSize.lg,
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text,
-            marginBottom: theme.spacing.md
+            marginBottom: theme.spacing.md,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            ⭐ Quality & Trust
+            <Star size={18} /> Quality & Trust
           </h3>
           <div style={{
             display: 'grid',
@@ -452,9 +483,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
               />
               <span style={{
                 fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.text
+                color: theme.colors.text,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}>
-                🛡️ Has Insurance
+                <Shield size={14} /> Has Insurance
               </span>
             </label>
 
@@ -471,9 +505,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
               />
               <span style={{
                 fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.text
+                color: theme.colors.text,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}>
-                ✅ Background Checked
+                <CheckCircle size={14} /> Background Checked
               </span>
             </label>
 
@@ -490,9 +527,12 @@ export const AdvancedSearchFiltersComponent: React.FC<AdvancedSearchFiltersProps
               />
               <span style={{
                 fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.text
+                color: theme.colors.text,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
               }}>
-                📸 Has Portfolio
+                <Target size={14} /> Has Portfolio
               </span>
             </label>
           </div>

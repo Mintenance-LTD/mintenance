@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/Card.unified';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { NotificationBanner } from '@/components/ui/NotificationBanner';
+import { CheckCircle } from 'lucide-react';
 
 interface JobSignOffClientProps {
     jobId: string;
@@ -104,7 +105,9 @@ export function JobSignOffClient({ jobId, jobTitle, contractorName, currentUserR
         return (
             <Card>
                 <CardContent className="p-8 text-center">
-                    <div style={{ fontSize: '48px', marginBottom: theme.spacing[4] }}>✅</div>
+                    <div className="flex justify-center" style={{ marginBottom: theme.spacing[4] }}>
+                        <CheckCircle className="w-16 h-16 text-green-600" />
+                    </div>
                     <h2 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: 'bold', marginBottom: theme.spacing[2] }}>
                         Job Signed Off!
                     </h2>

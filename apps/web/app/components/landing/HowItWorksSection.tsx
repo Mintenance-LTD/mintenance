@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { Check, Zap } from 'lucide-react';
 
 /**
  * How It Works section explaining the platform process
@@ -94,7 +95,7 @@ export function HowItWorksSection() {
             ].map((step, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <div className={`w-4 h-4 rounded-full flex items-center justify-center ${step.done ? 'bg-secondary' : 'bg-accent'}`}>
-                  <span className="text-white text-xs">{step.done ? '✓' : '⚡'}</span>
+                  {step.done ? <Check className="w-3 h-3 text-white" /> : <Zap className="w-3 h-3 text-white" />}
                 </div>
                 <span className="text-xs">{step.label}</span>
               </div>

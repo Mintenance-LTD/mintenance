@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Component, type ReactNode } from 'react';
+import { AlertTriangle, XCircle } from 'lucide-react';
 
 import { logger } from '@mintenance/shared';
 interface Props {
@@ -162,10 +163,9 @@ export class ChunkLoadErrorBoundary extends Component<Props, State> {
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 1.5rem',
-                fontSize: '2rem',
               }}
             >
-              {this.state.isChunkError ? '⚠️' : '❌'}
+              {this.state.isChunkError ? <AlertTriangle size={32} color="#f59e0b" /> : <XCircle size={32} color="#ef4444" />}
             </div>
 
             <h1
