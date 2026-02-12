@@ -86,30 +86,12 @@ export async function POST(
       throw new ForbiddenError('Only homeowners can accept bids');
     }
 
-    // Log service key availability (masked) for debugging
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    logger.info('Accept bid - env check', {
-      service: 'jobs',
-      hasServiceKey: !!serviceKey,
-      serviceKeyPrefix: serviceKey ? serviceKey.substring(0, 10) + '...' : 'MISSING',
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'MISSING',
-    });
-
     // Verify the job belongs to this homeowner
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
       .select('homeowner_id, status')
       .eq('id', jobId)
       .single();
-
-    logger.info('Accept bid - job query result', {
-      service: 'jobs',
-      jobId,
-      hasJob: !!job,
-      hasError: !!jobError,
-      jobStatus: job?.status,
-      errorMsg: jobError?.message,
-    });
 
     if (jobError || !job) {
       logger.error('Failed to fetch job for bid acceptance', {
@@ -136,16 +118,6 @@ export async function POST(
       .single();
 
     const bid = bidData as BidRow | null;
-
-    logger.info('Accept bid - bid query result', {
-      service: 'jobs',
-      bidId,
-      jobId,
-      hasBid: !!bid,
-      hasError: !!bidError,
-      bidStatus: bid?.status,
-      errorMsg: bidError?.message,
-    });
 
     if (bidError || !bid) {
       logger.error('Failed to fetch bid for acceptance', {
@@ -203,9 +175,9 @@ export async function POST(
         errorCode: acceptError.code,
         errorDetails: acceptError.details,
         errorHint: (acceptError as Record<string, unknown>).hint,
-        errorStringified: JSON.stringify(acceptError),
       });
-      throw new InternalServerError(`Failed to accept bid`);
+      // Include actual DB error for debugging
+      throw new InternalServerError(`Failed to accept bid: ${acceptError.message} (code: ${acceptError.code})`);
     }
 
     // Step 2: Reject other pending bids for this job
