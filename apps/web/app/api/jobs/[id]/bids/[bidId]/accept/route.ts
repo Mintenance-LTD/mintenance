@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
@@ -26,6 +26,9 @@ export async function POST(
   let bidId: string | undefined;
 
   try {
+  // Create a fresh Supabase client per request to avoid singleton auth state corruption
+  const serverSupabase = createServerSupabaseClient();
+
   // Rate limiting check - use IP only, not URL (job/bid IDs in URL make each request unique)
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous';
   const rateLimitResult = await rateLimiter.checkRateLimit({
