@@ -35,6 +35,20 @@ CREATE TABLE IF NOT EXISTS public.disputes (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Add columns if they don't exist (table may have been created with different schema)
+DO $$ BEGIN
+  ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS stripe_dispute_id TEXT UNIQUE;
+  ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS charge_id TEXT;
+  ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS payment_intent_id TEXT;
+  ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS amount INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'gbp';
+  ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS reason TEXT;
+  ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'needs_response';
+  ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS evidence_due_by TIMESTAMPTZ;
+  ALTER TABLE public.disputes ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
+EXCEPTION WHEN duplicate_column THEN NULL;
+END $$;
+
 ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
 
 -- Service role: full access (webhook handler)
@@ -69,7 +83,8 @@ DO $$ BEGIN
       FOR SELECT TO authenticated
       USING (is_active = true OR contractor_id = auth.uid())';
 
-    EXECUTE 'DROP POLICY IF EXISTS service_areas_manage_own ON public.service_areas
+    EXECUTE 'DROP POLICY IF EXISTS service_areas_manage_own ON public.service_areas';
+    EXECUTE 'CREATE POLICY service_areas_manage_own ON public.service_areas
       FOR ALL TO authenticated
       USING (contractor_id = auth.uid())
       WITH CHECK (contractor_id = auth.uid())';
