@@ -94,11 +94,15 @@ export async function POST(
       .single();
 
     if (jobError || !job) {
-      logger.error('Failed to fetch job', jobError, {
+      logger.error('Failed to fetch job for bid acceptance', {
         service: 'jobs',
         jobId,
+        errorMessage: jobError?.message,
+        errorCode: jobError?.code,
+        errorDetails: jobError?.details,
+        hasData: !!job,
       });
-      throw new NotFoundError('Job not found');
+      throw new NotFoundError(`Job (${jobError?.message || 'not found in database'})`);
     }
 
     if (job.homeowner_id !== user.id) {
@@ -116,12 +120,15 @@ export async function POST(
     const bid = bidData as BidRow | null;
 
     if (bidError || !bid) {
-      logger.error('Failed to fetch bid', bidError, {
+      logger.error('Failed to fetch bid for acceptance', {
         service: 'jobs',
         bidId,
         jobId,
+        errorMessage: bidError?.message,
+        errorCode: bidError?.code,
+        hasData: !!bidData,
       });
-      throw new NotFoundError('Bid not found');
+      throw new NotFoundError(`Bid (${bidError?.message || 'not found in database'})`);
     }
 
     // Log Stripe payment setup status (non-blocking - payment enforcement comes later)
