@@ -177,7 +177,8 @@ export async function middleware(request: NextRequest) {
       // Skip middleware rate limiting for endpoints with their own rate limiters
       // These endpoints implement more permissive, endpoint-specific rate limiting
       const skipMiddlewareRateLimit = pathname === '/api/auth/session-status' ||
-                                       pathname === '/api/auth/extend-session';
+                                       pathname === '/api/auth/extend-session' ||
+                                       pathname.startsWith('/api/notifications');
 
       // Perform rate limit check (unless explicitly skipped)
       const rateLimitResult = skipMiddlewareRateLimit
