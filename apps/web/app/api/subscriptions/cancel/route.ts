@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
+import { HomeownerSubscriptionService } from '@/lib/services/subscription/HomeownerSubscriptionService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf-validator';
 import { z } from 'zod';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 const cancelSubscriptionSchema = z.object({
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'contractor') {
+    if (!user || (user.role !== 'contractor' && user.role !== 'homeowner')) {
       throw new UnauthorizedError('Authentication required');
     }
 
@@ -57,14 +58,30 @@ export async function POST(request: NextRequest) {
 
     const { cancelAtPeriodEnd } = validation.data;
 
-    // Get user's subscription
-    const subscription = await SubscriptionService.getContractorSubscription(user.id);
+    if (user.role === 'homeowner') {
+      const result = await HomeownerSubscriptionService.cancelSubscription(user.id, cancelAtPeriodEnd);
+      if (!result.success) {
+        throw new NotFoundError(result.message);
+      }
 
+      logger.info('Homeowner subscription canceled', {
+        service: 'subscriptions',
+        homeownerId: user.id,
+        cancelAtPeriodEnd,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: result.message,
+      });
+    }
+
+    // Contractor flow
+    const subscription = await SubscriptionService.getContractorSubscription(user.id);
     if (!subscription || !subscription.stripeSubscriptionId) {
       throw new NotFoundError('No active subscription found');
     }
 
-    // Cancel subscription
     const success = await SubscriptionService.cancelSubscription(
       subscription.stripeSubscriptionId,
       cancelAtPeriodEnd
@@ -74,7 +91,7 @@ export async function POST(request: NextRequest) {
       throw new InternalServerError('Failed to cancel subscription');
     }
 
-    logger.info('Subscription canceled', {
+    logger.info('Contractor subscription canceled', {
       service: 'subscriptions',
       contractorId: user.id,
       subscriptionId: subscription.stripeSubscriptionId,

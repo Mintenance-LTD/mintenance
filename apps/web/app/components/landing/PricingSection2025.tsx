@@ -133,19 +133,23 @@ export function PricingSection2025() {
         >
           <h3 className="text-2xl font-bold mb-2">Always Free for Homeowners</h3>
           <p className="text-emerald-50 mb-4">
-            Post unlimited jobs. Only pay a 5% platform fee on completed work.
+            Free plan: unlimited job posts, up to 5 bids per job, and up to 3 properties.
+            Premium unlocks unlimited properties and landlord portfolio workflows.
+          </p>
+          <p className="text-emerald-100 text-sm mb-4">
+            Launch offer: first 30 homeowners get full premium features.
           </p>
           <div className="flex items-center justify-center gap-8 text-sm">
             <div>
-              <span className="font-bold">5%</span> platform fee
+              <span className="font-bold">Unlimited</span> job posts
             </div>
             <div className="h-4 w-px bg-white/30" />
             <div>
-              <span className="font-bold">vs TaskRabbit</span> (15% fee)
+              <span className="font-bold">5 bids</span> per job (free)
             </div>
             <div className="h-4 w-px bg-white/30" />
             <div>
-              <span className="font-bold">No hidden</span> charges
+              <span className="font-bold">3 properties</span> on free
             </div>
           </div>
         </motion.div>

@@ -53,6 +53,19 @@ export function useFeatureAccess() {
 
     const fetchSubscription = async () => {
       try {
+        // Server-side status endpoint includes early-access entitlement.
+        const statusResponse = await fetch('/api/subscriptions/status', { cache: 'no-store' });
+        if (statusResponse.ok) {
+          const statusPayload = await statusResponse.json();
+          if (statusPayload?.earlyAccess?.eligible) {
+            setSubscription({
+              tier: 'enterprise',
+              status: 'active',
+            });
+            return;
+          }
+        }
+
         const { data, error } = await supabase
           .from('contractor_subscriptions')
           .select('plan_type, status, current_period_end')

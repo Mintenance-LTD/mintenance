@@ -158,6 +158,6 @@ async function getContractor(context: Params) {
     return NextResponse.json({ contractor: contractorProfile });
   } catch (err) {
     logger.error('Failed to load contractor', err, { service: 'contractors' });
-    throw new InternalServerError('Internal server error');
+    return handleAPIError(err);
   }
 }

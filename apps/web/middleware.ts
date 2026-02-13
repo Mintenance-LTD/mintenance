@@ -174,11 +174,26 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      // Skip middleware rate limiting for endpoints with their own rate limiters
-      // These endpoints implement more permissive, endpoint-specific rate limiting
+      // Skip middleware rate limiting for authenticated endpoints that have their own rate limiters.
+      // The middleware rate limiter runs BEFORE auth, so all users are classified as 'anonymous'.
+      // Endpoints with anonymous:0 in rate-limits.ts get auto-blocked. These routes handle
+      // their own rate limiting after authentication is verified.
       const skipMiddlewareRateLimit = pathname === '/api/auth/session-status' ||
                                        pathname === '/api/auth/extend-session' ||
-                                       pathname.startsWith('/api/notifications');
+                                       pathname.startsWith('/api/notifications') ||
+                                       pathname.startsWith('/api/messages') ||
+                                       pathname.startsWith('/api/payments') ||
+                                       pathname.startsWith('/api/contractors') ||
+                                       pathname.startsWith('/api/jobs') ||
+                                       pathname.startsWith('/api/contractor/') ||
+                                       pathname.startsWith('/api/bids') ||
+                                       pathname.startsWith('/api/user/') ||
+                                       pathname.startsWith('/api/account') ||
+                                       pathname.startsWith('/api/upload') ||
+                                       pathname.startsWith('/api/ai/') ||
+                                       pathname.startsWith('/api/building-surveyor') ||
+                                       pathname.startsWith('/api/admin') ||
+                                       pathname.startsWith('/api/escrow');
 
       // Perform rate limit check (unless explicitly skipped)
       const rateLimitResult = skipMiddlewareRateLimit

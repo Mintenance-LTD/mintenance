@@ -43,12 +43,11 @@ interface ContractUpdateData {
 }
 
 interface MessagePayload {
-  job_id: string;
+  thread_id: string;
   sender_id: string;
-  receiver_id: string;
   content: string;
   message_type: string;
-  read: boolean;
+  read_by: string[];
 }
 
 export async function GET(request: NextRequest) {
@@ -283,19 +282,45 @@ export async function POST(request: NextRequest) {
         messageLength: contractMessageText.length,
       });
       
-      // Create contract submission message using 'content' column (schema uses 'content', not 'message_text')
+      // Find or create message_thread for this job
+      let { data: threadData } = await serverSupabase
+        .from('message_threads')
+        .select('id')
+        .eq('job_id', job_id)
+        .single();
+
+      if (!threadData) {
+        const { data: newThread } = await serverSupabase
+          .from('message_threads')
+          .insert({
+            job_id: job_id,
+            participant_ids: [user.id, job.homeowner_id].filter(Boolean),
+            last_message_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        threadData = newThread;
+      }
+
+      if (!threadData) {
+        logger.error('Failed to find or create message thread for contract message', {
+          service: 'contracts',
+          jobId: job_id,
+        });
+        throw new Error('Failed to create message thread');
+      }
+
       const messagePayload: MessagePayload = {
-        job_id: job_id,
+        thread_id: threadData.id,
         sender_id: user.id,
-        receiver_id: job.homeowner_id,
-        content: contractMessageText, // Use 'content' column (schema uses 'content', not 'message_text')
+        content: contractMessageText,
         message_type: 'contract_submitted',
-        read: false,
+        read_by: [],
       };
-      
+
       let messageInserted = false;
       let insertedMessageId: string | null = null;
-      
+
       try {
         const { data: insertedMessage, error: msgError } = await serverSupabase
           .from('messages')

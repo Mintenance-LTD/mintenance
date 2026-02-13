@@ -12,6 +12,7 @@ import {
   Plus,
   CheckCircle,
   Home,
+  Building2,
   Calendar,
   ArrowRight,
   Star,
@@ -94,10 +95,20 @@ interface DashboardWithAirbnbSearchProps {
   };
 }
 
+interface PortfolioAccessState {
+  allowed: boolean;
+  requiresSubscription: boolean;
+  subscriptionStatus: string;
+  message?: string | null;
+  upgradeUrl?: string;
+}
+
 export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchProps) {
   const { homeowner, metrics, activeJobs, pendingBids = [], recentActivity } = data;
   const [properties, setProperties] = useState<Property[]>([]);
   const [loadingProperties, setLoadingProperties] = useState(true);
+  const [portfolioAccess, setPortfolioAccess] = useState<PortfolioAccessState | null>(null);
+  const [loadingPortfolioAccess, setLoadingPortfolioAccess] = useState(true);
 
   // Fetch properties for the search bar
   useEffect(() => {
@@ -112,6 +123,26 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
         logger.error('Failed to fetch properties', { error });
       })
       .finally(() => setLoadingProperties(false));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/portfolio/access')
+      .then((res) => res.json())
+      .then((result) => {
+        if (result && typeof result.allowed === 'boolean') {
+          setPortfolioAccess({
+            allowed: result.allowed,
+            requiresSubscription: Boolean(result.requiresSubscription),
+            subscriptionStatus: String(result.subscriptionStatus || 'none'),
+            message: result.message ?? null,
+            upgradeUrl: result.upgradeUrl || '/pricing?feature=portfolio_mode',
+          });
+        }
+      })
+      .catch((error) => {
+        logger.error('Failed to fetch portfolio access status', { error });
+      })
+      .finally(() => setLoadingPortfolioAccess(false));
   }, []);
 
   // Get upcoming appointments from scheduled jobs
@@ -179,6 +210,43 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
 
             {/* Airbnb Search Bar */}
             <AirbnbSearchBar properties={properties} />
+
+            {/* Portfolio Mode paywall/entitlement state */}
+            {!loadingPortfolioAccess && portfolioAccess && (
+              <div className={`mt-6 rounded-2xl border p-4 ${
+                portfolioAccess.allowed
+                  ? 'bg-emerald-50 border-emerald-200'
+                  : 'bg-amber-50 border-amber-200'
+              }`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg ${
+                      portfolioAccess.allowed ? 'bg-emerald-100' : 'bg-amber-100'
+                    }`}>
+                      <Building2 className={`h-5 w-5 ${portfolioAccess.allowed ? 'text-emerald-700' : 'text-amber-700'}`} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">Portfolio Mode</p>
+                      <p className="text-sm text-gray-700">
+                        {portfolioAccess.allowed
+                          ? 'Enabled for this account. You can start managing multi-property operations.'
+                          : (portfolioAccess.message || 'Unlock landlord and agent tools with a paid plan.')}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href={portfolioAccess.allowed ? '/properties' : (portfolioAccess.upgradeUrl || '/pricing?feature=portfolio_mode')}
+                    className={`inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium ${
+                      portfolioAccess.allowed
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-amber-600 text-white hover:bg-amber-700'
+                    }`}
+                  >
+                    {portfolioAccess.allowed ? 'Manage Portfolio' : 'Unlock'}
+                  </Link>
+                </div>
+              </div>
+            )}
 
             {/* Quick Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">

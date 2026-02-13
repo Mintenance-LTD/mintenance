@@ -40,19 +40,33 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch counts from database
+    // For messages, we need to go through message_threads first
+    const { data: userThreads } = await serverSupabase
+      .from('message_threads')
+      .select('id')
+      .contains('participant_ids', [user.id]);
+
+    const threadIds = (userThreads ?? []).map(t => t.id);
+
+    let messageCount = 0;
+    if (threadIds.length > 0) {
+      const { data: msgs } = await serverSupabase
+        .from('messages')
+        .select('id, read_by')
+        .in('thread_id', threadIds)
+        .neq('sender_id', user.id);
+
+      messageCount = (msgs ?? []).filter((m: { id: string; read_by: string[] | null }) => {
+        const readBy = Array.isArray(m.read_by) ? m.read_by : [];
+        return !readBy.includes(user.id);
+      }).length;
+    }
+
     const [
-      messagesResponse,
       connectionsResponse,
       quoteRequestsResponse,
       notificationsResponse,
     ] = await Promise.all([
-      // Unread messages count
-      serverSupabase
-        .from('messages')
-        .select('id', { count: 'exact' })
-        .eq('recipient_id', user.id)
-        .eq('read', false),
-
       // Pending connections count
       serverSupabase
         .from('connections')
@@ -77,7 +91,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     const counts = {
-      messages: messagesResponse.count || 0,
+      messages: messageCount,
       connections: connectionsResponse.count || 0,
       quoteRequests: quoteRequestsResponse.count || 0,
       notifications: notificationsResponse.count || 0,

@@ -60,10 +60,10 @@ export async function POST(request: NextRequest) {
 
     const { paymentMethodId, setAsDefault } = validation.data;
 
-    // Get or create Stripe customer
+    // Get user profile (stripe_customer_id column may not exist yet)
     const { data: userData, error: userError } = await serverSupabase
       .from('profiles')
-      .select('id, email, stripe_customer_id')
+      .select('id, email')
       .eq('id', user.id)
       .single();
 
@@ -71,24 +71,37 @@ export async function POST(request: NextRequest) {
       throw new NotFoundError('User not found');
     }
 
-    let stripeCustomerId = userData.stripe_customer_id;
+    // Try to get stripe_customer_id (column may not exist in DB schema)
+    let stripeCustomerId: string | null = null;
+    const { data: stripeData } = await serverSupabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', user.id)
+      .single();
+    if (stripeData) {
+      stripeCustomerId = (stripeData as Record<string, unknown>).stripe_customer_id as string | null;
+    }
 
-    // Create customer if doesn't exist
+    // If not in DB, search Stripe by email to avoid creating duplicates
+    if (!stripeCustomerId) {
+      const existing = await stripe.customers.list({ email: userData.email, limit: 1 });
+      stripeCustomerId = existing.data[0]?.id || null;
+    }
+
+    // Create customer if not found anywhere
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({
         email: userData.email,
-        metadata: {
-          userId: user.id,
-        },
+        metadata: { userId: user.id },
       });
-
       stripeCustomerId = customer.id;
-
-      await serverSupabase
-        .from('profiles')
-        .update({ stripe_customer_id: stripeCustomerId })
-        .eq('id', user.id);
     }
+
+    // Best-effort save to DB (column may not exist)
+    await serverSupabase
+      .from('profiles')
+      .update({ stripe_customer_id: stripeCustomerId })
+      .eq('id', user.id);
 
     // Attach payment method to customer
     const paymentMethod = await stripe.paymentMethods.attach(paymentMethodId, {

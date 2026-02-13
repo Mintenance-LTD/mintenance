@@ -69,8 +69,13 @@ export async function GET(request: NextRequest) {
       throw fetchError;
     }
 
-    // Filter notifications: keep recent (24h) OR unread
+    // Filter out social notification types - app should only show work-related notifications
+    const socialTypes = ['post_liked', 'comment_added', 'comment_replied', 'new_follower'];
+
+    // Filter notifications: keep recent (24h) OR unread, exclude social types
     const notifications = (allUserNotifications || []).filter(notif => {
+      // Exclude social notifications
+      if (socialTypes.includes(notif.type || '')) return false;
       const isRecent = new Date(notif.created_at || 0) >= twentyFourHoursAgo;
       const isUnread = notif.read === false || notif.read === 0;
       return isRecent || isUnread;
@@ -227,27 +232,44 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Unread Messages - Messages received in the last 30 days
-    const { data: unreadMessages } = await serverSupabase
-      .from('messages')
-      .select('id, created_at, content, sender_id, receiver_id, job_id')
-      .eq('receiver_id', userId)
-      .eq('read', false)
-      .gte('created_at', oneMonthAgo.toISOString())
-      .order('created_at', { ascending: false })
-      .limit(10);
+    // First get message_threads where user is a participant
+    const { data: userThreads } = await serverSupabase
+      .from('message_threads')
+      .select('id, job_id')
+      .contains('participant_ids', [userId]);
 
+    const threadToJobId = new Map<string, string>();
+    const userThreadIds: string[] = [];
+    for (const t of userThreads ?? []) {
+      threadToJobId.set(t.id, t.job_id);
+      userThreadIds.push(t.id);
+    }
+
+    // Then get unread messages from those threads (not sent by user, user not in read_by)
     interface MessageRecord {
       id: string;
       sender_id: string;
-      receiver_id: string;
+      thread_id?: string;
       content?: string;
-      message_text?: string;
       created_at: string;
       job_id?: string;
-      jobs?: {
-        title?: string;
-        [key: string]: unknown;
-      } | null;
+    }
+
+    let unreadMessages: MessageRecord[] | null = null;
+    if (userThreadIds.length > 0) {
+      const { data } = await serverSupabase
+        .from('messages')
+        .select('id, created_at, content, sender_id, thread_id, read_by')
+        .in('thread_id', userThreadIds)
+        .neq('sender_id', userId)
+        .gte('created_at', oneMonthAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(30);
+      // Filter in code: only include messages where user is NOT in read_by
+      unreadMessages = ((data ?? []) as unknown as (MessageRecord & { read_by?: string[] })[]).filter((m) => {
+        const readBy = Array.isArray(m.read_by) ? m.read_by : [];
+        return !readBy.includes(userId);
+      }).slice(0, 10);
     }
 
     interface SenderRecord {
@@ -259,7 +281,7 @@ export async function GET(request: NextRequest) {
 
     if (unreadMessages && unreadMessages.length > 0) {
       // Get sender names
-      const senderIds = [...new Set(unreadMessages.map((m: MessageRecord) => m.sender_id))];
+      const senderIds = [...new Set(unreadMessages.map(m => m.sender_id))];
       const { data: senders } = await serverSupabase
         .from('profiles')
         .select('id, first_name, last_name, company_name')
@@ -267,35 +289,32 @@ export async function GET(request: NextRequest) {
 
       const senderMap = new Map<string, SenderRecord>((senders || []).map((s: SenderRecord) => [s.id, s]));
 
-      unreadMessages.forEach((msg: MessageRecord) => {
+      unreadMessages.forEach((msg) => {
         const existingNotif = mappedNotifications.find(n => n.id === `msg-${msg.id}`);
         if (!existingNotif) {
           const sender = senderMap.get(msg.sender_id);
-          const senderName = sender 
-            ? (sender.first_name && sender.last_name 
-                ? `${sender.first_name} ${sender.last_name}` 
+          const senderName = sender
+            ? (sender.first_name && sender.last_name
+                ? `${sender.first_name} ${sender.last_name}`
                 : sender.company_name || 'Someone')
             : 'Someone';
-          
-          const messageContent = msg.content || msg.message_text || '';
-          const jobTitle = (msg.jobs && typeof msg.jobs === 'object' && 'title' in msg.jobs && typeof msg.jobs.title === 'string') 
-            ? msg.jobs.title 
-            : 'Job';
-          
-          // Build message thread URL with query params for proper routing
-          const actionUrl = msg.job_id 
-            ? `/messages/${msg.job_id}?userId=${msg.sender_id}&userName=${encodeURIComponent(senderName)}&jobTitle=${encodeURIComponent(jobTitle)}`
+
+          const messageContent = msg.content || '';
+          // Get job_id from message_thread mapping
+          const jobId = msg.thread_id ? threadToJobId.get(msg.thread_id) : undefined;
+
+          const actionUrl = jobId
+            ? `/messages/${jobId}?userId=${msg.sender_id}&userName=${encodeURIComponent(senderName)}&jobTitle=Job`
             : '/messages';
-          
+
           realTimeNotifications.push({
             id: `msg-${msg.id}`,
-            type: 'message_received', // Use message_received type for proper routing
+            type: 'message_received',
             title: 'New Message',
             message: `${senderName}: ${messageContent.substring(0, 80)}${messageContent.length > 80 ? '...' : ''}`,
             read: false,
             created_at: msg.created_at || new Date().toISOString(),
             action_url: actionUrl,
-            // Store job info in action_url query params, which the notification handler will parse
           });
         }
       });

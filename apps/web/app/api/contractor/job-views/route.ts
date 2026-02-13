@@ -228,7 +228,7 @@ export async function GET(request: NextRequest) {
           created_at,
           homeowner_id,
           photos,
-          homeowner:profiles!jobs_homeowner_id_fkey(
+          homeowner:profiles!homeowner_id(
             id,
             first_name,
             last_name,

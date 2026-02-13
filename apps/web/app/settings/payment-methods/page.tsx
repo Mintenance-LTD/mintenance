@@ -3,16 +3,8 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Icon } from '@/components/ui/Icon';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, CreditCard } from 'lucide-react';
-import { theme } from '@/lib/theme';
-import { PageLoader } from '@/components/LoadingButton';
-import { HomeownerLayoutShell } from '../../dashboard/components/HomeownerLayoutShell';
-import Link from 'next/link';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ArrowLeft, CreditCard, Plus, Trash2, Star, Loader2 } from 'lucide-react';
 import { AddPaymentMethodForm } from './components/AddPaymentMethodForm';
 
 interface PaymentMethod {
@@ -46,7 +38,6 @@ export default function PaymentMethodsPage() {
     if (user) {
       loadPaymentMethods();
     }
-     
   }, [user]);
 
   const loadPaymentMethods = async () => {
@@ -54,7 +45,7 @@ export default function PaymentMethodsPage() {
       setLoading(true);
       setError('');
       const response = await fetch('/api/payments/methods');
-      
+
       if (!response.ok) {
         throw new Error('Failed to load payment methods');
       }
@@ -75,7 +66,6 @@ export default function PaymentMethodsPage() {
 
     try {
       setRemovingId(methodId);
-      // Fetch fresh CSRF token before mutation
       const csrfResponse = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
       const { token: csrfToken } = csrfResponse.ok ? await csrfResponse.json() : { token: '' };
       if (csrfToken) await new Promise(resolve => setTimeout(resolve, 50));
@@ -95,7 +85,6 @@ export default function PaymentMethodsPage() {
         throw new Error(data.error || 'Failed to remove payment method');
       }
 
-      // Reload payment methods
       await loadPaymentMethods();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove payment method');
@@ -108,7 +97,6 @@ export default function PaymentMethodsPage() {
     try {
       setSettingDefaultId(methodId);
       setError('');
-      // Fetch fresh CSRF token before mutation
       const csrfResponse = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
       const { token: csrfToken } = csrfResponse.ok ? await csrfResponse.json() : { token: '' };
       if (csrfToken) await new Promise(resolve => setTimeout(resolve, 50));
@@ -128,7 +116,6 @@ export default function PaymentMethodsPage() {
         throw new Error(data.error || 'Failed to set default payment method');
       }
 
-      // Reload payment methods to reflect the change
       await loadPaymentMethods();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set default payment method');
@@ -137,19 +124,17 @@ export default function PaymentMethodsPage() {
     }
   };
 
-  const getCardBrandIcon = (brand: string) => {
-    return <CreditCard className="w-6 h-6" />;
-  };
-
   const formatExpiry = (month: number, year: number) => {
-    const monthStr = month.toString().padStart(2, '0');
-    return `${monthStr}/${year.toString().slice(-2)}`;
+    return `${month.toString().padStart(2, '0')}/${year.toString().slice(-2)}`;
   };
 
   if (loadingUser) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.backgroundSecondary }}>
-        <PageLoader message="Loading payment methods" />
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading payment methods...</p>
+        </div>
       </div>
     );
   }
@@ -160,219 +145,127 @@ export default function PaymentMethodsPage() {
   }
 
   return (
-    <HomeownerLayoutShell
-      currentPath="/settings/payment-methods"
-      userName={user.first_name && user.last_name ? `${user.first_name} ${user.last_name}`.trim() : undefined}
-      userEmail={user.email}
-    >
-      <div style={{
-        maxWidth: '1440px',
-        margin: '0 auto',
-        padding: theme.spacing[6],
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing[6]
-      }}>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back to Settings */}
+        <button
+          onClick={() => router.push('/settings')}
+          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-6"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="font-medium">Back to Settings</span>
+        </button>
+
         {/* Header */}
-        <div>
-          <Link 
-            href="/settings"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              color: theme.colors.textSecondary,
-              textDecoration: 'none',
-              marginBottom: theme.spacing[4],
-              fontSize: theme.typography.fontSize.sm,
-            }}
-          >
-            <Icon name="arrowLeft" size={16} />
-            Back to Settings
-          </Link>
-          <h1 style={{
-            margin: 0,
-            marginBottom: theme.spacing[1],
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}>
-            Payment Methods
-          </h1>
-          <p style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-          }}>
-            Manage your saved payment methods for quick and easy payments
-          </p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Methods</h1>
+          <p className="text-gray-600">Manage your saved payment methods for quick and easy payments</p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-red-700 font-medium">Error</p>
+            <p className="text-red-600 text-sm mt-1">{error}</p>
+          </div>
         )}
 
         {/* Add Payment Method Button */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-        }}>
-          <Button
-            variant="primary"
+        <div className="flex justify-end mb-6">
+          <button
             onClick={() => setShowAddDialog(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-            }}
+            className="flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
           >
-            <Icon name="plus" size={16} />
+            <Plus className="w-5 h-5" />
             Add Payment Method
-          </Button>
+          </button>
         </div>
 
         {/* Payment Methods List */}
         {loading ? (
-          <div style={{
-            textAlign: 'center',
-            padding: theme.spacing[12],
-            color: theme.colors.textSecondary,
-          }}>
-            <div>Loading payment methods...</div>
+          <div className="bg-white rounded-xl border border-gray-200 p-12">
+            <div className="flex flex-col items-center justify-center text-gray-500">
+              <Loader2 className="w-8 h-8 animate-spin mb-3" />
+              <p>Loading payment methods...</p>
+            </div>
           </div>
         ) : paymentMethods.length === 0 ? (
-          <EmptyState
-            icon="creditCard"
-            title="No Payment Methods"
-            description="No payment methods have been added yet. Add one to continue."
-            actionLabel="Add Payment Method"
-            onAction={() => setShowAddDialog(true)}
-            variant="default"
-            style={{
-              backgroundColor: theme.colors.surface,
-              borderRadius: theme.borderRadius.xl,
-              border: `1px solid ${theme.colors.border}`,
-            }}
-          />
+          <div className="bg-white rounded-xl border border-gray-200 p-12">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <CreditCard className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Payment Methods</h3>
+              <p className="text-gray-500 mb-6 max-w-sm">
+                No payment methods have been added yet. Add one to continue.
+              </p>
+              <button
+                onClick={() => setShowAddDialog(true)}
+                className="px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
+              >
+                Add Payment Method
+              </button>
+            </div>
+          </div>
         ) : (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing[4],
-          }}>
+          <div className="space-y-4">
             {paymentMethods.map((method) => (
               <div
                 key={method.id}
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  borderRadius: theme.borderRadius.xl,
-                  border: `1px solid ${theme.colors.border}`,
-                  padding: theme.spacing[6],
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: theme.spacing[4],
-                }}
+                className="bg-white rounded-xl border border-gray-200 p-6 flex items-center justify-between gap-4 hover:border-gray-300 transition-colors"
               >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[4],
-                  flex: 1,
-                }}>
-                  <div style={{
-                    width: '56px',
-                    height: '40px',
-                    borderRadius: theme.borderRadius.md,
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    {method.card ? getCardBrandIcon(method.card.brand) : <CreditCard className="w-6 h-6" />}
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="w-14 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                    <CreditCard className="w-6 h-6 text-gray-500" />
                   </div>
                   <div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.base,
-                      fontWeight: theme.typography.fontWeight.semibold,
-                      color: theme.colors.textPrimary,
-                      marginBottom: theme.spacing[1],
-                    }}>
-                      {method.card ? (
-                        <>
-                          {method.card.brand.charAt(0).toUpperCase() + method.card.brand.slice(1)} •••• {method.card.last4}
-                          {method.isDefault && (
-                            <span style={{
-                              marginLeft: theme.spacing[2],
-                              padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                              backgroundColor: '#D1FAE5',
-                              color: '#065F46',
-                              borderRadius: theme.borderRadius.sm,
-                              fontSize: theme.typography.fontSize.xs,
-                              fontWeight: theme.typography.fontWeight.semibold,
-                            }}>
-                              Default
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        method.type.charAt(0).toUpperCase() + method.type.slice(1)
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900">
+                        {method.card
+                          ? `${method.card.brand.charAt(0).toUpperCase() + method.card.brand.slice(1)} **** ${method.card.last4}`
+                          : method.type.charAt(0).toUpperCase() + method.type.slice(1)}
+                      </span>
+                      {method.isDefault && (
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
+                          Default
+                        </span>
                       )}
                     </div>
                     {method.card && (
-                      <div style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        color: theme.colors.textSecondary,
-                      }}>
+                      <p className="text-sm text-gray-500 mt-0.5">
                         Expires {formatExpiry(method.card.expMonth, method.card.expYear)}
-                        {method.billing_details?.name && ` • ${method.billing_details.name}`}
-                      </div>
+                        {method.billing_details?.name && ` \u00b7 ${method.billing_details.name}`}
+                      </p>
                     )}
                     {method.billing_details?.email && !method.card && (
-                      <div style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        color: theme.colors.textSecondary,
-                      }}>
-                        {method.billing_details.email}
-                      </div>
+                      <p className="text-sm text-gray-500 mt-0.5">{method.billing_details.email}</p>
                     )}
                   </div>
                 </div>
-                <div style={{
-                  display: 'flex',
-                  gap: theme.spacing[2],
-                  alignItems: 'center',
-                }}>
+                <div className="flex gap-2 items-center">
                   {!method.isDefault && (
-                    <Button
-                      variant="outline"
+                    <button
                       onClick={() => handleSetDefault(method.id)}
                       disabled={settingDefaultId === method.id}
-                      style={{
-                        fontSize: theme.typography.fontSize.sm,
-                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
-                      {settingDefaultId === method.id ? 'Setting...' : 'Set as Default'}
-                    </Button>
+                      <Star className="w-4 h-4" />
+                      {settingDefaultId === method.id ? 'Setting...' : 'Set Default'}
+                    </button>
                   )}
-                  <Button
-                    variant="outline"
+                  <button
                     onClick={() => handleRemoveMethod(method.id)}
                     disabled={removingId === method.id || method.isDefault}
-                    style={{
-                      color: method.isDefault ? theme.colors.textTertiary : theme.colors.error,
-                      borderColor: method.isDefault ? theme.colors.border : theme.colors.error,
-                      cursor: method.isDefault ? 'not-allowed' : 'pointer',
-                    }}
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                      method.isDefault
+                        ? 'text-gray-400 border border-gray-200 cursor-not-allowed'
+                        : 'text-red-600 border border-red-200 hover:bg-red-50'
+                    }`}
                     title={method.isDefault ? 'Cannot remove default payment method. Set another as default first.' : 'Remove payment method'}
                   >
+                    <Trash2 className="w-4 h-4" />
                     {removingId === method.id ? 'Removing...' : 'Remove'}
-                  </Button>
+                  </button>
                 </div>
               </div>
             ))}
@@ -404,7 +297,6 @@ export default function PaymentMethodsPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </HomeownerLayoutShell>
+    </div>
   );
 }
-

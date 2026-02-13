@@ -73,6 +73,7 @@ export function PricingClient() {
       features: [
         'Post unlimited jobs',
         'Receive up to 5 bids per job',
+        'Manage up to 3 saved properties',
         'Basic contractor profiles',
         'Standard messaging',
         'Payment protection',
@@ -82,6 +83,7 @@ export function PricingClient() {
         'Priority support',
         'AI-powered matching',
         'Advanced analytics',
+        'Portfolio Mode (landlord/agent ticket inbox)',
       ],
       cta: 'Get Started Free',
       color: 'gray',
@@ -96,12 +98,14 @@ export function PricingClient() {
       features: [
         'Everything in Free',
         'Unlimited bids per job',
+        'Unlimited properties',
         'AI-powered contractor matching',
         'Priority support (24/7)',
         'Advanced contractor insights',
         'Price comparison tools',
         'Job scheduling assistant',
         'Exclusive deals & offers',
+        'Portfolio Mode (landlord/agent features)',
       ],
       popular: true,
       cta: 'Start Premium',
@@ -207,10 +211,59 @@ export function PricingClient() {
   ];
 
   const handleSelectPlan = async (planId: string) => {
-    // For homeowners - just show the plans
     if (userType === 'homeowner') {
-      toast('Homeowner plans are free to use! Sign up to get started.');
-      router.push('/register?type=homeowner');
+      if (planId === 'free') {
+        toast('Homeowner free plan is ready. Sign up to get started.');
+        router.push('/register?type=homeowner');
+        return;
+      }
+
+      if (!user) {
+        router.push('/login?redirect=/pricing?type=homeowner');
+        return;
+      }
+
+      if (user.role !== 'homeowner') {
+        toast.error('Homeowner premium is only available to homeowner accounts');
+        return;
+      }
+
+      setLoadingPlan(planId);
+      try {
+        const response = await fetch('/api/subscriptions/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken || '',
+          },
+          body: JSON.stringify({
+            planType: 'premium',
+            billingCycle: isAnnual ? 'yearly' : 'monthly',
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to start homeowner premium checkout');
+        }
+
+        if (result.requiresPayment && result.clientSecret) {
+          const checkoutPath = result.checkoutPath || '/homeowner/subscription/checkout';
+          const subscriptionRef = result.stripeSubscriptionId || result.subscriptionId;
+          router.push(
+            `${checkoutPath}?clientSecret=${encodeURIComponent(result.clientSecret)}&subscriptionId=${encodeURIComponent(subscriptionRef)}&planType=premium`
+          );
+          return;
+        }
+
+        toast.success('Homeowner premium activated.');
+        router.push('/homeowner/subscription?success=true');
+      } catch (error) {
+        logger.error('Homeowner subscription creation error:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to create homeowner subscription');
+      } finally {
+        setLoadingPlan(null);
+      }
       return;
     }
 
@@ -253,7 +306,6 @@ export function PricingClient() {
         },
         body: JSON.stringify({
           planType: planId,
-          billingCycle: isAnnual ? 'yearly' : 'monthly'
         }),
       });
 
@@ -262,7 +314,10 @@ export function PricingClient() {
       if (response.ok) {
         if (result.requiresPayment && result.clientSecret) {
           // Redirect to checkout page with client secret
-          router.push(`/contractor/subscription/checkout?cs=${result.clientSecret}&plan=${planId}`);
+          const subscriptionRef = result.stripeSubscriptionId || result.subscriptionId;
+          router.push(
+            `/contractor/subscription/checkout?clientSecret=${encodeURIComponent(result.clientSecret)}&subscriptionId=${encodeURIComponent(subscriptionRef)}&planType=${encodeURIComponent(planId)}`
+          );
         } else if (result.subscriptionId) {
           // Subscription activated without payment (trial or free)
           toast.success('Subscription activated! Redirecting to dashboard...');
@@ -304,7 +359,7 @@ export function PricingClient() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-5xl md:text-6xl font-bold mb-6"
+              className="text-4xl md:text-6xl font-bold mb-6"
             >
               Simple, Transparent Pricing
             </MotionH1>
@@ -317,16 +372,33 @@ export function PricingClient() {
               Choose the plan that works best for you. No hidden fees, cancel anytime.
             </MotionP>
 
+            {userType === 'homeowner' && (
+              <p className="text-sm md:text-base text-teal-100/95 max-w-3xl mx-auto mb-8">
+                Homeowner Free includes: unlimited job posts, up to 5 bids per job, and up to 3 properties.
+                Premium unlocks unlimited properties and Portfolio Mode.
+              </p>
+            )}
+            {userType === 'homeowner' && user?.role === 'homeowner' && (
+              <div className="mb-8">
+                <button
+                  onClick={() => router.push('/homeowner/subscription')}
+                  className="rounded-lg border border-white/40 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+                >
+                  Manage Current Subscription
+                </button>
+              </div>
+            )}
+
             {/* User Type Toggle */}
             <MotionDiv
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="inline-flex bg-white/20 backdrop-blur-sm p-2 rounded-xl mb-8"
+              className="inline-flex w-full max-w-sm bg-white/20 backdrop-blur-sm p-2 rounded-xl mb-8"
             >
               <button
                 onClick={() => setUserType('homeowner')}
-                className={`px-8 py-3 rounded-lg font-semibold transition-all ${
+                className={`flex-1 px-3 sm:px-8 py-3 rounded-lg font-semibold transition-all ${
                   userType === 'homeowner'
                     ? 'bg-white text-teal-600 shadow-lg'
                     : 'text-white hover:bg-white/10'
@@ -336,7 +408,7 @@ export function PricingClient() {
               </button>
               <button
                 onClick={() => setUserType('contractor')}
-                className={`px-8 py-3 rounded-lg font-semibold transition-all ${
+                className={`flex-1 px-3 sm:px-8 py-3 rounded-lg font-semibold transition-all ${
                   userType === 'contractor'
                     ? 'bg-white text-teal-600 shadow-lg'
                     : 'text-white hover:bg-white/10'

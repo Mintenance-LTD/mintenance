@@ -32,9 +32,21 @@ interface SubscriptionCheckoutClientProps {
   clientSecret: string;
   subscriptionId: string;
   planType: string;
+  returnUrl?: string;
+  successRedirectPath?: string;
 }
 
-function CheckoutForm({ subscriptionId, planType }: { subscriptionId: string; planType: string }) {
+function CheckoutForm({
+  subscriptionId,
+  planType,
+  returnUrl,
+  successRedirectPath,
+}: {
+  subscriptionId: string;
+  planType: string;
+  returnUrl: string;
+  successRedirectPath: string;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -62,7 +74,7 @@ function CheckoutForm({ subscriptionId, planType }: { subscriptionId: string; pl
       const { error: confirmError } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/contractor/subscription?success=true`,
+          return_url: returnUrl,
         },
         redirect: 'if_required',
       });
@@ -72,7 +84,7 @@ function CheckoutForm({ subscriptionId, planType }: { subscriptionId: string; pl
         setIsProcessing(false);
       } else {
         // Payment succeeded, redirect to subscription page
-        router.push('/contractor/subscription?success=true');
+        router.push(successRedirectPath);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -150,7 +162,13 @@ function CheckoutForm({ subscriptionId, planType }: { subscriptionId: string; pl
 }
 
 export function SubscriptionCheckoutClient(props: SubscriptionCheckoutClientProps) {
-  const { clientSecret, subscriptionId, planType } = props || {};
+  const {
+    clientSecret,
+    subscriptionId,
+    planType,
+    returnUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/contractor/subscription?success=true`,
+    successRedirectPath = '/contractor/subscription?success=true',
+  } = props || {};
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -186,7 +204,12 @@ export function SubscriptionCheckoutClient(props: SubscriptionCheckoutClientProp
       backgroundColor: theme.colors.backgroundSecondary,
     }}>
       <Elements stripe={getStripe()} options={options}>
-        <CheckoutForm subscriptionId={subscriptionId} planType={planType} />
+        <CheckoutForm
+          subscriptionId={subscriptionId}
+          planType={planType}
+          returnUrl={returnUrl}
+          successRedirectPath={successRedirectPath}
+        />
       </Elements>
     </div>
   );

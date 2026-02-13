@@ -7,8 +7,8 @@ interface HomeownerPageWrapperProps {
 
 /**
  * Universal wrapper for homeowner pages.
- * Prevents layout conflicts by ensuring pages don't create their own sidebar.
- * The parent HomeownerLayoutShell already provides UnifiedSidebar and layout structure.
+ * Prevents layout conflicts by keeping consistent page spacing.
+ * The parent HomeownerLayoutShell provides the shared homeowner header/layout.
  */
 export function HomeownerPageWrapper({ children, className = '' }: HomeownerPageWrapperProps) {
   return (

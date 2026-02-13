@@ -303,44 +303,58 @@ export async function POST(
 
     // Auto-create welcome message thread - send initial message from homeowner to contractor
     try {
-      // Get homeowner details for the message
-      const { data: homeownerData } = await serverSupabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', user.id)
-        .single();
-
-      const homeownerName = homeownerData?.first_name 
-        ? `${homeownerData.first_name}${homeownerData.last_name ? ` ${homeownerData.last_name}` : ''}`
-        : 'Homeowner';
-
       const welcomeMessage = `Hi! I've accepted your bid for "${jobDetails?.title || 'this job'}". Let's discuss the details and schedule a start date. Feel free to ask any questions!`;
 
-      const { error: messageError } = await serverSupabase
-        .from('messages')
-        .insert({
-          job_id: jobId,
-          sender_id: user.id,
-          receiver_id: bid.contractor_id,
-          message_text: welcomeMessage,
-          message_type: 'text',
-          read: false,
-          created_at: new Date().toISOString(),
-        });
+      // Find or create message_thread for this job
+      let { data: threadData } = await serverSupabase
+        .from('message_threads')
+        .select('id')
+        .eq('job_id', jobId)
+        .single();
 
-      if (messageError) {
-        logger.error('Failed to create welcome message', messageError, {
-          service: 'jobs',
-          jobId,
-          contractorId: bid.contractor_id,
-        });
-        // Don't fail the request if message creation fails
-      } else {
-        logger.info('Welcome message created', {
-          service: 'jobs',
-          jobId,
-          contractorId: bid.contractor_id,
-        });
+      if (!threadData) {
+        const { data: newThread } = await serverSupabase
+          .from('message_threads')
+          .insert({
+            job_id: jobId,
+            participant_ids: [user.id, bid.contractor_id].filter(Boolean),
+            last_message_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        threadData = newThread;
+      }
+
+      if (threadData) {
+        const { error: messageError } = await serverSupabase
+          .from('messages')
+          .insert({
+            thread_id: threadData.id,
+            sender_id: user.id,
+            content: welcomeMessage,
+            message_type: 'text',
+            read_by: [],
+          });
+
+        if (messageError) {
+          logger.error('Failed to create welcome message', messageError, {
+            service: 'jobs',
+            jobId,
+            contractorId: bid.contractor_id,
+          });
+        } else {
+          // Update thread last_message_at
+          await serverSupabase
+            .from('message_threads')
+            .update({ last_message_at: new Date().toISOString() })
+            .eq('id', threadData.id);
+
+          logger.info('Welcome message created', {
+            service: 'jobs',
+            jobId,
+            contractorId: bid.contractor_id,
+          });
+        }
       }
     } catch (messageError) {
       logger.error('Unexpected error creating welcome message', messageError, {

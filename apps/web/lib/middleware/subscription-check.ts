@@ -3,6 +3,8 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
 import { getFeatureLimit } from '@/lib/feature-access-config';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getEarlyAccessEntitlement } from '@/lib/subscription/early-access';
 import type { SubscriptionPlan } from '@/lib/services/subscription/SubscriptionService';
 import { logger } from '@mintenance/shared';
 
@@ -20,6 +22,15 @@ export interface SubscriptionCheckResult {
   message?: string;
 }
 
+export interface PortfolioModeCheckResult {
+  allowed: boolean;
+  requiresSubscription: boolean;
+  subscriptionStatus: string;
+  earlyAccessEligible?: boolean;
+  reasonCode?: 'no_profile' | 'missing_subscription' | 'internal_error';
+  message?: string;
+}
+
 /**
  * Check if contractor has active subscription or valid trial
  */
@@ -28,6 +39,19 @@ export async function checkSubscriptionAccess(
   contractorId: string
 ): Promise<SubscriptionCheckResult> {
   try {
+    const earlyAccess = await getEarlyAccessEntitlement(contractorId);
+    if (earlyAccess.eligible && earlyAccess.role === 'contractor') {
+      return {
+        allowed: true,
+        requiresSubscription: false,
+        subscription: {
+          status: 'active',
+          planType: 'enterprise',
+        },
+        message: 'Early access unlocked: full contractor subscription features.',
+      };
+    }
+
     // Check if subscription is required
     const requiresSubscription = await TrialService.requiresSubscription(contractorId);
 
@@ -127,6 +151,154 @@ export async function requireSubscriptionForAction(
 }
 
 /**
+ * Check if a user can access Portfolio Mode (landlord/agent capabilities).
+ *
+ * Rules:
+ * - Admins are always allowed.
+ * - If PORTFOLIO_MODE_OPEN_BETA=true, all authenticated users are allowed.
+ * - Otherwise requires profiles.subscription_status to be "active" or "trial".
+ */
+export async function checkPortfolioModeAccess(userId: string): Promise<PortfolioModeCheckResult> {
+  try {
+    const { data: profile, error } = await serverSupabase
+      .from('profiles')
+      .select('id, role, subscription_status')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      logger.error('Error checking portfolio mode access', {
+        service: 'subscription-check',
+        userId,
+        error: error.message,
+      });
+
+      return {
+        allowed: false,
+        requiresSubscription: true,
+        subscriptionStatus: 'unknown',
+        reasonCode: 'internal_error',
+        message: 'Unable to verify subscription status for portfolio access.',
+      };
+    }
+
+    if (!profile) {
+      return {
+        allowed: false,
+        requiresSubscription: true,
+        subscriptionStatus: 'none',
+        reasonCode: 'no_profile',
+        message: 'Profile not found.',
+      };
+    }
+
+    if (profile.role === 'admin') {
+      return {
+        allowed: true,
+        requiresSubscription: false,
+        subscriptionStatus: String(profile.subscription_status || 'active'),
+        earlyAccessEligible: false,
+      };
+    }
+
+    const earlyAccess = await getEarlyAccessEntitlement(userId);
+    if (earlyAccess.eligible) {
+      return {
+        allowed: true,
+        requiresSubscription: false,
+        subscriptionStatus: 'early_access',
+        earlyAccessEligible: true,
+        message: 'Early access unlocked: full premium features.',
+      };
+    }
+
+    if (process.env.PORTFOLIO_MODE_OPEN_BETA === 'true') {
+      return {
+        allowed: true,
+        requiresSubscription: false,
+        subscriptionStatus: String(profile.subscription_status || 'beta'),
+        earlyAccessEligible: false,
+      };
+    }
+
+    const subscriptionStatus = String(profile.subscription_status || 'none').toLowerCase();
+    const hasPortfolioEntitlement = subscriptionStatus === 'active' || subscriptionStatus === 'trial';
+
+    if (hasPortfolioEntitlement) {
+      return {
+        allowed: true,
+        requiresSubscription: subscriptionStatus !== 'active',
+        subscriptionStatus,
+        earlyAccessEligible: false,
+      };
+    }
+
+    return {
+      allowed: false,
+      requiresSubscription: true,
+      subscriptionStatus,
+      earlyAccessEligible: false,
+      reasonCode: 'missing_subscription',
+      message: 'Portfolio mode requires an active plan or trial.',
+    };
+  } catch (err) {
+    logger.error('Unexpected error checking portfolio mode access', {
+      service: 'subscription-check',
+      userId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+
+    return {
+      allowed: false,
+      requiresSubscription: true,
+      subscriptionStatus: 'unknown',
+      earlyAccessEligible: false,
+      reasonCode: 'internal_error',
+      message: 'Unable to verify portfolio mode access.',
+    };
+  }
+}
+
+/**
+ * Middleware helper to block Portfolio Mode actions when the user lacks entitlement.
+ */
+export async function requirePortfolioModeSubscription(
+  _request: NextRequest
+): Promise<NextResponse | null> {
+  const user = await getCurrentUserFromCookies();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
+  const access = await checkPortfolioModeAccess(user.id);
+  if (access.allowed) {
+    return null;
+  }
+
+  logger.warn('Portfolio mode action blocked due to subscription requirement', {
+    service: 'subscription-check',
+    userId: user.id,
+    reasonCode: access.reasonCode,
+    subscriptionStatus: access.subscriptionStatus,
+  });
+
+  return NextResponse.json(
+    {
+      error: 'Portfolio subscription required',
+      message: access.message || 'Upgrade required to access portfolio mode.',
+      requiresSubscription: true,
+      feature: 'portfolio_mode',
+      subscriptionStatus: access.subscriptionStatus,
+    },
+    { status: 402 }
+  );
+}
+
+/**
  * Check if contractor can perform an action based on subscription limits
  */
 export async function checkSubscriptionLimits(
@@ -134,6 +306,11 @@ export async function checkSubscriptionLimits(
   action: 'post_job' | 'submit_bid' | 'view_analytics' | 'use_api'
 ): Promise<{ allowed: boolean; reason?: string }> {
   try {
+    const earlyAccess = await getEarlyAccessEntitlement(contractorId);
+    if (earlyAccess.eligible && earlyAccess.role === 'contractor') {
+      return { allowed: true };
+    }
+
     const features = await SubscriptionService.getSubscriptionFeatures(contractorId);
     const subscription = await SubscriptionService.getContractorSubscription(contractorId);
 
@@ -231,4 +408,3 @@ export async function checkSubscriptionLimits(
     return { allowed: true };
   }
 }
-

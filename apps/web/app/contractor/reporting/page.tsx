@@ -225,7 +225,7 @@ export default async function ContractorReportingPage2025() {
         dailyRevenue,
         revenueChange,
         jobsChange,
-        avgValueChange: previousRevenue > 0 ? ((averageJobValue - (previousRevenue / previousJobs)) / (previousRevenue / previousJobs)) * 100 : 0,
+        avgValueChange: previousRevenue > 0 && previousJobs > 0 ? ((averageJobValue - (previousRevenue / previousJobs)) / (previousRevenue / previousJobs)) * 100 : 0,
         satisfactionChange: 0, // Would need historical reviews data
       }}
     />
