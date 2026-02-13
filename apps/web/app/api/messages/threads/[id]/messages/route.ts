@@ -208,17 +208,17 @@ export async function POST(request: NextRequest, context: Params) {
     const message = mapMessageRow(inserted as unknown as SupabaseMessageRow);
 
     // Update message_thread last_message_at (if thread exists)
-    serverSupabase
-      .from('message_threads')
-      .update({ last_message_at: new Date().toISOString() })
-      .eq('job_id', jobId)
-      .then(() => {})
-      .catch((err: unknown) => {
-        logger.error('Failed to update thread last_message_at', err, {
-          service: 'messages',
-          jobId,
-        });
+    Promise.resolve(
+      serverSupabase
+        .from('message_threads')
+        .update({ last_message_at: new Date().toISOString() })
+        .eq('job_id', jobId)
+    ).catch((err: unknown) => {
+      logger.error('Failed to update thread last_message_at', err, {
+        service: 'messages',
+        jobId,
       });
+    });
 
     // Update job's updated_at timestamp
     Promise.resolve(
