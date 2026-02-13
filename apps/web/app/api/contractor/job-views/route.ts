@@ -54,23 +54,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Try to insert or update job view
+    // Schema: job_views columns: id, job_id, viewer_id, ip_address, user_agent, referrer, viewed_at
     const { data: existingView } = await serverSupabase
       .from('job_views')
-      .select('*')
+      .select('id, job_id, viewer_id, viewed_at')
       .eq('job_id', jobId)
-      .eq('contractor_id', user.id)
+      .eq('viewer_id', user.id)
       .single();
 
     if (existingView) {
-      // Update existing view
+      // Update existing view timestamp
       const { error: updateError } = await serverSupabase
         .from('job_views')
         .update({
-          last_viewed_at: new Date().toISOString(),
-          view_count: existingView.view_count + 1,
+          viewed_at: new Date().toISOString(),
         })
         .eq('job_id', jobId)
-        .eq('contractor_id', user.id);
+        .eq('viewer_id', user.id);
 
       if (updateError) {
         logger.error('Error updating job view', updateError);
@@ -82,10 +82,8 @@ export async function POST(request: NextRequest) {
         .from('job_views')
         .insert({
           job_id: jobId,
-          contractor_id: user.id,
+          viewer_id: user.id,
           viewed_at: new Date().toISOString(),
-          last_viewed_at: new Date().toISOString(),
-          view_count: 1,
         });
 
       if (insertError) {
@@ -105,14 +103,17 @@ export async function POST(request: NextRequest) {
           ? `${contractor.first_name} ${contractor.last_name}`
           : contractor?.email || 'A contractor');
 
+      // Create notification in notifications table
       const { error: notificationError } = await serverSupabase
-        .from('job_interaction_notifications')
+        .from('notifications')
         .insert({
-          job_id: jobId,
-          homeowner_id: job.homeowner_id,
-          contractor_id: user.id,
-          interaction_type: 'viewed',
+          user_id: job.homeowner_id,
+          type: 'job_viewed',
+          title: 'Job Viewed',
           message: `${contractorName} viewed your job: ${job.title}`,
+          read: false,
+          action_url: `/jobs/${jobId}`,
+          created_at: new Date().toISOString(),
         });
 
       if (notificationError) {
@@ -124,7 +125,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Job view tracked successfully',
-      viewCount: existingView ? existingView.view_count + 1 : 1
     });
 
   } catch (error) {
@@ -174,9 +174,9 @@ export async function GET(request: NextRequest) {
       // Get view info for specific job
       const { data, error } = await serverSupabase
         .from('job_views')
-        .select('*')
+        .select('id, job_id, viewer_id, viewed_at')
         .eq('job_id', jobId)
-        .eq('contractor_id', user.id)
+        .eq('viewer_id', user.id)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -187,12 +187,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ viewed: !!data, viewData: data });
     } else {
       // Get all viewed jobs for contractor
-      // First, get the job_views records
+      // Schema: job_views columns: id, job_id, viewer_id, viewed_at
       const { data: views, error: viewsError } = await serverSupabase
         .from('job_views')
-        .select('*')
-        .eq('contractor_id', user.id)
-        .order('last_viewed_at', { ascending: false });
+        .select('id, job_id, viewer_id, viewed_at')
+        .eq('viewer_id', user.id)
+        .order('viewed_at', { ascending: false });
 
       if (viewsError) {
         logger.error('Error fetching job views', viewsError, {
@@ -246,14 +246,54 @@ export async function GET(request: NextRequest) {
         throw new InternalServerError('Failed to fetch job details');
       }
 
-      // Combine views with job data
+      // Combine views with flattened job data (matching my-jobs response format)
+      interface HomeownerProfile {
+        id?: string;
+        first_name?: string;
+        last_name?: string;
+        profile_image_url?: string;
+      }
+      interface JobWithHomeowner {
+        id: string;
+        title: string;
+        description?: string;
+        budget: number;
+        status: string;
+        location?: string;
+        category?: string;
+        priority?: string;
+        created_at: string;
+        homeowner_id: string;
+        photos?: string[];
+        homeowner?: HomeownerProfile | HomeownerProfile[];
+      }
+
       const viewsWithJobs = views.map((view: Record<string, unknown>) => {
-        const job = jobs?.find((j: Record<string, unknown>) => j.id === view.job_id);
+        const job = jobs?.find((j: Record<string, unknown>) => j.id === view.job_id) as JobWithHomeowner | undefined;
+        if (!job) return null;
+        const hw = job.homeowner;
+        const homeowner = Array.isArray(hw) ? hw[0] : hw;
         return {
           ...view,
-          job: job || null,
+          job: {
+            id: job.id,
+            title: job.title,
+            description: job.description,
+            location: job.location,
+            category: job.category,
+            priority: job.priority || 'medium',
+            budget: job.budget,
+            status: job.status,
+            photos: job.photos || [],
+            created_at: job.created_at,
+            homeowner_id: job.homeowner_id,
+            homeowner_name: homeowner
+              ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Unknown'
+              : 'Unknown',
+            homeowner_avatar: homeowner?.profile_image_url,
+          },
         };
-      }).filter((view: Record<string, unknown>) => view.job !== null); // Filter out views where job was deleted
+      }).filter(Boolean);
 
       return NextResponse.json({ views: viewsWithJobs });
     }

@@ -50,9 +50,10 @@ async function getContractorMetrics(context: Params) {
       homeownerIdsResponse,
     ] = await Promise.all([
       // Completed jobs for this contractor
+      // Schema: jobs columns include scheduled_start_date (not scheduled_date), budget (not total_amount)
       serverSupabase
         .from('jobs')
-        .select('id, scheduled_date, completed_at, total_amount, created_at')
+        .select('id, scheduled_start_date, completed_at, budget, created_at')
         .eq('contractor_id', id)
         .eq('status', 'completed'),
 
@@ -96,10 +97,10 @@ async function getContractorMetrics(context: Params) {
     const acceptanceRate = totalBids > 0 ? Math.round((acceptedBids / totalBids) * 100) : 0;
 
     // Calculate on-time completion
-    const jobsWithScheduledDates = completedJobs.filter(job => job.scheduled_date);
+    const jobsWithScheduledDates = completedJobs.filter(job => job.scheduled_start_date);
     const onTimeJobs = jobsWithScheduledDates.filter(job => {
-      if (!job.scheduled_date || !job.completed_at) return false;
-      const scheduled = new Date(job.scheduled_date);
+      if (!job.scheduled_start_date || !job.completed_at) return false;
+      const scheduled = new Date(job.scheduled_start_date);
       const completed = new Date(job.completed_at);
       // Consider on-time if completed within 1 day of scheduled date
       return completed <= new Date(scheduled.getTime() + 24 * 60 * 60 * 1000);
@@ -121,10 +122,10 @@ async function getContractorMetrics(context: Params) {
       : 0;
 
     // Calculate average project value
-    const jobsWithAmounts = completedJobs.filter(job => job.total_amount && job.total_amount > 0);
+    const jobsWithAmounts = completedJobs.filter(job => job.budget && job.budget > 0);
     const avgProjectValue = jobsWithAmounts.length > 0
       ? Math.round(
-          jobsWithAmounts.reduce((sum, job) => sum + Number(job.total_amount || 0), 0) /
+          jobsWithAmounts.reduce((sum, job) => sum + Number(job.budget || 0), 0) /
           jobsWithAmounts.length
         )
       : 0;
@@ -149,7 +150,7 @@ async function getContractorMetrics(context: Params) {
     });
 
     // Calculate response time for each completed job
-    completedJobs.forEach((job: { id: string; scheduled_date: string | null; completed_at: string | null; total_amount: number | null; created_at: string }) => {
+    completedJobs.forEach((job: { id: string; scheduled_start_date: string | null; completed_at: string | null; budget: number | null; created_at: string }) => {
       const jobCreatedAt = new Date(job.created_at).getTime();
       const firstBidTime = firstBidMap.get(job.id)?.getTime();
       const firstMessageTime = firstMessageMap.get(job.id)?.getTime();
@@ -189,7 +190,7 @@ async function getContractorMetrics(context: Params) {
       winRate: acceptanceRate,
       totalBids,
       avgRating: 0, // Will be calculated from reviews if needed
-      earnings: jobsWithAmounts.reduce((sum, job) => sum + Number(job.total_amount || 0), 0),
+      earnings: jobsWithAmounts.reduce((sum, job) => sum + Number(job.budget || 0), 0),
       onTimeCompletion,
       repeatCustomers: repeatCustomersPercentage,
       avgProjectValue,
@@ -206,6 +207,6 @@ async function getContractorMetrics(context: Params) {
     return NextResponse.json({ metrics });
   } catch (err) {
     logger.error('Failed to load contractor metrics', err, { service: 'contractors' });
-    throw new InternalServerError('Internal server error');
+    return handleAPIError(err);
   }
 }

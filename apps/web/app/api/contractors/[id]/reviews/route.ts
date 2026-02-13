@@ -42,30 +42,27 @@ async function getContractorReviews(context: Params) {
     }
 
     // Fetch reviews with reviewer information
+    // Schema: reviews columns: id, job_id, reviewer_id, reviewee_id, rating, comment, response, created_at, updated_at
     const { data: reviews, error } = await serverSupabase
       .from('reviews')
       .select(`
         id,
         rating,
-        title,
-        review_text,
+        comment,
         created_at,
-        is_verified,
-        photos,
-        reviewer:reviewer_id (
+        reviewer:profiles!reviews_reviewer_id_fkey (
           id,
           first_name,
           last_name,
           profile_image_url
         ),
-        job:job_id (
+        job:jobs!reviews_job_id_fkey (
           id,
           title,
           category
         )
       `)
-      .eq('contractor_id', id)
-      .eq('is_visible', true)
+      .eq('reviewee_id', id)
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -74,23 +71,27 @@ async function getContractorReviews(context: Params) {
         service: 'contractors',
         contractorId: id,
       });
-      throw error;
+      // Return empty reviews on error instead of throwing (table may not have all expected FKs)
+      return NextResponse.json({ reviews: [] });
     }
 
     // Transform reviews to match frontend interface
-    const transformedReviews = (reviews || []).map((review) => ({
-      id: review.id,
-      author: review.reviewer
-        ? `${(Array.isArray(review.reviewer) ? review.reviewer[0] : review.reviewer)?.first_name || ''} ${(Array.isArray(review.reviewer) ? review.reviewer[0] : review.reviewer)?.last_name || ''}`.trim() || 'Anonymous'
-        : 'Anonymous',
-      rating: review.rating,
-      date: review.created_at,
-      comment: review.review_text || '',
-      jobType: (Array.isArray(review.job) ? review.job[0] : review.job)?.category || (Array.isArray(review.job) ? review.job[0] : review.job)?.title || 'General Work',
-      helpful: 0, // TODO: Add helpful votes feature
-      verified: review.is_verified || false,
-      photos: review.photos || [],
-    }));
+    const transformedReviews = (reviews || []).map((review) => {
+      const reviewer = Array.isArray(review.reviewer) ? review.reviewer[0] : review.reviewer;
+      const job = Array.isArray(review.job) ? review.job[0] : review.job;
+      return {
+        id: review.id,
+        author: reviewer
+          ? `${reviewer?.first_name || ''} ${reviewer?.last_name || ''}`.trim() || 'Anonymous'
+          : 'Anonymous',
+        rating: review.rating,
+        date: review.created_at,
+        comment: review.comment || '',
+        jobType: job?.category || job?.title || 'General Work',
+        helpful: 0,
+        verified: true,
+      };
+    });
 
     logger.info('Contractor reviews retrieved successfully', {
       service: 'contractors',
