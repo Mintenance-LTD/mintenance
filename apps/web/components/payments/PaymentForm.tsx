@@ -1,4 +1,5 @@
 import React, { ChangeEvent, FormEvent, useState } from 'react';
+import { Briefcase, CreditCard, Home, Loader2, Lock, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -239,7 +240,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
               marginBottom: '4px',
             }}
           >
-            💼 {jobTitle}
+            <Briefcase size={18} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'text-bottom' }} /> {jobTitle}
           </h3>
           <p
             style={{
@@ -311,7 +312,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
               marginBottom: theme.spacing.md,
             }}
           >
-            💳 Card Details
+            <CreditCard size={18} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'text-bottom' }} /> Card Details
           </h3>
 
           <div style={{ marginBottom: theme.spacing.md }}>
@@ -414,10 +415,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
               padding: 0,
             }}
           >
-            🏠 Billing Address (Optional)
-            <span style={{ fontSize: '12px' }}>
-              {showAdvanced ? '▼' : '▶'}
-            </span>
+            <Home size={16} style={{ marginRight: '6px' }} /> Billing Address (Optional)
+            {showAdvanced ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
 
           {showAdvanced && (
@@ -486,12 +485,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
           >
             {processing ? (
               <>
-                <span style={{ marginRight: theme.spacing.xs }}>⏳</span>
+                <Loader2 size={16} style={{ marginRight: '6px', animation: 'spin 1s linear infinite' }} />
                 Processing Payment...
               </>
             ) : (
               <>
-                <span style={{ marginRight: theme.spacing.xs }}>🔒</span>
+                <Lock size={16} style={{ marginRight: '6px' }} />
                 Pay {amountNum > 0 ? `£${amountNum.toFixed(2)}` : ''}
               </>
             )}
@@ -518,7 +517,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
             marginBottom: '4px',
           }}
         >
-          🔒 Secure Escrow Payment
+          <ShieldCheck size={16} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'text-bottom' }} /> Secure Escrow Payment
         </div>
         <div
           style={{

@@ -401,7 +401,7 @@ export function useSettingsState() {
 
   const handleAddPhoneNumber = (): void => {
     setActiveSection('profile');
-    toast('Please add your phone number in the Profile section first', { icon: 'ℹ️' });
+    toast('Please add your phone number in the Profile section first');
   };
 
   const handleUpdatePhoneNumber = (): void => {

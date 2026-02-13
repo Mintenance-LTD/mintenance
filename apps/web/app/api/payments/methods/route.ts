@@ -25,36 +25,57 @@ export async function GET(request: NextRequest) {
       throw new UnauthorizedError('Authentication required to view payment methods');
     }
 
-    // Get or create Stripe customer ID for this user
+    // Get user profile (stripe_customer_id column may not exist yet)
     const { data: userData, error: userError } = await serverSupabase
       .from('profiles')
-      .select('id, email, stripe_customer_id')
+      .select('id, email')
       .eq('id', user.id)
       .single();
 
     if (userError || !userData) {
-      throw new NotFoundError('User not found');
+      logger.error('Payment methods: profiles query failed', {
+        service: 'payments',
+        userId: user.id,
+        userEmail: user.email,
+        errorCode: userError?.code,
+        errorMessage: userError?.message,
+        errorHint: userError?.hint,
+        hasData: !!userData,
+      });
+      throw new NotFoundError('User');
     }
 
-    let stripeCustomerId = userData.stripe_customer_id;
+    // Try to get stripe_customer_id (column may not exist in DB schema)
+    let stripeCustomerId: string | null = null;
+    const { data: stripeData } = await serverSupabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', user.id)
+      .single();
+    if (stripeData) {
+      stripeCustomerId = (stripeData as Record<string, unknown>).stripe_customer_id as string | null;
+    }
 
-    // Create Stripe customer if doesn't exist
+    // If not in DB, search Stripe by email to avoid creating duplicates
+    if (!stripeCustomerId) {
+      const existing = await stripe.customers.list({ email: userData.email, limit: 1 });
+      stripeCustomerId = existing.data[0]?.id || null;
+    }
+
+    // Create Stripe customer if not found anywhere
     if (!stripeCustomerId) {
       const customer = await stripe.customers.create({
         email: userData.email,
-        metadata: {
-          userId: user.id,
-        },
+        metadata: { userId: user.id },
       });
-
       stripeCustomerId = customer.id;
-
-      // Save customer ID to database
-      await serverSupabase
-        .from('profiles')
-        .update({ stripe_customer_id: stripeCustomerId })
-        .eq('id', user.id);
     }
+
+    // Best-effort save to DB (column may not exist)
+    await serverSupabase
+      .from('profiles')
+      .update({ stripe_customer_id: stripeCustomerId })
+      .eq('id', user.id);
 
     // Get customer to find default payment method
     const customer = await stripe.customers.retrieve(stripeCustomerId);

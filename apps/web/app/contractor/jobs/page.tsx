@@ -13,6 +13,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { MotionArticle, MotionDiv } from '@/components/ui/MotionDiv';
 import { logger } from '@mintenance/shared';
+import { Zap, Eye, Star, PoundSterling, MapPin } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -281,10 +282,10 @@ export default function ContractorJobsPage2025() {
                 {/* Filter Tabs */}
                 <div className="flex items-center gap-2 overflow-x-auto">
                   {[
-                    { label: 'Active', value: 'active' as const, icon: '⚡' },
-                    { label: 'Viewed', value: 'viewed' as const, icon: '👁️' },
-                    { label: 'Saved', value: 'saved' as const, icon: '⭐' },
-                    { label: 'Bid Placed', value: 'bid' as const, icon: '💰' },
+                    { label: 'Active', value: 'active' as const, icon: <Zap size={16} /> },
+                    { label: 'Viewed', value: 'viewed' as const, icon: <Eye size={16} /> },
+                    { label: 'Saved', value: 'saved' as const, icon: <Star size={16} /> },
+                    { label: 'Bid Placed', value: 'bid' as const, icon: <PoundSterling size={16} /> },
                   ].map((tab) => (
                     <button
                       key={tab.value}
@@ -295,7 +296,7 @@ export default function ContractorJobsPage2025() {
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      <span>{tab.icon}</span>
+                      {tab.icon}
                       {tab.label}
                     </button>
                   ))}
@@ -396,8 +397,8 @@ export default function ContractorJobsPage2025() {
                             {job.priority.toUpperCase()}
                           </span>
                           {job.distance && (
-                            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg">
-                              📍 {job.distance.toFixed(1)} mi
+                            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-lg flex items-center gap-1">
+                              <MapPin size={12} /> {job.distance.toFixed(1)} mi
                             </span>
                           )}
                         </div>

@@ -59,14 +59,31 @@ export async function POST(request: NextRequest) {
 
     const { paymentMethodId } = validation.data;
 
-    // Get user's Stripe customer ID
-    const { data: userData, error: userError } = await serverSupabase
+    // Get user's Stripe customer ID (column may not exist in DB schema)
+    let stripeCustomerId: string | null = null;
+    const { data: stripeData } = await serverSupabase
       .from('profiles')
-      .select('id, email, stripe_customer_id')
+      .select('stripe_customer_id')
       .eq('id', user.id)
       .single();
+    if (stripeData) {
+      stripeCustomerId = (stripeData as Record<string, unknown>).stripe_customer_id as string | null;
+    }
 
-    if (userError || !userData || !userData.stripe_customer_id) {
+    // Fallback: search Stripe by email
+    if (!stripeCustomerId) {
+      const { data: profileData } = await serverSupabase
+        .from('profiles')
+        .select('email')
+        .eq('id', user.id)
+        .single();
+      if (profileData?.email) {
+        const existing = await stripe.customers.list({ email: profileData.email, limit: 1 });
+        stripeCustomerId = existing.data[0]?.id || null;
+      }
+    }
+
+    if (!stripeCustomerId) {
       return NextResponse.json(
         { error: 'User or Stripe customer not found' },
         { status: 404 }
@@ -75,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     // Verify the payment method belongs to this customer
     const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-    if (paymentMethod.customer !== userData.stripe_customer_id) {
+    if (paymentMethod.customer !== stripeCustomerId) {
       return NextResponse.json(
         { error: 'Payment method does not belong to this user' },
         { status: 403 }
@@ -83,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Set as default payment method
-    await stripe.customers.update(userData.stripe_customer_id, {
+    await stripe.customers.update(stripeCustomerId!, {
       invoice_settings: {
         default_payment_method: paymentMethodId,
       },

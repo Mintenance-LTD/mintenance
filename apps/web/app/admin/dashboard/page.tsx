@@ -8,6 +8,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
 import { logger } from '@mintenance/shared';
+import { Users, Hammer, ClipboardList, CreditCard, PoundSterling, Search, Building2, Mail } from 'lucide-react';
 
 // Dynamic imports for Tremor charts - lazy load heavy charting library
 const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
@@ -72,12 +73,12 @@ export default function AdminDashboardPage2025() {
   }, []);
 
   const metrics = data ? [
-    { label: 'Total Users', value: data.totalUsers.toLocaleString(), icon: '👥' },
-    { label: 'Contractors', value: data.totalContractors.toLocaleString(), icon: '🔨' },
-    { label: 'Total Jobs', value: data.totalJobs.toLocaleString(), icon: '📋' },
-    { label: 'Active Subscriptions', value: data.activeSubscriptions.toLocaleString(), icon: '💳' },
-    { label: 'Monthly Revenue', value: `£${data.mrr.toLocaleString()}`, icon: '💰' },
-    { label: 'Pending Verifications', value: data.pendingVerifications.toLocaleString(), icon: '🔍' },
+    { label: 'Total Users', value: data.totalUsers.toLocaleString(), icon: <Users size={24} /> },
+    { label: 'Contractors', value: data.totalContractors.toLocaleString(), icon: <Hammer size={24} /> },
+    { label: 'Total Jobs', value: data.totalJobs.toLocaleString(), icon: <ClipboardList size={24} /> },
+    { label: 'Active Subscriptions', value: data.activeSubscriptions.toLocaleString(), icon: <CreditCard size={24} /> },
+    { label: 'Monthly Revenue', value: `£${data.mrr.toLocaleString()}`, icon: <PoundSterling size={24} /> },
+    { label: 'Pending Verifications', value: data.pendingVerifications.toLocaleString(), icon: <Search size={24} /> },
   ] : [];
 
   return (
@@ -180,8 +181,8 @@ export default function AdminDashboardPage2025() {
                     variants={staggerItem}
                   >
                     <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                        <span className="text-2xl" aria-hidden="true">{metric.icon}</span>
+                      <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
+                        {metric.icon}
                       </div>
                     </div>
                     <div className="text-3xl font-bold text-gray-900 mb-1">{metric.value}</div>
@@ -259,17 +260,17 @@ export default function AdminDashboardPage2025() {
             <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Manage Users', icon: '👥', href: '/admin/users' },
-                { label: 'View Revenue', icon: '💰', href: '/admin/revenue' },
-                { label: 'Building Assessments', icon: '🏢', href: '/admin/building-assessments' },
-                { label: 'Communications', icon: '📧', href: '/admin/communications' },
+                { label: 'Manage Users', icon: <Users size={32} />, href: '/admin/users' },
+                { label: 'View Revenue', icon: <PoundSterling size={32} />, href: '/admin/revenue' },
+                { label: 'Building Assessments', icon: <Building2 size={32} />, href: '/admin/building-assessments' },
+                { label: 'Communications', icon: <Mail size={32} />, href: '/admin/communications' },
               ].map((action) => (
                 <button
                   key={action.label}
                   onClick={() => window.location.href = action.href}
                   className="p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-200 hover:shadow-lg transition-all group"
                 >
-                  <div className="text-3xl mb-2" aria-hidden="true">{action.icon}</div>
+                  <div className="text-purple-600 mb-2 flex items-center justify-center" aria-hidden="true">{action.icon}</div>
                   <div className="text-sm font-semibold text-gray-900 group-hover:text-purple-600">
                     {action.label}
                   </div>

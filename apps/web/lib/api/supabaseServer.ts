@@ -1,10 +1,14 @@
-import { createClient, SupabaseClientOptions } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, SupabaseClientOptions } from '@supabase/supabase-js';
 
-// Placeholder fallbacks allow module import during `next build` page data
-// collection without throwing. The Supabase SDK requires a valid-looking URL.
-// At runtime on Vercel the real env vars are injected.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
+// Read env vars lazily at client creation time (not module load time).
+// Module-level constants can capture stale/placeholder values during
+// Vercel serverless cold starts or Next.js build-time page collection.
+function getSupabaseUrl(): string {
+  return process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+}
+function getSupabaseServiceKey(): string {
+  return process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
+}
 
 /**
  * Supabase client configuration optimized for server-side usage
@@ -51,18 +55,41 @@ const clientOptions: SupabaseClientOptions<'public'> = {
 };
 
 /**
- * SECURITY WARNING: This client uses SUPABASE_SERVICE_ROLE_KEY and bypasses ALL RLS policies.
- * Only use for operations that genuinely require elevated privileges (webhooks, admin tasks,
- * background jobs). For user-scoped queries, use createUserScopedClient() instead.
+ * Lazily-initialized service-role Supabase client singleton.
+ * Created on first property access (not module load) so env vars
+ * are guaranteed to be available on Vercel serverless cold starts.
+ *
+ * SECURITY WARNING: Bypasses ALL RLS policies.
+ * Only use for operations that genuinely require elevated privileges.
  */
-export const serverSupabase = createClient(supabaseUrl, supabaseServiceKey, clientOptions);
+let _serverSupabase: SupabaseClient | null = null;
+
+function getServerSupabaseInstance(): SupabaseClient {
+  if (!_serverSupabase) {
+    _serverSupabase = createClient(getSupabaseUrl(), getSupabaseServiceKey(), clientOptions);
+  }
+  return _serverSupabase;
+}
+
+// Proxy preserves backward compatibility: callers use `serverSupabase.from(...)`
+// as before, but the underlying client is created lazily on first access.
+export const serverSupabase: SupabaseClient = new Proxy({} as SupabaseClient, {
+  get(_, prop) {
+    const client = getServerSupabaseInstance();
+    const value = (client as unknown as Record<string | symbol, unknown>)[prop];
+    if (typeof value === 'function') {
+      return (value as Function).bind(client);
+    }
+    return value;
+  },
+});
 
 /**
  * Create a new service-role client instance for isolated operations.
  * SECURITY WARNING: Bypasses ALL RLS — prefer createUserScopedClient() for user requests.
  */
 export function createServerSupabaseClient() {
-  return createClient(supabaseUrl, supabaseServiceKey, clientOptions as unknown as Parameters<typeof createClient>[2]);
+  return createClient(getSupabaseUrl(), getSupabaseServiceKey(), clientOptions as unknown as Parameters<typeof createClient>[2]);
 }
 
 /**
@@ -74,7 +101,7 @@ export function createUserScopedClient(userJwt: string) {
   if (!anonKey) {
     throw new Error('[Supabase] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY for user-scoped client');
   }
-  return createClient(supabaseUrl, anonKey, {
+  return createClient(getSupabaseUrl(), anonKey, {
     ...clientOptions as unknown as Parameters<typeof createClient>[2],
     global: {
       ...clientOptions.global,

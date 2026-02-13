@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import type { MessageThread } from '@mintenance/types';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
@@ -8,50 +7,55 @@ import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors
 import { rateLimiter } from '@/lib/rate-limiter';
 import {
   buildThreadParticipants,
-  mapMessageRow,
+  normalizeMessageType,
   SupabaseJobRow,
-  SupabaseMessageRow,
   toTimestamp,
 } from '@/app/api/messages/utils';
-
-// Type for message rows with nested job data from join query
-interface MessageJobRow {
-  job_id: string;
-  jobs: SupabaseJobRow;
-}
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
   cursor: z.string().optional(),
 });
 
-interface ThreadWithActivity extends MessageThread {
+interface LastMessageInfo {
+  content: string;
+  messageText: string;
+  messageType: string;
+  createdAt: string;
+}
+
+interface ThreadWithActivity {
+  jobId: string;
+  jobTitle: string;
+  participants: Array<{ id: string; name: string; role: string }>;
+  unreadCount: number;
+  lastMessage?: LastMessageInfo;
   lastActivity: number;
 }
 
 export async function GET(request: NextRequest) {
   try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+    // Rate limiting check
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+      windowMs: 60000,
+      maxRequests: 30
+    });
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(30),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+          }
         }
-      }
-    );
-  }
+      );
+    }
 
     const user = await getCurrentUserFromCookies();
     if (!user) {
@@ -81,7 +85,7 @@ export async function GET(request: NextRequest) {
 
     const fetchLimit = Math.min(limit * 3, 150);
 
-    // First, get jobs where user is homeowner or contractor
+    // Get jobs where user is homeowner or contractor
     const { data: jobsData, error: jobsError } = await serverSupabase
       .from('jobs')
       .select(`
@@ -91,116 +95,85 @@ export async function GET(request: NextRequest) {
         contractor_id,
         created_at,
         updated_at,
-        homeowner:profiles!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url),
-        contractor:profiles!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url)
+        homeowner:profiles!homeowner_id(id, first_name, last_name, role, email, company_name, profile_image_url),
+        contractor:profiles!contractor_id(id, first_name, last_name, role, email, company_name, profile_image_url)
       `)
       .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
       .order('updated_at', { ascending: false })
       .limit(fetchLimit);
-    
-    // Also get jobs where user has sent or received messages (in case job association isn't perfect)
-    const { data: messageJobsData } = await serverSupabase
-      .from('messages')
-      .select('job_id, jobs!inner(id, title, homeowner_id, contractor_id, created_at, updated_at, homeowner:profiles!jobs_homeowner_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url), contractor:profiles!jobs_contractor_id_fkey(id, first_name, last_name, role, email, company_name, profile_image_url))')
-      .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .limit(50);
-    
-    // Combine and deduplicate jobs
-    const allJobs = new Map<string, SupabaseJobRow>();
-    
-    // Add jobs from direct query
-    if (jobsData) {
-      for (const job of jobsData as SupabaseJobRow[]) {
-        allJobs.set(job.id, job);
-      }
-    }
-    
-    // Add jobs from messages query
-    if (messageJobsData) {
-      for (const msgRow of messageJobsData as unknown as MessageJobRow[]) {
-        const job = msgRow.jobs;
-        if (job && !allJobs.has(job.id)) {
-          allJobs.set(job.id, job);
-        }
-      }
-    }
-    
-    const combinedJobsData = Array.from(allJobs.values());
 
     if (jobsError) {
-      logger.error('Failed to load message threads - jobs query failed', jobsError, { 
+      logger.error('Failed to load message threads - jobs query failed', jobsError, {
         service: 'messages',
         userId: user.id
       });
-      // Don't fail completely - try to continue with message-based jobs
     }
 
-    const jobRows = (combinedJobsData ?? []) as SupabaseJobRow[];
+    const jobRows = (jobsData ?? []) as SupabaseJobRow[];
     if (jobRows.length === 0) {
-      logger.info('No jobs found for user', {
-        service: 'messages',
-        userId: user.id,
-        userRole: user.role,
-        directJobsCount: jobsData?.length || 0,
-        messageJobsCount: messageJobsData?.length || 0,
-      });
       return NextResponse.json({ threads: [], nextCursor: undefined, limit });
     }
 
     const jobIds = jobRows.map((job) => job.id);
 
-    const lastMessages = new Map<string, ReturnType<typeof mapMessageRow>>();
-    if (jobIds.length > 0) {
-      const messageLimit = Math.min(Math.max(jobIds.length * 5, limit), 500);
-      
-      // Fetch messages using 'message_text' column (schema uses 'message_text')
+    // Get message_threads for these jobs to find thread IDs
+    const { data: messageThreadsData } = await serverSupabase
+      .from('message_threads')
+      .select('id, job_id, last_message_at')
+      .in('job_id', jobIds);
+
+    const threadToJob = new Map<string, string>();
+    const jobToThread = new Map<string, string>();
+    for (const t of messageThreadsData ?? []) {
+      threadToJob.set(t.id, t.job_id);
+      jobToThread.set(t.job_id, t.id);
+    }
+
+    const threadIds = Array.from(threadToJob.keys());
+
+    // Fetch last messages per thread using actual schema columns
+    const lastMessages = new Map<string, LastMessageInfo>();
+
+    if (threadIds.length > 0) {
+      const messageLimit = Math.min(Math.max(threadIds.length * 5, limit), 500);
+
       const { data: messageData, error: messageError } = await serverSupabase
         .from('messages')
-        .select(`
-          id,
-          job_id,
-          sender_id,
-          receiver_id,
-          message_text,
-          message_type,
-          attachment_url,
-          read,
-          created_at,
-          sender:profiles!messages_sender_id_fkey(first_name, last_name, role, email, company_name)
-        `)
-        .in('job_id', jobIds)
+        .select('id, thread_id, sender_id, content, message_type, created_at')
+        .in('thread_id', threadIds)
         .order('created_at', { ascending: false })
         .limit(messageLimit);
 
       if (messageError) {
-        logger.error('Failed to load message threads - messages query failed', messageError, {
+        logger.error('Failed to load last messages', messageError, {
           service: 'messages',
           userId: user.id,
-          jobCount: jobIds.length,
-          errorMessage: messageError.message,
+          threadCount: threadIds.length,
         });
-        // Don't fail the entire request - just continue without messages
-        // messageData will be null/undefined if there's an error
       }
 
       if (messageData) {
-        const messageRows = (messageData ?? []) as SupabaseMessageRow[];
-        for (const row of messageRows) {
-          if (!lastMessages.has(row.job_id)) {
-            lastMessages.set(row.job_id, mapMessageRow(row));
+        for (const row of messageData as { id: string; thread_id: string; sender_id: string; content: string; message_type: string | null; created_at: string }[]) {
+          const jobId = threadToJob.get(row.thread_id);
+          if (jobId && !lastMessages.has(jobId)) {
+            lastMessages.set(jobId, {
+              content: row.content || '',
+              messageText: row.content || '',
+              messageType: normalizeMessageType(row.message_type),
+              createdAt: row.created_at,
+            });
           }
         }
       }
     }
 
+    // Calculate unread counts using read_by array (user not in read_by = unread)
     const unreadCounts = new Map<string, number>();
-    if (jobIds.length > 0) {
+    if (threadIds.length > 0) {
       const { data: unreadData, error: unreadError } = await serverSupabase
         .from('messages')
-        .select('id, job_id')
-        .eq('receiver_id', user.id)
-        .eq('read', false)
-        .in('job_id', jobIds);
+        .select('id, thread_id, sender_id, read_by')
+        .in('thread_id', threadIds);
 
       if (unreadError) {
         logger.warn('Failed to load unread counts', {
@@ -209,41 +182,38 @@ export async function GET(request: NextRequest) {
           error: unreadError.message
         });
       } else {
-        for (const row of (unreadData ?? []) as { id: string; job_id: string }[]) {
-          unreadCounts.set(row.job_id, (unreadCounts.get(row.job_id) ?? 0) + 1);
+        for (const row of (unreadData ?? []) as { id: string; thread_id: string; sender_id: string; read_by: string[] | null }[]) {
+          // Only count messages not sent by current user and not read by them
+          if (row.sender_id !== user.id) {
+            const readBy = Array.isArray(row.read_by) ? row.read_by : [];
+            if (!readBy.includes(user.id)) {
+              const jobId = threadToJob.get(row.thread_id);
+              if (jobId) {
+                unreadCounts.set(jobId, (unreadCounts.get(jobId) ?? 0) + 1);
+              }
+            }
+          }
         }
       }
     }
 
     const threads: ThreadWithActivity[] = jobRows.map((job) => {
       const lastMessage = lastMessages.get(job.id);
+      const threadData = messageThreadsData?.find(t => t.job_id === job.id);
       const lastActivity = lastMessage
         ? toTimestamp(lastMessage.createdAt)
-        : job.updated_at
-          ? toTimestamp(job.updated_at)
-          : toTimestamp(job.created_at);
-
-      // Log homeowner data for debugging
-      if (process.env.NODE_ENV === 'development') {
-        logger.info('Building thread participants', {
-          service: 'messages',
-          jobId: job.id,
-          homeownerId: job.homeowner_id,
-          homeownerData: job.homeowner ? {
-            hasData: true,
-            firstName: job.homeowner.first_name,
-            lastName: job.homeowner.last_name,
-            email: job.homeowner.email,
-          } : { hasData: false },
-        });
-      }
+        : threadData?.last_message_at
+          ? toTimestamp(threadData.last_message_at)
+          : job.updated_at
+            ? toTimestamp(job.updated_at)
+            : toTimestamp(job.created_at);
 
       return {
         jobId: job.id,
         jobTitle: job.title ?? 'Untitled Job',
         participants: buildThreadParticipants(job),
         unreadCount: unreadCounts.get(job.id) ?? 0,
-        lastMessage,
+        lastMessage: lastMessage ?? undefined,
         lastActivity,
       };
     });
@@ -268,7 +238,6 @@ export async function GET(request: NextRequest) {
       jobsWithMessages: lastMessages.size,
       threadCount: limitedThreads.length,
       hasMore,
-      jobIds: jobRows.map(j => j.id).slice(0, 5), // Log first 5 job IDs for debugging
     });
 
     return NextResponse.json({

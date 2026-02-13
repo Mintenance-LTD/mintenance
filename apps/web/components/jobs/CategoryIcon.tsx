@@ -1,4 +1,20 @@
 import React from 'react';
+import {
+  Wrench,
+  Droplets,
+  Zap,
+  Paintbrush,
+  Hammer,
+  Sparkles,
+  Sprout,
+  Home,
+  Flame,
+  Ruler,
+  Snowflake,
+  TreePine,
+  Blocks,
+  Building2,
+} from 'lucide-react';
 
 interface CategoryIconProps {
   category: string;
@@ -6,23 +22,25 @@ interface CategoryIconProps {
   showLabel?: boolean;
 }
 
+const iconSizeMap = { sm: 16, md: 24, lg: 32 };
+
 export function CategoryIcon({ category, size = 'md', showLabel = false }: CategoryIconProps) {
   const getCategoryConfig = (category: string) => {
-    const configs: Record<string, { icon: string; color: string; label: string }> = {
-      handyman: { icon: '🔧', color: 'bg-blue-100 text-blue-700', label: 'Handyman' },
-      plumbing: { icon: '🚰', color: 'bg-teal-100 text-teal-700', label: 'Plumbing' },
-      electrical: { icon: '⚡', color: 'bg-amber-100 text-amber-700', label: 'Electrical' },
-      painting: { icon: '🎨', color: 'bg-purple-100 text-purple-700', label: 'Painting' },
-      carpentry: { icon: '🔨', color: 'bg-emerald-100 text-emerald-700', label: 'Carpentry' },
-      cleaning: { icon: '🧹', color: 'bg-emerald-100 text-emerald-700', label: 'Cleaning' },
-      gardening: { icon: '🌱', color: 'bg-green-100 text-green-700', label: 'Gardening' },
-      roofing: { icon: '🏠', color: 'bg-rose-100 text-rose-700', label: 'Roofing' },
-      heating: { icon: '🔥', color: 'bg-red-100 text-red-700', label: 'Heating & Gas' },
-      flooring: { icon: '📐', color: 'bg-indigo-100 text-indigo-700', label: 'Flooring' },
-      hvac: { icon: '❄️', color: 'bg-cyan-100 text-cyan-700', label: 'HVAC' },
-      landscaping: { icon: '🌳', color: 'bg-lime-100 text-lime-700', label: 'Landscaping' },
-      masonry: { icon: '🧱', color: 'bg-stone-100 text-stone-700', label: 'Masonry' },
-      general: { icon: '🏗️', color: 'bg-gray-100 text-gray-700', label: 'General' },
+    const configs: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
+      handyman: { icon: <Wrench size={iconSizeMap[size]} />, color: 'bg-blue-100 text-blue-700', label: 'Handyman' },
+      plumbing: { icon: <Droplets size={iconSizeMap[size]} />, color: 'bg-teal-100 text-teal-700', label: 'Plumbing' },
+      electrical: { icon: <Zap size={iconSizeMap[size]} />, color: 'bg-amber-100 text-amber-700', label: 'Electrical' },
+      painting: { icon: <Paintbrush size={iconSizeMap[size]} />, color: 'bg-purple-100 text-purple-700', label: 'Painting' },
+      carpentry: { icon: <Hammer size={iconSizeMap[size]} />, color: 'bg-emerald-100 text-emerald-700', label: 'Carpentry' },
+      cleaning: { icon: <Sparkles size={iconSizeMap[size]} />, color: 'bg-emerald-100 text-emerald-700', label: 'Cleaning' },
+      gardening: { icon: <Sprout size={iconSizeMap[size]} />, color: 'bg-green-100 text-green-700', label: 'Gardening' },
+      roofing: { icon: <Home size={iconSizeMap[size]} />, color: 'bg-rose-100 text-rose-700', label: 'Roofing' },
+      heating: { icon: <Flame size={iconSizeMap[size]} />, color: 'bg-red-100 text-red-700', label: 'Heating & Gas' },
+      flooring: { icon: <Ruler size={iconSizeMap[size]} />, color: 'bg-indigo-100 text-indigo-700', label: 'Flooring' },
+      hvac: { icon: <Snowflake size={iconSizeMap[size]} />, color: 'bg-cyan-100 text-cyan-700', label: 'HVAC' },
+      landscaping: { icon: <TreePine size={iconSizeMap[size]} />, color: 'bg-lime-100 text-lime-700', label: 'Landscaping' },
+      masonry: { icon: <Blocks size={iconSizeMap[size]} />, color: 'bg-stone-100 text-stone-700', label: 'Masonry' },
+      general: { icon: <Building2 size={iconSizeMap[size]} />, color: 'bg-gray-100 text-gray-700', label: 'General' },
     };
 
     const normalizedCategory = category.toLowerCase().replace(/\s+/g, '_');
@@ -38,17 +56,14 @@ export function CategoryIcon({ category, size = 'md', showLabel = false }: Categ
   const sizeClasses = {
     sm: {
       container: 'w-8 h-8',
-      icon: 'text-lg',
       label: 'text-xs',
     },
     md: {
       container: 'w-12 h-12',
-      icon: 'text-2xl',
       label: 'text-sm',
     },
     lg: {
       container: 'w-16 h-16',
-      icon: 'text-3xl',
       label: 'text-base',
     },
   };
@@ -60,7 +75,7 @@ export function CategoryIcon({ category, size = 'md', showLabel = false }: Categ
         role="img"
         aria-label={config.label}
       >
-        <span className={sizeClasses[size].icon} aria-hidden="true">
+        <span aria-hidden="true">
           {config.icon}
         </span>
       </div>

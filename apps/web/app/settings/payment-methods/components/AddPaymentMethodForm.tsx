@@ -8,13 +8,9 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
-import { theme } from '@/lib/theme';
-import { Button } from '@/components/ui/Button';
-import { Icon } from '@/components/ui/Icon';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Check, Loader2 } from 'lucide-react';
 
 // Initialize Stripe promise
 let stripePromise: ReturnType<typeof loadStripe> | null = null;
@@ -118,39 +114,28 @@ function PaymentForm({ onSuccess, onCancel }: AddPaymentMethodFormProps) {
     style: {
       base: {
         fontSize: '16px',
-        color: theme.colors.textPrimary,
+        color: '#111827',
         fontFamily: 'Inter, system-ui, sans-serif',
         '::placeholder': {
-          color: theme.colors.textTertiary,
+          color: '#9CA3AF',
         },
       },
       invalid: {
-        color: theme.colors.error,
-        iconColor: theme.colors.error,
+        color: '#DC2626',
+        iconColor: '#DC2626',
       },
     },
     hidePostalCode: false,
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {/* Card Element */}
-      <div style={{
-        padding: theme.spacing[4],
-        border: `1px solid ${theme.colors.border}`,
-        borderRadius: theme.borderRadius.md,
-        backgroundColor: theme.colors.surface,
-      }}>
-        <label style={{
-          display: 'block',
-          marginBottom: theme.spacing[2],
-          fontSize: theme.typography.fontSize.sm,
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: theme.colors.textPrimary,
-        }}>
+      <div className="p-4 border border-gray-200 rounded-lg bg-white">
+        <label className="block mb-2 text-sm font-semibold text-gray-900">
           Card Information
         </label>
-        <div style={{ minHeight: '40px' }}>
+        <div className="min-h-[40px]">
           <CardElement options={cardElementOptions} />
         </div>
       </div>
@@ -169,65 +154,43 @@ function PaymentForm({ onSuccess, onCancel }: AddPaymentMethodFormProps) {
 
       {/* Error Message */}
       {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-red-700 font-medium text-sm">Error</p>
+            <p className="text-red-600 text-sm mt-0.5">{error}</p>
+          </div>
+        </div>
       )}
 
       {/* Buttons */}
-      <div style={{
-        display: 'flex',
-        gap: theme.spacing[3],
-        justifyContent: 'flex-end',
-        marginTop: theme.spacing[2],
-      }}>
-        <Button
+      <div className="flex gap-3 justify-end mt-2">
+        <button
           type="button"
-          variant="outline"
           onClick={onCancel}
           disabled={loading}
+          className="px-5 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
         >
           Cancel
-        </Button>
-        <Button
+        </button>
+        <button
           type="submit"
-          variant="primary"
           disabled={loading || !stripe}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-          }}
+          className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
         >
           {loading ? (
             <>
-              <div style={{
-                width: '16px',
-                height: '16px',
-                border: `2px solid ${theme.colors.surface}`,
-                borderTop: `2px solid transparent`,
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-              }} />
+              <Loader2 className="w-4 h-4 animate-spin" />
               Adding...
             </>
           ) : (
             <>
-              <Icon name="check" size={16} />
+              <Check className="w-4 h-4" />
               Add Payment Method
             </>
           )}
-        </Button>
+        </button>
       </div>
-
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </form>
   );
 }
@@ -246,11 +209,7 @@ export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
 
   if (!mounted) {
     return (
-      <div style={{
-        padding: theme.spacing[4],
-        textAlign: 'center',
-        color: theme.colors.textSecondary,
-      }}>
+      <div className="p-4 text-center text-gray-500">
         Loading Stripe...
       </div>
     );
@@ -262,4 +221,3 @@ export function AddPaymentMethodForm(props: AddPaymentMethodFormProps) {
     </Elements>
   );
 }
-

@@ -308,6 +308,38 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* Homeowner Plan Snapshot */}
+      <section className="py-16 bg-white border-y border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="max-w-4xl mx-auto rounded-2xl border border-teal-100 bg-teal-50/60 p-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 text-center">
+              Homeowner Plan Snapshot
+            </h2>
+            <p className="text-gray-700 text-center mb-6">
+              Free profile includes unlimited job posts, up to 5 bids per job, and up to 3 saved properties.
+              Premium unlocks unlimited properties and Portfolio Mode for landlord/agent workflows.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+              <div className="rounded-xl bg-white p-4 border border-gray-100">
+                <p className="text-2xl font-bold text-teal-600">Unlimited</p>
+                <p className="text-sm text-gray-600">Job posts</p>
+              </div>
+              <div className="rounded-xl bg-white p-4 border border-gray-100">
+                <p className="text-2xl font-bold text-teal-600">5</p>
+                <p className="text-sm text-gray-600">Bids per job (free)</p>
+              </div>
+              <div className="rounded-xl bg-white p-4 border border-gray-100">
+                <p className="text-2xl font-bold text-teal-600">3</p>
+                <p className="text-sm text-gray-600">Saved properties (free)</p>
+              </div>
+            </div>
+            <p className="mt-5 text-sm text-gray-600 text-center">
+              Launch offer: first 30 homeowners get full premium features.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Trust & Safety */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4">

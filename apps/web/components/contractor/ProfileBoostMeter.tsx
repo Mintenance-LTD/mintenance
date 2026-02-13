@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { TrendingUp, Award, Shield } from 'lucide-react';
+import { TrendingUp, Award, Shield, Star, Gem, CheckCircle, Circle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export type ProfileBoostTier = 'standard' | 'verified' | 'premium' | 'elite';
@@ -21,7 +21,7 @@ const TIER_CONFIG = {
     color: 'from-purple-500 to-pink-500',
     bgColor: 'bg-gradient-to-r from-purple-100 to-pink-100',
     textColor: 'text-purple-700',
-    icon: '⭐',
+    icon: <Star size={14} className="inline" />,
     minScore: 80,
   },
   premium: {
@@ -29,7 +29,7 @@ const TIER_CONFIG = {
     color: 'from-blue-500 to-cyan-500',
     bgColor: 'bg-gradient-to-r from-blue-100 to-cyan-100',
     textColor: 'text-blue-700',
-    icon: '💎',
+    icon: <Gem size={14} className="inline" />,
     minScore: 60,
   },
   verified: {
@@ -37,7 +37,7 @@ const TIER_CONFIG = {
     color: 'from-emerald-500 to-teal-500',
     bgColor: 'bg-gradient-to-r from-emerald-100 to-teal-100',
     textColor: 'text-emerald-700',
-    icon: '✓',
+    icon: <CheckCircle size={14} className="inline" />,
     minScore: 40,
   },
   standard: {
@@ -45,7 +45,7 @@ const TIER_CONFIG = {
     color: 'from-gray-400 to-gray-500',
     bgColor: 'bg-gray-100',
     textColor: 'text-gray-700',
-    icon: '○',
+    icon: <Circle size={14} className="inline" />,
     minScore: 0,
   },
 };

@@ -116,7 +116,7 @@ export class AIAnalysisService {
       if (result.defectsFound > 0) {
         toast(
           `${result.defectsFound} potential issue${result.defectsFound !== 1 ? 's' : ''} detected`,
-          { icon: '\u26A0\uFE0F' }
+          { icon: '!' }
         );
       } else {
         toast.success('Building survey completed - no major issues found');

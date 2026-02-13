@@ -5,6 +5,7 @@ import { fadeIn, scaleIn, staggerContainer, staggerItem } from '@/lib/animations
 import confetti from 'canvas-confetti';
 import Link from 'next/link';
 import { MotionButton, MotionDiv, MotionP } from '@/components/ui/MotionDiv';
+import { Mail } from 'lucide-react';
 
 interface PaymentSuccess2025Props {
   amount: number;
@@ -244,8 +245,8 @@ export function PaymentSuccess2025(props: PaymentSuccess2025Props) {
         </MotionDiv>
 
         {/* Email Notification */}
-        <MotionP variants={staggerItem} className="text-center text-gray-600 mt-6 text-sm">
-          📧 A confirmation email has been sent to your registered email address
+        <MotionP variants={staggerItem} className="text-center text-gray-600 mt-6 text-sm flex items-center justify-center gap-2">
+          <Mail size={16} /> A confirmation email has been sent to your registered email address
         </MotionP>
       </MotionDiv>
     </div>

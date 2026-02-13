@@ -1,4 +1,16 @@
 import React, { useState } from 'react';
+import {
+  Zap,
+  Target,
+  AlertTriangle,
+  Lightbulb,
+  BarChart3,
+  Flame,
+  TrendingUp,
+  ClipboardList,
+  Brain,
+  X
+} from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -32,13 +44,13 @@ export const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({
     );
   }
 
-  const getInsightIcon = (type: PerformanceInsight['type']) => {
+  const getInsightIcon = (type: PerformanceInsight['type']): React.ReactNode => {
     switch (type) {
-      case 'strength': return '💪';
-      case 'opportunity': return '🎯';
-      case 'warning': return '⚠️';
-      case 'recommendation': return '💡';
-      default: return '📊';
+      case 'strength': return <Zap size={16} />;
+      case 'opportunity': return <Target size={16} />;
+      case 'warning': return <AlertTriangle size={16} />;
+      case 'recommendation': return <Lightbulb size={16} />;
+      default: return <BarChart3 size={16} />;
     }
   };
 
@@ -61,12 +73,12 @@ export const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({
     }
   };
 
-  const getImpactIcon = (impact: PerformanceInsight['impact']) => {
+  const getImpactIcon = (impact: PerformanceInsight['impact']): React.ReactNode => {
     switch (impact) {
-      case 'high': return '🔥';
-      case 'medium': return '📈';
-      case 'low': return '📊';
-      default: return '📋';
+      case 'high': return <Flame size={16} />;
+      case 'medium': return <TrendingUp size={16} />;
+      case 'low': return <BarChart3 size={16} />;
+      default: return <ClipboardList size={16} />;
     }
   };
 
@@ -101,9 +113,13 @@ export const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({
             fontSize: theme.typography.fontSize.xl,
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text,
-            marginBottom: theme.spacing.sm
+            marginBottom: theme.spacing.sm,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.sm
           }}>
-            🧠 Performance Insights
+            <Brain size={24} /> Performance Insights
           </h2>
           <p style={{
             fontSize: theme.typography.fontSize.sm,
@@ -171,9 +187,11 @@ export const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({
           }}>
             <div style={{
               fontSize: theme.typography.fontSize.lg,
-              marginBottom: theme.spacing.sm
+              marginBottom: theme.spacing.sm,
+              display: 'flex',
+              justifyContent: 'center'
             }}>
-              🎯
+              <Target size={32} />
             </div>
             <div>
               {filterType === 'all'
@@ -282,9 +300,12 @@ export const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({
                   }}>
                     <div style={{
                       fontSize: theme.typography.fontSize.xs,
-                      color: theme.colors.textSecondary
+                      color: theme.colors.textSecondary,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: theme.spacing.xs
                     }}>
-                      💡 {insight.recommendedActions.length} recommended action{insight.recommendedActions.length !== 1 ? 's' : ''}
+                      <Lightbulb size={14} /> {insight.recommendedActions.length} recommended action{insight.recommendedActions.length !== 1 ? 's' : ''}
                     </div>
                     <div style={{
                       fontSize: theme.typography.fontSize.xs,
@@ -303,7 +324,7 @@ export const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({
                     fontStyle: 'italic',
                     textAlign: 'center'
                   }}>
-                    Keep up the great work! 🎉
+                    Keep up the great work!
                   </div>
                 )}
               </Card>
@@ -378,9 +399,8 @@ export const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedInsight(null)}
-                style={{ fontSize: theme.typography.fontSize.lg }}
               >
-                ✕
+                <X size={20} />
               </Button>
             </div>
 
@@ -413,7 +433,7 @@ export const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({
                   alignItems: 'center',
                   gap: theme.spacing.sm
                 }}>
-                  💡 Recommended Actions
+                  <Lightbulb size={18} /> Recommended Actions
                 </h3>
                 <div style={{
                   display: 'flex',
@@ -476,7 +496,7 @@ export const PerformanceInsights: React.FC<PerformanceInsightsProps> = ({
                   borderColor: getInsightColor(selectedInsight.type)
                 }}
               >
-                Got It! 👍
+                Got It!
               </Button>
             </div>
           </Card>

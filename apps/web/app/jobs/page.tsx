@@ -112,7 +112,12 @@ function JobsPageContent() {
   const filteredJobs = useMemo(() => {
     let data = allJobs;
     if (activeTab !== 'all') {
-      data = data.filter((j) => j.status === activeTab);
+      // "Active" tab (in_progress) should also include 'assigned' status jobs
+      if (activeTab === 'in_progress') {
+        data = data.filter((j) => j.status === 'in_progress' || j.status === 'assigned');
+      } else {
+        data = data.filter((j) => j.status === activeTab);
+      }
     }
     if (filters.status && filters.status.length > 0 && !filters.status.includes('all')) {
       data = data.filter((j) => filters.status?.includes(j.status));

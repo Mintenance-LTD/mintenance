@@ -213,16 +213,16 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // ============================================================================
 
   '/api/jobs': {
-    windowMs: 60 * 60 * 1000, // 1 hour (job creation)
+    windowMs: 60 * 1000, // 1 minute (listing jobs - POST creation has its own rate limiter)
     max: {
       anonymous: 0,
-      authenticated: 10,
-      admin: 100,
-      premium: 25,
+      authenticated: 60,
+      admin: 200,
+      premium: 100,
     },
     standardHeaders: true,
-    handler: 'block',
-    message: 'Job creation limit reached. Please try again later.',
+    handler: 'throttle',
+    message: 'Too many requests. Please try again later.',
   },
 
   '/api/jobs/*': {

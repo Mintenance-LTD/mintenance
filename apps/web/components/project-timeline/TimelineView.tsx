@@ -3,6 +3,26 @@ import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import type { ProjectTimeline, ProjectMilestone, ProjectProgress } from '@mintenance/types';
+import {
+  ClipboardList,
+  RefreshCw,
+  CheckCircle,
+  Pause,
+  XCircle,
+  Hourglass,
+  AlertOctagon,
+  HelpCircle,
+  FileEdit,
+  Target,
+  PoundSterling,
+  Search,
+  Package,
+  Pencil,
+  Plus,
+  X,
+  Calendar,
+  TrendingDown
+} from 'lucide-react';
 
 interface TimelineViewProps {
   timeline: ProjectTimeline;
@@ -40,25 +60,25 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
 
   const getStatusIcon = (status: ProjectTimeline['status'] | ProjectMilestone['status']) => {
     switch (status) {
-      case 'planning': return '📋';
-      case 'active': case 'in_progress': return '🔄';
-      case 'completed': return '✅';
-      case 'paused': return '⏸️';
-      case 'cancelled': return '❌';
-      case 'pending': return '⏳';
-      case 'overdue': return '🚨';
-      default: return '❓';
+      case 'planning': return <ClipboardList size={16} />;
+      case 'active': case 'in_progress': return <RefreshCw size={16} />;
+      case 'completed': return <CheckCircle size={16} />;
+      case 'paused': return <Pause size={16} />;
+      case 'cancelled': return <XCircle size={16} />;
+      case 'pending': return <Hourglass size={16} />;
+      case 'overdue': return <AlertOctagon size={16} />;
+      default: return <HelpCircle size={16} />;
     }
   };
 
   const getTypeIcon = (type: ProjectMilestone['type']) => {
     switch (type) {
-      case 'task': return '📝';
-      case 'checkpoint': return '🎯';
-      case 'payment': return '💰';
-      case 'inspection': return '🔍';
-      case 'delivery': return '📦';
-      default: return '📋';
+      case 'task': return <FileEdit size={20} />;
+      case 'checkpoint': return <Target size={20} />;
+      case 'payment': return <PoundSterling size={20} />;
+      case 'inspection': return <Search size={20} />;
+      case 'delivery': return <Package size={20} />;
+      default: return <ClipboardList size={20} />;
     }
   };
 
@@ -124,7 +144,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 fontSize: theme.typography.fontSize.sm,
                 fontWeight: theme.typography.fontWeight.medium
               }}>
-                {getStatusIcon(timeline.status)}
+                <span style={{ display: 'flex', alignItems: 'center' }}>{getStatusIcon(timeline.status)}</span>
                 {timeline.status.toUpperCase()}
               </div>
             </div>
@@ -173,15 +193,25 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={onEditTimeline}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs
+                }}
               >
-                ✏️ Edit Timeline
+                <Pencil size={16} /> Edit Timeline
               </Button>
               <Button
                 variant="primary"
                 size="sm"
                 onClick={onAddMilestone}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs
+                }}
               >
-                ➕ Add Milestone
+                <Plus size={16} /> Add Milestone
               </Button>
             </div>
           )}
@@ -241,19 +271,25 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
             fontSize: theme.typography.fontSize.xs,
             color: theme.colors.textSecondary
           }}>
-            <div>✅ Completed: {progress.completedMilestones}</div>
-            <div>⏳ Upcoming: {progress.upcomingMilestones}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+              <CheckCircle size={12} /> Completed: {progress.completedMilestones}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+              <Hourglass size={12} /> Upcoming: {progress.upcomingMilestones}
+            </div>
             {progress.overdueMilestones > 0 && (
-              <div style={{ color: theme.colors.error }}>
-                🚨 Overdue: {progress.overdueMilestones}
+              <div style={{ color: theme.colors.error, display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+                <AlertOctagon size={12} /> Overdue: {progress.overdueMilestones}
               </div>
             )}
             {progress.daysRemaining && (
-              <div>📅 Days left: {progress.daysRemaining}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+                <Calendar size={12} /> Days left: {progress.daysRemaining}
+              </div>
             )}
             {progress.daysOverdue && (
-              <div style={{ color: theme.colors.error }}>
-                📉 Days overdue: {progress.daysOverdue}
+              <div style={{ color: theme.colors.error, display: 'flex', alignItems: 'center', gap: theme.spacing.xs }}>
+                <TrendingDown size={12} /> Days overdue: {progress.daysOverdue}
               </div>
             )}
           </div>
@@ -266,9 +302,12 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
           fontSize: theme.typography.fontSize.xl,
           fontWeight: theme.typography.fontWeight.bold,
           color: theme.colors.text,
-          marginBottom: theme.spacing.lg
+          marginBottom: theme.spacing.lg,
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing.sm
         }}>
-          📋 Milestone Timeline
+          <ClipboardList size={20} /> Milestone Timeline
         </h2>
 
         {sortedMilestones.length === 0 ? (
@@ -279,18 +318,25 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
           }}>
             <div style={{
               fontSize: theme.typography.fontSize.lg,
-              marginBottom: theme.spacing.md
+              marginBottom: theme.spacing.md,
+              display: 'flex',
+              justifyContent: 'center'
             }}>
-              📋
+              <ClipboardList size={32} />
             </div>
             <p>No milestones have been added yet.</p>
             {canEdit && (
               <Button
                 variant="primary"
                 onClick={onAddMilestone}
-                style={{ marginTop: theme.spacing.md }}
+                style={{
+                  marginTop: theme.spacing.md,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs
+                }}
               >
-                ➕ Add First Milestone
+                <Plus size={16} /> Add First Milestone
               </Button>
             )}
           </div>
@@ -359,8 +405,9 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             marginBottom: theme.spacing.xs
                           }}>
                             <div style={{
-                              fontSize: theme.typography.fontSize.lg,
-                              color: statusColor
+                              color: statusColor,
+                              display: 'flex',
+                              alignItems: 'center'
                             }}>
                               {getTypeIcon(milestone.type)}
                             </div>
@@ -451,7 +498,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                             fontSize: theme.typography.fontSize.xs,
                             fontWeight: theme.typography.fontWeight.medium
                           }}>
-                            {getStatusIcon(overdue ? 'overdue' : milestone.status)}
+                            <span style={{ display: 'flex', alignItems: 'center' }}>{getStatusIcon(overdue ? 'overdue' : milestone.status)}</span>
                             {overdue ? 'OVERDUE' : milestone.status.toUpperCase()}
                           </div>
 
@@ -465,10 +512,13 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                               style={{
                                 fontSize: theme.typography.fontSize.xs,
                                 color: theme.colors.success,
-                                borderColor: theme.colors.success
+                                borderColor: theme.colors.success,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: theme.spacing.xs
                               }}
                             >
-                              ✅ Complete
+                              <CheckCircle size={14} /> Complete
                             </Button>
                           )}
                         </div>
@@ -522,9 +572,8 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelectedMilestone(null)}
-                style={{ fontSize: theme.typography.fontSize.lg }}
               >
-                ✕
+                <X size={20} />
               </Button>
             </div>
 

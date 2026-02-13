@@ -105,7 +105,7 @@ export function BentoFeaturesSection() {
 
                 <div className="flex flex-wrap gap-3 mb-8">
                   <div className="px-6 py-3 rounded-xl bg-white/20 backdrop-blur-sm text-white text-base font-bold">
-                    ⚡ Mint AI Technology
+                    Mint AI Technology
                   </div>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { CreditCard, BarChart3, HardHat, Info } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import type { FeeCalculation } from '@mintenance/types';
 
@@ -112,7 +113,7 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
             {formatAmount(amount)}
           </div>
         </div>
-        <div style={{ fontSize: theme.typography.fontSize['2xl'] }}>💳</div>
+        <CreditCard size={28} style={{ color: theme.colors.primary }} />
       </div>
 
       {showDetails && (
@@ -136,7 +137,7 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
                 alignItems: 'center',
               }}
             >
-              <span style={{ marginRight: theme.spacing.xs }}>📊</span>
+              <BarChart3 size={14} style={{ marginRight: theme.spacing.xs }} />
               Fee Details
             </div>
 
@@ -283,7 +284,7 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
                 {formatAmount(fees.contractorAmount)}
               </div>
             </div>
-            <div style={{ fontSize: theme.typography.fontSize.xl }}>👷‍♂️</div>
+            <HardHat size={24} style={{ color: theme.colors.success }} />
           </div>
 
           {/* Fee Info */}
@@ -306,7 +307,7 @@ export const FeeCalculator: React.FC<FeeCalculatorProps> = ({
                 alignItems: 'center',
               }}
             >
-              <span style={{ marginRight: theme.spacing.xs }}>ℹ️</span>
+              <Info size={14} style={{ marginRight: theme.spacing.xs }} />
               Fee Information
             </div>
             <div

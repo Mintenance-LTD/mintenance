@@ -1,21 +1,22 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { Wrench, Zap, Hammer, Paintbrush, Home, TreePine, Thermometer, Ruler, Grid3x3 } from 'lucide-react';
 
 /**
  * Popular services grid showing 10 service categories
  */
 export function ServicesSection() {
   const services = [
-    { name: 'Plumbing', color: '#3B82F6', icon: '🔧', slug: 'plumbing' },
-    { name: 'Electrical', color: '#F59E0B', icon: '⚡', slug: 'electrical' },
-    { name: 'Carpentry', color: '#8B4513', icon: '🪚', slug: 'carpentry' },
-    { name: 'Painting', color: '#EC4899', icon: '🎨', slug: 'painting' },
-    { name: 'Roofing', color: '#6B7280', icon: '🏠', slug: 'roofing' },
-    { name: 'Landscaping', color: '#10B981', icon: '🌳', slug: 'landscaping' },
-    { name: 'Heating & Cooling', color: '#EF4444', icon: '🌡️', slug: 'heating-cooling' },
-    { name: 'Flooring', color: '#A855F7', icon: '📐', slug: 'flooring' },
-    { name: 'Tiling', color: '#06B6D4', icon: '🔲', slug: 'tiling' },
-    { name: 'General Handyman', color: '#F97316', icon: '🛠️', slug: 'handyman' },
+    { name: 'Plumbing', color: '#3B82F6', icon: <Wrench className="w-8 h-8" />, slug: 'plumbing' },
+    { name: 'Electrical', color: '#F59E0B', icon: <Zap className="w-8 h-8" />, slug: 'electrical' },
+    { name: 'Carpentry', color: '#8B4513', icon: <Hammer className="w-8 h-8" />, slug: 'carpentry' },
+    { name: 'Painting', color: '#EC4899', icon: <Paintbrush className="w-8 h-8" />, slug: 'painting' },
+    { name: 'Roofing', color: '#6B7280', icon: <Home className="w-8 h-8" />, slug: 'roofing' },
+    { name: 'Landscaping', color: '#10B981', icon: <TreePine className="w-8 h-8" />, slug: 'landscaping' },
+    { name: 'Heating & Cooling', color: '#EF4444', icon: <Thermometer className="w-8 h-8" />, slug: 'heating-cooling' },
+    { name: 'Flooring', color: '#A855F7', icon: <Ruler className="w-8 h-8" />, slug: 'flooring' },
+    { name: 'Tiling', color: '#06B6D4', icon: <Grid3x3 className="w-8 h-8" />, slug: 'tiling' },
+    { name: 'General Handyman', color: '#F97316', icon: <Wrench className="w-8 h-8" />, slug: 'handyman' },
   ];
 
   return (
@@ -45,8 +46,8 @@ export function ServicesSection() {
               aria-label={`Find ${service.name} professionals`}
             >
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl transition-transform group-hover:scale-110"
-                style={{ backgroundColor: service.color + '20' }}
+                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-transform group-hover:scale-110"
+                style={{ backgroundColor: service.color + '20', color: service.color }}
               >
                 {service.icon}
               </div>

@@ -321,7 +321,12 @@ export default function QuickJobPage() {
       // Check if it's a phone verification error
       if (errorMessage.toLowerCase().includes('phone verification required') || errorMessage.toLowerCase().includes('verify your phone')) {
         toast.error('Phone verification required to post jobs');
-        toast('Redirecting to settings for verification...', { icon: 'ℹ️' });
+        toast.custom((t) => (
+          <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200">
+            <AlertCircle className="w-5 h-5 text-blue-600" />
+            <span>Redirecting to settings for verification...</span>
+          </div>
+        ));
         // Redirect to settings page after a short delay
         setTimeout(() => {
           router.push('/settings?tab=verification');

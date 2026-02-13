@@ -112,7 +112,7 @@ export default function JobEditPageRefactored() {
         return;
       }
       if (validation.warnings.length > 0) {
-        validation.warnings.forEach(warning => toast(warning, { icon: '⚠️' }));
+        validation.warnings.forEach(warning => toast(warning, { icon: '!' }));
       }
       // Prepare submission data
       const submitData = {

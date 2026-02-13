@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
+import { HomeownerSubscriptionService } from '@/lib/services/subscription/HomeownerSubscriptionService';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf-validator';
@@ -40,8 +41,8 @@ export async function POST(request: NextRequest) {
     }
 
     const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor authentication required');
+    if (!user || (user.role !== 'contractor' && user.role !== 'homeowner')) {
+      throw new UnauthorizedError('Authentication required');
     }
 
     // Validate and sanitize input using Zod schema
@@ -49,7 +50,63 @@ export async function POST(request: NextRequest) {
     if (validationResult instanceof NextResponse) return validationResult;
     const { data: validatedData } = validationResult;
 
-    const { planType } = validatedData;
+    const { planType, billingCycle } = validatedData;
+
+    // Homeowner premium flow
+    if (user.role === 'homeowner') {
+      if (planType !== 'premium') {
+        throw new BadRequestError('Homeowners can only subscribe to the premium plan');
+      }
+
+      const existing = await HomeownerSubscriptionService.getCurrentSubscription(user.id);
+      if (existing?.status === 'active' && existing.plan_type === 'premium') {
+        return NextResponse.json({
+          success: true,
+          message: 'You are already subscribed to homeowner premium',
+          subscriptionId: existing.id,
+          requiresPayment: false,
+        });
+      }
+
+      const customerId = await HomeownerSubscriptionService.getOrCreateStripeCustomer(
+        user.id,
+        user.email
+      );
+
+      const created = await HomeownerSubscriptionService.createPremiumSubscription(
+        user.id,
+        customerId,
+        billingCycle || 'monthly'
+      );
+
+      await serverSupabase
+        .from('profiles')
+        .update({
+          subscription_status: created.clientSecret ? 'incomplete' : 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      logger.info('Homeowner premium subscription created', {
+        service: 'subscriptions',
+        homeownerId: user.id,
+        stripeSubscriptionId: created.stripeSubscriptionId,
+      });
+
+      return NextResponse.json({
+        success: true,
+        subscriptionId: created.dbSubscriptionId,
+        stripeSubscriptionId: created.stripeSubscriptionId,
+        clientSecret: created.clientSecret,
+        requiresPayment: !!created.clientSecret,
+        checkoutPath: '/homeowner/subscription/checkout',
+      });
+    }
+
+    // Contractor flow
+    if (planType === 'premium') {
+      throw new BadRequestError('Invalid contractor plan type');
+    }
 
     // Check if user already has a subscription
     const existingSubscription = await SubscriptionService.getContractorSubscription(user.id);
@@ -360,4 +417,3 @@ export async function POST(request: NextRequest) {
     return handleAPIError(err);
   }
 }
-

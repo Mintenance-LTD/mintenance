@@ -285,7 +285,7 @@ export function NotificationsClient(props: NotificationsClientProps) {
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: theme.spacing[6] }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: theme.spacing[12] }}>
-            <div style={{ fontSize: theme.typography.fontSize['2xl'], marginBottom: theme.spacing[4] }}>🔄</div>
+            <div style={{ fontSize: theme.typography.fontSize['2xl'], marginBottom: theme.spacing[4], display: 'flex', justifyContent: 'center' }}><svg className="animate-spin h-8 w-8 text-gray-600" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
             <p style={{ fontSize: theme.typography.fontSize.lg, color: theme.colors.textSecondary }}>
               Loading notifications...
             </p>
@@ -319,8 +319,12 @@ export function NotificationsClient(props: NotificationsClientProps) {
           </div>
         ) : filteredNotifications.length === 0 ? (
           <div style={{ textAlign: 'center', padding: theme.spacing[12] }}>
-            <div style={{ fontSize: theme.typography.fontSize['4xl'], marginBottom: theme.spacing[4] }}>
-              {filter === 'unread' ? '✅' : '🔔'}
+            <div style={{ fontSize: theme.typography.fontSize['4xl'], marginBottom: theme.spacing[4], display: 'flex', justifyContent: 'center' }}>
+              {filter === 'unread' ? (
+                <svg className="w-16 h-16 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              ) : (
+                <svg className="w-16 h-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+              )}
             </div>
             <h2
               style={{

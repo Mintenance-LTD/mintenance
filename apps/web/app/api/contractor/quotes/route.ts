@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       amount: parseFloat(quote.total_amount || '0'),
       createdDate: quote.quote_date || quote.created_at,
       sentDate: quote.sent_at,
-      expiryDate: quote.valid_until,
+      expiryDate: quote.valid_until || (quote.quote_date ? new Date(new Date(quote.quote_date).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : null),
       items: Array.isArray(quote.line_items) ? quote.line_items.length : 0,
       quoteNumber: quote.quote_number,
       templateUsed: quote.template_id,

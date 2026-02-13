@@ -111,7 +111,7 @@ export default function ContributeTrainingPage() {
 
     const pendingImages = uploadedImages.filter(img => img.status === 'pending');
     if (pendingImages.length === 0) {
-      toast('All images have already been processed', { icon: 'ℹ️' });
+      toast('All images have already been processed');
       return;
     }
 

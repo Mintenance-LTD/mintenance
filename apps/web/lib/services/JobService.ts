@@ -39,8 +39,8 @@ export class JobService {
       const { jobs } = await api<{ jobs: (JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[] }>(`/api/jobs?${params.toString()}`);
       return jobs.map(mapSummaryToJob) as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
     } catch (error) {
-      logger.error('Job service error', error);
-      return this.getMockJobs() as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
+      logger.error('Job service error fetching available jobs', error);
+      return [];
     }
   }
 
@@ -49,8 +49,8 @@ export class JobService {
       const { jobs } = await api<{ jobs: (JobSummary & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[] }>(`/api/jobs?limit=50`);
       return jobs.map(mapSummaryToJob) as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
     } catch (error) {
-      logger.error('Job service error', error);
-      return this.getMockJobs() as (Job & { photos?: string[]; location?: string; budget?: number; description?: string; category?: string; homeownerName?: string; contractorName?: string })[];
+      logger.error('Job service error fetching homeowner jobs', error);
+      return [];
     }
   }
 

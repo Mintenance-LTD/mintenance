@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui';
-import { Zap, Clock } from 'lucide-react';
+import { Zap, Clock, Wrench, Droplets, Lightbulb, BookOpen, Armchair, DoorClosed, Paintbrush, Home } from 'lucide-react';
 
 interface QuickJobTemplate {
   id: string;
@@ -12,7 +12,7 @@ interface QuickJobTemplate {
   description: string;
   fixedPrice?: { min: number; max: number };
   estimatedDuration: string;
-  icon: string;
+  icon: React.ReactNode;
   sameDayAvailable: boolean;
 }
 
@@ -35,7 +35,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Repair or replace leaking tap. Includes diagnosis, repair, and testing.',
       fixedPrice: { min: 50, max: 120 },
       estimatedDuration: '1-2 hours',
-      icon: '🔧',
+      icon: <Wrench className="w-6 h-6" />,
       sameDayAvailable: true,
     },
     {
@@ -45,7 +45,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Clear blocked sink, bath, or shower drain using professional equipment.',
       fixedPrice: { min: 60, max: 150 },
       estimatedDuration: '1-2 hours',
-      icon: '🚿',
+      icon: <Droplets className="w-6 h-6" />,
       sameDayAvailable: true,
     },
     {
@@ -55,7 +55,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Replace single or double light switch. Includes testing and certification.',
       fixedPrice: { min: 50, max: 100 },
       estimatedDuration: '30-60 minutes',
-      icon: '💡',
+      icon: <Lightbulb className="w-6 h-6" />,
       sameDayAvailable: true,
     },
     {
@@ -65,7 +65,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Hang picture, mirror, or shelf securely on wall. Includes finding studs.',
       fixedPrice: { min: 30, max: 80 },
       estimatedDuration: '30-60 minutes',
-      icon: '🖼️',
+      icon: <BookOpen className="w-6 h-6" />,
       sameDayAvailable: true,
     },
     {
@@ -75,7 +75,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Assemble flat-pack furniture. Includes moving to desired location.',
       fixedPrice: { min: 40, max: 120 },
       estimatedDuration: '1-3 hours',
-      icon: '🪑',
+      icon: <Armchair className="w-6 h-6" />,
       sameDayAvailable: false,
     },
     {
@@ -85,7 +85,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Repair sticking door or window. Includes adjustment and lubrication.',
       fixedPrice: { min: 50, max: 150 },
       estimatedDuration: '1-2 hours',
-      icon: '🚪',
+      icon: <DoorClosed className="w-6 h-6" />,
       sameDayAvailable: true,
     },
     {
@@ -95,7 +95,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Paint walls and ceiling of one room. Includes preparation and cleanup.',
       fixedPrice: { min: 200, max: 500 },
       estimatedDuration: '1-2 days',
-      icon: '🎨',
+      icon: <Paintbrush className="w-6 h-6" />,
       sameDayAvailable: false,
     },
     {
@@ -105,7 +105,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Clean and clear gutters. Includes removal of debris and testing flow.',
       fixedPrice: { min: 80, max: 200 },
       estimatedDuration: '2-4 hours',
-      icon: '🏠',
+      icon: <Home className="w-6 h-6" />,
       sameDayAvailable: false,
     },
     {
@@ -115,7 +115,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Repair running toilet, weak flush, or leaks. Includes parts if needed.',
       fixedPrice: { min: 60, max: 150 },
       estimatedDuration: '1-2 hours',
-      icon: '🚽',
+      icon: <Droplets className="w-6 h-6" />,
       sameDayAvailable: true,
     },
     {
@@ -125,7 +125,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
       description: 'Install wall shelf or floating shelf. Includes finding studs and leveling.',
       fixedPrice: { min: 40, max: 100 },
       estimatedDuration: '1 hour',
-      icon: '📚',
+      icon: <BookOpen className="w-6 h-6" />,
       sameDayAvailable: true,
     },
   ];
@@ -157,7 +157,7 @@ export function QuickJobTemplates({ onSelectTemplate }: QuickJobTemplatesProps) 
               }`}
             >
               <div className="flex items-start gap-3 mb-2">
-                <span className="text-2xl">{template.icon}</span>
+                <div className="text-gray-600">{template.icon}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-semibold text-sm">{template.title}</h4>

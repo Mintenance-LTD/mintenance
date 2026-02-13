@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { serverSupabase } from '@/lib/api/supabaseServer';
-import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
+import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, ConflictError, InternalServerError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, ConflictError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 /** Type for bid data from Supabase query */
@@ -27,6 +26,9 @@ export async function POST(
   let bidId: string | undefined;
 
   try {
+  // Create a fresh Supabase client per request to avoid singleton auth state corruption
+  const serverSupabase = createServerSupabaseClient();
+
   // Rate limiting check - use IP only, not URL (job/bid IDs in URL make each request unique)
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous';
   const rateLimitResult = await rateLimiter.checkRateLimit({
@@ -95,11 +97,15 @@ export async function POST(
       .single();
 
     if (jobError || !job) {
-      logger.error('Failed to fetch job', jobError, {
+      logger.error('Failed to fetch job for bid acceptance', {
         service: 'jobs',
         jobId,
+        errorMessage: jobError?.message,
+        errorCode: jobError?.code,
+        errorDetails: jobError?.details,
+        hasData: !!job,
       });
-      throw new NotFoundError('Job not found');
+      throw new NotFoundError(`Job (${jobError?.message || 'not found in database'})`);
     }
 
     if (job.homeowner_id !== user.id) {
@@ -117,126 +123,99 @@ export async function POST(
     const bid = bidData as BidRow | null;
 
     if (bidError || !bid) {
-      logger.error('Failed to fetch bid', bidError, {
+      logger.error('Failed to fetch bid for acceptance', {
         service: 'jobs',
         bidId,
         jobId,
+        errorMessage: bidError?.message,
+        errorCode: bidError?.code,
+        hasData: !!bidData,
       });
-      throw new NotFoundError('Bid not found');
+      throw new NotFoundError(`Bid (${bidError?.message || 'not found in database'})`);
     }
 
-    // Check if contractor has payment setup before accepting bid
-    // Check both users table and contractor_payout_accounts for completeness
-    const { data: contractor, error: contractorError } = await serverSupabase
+    // Log Stripe payment setup status (non-blocking - payment enforcement comes later)
+    const { data: contractor } = await serverSupabase
       .from('profiles')
       .select('stripe_connect_account_id, first_name, last_name')
       .eq('id', bid.contractor_id)
       .single();
 
-    if (contractorError || !contractor?.stripe_connect_account_id) {
-      throw new BadRequestError('This contractor has not completed payment account setup. They must set up their payment account before accepting jobs.');
+    if (!contractor?.stripe_connect_account_id) {
+      logger.warn('Contractor accepting bid without Stripe setup', {
+        service: 'jobs',
+        contractorId: bid.contractor_id,
+        bidId,
+        jobId,
+      });
     }
 
-    // Also check if the payout account is marked as complete
-    const { data: payoutAccount } = await serverSupabase
-      .from('contractor_payout_accounts')
-      .select('account_complete, stripe_account_id')
-      .eq('contractor_id', bid.contractor_id)
-      .single();
+    // Check if another bid is already accepted for this job
+    const { data: existingAccepted } = await serverSupabase
+      .from('bids')
+      .select('id')
+      .eq('job_id', jobId)
+      .eq('status', 'accepted')
+      .limit(1);
 
-    // If payout account exists but is not complete, verify with Stripe
-    // This provides a fallback if webhook didn't update the status
-    if (payoutAccount && !payoutAccount.account_complete && payoutAccount.stripe_account_id) {
-      try {
-        // Only verify if Stripe is configured
-        const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-        if (stripeSecretKey) {
-          const Stripe = (await import('stripe')).default;
-          const stripe = new Stripe(stripeSecretKey, {
-            apiVersion: '2024-04-10',
-          });
-
-          const stripeAccount = await stripe.accounts.retrieve(payoutAccount.stripe_account_id);
-          
-          // Check if account is actually complete
-          const isAccountComplete = stripeAccount.details_submitted && 
-                                    stripeAccount.charges_enabled && 
-                                    stripeAccount.payouts_enabled;
-
-          if (!isAccountComplete) {
-            throw new BadRequestError('This contractor has started payment setup but has not completed the onboarding process. They must finish setting up their payment account before accepting jobs.');
-          }
-
-          // Update database if account is actually complete but not marked as such
-          await serverSupabase
-            .from('contractor_payout_accounts')
-            .update({ account_complete: true })
-            .eq('contractor_id', bid.contractor_id);
-        }
-      } catch (stripeError) {
-        // If Stripe check fails, log but don't block (webhook will sync later)
-        logger.warn('Failed to verify Stripe account status', {
-          service: 'jobs',
-          contractorId: bid.contractor_id,
-          error: stripeError,
-        });
-        // Don't block bid acceptance if verification fails - assume webhook will sync
-      }
+    if (existingAccepted && existingAccepted.length > 0) {
+      throw new ConflictError('A bid has already been accepted for this job. Please refresh the page.');
     }
 
-    // Use atomic function to accept bid, reject others, and update job status
-    // This prevents race conditions where multiple bids could be accepted for the same job
-    const { data: acceptResult, error: acceptError } = await serverSupabase
-      .rpc('accept_bid_atomic', {
-        p_bid_id: bidId,
-        p_job_id: jobId,
-        p_contractor_id: bid.contractor_id,
-        p_homeowner_id: user.id,
-      })
-      .single();
+    // Step 1: Accept this bid
+    const { error: acceptError } = await serverSupabase
+      .from('bids')
+      .update({ status: 'accepted', updated_at: new Date().toISOString() })
+      .eq('id', bidId)
+      .eq('job_id', jobId);
 
     if (acceptError) {
-      logger.error('Failed to accept bid atomically', acceptError, {
+      logger.error('Failed to accept bid - detailed error', {
         service: 'jobs',
         bidId,
         jobId,
+        errorMessage: acceptError.message,
+        errorCode: acceptError.code,
+        errorDetails: acceptError.details,
+        errorHint: (acceptError as unknown as Record<string, unknown>).hint,
       });
-
-      // Handle unique constraint violation (race condition detected)
-      if (acceptError.code === '23505' || acceptError.message?.includes('unique constraint') || acceptError.message?.includes('duplicate key')) {
-        throw new ConflictError('A bid has already been accepted for this job. Please refresh the page.'); // 409 Conflict
-      }
-
-      throw new InternalServerError('Failed to accept bid');
+      // Include actual DB error for debugging
+      throw new InternalServerError(`Failed to accept bid: ${acceptError.message} (code: ${acceptError.code})`);
     }
 
-    // Check function return value
-    const result = acceptResult as { success?: boolean; error_message?: string; accepted_bid_id?: string } | null;
-    if (!result || !result.success) {
-      const errorMessage = result?.error_message || 'Failed to accept bid';
-      
-      logger.error('Bid acceptance failed', undefined, {
+    // Step 2: Reject other pending bids for this job
+    const { error: rejectError } = await serverSupabase
+      .from('bids')
+      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .eq('job_id', jobId)
+      .eq('status', 'pending')
+      .neq('id', bidId);
+
+    if (rejectError) {
+      logger.warn('Failed to reject other bids', {
         service: 'jobs',
-        bidId,
         jobId,
-        errorMessage,
-        acceptedBidId: result?.accepted_bid_id,
+        error: rejectError.message,
       });
+    }
 
-      // Handle specific error cases
-      if (errorMessage.includes('already been accepted')) {
-        throw new ConflictError('A bid has already been accepted for this job. Please refresh the page.'); // 409 Conflict
-      }
+    // Step 3: Update job status and assign contractor
+    const { error: jobUpdateError } = await serverSupabase
+      .from('jobs')
+      .update({
+        status: 'assigned',
+        contractor_id: bid.contractor_id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
 
-      if (errorMessage.includes('not found')) {
-        throw new NotFoundError(errorMessage);
-      }
-
-      if (errorMessage.includes('Not authorized')) {
-        throw new ForbiddenError(errorMessage);
-      }
-
-      throw new BadRequestError(errorMessage);
+    if (jobUpdateError) {
+      logger.error('Failed to update job status after bid acceptance', jobUpdateError, {
+        service: 'jobs',
+        jobId,
+        contractorId: bid.contractor_id,
+      });
+      // Don't throw - bid is already accepted, job status update is secondary
     }
 
     // Fetch job title for notification (after successful acceptance)
@@ -324,44 +303,58 @@ export async function POST(
 
     // Auto-create welcome message thread - send initial message from homeowner to contractor
     try {
-      // Get homeowner details for the message
-      const { data: homeownerData } = await serverSupabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', user.id)
-        .single();
-
-      const homeownerName = homeownerData?.first_name 
-        ? `${homeownerData.first_name}${homeownerData.last_name ? ` ${homeownerData.last_name}` : ''}`
-        : 'Homeowner';
-
       const welcomeMessage = `Hi! I've accepted your bid for "${jobDetails?.title || 'this job'}". Let's discuss the details and schedule a start date. Feel free to ask any questions!`;
 
-      const { error: messageError } = await serverSupabase
-        .from('messages')
-        .insert({
-          job_id: jobId,
-          sender_id: user.id,
-          receiver_id: bid.contractor_id,
-          content: welcomeMessage, // Use 'content' column (schema uses 'content', not 'message_text')
-          message_type: 'text',
-          read: false,
-          created_at: new Date().toISOString(),
-        });
+      // Find or create message_thread for this job
+      let { data: threadData } = await serverSupabase
+        .from('message_threads')
+        .select('id')
+        .eq('job_id', jobId)
+        .single();
 
-      if (messageError) {
-        logger.error('Failed to create welcome message', messageError, {
-          service: 'jobs',
-          jobId,
-          contractorId: bid.contractor_id,
-        });
-        // Don't fail the request if message creation fails
-      } else {
-        logger.info('Welcome message created', {
-          service: 'jobs',
-          jobId,
-          contractorId: bid.contractor_id,
-        });
+      if (!threadData) {
+        const { data: newThread } = await serverSupabase
+          .from('message_threads')
+          .insert({
+            job_id: jobId,
+            participant_ids: [user.id, bid.contractor_id].filter(Boolean),
+            last_message_at: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        threadData = newThread;
+      }
+
+      if (threadData) {
+        const { error: messageError } = await serverSupabase
+          .from('messages')
+          .insert({
+            thread_id: threadData.id,
+            sender_id: user.id,
+            content: welcomeMessage,
+            message_type: 'text',
+            read_by: [],
+          });
+
+        if (messageError) {
+          logger.error('Failed to create welcome message', messageError, {
+            service: 'jobs',
+            jobId,
+            contractorId: bid.contractor_id,
+          });
+        } else {
+          // Update thread last_message_at
+          await serverSupabase
+            .from('message_threads')
+            .update({ last_message_at: new Date().toISOString() })
+            .eq('id', threadData.id);
+
+          logger.info('Welcome message created', {
+            service: 'jobs',
+            jobId,
+            contractorId: bid.contractor_id,
+          });
+        }
       }
     } catch (messageError) {
       logger.error('Unexpected error creating welcome message', messageError, {

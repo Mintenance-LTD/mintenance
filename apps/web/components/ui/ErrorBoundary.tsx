@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { logger } from '@mintenance/shared';
 import { Button } from './Button';
 import { Card } from './Card';
@@ -81,10 +82,12 @@ export class ErrorBoundary extends Component<Props, State> {
             textAlign: 'center',
           }}>
             <div style={{
-              fontSize: theme.typography.fontSize['4xl'],
               marginBottom: theme.spacing[4],
+              color: theme.colors.error,
+              display: 'flex',
+              justifyContent: 'center',
             }}>
-              ⚠️
+              <AlertTriangle size={48} />
             </div>
             
             <h1 style={{

@@ -6,6 +6,18 @@ import { Card } from '@/components/ui/Card';
 import { VideoCallService } from '@/lib/services/VideoCallService';
 import type { VideoCall } from '@mintenance/types';
 import { logger } from '@mintenance/shared';
+import {
+  Video,
+  MessageSquare,
+  Search,
+  ClipboardList,
+  AlertOctagon,
+  Phone,
+  Rocket,
+  Calendar,
+  Lightbulb,
+  X
+} from 'lucide-react';
 
 interface VideoCallSchedulerProps {
   jobId?: string;
@@ -91,18 +103,18 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
   };
 
   const callTypeOptions = [
-    { value: 'consultation', label: '💬 Consultation', description: 'General discussion about the project' },
-    { value: 'assessment', label: '🔍 Assessment', description: 'Property or work assessment' },
-    { value: 'project_review', label: '📋 Project Review', description: 'Review completed or ongoing work' },
-    { value: 'emergency', label: '🚨 Emergency', description: 'Urgent issue requiring immediate attention' },
-    { value: 'follow_up', label: '📞 Follow-up', description: 'Post-work follow-up or check-in' }
+    { value: 'consultation', label: 'Consultation', icon: <MessageSquare size={16} />, description: 'General discussion about the project' },
+    { value: 'assessment', label: 'Assessment', icon: <Search size={16} />, description: 'Property or work assessment' },
+    { value: 'project_review', label: 'Project Review', icon: <ClipboardList size={16} />, description: 'Review completed or ongoing work' },
+    { value: 'emergency', label: 'Emergency', icon: <AlertOctagon size={16} />, description: 'Urgent issue requiring immediate attention' },
+    { value: 'follow_up', label: 'Follow-up', icon: <Phone size={16} />, description: 'Post-work follow-up or check-in' }
   ];
 
   const priorityOptions = [
-    { value: 'low', label: '🟢 Low', color: theme.colors.success },
-    { value: 'medium', label: '🟡 Medium', color: theme.colors.warning },
-    { value: 'high', label: '🟠 High', color: theme.colors.error },
-    { value: 'urgent', label: '🔴 Urgent', color: theme.colors.error }
+    { value: 'low', label: 'Low', color: theme.colors.success },
+    { value: 'medium', label: 'Medium', color: theme.colors.warning },
+    { value: 'high', label: 'High', color: theme.colors.error },
+    { value: 'urgent', label: 'Urgent', color: theme.colors.error }
   ];
 
   // Get current datetime for min attribute
@@ -143,9 +155,12 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
               fontSize: theme.typography.fontSize['2xl'],
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.text,
-              margin: 0
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.sm
             }}>
-              📹 Schedule Video Call
+              <Video size={24} /> Schedule Video Call
             </h2>
             <p style={{
               fontSize: theme.typography.fontSize.md,
@@ -159,9 +174,8 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             variant="ghost"
             size="sm"
             onClick={onCancel}
-            style={{ fontSize: theme.typography.fontSize.lg }}
           >
-            ✕
+            <X size={20} />
           </Button>
         </div>
 
@@ -225,9 +239,12 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
                 <div style={{
                   fontSize: theme.typography.fontSize.sm,
                   fontWeight: theme.typography.fontWeight.medium,
-                  marginBottom: theme.spacing.xs
+                  marginBottom: theme.spacing.xs,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing.xs
                 }}>
-                  {option.label}
+                  {option.icon} {option.label}
                 </div>
                 <div style={{
                   fontSize: theme.typography.fontSize.xs,
@@ -382,17 +399,25 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
               disabled={isScheduling || !title}
               style={{
                 color: theme.colors.success,
-                borderColor: theme.colors.success
+                borderColor: theme.colors.success,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing.xs
               }}
             >
-              🚀 Start Now
+              <Rocket size={16} /> Start Now
             </Button>
             <Button
               variant="primary"
               onClick={handleScheduleCall}
               disabled={isScheduling || !title || !scheduledDate || !scheduledTime}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing.xs
+              }}
             >
-              {isScheduling ? 'Scheduling...' : '📅 Schedule Call'}
+              {isScheduling ? 'Scheduling...' : <><Calendar size={16} /> Schedule Call</>}
             </Button>
           </div>
         </div>
@@ -408,9 +433,13 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
           <div style={{
             fontSize: theme.typography.fontSize.xs,
             color: theme.colors.info,
-            textAlign: 'center'
+            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.xs
           }}>
-            💡 Both participants will receive notifications about the scheduled call
+            <Lightbulb size={14} /> Both participants will receive notifications about the scheduled call
           </div>
         </div>
       </Card>

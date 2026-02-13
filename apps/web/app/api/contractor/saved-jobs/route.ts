@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .eq('contractor_id', user.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (savedJobsError) {
@@ -159,11 +159,11 @@ export async function POST(request: NextRequest) {
       throw new NotFoundError('Job not found');
     }
 
-    // Check if already saved
+    // Check if already saved (saved_jobs schema uses user_id column)
     const { data: existing } = await serverSupabase
       .from('saved_jobs')
       .select('id')
-      .eq('contractor_id', user.id)
+      .eq('user_id', user.id)
       .eq('job_id', jobId)
       .single();
 
@@ -171,11 +171,11 @@ export async function POST(request: NextRequest) {
       throw new ConflictError('Job already saved');
     }
 
-    // Save the job
+    // Save the job (saved_jobs schema uses user_id column)
     const { error: saveError } = await serverSupabase
       .from('saved_jobs')
       .insert({
-        contractor_id: user.id,
+        user_id: user.id,
         job_id: jobId,
         created_at: new Date().toISOString(),
       });
@@ -265,11 +265,11 @@ export async function DELETE(request: NextRequest) {
       throw new BadRequestError('Job ID is required');
     }
 
-    // Delete the saved job
+    // Delete the saved job (saved_jobs schema uses user_id column)
     const { error: deleteError } = await serverSupabase
       .from('saved_jobs')
       .delete()
-      .eq('contractor_id', user.id)
+      .eq('user_id', user.id)
       .eq('job_id', jobId);
 
     if (deleteError) {

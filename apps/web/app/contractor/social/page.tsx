@@ -199,7 +199,7 @@ function ContractorSocialContent() {
   const handleComment = async (postId: string) => {
     // Open comment modal or navigate to comments section
     // For now, just show a toast
-    toast('Comment feature coming soon', { icon: '💬' });
+    toast('Comment feature coming soon');
   };
 
   const handleShare = async (postId: string) => {

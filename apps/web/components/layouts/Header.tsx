@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Search, Zap, Bell, UserPlus, ChevronDown } from 'lucide-react';
 import { designSystem } from '@/lib/design-system';
 
 interface HeaderProps {
@@ -84,9 +85,10 @@ export function Header({
             top: '50%',
             transform: 'translateY(-50%)',
             color: '#6b7280',
-            fontSize: '1rem',
+            display: 'flex',
+            alignItems: 'center',
           }} aria-hidden="true">
-            🔍
+            <Search size={16} />
           </div>
         </div>
       </div>
@@ -128,7 +130,7 @@ export function Header({
               e.currentTarget.style.color = '#6b7280';
             }}
           >
-            <span aria-hidden="true">⚡</span>
+            <Zap size={16} aria-hidden="true" />
           </button>
 
           {/* Notifications */}
@@ -157,7 +159,7 @@ export function Header({
               e.currentTarget.style.color = '#6b7280';
             }}
           >
-            <span aria-hidden="true">🔔</span>
+            <Bell size={16} aria-hidden="true" />
             {/* Notification Badge */}
             <span
               aria-label="3 unread notifications"
@@ -201,7 +203,7 @@ export function Header({
               e.currentTarget.style.color = '#6b7280';
             }}
           >
-            👤+
+            <UserPlus size={16} aria-hidden="true" />
           </button>
         </div>
 
@@ -263,7 +265,7 @@ export function Header({
               gap: '0.25rem',
               color: '#6b7280',
             }}>
-              <span style={{ fontSize: '0.75rem' }}>▼</span>
+              <ChevronDown size={12} />
             </div>
           </div>
         )}

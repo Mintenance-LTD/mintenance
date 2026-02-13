@@ -5,6 +5,17 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import type { ProjectMilestone, ProjectTimeline } from '@mintenance/types';
 import { logger } from '@mintenance/shared';
+import {
+  FileEdit,
+  Plus,
+  Target,
+  PoundSterling,
+  Search,
+  Package,
+  X,
+  Save,
+  Lightbulb
+} from 'lucide-react';
 
 interface MilestoneEditorProps {
   timeline: ProjectTimeline;
@@ -108,18 +119,18 @@ export const MilestoneEditor: React.FC<MilestoneEditorProps> = ({
   };
 
   const typeOptions = [
-    { value: 'task', label: '📝 Task', description: 'General work item' },
-    { value: 'checkpoint', label: '🎯 Checkpoint', description: 'Review or approval point' },
-    { value: 'payment', label: '💰 Payment', description: 'Payment milestone' },
-    { value: 'inspection', label: '🔍 Inspection', description: 'Quality inspection' },
-    { value: 'delivery', label: '📦 Delivery', description: 'Material or completion delivery' }
+    { value: 'task', label: 'Task', icon: <FileEdit size={16} />, description: 'General work item' },
+    { value: 'checkpoint', label: 'Checkpoint', icon: <Target size={16} />, description: 'Review or approval point' },
+    { value: 'payment', label: 'Payment', icon: <PoundSterling size={16} />, description: 'Payment milestone' },
+    { value: 'inspection', label: 'Inspection', icon: <Search size={16} />, description: 'Quality inspection' },
+    { value: 'delivery', label: 'Delivery', icon: <Package size={16} />, description: 'Material or completion delivery' }
   ];
 
   const priorityOptions = [
-    { value: 'low', label: '🟢 Low', color: theme.colors.info },
-    { value: 'medium', label: '🟡 Medium', color: theme.colors.warning },
-    { value: 'high', label: '🟠 High', color: theme.colors.error },
-    { value: 'urgent', label: '🔴 Urgent', color: theme.colors.error }
+    { value: 'low', label: 'Low', color: theme.colors.info },
+    { value: 'medium', label: 'Medium', color: theme.colors.warning },
+    { value: 'high', label: 'High', color: theme.colors.error },
+    { value: 'urgent', label: 'Urgent', color: theme.colors.error }
   ];
 
   return (
@@ -155,9 +166,12 @@ export const MilestoneEditor: React.FC<MilestoneEditorProps> = ({
               fontSize: theme.typography.fontSize['2xl'],
               fontWeight: theme.typography.fontWeight.bold,
               color: theme.colors.text,
-              margin: 0
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.sm
             }}>
-              {milestone ? '✏️ Edit Milestone' : '➕ Add Milestone'}
+              {milestone ? <><FileEdit size={24} /> Edit Milestone</> : <><Plus size={24} /> Add Milestone</>}
             </h2>
             <p style={{
               fontSize: theme.typography.fontSize.sm,
@@ -171,9 +185,8 @@ export const MilestoneEditor: React.FC<MilestoneEditorProps> = ({
             variant="ghost"
             size="sm"
             onClick={onCancel}
-            style={{ fontSize: theme.typography.fontSize.lg }}
           >
-            ✕
+            <X size={20} />
           </Button>
         </div>
 
@@ -284,9 +297,12 @@ export const MilestoneEditor: React.FC<MilestoneEditorProps> = ({
                   <div style={{
                     fontSize: theme.typography.fontSize.sm,
                     fontWeight: theme.typography.fontWeight.medium,
-                    marginBottom: theme.spacing.xs
+                    marginBottom: theme.spacing.xs,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing.xs
                   }}>
-                    {option.label}
+                    {option.icon} {option.label}
                   </div>
                   <div style={{
                     fontSize: theme.typography.fontSize.xs,
@@ -484,8 +500,13 @@ export const MilestoneEditor: React.FC<MilestoneEditorProps> = ({
               variant="primary"
               onClick={handleSubmit}
               disabled={saving}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing.xs
+              }}
             >
-              {saving ? 'Saving...' : milestone ? '💾 Update Milestone' : '➕ Add Milestone'}
+              {saving ? 'Saving...' : milestone ? <><Save size={16} /> Update Milestone</> : <><Plus size={16} /> Add Milestone</>}
             </Button>
           </div>
         </div>
@@ -501,9 +522,13 @@ export const MilestoneEditor: React.FC<MilestoneEditorProps> = ({
           <div style={{
             fontSize: theme.typography.fontSize.xs,
             color: theme.colors.info,
-            textAlign: 'center'
+            textAlign: 'center',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: theme.spacing.xs
           }}>
-            💡 Timeline: {new Date(timeline.startDate).toLocaleDateString('en-GB')} → {new Date(timeline.estimatedEndDate).toLocaleDateString('en-GB')}
+            <Lightbulb size={14} /> Timeline: {new Date(timeline.startDate).toLocaleDateString('en-GB')} → {new Date(timeline.estimatedEndDate).toLocaleDateString('en-GB')}
           </div>
         </div>
       </Card>

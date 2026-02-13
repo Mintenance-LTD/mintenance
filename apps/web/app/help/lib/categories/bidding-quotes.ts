@@ -8,7 +8,7 @@ import type { Category } from './types';
 export const biddingquotesCategory: Category = {
   id: 'bidding-quotes',
   name: 'Bids & Quotes',
-  icon: '💷',
+  icon: 'banknote',
   color: '#EC4899',
   articles: [
     { 

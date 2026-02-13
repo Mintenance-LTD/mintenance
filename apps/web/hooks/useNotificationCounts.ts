@@ -63,8 +63,8 @@ export function useNotificationCounts() {
     // Initial fetch
     fetchCounts();
 
-    // Poll every 30 seconds
-    const interval = setInterval(fetchCounts, 30000);
+    // Poll every 60 seconds
+    const interval = setInterval(fetchCounts, 60000);
 
     // Cleanup on unmount
     return () => clearInterval(interval);

@@ -51,7 +51,7 @@ export function Calendar(props: CalendarProps) {
       }).filter(Boolean);
 
       if (process.env.NODE_ENV === 'development') {
-        logger.debug('📅 Calendar Component Debug', {
+        logger.debug('Calendar Component Debug', {
           eventsCount: events.length,
           currentDate: currentDate.toISOString(),
           currentMonth: currentDate.getMonth(),

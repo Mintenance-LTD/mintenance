@@ -1,4 +1,5 @@
 import React from 'react';
+import { ClipboardList, CheckCircle, PoundSterling, Star, Trophy, Zap, BarChart3, Clock, Target, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card';
 import type { ContractorAnalytics } from '@/lib/services/ContractorAnalyticsService';
@@ -62,9 +63,9 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
   };
 
   const getChangeIcon = (change: number) => {
-    if (change > 0) return '📈';
-    if (change < 0) return '📉';
-    return '➖';
+    if (change > 0) return <TrendingUp size={14} />;
+    if (change < 0) return <TrendingDown size={14} />;
+    return <Minus size={14} />;
   };
 
   const earningsChange = analytics.lastMonthEarnings > 0
@@ -76,7 +77,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
       title: 'Total Jobs',
       value: analytics.totalJobs.toString(),
       subtitle: `${analytics.completedJobs} completed, ${analytics.activeJobs} active`,
-      icon: '📋',
+      icon: <ClipboardList size={20} />,
       color: theme.colors.primary,
       trend: null
     },
@@ -84,7 +85,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
       title: 'Completion Rate',
       value: formatPercentage(analytics.completionRate),
       subtitle: `${analytics.completedJobs} of ${analytics.totalJobs} jobs`,
-      icon: '✅',
+      icon: <CheckCircle size={20} />,
       color: analytics.completionRate >= 90 ? theme.colors.success :
              analytics.completionRate >= 70 ? theme.colors.warning : theme.colors.error,
       trend: null
@@ -93,7 +94,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
       title: 'This Month Earnings',
       value: formatCurrency(analytics.thisMonthEarnings),
       subtitle: `vs ${formatCurrency(analytics.lastMonthEarnings)} last month`,
-      icon: '💰',
+      icon: <PoundSterling size={20} />,
       color: theme.colors.success,
       trend: {
         value: earningsChange,
@@ -104,7 +105,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
       title: 'Average Rating',
       value: analytics.averageRating.toFixed(1),
       subtitle: `Based on ${analytics.totalReviews} reviews`,
-      icon: '⭐',
+      icon: <Star size={20} />,
       color: analytics.averageRating >= 4.5 ? theme.colors.success :
              analytics.averageRating >= 4.0 ? theme.colors.warning : theme.colors.error,
       trend: null
@@ -113,7 +114,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
       title: 'Total Earnings',
       value: formatCurrency(analytics.totalEarnings),
       subtitle: `Average ${formatCurrency(analytics.averageJobValue)} per job`,
-      icon: '🏆',
+      icon: <Trophy size={20} />,
       color: theme.colors.info,
       trend: null
     },
@@ -122,7 +123,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
       value: `${analytics.averageResponseTime.toFixed(1)}h`,
       subtitle: analytics.averageResponseTime <= 2 ? 'Excellent' :
                 analytics.averageResponseTime <= 6 ? 'Good' : 'Needs Improvement',
-      icon: '⚡',
+      icon: <Zap size={20} />,
       color: analytics.averageResponseTime <= 2 ? theme.colors.success :
              analytics.averageResponseTime <= 6 ? theme.colors.warning : theme.colors.error,
       trend: null
@@ -131,7 +132,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
       title: 'Industry Ranking',
       value: `Top ${(100 - analytics.industryRankPercentile).toFixed(0)}%`,
       subtitle: `Rank ${analytics.marketPositioning.categoryRanking} of ${analytics.marketPositioning.categoryTotal}`,
-      icon: '📊',
+      icon: <BarChart3 size={20} />,
       color: analytics.industryRankPercentile >= 80 ? theme.colors.success :
              analytics.industryRankPercentile >= 60 ? theme.colors.warning : theme.colors.error,
       trend: null
@@ -140,7 +141,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
       title: 'Pending Payments',
       value: formatCurrency(analytics.pendingPayments),
       subtitle: analytics.pendingPayments > 0 ? 'In escrow' : 'All caught up',
-      icon: '⏳',
+      icon: <Clock size={20} />,
       color: analytics.pendingPayments > 0 ? theme.colors.warning : theme.colors.success,
       trend: null
     }
@@ -159,7 +160,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
           color: theme.colors.text,
           marginBottom: theme.spacing.sm
         }}>
-          📊 Performance Overview
+          <BarChart3 size={24} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'text-bottom' }} /> Performance Overview
         </h2>
         <p style={{
           fontSize: theme.typography.fontSize.md,
@@ -284,7 +285,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
           gap: theme.spacing.sm,
           marginBottom: theme.spacing.md
         }}>
-          <span style={{ fontSize: theme.typography.fontSize.lg }}>🎯</span>
+          <Target size={20} />
           <h3 style={{
             fontSize: theme.typography.fontSize.lg,
             fontWeight: theme.typography.fontWeight.bold,
@@ -312,7 +313,7 @@ export const AnalyticsOverview: React.FC<AnalyticsOverviewProps> = ({
             <strong>Market Position:</strong> Top {(100 - analytics.industryRankPercentile).toFixed(0)}%
           </div>
           <div>
-            <strong>Growth Trend:</strong> {earningsChange > 0 ? '📈 Growing' : earningsChange < 0 ? '📉 Declining' : '➖ Stable'}
+            <strong>Growth Trend:</strong> {earningsChange > 0 ? 'Growing' : earningsChange < 0 ? 'Declining' : 'Stable'}
           </div>
         </div>
       </div>

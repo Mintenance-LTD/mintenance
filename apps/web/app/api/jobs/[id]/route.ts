@@ -101,8 +101,8 @@ export async function GET(_req: NextRequest, context: Params) {
     const isContractor = user.role === 'contractor';
     const selectQuery = `
       *,
-      homeowner:profiles!jobs_homeowner_id_fkey(id, first_name, last_name, email, profile_image_url),
-      contractor:profiles!jobs_contractor_id_fkey(id, first_name, last_name, email, profile_image_url),
+      homeowner:profiles!homeowner_id(id, first_name, last_name, email, profile_image_url),
+      contractor:profiles!contractor_id(id, first_name, last_name, email, profile_image_url),
       property:properties!property_id(*),
       bids(count),
       job_attachments(id, file_url, file_type, uploaded_at)

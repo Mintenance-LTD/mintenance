@@ -3,6 +3,7 @@ import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card';
 // import { Button } from '@/components/ui/Button';
 import type { MonthlyTrend } from '@/lib/services/ContractorAnalyticsService';
+import { ClipboardList, PoundSterling, Star, BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface PerformanceTrendsProps {
   jobTrends: MonthlyTrend[];
@@ -46,12 +47,12 @@ export const PerformanceTrends: React.FC<PerformanceTrendsProps> = ({
     }
   };
 
-  const getChartIcon = (type: TrendType) => {
+  const getChartIcon = (type: TrendType): React.ReactNode => {
     switch (type) {
-      case 'jobs': return '📋';
-      case 'earnings': return '💰';
-      case 'ratings': return '⭐';
-      default: return '📊';
+      case 'jobs': return <ClipboardList size={20} />;
+      case 'earnings': return <PoundSterling size={20} />;
+      case 'ratings': return <Star size={20} />;
+      default: return <BarChart3 size={20} />;
     }
   };
 
@@ -61,9 +62,9 @@ export const PerformanceTrends: React.FC<PerformanceTrendsProps> = ({
   const valueRange = maxValue - minValue;
 
   const trendOptions = [
-    { type: 'jobs' as TrendType, label: 'Jobs', icon: '📋', color: theme.colors.primary },
-    { type: 'earnings' as TrendType, label: 'Earnings', icon: '💰', color: theme.colors.success },
-    { type: 'ratings' as TrendType, label: 'Ratings', icon: '⭐', color: theme.colors.warning }
+    { type: 'jobs' as TrendType, label: 'Jobs', icon: <ClipboardList size={16} />, color: theme.colors.primary },
+    { type: 'earnings' as TrendType, label: 'Earnings', icon: <PoundSterling size={16} />, color: theme.colors.success },
+    { type: 'ratings' as TrendType, label: 'Ratings', icon: <Star size={16} />, color: theme.colors.warning }
   ];
 
   // Calculate overall trend
@@ -76,12 +77,12 @@ export const PerformanceTrends: React.FC<PerformanceTrendsProps> = ({
   };
 
   const overallTrend = calculateOverallTrend(trends);
-  const getTrendDirection = (change: number) => {
-    if (change > 5) return { icon: '📈', text: 'Strong Growth', color: theme.colors.success };
-    if (change > 0) return { icon: '↗️', text: 'Growing', color: theme.colors.success };
-    if (change < -5) return { icon: '📉', text: 'Declining', color: theme.colors.error };
-    if (change < 0) return { icon: '↘️', text: 'Decreasing', color: theme.colors.error };
-    return { icon: '➖', text: 'Stable', color: theme.colors.textSecondary };
+  const getTrendDirection = (change: number): { icon: React.ReactNode; text: string; color: string } => {
+    if (change > 5) return { icon: <TrendingUp size={20} />, text: 'Strong Growth', color: theme.colors.success };
+    if (change > 0) return { icon: <TrendingUp size={20} />, text: 'Growing', color: theme.colors.success };
+    if (change < -5) return { icon: <TrendingDown size={20} />, text: 'Declining', color: theme.colors.error };
+    if (change < 0) return { icon: <TrendingDown size={20} />, text: 'Decreasing', color: theme.colors.error };
+    return { icon: <Minus size={20} />, text: 'Stable', color: theme.colors.textSecondary };
   };
 
   const trendDirection = getTrendDirection(overallTrend);
@@ -101,9 +102,12 @@ export const PerformanceTrends: React.FC<PerformanceTrendsProps> = ({
             fontWeight: theme.typography.fontWeight.bold,
             color: theme.colors.text,
             margin: 0,
-            marginBottom: theme.spacing.xs
+            marginBottom: theme.spacing.xs,
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing.sm
           }}>
-            📊 Performance Trends
+            <BarChart3 size={24} /> Performance Trends
           </h2>
           <p style={{
             fontSize: theme.typography.fontSize.sm,
@@ -124,7 +128,7 @@ export const PerformanceTrends: React.FC<PerformanceTrendsProps> = ({
           backgroundColor: `${trendDirection.color}15`,
           border: `1px solid ${trendDirection.color}30`
         }}>
-          <span style={{ fontSize: theme.typography.fontSize.md }}>
+          <span style={{ fontSize: theme.typography.fontSize.md, display: 'flex', alignItems: 'center', color: trendDirection.color }}>
             {trendDirection.icon}
           </span>
           <span style={{
@@ -327,7 +331,9 @@ export const PerformanceTrends: React.FC<PerformanceTrendsProps> = ({
           }}>
             <span style={{
               fontSize: theme.typography.fontSize.lg,
-              color: getChartColor(selectedTrend)
+              color: getChartColor(selectedTrend),
+              display: 'flex',
+              alignItems: 'center'
             }}>
               {getChartIcon(selectedTrend)}
             </span>

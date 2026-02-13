@@ -8,6 +8,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { AreaChart, BarChart, DonutChart, LineChart } from '@tremor/react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { supabase } from '@/lib/supabase';
+import { PoundSterling, CheckCircle, Hammer, BarChart3, HardHat, Home } from 'lucide-react';
 
 interface Payment {
   amount: number;
@@ -23,19 +24,21 @@ interface Job {
   [key: string]: unknown;
 }
 
+interface MetricIcon {
+  label: string;
+  value: string;
+  change: string;
+  changeType: 'positive' | 'negative' | 'neutral';
+  icon: React.ReactNode;
+}
+
 export default function AnalyticsPage2025() {
   const { user } = useCurrentUser();
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
   const [loading, setLoading] = useState(true);
   const [spendingData, setSpendingData] = useState<Array<{ month: string; spending: number; jobs: number }>>([]);
   const [categoryData, setCategoryData] = useState<Array<{ category: string; spending: number }>>([]);
-  const [metrics, setMetrics] = useState<Array<{
-    label: string;
-    value: string;
-    change: string;
-    changeType: 'positive' | 'negative' | 'neutral';
-    icon: string;
-  }>>([]);
+  const [metrics, setMetrics] = useState<MetricIcon[]>([]);
 
   const userDisplayName = user?.first_name && user?.last_name
     ? `${user.first_name} ${user.last_name}`.trim()
@@ -131,12 +134,12 @@ export default function AnalyticsPage2025() {
           .eq('homeowner_id', user.id);
 
         setMetrics([
-          { label: 'Total Spent', value: `£${totalSpent.toLocaleString()}`, change: '+18%', changeType: 'positive', icon: '💰' },
-          { label: 'Jobs Completed', value: completedJobs.toString(), change: '+12%', changeType: 'positive', icon: '✅' },
-          { label: 'Active Projects', value: activeJobs.toString(), change: '0%', changeType: 'neutral', icon: '🔨' },
-          { label: 'Avg Job Cost', value: `£${Math.round(avgJobCost).toLocaleString()}`, change: '+5%', changeType: 'positive', icon: '📊' },
-          { label: 'Contractors Hired', value: contractorCount.toString(), change: `+${contractorCount}`, changeType: 'positive', icon: '👷' },
-          { label: 'Properties', value: (propertiesCount || 0).toString(), change: '0', changeType: 'neutral', icon: '🏠' },
+          { label: 'Total Spent', value: `£${totalSpent.toLocaleString()}`, change: '+18%', changeType: 'positive', icon: <PoundSterling className="w-5 h-5" /> },
+          { label: 'Jobs Completed', value: completedJobs.toString(), change: '+12%', changeType: 'positive', icon: <CheckCircle className="w-5 h-5" /> },
+          { label: 'Active Projects', value: activeJobs.toString(), change: '0%', changeType: 'neutral', icon: <Hammer className="w-5 h-5" /> },
+          { label: 'Avg Job Cost', value: `£${Math.round(avgJobCost).toLocaleString()}`, change: '+5%', changeType: 'positive', icon: <BarChart3 className="w-5 h-5" /> },
+          { label: 'Contractors Hired', value: contractorCount.toString(), change: `+${contractorCount}`, changeType: 'positive', icon: <HardHat className="w-5 h-5" /> },
+          { label: 'Properties', value: (propertiesCount || 0).toString(), change: '0', changeType: 'neutral', icon: <Home className="w-5 h-5" /> },
         ]);
       } catch (error) {
         logger.error('Error fetching analytics:', error);
@@ -215,8 +218,8 @@ export default function AnalyticsPage2025() {
                 variants={staggerItem}
               >
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">{metric.icon}</span>
+                  <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center text-teal-600">
+                    {metric.icon}
                   </div>
                   <div className={`px-3 py-1 rounded-lg text-sm font-semibold ${
                     metric.changeType === 'positive'

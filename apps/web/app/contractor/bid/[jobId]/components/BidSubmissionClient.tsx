@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, X, Lightbulb } from 'lucide-react';
 import { QuoteLineItems, QuoteLineItem } from './QuoteLineItems';
 import { logger } from '@mintenance/shared';
 
@@ -513,8 +513,11 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
                 borderRadius: theme.borderRadius.md,
                 fontSize: theme.typography.fontSize.xs,
                 color: theme.colors.textSecondary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
               }}>
-                💡 Tip: Use "Advanced Quote Details" to break down your pricing with line items, taxes, and terms.
+                <Lightbulb size={16} style={{ flexShrink: 0 }} /> Tip: Use "Advanced Quote Details" to break down your pricing with line items, taxes, and terms.
               </div>
             </>
           ) : (
@@ -536,8 +539,8 @@ export function BidSubmissionClient({ job }: BidSubmissionClientProps) {
             maxLength={5000}
           />
           {description && (
-            <div style={{ fontSize: theme.typography.fontSize.xs, color: description.trim().length < 50 ? theme.colors.error : theme.colors.textSecondary }}>
-              {description.trim().length} / 50 characters minimum {description.trim().length >= 50 && '✓'}
+            <div style={{ fontSize: theme.typography.fontSize.xs, color: description.trim().length < 50 ? theme.colors.error : theme.colors.textSecondary, display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+              {description.trim().length} / 50 characters minimum {description.trim().length >= 50 && <CheckCircle2 size={14} />}
             </div>
           )}
 

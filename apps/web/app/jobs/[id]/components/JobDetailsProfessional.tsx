@@ -267,14 +267,20 @@ export function JobDetailsProfessional({
             )}
 
             {/* Bids Section (Homeowner View Only) */}
-            {isOwner && bids.length > 0 && (
-              <ContentCard title={`Bids Received (${bids.length})`}>
-                <div className="space-y-4">
-                  {bids.map((bid) => (
-                    <BidCard key={bid.id} bid={bid} jobId={job.id} />
-                  ))}
-                </div>
-              </ContentCard>
+            {isOwner && (
+              <div id="bids-section">
+                <ContentCard title={`Bids Received (${bids.length})`}>
+                  {bids.length > 0 ? (
+                    <div className="space-y-4">
+                      {bids.map((bid) => (
+                        <BidCard key={bid.id} bid={bid} jobId={job.id} />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No bids received yet. Contractors will be able to submit bids for this job.</p>
+                  )}
+                </ContentCard>
+              </div>
             )}
 
             {/* Timeline/Schedule */}
@@ -376,10 +382,24 @@ export function JobDetailsProfessional({
                   </button>
                 )}
 
-                <button className="btn-secondary w-full flex items-center justify-center gap-2">
-                  <MessageCircle className="w-5 h-5" />
-                  Contact {isOwner ? 'Contractor' : 'Homeowner'}
-                </button>
+                {isOwner && bids.length > 0 ? (
+                  <a
+                    href="#bids-section"
+                    className="btn-secondary w-full flex items-center justify-center gap-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById('bids-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <Star className="w-5 h-5" />
+                    View {bids.length} {bids.length === 1 ? 'Bid' : 'Bids'}
+                  </a>
+                ) : (
+                  <button className="btn-secondary w-full flex items-center justify-center gap-2">
+                    <MessageCircle className="w-5 h-5" />
+                    Contact {isOwner ? 'Contractor' : 'Homeowner'}
+                  </button>
+                )}
               </div>
 
               {/* Help Card */}
@@ -594,28 +614,33 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
       if (!response.ok) {
         const data = await response.json();
 
-        // Handle specific error cases with better messages
-        if (data.requiresPaymentSetup) {
-          const contractorId = data.contractorId || bid.contractor.id;
-          const message = `⚠️ Payment Setup Required\n\n` +
+        // Extract error message from API response (handles both { error: "string" } and { error: { message: "string" } })
+        const errorMsg = typeof data.error === 'object' && data.error?.message
+          ? data.error.message
+          : typeof data.error === 'string'
+            ? data.error
+            : data.message || 'An unexpected error occurred. Please try again.';
+
+        // Handle payment setup required (check error message content)
+        if (errorMsg.includes('payment account setup') || errorMsg.includes('payment setup')) {
+          const message = `Payment Setup Required\n\n` +
             `This contractor has not completed their payment account setup yet. ` +
             `They need to set up their Stripe Connect account to receive payments before you can accept their bid.\n\n` +
             `What to do:\n` +
-            `• Contact the contractor and ask them to complete payment setup at: /contractor/payouts\n` +
-            `• Or choose a different contractor who has completed payment setup\n\n` +
+            `- Contact the contractor and ask them to complete payment setup\n` +
+            `- Or choose a different contractor who has completed payment setup\n\n` +
             `Once the contractor completes their payment setup, you'll be able to accept their bid.`;
           alert(message);
         } else if (response.status === 409) {
-          // Conflict - bid already accepted
           alert('A bid has already been accepted for this job. Refreshing the page...');
           window.location.reload();
         } else if (response.status === 403) {
-          alert(`Access denied: ${data.error || 'You are not authorised to accept bids for this job.'}`);
+          alert(`Access denied: ${errorMsg}`);
         } else if (response.status === 404) {
-          alert(`Error: ${data.error || 'Bid or job not found. Please refresh the page.'}`);
+          alert(`Error: ${errorMsg}`);
           window.location.reload();
         } else {
-          alert(`Failed to accept bid: ${data.error || data.message || 'An unexpected error occurred. Please try again.'}`);
+          alert(`Failed to accept bid: ${errorMsg}`);
         }
         
         setAccepting(false);

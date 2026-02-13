@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info, Landmark, CreditCard, Banknote, DollarSign } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { logger } from '@mintenance/shared';
@@ -153,15 +153,15 @@ export function PayoutsPageClient({
   const getAccountTypeIcon = (type: string) => {
     switch (type) {
       case 'bank_account':
-        return '🏦';
+        return <Landmark className="w-6 h-6" />;
       case 'paypal':
-        return '💳';
+        return <CreditCard className="w-6 h-6" />;
       case 'venmo':
-        return '💸';
+        return <Banknote className="w-6 h-6" />;
       case 'zelle':
-        return '💵';
+        return <DollarSign className="w-6 h-6" />;
       default:
-        return '💳';
+        return <CreditCard className="w-6 h-6" />;
     }
   };
 
@@ -374,7 +374,7 @@ export function PayoutsPageClient({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '32px',
+                        color: theme.colors.primary,
                       }}>
                         {getAccountTypeIcon(account.account_type)}
                       </div>

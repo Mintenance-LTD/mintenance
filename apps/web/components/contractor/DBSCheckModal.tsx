@@ -56,7 +56,7 @@ const DBS_OPTIONS = {
       'Local police information',
       'Highest trust level',
       '3-year validity',
-      '+25% profile boost ⭐',
+      '+25% profile boost',
       'Preferred by 78% of homeowners',
     ],
   },

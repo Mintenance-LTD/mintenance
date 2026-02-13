@@ -8,7 +8,7 @@ import type { Category } from './types';
 export const safetyCategory: Category = {
   id: 'safety',
   name: 'Safety & Trust',
-  icon: '🛡️',
+  icon: 'shield',
   color: '#10B981',
   articles: [
     { 

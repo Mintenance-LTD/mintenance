@@ -1,7 +1,7 @@
 'use client';
 
 import { MotionDiv } from '@/components/ui/MotionDiv';
-import { Star, TrendingUp } from 'lucide-react';
+import { Star, TrendingUp, HardHat, Wrench } from 'lucide-react';
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -21,7 +21,7 @@ export function SuccessStories() {
     {
       name: 'James Mitchell',
       trade: 'Plumber',
-      avatar: '👨‍🔧',
+      avatar: <Wrench className="w-12 h-12 text-blue-600" />,
       beforeStats: { jobs: 5, revenue: '£2,500' },
       afterStats: { jobs: 18, revenue: '£12,000' },
       quote: 'Upgrading to Professional was the best business decision I made. The platform fee savings alone paid for the subscription, and the featured listing brought me 3x more leads.',
@@ -30,7 +30,7 @@ export function SuccessStories() {
     {
       name: 'Sarah Thompson',
       trade: 'Electrician',
-      avatar: '👩‍🔧',
+      avatar: <Wrench className="w-12 h-12 text-amber-600" />,
       beforeStats: { jobs: 8, revenue: '£4,800' },
       afterStats: { jobs: 25, revenue: '£18,500' },
       quote: 'The advanced analytics helped me understand which jobs were most profitable. Now I bid smarter, win more, and earn significantly more per month.',
@@ -39,7 +39,7 @@ export function SuccessStories() {
     {
       name: 'David Chen',
       trade: 'General Contractor',
-      avatar: '👷',
+      avatar: <HardHat className="w-12 h-12 text-orange-600" />,
       beforeStats: { jobs: 12, revenue: '£15,000' },
       afterStats: { jobs: 45, revenue: '£62,000' },
       quote: 'Business plan transformed our operation. Team accounts let my crew bid independently, and the 7% platform fee saves us thousands every month.',
@@ -72,7 +72,7 @@ export function SuccessStories() {
           >
             {/* Avatar and Info */}
             <div className="flex items-center gap-4 mb-6">
-              <div className="text-5xl">{story.avatar}</div>
+              <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded-full">{story.avatar}</div>
               <div>
                 <h3 className="text-xl font-bold text-gray-900">{story.name}</h3>
                 <p className="text-teal-600 font-medium">{story.trade}</p>

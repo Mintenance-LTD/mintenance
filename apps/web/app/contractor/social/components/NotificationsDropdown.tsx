@@ -43,7 +43,7 @@ export function NotificationsDropdown(props: NotificationsDropdownProps) {
     // Fetch unread count periodically
     const interval = setInterval(() => {
       fetchUnreadCount();
-    }, 30000); // Every 30 seconds
+    }, 60000); // Every 60 seconds
 
     fetchUnreadCount();
     return () => clearInterval(interval);

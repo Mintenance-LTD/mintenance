@@ -36,6 +36,43 @@ export type SupabaseMessageRow = {
   sender?: SupabasePerson | null;
 };
 
+/** Actual production messages table schema (uses thread_id, content, read_by) */
+export type ActualMessageRow = {
+  id: string;
+  thread_id: string;
+  sender_id: string;
+  content: string;
+  message_type: string | null;
+  metadata: Record<string, unknown> | null;
+  read_by: string[];
+  created_at: string;
+  sender?: SupabasePerson | null;
+};
+
+/** Map a real messages row to the frontend Message format */
+export const mapActualMessageRow = (
+  row: ActualMessageRow,
+  jobId: string,
+  currentUserId: string,
+): Message => {
+  return {
+    id: row.id,
+    jobId,
+    senderId: row.sender_id,
+    receiverId: '', // Not stored in actual schema
+    messageText: row.content || '',
+    messageType: normalizeMessageType(row.message_type),
+    attachmentUrl: row.metadata?.attachment_url as string | undefined,
+    read: Array.isArray(row.read_by) ? row.read_by.includes(currentUserId) : false,
+    createdAt: row.created_at,
+    senderName: row.sender ? formatDisplayName(row.sender, {
+      email: row.sender.email ?? undefined,
+      company_name: row.sender.company_name ?? undefined,
+    }) : undefined,
+    senderRole: row.sender?.role ?? undefined,
+  };
+};
+
 export const MESSAGE_TYPES = [
   'text',
   'image',

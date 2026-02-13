@@ -1,4 +1,5 @@
 import React from 'react';
+import { Image as ImageIcon, Paperclip, Phone, Video } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import type { MessageThread } from '@mintenance/types';
 
@@ -37,17 +38,41 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
 
     switch (messageType) {
       case 'image':
-        return '📷 Photo';
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <ImageIcon size={14} /> Photo
+          </span>
+        );
       case 'file':
-        return '📎 File';
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Paperclip size={14} /> File
+          </span>
+        );
       case 'video_call_invitation':
-        return '📞 Video call invitation';
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Phone size={14} /> Video call invitation
+          </span>
+        );
       case 'video_call_started':
-        return '🎥 Video call started';
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Video size={14} /> Video call started
+          </span>
+        );
       case 'video_call_ended':
-        return '📞 Call ended';
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Phone size={14} /> Call ended
+          </span>
+        );
       case 'video_call_missed':
-        return '📞 Missed call';
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Phone size={14} /> Missed call
+          </span>
+        );
       default:
         return truncateMessage(messageText, 50);
     }

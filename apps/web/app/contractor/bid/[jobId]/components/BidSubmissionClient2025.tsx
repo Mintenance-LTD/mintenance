@@ -4,6 +4,7 @@ import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPag
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
+import { Lightbulb, AlertTriangle } from 'lucide-react';
 import { fadeIn, scaleIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { formatMoney } from '@/lib/utils/currency';
@@ -281,11 +282,11 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
         const excess = totalAmount - jobBudget;
         const maxBaseAmount = taxRate > 0 ? (jobBudget / (1 + taxRate / 100)).toFixed(2) : jobBudget.toFixed(2);
 
-        let errorMsg = `❌ Your total bid amount (£${totalAmount.toFixed(2)}) exceeds the job budget (£${jobBudget.toFixed(2)}) by £${excess.toFixed(2)}.`;
+        let errorMsg = `Your total bid amount (£${totalAmount.toFixed(2)}) exceeds the job budget (£${jobBudget.toFixed(2)}) by £${excess.toFixed(2)}.`;
 
         if (taxAmount > 0) {
           errorMsg += `\n\nThis includes ${taxRate}% tax (£${taxAmount.toFixed(2)}).`;
-          errorMsg += `\n💡 Maximum base amount (before tax): £${maxBaseAmount}`;
+          errorMsg += `\nMaximum base amount (before tax): £${maxBaseAmount}`;
         }
         if (lineItems.length > 0) {
           errorMsg += `\n\nThis includes ${lineItems.length} line item(s).`;
@@ -300,7 +301,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
             fontSize: '14px',
             padding: '16px',
           },
-          icon: '⚠️',
+          icon: <AlertTriangle className="w-5 h-5" />,
         });
 
         return;
@@ -807,7 +808,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                                 </p>
                                 {taxAmount > 0 && (
                                   <p className="text-xs text-rose-700 mb-2 font-medium">
-                                    💡 Maximum base amount (before tax): £{(jobBudget / (1 + taxRate / 100)).toFixed(2)}
+                                    <Lightbulb className="w-4 h-4 inline-block mr-1" /> Maximum base amount (before tax): £{(jobBudget / (1 + taxRate / 100)).toFixed(2)}
                                   </p>
                                 )}
                                 <p className="text-xs text-rose-700">

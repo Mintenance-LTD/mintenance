@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/ui';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
-import { Briefcase, TrendingUp, Clock, PoundSterling, AlertCircle, ArrowRight } from 'lucide-react';
+import { Briefcase, TrendingUp, Clock, PoundSterling, AlertCircle, ArrowRight, MapPin, User } from 'lucide-react';
 import { logger } from '@mintenance/shared';
 
 interface ActiveBid {
@@ -216,9 +216,9 @@ export default function ContractorBidsOverviewPage() {
                           {(bid.jobs?.description || '').substring(0, 150)}...
                         </p>
                         <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span>📍 {bid.jobs?.location || 'Unknown'}</span>
-                          <span>💼 {bid.jobs?.category || 'General'}</span>
-                          <span>👤 {bid.jobs?.homeowner?.first_name} {bid.jobs?.homeowner?.last_name}</span>
+                          <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {bid.jobs?.location || 'Unknown'}</span>
+                          <span className="flex items-center gap-1"><Briefcase className="w-4 h-4" /> {bid.jobs?.category || 'General'}</span>
+                          <span className="flex items-center gap-1"><User className="w-4 h-4" /> {bid.jobs?.homeowner?.first_name} {bid.jobs?.homeowner?.last_name}</span>
                         </div>
                       </div>
                     </div>

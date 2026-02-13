@@ -3,6 +3,7 @@ import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPag
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { ClipboardList, CheckCircle2 } from 'lucide-react';
 // REMOVED: import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
 import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -306,16 +307,16 @@ export default function ContractorVerificationPage2025() {
 
                     {step.status === 'pending' && (
                       <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                        <p className="text-amber-800 text-sm">
-                          📋 Your document is under review. This typically takes 1-2 business days.
+                        <p className="text-amber-800 text-sm flex items-center gap-2">
+                          <ClipboardList className="w-4 h-4" /> Your document is under review. This typically takes 1-2 business days.
                         </p>
                       </div>
                     )}
 
                     {step.status === 'approved' && (
                       <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                        <p className="text-emerald-800 text-sm">
-                          ✓ Document verified successfully!
+                        <p className="text-emerald-800 text-sm flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4" /> Document verified successfully!
                         </p>
                       </div>
                     )}

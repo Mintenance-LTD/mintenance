@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Banknote, Clock, RotateCcw, ClipboardList } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { formatMoney } from '@/lib/utils/currency';
 
@@ -18,10 +19,10 @@ export function PaymentsStatsCards({
   transactionCount,
 }: PaymentsStatsCardsProps) {
   const stats = [
-    { label: 'Total Paid', value: formatMoney(totalPaid, 'GBP'), icon: '\uD83D\uDCB0', bgColor: 'bg-green-50' },
-    { label: 'Pending', value: formatMoney(pendingAmount, 'GBP'), icon: '\u23F3', bgColor: 'bg-yellow-50' },
-    { label: 'Refunded', value: formatMoney(refundedAmount, 'GBP'), icon: '\u21A9\uFE0F', bgColor: 'bg-blue-50' },
-    { label: 'Transactions', value: transactionCount, icon: '\uD83D\uDCCB', bgColor: 'bg-gray-50' },
+    { label: 'Total Paid', value: formatMoney(totalPaid, 'GBP'), icon: <Banknote className="w-7 h-7 text-green-600" />, bgColor: 'bg-green-50' },
+    { label: 'Pending', value: formatMoney(pendingAmount, 'GBP'), icon: <Clock className="w-7 h-7 text-yellow-600" />, bgColor: 'bg-yellow-50' },
+    { label: 'Refunded', value: formatMoney(refundedAmount, 'GBP'), icon: <RotateCcw className="w-7 h-7 text-blue-600" />, bgColor: 'bg-blue-50' },
+    { label: 'Transactions', value: transactionCount, icon: <ClipboardList className="w-7 h-7 text-gray-600" />, bgColor: 'bg-gray-50' },
   ];
 
   return (
@@ -35,7 +36,7 @@ export function PaymentsStatsCards({
           className={`${stat.bgColor} rounded-xl p-6 border border-gray-200`}
         >
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">{stat.icon}</span>
+            {stat.icon}
           </div>
           <div className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</div>
           <div className="text-gray-600 text-sm">{stat.label}</div>

@@ -415,7 +415,7 @@ export function AIAssessmentShowcase() {
 
                                 {result.safetyHazards && result.safetyHazards.length > 0 && (
                                     <div className="mt-4 p-4 bg-red-500/20 rounded-xl border border-red-400/30">
-                                        <p className="text-sm font-semibold text-red-200 mb-2">⚠️ Safety Hazards Detected:</p>
+                                        <p className="text-sm font-semibold text-red-200 mb-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" /> Safety Hazards Detected:</p>
                                         <ul className="text-sm text-red-100 space-y-1">
                                             {result.safetyHazards.map((hazard, i) => (
                                                 <li key={i}>• {hazard}</li>

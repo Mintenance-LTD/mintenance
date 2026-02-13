@@ -5,6 +5,7 @@ import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { fadeIn } from '@/lib/animations/variants';
 import Link from 'next/link';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import { PartyPopper, Star, Lightbulb } from 'lucide-react';
 
 interface Bid {
   id: string;
@@ -148,7 +149,9 @@ export function BidSwipeView(props: BidSwipeViewProps) {
         animate="animate"
       >
         <div className="text-center">
-          <div className="text-6xl mb-4">🎉</div>
+          <div className="flex justify-center mb-4">
+            <PartyPopper className="w-16 h-16 text-teal-600" />
+          </div>
           <h3 className="text-2xl font-bold text-gray-900 mb-2">All Done!</h3>
           <p className="text-gray-600 mb-6">
             You've reviewed all bids for this job.
@@ -273,7 +276,7 @@ export function BidSwipeView(props: BidSwipeViewProps) {
               <div className="flex items-center justify-center gap-4 mt-2 text-sm text-gray-500">
                 {currentBid.contractor.rating && (
                   <span className="flex items-center gap-1 text-amber-600 font-semibold">
-                    <span className="text-lg">⭐</span>
+                    <Star className="w-4 h-4 fill-current" />
                     {currentBid.contractor.rating.toFixed(1)}
                   </span>
                 )}
@@ -388,7 +391,10 @@ export function BidSwipeView(props: BidSwipeViewProps) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <p>💡 Swipe or use the buttons below</p>
+          <p className="flex items-center justify-center gap-2">
+            <Lightbulb className="w-4 h-4" />
+            Swipe or use the buttons below
+          </p>
         </motion.div>
       )}
     </MotionDiv>

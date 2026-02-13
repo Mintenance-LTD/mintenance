@@ -40,7 +40,7 @@ interface Quote {
   amount: number;
   createdDate: string;
   sentDate?: string;
-  expiryDate: string;
+  expiryDate: string | null;
   templateUsed?: string;
   items?: number;
 }
@@ -607,16 +607,18 @@ export default function QuotesPage() {
                           </span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-600">Expires</span>
-                        <span className="font-medium text-slate-900">
-                          {new Date(quote.expiryDate).toLocaleDateString('en-GB', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      </div>
+                      {quote.expiryDate && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-600">Expires</span>
+                          <span className="font-medium text-slate-900">
+                            {new Date(quote.expiryDate).toLocaleDateString('en-GB', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Template Badge */}

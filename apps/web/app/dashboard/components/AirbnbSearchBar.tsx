@@ -12,8 +12,25 @@ import {
   Wrench,
   Briefcase,
   Plus,
-  X
+  X,
+  Droplets,
+  Zap,
+  Hammer,
+  Paintbrush,
+  Sprout,
+  Snowflake,
 } from 'lucide-react';
+
+const CATEGORY_ICON_MAP: Record<string, React.ReactNode> = {
+  droplets: <Droplets className="w-6 h-6" />,
+  zap: <Zap className="w-6 h-6" />,
+  hammer: <Hammer className="w-6 h-6" />,
+  paintbrush: <Paintbrush className="w-6 h-6" />,
+  home: <Home className="w-6 h-6" />,
+  sprout: <Sprout className="w-6 h-6" />,
+  snowflake: <Snowflake className="w-6 h-6" />,
+  wrench: <Wrench className="w-6 h-6" />,
+};
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -34,14 +51,14 @@ type SearchMode = 'where' | 'when' | 'what' | null;
 type DateMode = 'dates' | 'months' | 'flexible';
 
 const jobCategories = [
-  { id: 'plumbing', label: 'Plumbing', icon: '🚰' },
-  { id: 'electrical', label: 'Electrical', icon: '⚡' },
-  { id: 'carpentry', label: 'Carpentry', icon: '🔨' },
-  { id: 'painting', label: 'Painting', icon: '🎨' },
-  { id: 'roofing', label: 'Roofing', icon: '🏠' },
-  { id: 'landscaping', label: 'Landscaping', icon: '🌿' },
-  { id: 'hvac', label: 'HVAC', icon: '❄️' },
-  { id: 'general', label: 'General Repair', icon: '🔧' },
+  { id: 'plumbing', label: 'Plumbing', icon: 'droplets' },
+  { id: 'electrical', label: 'Electrical', icon: 'zap' },
+  { id: 'carpentry', label: 'Carpentry', icon: 'hammer' },
+  { id: 'painting', label: 'Painting', icon: 'paintbrush' },
+  { id: 'roofing', label: 'Roofing', icon: 'home' },
+  { id: 'landscaping', label: 'Landscaping', icon: 'sprout' },
+  { id: 'hvac', label: 'HVAC', icon: 'snowflake' },
+  { id: 'general', label: 'General Repair', icon: 'wrench' },
 ];
 
 const urgencyOptions = [
@@ -527,7 +544,7 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    <span className="text-2xl">{category.icon}</span>
+                    <span className="text-teal-600">{CATEGORY_ICON_MAP[category.icon] || category.icon}</span>
                     <span className="text-sm font-medium text-gray-900">{category.label}</span>
                   </button>
                 ))}

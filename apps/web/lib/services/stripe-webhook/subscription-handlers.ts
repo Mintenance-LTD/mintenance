@@ -56,6 +56,7 @@ export async function handleSubscriptionUpdated(
       paused: 'paused',
     };
     const mappedStatus = statusMap[subscription.status] || subscription.status;
+    const homeownerStatus = mappedStatus === 'cancelled' ? 'canceled' : mappedStatus;
 
     // Determine tier from price metadata or product
     const priceId = subscription.items?.data?.[0]?.price?.id;
@@ -78,7 +79,7 @@ export async function handleSubscriptionUpdated(
       });
     }
 
-    // Update contractor_profiles if user is a contractor
+    // Update role-specific subscription table/profile
     if (user.role === 'contractor') {
       const contractorUpdate: Record<string, unknown> = {
         subscription_status: mappedStatus,
@@ -97,6 +98,33 @@ export async function handleSubscriptionUpdated(
         logger.error('Failed to update contractor_profiles subscription', contractorError, {
           service: 'stripe-webhook',
           userId: user.id,
+        });
+      }
+    } else if (user.role === 'homeowner') {
+      const { error: homeownerSubError } = await serverSupabase
+        .from('homeowner_subscriptions')
+        .update({
+          status: homeownerStatus,
+          current_period_start: subscription.current_period_start
+            ? new Date(subscription.current_period_start * 1000).toISOString()
+            : null,
+          current_period_end: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000).toISOString()
+            : null,
+          cancel_at_period_end: subscription.cancel_at_period_end || false,
+          canceled_at: subscription.canceled_at
+            ? new Date(subscription.canceled_at * 1000).toISOString()
+            : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_subscription_id', subscription.id);
+
+      if (homeownerSubError) {
+        logger.error('Failed to update homeowner_subscriptions subscription', homeownerSubError, {
+          service: 'stripe-webhook',
+          userId: user.id,
+          mappedStatus,
+          homeownerStatus,
         });
       }
     }
@@ -188,7 +216,7 @@ export async function handleSubscriptionDeleted(
       });
     }
 
-    // Downgrade contractor_profiles
+    // Downgrade role-specific subscription states
     if (user.role === 'contractor') {
       const { error: contractorError } = await serverSupabase
         .from('contractor_profiles')
@@ -201,6 +229,22 @@ export async function handleSubscriptionDeleted(
 
       if (contractorError) {
         logger.error('Failed to downgrade contractor subscription', contractorError, {
+          service: 'stripe-webhook',
+          userId: user.id,
+        });
+      }
+    } else if (user.role === 'homeowner') {
+      const { error: homeownerError } = await serverSupabase
+        .from('homeowner_subscriptions')
+        .update({
+          status: 'canceled',
+          canceled_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_subscription_id', subscription.id);
+
+      if (homeownerError) {
+        logger.error('Failed to downgrade homeowner subscription', homeownerError, {
           service: 'stripe-webhook',
           userId: user.id,
         });

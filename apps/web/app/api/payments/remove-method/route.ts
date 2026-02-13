@@ -70,14 +70,31 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Verify the payment method belongs to this user's customer
-    // Use users table to match add-method route behavior
-    const { data: userData, error: userError } = await serverSupabase
+    // Try to get stripe_customer_id (column may not exist in DB schema)
+    let stripeCustomerId: string | null = null;
+    const { data: stripeData } = await serverSupabase
       .from('profiles')
       .select('stripe_customer_id')
       .eq('id', user.id)
       .single();
+    if (stripeData) {
+      stripeCustomerId = (stripeData as Record<string, unknown>).stripe_customer_id as string | null;
+    }
 
-    if (userError || !userData || !userData.stripe_customer_id) {
+    // Fallback: search Stripe by email
+    if (!stripeCustomerId) {
+      const { data: profileData } = await serverSupabase
+        .from('profiles')
+        .select('email')
+        .eq('id', user.id)
+        .single();
+      if (profileData?.email) {
+        const existing = await stripe.customers.list({ email: profileData.email, limit: 1 });
+        stripeCustomerId = existing.data[0]?.id || null;
+      }
+    }
+
+    if (!stripeCustomerId) {
       logger.warn('User has no Stripe customer record', {
         service: 'payments',
         userId: user.id
@@ -88,12 +105,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (paymentMethod.customer !== userData.stripe_customer_id) {
+    if (paymentMethod.customer !== stripeCustomerId) {
       logger.warn('Payment method ownership verification failed', {
         service: 'payments',
         userId: user.id,
         paymentMethodId,
-        expectedCustomerId: userData.stripe_customer_id,
+        expectedCustomerId: stripeCustomerId,
         actualCustomerId: paymentMethod.customer
       });
       return NextResponse.json(

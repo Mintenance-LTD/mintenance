@@ -1,4 +1,5 @@
 import React, { useState, useRef, KeyboardEvent } from 'react';
+import { Paperclip, Smile, ExternalLink } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -100,7 +101,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         title="Attach file"
         aria-label="Attach file"
       >
-        📎
+        <Paperclip size={20} />
       </button>
 
       {/* Message Input Container */}
@@ -169,7 +170,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           title="Add emoji"
           aria-label="Add emoji"
         >
-          😊
+          <Smile size={20} />
         </button>
       </div>
 
@@ -187,7 +188,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           fontSize: theme.typography.fontSize.lg,
         }}
       >
-        <span aria-hidden="true">↗️</span>
+        <span aria-hidden="true"><ExternalLink size={20} /></span>
       </Button>
 
       {/* File Upload Alert Dialog */}

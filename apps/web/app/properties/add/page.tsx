@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Home, MapPin, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Home, MapPin, Upload, X, Image as ImageIcon, Building2, Building } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface PropertyFormData {
@@ -36,10 +36,10 @@ export default function AddPropertyPage2025() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const propertyTypes = [
-    { value: 'house', label: 'House', icon: '🏠' },
-    { value: 'apartment', label: 'Apartment', icon: '🏢' },
-    { value: 'condo', label: 'Condo', icon: '🏘️' },
-    { value: 'townhouse', label: 'Townhouse', icon: '🏡' },
+    { value: 'house', label: 'House', icon: <Home className="w-8 h-8" /> },
+    { value: 'apartment', label: 'Apartment', icon: <Building2 className="w-8 h-8" /> },
+    { value: 'condo', label: 'Condo', icon: <Building className="w-8 h-8" /> },
+    { value: 'townhouse', label: 'Townhouse', icon: <Home className="w-8 h-8" /> },
   ];
 
   const handleInputChange = (field: keyof PropertyFormData, value: string) => {
@@ -141,7 +141,7 @@ export default function AddPropertyPage2025() {
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <div className="text-3xl mb-2">{type.icon}</div>
+                  <div className="mb-2 text-teal-600">{type.icon}</div>
                   <div className="text-sm font-medium text-gray-900">{type.label}</div>
                 </button>
               ))}

@@ -285,9 +285,12 @@ export class EnhancedRateLimiter {
       const store = await this.getStore();
       const isUsingFallback = store === this.fallbackStore;
 
-      // Apply stricter limits when using fallback in production
+      // Apply reduced limits when using fallback in production
+      // Note: In-memory fallback is per-instance only on Vercel, so each
+      // serverless instance tracks independently. 75% is reasonable since
+      // requests are distributed across instances anyway.
       const effectiveLimit = isUsingFallback && process.env.NODE_ENV === 'production'
-        ? Math.ceil(limit * 0.1) // 10% of normal limit
+        ? Math.max(3, Math.ceil(limit * 0.75)) // 75% of normal limit, minimum 3
         : limit;
 
       // Generate rate limit key
