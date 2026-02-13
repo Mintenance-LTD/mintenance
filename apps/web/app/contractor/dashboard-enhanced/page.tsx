@@ -43,19 +43,16 @@ export default async function ContractorDashboard2025() {
         id,
         title,
         status,
-        budget,
-        scheduled_date,
+        budget_min,
+        budget_max,
         created_at,
         updated_at,
         category,
-        priority,
-        homeowner:homeowner_id (
+        urgency,
+        homeowner:profiles!homeowner_id (
           first_name,
           last_name,
           email
-        ),
-        job_progress (
-          progress_percentage
         )
       `)
       .eq('contractor_id', user.id)
@@ -67,24 +64,24 @@ export default async function ContractorDashboard2025() {
         id,
         title,
         status,
-        budget,
-        scheduled_date,
+        budget_min,
+        budget_max,
         created_at,
         category,
-        priority,
-        homeowner:homeowner_id (
+        urgency,
+        homeowner:profiles!homeowner_id (
           first_name,
           last_name,
           email
         )
       `)
       .is('contractor_id', null)
-      .in('status', ['open', 'pending'])
+      .in('status', ['open', 'posted'])
       .order('created_at', { ascending: false })
       .limit(10),
     serverSupabase
       .from('bids')
-      .select('id, status, bid_amount, created_at, job_id')
+      .select('id, status, amount, created_at, job_id')
       .eq('contractor_id', user.id)
       .limit(50),
     serverSupabase
@@ -106,7 +103,7 @@ export default async function ContractorDashboard2025() {
       .limit(20),
     serverSupabase
       .from('notifications')
-      .select('id, type, message, created_at, is_read')
+      .select('id, type, message, created_at, read')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10),
@@ -170,37 +167,27 @@ export default async function ContractorDashboard2025() {
   // Recent jobs data (contractor's own jobs)
   const recentJobs = jobs.slice(0, 5).map((job) => {
     const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
-    const jobProgress = Array.isArray(job.job_progress)
-      ? job.job_progress[0]
-      : job.job_progress;
-    const realProgress = jobProgress?.progress_percentage
-      ? parseFloat(jobProgress.progress_percentage.toString())
-      : null;
 
     let progress: number;
-    if (realProgress !== null) {
-      progress = realProgress;
-    } else {
-      switch (job.status) {
-        case 'completed': progress = 100; break;
-        case 'in_progress': progress = 50; break;
-        case 'assigned': progress = 25; break;
-        default: progress = 0;
-      }
+    switch (job.status) {
+      case 'completed': progress = 100; break;
+      case 'in_progress': progress = 50; break;
+      case 'assigned': progress = 25; break;
+      default: progress = 0;
     }
 
     return {
       id: job.id,
       title: job.title,
       status: job.status,
-      budget: job.budget,
+      budget: job.budget_max || job.budget_min || 0,
       progress,
       category: job.category,
-      priority: job.priority,
+      priority: job.urgency || 'medium',
       homeowner: homeowner
         ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || homeowner.email
         : 'Unknown',
-      dueDate: job.scheduled_date,
+      dueDate: job.updated_at,
     };
   });
 
@@ -212,14 +199,14 @@ export default async function ContractorDashboard2025() {
       id: job.id,
       title: job.title,
       status: job.status,
-      budget: job.budget,
+      budget: job.budget_max || job.budget_min || 0,
       progress: 0,
       category: job.category,
-      priority: job.priority,
+      priority: job.urgency || 'medium',
       homeowner: homeowner
         ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || homeowner.email
         : 'Unknown',
-      dueDate: job.scheduled_date,
+      dueDate: job.created_at,
     };
   });
 
@@ -253,7 +240,7 @@ export default async function ContractorDashboard2025() {
       type: n.type,
       message: n.message,
       timestamp: n.created_at,
-      isRead: n.is_read,
+      isRead: n.read,
     })),
     subscriptionInfo: trialStatus && trialStatus.isTrialActive ? {
       tier: 'free' as const,

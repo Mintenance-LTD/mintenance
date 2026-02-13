@@ -224,6 +224,7 @@ export default function ProfilePage2025() {
         lastName={userData.lastName}
         email={userData.email}
         joinDate={userData.joinDate}
+        profileImageUrl={user?.profile_image_url}
         isEditing={isEditing}
         onStartEditing={() => setIsEditing(true)}
         onSave={handleSave}

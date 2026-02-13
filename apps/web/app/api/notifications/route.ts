@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     // This avoids complex .or() syntax which can cause issues
     const { data: allUserNotifications, error: fetchError } = await serverSupabase
       .from('notifications')
-      .select('id, type, title, message, read, created_at, action_url, user_id')
+      .select('id, type, title, message, read, created_at, action_url, data, user_id')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(50); // Fetch more, then filter

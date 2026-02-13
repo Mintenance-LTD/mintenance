@@ -10,7 +10,6 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 const navigation = {
   homeowners: [
     { name: 'Post a Job', href: '/jobs/create' },
-    { name: 'Find Contractors', href: '/contractors' },
     { name: 'How It Works', href: '/how-it-works' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'AI Assessment', href: '/try-mint-ai' },

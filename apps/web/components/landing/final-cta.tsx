@@ -21,10 +21,10 @@ export function FinalCTA() {
             Post Your First Job
           </Link>
           <Link
-            href="/contractors"
+            href="/register?role=contractor"
             className="px-10 py-5 bg-gray-100 text-gray-900 text-lg font-bold rounded-2xl hover:bg-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
           >
-            Browse Contractors
+            Join as a Contractor
           </Link>
         </div>
       </div>

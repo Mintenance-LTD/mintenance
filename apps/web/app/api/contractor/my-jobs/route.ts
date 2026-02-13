@@ -12,12 +12,13 @@ interface JobApiResponse {
   id: string;
   title: string;
   description?: string;
-  location?: string;
+  location?: unknown;
   category?: string;
-  priority?: string;
-  budget: number;
+  urgency?: string;
+  budget_min?: number;
+  budget_max?: number;
   status: string;
-  photos?: string[];
+  images?: string[];
   created_at: string;
   homeowner_id: string;
   homeowner?: {
@@ -113,12 +114,13 @@ export async function GET(request: NextRequest) {
           id,
           title,
           description,
-          budget,
+          budget_min,
+          budget_max,
           location,
           category,
-          priority,
+          urgency,
           status,
-          photos,
+          images,
           created_at,
           homeowner_id,
           homeowner:profiles!homeowner_id (
@@ -139,17 +141,17 @@ export async function GET(request: NextRequest) {
         throw jobsError;
       }
 
-      // Transform to match expected format
+      // Transform DB columns to match frontend expected format
       const transformedJobs = (jobs || []).map((job: JobApiResponse) => ({
         id: job.id,
         title: job.title,
         description: job.description,
         location: job.location,
         category: job.category,
-        priority: job.priority || 'medium',
-        budget: job.budget,
+        priority: job.urgency || 'medium',
+        budget: job.budget_max || job.budget_min || 0,
         status: job.status,
-        photos: job.photos || [],
+        photos: job.images || [],
         created_at: job.created_at,
         homeowner_id: job.homeowner_id,
         homeowner_name: job.homeowner
@@ -169,12 +171,13 @@ export async function GET(request: NextRequest) {
           id,
           title,
           description,
-          budget,
+          budget_min,
+          budget_max,
           location,
           category,
-          priority,
+          urgency,
           status,
-          photos,
+          images,
           created_at,
           homeowner_id,
           homeowner:profiles!homeowner_id (
@@ -207,17 +210,17 @@ export async function GET(request: NextRequest) {
         throw jobsError;
       }
 
-      // Transform to match expected format
+      // Transform DB columns to match frontend expected format
       const transformedJobs = (jobs || []).map((job: JobApiResponse) => ({
         id: job.id,
         title: job.title,
         description: job.description,
         location: job.location,
         category: job.category,
-        priority: job.priority || 'medium',
-        budget: job.budget,
+        priority: job.urgency || 'medium',
+        budget: job.budget_max || job.budget_min || 0,
         status: job.status,
-        photos: job.photos || [],
+        photos: job.images || [],
         created_at: job.created_at,
         homeowner_id: job.homeowner_id,
         homeowner_name: job.homeowner

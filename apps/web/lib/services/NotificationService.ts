@@ -46,7 +46,7 @@ export class NotificationService {
       }
 
       const data = await response.json();
-      return data.notifications || [];
+      return Array.isArray(data) ? data : (data.notifications || []);
     } catch (error) {
       logger.error('Failed to get user notifications', error, { service: 'NotificationService', userId });
       throw error;

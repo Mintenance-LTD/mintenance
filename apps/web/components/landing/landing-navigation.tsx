@@ -5,8 +5,8 @@ import Link from 'next/link';
 
 const NAV_LINKS = [
   { href: '#how-it-works', label: 'How It Works' },
-  { href: '/dashboard', label: 'For Homeowners' },
-  { href: '/contractor/dashboard-enhanced', label: 'For Contractors' },
+  { href: '/login?redirect=/dashboard', label: 'For Homeowners' },
+  { href: '/login?redirect=/contractor/dashboard-enhanced', label: 'For Contractors' },
   { href: '/about', label: 'About' },
 ];
 

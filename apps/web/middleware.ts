@@ -45,8 +45,11 @@ export async function middleware(request: NextRequest) {
   const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search', '/try-mint-ai'];
   const publicApiRoutes = ['/api/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform', '/api/diag'];
   const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
-  const isPublicContractorProfile = /^\/contractor\/[^\/]+$/.test(pathname);
-  const isPublicContractorsPage = /^\/contractors(\/|$)/.test(pathname);
+  // SECURITY: Only allow UUID-formatted contractor profile paths as public
+  // This prevents /contractor/dashboard-enhanced, /contractor/settings, etc. from bypassing auth
+  const isPublicContractorProfile = /^\/contractor\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname);
+  // /contractors listing now requires authentication
+  const isPublicContractorsPage = false;
   const isPublicRoute = pathname === '/' ||
     publicRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
     publicApiRoutes.some(route => pathname === route || pathname.startsWith(route + '/')) ||
