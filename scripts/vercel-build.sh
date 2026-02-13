@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+echo "=== Mintenance Build ==="
 echo "=== Copying public assets for Vercel ==="
 cp -r apps/web/public ./public 2>/dev/null || true
 echo "=== Building Next.js app ==="
