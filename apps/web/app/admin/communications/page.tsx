@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { CommunicationsClient } from './components/CommunicationsClient';
 
 export const metadata = {
@@ -6,7 +6,7 @@ export const metadata = {
 };
 
 export default async function AdminCommunicationsPage() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = serverSupabase;
 
   const { data: { user } } = await supabase.auth.getUser();
 

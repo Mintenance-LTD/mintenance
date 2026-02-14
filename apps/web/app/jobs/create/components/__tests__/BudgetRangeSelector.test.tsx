@@ -16,6 +16,8 @@ vi.mock('lucide-react', () => ({
   EyeOff: () => <span data-testid="icon-eyeoff" />,
   TrendingUp: () => <span data-testid="icon-trending" />,
   AlertCircle: () => <span data-testid="icon-alert" />,
+  Lock: () => <span data-testid="icon-lock" />,
+  CheckCircle: () => <span data-testid="icon-check-circle" />,
 }));
 
 describe('BudgetRangeSelector', () => {

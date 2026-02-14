@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { Briefcase, TrendingUp, Clock, PoundSterling, AlertCircle, ArrowRight, MapPin, User } from 'lucide-react';
 import { logger } from '@mintenance/shared';
+import { DailyRundownBanner } from '@/app/contractor/components/DailyRundownBanner';
 
 interface ActiveBid {
   id: string;
@@ -104,6 +105,8 @@ export default function ContractorBidsOverviewPage() {
   return (
     <ErrorBoundary>
     <ContractorPageWrapper>
+      {/* Daily Rundown Banner - dismissable, shows once per day */}
+      <DailyRundownBanner />
       {/* Header */}
       <div className="bg-white border border-gray-200 rounded-xl p-8 mb-6">
         <div className="flex items-center justify-between mb-6">

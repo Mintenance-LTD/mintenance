@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { rateLimiter, checkAIUserRateLimit } from '@/lib/rate-limiter';
@@ -67,8 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Per-user rate limit if authenticated
     try {
-      const supabase = await createServerSupabaseClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await serverSupabase.auth.getUser();
       if (user) {
         const userRateLimit = await checkAIUserRateLimit(user.id);
         if (!userRateLimit.allowed) {

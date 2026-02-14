@@ -325,10 +325,11 @@ export class PaymentMonitoringService {
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
       // Check hourly transaction count
+      // escrow_transactions uses payer_id/payee_id, not user_id
       const { count: hourlyCount, error: hourlyCountError } = await serverSupabase
         .from('escrow_transactions')
         .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
+        .or(`payer_id.eq.${userId},payee_id.eq.${userId}`)
         .gte('created_at', oneHourAgo);
 
       if (hourlyCountError) {
@@ -352,7 +353,7 @@ export class PaymentMonitoringService {
       const { count: dailyCount, error: dailyCountError } = await serverSupabase
         .from('escrow_transactions')
         .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
+        .or(`payer_id.eq.${userId},payee_id.eq.${userId}`)
         .gte('created_at', oneDayAgo);
 
       if (dailyCountError) {
@@ -376,7 +377,7 @@ export class PaymentMonitoringService {
       const { data: hourlyTransactions, error: hourlyAmountError } = await serverSupabase
         .from('escrow_transactions')
         .select('amount')
-        .eq('user_id', userId)
+        .or(`payer_id.eq.${userId},payee_id.eq.${userId}`)
         .gte('created_at', oneHourAgo);
 
       if (!hourlyAmountError && hourlyTransactions) {
@@ -397,7 +398,7 @@ export class PaymentMonitoringService {
       const { data: dailyTransactions, error: dailyAmountError } = await serverSupabase
         .from('escrow_transactions')
         .select('amount')
-        .eq('user_id', userId)
+        .or(`payer_id.eq.${userId},payee_id.eq.${userId}`)
         .gte('created_at', oneDayAgo);
 
       if (!dailyAmountError && dailyTransactions) {
@@ -449,7 +450,7 @@ export class PaymentMonitoringService {
       const { count, error } = await serverSupabase
         .from('escrow_transactions')
         .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
+        .or(`payer_id.eq.${userId},payee_id.eq.${userId}`)
         .gte('created_at', recentMinutesAgo);
 
       if (error) {

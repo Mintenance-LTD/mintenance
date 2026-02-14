@@ -57,7 +57,7 @@ export async function POST(
     // Verify user is contractor for this job
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, contractor_id, category')
+      .select('id, contractor_id, homeowner_id, category, status, title')
       .eq('id', jobId)
       .single();
 
@@ -165,11 +165,50 @@ export async function POST(
       photos
     );
 
+    // Auto-complete: mark job as completed after successful after photo upload
+    let jobCompleted = false;
+    if (job.status === 'in_progress') {
+      try {
+        const { error: completeError } = await serverSupabase
+          .from('jobs')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', jobId);
+
+        if (!completeError) {
+          jobCompleted = true;
+
+          // Notify homeowner to review
+          await serverSupabase.from('notifications').insert({
+            user_id: job.homeowner_id,
+            title: 'Job Completed - Review Required',
+            message: `Work on "${job.title || 'your job'}" is complete. Review the before/after photos and approve.`,
+            type: 'job_completed',
+            read: false,
+            action_url: `/jobs/${jobId}`,
+          });
+
+          logger.info('Job auto-completed after photo upload', { service: 'jobs', jobId });
+        }
+      } catch (completionError) {
+        logger.error('Auto-completion failed after photo upload', {
+          service: 'jobs',
+          jobId,
+          error: completionError,
+        });
+        // Don't fail the photo upload if completion fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       photos: uploadedPhotos,
       count: uploadedPhotos.length,
       validation: validationResult,
+      jobCompleted,
     });
   } catch (error) {
     return handleAPIError(error);

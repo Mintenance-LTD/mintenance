@@ -1,32 +1,24 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import {
   Megaphone,
   TrendingUp,
-  Users,
-  Eye,
-  MousePointer,
   Star,
   Share2,
-  Mail,
-  MessageCircle,
-  Phone,
-  Facebook,
-  Instagram,
-  Linkedin,
-  Globe,
-  Download,
   Copy,
   CheckCircle,
-  BarChart3,
+  Briefcase,
+  Target,
+  PoundSterling,
+  MessageCircle,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { AreaChart, DonutChart, BarChart } from '@tremor/react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 
-// Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
@@ -45,102 +37,76 @@ const staggerItem = {
   visible: { opacity: 1, x: 0 },
 };
 
-export default function MarketingToolsPage2025() {
-  const router = useRouter();
-
-  // TODO: Replace with real API data
-  const profileStats = {
-    views: 1847,
-    clicks: 342,
-    inquiries: 28,
-    conversions: 12,
-    rating: 4.8,
-    reviews: 147,
+interface MarketingStats {
+  profile: {
+    name: string;
+    companyName: string | null;
+    rating: number;
+    skills: string[];
   };
+  stats: {
+    completedJobs: number;
+    totalBids: number;
+    acceptedBids: number;
+    winRate: number;
+    totalEarnings: number;
+    totalReviews: number;
+    averageRating: number;
+    totalMessages: number;
+    totalPosts: number;
+  };
+  monthlyTrend: { month: string; bidsSubmitted: number; bidsWon: number; jobsCompleted: number }[];
+  categoryBreakdown: { category: string; value: number }[];
+  ratingDistribution: { stars: number; count: number }[];
+  recentReviews: { id: string; rating: number; comment: string | null; createdAt: string }[];
+  contractorId: string;
+}
 
-  const monthlyData = [
-    { month: 'Aug', views: 1234, clicks: 245, inquiries: 18 },
-    { month: 'Sep', views: 1456, clicks: 289, inquiries: 22 },
-    { month: 'Oct', views: 1623, clicks: 312, inquiries: 25 },
-    { month: 'Nov', views: 1789, clicks: 335, inquiries: 27 },
-    { month: 'Dec', views: 1892, clicks: 356, inquiries: 29 },
-    { month: 'Jan', views: 1847, clicks: 342, inquiries: 28 },
-  ];
+export default function MarketingToolsPage() {
+  const [data, setData] = useState<MarketingStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const sourceData = [
-    { source: 'Direct Search', value: 45 },
-    { source: 'Social Media', value: 25 },
-    { source: 'Referrals', value: 20 },
-    { source: 'Website', value: 10 },
-  ];
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/contractor/marketing-stats', { credentials: 'include' });
+        if (!res.ok) throw new Error(`Failed to load stats (${res.status})`);
+        setData(await res.json());
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load marketing data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
-  const socialMediaStats = [
-    {
-      platform: 'Facebook',
-      icon: Facebook,
-      followers: 1234,
-      engagement: 5.2,
-      color: 'bg-blue-100 text-blue-600',
-    },
-    {
-      platform: 'Instagram',
-      icon: Instagram,
-      followers: 856,
-      engagement: 7.8,
-      color: 'bg-pink-100 text-pink-600',
-    },
-    {
-      platform: 'LinkedIn',
-      icon: Linkedin,
-      followers: 423,
-      engagement: 3.4,
-      color: 'bg-blue-100 text-blue-700',
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+      </div>
+    );
+  }
 
-  const marketingMaterials = [
-    {
-      id: '1',
-      name: 'Business Card',
-      type: 'Print Material',
-      status: 'Ready',
-      lastUpdated: '2025-01-15',
-    },
-    {
-      id: '2',
-      name: 'Company Brochure',
-      type: 'Print Material',
-      status: 'Ready',
-      lastUpdated: '2024-12-10',
-    },
-    {
-      id: '3',
-      name: 'Email Signature',
-      type: 'Digital Asset',
-      status: 'Ready',
-      lastUpdated: '2025-01-20',
-    },
-    {
-      id: '4',
-      name: 'Social Media Banner',
-      type: 'Digital Asset',
-      status: 'Draft',
-      lastUpdated: '2025-01-25',
-    },
-  ];
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-gray-500">
+        <AlertCircle className="w-10 h-10 mb-3 text-red-400" />
+        <p className="text-lg font-medium text-gray-700">Could not load marketing data</p>
+        <p className="text-sm mt-1">{error}</p>
+      </div>
+    );
+  }
+
+  const { stats, monthlyTrend, categoryBreakdown, ratingDistribution, recentReviews, contractorId } = data;
+
+  const profileUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://mintenance.com'}/contractors/${contractorId}`;
 
   const handleCopyProfileLink = () => {
-    const profileUrl = `https://mintenance.com/contractors/${1234}`;
     navigator.clipboard.writeText(profileUrl);
     toast.success('Profile link copied to clipboard');
-  };
-
-  const handleDownloadMaterial = (name: string) => {
-    toast.success(`Downloading ${name}...`);
-  };
-
-  const handleShareProfile = (platform: string) => {
-    toast.success(`Opening ${platform} share dialog...`);
   };
 
   return (
@@ -152,307 +118,269 @@ export default function MarketingToolsPage2025() {
         variants={fadeIn}
         className="bg-white border border-gray-200 rounded-xl p-8 mb-6"
       >
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <Megaphone className="w-8 h-8 text-teal-600" />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Marketing Tools</h1>
-              <p className="text-gray-600 mt-1">
-                Grow your business with professional marketing assets
-              </p>
-            </div>
+        <div className="flex items-center gap-3 mb-2">
+          <Megaphone className="w-8 h-8 text-teal-600" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Marketing & Performance</h1>
+            <p className="text-gray-600 mt-1">
+              Track your profile performance and grow your business
+            </p>
           </div>
         </div>
       </MotionDiv>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="space-y-6">
         {/* Quick Stats */}
         <MotionDiv
           variants={staggerContainer}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
         >
-          <MotionDiv
-            variants={staggerItem}
-            className="bg-gray-50 rounded-xl border border-gray-200 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Eye className="w-6 h-6 text-blue-600" />
-              </div>
-              <TrendingUp className="w-5 h-5 text-green-600" />
-            </div>
-            <p className="text-sm text-gray-600 mb-1">Profile Views</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {profileStats.views.toLocaleString()}
-            </p>
-            <p className="text-xs text-green-600 mt-1">+12% this month</p>
-          </MotionDiv>
-
-          <MotionDiv
-            variants={staggerItem}
-            className="bg-gray-50 rounded-xl border border-gray-200 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-teal-100 rounded-lg">
-                <MousePointer className="w-6 h-6 text-teal-600" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">Profile Clicks</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {profileStats.clicks.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-600 mt-1">18.5% click-through rate</p>
-          </MotionDiv>
-
-          <MotionDiv
-            variants={staggerItem}
-            className="bg-gray-50 rounded-xl border border-gray-200 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <MessageCircle className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">Inquiries</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {profileStats.inquiries.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-600 mt-1">8.2% inquiry rate</p>
-          </MotionDiv>
-
-          <MotionDiv
-            variants={staggerItem}
-            className="bg-gray-50 rounded-xl border border-gray-200 p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-            <p className="text-sm text-gray-600 mb-1">Conversions</p>
-            <p className="text-2xl font-bold text-gray-900">
-              {profileStats.conversions.toLocaleString()}
-            </p>
-            <p className="text-xs text-gray-600 mt-1">42.9% conversion rate</p>
-          </MotionDiv>
+          <StatCard
+            icon={<Briefcase className="w-6 h-6 text-teal-600" />}
+            iconBg="bg-teal-100"
+            label="Jobs Completed"
+            value={stats.completedJobs}
+          />
+          <StatCard
+            icon={<Star className="w-6 h-6 text-amber-600" />}
+            iconBg="bg-amber-100"
+            label="Average Rating"
+            value={stats.averageRating > 0 ? `${Number(stats.averageRating).toFixed(1)} / 5` : 'No ratings'}
+            sub={`${stats.totalReviews} review${stats.totalReviews !== 1 ? 's' : ''}`}
+          />
+          <StatCard
+            icon={<Target className="w-6 h-6 text-blue-600" />}
+            iconBg="bg-blue-100"
+            label="Bid Win Rate"
+            value={`${stats.winRate}%`}
+            sub={`${stats.acceptedBids} won of ${stats.totalBids} bids`}
+          />
+          <StatCard
+            icon={<PoundSterling className="w-6 h-6 text-emerald-600" />}
+            iconBg="bg-emerald-100"
+            label="Total Earned"
+            value={`\u00A3${(stats.totalEarnings / 100).toLocaleString('en-GB', { minimumFractionDigits: 0 })}`}
+            sub="Escrow released"
+          />
         </MotionDiv>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Performance Trend */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Monthly Activity Trend */}
           <MotionDiv
             variants={fadeIn}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+            initial="hidden"
+            animate="visible"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Performance Trend (Last 6 Months)
+              Activity Trend (Last 6 Months)
             </h3>
-            <AreaChart
-              data={monthlyData}
-              index="month"
-              categories={['views', 'clicks', 'inquiries']}
-              colors={['blue', 'orange', 'green']}
-              valueFormatter={(value) => value.toLocaleString()}
-              className="h-72"
-            />
+            {monthlyTrend.some(m => m.bidsSubmitted > 0 || m.jobsCompleted > 0) ? (
+              <AreaChart
+                data={monthlyTrend}
+                index="month"
+                categories={['bidsSubmitted', 'bidsWon', 'jobsCompleted']}
+                colors={['blue', 'emerald', 'amber']}
+                valueFormatter={(v) => String(v)}
+                className="h-72"
+              />
+            ) : (
+              <EmptyState message="No activity data yet. Start bidding on jobs to see your trends!" />
+            )}
           </MotionDiv>
 
-          {/* Traffic Sources */}
+          {/* Job Categories */}
           <MotionDiv
             variants={fadeIn}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+            initial="hidden"
+            animate="visible"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Traffic Sources
+              Job Categories
             </h3>
-            <DonutChart
-              data={sourceData}
-              category="value"
-              index="source"
-              valueFormatter={(value) => `${value}%`}
-              colors={['blue', 'orange', 'green', 'purple']}
-              className="h-72"
-            />
+            {categoryBreakdown.length > 0 ? (
+              <DonutChart
+                data={categoryBreakdown}
+                category="value"
+                index="category"
+                valueFormatter={(v) => `${v} job${v !== 1 ? 's' : ''}`}
+                colors={['teal', 'blue', 'amber', 'emerald', 'rose', 'violet']}
+                className="h-72"
+              />
+            ) : (
+              <EmptyState message="No jobs yet. Your category breakdown will appear here." />
+            )}
+          </MotionDiv>
+        </div>
+
+        {/* Reviews + Rating Distribution Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Rating Distribution */}
+          <MotionDiv
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-amber-500" />
+              Rating Distribution
+            </h3>
+            {ratingDistribution.some(r => r.count > 0) ? (
+              <BarChart
+                data={ratingDistribution.map(r => ({ rating: `${r.stars} star`, count: r.count }))}
+                index="rating"
+                categories={['count']}
+                colors={['amber']}
+                valueFormatter={(v) => `${v} review${v !== 1 ? 's' : ''}`}
+                className="h-56"
+              />
+            ) : (
+              <EmptyState message="No reviews yet. Complete jobs to start collecting reviews!" />
+            )}
+          </MotionDiv>
+
+          {/* Recent Reviews */}
+          <MotionDiv
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-teal-600" />
+              Recent Reviews
+            </h3>
+            {recentReviews.length > 0 ? (
+              <div className="space-y-4 max-h-64 overflow-y-auto pr-1">
+                {recentReviews.map((review) => (
+                  <div key={review.id} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-3.5 h-3.5 ${i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(review.createdAt).toLocaleDateString('en-GB')}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700 line-clamp-2">
+                      {review.comment || 'No comment'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState message="No reviews yet. Deliver great work and ask customers for feedback!" />
+            )}
           </MotionDiv>
         </div>
 
         {/* Profile Sharing */}
         <MotionDiv
           variants={fadeIn}
-          className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6"
+          initial="hidden"
+          animate="visible"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
         >
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Share2 className="w-5 h-5 text-teal-600" />
             Share Your Profile
           </h3>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <input
-                type="text"
-                value={`https://mintenance.com/contractors/1234`}
-                readOnly
-                className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700"
-              />
-              <button
-                onClick={handleCopyProfileLink}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-              >
-                <Copy className="w-4 h-4" />
-                Copy Link
-              </button>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => handleShareProfile('Facebook')}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Facebook className="w-4 h-4" />
-                Facebook
-              </button>
-              <button
-                onClick={() => handleShareProfile('LinkedIn')}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors"
-              >
-                <Linkedin className="w-4 h-4" />
-                LinkedIn
-              </button>
-              <button
-                onClick={() => handleShareProfile('Instagram')}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-colors"
-              >
-                <Instagram className="w-4 h-4" />
-                Instagram
-              </button>
-              <button
-                onClick={() => handleShareProfile('Email')}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                <Mail className="w-4 h-4" />
-                Email
-              </button>
-            </div>
+          <div className="flex items-center gap-4">
+            <input
+              type="text"
+              value={profileUrl}
+              readOnly
+              className="flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 text-sm"
+            />
+            <button
+              onClick={handleCopyProfileLink}
+              className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+            >
+              <Copy className="w-4 h-4" />
+              Copy Link
+            </button>
           </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Share this link on social media, email, or business cards to attract new customers.
+          </p>
         </MotionDiv>
 
-        {/* Social Media Performance */}
+        {/* Quick Engagement Stats */}
         <MotionDiv
           variants={fadeIn}
-          className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6"
+          initial="hidden"
+          animate="visible"
+          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Social Media Performance
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-teal-600" />
+            Engagement Summary
           </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {socialMediaStats.map((social) => {
-              const Icon = social.icon;
-              return (
-                <div
-                  key={social.platform}
-                  className="p-6 bg-gray-50 rounded-lg border border-gray-200"
-                >
-                  <div className={`p-3 ${social.color} rounded-lg mb-4 w-fit`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <h4 className="text-base font-semibold text-gray-900 mb-4">{social.platform}</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-600">Followers</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {social.followers.toLocaleString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Engagement Rate</p>
-                      <p className="text-2xl font-bold text-gray-900">{social.engagement}%</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => router.push(`/contractor/marketing/${social.platform.toLowerCase()}`)}
-                    className="w-full mt-4 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
-                  >
-                    View Details
-                  </button>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <MiniStat label="Total Bids" value={stats.totalBids} />
+            <MiniStat label="Bids Won" value={stats.acceptedBids} />
+            <MiniStat label="Messages" value={stats.totalMessages} />
+            <MiniStat label="Posts" value={stats.totalPosts} />
           </div>
-        </MotionDiv>
-
-        {/* Marketing Materials */}
-        <MotionDiv
-          variants={fadeIn}
-          className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-        >
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Marketing Materials
-          </h3>
-
-          <div className="space-y-4">
-            {marketingMaterials.map((material) => (
-              <div
-                key={material.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-emerald-100 rounded-lg">
-                    <Globe className="w-6 h-6 text-emerald-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">{material.name}</h4>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                      <span>{material.type}</span>
-                      <span>•</span>
-                      <span
-                        className={`${
-                          material.status === 'Ready'
-                            ? 'text-green-600'
-                            : 'text-yellow-600'
-                        }`}
-                      >
-                        {material.status}
-                      </span>
-                      <span>•</span>
-                      <span>
-                        Updated {new Date(material.lastUpdated).toLocaleDateString('en-GB')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  {material.status === 'Ready' && (
-                    <button
-                      onClick={() => handleDownloadMaterial(material.name)}
-                      className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors text-sm"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
-                  )}
-                  <button
-                    onClick={() => router.push(`/contractor/marketing/materials/${material.id}`)}
-                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-                  >
-                    {material.status === 'Ready' ? 'Edit' : 'Complete'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={() => router.push('/contractor/marketing/materials/create')}
-            className="w-full mt-6 px-4 py-3 border-2 border-dashed border-gray-300 text-gray-600 rounded-lg hover:border-teal-500 hover:text-teal-600 transition-colors font-medium"
-          >
-            + Create New Marketing Material
-          </button>
         </MotionDiv>
       </div>
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  iconBg,
+  label,
+  value,
+  sub,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  value: string | number;
+  sub?: string;
+}) {
+  return (
+    <MotionDiv
+      variants={staggerItem}
+      className="bg-white rounded-xl border border-gray-200 p-6"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className={`p-3 ${iconBg} rounded-lg`}>{icon}</div>
+      </div>
+      <p className="text-sm text-gray-600 mb-1">{label}</p>
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
+    </MotionDiv>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="text-center p-3 bg-gray-50 rounded-lg">
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      <p className="text-xs text-gray-500">{label}</p>
+    </div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-56 text-gray-400">
+      <CheckCircle className="w-10 h-10 mb-2 text-gray-300" />
+      <p className="text-sm text-center max-w-xs">{message}</p>
     </div>
   );
 }

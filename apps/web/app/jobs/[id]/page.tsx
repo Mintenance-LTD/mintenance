@@ -6,6 +6,8 @@ import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWr
 import { logger } from '@/lib/logger';
 import { JobDetailsProfessional } from './components/JobDetailsProfessional';
 import { JobViewTracker } from './components/JobViewTracker';
+import { ContractManagement } from './components/ContractManagement';
+import { HomeownerPhotoReview } from './components/HomeownerPhotoReview';
 
 export const metadata: Metadata = {
   title: 'Job Details | Mintenance',
@@ -137,6 +139,17 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
     .eq('job_id', resolvedParams.id)
     .order('created_at', { ascending: false });
 
+  // Fetch before/after photo evidence
+  const { data: photoEvidence } = await serverSupabase
+    .from('job_photos_metadata')
+    .select('id, photo_url, photo_type, created_at')
+    .eq('job_id', resolvedParams.id)
+    .in('photo_type', ['before', 'after'])
+    .order('created_at', { ascending: true });
+
+  const beforePhotos = (photoEvidence || []).filter(p => p.photo_type === 'before');
+  const afterPhotos = (photoEvidence || []).filter(p => p.photo_type === 'after');
+
   // Fetch building assessment
   const { data: buildingAssessment } = await serverSupabase
     .from('building_assessments')
@@ -265,6 +278,25 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
           userRole="homeowner"
           buildingAssessment={buildingAssessment}
         />
+        {job.status === 'completed' && afterPhotos.length > 0 && (
+          <div style={{ marginTop: '24px' }}>
+            <HomeownerPhotoReview
+              jobId={job.id}
+              beforePhotos={beforePhotos}
+              afterPhotos={afterPhotos}
+              isConfirmed={!!job.completion_confirmed_by_homeowner}
+            />
+          </div>
+        )}
+        {job.contractor_id && (
+          <div style={{ marginTop: '24px' }}>
+            <ContractManagement
+              jobId={job.id}
+              userRole="homeowner"
+              userId={user.id}
+            />
+          </div>
+        )}
       </HomeownerPageWrapper>
     </>
   );

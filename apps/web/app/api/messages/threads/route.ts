@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     if (jobsError) {
       logger.error('Failed to load message threads - jobs query failed', jobsError, {
         service: 'messages',
-        userId: user.id
+        userId: user.id,
       });
     }
 

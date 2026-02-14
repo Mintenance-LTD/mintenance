@@ -11,6 +11,8 @@ import {
   Shield,
   HelpCircle,
   TrendingUp,
+  Building2,
+  Users,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv, MotionH1, MotionP } from '@/components/ui/MotionDiv';
@@ -69,47 +71,68 @@ export function PricingClient() {
       icon: Star,
       price: 0,
       billingCycle: 'forever',
-      description: 'Perfect for occasional home maintenance needs',
+      description: 'Everything you need for your home',
       features: [
         'Post unlimited jobs',
-        'Receive up to 5 bids per job',
-        'Manage up to 3 saved properties',
-        'Basic contractor profiles',
+        'Manage 1 property',
+        'AI-powered pro matching',
+        'View verified pro profiles',
         'Standard messaging',
         'Payment protection',
         'Review system',
+        'AI building assessment',
       ],
       notIncluded: [
-        'Priority support',
-        'AI-powered matching',
-        'Advanced analytics',
-        'Portfolio Mode (landlord/agent ticket inbox)',
+        'Compliance dashboard',
+        'Tenant reporting links',
+        'Recurring maintenance',
       ],
       cta: 'Get Started Free',
       color: 'gray',
     },
     {
-      id: 'premium',
-      name: 'Premium',
-      icon: Zap,
-      price: isAnnual ? 99 : 9.99,
+      id: 'landlord',
+      name: 'Landlord',
+      icon: Building2,
+      price: isAnnual ? 249 : 24.99,
       billingCycle: isAnnual ? 'year' : 'month',
-      description: 'For homeowners who want the best experience',
+      description: 'Complete management for landlords with up to 25 properties',
       features: [
         'Everything in Free',
-        'Unlimited bids per job',
-        'Unlimited properties',
-        'AI-powered contractor matching',
-        'Priority support (24/7)',
-        'Advanced contractor insights',
-        'Price comparison tools',
-        'Job scheduling assistant',
-        'Exclusive deals & offers',
-        'Portfolio Mode (landlord/agent features)',
+        'Up to 25 properties',
+        'Compliance dashboard (gas, electrical, EPC)',
+        'Expiry reminders (90/30/7 days)',
+        'One-click renewal job creation',
+        'Tenant reporting links',
+        'Tenant & contact records',
+        'Recurring maintenance scheduling',
+        'Per-property spend analytics',
+        'Priority contractor matching',
       ],
       popular: true,
-      cta: 'Start Premium',
+      cta: 'Start Landlord Plan',
       color: 'teal',
+    },
+    {
+      id: 'agency',
+      name: 'Agency',
+      icon: Users,
+      price: isAnnual ? 499 : 49.99,
+      billingCycle: isAnnual ? 'year' : 'month',
+      description: 'Multi-user portfolio management for letting agents',
+      features: [
+        'Everything in Landlord',
+        'Unlimited properties',
+        'Team member invites (up to 10)',
+        'Role-based access (admin/manager/viewer)',
+        'Activity audit log',
+        'Bulk job posting',
+        'Bulk compliance export (PDF)',
+        'Year-over-year comparison',
+        'Dedicated support',
+      ],
+      cta: 'Start Agency Plan',
+      color: 'purple',
     },
   ];
 
@@ -224,7 +247,7 @@ export function PricingClient() {
       }
 
       if (user.role !== 'homeowner') {
-        toast.error('Homeowner premium is only available to homeowner accounts');
+        toast.error('Homeowner plans are only available to homeowner accounts');
         return;
       }
 
@@ -237,30 +260,30 @@ export function PricingClient() {
             'x-csrf-token': csrfToken || '',
           },
           body: JSON.stringify({
-            planType: 'premium',
+            planType: planId, // 'premium', 'landlord', or 'agency'
             billingCycle: isAnnual ? 'yearly' : 'monthly',
           }),
         });
 
         const result = await response.json();
         if (!response.ok) {
-          throw new Error(result.error || 'Failed to start homeowner premium checkout');
+          throw new Error(result.error || `Failed to start ${planId} checkout`);
         }
 
         if (result.requiresPayment && result.clientSecret) {
           const checkoutPath = result.checkoutPath || '/homeowner/subscription/checkout';
           const subscriptionRef = result.stripeSubscriptionId || result.subscriptionId;
           router.push(
-            `${checkoutPath}?clientSecret=${encodeURIComponent(result.clientSecret)}&subscriptionId=${encodeURIComponent(subscriptionRef)}&planType=premium`
+            `${checkoutPath}?clientSecret=${encodeURIComponent(result.clientSecret)}&subscriptionId=${encodeURIComponent(subscriptionRef)}&planType=${encodeURIComponent(planId)}`
           );
           return;
         }
 
-        toast.success('Homeowner premium activated.');
+        toast.success(`${planId.charAt(0).toUpperCase() + planId.slice(1)} plan activated.`);
         router.push('/homeowner/subscription?success=true');
       } catch (error) {
         logger.error('Homeowner subscription creation error:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to create homeowner subscription');
+        toast.error(error instanceof Error ? error.message : 'Failed to create subscription');
       } finally {
         setLoadingPlan(null);
       }
@@ -374,8 +397,7 @@ export function PricingClient() {
 
             {userType === 'homeowner' && (
               <p className="text-sm md:text-base text-teal-100/95 max-w-3xl mx-auto mb-8">
-                Homeowner Free includes: unlimited job posts, up to 5 bids per job, and up to 3 properties.
-                Premium unlocks unlimited properties and Portfolio Mode.
+                From single homeowners to letting agencies — find the plan that fits your portfolio.
               </p>
             )}
             {userType === 'homeowner' && user?.role === 'homeowner' && (
@@ -419,7 +441,7 @@ export function PricingClient() {
             </MotionDiv>
 
             {/* Annual/Monthly Toggle */}
-            {userType === 'contractor' && (
+            {(userType === 'contractor' || userType === 'homeowner') && (
               <MotionDiv
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -461,7 +483,8 @@ export function PricingClient() {
           whileInView="visible"
           viewport={{ once: true }}
           className={`grid grid-cols-1 ${
-            plans.length === 2 ? 'md:grid-cols-2 max-w-5xl mx-auto' : 'md:grid-cols-3'
+            plans.length === 2 ? 'md:grid-cols-2 max-w-5xl mx-auto' :
+            'md:grid-cols-3'
           } gap-8 mb-16`}
         >
           {plans.map((plan, index) => {

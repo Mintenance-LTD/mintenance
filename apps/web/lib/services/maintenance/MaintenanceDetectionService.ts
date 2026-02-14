@@ -5,7 +5,7 @@
 
 import { LocalYOLOInferenceService } from '../building-surveyor/LocalYOLOInferenceService';
 import { SAM3Service } from '../building-surveyor/SAM3Service';
-import { serverSupabase } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@/lib/logger';
 
 // Maintenance issue categories
@@ -232,7 +232,7 @@ export class MaintenanceDetectionService extends LocalYOLOInferenceService {
    */
   private static async checkLocalModel(): Promise<boolean> {
     try {
-      const supabase = await serverSupabase();
+      const supabase = serverSupabase;
       const { data } = await supabase
         .from('yolo_models')
         .select('id')

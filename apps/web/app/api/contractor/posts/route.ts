@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       throw new UnauthorizedError('Contractor access required');
     }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
       throw new UnauthorizedError('Contractor access required');
     }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     const body = await request.json();
 

@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -33,7 +33,7 @@ export async function PATCH(request: NextRequest) {
     );
   }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Get authenticated user
     const {
@@ -170,7 +170,7 @@ export async function GET(request: Request) {
     );
   }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Get authenticated user
     const {

@@ -544,6 +544,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
             {/* Photo Upload with Map */}
             <JobPhotoUpload
               jobId={resolvedParams.id}
+              jobStatus={job.status || 'posted'}
               latitude={job.latitude}
               longitude={job.longitude}
               location={job.location}

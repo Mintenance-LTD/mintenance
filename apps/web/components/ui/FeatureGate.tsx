@@ -350,11 +350,13 @@ export function FeatureBadge({ featureId, showOnAvailable = false }: FeatureBadg
     return null;
   }
 
-  const tierColors: Record<SubscriptionTier, string> = {
+  const tierColors: Record<string, string> = {
     free: 'bg-gray-100 text-gray-700',
     basic: 'bg-blue-100 text-blue-700',
     professional: 'bg-purple-100 text-purple-700',
     enterprise: 'bg-emerald-100 text-emerald-700',
+    landlord: 'bg-purple-100 text-purple-700',
+    agency: 'bg-emerald-100 text-emerald-700',
   };
 
   const firstUpgradeTier = accessResult.upgradeTiers[0] || tier;

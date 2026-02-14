@@ -92,7 +92,7 @@ export function PricingSection2025() {
             Simple, Transparent Pricing
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Start free forever. Upgrade anytime for more bids and features. Always free for homeowners.
+            Start free forever. Upgrade anytime for more contractor bid capacity and features. Always free for homeowners.
           </p>
 
           {/* Billing Toggle */}
@@ -133,7 +133,7 @@ export function PricingSection2025() {
         >
           <h3 className="text-2xl font-bold mb-2">Always Free for Homeowners</h3>
           <p className="text-emerald-50 mb-4">
-            Free plan: unlimited job posts, up to 5 bids per job, and up to 3 properties.
+            Free plan: unlimited job posts, up to 5 quotes per job, and up to 3 properties.
             Premium unlocks unlimited properties and landlord portfolio workflows.
           </p>
           <p className="text-emerald-100 text-sm mb-4">
@@ -145,7 +145,7 @@ export function PricingSection2025() {
             </div>
             <div className="h-4 w-px bg-white/30" />
             <div>
-              <span className="font-bold">5 bids</span> per job (free)
+              <span className="font-bold">5 quotes</span> per job (free)
             </div>
             <div className="h-4 w-px bg-white/30" />
             <div>

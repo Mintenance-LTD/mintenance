@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import { maintenanceDetectSchema } from '@/lib/validation/schemas';
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();

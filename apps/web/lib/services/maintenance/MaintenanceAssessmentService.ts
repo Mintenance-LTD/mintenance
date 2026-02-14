@@ -5,7 +5,7 @@
 
 import { MaintenanceDetectionService, type EnhancedMaintenanceDetection } from './MaintenanceDetectionService';
 import { MaintenanceKnowledgeBase } from './MaintenanceKnowledgeBase';
-import { serverSupabase } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@/lib/logger';
 import { openai } from '@/lib/openai-client';
 import crypto from 'crypto';
@@ -439,7 +439,7 @@ export class MaintenanceAssessmentService {
     options: AssessmentOptions
   ): Promise<void> {
     try {
-      const supabase = await serverSupabase();
+      const supabase = serverSupabase;
       await supabase.from('maintenance_assessments').insert({
         id: assessment.id,
         user_id: options.userId,

@@ -83,9 +83,13 @@ export function UserManagementClient({ initialUsers, initialPagination }: UserMa
     }
     setBulkActionLoading(true);
     try {
+      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
+      if (csrfToken) await new Promise(r => setTimeout(r, 50));
       const response = await fetch('/api/admin/users/bulk-verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
         body: JSON.stringify({ userIds: Array.from(selectedUserIds), action, reason: action === 'reject' ? reason : undefined }),
       });
       if (!response.ok) { const err = await response.json(); throw new Error(err.error || 'Failed to perform bulk action'); }

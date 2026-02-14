@@ -47,8 +47,8 @@ export function Paywall({
     }
   };
 
-  const tierInfo = TIER_PRICING[selectedTier];
-  const featureLimit = feature.limits[selectedTier];
+  const tierInfo = (TIER_PRICING as unknown as Record<string, { name: string; price: number; period: string; description: string; popular?: boolean }>)[selectedTier];
+  const featureLimit = (feature.limits as Record<string, number | boolean | 'unlimited' | undefined>)[selectedTier];
 
   // Format the limit display
   const formatLimit = (limit: number | boolean | 'unlimited' | undefined): string => {
@@ -139,8 +139,8 @@ export function Paywall({
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {upgradeTiers.map((tier) => {
-                  const pricing = TIER_PRICING[tier];
-                  const limit = feature.limits[tier];
+                  const pricing = (TIER_PRICING as unknown as Record<string, { name: string; price: number; period: string; description: string; popular?: boolean }>)[tier];
+                  const limit = (feature.limits as Record<string, number | boolean | 'unlimited' | undefined>)[tier];
                   const isSelected = selectedTier === tier;
                   const isPopular = 'popular' in pricing && pricing.popular === true;
 
@@ -214,7 +214,7 @@ export function Paywall({
                 <Icon name="info" size={16} color="#6B7280" />
                 <span>
                   Current Plan: <span className="font-[600] text-gray-900">
-                    {TIER_PRICING[currentTier].name}
+                    {(TIER_PRICING as unknown as Record<string, { name: string; price: number; period: string; description: string; popular?: boolean }>)[currentTier]?.name}
                   </span>
                 </span>
               </div>

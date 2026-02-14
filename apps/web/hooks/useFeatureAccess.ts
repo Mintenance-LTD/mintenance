@@ -58,8 +58,10 @@ export function useFeatureAccess() {
         if (statusResponse.ok) {
           const statusPayload = await statusResponse.json();
           if (statusPayload?.earlyAccess?.eligible) {
+            // Early access: max tier depends on role
+            const maxTier = statusPayload.role === 'homeowner' ? 'agency' : 'enterprise';
             setSubscription({
-              tier: 'enterprise',
+              tier: maxTier,
               status: 'active',
             });
             return;

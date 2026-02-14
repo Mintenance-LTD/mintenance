@@ -53,50 +53,58 @@ export async function POST(request: NextRequest) {
 
     const { amount, currency, jobId, contractorId, metadata } = validation.data;
 
-    // Monitor transaction for anomalies
-    const { PaymentMonitoringService } = await import('@/lib/monitoring/payment-monitor');
-    const anomalyCheck = await PaymentMonitoringService.detectAnomalies(user.id, {
-      userId: user.id,
-      amount,
-      currency: currency || 'gbp',
-      type: 'payment',
-      metadata: {
-        jobId,
-        contractorId,
-        ip: request.headers.get('x-forwarded-for') || undefined,
-      },
-    });
-
-    // Block if high risk
-    if (anomalyCheck.blockedReasons.length > 0) {
-      logger.warn('Payment blocked due to security concerns', {
-        service: 'payments',
+    // Monitor transaction for anomalies (non-blocking: payment proceeds even if monitoring fails)
+    try {
+      const { PaymentMonitoringService } = await import('@/lib/monitoring/payment-monitor');
+      const anomalyCheck = await PaymentMonitoringService.detectAnomalies(user.id, {
         userId: user.id,
-        jobId,
         amount,
-        riskScore: anomalyCheck.riskScore,
-        blockedReasons: anomalyCheck.blockedReasons,
+        currency: currency || 'gbp',
+        type: 'payment',
+        metadata: {
+          jobId,
+          contractorId,
+          ip: request.headers.get('x-forwarded-for') || undefined,
+        },
       });
 
-      return NextResponse.json(
-        {
-          error: 'Payment blocked for security reasons',
-          reasons: anomalyCheck.blockedReasons,
+      // Block if high risk
+      if (anomalyCheck.blockedReasons.length > 0) {
+        logger.warn('Payment blocked due to security concerns', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          amount,
           riskScore: anomalyCheck.riskScore,
-        },
-        { status: 403 }
-      );
-    }
+          blockedReasons: anomalyCheck.blockedReasons,
+        });
 
-    // Log warnings if anomalous but not blocked
-    if (anomalyCheck.isAnomalous) {
-      logger.warn('Anomalous payment detected but allowed', {
+        return NextResponse.json(
+          {
+            error: 'Payment blocked for security reasons',
+            reasons: anomalyCheck.blockedReasons,
+            riskScore: anomalyCheck.riskScore,
+          },
+          { status: 403 }
+        );
+      }
+
+      // Log warnings if anomalous but not blocked
+      if (anomalyCheck.isAnomalous) {
+        logger.warn('Anomalous payment detected but allowed', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          amount,
+          riskScore: anomalyCheck.riskScore,
+          reasons: anomalyCheck.reasons,
+        });
+      }
+    } catch (monitoringError) {
+      logger.error('Anomaly detection failed, proceeding with payment', monitoringError, {
         service: 'payments',
         userId: user.id,
         jobId,
-        amount,
-        riskScore: anomalyCheck.riskScore,
-        reasons: anomalyCheck.reasons,
       });
     }
 

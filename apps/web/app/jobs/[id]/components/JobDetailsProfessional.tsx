@@ -758,7 +758,7 @@ function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
       {/* Actions */}
       <div className="flex gap-3">
         <Link
-          href={`/contractors/${bid.contractor.id}?returnTo=job&jobId=${jobId}`}
+          href={`/contractors/${bid.contractor.id}?returnTo=job&jobId=${jobId}&bidId=${bid.id}&bidAmount=${bid.amount}`}
           className="btn-secondary text-sm flex-1"
         >
           View Profile

@@ -2,24 +2,20 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import {
   TrendingUp,
   Users,
   DollarSign,
   Activity,
   Download,
-  Calendar,
-  Filter,
   BarChart3,
   PieChart,
-  LineChart,
-  ArrowUp,
-  ArrowDown,
+  Loader2,
 } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
-// Dynamic imports for Tremor charts - lazy load heavy charting library
+
 const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
   loading: () => <ChartSkeleton height="288px" />,
   ssr: false,
@@ -35,7 +31,6 @@ const BarChart = dynamic(() => import('@tremor/react').then(mod => ({ default: m
   ssr: false,
 });
 
-// Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
@@ -54,113 +49,157 @@ const staggerItem = {
   visible: { opacity: 1, x: 0 },
 };
 
-export default function AnalyticsDetailPage2025() {
-  const router = useRouter();
+interface DashboardMetrics {
+  totalUsers: number;
+  totalContractors: number;
+  totalJobs: number;
+  activeSubscriptions: number;
+  mrr: number;
+  pendingVerifications: number;
+  charts?: {
+    userGrowth: Array<{ date: string; users: number; cumulative: number }>;
+    jobGrowth: Array<{ date: string; jobs: number; cumulative: number }>;
+  };
+}
 
+interface RevenueData {
+  revenueMetrics: {
+    totalRevenue: number;
+    platformFees: number;
+    subscriptionRevenue: number;
+    avgJobValue: number;
+  };
+  monthlyRevenue: Array<{ month: string; revenue: number; fees: number; subscriptions: number }>;
+  revenueByCategory: Array<{ category: string; count: number; revenue: number }>;
+  recentTransactions: Array<{ id: string; type: string; amount: number; created_at: string; description?: string }>;
+}
+
+export default function AnalyticsDetailPage() {
   const [dateRange, setDateRange] = useState('30days');
-  const [activeMetric, setActiveMetric] = useState<'users' | 'revenue' | 'jobs' | 'engagement'>('users');
 
-  // User Growth Data
-  const userGrowthData = [
-    { month: 'Jul', homeowners: 1234, contractors: 456, total: 1690 },
-    { month: 'Aug', homeowners: 1456, contractors: 523, total: 1979 },
-    { month: 'Sep', homeowners: 1678, contractors: 598, total: 2276 },
-    { month: 'Oct', homeowners: 1923, contractors: 667, total: 2590 },
-    { month: 'Nov', homeowners: 2145, contractors: 734, total: 2879 },
-    { month: 'Dec', homeowners: 2398, contractors: 812, total: 3210 },
-    { month: 'Jan', homeowners: 2654, contractors: 889, total: 3543 },
-  ];
+  const daysMap: Record<string, number> = {
+    '7days': 7,
+    '30days': 30,
+    '90days': 90,
+    '1year': 365,
+  };
 
-  // Revenue Data
-  const revenueData = [
-    { month: 'Jul', revenue: 45600, fees: 6840, subscriptions: 2280 },
-    { month: 'Aug', revenue: 52300, fees: 7845, subscriptions: 2610 },
-    { month: 'Sep', revenue: 59800, fees: 8970, subscriptions: 2990 },
-    { month: 'Oct', revenue: 68200, fees: 10230, subscriptions: 3410 },
-    { month: 'Nov', revenue: 76500, fees: 11475, subscriptions: 3825 },
-    { month: 'Dec', revenue: 85900, fees: 12885, subscriptions: 4295 },
-    { month: 'Jan', revenue: 94200, fees: 14130, subscriptions: 4710 },
-  ];
+  const days = daysMap[dateRange] || 30;
+  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const endDate = new Date().toISOString();
 
-  // Job Categories
-  const jobCategoryData = [
-    { category: 'Kitchen', count: 342, value: 25.4 },
-    { category: 'Bathroom', count: 289, value: 21.5 },
-    { category: 'Electrical', count: 234, value: 17.4 },
-    { category: 'Plumbing', count: 198, value: 14.7 },
-    { category: 'Painting', count: 156, value: 11.6 },
-    { category: 'Other', count: 125, value: 9.4 },
-  ];
+  const { data: metrics, isLoading: metricsLoading } = useQuery<DashboardMetrics>({
+    queryKey: ['admin-analytics-metrics'],
+    queryFn: async () => {
+      const res = await fetch('/api/admin/dashboard/metrics');
+      if (!res.ok) throw new Error('Failed to fetch metrics');
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
 
-  // Regional Performance
-  const regionalData = [
-    { region: 'London', jobs: 456, revenue: 32400 },
-    { region: 'Manchester', jobs: 234, revenue: 18900 },
-    { region: 'Birmingham', jobs: 198, revenue: 15600 },
-    { region: 'Leeds', jobs: 167, revenue: 13200 },
-    { region: 'Glasgow', jobs: 145, revenue: 11800 },
-    { region: 'Bristol', jobs: 132, revenue: 10500 },
-  ];
+  const { data: revenue, isLoading: revenueLoading } = useQuery<RevenueData>({
+    queryKey: ['admin-analytics-revenue', dateRange],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/revenue?startDate=${startDate}&endDate=${endDate}`);
+      if (!res.ok) throw new Error('Failed to fetch revenue');
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
 
-  // Platform Metrics
+  const isLoading = metricsLoading || revenueLoading;
+
+  const totalUsers = metrics?.totalUsers ?? 0;
+  const monthlyRevenue = revenue?.revenueMetrics?.totalRevenue ?? 0;
+  const totalJobs = metrics?.totalJobs ?? 0;
+  const avgJobValue = revenue?.revenueMetrics?.avgJobValue ?? 0;
+
   const platformMetrics = [
     {
       label: 'Total Users',
-      value: '3,543',
-      change: '+10.3%',
-      trend: 'up',
+      value: totalUsers.toLocaleString(),
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
-      label: 'Monthly Revenue',
-      value: '£94,200',
-      change: '+9.6%',
-      trend: 'up',
+      label: 'Revenue (Period)',
+      value: `\u00A3${(monthlyRevenue / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-    },
-    {
-      label: 'Active Jobs',
-      value: '1,344',
-      change: '+12.8%',
-      trend: 'up',
-      icon: Activity,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-    },
-    {
-      label: 'Avg Job Value',
-      value: '£2,850',
-      change: '-2.1%',
-      trend: 'down',
-      icon: TrendingUp,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-100',
     },
+    {
+      label: 'Total Jobs',
+      value: totalJobs.toLocaleString(),
+      icon: Activity,
+      color: 'text-slate-600',
+      bgColor: 'bg-slate-100',
+    },
+    {
+      label: 'Avg Job Value',
+      value: `\u00A3${(avgJobValue / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`,
+      icon: TrendingUp,
+      color: 'text-amber-600',
+      bgColor: 'bg-amber-100',
+    },
   ];
 
+  const userGrowthData = metrics?.charts?.userGrowth ?? [];
+  const jobGrowthData = metrics?.charts?.jobGrowth ?? [];
+
+  const revenueTrend = (revenue?.monthlyRevenue ?? []).map((m) => ({
+    month: m.month,
+    revenue: m.revenue / 100,
+    fees: m.fees / 100,
+    subscriptions: m.subscriptions / 100,
+  }));
+
+  const categoryData = (revenue?.revenueByCategory ?? []).map((c) => ({
+    category: c.category || 'Other',
+    count: c.count,
+  }));
+
+  const recentActivity = (revenue?.recentTransactions ?? []).slice(0, 5).map((tx) => ({
+    action: tx.description || tx.type,
+    time: new Date(tx.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    type: tx.type,
+    amount: tx.amount,
+  }));
+
   const handleExport = () => {
-    // Export logic here
-    alert('Exporting analytics data...');
+    const csvRows = [
+      ['Metric', 'Value'],
+      ['Total Users', String(totalUsers)],
+      ['Total Jobs', String(totalJobs)],
+      ['Revenue', String(monthlyRevenue / 100)],
+      ['Avg Job Value', String(avgJobValue / 100)],
+    ];
+    const csv = csvRows.map((r) => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <MotionDiv
         initial="hidden"
         animate="visible"
         variants={fadeIn}
-        className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white"
+        className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold mb-2">Advanced Analytics</h1>
-              <p className="text-purple-100">
+              <p className="text-slate-300">
                 Detailed insights into platform performance and user behavior
               </p>
             </div>
@@ -168,7 +207,7 @@ export default function AnalyticsDetailPage2025() {
               <select
                 value={dateRange}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setDateRange(e.target.value)}
-                className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-white/30"
+                className="px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50"
               >
                 <option value="7days">Last 7 Days</option>
                 <option value="30days">Last 30 Days</option>
@@ -177,7 +216,7 @@ export default function AnalyticsDetailPage2025() {
               </select>
               <button
                 onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-white text-slate-900 rounded-lg hover:bg-slate-100 transition-colors font-medium"
               >
                 <Download className="w-5 h-5" />
                 Export
@@ -188,171 +227,200 @@ export default function AnalyticsDetailPage2025() {
       </MotionDiv>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Key Metrics */}
-        <MotionDiv
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
-        >
-          {platformMetrics.map((metric, index) => {
-            const Icon = metric.icon;
-            return (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+            <span className="ml-3 text-slate-600">Loading analytics data...</span>
+          </div>
+        ) : (
+          <>
+            {/* Key Metrics */}
+            <MotionDiv
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            >
+              {platformMetrics.map((metric, index) => {
+                const Icon = metric.icon;
+                return (
+                  <MotionDiv
+                    key={index}
+                    variants={staggerItem}
+                    className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`p-3 ${metric.bgColor} rounded-lg`}>
+                        <Icon className={`w-6 h-6 ${metric.color}`} />
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-1">{metric.label}</p>
+                    <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
+                  </MotionDiv>
+                );
+              })}
+            </MotionDiv>
+
+            {/* Main Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* User Growth */}
               <MotionDiv
-                key={index}
-                variants={staggerItem}
+                variants={fadeIn}
                 className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 ${metric.bgColor} rounded-lg`}>
-                    <Icon className={`w-6 h-6 ${metric.color}`} />
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-slate-600" />
+                  User Growth Trend
+                </h3>
+                {userGrowthData.length > 0 ? (
+                  <AreaChart
+                    data={userGrowthData}
+                    index="date"
+                    categories={['cumulative']}
+                    colors={['emerald']}
+                    valueFormatter={(value) => value.toLocaleString()}
+                    className="h-72"
+                  />
+                ) : (
+                  <div className="h-72 flex items-center justify-center text-sm text-gray-400">
+                    No user growth data available yet
                   </div>
-                  <div className={`flex items-center gap-1 text-sm font-medium ${
-                    metric.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {metric.trend === 'up' ? (
-                      <ArrowUp className="w-4 h-4" />
-                    ) : (
-                      <ArrowDown className="w-4 h-4" />
-                    )}
-                    {metric.change}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mb-1">{metric.label}</p>
-                <p className="text-2xl font-bold text-gray-900">{metric.value}</p>
+                )}
               </MotionDiv>
-            );
-          })}
-        </MotionDiv>
 
-        {/* Main Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* User Growth */}
-          <MotionDiv
-            variants={fadeIn}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-purple-600" />
-              User Growth Trend
-            </h3>
-            <AreaChart
-              data={userGrowthData}
-              index="month"
-              categories={['homeowners', 'contractors']}
-              colors={['purple', 'indigo']}
-              valueFormatter={(value) => value.toLocaleString()}
-              className="h-72"
-            />
-          </MotionDiv>
+              {/* Revenue Breakdown */}
+              <MotionDiv
+                variants={fadeIn}
+                className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-emerald-600" />
+                  Revenue Breakdown
+                </h3>
+                {revenueTrend.length > 0 ? (
+                  <AreaChart
+                    data={revenueTrend}
+                    index="month"
+                    categories={['revenue', 'fees', 'subscriptions']}
+                    colors={['emerald', 'blue', 'amber']}
+                    valueFormatter={(value) => `\u00A3${value.toLocaleString()}`}
+                    className="h-72"
+                  />
+                ) : (
+                  <div className="h-72 flex items-center justify-center text-sm text-gray-400">
+                    No revenue data available yet
+                  </div>
+                )}
+              </MotionDiv>
 
-          {/* Revenue Breakdown */}
-          <MotionDiv
-            variants={fadeIn}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-green-600" />
-              Revenue Breakdown
-            </h3>
-            <AreaChart
-              data={revenueData}
-              index="month"
-              categories={['revenue', 'fees', 'subscriptions']}
-              colors={['green', 'emerald', 'teal']}
-              valueFormatter={(value) => `£${value.toLocaleString()}`}
-              className="h-72"
-            />
-          </MotionDiv>
+              {/* Job Categories */}
+              <MotionDiv
+                variants={fadeIn}
+                className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <PieChart className="w-5 h-5 text-blue-600" />
+                  Job Distribution by Category
+                </h3>
+                {categoryData.length > 0 ? (
+                  <DonutChart
+                    data={categoryData}
+                    category="count"
+                    index="category"
+                    valueFormatter={(value) => `${value} jobs`}
+                    colors={['emerald', 'blue', 'amber', 'cyan', 'slate', 'rose']}
+                    className="h-72"
+                  />
+                ) : (
+                  <div className="h-72 flex items-center justify-center text-sm text-gray-400">
+                    No category data available yet
+                  </div>
+                )}
+              </MotionDiv>
 
-          {/* Job Categories */}
-          <MotionDiv
-            variants={fadeIn}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <PieChart className="w-5 h-5 text-blue-600" />
-              Job Distribution by Category
-            </h3>
-            <DonutChart
-              data={jobCategoryData}
-              category="count"
-              index="category"
-              valueFormatter={(value) => `${value} jobs`}
-              colors={['purple', 'indigo', 'blue', 'cyan', 'teal', 'gray']}
-              className="h-72"
-            />
-          </MotionDiv>
-
-          {/* Regional Performance */}
-          <MotionDiv
-            variants={fadeIn}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-emerald-600" />
-              Regional Performance
-            </h3>
-            <BarChart
-              data={regionalData}
-              index="region"
-              categories={['jobs']}
-              colors={['purple']}
-              valueFormatter={(value) => `${value} jobs`}
-              className="h-72"
-            />
-          </MotionDiv>
-        </div>
-
-        {/* Detailed Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Contractors */}
-          <MotionDiv
-            variants={fadeIn}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Contractors</h3>
-            <div className="space-y-3">
-              <p className="text-sm text-gray-500 text-center py-4">No contractor data available yet.</p>
+              {/* Job Growth */}
+              <MotionDiv
+                variants={fadeIn}
+                className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-emerald-600" />
+                  Job Creation Trend
+                </h3>
+                {jobGrowthData.length > 0 ? (
+                  <BarChart
+                    data={jobGrowthData}
+                    index="date"
+                    categories={['jobs']}
+                    colors={['emerald']}
+                    valueFormatter={(value) => `${value} jobs`}
+                    className="h-72"
+                  />
+                ) : (
+                  <div className="h-72 flex items-center justify-center text-sm text-gray-400">
+                    No job creation data available yet
+                  </div>
+                )}
+              </MotionDiv>
             </div>
-          </MotionDiv>
 
-          {/* Recent Activity */}
-          <MotionDiv
-            variants={fadeIn}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Platform Activity</h3>
-            <div className="space-y-3">
-              {[
-                { action: 'New job posted', user: 'Sarah J.', time: '2 minutes ago', type: 'job' },
-                { action: 'Contractor verified', user: 'Mike B.', time: '15 minutes ago', type: 'verification' },
-                { action: 'Payment completed', user: 'Emma W.', time: '32 minutes ago', type: 'payment' },
-                { action: 'Review submitted', user: 'John S.', time: '1 hour ago', type: 'review' },
-                { action: 'New user signup', user: 'David L.', time: '2 hours ago', type: 'signup' },
-              ].map((activity, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className={`p-2 rounded-lg ${
-                    activity.type === 'job' ? 'bg-blue-100' :
-                    activity.type === 'verification' ? 'bg-green-100' :
-                    activity.type === 'payment' ? 'bg-purple-100' :
-                    activity.type === 'review' ? 'bg-yellow-100' :
-                    'bg-gray-100'
-                  }`}>
-                    <Activity className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{activity.action}</p>
-                    <p className="text-sm text-gray-600">{activity.user} • {activity.time}</p>
-                  </div>
+            {/* Bottom Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Platform Summary */}
+              <MotionDiv
+                variants={fadeIn}
+                className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Platform Summary</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Total Contractors', value: metrics?.totalContractors?.toLocaleString() ?? '0' },
+                    { label: 'Active Subscriptions', value: metrics?.activeSubscriptions?.toLocaleString() ?? '0' },
+                    { label: 'MRR', value: `\u00A3${((metrics?.mrr ?? 0) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}` },
+                    { label: 'Pending Verifications', value: metrics?.pendingVerifications?.toLocaleString() ?? '0' },
+                    { label: 'Platform Fees', value: `\u00A3${((revenue?.revenueMetrics?.platformFees ?? 0) / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}` },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                      <span className="text-sm text-slate-600">{item.label}</span>
+                      <span className="font-semibold text-slate-900">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </MotionDiv>
+
+              {/* Recent Transactions */}
+              <MotionDiv
+                variants={fadeIn}
+                className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Transactions</h3>
+                <div className="space-y-3">
+                  {recentActivity.length > 0 ? (
+                    recentActivity.map((activity, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg"
+                      >
+                        <div className="p-2 rounded-lg bg-emerald-100">
+                          <Activity className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{activity.action}</p>
+                          <p className="text-sm text-gray-600">
+                            {activity.time}
+                            {activity.amount ? ` \u2022 \u00A3${(activity.amount / 100).toFixed(2)}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-4">No recent transactions</p>
+                  )}
+                </div>
+              </MotionDiv>
             </div>
-          </MotionDiv>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

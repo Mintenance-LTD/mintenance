@@ -77,7 +77,7 @@ export async function POST(
     // Fetch the job
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, status, amount, title, completion_confirmed_by_homeowner')
+      .select('id, homeowner_id, contractor_id, status, title, completion_confirmed_by_homeowner')
       .eq('id', jobId)
       .single();
 
