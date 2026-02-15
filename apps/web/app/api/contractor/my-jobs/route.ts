@@ -12,13 +12,15 @@ interface JobApiResponse {
   id: string;
   title: string;
   description?: string;
-  location?: unknown;
+  location?: string;
   category?: string;
+  priority?: string;
   urgency?: string;
+  budget?: number;
   budget_min?: number;
   budget_max?: number;
   status: string;
-  images?: string[];
+  photos?: string[];
   created_at: string;
   homeowner_id: string;
   homeowner?: {
@@ -114,13 +116,15 @@ export async function GET(request: NextRequest) {
           id,
           title,
           description,
+          budget,
           budget_min,
           budget_max,
           location,
           category,
+          priority,
           urgency,
           status,
-          images,
+          photos,
           created_at,
           homeowner_id,
           homeowner:profiles!homeowner_id (
@@ -148,10 +152,10 @@ export async function GET(request: NextRequest) {
         description: job.description,
         location: job.location,
         category: job.category,
-        priority: job.urgency || 'medium',
-        budget: job.budget_max || job.budget_min || 0,
+        priority: job.priority || job.urgency || 'medium',
+        budget: job.budget || job.budget_max || job.budget_min || 0,
         status: job.status,
-        photos: job.images || [],
+        photos: job.photos || [],
         created_at: job.created_at,
         homeowner_id: job.homeowner_id,
         homeowner_name: job.homeowner
@@ -171,13 +175,15 @@ export async function GET(request: NextRequest) {
           id,
           title,
           description,
+          budget,
           budget_min,
           budget_max,
           location,
           category,
+          priority,
           urgency,
           status,
-          images,
+          photos,
           created_at,
           homeowner_id,
           homeowner:profiles!homeowner_id (
@@ -217,10 +223,10 @@ export async function GET(request: NextRequest) {
         description: job.description,
         location: job.location,
         category: job.category,
-        priority: job.urgency || 'medium',
-        budget: job.budget_max || job.budget_min || 0,
+        priority: job.priority || job.urgency || 'medium',
+        budget: job.budget || job.budget_max || job.budget_min || 0,
         status: job.status,
-        photos: job.images || [],
+        photos: job.photos || [],
         created_at: job.created_at,
         homeowner_id: job.homeowner_id,
         homeowner_name: job.homeowner
