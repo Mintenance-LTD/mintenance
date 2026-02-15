@@ -4,7 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import React from 'react';
 import { theme } from '@/lib/theme';
-import { Briefcase, MapPin, PoundSterling, Calendar, Mail, Phone, CheckCircle2, MessageCircle, Check, UserCheck, Loader2, XCircle, LucideIcon } from 'lucide-react';
+import { Briefcase, MapPin, PoundSterling, Calendar, Mail, Phone, CheckCircle2, MessageCircle, Check, UserCheck, Loader2, XCircle, ArrowLeft, LucideIcon } from 'lucide-react';
 import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagement';
 import { LocationSharing } from './components/LocationSharing';
 import { JobScheduling } from '@/app/jobs/[id]/components/JobScheduling';
@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { JobProgressBar } from './components/JobProgressBar';
 import { JobPhotoUpload } from './components/JobPhotoUpload';
-import { CompanyInfoCard } from './components/CompanyInfoCard';
 import { OnMyWayButton } from './components/OnMyWayButton';
 
 export const metadata: Metadata = {
@@ -93,26 +92,6 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
   const completedMilestones = milestones?.filter((m) => m.status === 'completed').length || 0;
   const progressPercentage = jobProgress?.progress_percentage || (totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0);
 
-  // Fetch contractor profile for company info
-  const { data: contractorProfile } = await serverSupabase
-    .from('profiles')
-    .select('id, company_name, skills, portfolio_images, profile_image_url')
-    .eq('id', user.id)
-    .single();
-
-  // Calculate profile completion (simplified - can be enhanced)
-  const profileCompletion = contractorProfile
-    ? Math.round(
-        ((contractorProfile.company_name ? 25 : 0) +
-          (contractorProfile.skills?.length > 0 ? 25 : 0) +
-          (contractorProfile.portfolio_images?.length > 0 ? 25 : 0) +
-          (contractorProfile.profile_image_url ? 25 : 0))
-      )
-    : 0;
-
-  const contractorSkills = (contractorProfile?.skills as string[]) || [];
-  const portfolioImages = (contractorProfile?.portfolio_images as string[]) || [];
-
   // Determine contract status for scheduling
   // Contract is accepted if status is 'accepted' OR both parties have signed
   const contractStatus = !contract
@@ -150,6 +129,28 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
       margin: 0,
       padding: 0,
     }}>
+        {/* Back Navigation */}
+        <div suppressHydrationWarning style={{ marginBottom: theme.spacing[4] }}>
+          <Link
+            href="/contractor/jobs"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              color: theme.colors.textSecondary,
+              textDecoration: 'none',
+              padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+              borderRadius: theme.borderRadius.lg,
+              transition: 'all 0.15s',
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Jobs
+          </Link>
+        </div>
+
         {/* Header Section */}
         <div suppressHydrationWarning style={{
           marginBottom: theme.spacing[6],
@@ -211,9 +212,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
           </div>
         </div>
 
-        <div suppressHydrationWarning style={{
-          display: 'grid',
-          gridTemplateColumns: '1.2fr 1fr',
+        <div suppressHydrationWarning className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr]" style={{
           gap: theme.spacing[6],
         }}>
           {/* Left Column */}
@@ -596,14 +595,6 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
               latitude={job.latitude}
               longitude={job.longitude}
               location={job.location}
-            />
-
-            {/* Company Info Card */}
-            <CompanyInfoCard
-              contractorId={user.id}
-              profileCompletion={profileCompletion}
-              skills={contractorSkills}
-              portfolioImages={portfolioImages}
             />
 
             {/* Job Progress Card */}
