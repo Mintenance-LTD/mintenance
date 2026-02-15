@@ -2,6 +2,7 @@
   "name": "@mintenance/mobile",
   "version": "1.2.4",
   "private": true,
+  "main": "index.ts",
   "description": "Mintenance Mobile App (React Native/Expo)",
   "scripts": {
     "start": "expo start",
