@@ -36,6 +36,7 @@ const JobsScreen: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void loadJobs();
@@ -43,11 +44,17 @@ const JobsScreen: React.FC = () => {
 
   const loadJobs = async () => {
     if (!user) return;
-    const jobs =
-      user.role === 'homeowner'
-        ? await JobService.getJobsByHomeowner(user.id)
-        : await JobService.getAvailableJobs();
-    setAllJobs(jobs);
+    try {
+      setError(null);
+      const jobs =
+        user.role === 'homeowner'
+          ? await JobService.getJobsByHomeowner(user.id)
+          : await JobService.getAvailableJobs();
+      setAllJobs(jobs);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load jobs';
+      setError(message);
+    }
   };
 
   const filteredJobs = useMemo(() => {
@@ -116,6 +123,16 @@ const JobsScreen: React.FC = () => {
         testID="jobs-screen"
       >
         <View style={styles.header}>
+
+        {error && (
+          <View style={styles.errorBanner}>
+            <Ionicons name='alert-circle' size={18} color={theme.colors.error} />
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity onPress={() => void loadJobs()} accessibilityRole='button' accessibilityLabel='Retry loading jobs'>
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {user?.role === 'contractor' && (
           <View style={styles.searchSection}>
@@ -209,7 +226,7 @@ const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
   const daysAgo = Math.floor(
     (Date.now() -
       new Date(
-        item.createdAt || (item as unknown).created_at || Date.now()
+        item.created_at || item.createdAt || Date.now()
       ).getTime()) /
       (1000 * 3600 * 24)
   );
@@ -562,6 +579,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     maxWidth: 280,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.error,
+  },
+  retryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
 });
 

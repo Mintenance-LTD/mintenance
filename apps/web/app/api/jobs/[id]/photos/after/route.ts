@@ -181,15 +181,25 @@ export async function POST(
         if (!completeError) {
           jobCompleted = true;
 
-          // Notify homeowner to review
-          await serverSupabase.from('notifications').insert({
-            user_id: job.homeowner_id,
-            title: 'Job Completed - Review Required',
-            message: `Work on "${job.title || 'your job'}" is complete. Review the before/after photos and approve.`,
-            type: 'job_completed',
-            read: false,
-            action_url: `/jobs/${jobId}`,
-          });
+          // Notify homeowner to review and contractor of completion
+          await serverSupabase.from('notifications').insert([
+            {
+              user_id: job.homeowner_id,
+              title: 'Job Completed - Review Required',
+              message: `Work on "${job.title || 'your job'}" is complete. Review the before/after photos and approve.`,
+              type: 'job_completed',
+              read: false,
+              action_url: `/jobs/${jobId}`,
+            },
+            {
+              user_id: user.id,
+              title: 'Job Marked as Completed',
+              message: `Your after photos for "${job.title || 'the job'}" have been submitted. The job is now marked as completed and awaiting homeowner review.`,
+              type: 'job_completed',
+              read: false,
+              action_url: `/contractor/jobs/${jobId}`,
+            },
+          ]);
 
           logger.info('Job auto-completed after photo upload', { service: 'jobs', jobId });
         }

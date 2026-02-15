@@ -63,20 +63,18 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-pathname', pathname);
     const response = NextResponse.next({ request: { headers: requestHeaders } });
 
-    // Generate CSRF token on first visit if not present
+    // Generate or refresh CSRF token (always set to ensure httpOnly:false is applied)
     const isDevelopment = process.env.NODE_ENV !== 'production';
     const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
-
-    if (!request.cookies.get(csrfCookieName)) {
-      const csrfToken = crypto.randomUUID();
-      response.cookies.set(csrfCookieName, csrfToken, {
-        httpOnly: false, // SECURITY: Must be false for double-submit cookie pattern
-        secure: !isDevelopment, // Only secure in production
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 24 * 60 * 60, // 24 hours
-      });
-    }
+    const existingCsrf = request.cookies.get(csrfCookieName)?.value;
+    const csrfToken = existingCsrf || crypto.randomUUID();
+    response.cookies.set(csrfCookieName, csrfToken, {
+      httpOnly: false, // SECURITY: Must be false for double-submit cookie pattern
+      secure: !isDevelopment, // Only secure in production
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 24 * 60 * 60, // 24 hours
+    });
 
     // Set CSP for public routes (no nonce needed since these are login/register pages)
     if (!isDevelopment) {
@@ -337,6 +335,19 @@ export async function middleware(request: NextRequest) {
         requestHeaders.set('x-pathname', pathname);
 
         const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+        // Refresh CSRF cookie with httpOnly:false on protected routes too
+        const isDev = process.env.NODE_ENV !== 'production';
+        const csrfName = isDev ? 'csrf-token' : '__Host-csrf-token';
+        const csrfValue = request.cookies.get(csrfName)?.value || crypto.randomUUID();
+        response.cookies.set(csrfName, csrfValue, {
+          httpOnly: false,
+          secure: !isDev,
+          sameSite: 'strict',
+          path: '/',
+          maxAge: 24 * 60 * 60,
+        });
+
         return response;
       } catch (parseError) {
         logger.error('Failed to validate Supabase auth token', parseError, {
@@ -523,7 +534,18 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-ui-version', is2025Enabled ? '2025' : 'current');
 
     const response = NextResponse.next({ request: { headers: requestHeaders } });
-    
+
+    // Refresh CSRF cookie with httpOnly:false on protected routes
+    const csrfCookieNameJwt = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
+    const csrfValueJwt = request.cookies.get(csrfCookieNameJwt)?.value || crypto.randomUUID();
+    response.cookies.set(csrfCookieNameJwt, csrfValueJwt, {
+      httpOnly: false,
+      secure: !isDevelopment,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 24 * 60 * 60,
+    });
+
     // Set CSP header with nonce — localhost only allowed in development
     const connectSrc = isDevelopment
       ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"

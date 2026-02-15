@@ -1,0 +1,170 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getCurrentUserFromCookies } from '@/lib/auth';
+import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import { logger } from '@mintenance/shared';
+import { z } from 'zod';
+import { validateRequest } from '@/lib/validation/validator';
+
+const updateTripSchema = z.object({
+  status: z.enum(['arrived', 'completed', 'cancelled']),
+});
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const resolvedParams = await params;
+    const user = await getCurrentUserFromCookies();
+    if (!user || user.role !== 'contractor') {
+      throw new UnauthorizedError('Contractor access required');
+    }
+
+    const validation = await validateRequest(request, updateTripSchema);
+    if (validation instanceof NextResponse) return validation;
+    const { status } = validation.data;
+
+    // Fetch the trip
+    const { data: trip, error: fetchError } = await serverSupabase
+      .from('contractor_trips')
+      .select('*, job:jobs!job_id(homeowner_id, title)')
+      .eq('id', resolvedParams.id)
+      .eq('contractor_id', user.id)
+      .single();
+
+    if (fetchError || !trip) throw new NotFoundError('Trip not found');
+
+    // Validate state transitions
+    const validTransitions: Record<string, string[]> = {
+      en_route: ['arrived', 'cancelled'],
+      arrived: ['completed', 'cancelled'],
+    };
+
+    if (!validTransitions[trip.status]?.includes(status)) {
+      throw new BadRequestError(`Cannot transition from '${trip.status}' to '${status}'`);
+    }
+
+    // Update trip
+    const updateData: Record<string, unknown> = { status };
+    if (status === 'arrived') updateData.arrived_at = new Date().toISOString();
+    if (status === 'completed') updateData.completed_at = new Date().toISOString();
+
+    const { data: updatedTrip, error: updateError } = await serverSupabase
+      .from('contractor_trips')
+      .update(updateData)
+      .eq('id', resolvedParams.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      logger.error('Error updating trip', updateError, { service: 'trips' });
+      throw updateError;
+    }
+
+    // Update contractor_locations context
+    const contextMap: Record<string, string> = {
+      arrived: 'on_job',
+      completed: 'available',
+      cancelled: 'available',
+    };
+
+    await serverSupabase
+      .from('contractor_locations')
+      .update({
+        context: contextMap[status],
+        is_active: status === 'arrived',
+        is_sharing_location: status === 'arrived',
+        location_timestamp: new Date().toISOString(),
+      })
+      .eq('contractor_id', user.id);
+
+    // Get contractor name
+    const { data: contractor } = await serverSupabase
+      .from('profiles')
+      .select('first_name, last_name, company_name')
+      .eq('id', user.id)
+      .single();
+    const contractorName = contractor
+      ? `${contractor.first_name} ${contractor.last_name}`.trim() || contractor.company_name || 'Your contractor'
+      : 'Your contractor';
+
+    const homeownerId = trip.job?.homeowner_id;
+    const jobTitle = trip.job?.title;
+
+    // Notify homeowner on arrival
+    if (status === 'arrived' && homeownerId) {
+      await serverSupabase.from('notifications').insert({
+        user_id: homeownerId,
+        type: 'contractor_arrived',
+        title: 'Contractor Has Arrived',
+        message: `${contractorName} has arrived${jobTitle ? ` for "${jobTitle}"` : ''}.`,
+        data: { tripId: updatedTrip.id, jobId: trip.job_id, contractorId: user.id },
+        read: false,
+        created_at: new Date().toISOString(),
+      });
+    }
+
+    // Notify admins on arrival
+    if (status === 'arrived') {
+      try {
+        const { data: admins } = await serverSupabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'admin')
+          .is('deleted_at', null);
+
+        if (admins && admins.length > 0) {
+          const adminNotifs = admins.map(admin => ({
+            user_id: admin.id,
+            type: 'contractor_arrived',
+            title: 'Contractor Arrived',
+            message: `${contractorName} arrived at ${jobTitle || 'appointment location'}`,
+            data: { tripId: updatedTrip.id, jobId: trip.job_id, contractorId: user.id },
+            read: false,
+            created_at: new Date().toISOString(),
+          }));
+          await serverSupabase.from('notifications').insert(adminNotifs);
+        }
+      } catch (adminErr) {
+        logger.error('Failed to notify admins of arrival', adminErr, { service: 'trips' });
+      }
+    }
+
+    return NextResponse.json({ trip: updatedTrip });
+  } catch (error) {
+    return handleAPIError(error);
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const resolvedParams = await params;
+    const user = await getCurrentUserFromCookies();
+    if (!user) throw new UnauthorizedError('Authentication required');
+
+    const { data: trip, error } = await serverSupabase
+      .from('contractor_trips')
+      .select('*, job:jobs!job_id(id, title, homeowner_id, latitude, longitude)')
+      .eq('id', resolvedParams.id)
+      .single();
+
+    if (error || !trip) throw new NotFoundError('Trip not found');
+
+    // Allow contractor, homeowner (of the job), or admin
+    const isContractor = trip.contractor_id === user.id;
+    const isHomeowner = trip.job?.homeowner_id === user.id;
+    const isAdmin = user.role === 'admin';
+
+    if (!isContractor && !isHomeowner && !isAdmin) {
+      throw new UnauthorizedError('Not authorized to view this trip');
+    }
+
+    return NextResponse.json({ trip });
+  } catch (error) {
+    return handleAPIError(error);
+  }
+}

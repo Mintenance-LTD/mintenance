@@ -33,6 +33,17 @@ function extendConfig(baseConfig) {
   const projectRoot = __dirname;
   const monorepoRoot = path.resolve(projectRoot, '../..');
 
+  // Fix: Expo's getDefaultConfig returns projectRoot as '.' which resolves
+  // relative to Metro's location in node_modules, not the app directory.
+  // Explicitly set it to the absolute app path for monorepo compatibility.
+  baseConfig.projectRoot = projectRoot;
+
+  // Fix: Expo sets server.unstable_serverRoot to the monorepo root (workspace root),
+  // which causes entry file resolution to fail when bundling standalone.
+  // Override it to match projectRoot so Metro resolves entry files from apps/mobile.
+  if (!baseConfig.server) baseConfig.server = {};
+  baseConfig.server.unstable_serverRoot = projectRoot;
+
   // Ensure proper node_modules resolution for monorepo
   baseConfig.watchFolders = [monorepoRoot];
 
@@ -77,6 +88,7 @@ function extendConfig(baseConfig) {
 
 function getMinimalConfig() {
   return {
+    projectRoot: __dirname,
     watchFolders: [path.resolve(__dirname, '../..')],
     resolver: {
       resolverMainFields: ["react-native", "browser", "main"],

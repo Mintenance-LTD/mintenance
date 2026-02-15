@@ -206,6 +206,17 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
       ? 'accepted'
       : 'pending';
 
+  // Fetch escrow transaction status for lifecycle tracking
+  const { data: escrowTransaction } = await serverSupabase
+    .from('escrow_transactions')
+    .select('id, status')
+    .eq('job_id', resolvedParams.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const escrowStatus = escrowTransaction?.status || 'none';
+
   const userDisplayName = user.first_name && user.last_name
     ? `${user.first_name} ${user.last_name}`.trim()
     : user.email;
@@ -268,6 +279,8 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
             scheduled_end_date: job.scheduled_end_date,
             scheduled_duration_hours: job.scheduled_duration_hours,
             contractor_id: job.contractor_id,
+            latitude: job.latitude,
+            longitude: job.longitude,
           }}
           property={property}
           homeowner={homeownerData}
@@ -277,6 +290,13 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
           currentUserId={user.id}
           userRole="homeowner"
           buildingAssessment={buildingAssessment}
+          lifecycleData={{
+            contractStatus,
+            escrowStatus,
+            bidCount: bidsWithContractors.length,
+            pendingBidCount: bidsWithContractors.filter(b => b.status === 'pending').length,
+            completionConfirmed: !!job.completion_confirmed_by_homeowner,
+          }}
         />
         {job.status === 'completed' && afterPhotos.length > 0 && (
           <div style={{ marginTop: '24px' }}>

@@ -4,7 +4,7 @@ import React from 'react';
 import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
 import { fadeIn } from '@/lib/animations/variants';
 
-type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'draft';
+type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'draft' | 'awaiting_action';
 
 interface JobsStatusTabsProps {
   activeTab: FilterStatus;
@@ -15,6 +15,7 @@ interface JobsStatusTabsProps {
     active: number;
     completed: number;
     draft: number;
+    awaitingAction: number;
   };
   prefersReducedMotion?: boolean;
 }
@@ -26,11 +27,12 @@ export function JobsStatusTabs({
   prefersReducedMotion = false
 }: JobsStatusTabsProps) {
   const tabs = [
-    { value: 'all' as FilterStatus, label: 'All Jobs', count: jobCounts.all },
-    { value: 'posted' as FilterStatus, label: 'Posted', count: jobCounts.posted },
-    { value: 'in_progress' as FilterStatus, label: 'Active', count: jobCounts.active },
-    { value: 'completed' as FilterStatus, label: 'Completed', count: jobCounts.completed },
-    { value: 'draft' as FilterStatus, label: 'Drafts', count: jobCounts.draft },
+    { value: 'all' as FilterStatus, label: 'All Jobs', count: jobCounts.all, highlight: false },
+    { value: 'awaiting_action' as FilterStatus, label: 'Needs Attention', count: jobCounts.awaitingAction, highlight: true },
+    { value: 'posted' as FilterStatus, label: 'Posted', count: jobCounts.posted, highlight: false },
+    { value: 'in_progress' as FilterStatus, label: 'Active', count: jobCounts.active, highlight: false },
+    { value: 'completed' as FilterStatus, label: 'Completed', count: jobCounts.completed, highlight: false },
+    { value: 'draft' as FilterStatus, label: 'Drafts', count: jobCounts.draft, highlight: false },
   ];
 
   return (
@@ -40,15 +42,19 @@ export function JobsStatusTabs({
       initial={prefersReducedMotion ? false : "initial"}
       animate={prefersReducedMotion ? false : "animate"}
     >
-      <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-2">
+      <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-2 overflow-x-auto">
         {tabs.map((tab) => (
           <MotionButton
             key={tab.value}
             onClick={() => onTabChange(tab.value)}
-            className={`px-4 py-2.5 rounded-lg font-semibold text-sm transition-all ${
+            className={`px-4 py-2.5 rounded-lg font-semibold text-sm transition-all whitespace-nowrap ${
               activeTab === tab.value
-                ? 'bg-teal-600 text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? tab.highlight
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-teal-600 text-white'
+                : tab.highlight && tab.count > 0
+                  ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                  : 'text-gray-700 hover:bg-gray-100'
             }`}
             whileHover={prefersReducedMotion ? {} : { scale: 1.02 }}
             whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
@@ -60,7 +66,9 @@ export function JobsStatusTabs({
               <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
                 activeTab === tab.value
                   ? 'bg-white/20 text-white'
-                  : 'bg-gray-200 text-gray-700'
+                  : tab.highlight
+                    ? 'bg-amber-200 text-amber-800'
+                    : 'bg-gray-200 text-gray-700'
               }`}>
                 {tab.count}
               </span>

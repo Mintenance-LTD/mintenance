@@ -14,9 +14,10 @@ export interface DBVideoCall {
     id: string;
     job_id: string;
     initiator_id: string;
-    participants: string[];
+    participant_id?: string;
+    title?: string;
     status: string;
-    scheduled_time?: string;
+    scheduled_at?: string;
     metadata?: Record<string, string | number | boolean>;
     created_at: string;
 }
@@ -60,14 +61,9 @@ export function VideoCallScheduler(props: VideoCallSchedulerProps) {
     const fetchJobs = async () => {
         const { data, error } = await supabase
             .from('jobs')
-            .select('id, title, contractor_id, client_id') // client_id might be homeowner_id in DB?
-            // Checking types/index.ts: homeowner_id is the field.
-            // But let's check if I can select homeowner_id aliased or just check both.
-            // I'll select * to be safe or check the type definition again.
-            // Type says: homeowner_id.
             .select('id, title, contractor_id, homeowner_id')
-            .eq('status', 'in_progress')
-            .limit(10);
+            .in('status', ['posted', 'assigned', 'in_progress'])
+            .limit(20);
 
         if (data) {
             setJobs(data);
@@ -96,9 +92,11 @@ export function VideoCallScheduler(props: VideoCallSchedulerProps) {
                 .insert({
                     job_id: selectedJobId,
                     initiator_id: currentUserId,
-                    participants: [currentUserId, otherParticipantId],
+                    participant_id: otherParticipantId,
+                    title: `${purpose.replace('_', ' ')} - Video Call`,
                     status: 'scheduled',
-                    scheduled_time: new Date(scheduledTime).toISOString(),
+                    scheduled_at: new Date(scheduledTime).toISOString(),
+                    type: purpose === 'final_walkthrough' ? 'inspection' : purpose === 'site_visit' ? 'site_visit' : 'consultation',
                     metadata: {
                         callPurpose: purpose,
                     },
@@ -204,6 +202,7 @@ export function VideoCallScheduler(props: VideoCallSchedulerProps) {
                                 }}
                             >
                                 <option value="consultation">Initial Consultation</option>
+                                <option value="site_visit">On-Site Meeting</option>
                                 <option value="progress_update">Progress Update</option>
                                 <option value="problem_discussion">Problem Discussion</option>
                                 <option value="final_walkthrough">Final Walkthrough</option>

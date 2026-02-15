@@ -17,7 +17,7 @@ import { JobsHeroHeader } from './components/JobsHeroHeader';
 import { JobsBulkActionsSection } from './components/JobsBulkActionsSection';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'draft';
+type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'draft' | 'awaiting_action';
 
 interface RawJobData {
   id: string;
@@ -40,6 +40,11 @@ interface RawJobData {
   view_count?: number;
 }
 
+interface NextAction {
+  label: string;
+  urgency: 'low' | 'medium' | 'high';
+}
+
 interface ProcessedJob {
   id: string;
   title: string;
@@ -55,6 +60,7 @@ interface ProcessedJob {
   priority?: string;
   photos: string[];
   view_count?: number;
+  nextAction?: NextAction;
 }
 
 export default function JobsPage2025() {
@@ -63,6 +69,21 @@ export default function JobsPage2025() {
       <JobsPageContent />
     </ErrorBoundary>
   );
+}
+
+function getNextAction(status: string): NextAction | undefined {
+  switch (status) {
+    case 'completed':
+      return { label: 'Review & Approve Work', urgency: 'high' };
+    case 'assigned':
+      return { label: 'Contract & Payment Pending', urgency: 'medium' };
+    case 'in_progress':
+      return { label: 'Work In Progress', urgency: 'low' };
+    case 'posted':
+      return { label: 'Awaiting Bids', urgency: 'low' };
+    default:
+      return undefined;
+  }
 }
 
 function JobsPageContent() {
@@ -103,6 +124,7 @@ function JobsPageContent() {
         priority: j.priority ?? undefined,
         photos: j.photos ?? [],
         view_count: j.view_count,
+        nextAction: getNextAction(j.status ?? 'posted'),
       }));
     },
     enabled: !!user,
@@ -112,8 +134,11 @@ function JobsPageContent() {
   const filteredJobs = useMemo(() => {
     let data = allJobs;
     if (activeTab !== 'all') {
-      // "Active" tab (in_progress) should also include 'assigned' status jobs
-      if (activeTab === 'in_progress') {
+      if (activeTab === 'awaiting_action') {
+        // Show jobs that need homeowner action: completed (needs review) or assigned (contract/payment)
+        data = data.filter((j) => j.nextAction && (j.nextAction.urgency === 'high' || j.nextAction.urgency === 'medium'));
+      } else if (activeTab === 'in_progress') {
+        // "Active" tab (in_progress) should also include 'assigned' status jobs
         data = data.filter((j) => j.status === 'in_progress' || j.status === 'assigned');
       } else {
         data = data.filter((j) => j.status === activeTab);
@@ -211,7 +236,7 @@ function JobsPageContent() {
     <HomeownerPageWrapper>
       <JobsHeroHeader
         allJobsCount={allJobs.length}
-        activeJobsCount={allJobs.filter(j => j.status === 'in_progress').length}
+        activeJobsCount={allJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned').length}
         postedJobsCount={allJobs.filter(j => j.status === 'posted').length}
         completedJobsCount={allJobs.filter(j => j.status === 'completed').length}
         prefersReducedMotion={prefersReducedMotion}
@@ -242,6 +267,7 @@ function JobsPageContent() {
               active: allJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned').length,
               completed: allJobs.filter(j => j.status === 'completed').length,
               draft: allJobs.filter(j => j.status === 'draft').length,
+              awaitingAction: allJobs.filter(j => j.nextAction && (j.nextAction.urgency === 'high' || j.nextAction.urgency === 'medium')).length,
             }}
             prefersReducedMotion={prefersReducedMotion}
           />

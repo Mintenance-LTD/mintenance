@@ -311,27 +311,7 @@ export async function POST(request: NextRequest) {
       escrowTransactionId: escrowTransaction.id
     });
 
-    // Notify contractor that payment is being processed
-    if (job.contractor_id) {
-      try {
-        const { notifyPaymentEvent } = await import('@/lib/services/notifications/NotificationHelper');
-        await notifyPaymentEvent({
-          userId: job.contractor_id,
-          jobId,
-          jobTitle: job.title,
-          amount,
-          eventType: 'received',
-          transactionId: escrowTransaction.id,
-        });
-      } catch (notificationError) {
-        logger.error('Failed to create payment received notification', notificationError, {
-          service: 'payments',
-          contractorId: job.contractor_id,
-          jobId,
-        });
-        // Don't fail the request if notification fails
-      }
-    }
+    // Payment notification moved to confirm-intent (only notify after payment actually succeeds)
 
     const responseData = {
       clientSecret: paymentIntent.client_secret,

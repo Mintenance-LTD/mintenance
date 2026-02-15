@@ -8,22 +8,9 @@
  */
 
 import { sanitizeText } from './sanitize';
-import * as fs from 'fs';
-import * as path from 'path';
 
-const DEBUG_LOG_PATH = path.join(process.cwd(), '.cursor', 'debug.log');
-const logDebug = (data: Record<string, unknown>) => {
-  try {
-    const logDir = path.dirname(DEBUG_LOG_PATH);
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
-    }
-    const logLine = JSON.stringify({ ...data, timestamp: Date.now() }) + '\n';
-    fs.appendFileSync(DEBUG_LOG_PATH, logLine, 'utf8');
-  } catch (e) {
-    // Ignore logging errors
-  }
-};
+// No-op debug logger (fs/path not available in React Native)
+const logDebug = (_data: Record<string, unknown>) => {};
 
 /**
  * Escapes SQL wildcards and special characters for use in ILIKE queries.

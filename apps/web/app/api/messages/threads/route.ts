@@ -167,6 +167,31 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Fallback: for jobs without lastMessage from thread_id lookup, try querying by job_id directly
+    // (some messages may use job_id instead of thread_id)
+    const jobsWithoutMessages = jobIds.filter(id => !lastMessages.has(id));
+    if (jobsWithoutMessages.length > 0) {
+      const { data: fallbackMessages } = await serverSupabase
+        .from('messages')
+        .select('id, job_id, sender_id, content, message_type, created_at')
+        .in('job_id', jobsWithoutMessages)
+        .order('created_at', { ascending: false })
+        .limit(jobsWithoutMessages.length * 3);
+
+      if (fallbackMessages) {
+        for (const row of fallbackMessages as { id: string; job_id: string; sender_id: string; content: string; message_type: string | null; created_at: string }[]) {
+          if (row.job_id && !lastMessages.has(row.job_id)) {
+            lastMessages.set(row.job_id, {
+              content: row.content || '',
+              messageText: row.content || '',
+              messageType: normalizeMessageType(row.message_type),
+              createdAt: row.created_at,
+            });
+          }
+        }
+      }
+    }
+
     // Calculate unread counts using read_by array (user not in read_by = unread)
     const unreadCounts = new Map<string, number>();
     if (threadIds.length > 0) {
@@ -197,7 +222,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const threads: ThreadWithActivity[] = jobRows.map((job) => {
+    const threads: ThreadWithActivity[] = jobRows
+      // Only include jobs that have both participants OR have existing messages
+      .filter((job) => {
+        const hasBothParticipants = !!job.homeowner_id && !!job.contractor_id;
+        const hasMessages = lastMessages.has(job.id);
+        return hasBothParticipants || hasMessages;
+      })
+      .map((job) => {
       const lastMessage = lastMessages.get(job.id);
       const threadData = messageThreadsData?.find(t => t.job_id === job.id);
       const lastActivity = lastMessage

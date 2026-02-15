@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Image from 'next/image';
 import { theme } from '@/lib/theme';
-import { formatLocationShort, calculateDistance, formatDistance } from '@/lib/utils/location';
+import { formatLocationShort, calculateDistance, formatDistance, cleanAddress } from '@/lib/utils/location';
 import { formatMoney } from '@/lib/utils/currency';
 import { Icon } from '@/components/ui/Icon';
 import type { Job } from '@mintenance/types';
@@ -109,7 +109,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job, contractorLocation, contr
 
   // Format location
   const locationShort = formatLocationShort(job.location);
-  const locationFull = job.location || 'Not specified';
+  const locationFull = cleanAddress(job.location) || 'Not specified';
 
   // Calculate distance if contractor location available
   let distanceText: string | null = null;

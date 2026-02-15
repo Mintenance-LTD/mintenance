@@ -211,9 +211,37 @@ export function NotificationDropdown(props: NotificationDropdownProps) {
         return 'messages';
       case 'new_follower':
         return 'userPlus';
+      case 'job_assigned':
+        return 'userPlus';
+      case 'job_started':
+        return 'briefcase';
+      case 'job_completed':
+        return 'checkCircle';
+      case 'job_confirmed':
+      case 'completion_confirmed':
+        return 'checkCircle';
+      case 'job_cancelled':
+        return 'xCircle';
+      case 'job_scheduled':
+        return 'calendar';
       case 'contract_created':
+        return 'fileText';
+      case 'contract_pending_signature':
+        return 'fileText';
       case 'contract_signed':
         return 'fileText';
+      case 'payment_required':
+        return 'creditCard';
+      case 'payment_failed':
+        return 'creditCard';
+      case 'changes_requested':
+        return 'messages';
+      case 'appointment_scheduled':
+        return 'calendar';
+      case 'contractor_en_route':
+        return 'navigation';
+      case 'contractor_arrived':
+        return 'mapPin';
       default:
         return 'bell';
     }
@@ -251,10 +279,37 @@ export function NotificationDropdown(props: NotificationDropdownProps) {
         return theme.colors.primary; // Blue for comments
       case 'new_follower':
         return theme.colors.success; // Green for followers
+      case 'job_assigned':
+        return theme.colors.success;
+      case 'job_started':
+        return theme.colors.primary;
+      case 'job_completed':
+        return theme.colors.success;
+      case 'job_confirmed':
+      case 'completion_confirmed':
+        return theme.colors.success;
+      case 'job_cancelled':
+        return theme.colors.error;
+      case 'job_scheduled':
+        return '#0D9488'; // Teal
       case 'contract_created':
-        return theme.colors.primary; // Blue for contract created
+        return '#0D9488'; // Teal for contract created
+      case 'contract_pending_signature':
+        return '#F59E0B'; // Amber - action needed
       case 'contract_signed':
-        return theme.colors.success; // Green for contract signed
+        return theme.colors.success;
+      case 'payment_required':
+        return '#F59E0B'; // Amber - action needed
+      case 'payment_failed':
+        return theme.colors.error;
+      case 'changes_requested':
+        return '#F59E0B'; // Amber - action needed
+      case 'appointment_scheduled':
+        return '#0D9488'; // Teal for appointments
+      case 'contractor_en_route':
+        return '#3B82F6'; // Blue for en route
+      case 'contractor_arrived':
+        return theme.colors.success; // Green for arrived
       default:
         return theme.colors.textSecondary;
     }

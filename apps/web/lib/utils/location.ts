@@ -6,15 +6,32 @@
  * Extract city and postcode from a full address string
  * Handles UK addresses like "82, Fairview Road, Ewens Farm, Fairview, Cheltenham, Gloucestershire, England, GL52 2EH, United Kingdom"
  */
+/**
+ * Clean trailing commas and empty segments from an address string.
+ * Handles cases like "...United Kingdom, ,, ,"
+ */
+export function cleanAddress(address: string | null | undefined): string {
+  if (!address) return '';
+  return address
+    .split(',')
+    .map(p => p.trim())
+    .filter(p => p.length > 0)
+    .join(', ');
+}
+
 export function formatLocationShort(address: string | null | undefined): string {
   if (!address) return 'Not specified';
 
+  // Clean the address first
+  const cleaned = cleanAddress(address);
+  if (!cleaned) return 'Not specified';
+
   // Try to extract UK postcode (format: GL52 2EH or GL522EH)
-  const postcodeMatch = address.match(/\b([A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2})\b/i);
+  const postcodeMatch = cleaned.match(/\b([A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2})\b/i);
   const postcode = postcodeMatch ? postcodeMatch[1].toUpperCase() : null;
 
   // Split address by commas and try to find city
-  const parts = address.split(',').map(p => p.trim());
+  const parts = cleaned.split(',').map(p => p.trim());
   
   // Common UK address patterns: look for city name (usually before postcode)
   let city: string | null = null;

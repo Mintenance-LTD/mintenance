@@ -18,7 +18,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { BuildingAssessmentDisplay } from './BuildingAssessmentDisplay';
+import { cleanAddress } from '@/lib/utils/location';
 import { logger } from '@mintenance/shared';
+import { ContractorTravelTracking } from './ContractorTravelTracking';
 import {
   MapPin,
   Calendar,
@@ -85,6 +87,14 @@ interface Bid {
   lineItems?: BidLineItem[];
 }
 
+interface LifecycleData {
+  contractStatus: string;
+  escrowStatus: string;
+  bidCount: number;
+  pendingBidCount: number;
+  completionConfirmed: boolean;
+}
+
 export interface JobDetailsProfessionalProps {
   job: {
     id: string;
@@ -100,6 +110,8 @@ export interface JobDetailsProfessionalProps {
     scheduled_end_date?: string;
     scheduled_duration_hours?: number;
     contractor_id?: string;
+    latitude?: number;
+    longitude?: number;
   };
   property?: Property | null;
   homeowner?: Homeowner | null;
@@ -109,6 +121,7 @@ export interface JobDetailsProfessionalProps {
   currentUserId: string;
   userRole: 'homeowner' | 'contractor';
   buildingAssessment?: Record<string, unknown> | null;
+  lifecycleData?: LifecycleData;
 }
 
 /* ==========================================
@@ -125,6 +138,7 @@ export function JobDetailsProfessional({
   currentUserId,
   userRole,
   buildingAssessment,
+  lifecycleData,
 }: JobDetailsProfessionalProps) {
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const isOwner = userRole === 'homeowner';
@@ -203,7 +217,7 @@ export function JobDetailsProfessional({
 
                 {/* Quick Info Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 p-6 bg-gray-50 rounded-lg">
-                  <InfoItem icon={<MapPin />} label="Location" value={job.location} />
+                  <InfoItem icon={<MapPin />} label="Location" value={cleanAddress(job.location)} />
                   <InfoItem icon={<Tag />} label="Category" value={formatCategory(job.category)} />
                   <InfoItem icon={<Calendar />} label="Posted" value={formatDate(job.created_at)} />
                 </div>
@@ -245,7 +259,7 @@ export function JobDetailsProfessional({
                       {property.property_name}
                     </h4>
                     <p className="text-gray-600">
-                      {property.address ? property.address.replace(/,\s*,/g, ',').replace(/,\s*$/, '') : 'Address not available'}
+                      {property.address ? cleanAddress(property.address) : 'Address not available'}
                     </p>
                   </div>
                 </div>
@@ -264,6 +278,16 @@ export function JobDetailsProfessional({
               <ContentCard title="Assigned Contractor">
                 <UserCard user={contractor} isContractor />
               </ContentCard>
+            )}
+
+            {/* Live Contractor Tracking (Homeowner View) */}
+            {isOwner && job.contractor_id && job.latitude && job.longitude &&
+              (job.status === 'assigned' || job.status === 'in_progress') && (
+              <ContractorTravelTracking
+                jobId={job.id}
+                contractorId={job.contractor_id}
+                destination={{ lat: job.latitude, lng: job.longitude }}
+              />
             )}
 
             {/* Bids Section (Homeowner View Only) */}
@@ -328,6 +352,30 @@ export function JobDetailsProfessional({
           {/* RIGHT COLUMN - Sticky Sidebar (4 columns) */}
           <div className="col-span-12 lg:col-span-4">
             <div className="sticky top-6 space-y-6">
+              {/* Job Lifecycle Timeline */}
+              {isOwner && lifecycleData && (
+                <JobLifecycleTimeline
+                  jobStatus={job.status}
+                  contractStatus={lifecycleData.contractStatus}
+                  escrowStatus={lifecycleData.escrowStatus}
+                  bidCount={lifecycleData.bidCount}
+                  completionConfirmed={lifecycleData.completionConfirmed}
+                />
+              )}
+
+              {/* Next Action Card */}
+              {isOwner && lifecycleData && (
+                <NextActionCard
+                  jobId={job.id}
+                  jobStatus={job.status}
+                  contractStatus={lifecycleData.contractStatus}
+                  escrowStatus={lifecycleData.escrowStatus}
+                  bidCount={lifecycleData.bidCount}
+                  pendingBidCount={lifecycleData.pendingBidCount}
+                  completionConfirmed={lifecycleData.completionConfirmed}
+                />
+              )}
+
               {/* Budget Card */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
                 <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">
@@ -840,6 +888,250 @@ function ImageLightbox({
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white text-sm font-semibold">
         {currentIndex + 1} / {images.length}
       </div>
+    </div>
+  );
+}
+
+/* ==========================================
+   LIFECYCLE COMPONENTS
+   ========================================== */
+
+interface LifecycleStep {
+  label: string;
+  status: 'completed' | 'current' | 'upcoming';
+}
+
+function JobLifecycleTimeline({
+  jobStatus,
+  contractStatus,
+  escrowStatus,
+  bidCount,
+  completionConfirmed,
+}: {
+  jobStatus: string;
+  contractStatus: string;
+  escrowStatus: string;
+  bidCount: number;
+  completionConfirmed: boolean;
+}) {
+  const steps: LifecycleStep[] = [];
+
+  // Step 1: Posted
+  const isPosted = true; // Always completed if we can see the job
+  steps.push({ label: 'Job Posted', status: isPosted ? 'completed' : 'upcoming' });
+
+  // Step 2: Bids Received
+  const hasBids = bidCount > 0;
+  const isBidsStep = jobStatus === 'posted' && !hasBids;
+  steps.push({
+    label: hasBids ? `${bidCount} Bid${bidCount !== 1 ? 's' : ''} Received` : 'Awaiting Bids',
+    status: isBidsStep ? 'current' : hasBids ? 'completed' : 'upcoming',
+  });
+
+  // Step 3: Bid Accepted
+  const bidAccepted = ['assigned', 'in_progress', 'completed'].includes(jobStatus);
+  const isBidReview = jobStatus === 'posted' && hasBids;
+  steps.push({
+    label: 'Bid Accepted',
+    status: isBidReview ? 'current' : bidAccepted ? 'completed' : 'upcoming',
+  });
+
+  // Step 4: Contract Signed
+  const contractSigned = contractStatus === 'accepted';
+  const isContractStep = bidAccepted && !contractSigned && contractStatus !== 'none';
+  steps.push({
+    label: 'Contract Signed',
+    status: isContractStep ? 'current' : contractSigned ? 'completed' : 'upcoming',
+  });
+
+  // Step 5: Payment Secured
+  const paymentSecured = ['held', 'release_pending', 'released'].includes(escrowStatus);
+  const isPaymentStep = contractSigned && !paymentSecured;
+  steps.push({
+    label: 'Payment in Escrow',
+    status: isPaymentStep ? 'current' : paymentSecured ? 'completed' : 'upcoming',
+  });
+
+  // Step 6: Work In Progress
+  const workStarted = ['in_progress', 'completed'].includes(jobStatus);
+  const isWorkStep = jobStatus === 'assigned' && paymentSecured;
+  steps.push({
+    label: 'Work In Progress',
+    status: isWorkStep ? 'current' : workStarted ? 'completed' : 'upcoming',
+  });
+
+  // Step 7: Completed
+  const isCompleted = jobStatus === 'completed';
+  const isCompletionStep = isCompleted && !completionConfirmed;
+  steps.push({
+    label: 'Completed',
+    status: isCompletionStep ? 'current' : completionConfirmed ? 'completed' : 'upcoming',
+  });
+
+  // Step 8: Approved & Paid
+  steps.push({
+    label: 'Approved & Paid',
+    status: completionConfirmed ? 'completed' : 'upcoming',
+  });
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-5">
+        Job Progress
+      </h3>
+      <div className="space-y-0">
+        {steps.map((step, i) => (
+          <div key={step.label} className="flex items-start gap-3">
+            {/* Vertical line + circle */}
+            <div className="flex flex-col items-center">
+              <div
+                className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 ${
+                  step.status === 'completed'
+                    ? 'bg-emerald-500 border-emerald-500'
+                    : step.status === 'current'
+                      ? 'bg-teal-500 border-teal-500 animate-pulse'
+                      : 'bg-white border-gray-300'
+                }`}
+              >
+                {step.status === 'completed' && (
+                  <svg className="w-full h-full text-white" viewBox="0 0 14 14" fill="none">
+                    <path d="M3.5 7L6 9.5L10.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+              {i < steps.length - 1 && (
+                <div className={`w-0.5 h-6 ${
+                  step.status === 'completed' ? 'bg-emerald-300' : 'bg-gray-200'
+                }`} />
+              )}
+            </div>
+            {/* Label */}
+            <span className={`text-sm pt-px ${
+              step.status === 'completed'
+                ? 'text-gray-900 font-medium'
+                : step.status === 'current'
+                  ? 'text-teal-700 font-semibold'
+                  : 'text-gray-400'
+            }`}>
+              {step.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NextActionCard({
+  jobId,
+  jobStatus,
+  contractStatus,
+  escrowStatus,
+  bidCount,
+  pendingBidCount,
+  completionConfirmed,
+}: {
+  jobId: string;
+  jobStatus: string;
+  contractStatus: string;
+  escrowStatus: string;
+  bidCount: number;
+  pendingBidCount: number;
+  completionConfirmed: boolean;
+}) {
+  let message = '';
+  let ctaLabel = '';
+  let ctaHref = '';
+  let urgency: 'info' | 'action' | 'urgent' = 'info';
+
+  if (jobStatus === 'posted' && pendingBidCount > 0) {
+    message = `You have ${pendingBidCount} pending bid${pendingBidCount !== 1 ? 's' : ''} to review. Compare contractors and accept the best offer.`;
+    ctaLabel = 'Review Bids';
+    ctaHref = '#bids-section';
+    urgency = 'action';
+  } else if (jobStatus === 'posted') {
+    message = 'Your job is live. Contractors in your area will be able to see and bid on it.';
+    ctaLabel = '';
+    urgency = 'info';
+  } else if (jobStatus === 'assigned' && contractStatus === 'pending') {
+    message = 'A contract has been created. Review the terms and sign to proceed with the job.';
+    ctaLabel = 'Review Contract';
+    ctaHref = '#contract-section';
+    urgency = 'action';
+  } else if (jobStatus === 'assigned' && contractStatus === 'accepted' && !['held', 'release_pending', 'released'].includes(escrowStatus)) {
+    message = 'Both parties have signed the contract. Make payment to secure funds in escrow so work can begin.';
+    ctaLabel = 'Make Payment';
+    ctaHref = `/jobs/${jobId}/payment`;
+    urgency = 'urgent';
+  } else if (jobStatus === 'assigned') {
+    message = 'Payment is secured. The contractor will begin work soon. You\'ll receive updates as the job progresses.';
+    urgency = 'info';
+  } else if (jobStatus === 'in_progress') {
+    message = 'Work is underway. The contractor will upload completion photos when the job is done.';
+    urgency = 'info';
+  } else if (jobStatus === 'completed' && !completionConfirmed) {
+    message = 'The contractor has completed the work. Review the before/after photos and approve to release payment.';
+    ctaLabel = 'Review & Approve';
+    ctaHref = '#photo-review';
+    urgency = 'urgent';
+  } else if (completionConfirmed) {
+    message = 'This job is complete. Payment has been released to the contractor.';
+    urgency = 'info';
+  } else {
+    return null;
+  }
+
+  const bgColors = {
+    info: 'bg-blue-50 border-blue-200',
+    action: 'bg-amber-50 border-amber-200',
+    urgent: 'bg-rose-50 border-rose-200',
+  };
+
+  const textColors = {
+    info: 'text-blue-800',
+    action: 'text-amber-800',
+    urgent: 'text-rose-800',
+  };
+
+  const btnColors = {
+    info: '',
+    action: 'bg-amber-600 hover:bg-amber-700 text-white',
+    urgent: 'bg-rose-600 hover:bg-rose-700 text-white',
+  };
+
+  const handleCta = (e: React.MouseEvent) => {
+    if (ctaHref.startsWith('#')) {
+      e.preventDefault();
+      const el = document.getElementById(ctaHref.slice(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div className={`rounded-xl border p-5 ${bgColors[urgency]}`}>
+      <div className="flex items-start gap-2.5 mb-3">
+        {urgency === 'urgent' && (
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse flex-shrink-0 mt-1" />
+        )}
+        {urgency === 'action' && (
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0 mt-1" />
+        )}
+        <div>
+          <h4 className={`text-sm font-semibold mb-1 ${textColors[urgency]}`}>
+            {urgency === 'urgent' ? 'Action Required' : urgency === 'action' ? 'Next Step' : 'Status'}
+          </h4>
+          <p className={`text-sm ${textColors[urgency]} opacity-90`}>{message}</p>
+        </div>
+      </div>
+      {ctaLabel && ctaHref && (
+        <Link
+          href={ctaHref}
+          onClick={handleCta}
+          className={`block w-full text-center px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${btnColors[urgency]}`}
+        >
+          {ctaLabel}
+        </Link>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,19 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import Button from '../components/ui/Button';
+import { supabase } from '../config/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 const NotificationSettingsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
 
   // Notification settings state
   const [settings, setSettings] = useState({
@@ -41,6 +46,28 @@ const NotificationSettingsScreen: React.FC = () => {
     productUpdates: true,
   });
 
+  useEffect(() => {
+    if (user?.id) {
+      void loadSettings();
+    }
+  }, [user?.id]);
+
+  const loadSettings = async () => {
+    if (!user?.id) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('notification_preferences')
+        .eq('id', user.id)
+        .single();
+      if (data?.notification_preferences) {
+        setSettings((prev) => ({ ...prev, ...data.notification_preferences }));
+      }
+    } catch {
+      // Use defaults if no saved preferences
+    }
+  };
+
   const updateSetting = (key: keyof typeof settings) => {
     setSettings((prev) => ({
       ...prev,
@@ -48,10 +75,25 @@ const NotificationSettingsScreen: React.FC = () => {
     }));
   };
 
-  const handleSave = () => {
-    // TODO: Save settings to backend
-    Alert.alert('Success', 'Notification settings updated!');
-    navigation.goBack();
+  const handleSave = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'You must be logged in to save settings');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ notification_preferences: settings })
+        .eq('id', user.id);
+      if (error) throw error;
+      Alert.alert('Success', 'Notification settings updated!');
+      navigation.goBack();
+    } catch {
+      Alert.alert('Error', 'Failed to save notification settings. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const Section = ({
@@ -129,8 +171,9 @@ const NotificationSettingsScreen: React.FC = () => {
         <Text style={styles.headerTitle}>Notifications</Text>
         <Button
           variant='secondary'
-          title='Save'
+          title={saving ? 'Saving...' : 'Save'}
           onPress={handleSave}
+          disabled={saving}
           style={{ paddingHorizontal: 16, borderRadius: 16 }}
         />
       </View>

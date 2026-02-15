@@ -7,18 +7,21 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 
+// Transform empty strings to undefined so optional validators work correctly
+const emptyToUndefined = z.literal('').transform(() => undefined);
+
 const createAppointmentSchema = z.object({
   title: z.string().min(1).max(500),
-  clientName: z.string().max(200).optional(),
-  clientEmail: z.string().email().optional(),
-  clientPhone: z.string().max(50).optional(),
+  clientName: z.string().max(200).optional().or(emptyToUndefined),
+  clientEmail: z.string().email().optional().or(emptyToUndefined),
+  clientPhone: z.string().max(50).optional().or(emptyToUndefined),
   appointmentDate: z.string().min(1),
   startTime: z.string().min(1),
   endTime: z.string().min(1),
-  locationType: z.enum(['onsite', 'remote', 'phone']).optional(),
-  locationAddress: z.string().max(500).optional(),
-  jobId: z.string().uuid().optional(),
-  notes: z.string().max(5000).optional(),
+  locationType: z.enum(['onsite', 'remote', 'phone']).optional().or(emptyToUndefined),
+  locationAddress: z.string().max(500).optional().or(emptyToUndefined),
+  jobId: z.string().uuid().optional().or(emptyToUndefined),
+  notes: z.string().max(5000).optional().or(emptyToUndefined),
 });
 
 export async function GET(request: NextRequest) {
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
       .from('appointments')
       .select(`
         *,
-        client:profiles!appointments_client_id_fkey(
+        client:profiles!client_id(
           id,
           first_name,
           last_name,
@@ -68,7 +71,7 @@ export async function GET(request: NextRequest) {
           phone,
           profile_image_url
         ),
-        job:jobs(
+        job:jobs!job_id(
           id,
           title,
           status,
@@ -205,6 +208,52 @@ export async function POST(request: NextRequest) {
     if (error) {
       logger.error('Error creating appointment', error, { service: 'appointments', userId: user.id });
       throw error;
+    }
+
+    // Notify homeowner if this appointment is linked to a job
+    try {
+      let homeownerId: string | null = null;
+      let jobTitle: string | null = null;
+
+      if (jobId) {
+        const { data: job } = await serverSupabase
+          .from('jobs')
+          .select('homeowner_id, title')
+          .eq('id', jobId)
+          .single();
+        homeownerId = job?.homeowner_id || null;
+        jobTitle = job?.title || null;
+      }
+
+      // Get contractor name for the notification
+      const { data: contractor } = await serverSupabase
+        .from('profiles')
+        .select('first_name, last_name, company_name')
+        .eq('id', user.id)
+        .single();
+      const contractorName = contractor
+        ? `${contractor.first_name} ${contractor.last_name}`.trim() || contractor.company_name || 'Your contractor'
+        : 'Your contractor';
+
+      const dateStr = new Date(appointmentDate + 'T00:00:00').toLocaleDateString('en-GB', {
+        weekday: 'short', day: 'numeric', month: 'short',
+      });
+      const typeLabel = locationType === 'remote' ? 'video call' : locationType === 'phone' ? 'phone call' : 'on-site visit';
+
+      if (homeownerId) {
+        await serverSupabase.from('notifications').insert({
+          user_id: homeownerId,
+          type: 'appointment_scheduled',
+          title: 'Appointment Scheduled',
+          message: `${contractorName} scheduled a ${typeLabel}: "${title}" on ${dateStr} at ${startTime}`,
+          data: { appointmentId: newAppointment.id, jobId, contractorId: user.id },
+          read: false,
+          created_at: new Date().toISOString(),
+        });
+      }
+    } catch (notifErr) {
+      // Don't fail the appointment creation if notification fails
+      logger.error('Failed to send appointment notification', notifErr, { service: 'appointments' });
     }
 
     return NextResponse.json({ appointment: newAppointment }, { status: 201 });
