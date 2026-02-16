@@ -53,11 +53,11 @@ vi.mock('@mintenance/auth', () => ({
   ConfigManager: { getInstance: vi.fn(() => ({ isProduction: () => false })) },
 }));
 
-vi.mock('@/lib/supabase/server', () => ({
-  serverSupabase: vi.fn(() => ({
-    from: mocks.supabaseFrom,
-  })),
-  createClient: vi.fn(() => ({
+vi.mock('@/lib/api/supabaseServer', () => ({
+  serverSupabase: {
+    from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+  },
+  createServerSupabaseClient: vi.fn(() => ({
     from: mocks.supabaseFrom,
   })),
 }));

@@ -119,10 +119,15 @@ export function UserDetailDialog({ open, onOpenChange, userId, onVerificationUpd
     setError(null);
 
     try {
+      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
+      if (csrfToken) await new Promise(r => setTimeout(r, 50));
       const response = await fetch(`/api/admin/users/${userId}/verify`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
           action,

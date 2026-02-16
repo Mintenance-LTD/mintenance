@@ -162,7 +162,7 @@ export default function AdminRevenueDashboard2025() {
       case 'job_payment':
         return 'bg-emerald-100 text-emerald-700';
       case 'subscription':
-        return 'bg-purple-100 text-purple-700';
+        return 'bg-indigo-100 text-indigo-700';
       case 'platform_fee':
         return 'bg-blue-100 text-blue-700';
       case 'refund':
@@ -187,9 +187,9 @@ export default function AdminRevenueDashboard2025() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-purple-600 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading revenue data...</p>
         </div>
       </div>
@@ -198,12 +198,12 @@ export default function AdminRevenueDashboard2025() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
           >
             Retry
           </button>
@@ -213,13 +213,13 @@ export default function AdminRevenueDashboard2025() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Hero Header */}
       <MotionDiv
         initial="hidden"
         animate="visible"
         variants={fadeIn}
-        className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white"
+        className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex items-center justify-between">
@@ -230,7 +230,7 @@ export default function AdminRevenueDashboard2025() {
                 </div>
                 <h1 className="text-4xl font-bold">Revenue Dashboard</h1>
               </div>
-              <p className="text-purple-100 text-lg">
+              <p className="text-slate-300 text-lg">
                 Track platform revenue, fees, and transaction analytics
               </p>
             </div>
@@ -239,7 +239,7 @@ export default function AdminRevenueDashboard2025() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleExport}
-              className="bg-white text-purple-600 px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center gap-2"
+              className="bg-white text-emerald-600 px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center gap-2"
             >
               <Download className="w-5 h-5" />
               Export Report
@@ -258,8 +258,8 @@ export default function AdminRevenueDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-5 h-5 text-purple-200" />
-                <p className="text-purple-100 text-sm">Total Revenue</p>
+                <DollarSign className="w-5 h-5 text-slate-400" />
+                <p className="text-slate-300 text-sm">Total Revenue</p>
               </div>
               <p className="text-3xl font-bold">£{revenueMetrics.totalRevenue.toLocaleString()}</p>
             </MotionDiv>
@@ -269,8 +269,8 @@ export default function AdminRevenueDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <CreditCard className="w-5 h-5 text-purple-200" />
-                <p className="text-purple-100 text-sm">Platform Fees</p>
+                <CreditCard className="w-5 h-5 text-slate-400" />
+                <p className="text-slate-300 text-sm">Platform Fees</p>
               </div>
               <p className="text-3xl font-bold">£{revenueMetrics.platformFees.toLocaleString()}</p>
             </MotionDiv>
@@ -280,8 +280,8 @@ export default function AdminRevenueDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Users className="w-5 h-5 text-purple-200" />
-                <p className="text-purple-100 text-sm">Subscriptions</p>
+                <Users className="w-5 h-5 text-slate-400" />
+                <p className="text-slate-300 text-sm">Subscriptions</p>
               </div>
               <p className="text-3xl font-bold">£{revenueMetrics.subscriptionRevenue.toLocaleString()}</p>
             </MotionDiv>
@@ -291,8 +291,8 @@ export default function AdminRevenueDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-5 h-5 text-purple-200" />
-                <p className="text-purple-100 text-sm">Growth Rate</p>
+                <TrendingUp className="w-5 h-5 text-slate-400" />
+                <p className="text-slate-300 text-sm">Growth Rate</p>
               </div>
               <div className="flex items-center gap-2">
                 <p className="text-3xl font-bold">{revenueMetrics.growthRate}%</p>
@@ -305,8 +305,8 @@ export default function AdminRevenueDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Briefcase className="w-5 h-5 text-purple-200" />
-                <p className="text-purple-100 text-sm">Transactions</p>
+                <Briefcase className="w-5 h-5 text-slate-400" />
+                <p className="text-slate-300 text-sm">Transactions</p>
               </div>
               <p className="text-3xl font-bold">{revenueMetrics.transactionCount.toLocaleString()}</p>
             </MotionDiv>
@@ -316,8 +316,8 @@ export default function AdminRevenueDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <PieChart className="w-5 h-5 text-purple-200" />
-                <p className="text-purple-100 text-sm">Avg Transaction</p>
+                <PieChart className="w-5 h-5 text-slate-400" />
+                <p className="text-slate-300 text-sm">Avg Transaction</p>
               </div>
               <p className="text-3xl font-bold">£{revenueMetrics.averageTransactionValue}</p>
             </MotionDiv>
@@ -343,7 +343,7 @@ export default function AdminRevenueDashboard2025() {
                   onClick={() => setTimeRange(range)}
                   className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                     timeRange === range
-                      ? 'bg-purple-600 text-white'
+                      ? 'bg-emerald-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -360,7 +360,7 @@ export default function AdminRevenueDashboard2025() {
             data={revenueByMonth}
             index="month"
             categories={['revenue', 'fees', 'subscriptions']}
-            colors={['purple', 'indigo', 'violet']}
+            colors={['emerald', 'blue', 'amber']}
             valueFormatter={(value) => `£${value.toLocaleString()}`}
             showAnimation={true}
             showLegend={true}
@@ -385,7 +385,7 @@ export default function AdminRevenueDashboard2025() {
               data={revenueByCategory}
               category="amount"
               index="category"
-              colors={['purple', 'indigo', 'violet', 'blue']}
+              colors={['emerald', 'blue', 'amber', 'slate']}
               valueFormatter={(value) => `£${value.toLocaleString()}`}
               showAnimation={true}
               className="h-64"
@@ -417,7 +417,7 @@ export default function AdminRevenueDashboard2025() {
               data={revenueByContractorType}
               index="type"
               categories={['revenue']}
-              colors={['purple']}
+              colors={['emerald']}
               valueFormatter={(value) => `£${value.toLocaleString()}`}
               showAnimation={true}
               showLegend={false}
@@ -442,12 +442,12 @@ export default function AdminRevenueDashboard2025() {
                 placeholder="Search transactions..."
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
               <select
                 value={selectedType}
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedType(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 <option value="all">All Types</option>
                 <option value="job_payment">Job Payments</option>
@@ -496,7 +496,7 @@ export default function AdminRevenueDashboard2025() {
                     <td className="py-4 px-4 text-right text-sm text-gray-600">
                       £{Math.abs(txn.fee).toLocaleString()}
                     </td>
-                    <td className="py-4 px-4 text-right text-sm font-semibold text-purple-600">
+                    <td className="py-4 px-4 text-right text-sm font-semibold text-emerald-600">
                       £{Math.abs(txn.net).toLocaleString()}
                     </td>
                     <td className="py-4 px-4 text-center">

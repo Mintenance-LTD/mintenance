@@ -15,7 +15,10 @@ interface JobApiResponse {
   location?: string;
   category?: string;
   priority?: string;
-  budget: number;
+  urgency?: string;
+  budget?: number;
+  budget_min?: number;
+  budget_max?: number;
   status: string;
   photos?: string[];
   created_at: string;
@@ -114,9 +117,12 @@ export async function GET(request: NextRequest) {
           title,
           description,
           budget,
+          budget_min,
+          budget_max,
           location,
           category,
           priority,
+          urgency,
           status,
           photos,
           created_at,
@@ -139,15 +145,15 @@ export async function GET(request: NextRequest) {
         throw jobsError;
       }
 
-      // Transform to match expected format
+      // Transform DB columns to match frontend expected format
       const transformedJobs = (jobs || []).map((job: JobApiResponse) => ({
         id: job.id,
         title: job.title,
         description: job.description,
         location: job.location,
         category: job.category,
-        priority: job.priority || 'medium',
-        budget: job.budget,
+        priority: job.priority || job.urgency || 'medium',
+        budget: job.budget || job.budget_max || job.budget_min || 0,
         status: job.status,
         photos: job.photos || [],
         created_at: job.created_at,
@@ -170,9 +176,12 @@ export async function GET(request: NextRequest) {
           title,
           description,
           budget,
+          budget_min,
+          budget_max,
           location,
           category,
           priority,
+          urgency,
           status,
           photos,
           created_at,
@@ -207,15 +216,15 @@ export async function GET(request: NextRequest) {
         throw jobsError;
       }
 
-      // Transform to match expected format
+      // Transform DB columns to match frontend expected format
       const transformedJobs = (jobs || []).map((job: JobApiResponse) => ({
         id: job.id,
         title: job.title,
         description: job.description,
         location: job.location,
         category: job.category,
-        priority: job.priority || 'medium',
-        budget: job.budget,
+        priority: job.priority || job.urgency || 'medium',
+        budget: job.budget || job.budget_max || job.budget_min || 0,
         status: job.status,
         photos: job.photos || [],
         created_at: job.created_at,

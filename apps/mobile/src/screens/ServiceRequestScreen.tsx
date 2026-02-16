@@ -17,6 +17,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { JobService } from '../services/JobService';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
+import { supabase } from '../config/supabase';
+import { sanitize } from '@mintenance/security';
 
 interface Props {
   navigation: StackNavigationProp<unknown>;
@@ -267,17 +269,32 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
+      // Upload photos to Supabase Storage and collect public URLs
+      const uploadedPhotoUrls: string[] = [];
+      for (const photoUri of photos) {
+        const fileName = `jobs/${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+        const response = await fetch(photoUri);
+        const blob = await response.blob();
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('job-photos')
+          .upload(fileName, blob, { contentType: 'image/jpeg' });
+        if (uploadError) throw new Error(`Photo upload failed: ${uploadError.message}`);
+        const { data: urlData } = supabase.storage
+          .from('job-photos')
+          .getPublicUrl(uploadData.path);
+        uploadedPhotoUrls.push(urlData.publicUrl);
+      }
+
       await JobService.createJob({
-        title,
-        description,
-        location,
+        title: sanitize.text(title, 200),
+        description: sanitize.jobDescription(description),
+        location: sanitize.address(location),
         budget: budgetNumber,
         homeownerId: user.id,
-        // Additional metadata for enhanced job posting
         category: selectedCategory.id,
-        subcategory: selectedSubcategory,
+        subcategory: selectedSubcategory ? sanitize.text(selectedSubcategory, 100) : undefined,
         priority,
-        photos, // TODO: Upload to storage service
+        photos: uploadedPhotoUrls,
       });
 
       Alert.alert(
@@ -286,7 +303,8 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to post service request');
+      const message = error instanceof Error ? error.message : 'Failed to post service request';
+      Alert.alert('Error', message);
     } finally {
       setLoading(false);
     }

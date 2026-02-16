@@ -261,7 +261,7 @@ export function BidSwipeView(props: BidSwipeViewProps) {
 
             {/* Contractor Name & Company */}
             <div className="text-center mb-4">
-              <Link href={`/contractors/${currentBid.contractor.id}`}>
+              <Link href={`/contractors/${currentBid.contractor.id}?returnTo=job&jobId=${jobId}&bidId=${currentBid.id}&bidAmount=${currentBid.bid_amount}`}>
                 <h3 className="text-2xl font-bold text-gray-900 hover:text-teal-600 transition-colors">
                   {getContractorName(currentBid)}
                 </h3>

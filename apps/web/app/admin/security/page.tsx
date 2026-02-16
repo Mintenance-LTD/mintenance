@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Shield,
   AlertTriangle,
@@ -18,10 +19,12 @@ import {
   XCircle,
   TrendingDown,
   Search,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 import { ChartSkeleton } from '@/components/ui/ChartSkeleton';
+
 // Dynamic imports for Tremor charts - lazy load heavy charting library
 const AreaChart = dynamic(() => import('@tremor/react').then(mod => ({ default: mod.AreaChart })), {
   loading: () => <ChartSkeleton height="256px" />,
@@ -66,53 +69,95 @@ interface SecurityEvent {
   description: string;
 }
 
+interface SecurityDashboardData {
+  metrics: {
+    totalEvents: number;
+    criticalAlerts: number;
+    activeThreats: number;
+    blockedIps: number;
+    securityScore: number;
+    twoFactorEnabled: number;
+  };
+  recentEvents: SecurityEvent[];
+  eventsByDay: Array<{ day: string; total: number; threats: number; blocked: number }>;
+  threatsByType: Array<{ type: string; count: number }>;
+}
+
+async function fetchSecurityDashboard(): Promise<SecurityDashboardData> {
+  const response = await fetch('/api/admin/security-dashboard');
+  if (!response.ok) {
+    throw new Error('Failed to fetch security dashboard data');
+  }
+  return response.json();
+}
+
+async function postSecurityAction(payload: {
+  action: 'block_ip' | 'unblock_ip' | 'resolve_event';
+  ip?: string;
+  eventId?: string;
+}): Promise<{ success: boolean }> {
+  const response = await fetch('/api/admin/security-dashboard', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to perform security action');
+  }
+  return response.json();
+}
+
 export default function AdminSecurityDashboard2025() {
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Mock data - replace with actual API calls
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, error: queryError } = useQuery({
+    queryKey: ['admin', 'security-dashboard'],
+    queryFn: fetchSecurityDashboard,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+  });
+
+  const error = queryError instanceof Error ? queryError.message : queryError ? 'Failed to load security data' : null;
+
+  const actionMutation = useMutation({
+    mutationFn: postSecurityAction,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'security-dashboard'] });
+    },
+  });
+
+  // Extract data with defaults
   const securityStats = {
-    totalEvents: 3847,
-    criticalAlerts: 5,
-    activeThreats: 2,
-    blockedAttempts: 127,
-    securityScore: 94.5,
-    twoFactorEnabled: 68.2,
+    totalEvents: data?.metrics?.totalEvents ?? 0,
+    criticalAlerts: data?.metrics?.criticalAlerts ?? 0,
+    activeThreats: data?.metrics?.activeThreats ?? 0,
+    blockedIps: data?.metrics?.blockedIps ?? 0,
+    securityScore: data?.metrics?.securityScore ?? 0,
+    twoFactorEnabled: data?.metrics?.twoFactorEnabled ?? 0,
   };
 
-  const eventsByDay = [
-    { day: 'Mon', total: 542, threats: 18, blocked: 12 },
-    { day: 'Tue', total: 489, threats: 15, blocked: 8 },
-    { day: 'Wed', total: 612, threats: 22, blocked: 15 },
-    { day: 'Thu', total: 578, threats: 19, blocked: 11 },
-    { day: 'Fri', total: 634, threats: 25, blocked: 18 },
-    { day: 'Sat', total: 501, threats: 14, blocked: 9 },
-    { day: 'Sun', total: 491, threats: 14, blocked: 7 },
-  ];
+  const eventsByDay = data?.eventsByDay ?? [];
+  const threatsByType = data?.threatsByType ?? [];
+  const securityEvents: SecurityEvent[] = data?.recentEvents ?? [];
 
-  const threatsByType = [
-    { type: 'Failed Login', count: 45 },
-    { type: 'Suspicious IP', count: 32 },
-    { type: 'Brute Force', count: 18 },
-    { type: 'Data Scraping', count: 12 },
-    { type: 'SQL Injection', count: 8 },
-    { type: 'XSS Attempt', count: 6 },
-  ];
-
-  const securityEvents: SecurityEvent[] = [];
-
-  const filteredEvents = securityEvents.filter((event) => {
-    const matchesSeverity = selectedSeverity === 'all' || event.severity === selectedSeverity;
-    const matchesType = selectedType === 'all' || event.type === selectedType;
-    const matchesSearch =
-      searchQuery === '' ||
-      event.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.ipAddress.includes(searchQuery) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSeverity && matchesType && matchesSearch;
-  });
+  const filteredEvents = useMemo(() => {
+    return securityEvents.filter((event) => {
+      const matchesSeverity = selectedSeverity === 'all' || event.severity === selectedSeverity;
+      const matchesType = selectedType === 'all' || event.type === selectedType;
+      const matchesSearch =
+        searchQuery === '' ||
+        event.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.ipAddress.includes(searchQuery) ||
+        event.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesSeverity && matchesType && matchesSearch;
+    });
+  }, [securityEvents, selectedSeverity, selectedType, searchQuery]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
@@ -179,17 +224,54 @@ export default function AdminSecurityDashboard2025() {
   };
 
   const handleResolve = (id: string) => {
-    toast.success(`Event ${id} marked as resolved`);
+    actionMutation.mutate(
+      { action: 'resolve_event', eventId: id },
+      {
+        onSuccess: () => {
+          toast.success(`Event ${id} marked as resolved`);
+        },
+        onError: () => {
+          toast.error(`Failed to resolve event ${id}`);
+        },
+      }
+    );
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-emerald-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading security data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Hero Header */}
       <MotionDiv
         initial="hidden"
         animate="visible"
         variants={fadeIn}
-        className="bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white"
+        className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="flex items-center justify-between">
@@ -200,18 +282,18 @@ export default function AdminSecurityDashboard2025() {
                 </div>
                 <h1 className="text-4xl font-bold">Security Dashboard</h1>
               </div>
-              <p className="text-purple-100 text-lg">
+              <p className="text-slate-300 text-lg">
                 Real-time security monitoring and threat detection
               </p>
             </div>
 
             <div className="text-right">
-              <p className="text-sm text-purple-200 mb-2">Security Score</p>
+              <p className="text-sm text-slate-400 mb-2">Security Score</p>
               <div className="flex items-center gap-3">
                 <div className="w-24 h-24 rounded-full border-4 border-white/30 flex items-center justify-center">
                   <div className="text-center">
                     <p className="text-3xl font-bold">{securityStats.securityScore}</p>
-                    <p className="text-xs text-purple-200">/ 100</p>
+                    <p className="text-xs text-slate-400">/ 100</p>
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -219,7 +301,7 @@ export default function AdminSecurityDashboard2025() {
                     <CheckCircle className="w-4 h-4 text-green-300" aria-hidden="true" />
                     <span className="text-sm">Excellent</span>
                   </div>
-                  <p className="text-xs text-purple-200">Last updated: Now</p>
+                  <p className="text-xs text-slate-400">Last updated: Now</p>
                 </div>
               </div>
             </div>
@@ -238,8 +320,8 @@ export default function AdminSecurityDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Activity className="w-5 h-5 text-purple-200" aria-hidden="true" />
-                <p className="text-purple-100 text-sm">Total Events</p>
+                <Activity className="w-5 h-5 text-slate-400" aria-hidden="true" />
+                <p className="text-slate-300 text-sm">Total Events</p>
               </div>
               <p className="text-3xl font-bold">{securityStats.totalEvents.toLocaleString()}</p>
             </MotionDiv>
@@ -250,7 +332,7 @@ export default function AdminSecurityDashboard2025() {
             >
               <div className="flex items-center gap-2 mb-2">
                 <XCircle className="w-5 h-5 text-red-200" aria-hidden="true" />
-                <p className="text-purple-100 text-sm">Critical</p>
+                <p className="text-slate-300 text-sm">Critical</p>
               </div>
               <p className="text-3xl font-bold text-red-200">{securityStats.criticalAlerts}</p>
             </MotionDiv>
@@ -261,7 +343,7 @@ export default function AdminSecurityDashboard2025() {
             >
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="w-5 h-5 text-emerald-200" aria-hidden="true" />
-                <p className="text-purple-100 text-sm">Active Threats</p>
+                <p className="text-slate-300 text-sm">Active Threats</p>
               </div>
               <p className="text-3xl font-bold text-emerald-200">{securityStats.activeThreats}</p>
             </MotionDiv>
@@ -272,9 +354,9 @@ export default function AdminSecurityDashboard2025() {
             >
               <div className="flex items-center gap-2 mb-2">
                 <UserX className="w-5 h-5 text-green-200" aria-hidden="true" />
-                <p className="text-purple-100 text-sm">Blocked</p>
+                <p className="text-slate-300 text-sm">Blocked</p>
               </div>
-              <p className="text-3xl font-bold">{securityStats.blockedAttempts}</p>
+              <p className="text-3xl font-bold">{securityStats.blockedIps}</p>
             </MotionDiv>
 
             <MotionDiv
@@ -282,8 +364,8 @@ export default function AdminSecurityDashboard2025() {
               className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
             >
               <div className="flex items-center gap-2 mb-2">
-                <Key className="w-5 h-5 text-purple-200" aria-hidden="true" />
-                <p className="text-purple-100 text-sm">2FA Enabled</p>
+                <Key className="w-5 h-5 text-slate-400" aria-hidden="true" />
+                <p className="text-slate-300 text-sm">2FA Enabled</p>
               </div>
               <p className="text-3xl font-bold">{securityStats.twoFactorEnabled}%</p>
             </MotionDiv>
@@ -294,7 +376,7 @@ export default function AdminSecurityDashboard2025() {
             >
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="w-5 h-5 text-green-200" aria-hidden="true" />
-                <p className="text-purple-100 text-sm">Trend</p>
+                <p className="text-slate-300 text-sm">Trend</p>
               </div>
               <p className="text-3xl font-bold text-green-200">-12%</p>
             </MotionDiv>
@@ -318,7 +400,7 @@ export default function AdminSecurityDashboard2025() {
               data={eventsByDay}
               index="day"
               categories={['total', 'threats', 'blocked']}
-              colors={['purple', 'red', 'green']}
+              colors={['emerald', 'red', 'blue']}
               valueFormatter={(value) => value.toString()}
               showAnimation={true}
               showLegend={true}
@@ -367,7 +449,7 @@ export default function AdminSecurityDashboard2025() {
                 placeholder="Search events..."
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
 
@@ -376,7 +458,7 @@ export default function AdminSecurityDashboard2025() {
               aria-label="Filter by severity"
               value={selectedSeverity}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedSeverity(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="all">All Severities</option>
               <option value="critical">Critical</option>
@@ -390,7 +472,7 @@ export default function AdminSecurityDashboard2025() {
               aria-label="Filter by event type"
               value={selectedType}
               onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSelectedType(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
             >
               <option value="all">All Types</option>
               <option value="login_attempt">Login Attempts</option>
@@ -400,7 +482,7 @@ export default function AdminSecurityDashboard2025() {
               <option value="data_export">Data Exports</option>
             </select>
 
-            <button aria-label="Export security report" className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            <button aria-label="Export security report" className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
               Export Report
             </button>
           </div>
@@ -486,8 +568,9 @@ export default function AdminSecurityDashboard2025() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleResolve(event.id)}
+                      disabled={actionMutation.isPending}
                       aria-label={"Resolve event " + event.id}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50"
                     >
                       <CheckCircle className="w-4 h-4" aria-hidden="true" />
                       Resolve

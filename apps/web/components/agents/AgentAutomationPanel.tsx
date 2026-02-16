@@ -140,10 +140,15 @@ export function AgentAutomationPanel() {
   const saveSettings = async () => {
     setSaving(true);
     try {
+      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
+      if (csrfToken) await new Promise(r => setTimeout(r, 50));
+
       const response = await fetch('/api/agents/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
         },
         credentials: 'include',
         body: JSON.stringify(settings)

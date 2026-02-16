@@ -243,10 +243,10 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
                 </motion.span>
               </Link>
               <Link
-                href="/contractors"
+                href="/login?redirect=/contractor/dashboard-enhanced"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold text-white bg-white/10 backdrop-blur-sm border-2 border-white/30 rounded-xl hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-all duration-300 hover:scale-105"
               >
-                Browse Contractors
+                I&apos;m a Contractor
               </Link>
             </motion.div>
 

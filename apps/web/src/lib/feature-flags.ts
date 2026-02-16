@@ -3,7 +3,7 @@
  *
  * Simple feature flag implementation for gradual rollout of new API controllers
  */
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 export interface FeatureFlag {
   name: string;
@@ -36,8 +36,7 @@ export async function isFeatureFlagEnabled(
   }
   // Check database for flag configuration (optional)
   try {
-    const supabase = await createServerSupabaseClient();
-    const { data: flag } = await supabase
+    const { data: flag } = await serverSupabase
       .from('feature_flags')
       .select('*')
       .eq('name', flagName)
@@ -158,8 +157,7 @@ export async function logControllerUsage(
   metadata?: Record<string, unknown>
 ): Promise<void> {
   try {
-    const supabase = await createServerSupabaseClient();
-    await supabase.from('controller_usage_logs').insert({
+    await serverSupabase.from('controller_usage_logs').insert({
       module,
       is_new_controller: isNew,
       user_id: userId,

@@ -317,7 +317,7 @@ export async function notifyJobConfirmed(
       userId: contractorId,
       type: 'job_confirmed',
       title: 'Job Confirmed ✅',
-      message: `The homeowner has confirmed completion of "${jobTitle}". Payment will be processed.`,
+      message: `The homeowner has confirmed completion of "${jobTitle}". Payment release is being processed.`,
       actionUrl: `/contractor/jobs/${jobId}`,
     }).catch((error) => {
       logger.error('Failed to create job confirmed notification', error, {

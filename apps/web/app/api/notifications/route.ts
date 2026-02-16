@@ -1,45 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
-import { requireCSRF } from '@/lib/csrf';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { notificationEngagementSchema } from '@/lib/validation/schemas';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 120
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(120),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Get authenticated user - security fix: use authenticated user instead of query param
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view notifications');
-    }
-
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 120 }, csrf: false },
+  async (_request, { user }) => {
     const userId = user.id;
 
     // Calculate date 24 hours ago
@@ -47,19 +16,12 @@ export async function GET(request: NextRequest) {
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
     // Fetch notifications from database
-    // Keep notifications that are:
-    // 1. Created within the last 24 hours, OR
-    // 2. Unread (regardless of age)
-    // Also limit to max 7 notifications to auto-remove older ones
-
-    // First try to fetch all notifications for this user, then filter in memory
-    // This avoids complex .or() syntax which can cause issues
     const { data: allUserNotifications, error: fetchError } = await serverSupabase
       .from('notifications')
       .select('id, type, title, message, read, created_at, action_url, user_id')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(50); // Fetch more, then filter
+      .limit(50);
 
     if (fetchError) {
       logger.error('Error fetching notifications', fetchError, {
@@ -69,17 +31,16 @@ export async function GET(request: NextRequest) {
       throw fetchError;
     }
 
-    // Filter out social notification types - app should only show work-related notifications
+    // Filter out social notification types
     const socialTypes = ['post_liked', 'comment_added', 'comment_replied', 'new_follower'];
 
     // Filter notifications: keep recent (24h) OR unread, exclude social types
     const notifications = (allUserNotifications || []).filter(notif => {
-      // Exclude social notifications
       if (socialTypes.includes(notif.type || '')) return false;
       const isRecent = new Date(notif.created_at || 0) >= twentyFourHoursAgo;
       const isUnread = notif.read === false || notif.read === 0;
       return isRecent || isUnread;
-    }).slice(0, 7); // Maximum 7 notifications
+    }).slice(0, 7);
 
     // Map database notifications to component format
     interface NotificationRecord {
@@ -119,7 +80,7 @@ export async function GET(request: NextRequest) {
     const jobViewedNotifs = mappedNotifications.filter((n) => n.type === 'job_viewed');
     const jobNearbyNotifs = mappedNotifications.filter((n) => n.type === 'job_nearby');
     const bidReceivedNotifs = mappedNotifications.filter((n) => n.type === 'bid_received');
-    
+
     if (bidAcceptedNotifs.length > 0) {
       logger.info('Found bid_accepted notifications', {
         service: 'notifications',
@@ -163,7 +124,7 @@ export async function GET(request: NextRequest) {
     // 1. Quote Views - Quotes that were viewed in the last 7 days
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
+
     const { data: viewedQuotes } = await serverSupabase
       .from('contractor_quotes')
       .select('id, quote_number, client_name, viewed_at, title')
@@ -185,7 +146,6 @@ export async function GET(request: NextRequest) {
 
     if (viewedQuotes && viewedQuotes.length > 0) {
       viewedQuotes.forEach((quote: QuoteRecord) => {
-        // Check if notification already exists
         const existingNotif = mappedNotifications.find(n => n.id === `quote-viewed-${quote.id}`);
         if (!existingNotif) {
           realTimeNotifications.push({
@@ -204,7 +164,7 @@ export async function GET(request: NextRequest) {
     // 2. Quote Acceptances - Quotes accepted in the last 30 days
     const oneMonthAgo = new Date();
     oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
-    
+
     const { data: acceptedQuotes } = await serverSupabase
       .from('contractor_quotes')
       .select('id, quote_number, client_name, accepted_at, title, total_amount')
@@ -232,7 +192,6 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Unread Messages - Messages received in the last 30 days
-    // First get message_threads where user is a participant
     const { data: userThreads } = await serverSupabase
       .from('message_threads')
       .select('id, job_id')
@@ -245,7 +204,6 @@ export async function GET(request: NextRequest) {
       userThreadIds.push(t.id);
     }
 
-    // Then get unread messages from those threads (not sent by user, user not in read_by)
     interface MessageRecord {
       id: string;
       sender_id: string;
@@ -265,7 +223,6 @@ export async function GET(request: NextRequest) {
         .gte('created_at', oneMonthAgo.toISOString())
         .order('created_at', { ascending: false })
         .limit(30);
-      // Filter in code: only include messages where user is NOT in read_by
       unreadMessages = ((data ?? []) as unknown as (MessageRecord & { read_by?: string[] })[]).filter((m) => {
         const readBy = Array.isArray(m.read_by) ? m.read_by : [];
         return !readBy.includes(userId);
@@ -280,7 +237,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (unreadMessages && unreadMessages.length > 0) {
-      // Get sender names
       const senderIds = [...new Set(unreadMessages.map(m => m.sender_id))];
       const { data: senders } = await serverSupabase
         .from('profiles')
@@ -300,7 +256,6 @@ export async function GET(request: NextRequest) {
             : 'Someone';
 
           const messageContent = msg.content || '';
-          // Get job_id from message_thread mapping
           const jobId = msg.thread_id ? threadToJobId.get(msg.thread_id) : undefined;
 
           const actionUrl = jobId
@@ -348,7 +303,7 @@ export async function GET(request: NextRequest) {
         if (!existingNotif && job.scheduled_start_date) {
           const startDate = new Date(job.scheduled_start_date);
           const hoursUntil = Math.round((startDate.getTime() - now.getTime()) / (1000 * 60 * 60));
-          
+
           realTimeNotifications.push({
             id: `project-reminder-${job.id}`,
             type: 'project_reminder',
@@ -364,53 +319,20 @@ export async function GET(request: NextRequest) {
 
     // Combine and sort all notifications
     const allNotifications = [...mappedNotifications, ...realTimeNotifications];
-    allNotifications.sort((a, b) => 
+    allNotifications.sort((a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
     return NextResponse.json(allNotifications.slice(0, 20));
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);
 
 /**
  * Track notification engagement (PATCH endpoint)
  */
-export async function PATCH(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 120
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(120),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Get authenticated user
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+export const PATCH = withApiHandler(
+  { rateLimit: { maxRequests: 120 } },
+  async (request, { user }) => {
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, notificationEngagementSchema);
     if (validation instanceof NextResponse) return validation;
@@ -435,7 +357,5 @@ export async function PATCH(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);

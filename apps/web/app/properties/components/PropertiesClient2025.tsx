@@ -224,13 +224,11 @@ export function PropertiesClient2025({ properties, userInfo }: PropertiesClient2
                 className="group bg-white rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-200"
               >
                 {/* Property Image */}
-                <div className="relative aspect-[4/3] bg-gray-200">
-                  <Image
-                    src="/placeholder-property.jpg"
-                    alt={property.property_name || 'Property'}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                <div className="relative aspect-[4/3] bg-gradient-to-br from-slate-100 to-slate-200">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400">
+                    <Home className="w-12 h-12 mb-2" />
+                    <span className="text-sm font-medium">{property.property_type || 'Property'}</span>
+                  </div>
                   {/* Heart Icon */}
                   <button
                     onClick={(e) => toggleFavorite(property.id, e)}

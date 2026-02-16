@@ -174,7 +174,6 @@ module.exports = {
     },
     runtimeVersion: "1.2.4",
     plugins: [
-      "expo-dev-client",
       ["expo-build-properties", {
         android: {
           enableProguardInReleaseBuilds: true,

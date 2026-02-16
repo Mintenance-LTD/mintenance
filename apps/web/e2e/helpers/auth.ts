@@ -22,18 +22,18 @@ export interface TestUser {
  */
 export const TEST_USERS = {
   homeowner: {
-    email: 'test-homeowner@example.com',
-    password: 'TestHomeowner123!',
+    email: process.env.E2E_HOMEOWNER_EMAIL || 'test-homeowner@example.com',
+    password: process.env.E2E_HOMEOWNER_PASSWORD || 'TestHomeowner123!',
     role: 'homeowner' as const,
   },
   contractor: {
-    email: 'test-contractor@example.com',
-    password: 'TestContractor123!',
+    email: process.env.E2E_CONTRACTOR_EMAIL || 'test-contractor@example.com',
+    password: process.env.E2E_CONTRACTOR_PASSWORD || 'TestContractor123!',
     role: 'contractor' as const,
   },
   admin: {
-    email: 'test-admin@example.com',
-    password: 'TestAdmin123!',
+    email: process.env.E2E_ADMIN_EMAIL || 'test-admin@example.com',
+    password: process.env.E2E_ADMIN_PASSWORD || 'TestAdmin123!',
     role: 'admin' as const,
   },
 };

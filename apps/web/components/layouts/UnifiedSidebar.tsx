@@ -37,6 +37,10 @@ import {
     Pencil,
     Clock,
     Package,
+    ClipboardCheck,
+    Link2,
+    RefreshCw,
+    Contact,
 } from 'lucide-react';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -198,7 +202,17 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
             name: 'PROPERTY',
             items: [
                 { label: 'Properties', href: '/properties', icon: Building2 },
+                { label: 'Compliance', href: '/properties/compliance', icon: ClipboardCheck },
                 { label: 'Financials', href: '/financials', icon: PoundSterling },
+            ]
+        },
+        {
+            name: 'LANDLORD',
+            items: [
+                { label: 'Tenant Reports', href: '/landlord/reports', icon: FileText },
+                { label: 'Reporting Links', href: '/landlord/reporting-links', icon: Link2 },
+                { label: 'Contacts', href: '/landlord/contacts', icon: Contact },
+                { label: 'Recurring Tasks', href: '/landlord/recurring', icon: RefreshCw },
             ]
         },
         {
@@ -313,18 +327,25 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
             ]
         },
         {
+            name: 'FINANCIAL',
+            items: [
+                { label: 'Escrow Reviews', href: '/admin/escrow/reviews', icon: Shield },
+                { label: 'Fee Management', href: '/admin/payments/fees', icon: Receipt },
+                { label: 'Payment Setup', href: '/admin/contractors/payment-setup', icon: CreditCard },
+            ]
+        },
+        {
             name: 'AI & MONITORING',
             items: [
                 { label: 'AI Monitoring', href: '/admin/ai-monitoring', icon: Sparkles },
-                { label: 'Audit Logs', href: '/admin/audit-logs', icon: FileText },
                 { label: 'Security', href: '/admin/security', icon: Shield },
+                { label: 'Audit Logs', href: '/admin/audit-logs', icon: FileText },
             ]
         },
         {
             name: 'SYSTEM',
             items: [
                 { label: 'Settings', href: '/admin/settings', icon: Settings },
-                { label: 'API Documentation', href: '/admin/api-documentation', icon: FileText },
             ]
         }
     ], []);

@@ -30,7 +30,6 @@ export function VideoCallHistory({ userId, onScheduleNew, onJoinCall }: VideoCal
                     event: '*',
                     schema: 'public',
                     table: 'video_calls',
-                    filter: `participants=cs.{${userId}}`
                 },
                 () => {
                     fetchCalls();
@@ -48,7 +47,7 @@ export function VideoCallHistory({ userId, onScheduleNew, onJoinCall }: VideoCal
             const { data, error } = await supabase
                 .from('video_calls')
                 .select('*')
-                .contains('participants', [userId])
+                .or(`initiator_id.eq.${userId},participant_id.eq.${userId}`)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -62,9 +61,9 @@ export function VideoCallHistory({ userId, onScheduleNew, onJoinCall }: VideoCal
 
     const isCallActive = (call: DBVideoCall) => {
         if (call.status === 'active') return true;
-        if (call.status === 'scheduled' && call.scheduled_time) {
+        if (call.status === 'scheduled' && call.scheduled_at) {
             const now = new Date();
-            const scheduled = new Date(call.scheduled_time);
+            const scheduled = new Date(call.scheduled_at);
             const diff = (now.getTime() - scheduled.getTime()) / 1000 / 60;
             return diff >= -10 && diff <= 60;
         }
@@ -129,11 +128,11 @@ export function VideoCallHistory({ userId, onScheduleNew, onJoinCall }: VideoCal
                                     <div style={{ fontSize: '0.875rem', color: theme.colors.textSecondary, display: 'flex', gap: theme.spacing[3] }}>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
                                             <Calendar size={14} />
-                                            {new Date(call.scheduled_time || call.created_at).toLocaleDateString('en-GB')}
+                                            {new Date(call.scheduled_at || call.created_at).toLocaleDateString('en-GB')}
                                         </span>
                                         <span style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
                                             <Clock size={14} />
-                                            {new Date(call.scheduled_time || call.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(call.scheduled_at || call.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                     </div>
                                 </div>

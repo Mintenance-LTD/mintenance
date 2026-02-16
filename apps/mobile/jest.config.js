@@ -15,6 +15,7 @@ module.exports = {
     '/node_modules/',
     '/__tests__/setup/',
     '/__tests__/mocks/',
+    '/e2e/',
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',

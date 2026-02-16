@@ -109,6 +109,8 @@ export function MessagesClient() {
   const [sending, setSending] = useState(false);
   const [jobContext, setJobContext] = useState<JobContext | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [showVideoCallDialog, setShowVideoCallDialog] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
 
   useEffect(() => {
     loadUserAndMessages();
@@ -321,6 +323,29 @@ export function MessagesClient() {
     });
 
     router.push(`/contractor/scheduling?${params.toString()}`);
+  };
+
+  const handleVideoCall = () => {
+    if (!selectedConversation) {
+      toast.error('Please select a conversation first');
+      return;
+    }
+    setShowVideoCallDialog(true);
+  };
+
+  const handleVoiceCall = () => {
+    if (!selectedConversation) {
+      toast.error('Please select a conversation first');
+      return;
+    }
+    // Navigate to video call page with voice-only mode
+    const params = new URLSearchParams({
+      jobId: selectedConversation.id,
+      participantName: selectedConversation.otherUser.name,
+      participantId: selectedConversation.otherUser.id,
+      mode: 'voice',
+    });
+    router.push(`/video-calls?${params.toString()}`);
   };
 
   const handleShareDocument = () => {
@@ -637,15 +662,66 @@ export function MessagesClient() {
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-3">
-                  <button className="p-3 hover:bg-slate-100 rounded-2xl transition-all" title="Voice Call">
+                  <button
+                    onClick={handleVoiceCall}
+                    className="p-3 hover:bg-slate-100 rounded-2xl transition-all"
+                    title="Voice Call"
+                  >
                     <Phone className="w-5 h-5 text-slate-600" />
                   </button>
-                  <button className="p-3 hover:bg-slate-100 rounded-2xl transition-all" title="Video Call">
+                  <button
+                    onClick={handleVideoCall}
+                    className="p-3 hover:bg-slate-100 rounded-2xl transition-all"
+                    title="Video Call"
+                  >
                     <Video className="w-5 h-5 text-slate-600" />
                   </button>
-                  <button className="p-3 hover:bg-slate-100 rounded-2xl transition-all" title="More Options">
-                    <MoreVertical className="w-5 h-5 text-slate-600" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowMoreOptions(!showMoreOptions)}
+                      className="p-3 hover:bg-slate-100 rounded-2xl transition-all"
+                      title="More Options"
+                    >
+                      <MoreVertical className="w-5 h-5 text-slate-600" />
+                    </button>
+                    {showMoreOptions && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
+                        <button
+                          onClick={() => { handleScheduleMeeting(); setShowMoreOptions(false); }}
+                          className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
+                        >
+                          <Calendar className="w-4 h-4" />
+                          Schedule Meeting
+                        </button>
+                        <button
+                          onClick={() => { handleSendQuote(); setShowMoreOptions(false); }}
+                          className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
+                        >
+                          <Briefcase className="w-4 h-4" />
+                          Send Quote
+                        </button>
+                        <button
+                          onClick={() => { handleShareDocument(); setShowMoreOptions(false); }}
+                          className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
+                        >
+                          <Paperclip className="w-4 h-4" />
+                          Share Document
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (selectedConversation) {
+                              router.push(`/contractor/jobs/${selectedConversation.id}`);
+                            }
+                            setShowMoreOptions(false);
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
+                        >
+                          <Briefcase className="w-4 h-4" />
+                          View Job Details
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -902,6 +978,58 @@ export function MessagesClient() {
           </div>
         )}
       </div>
+
+      {/* Video Call Scheduling Dialog */}
+      {showVideoCallDialog && selectedConversation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowVideoCallDialog(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-slate-900">Schedule Video Call</h3>
+              <button onClick={() => setShowVideoCallDialog(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">With</label>
+                <p className="text-sm text-slate-600 bg-slate-50 px-4 py-2.5 rounded-xl">{selectedConversation.otherUser.name}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Job</label>
+                <p className="text-sm text-slate-600 bg-slate-50 px-4 py-2.5 rounded-xl">{selectedConversation.jobTitle || 'General'}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      jobId: selectedConversation.id,
+                      participantName: selectedConversation.otherUser.name,
+                      participantId: selectedConversation.otherUser.id,
+                      mode: 'video',
+                    });
+                    router.push(`/video-calls?${params.toString()}`);
+                    setShowVideoCallDialog(false);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-all font-medium text-sm"
+                >
+                  <Video className="w-4 h-4" />
+                  Start Now
+                </button>
+                <button
+                  onClick={() => {
+                    handleScheduleMeeting();
+                    setShowVideoCallDialog(false);
+                  }}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-medium text-sm"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Schedule
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

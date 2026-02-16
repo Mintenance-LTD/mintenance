@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     // Verify job and escrow transaction
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id')
+      .select('id, homeowner_id, contractor_id, title')
       .eq('id', jobId)
       .single();
 
@@ -172,6 +172,39 @@ export async function POST(request: NextRequest) {
       escrowTransactionId: escrowTransaction.id,
       amount: escrowTransaction.amount
     });
+
+    // Notify both parties about successful payment
+    try {
+      const amount = escrowTransaction.amount;
+      const jobTitle = job.title || 'your job';
+      const notifications = [];
+
+      if (job.contractor_id) {
+        notifications.push({
+          user_id: job.contractor_id,
+          title: 'Payment Secured in Escrow',
+          message: `Payment of £${Number(amount).toLocaleString()} for "${jobTitle}" has been secured in escrow. You can now start work.`,
+          type: 'payment',
+          read: false,
+          action_url: `/contractor/jobs/${jobId}`,
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      notifications.push({
+        user_id: user.id,
+        title: 'Payment Confirmed',
+        message: `Your payment of £${Number(amount).toLocaleString()} for "${jobTitle}" is now held securely in escrow until the job is completed.`,
+        type: 'payment',
+        read: false,
+        action_url: `/jobs/${jobId}`,
+        created_at: new Date().toISOString(),
+      });
+
+      await serverSupabase.from('notifications').insert(notifications);
+    } catch (notifError) {
+      logger.error('Failed to create payment confirmation notifications', notifError, { service: 'payments', jobId });
+    }
 
     // Optionally update job status
     await serverSupabase

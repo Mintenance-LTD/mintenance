@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { generateJWT, ConfigManager } from '@mintenance/auth';
 
@@ -51,7 +51,7 @@ export async function loginAction(prevState: unknown, formData: FormData) {
     }
 
     const { email, password, remember } = validatedFields.data;
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Authenticate via Supabase Auth
     const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -150,7 +150,7 @@ export async function registerAction(prevState: unknown, formData: FormData) {
     }
 
     const { email, password, name, role, phone } = validatedFields.data;
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Check if user exists
     const { data: existingUser } = await supabase
@@ -270,7 +270,7 @@ export async function resetPasswordAction(prevState: unknown, formData: FormData
     }
 
     const { token, password } = validatedFields.data;
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Validate reset token
     const { data: resetRequest, error: tokenError } = await supabase
@@ -354,7 +354,7 @@ export async function updateProfileAction(prevState: unknown, formData: FormData
       };
     }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Verify the user's session server-side (not just decode the JWT)
     const { data: { user }, error: authError } = await supabase.auth.getUser();

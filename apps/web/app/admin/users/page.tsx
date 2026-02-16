@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { UserManagementClient } from './components/UserManagementClient';
 
 export const metadata = {
@@ -6,7 +6,7 @@ export const metadata = {
 };
 
 export default async function AdminUsersPage() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = serverSupabase;
 
   const PAGE_SIZE = 20;
 

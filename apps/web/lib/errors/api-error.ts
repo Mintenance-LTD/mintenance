@@ -73,8 +73,8 @@ export class ForbiddenError extends APIError {
 }
 
 export class NotFoundError extends APIError {
-  constructor(resource: string = 'Resource') {
-    super('NOT_FOUND', `${resource} not found`, 404);
+  constructor(message: string = 'Resource not found') {
+    super('NOT_FOUND', message, 404);
   }
 }
 

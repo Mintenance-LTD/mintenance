@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 
 interface Contract {
   id: string;
@@ -40,6 +41,7 @@ export function ContractManagement(props: ContractManagementProps) {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const { csrfToken } = useCSRF();
 
   const fetchContract = useCallback(async () => {
     setLoading(true);
@@ -77,7 +79,9 @@ export function ContractManagement(props: ContractManagementProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
         },
+        credentials: 'same-origin',
       });
 
       if (!response.ok) {
@@ -143,8 +147,8 @@ export function ContractManagement(props: ContractManagementProps) {
   );
 
   const needsSignature = contract && (
-    (userRole === 'contractor' && contract.status === 'pending_contractor') ||
-    (userRole === 'homeowner' && contract.status === 'pending_homeowner')
+    (userRole === 'contractor' && (contract.status === 'pending_contractor' || contract.status === 'draft')) ||
+    (userRole === 'homeowner' && (contract.status === 'pending_homeowner' || contract.status === 'draft'))
   );
 
   if (loading) {

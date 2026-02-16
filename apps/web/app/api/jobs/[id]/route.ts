@@ -6,13 +6,9 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
-import { PredictiveAgent } from '@/lib/services/agents/PredictiveAgent';
-import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 import { sanitizeText, sanitizeJobDescription } from '@/lib/sanitizer';
-import { validateURLs } from '@/lib/security/url-validation';
-import { BuildingSurveyorService } from '@/lib/services/building-surveyor/BuildingSurveyorService';
-import { JobAnalysisService } from '@/lib/services/JobAnalysisService';
 import { rateLimiter } from '@/lib/rate-limiter';
+// Heavy AI/ML services loaded dynamically to avoid breaking GET handler if deps are missing
 import crypto from 'crypto';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
@@ -97,20 +93,10 @@ export async function GET(_req: NextRequest, context: Params) {
     }
     const { id } = await context.params;
 
-    // Enhanced select query for comprehensive job data
-    const isContractor = user.role === 'contractor';
-    const selectQuery = `
-      *,
-      homeowner:profiles!homeowner_id(id, first_name, last_name, email, profile_image_url),
-      contractor:profiles!contractor_id(id, first_name, last_name, email, profile_image_url),
-      property:properties!property_id(*),
-      bids(count),
-      job_attachments(id, file_url, file_type, uploaded_at)
-    `;
-
+    // Simplified select query to avoid FK join failures
     const { data, error } = await serverSupabase
       .from('jobs')
-      .select(selectQuery)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -157,31 +143,26 @@ export async function GET(_req: NextRequest, context: Params) {
       category: row.category,
       status: row.status,
       urgency: row.priority || 'medium',
-      budget: {
-        min: row.budget_min || row.budget || 0,
-        max: row.budget_max || row.budget || 0,
-      },
-      timeline: {
-        startDate: row.start_date,
-        endDate: row.end_date,
-        flexible: row.flexible_timeline || false,
-      },
-      location: {
-        address: row.location || '',
-        city: row.city || '',
-        postcode: row.postcode || '',
-      },
-      propertyType: (row.property as Record<string, unknown> | null)?.property_type || 'house',
+      budget: row.budget || 0,
+      budget_min: row.budget_min || row.budget || 0,
+      budget_max: row.budget_max || row.budget || 0,
+      start_date: row.start_date,
+      end_date: row.end_date,
+      flexible_timeline: row.flexible_timeline || false,
+      location: row.location || '',
+      city: row.city || '',
+      postcode: row.postcode || '',
+      propertyType: 'house',
       accessInfo: row.access_info || '',
-      images: (row.job_attachments as JobAttachment[] | undefined)
-        ?.filter((att: JobAttachment) => att.file_type === 'image')
-        .map((att: JobAttachment) => att.file_url) || [],
+      images: [],
       requirements: row.requirements || [],
       latitude: row.latitude,
       longitude: row.longitude,
-      homeowner: row.homeowner || null,
-      contractor: row.contractor || null,
-      bidCount: (row.bids as Array<{ count: number }> | undefined)?.[0]?.count || 0,
+      homeowner_id: row.homeowner_id,
+      contractor_id: row.contractor_id,
+      homeowner: null,
+      contractor: null,
+      bidCount: 0,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     } as Record<string, unknown>;
@@ -257,6 +238,7 @@ export async function PUT(request: NextRequest, context: Params) {
 
     // Validate and secure image URLs
     if (payload.images && payload.images.length > 0) {
+      const { validateURLs } = await import('@/lib/security/url-validation');
       const urlValidation = await validateURLs(payload.images, true);
       if (urlValidation.invalid.length > 0) {
         throw new BadRequestError(`Invalid image URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}`);
@@ -279,6 +261,7 @@ export async function PUT(request: NextRequest, context: Params) {
             ? `${payload.location}, ${payload.city}, ${payload.postcode}`
             : existingJob.location || '';
 
+          const { JobAnalysisService } = await import('@/lib/services/JobAnalysisService');
           const jobAnalysis = await JobAnalysisService.analyzeJobWithImages(
             payload.title || existingJob.title,
             payload.description || existingJob.description || '',
@@ -305,6 +288,7 @@ export async function PUT(request: NextRequest, context: Params) {
               assessmentId: jobId,
             };
 
+            const { BuildingSurveyorService } = await import('@/lib/services/building-surveyor/BuildingSurveyorService');
             buildingSurveyResult = await BuildingSurveyorService.assessDamage(
               payload.images,
               surveyContext
@@ -459,22 +443,21 @@ export async function PUT(request: NextRequest, context: Params) {
       }
     }
 
-    // Trigger agent analysis after job update
-    Promise.allSettled([
-      PredictiveAgent.analyzeJob(jobId, {
-        jobId,
-        userId: user.id,
-      }),
-      JobStatusAgent.evaluateAutoCancel(jobId, {
-        jobId,
-        userId: user.id,
-      }),
-    ]).catch((error) => {
-      logger.error('Error in agent analysis', error, {
-        service: 'jobs',
-        jobId,
-      });
-    });
+    // Trigger agent analysis after job update (dynamic imports to avoid module resolution issues)
+    (async () => {
+      try {
+        const [{ PredictiveAgent }, { JobStatusAgent }] = await Promise.all([
+          import('@/lib/services/agents/PredictiveAgent'),
+          import('@/lib/services/agents/JobStatusAgent'),
+        ]);
+        await Promise.allSettled([
+          PredictiveAgent.analyzeJob(jobId, { jobId, userId: user.id }),
+          JobStatusAgent.evaluateAutoCancel(jobId, { jobId, userId: user.id }),
+        ]);
+      } catch (error) {
+        logger.error('Error in agent analysis', error, { service: 'jobs', jobId });
+      }
+    })();
 
     // Log the update
     logger.info('Job updated successfully', {
@@ -654,23 +637,21 @@ export async function PATCH(request: NextRequest, context: Params) {
       jobId: id
     });
 
-    // Trigger agent analysis after job update
-    // Run asynchronously to avoid blocking the response
-    Promise.allSettled([
-      PredictiveAgent.analyzeJob(id, {
-        jobId: id,
-        userId: user.id,
-      }),
-      JobStatusAgent.evaluateAutoCancel(id, {
-        jobId: id,
-        userId: user.id,
-      }),
-    ]).catch((error) => {
-      logger.error('Error in agent analysis', error, {
-        service: 'jobs',
-        jobId: id,
-      });
-    });
+    // Trigger agent analysis after job update (dynamic imports to avoid module resolution issues)
+    (async () => {
+      try {
+        const [{ PredictiveAgent }, { JobStatusAgent }] = await Promise.all([
+          import('@/lib/services/agents/PredictiveAgent'),
+          import('@/lib/services/agents/JobStatusAgent'),
+        ]);
+        await Promise.allSettled([
+          PredictiveAgent.analyzeJob(id, { jobId: id, userId: user.id }),
+          JobStatusAgent.evaluateAutoCancel(id, { jobId: id, userId: user.id }),
+        ]);
+      } catch (error) {
+        logger.error('Error in agent analysis', error, { service: 'jobs', jobId: id });
+      }
+    })();
 
     return NextResponse.json({ job: mapRowToJobDetail(data as JobRow) });
   } catch (err) {

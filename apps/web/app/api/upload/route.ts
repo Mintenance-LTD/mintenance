@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { validateImageUpload, createValidationErrorResponse, generateSecureFilename } from '@/lib/security/file-validator';
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
 
     // SECURITY: Generate secure filename (prevents path traversal and filename-based attacks)
     const secureFilename = generateSecureFilename(file.name);

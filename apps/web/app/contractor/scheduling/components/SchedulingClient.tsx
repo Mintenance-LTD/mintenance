@@ -20,7 +20,7 @@ interface Appointment {
   time: string;
   duration: string;
   location?: string;
-  type: 'onsite' | 'video' | 'phone';
+  type: 'onsite' | 'remote' | 'phone';
   status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
   jobTitle?: string;
 }
@@ -33,7 +33,7 @@ interface AppointmentApiResponse {
   time?: string;
   duration?: string;
   location?: string;
-  type?: 'onsite' | 'video' | 'phone';
+  type?: 'onsite' | 'remote' | 'phone';
   status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
   jobTitle?: string;
 }
@@ -53,6 +53,11 @@ interface AvailabilitySlot {
   startTime: string;
   endTime: string;
   isAvailable: boolean;
+}
+
+function getCSRFToken(): string {
+  const match = document.cookie.match(/(?:__Host-csrf-token|csrf-token)=([^;]+)/);
+  return match?.[1] || '';
 }
 
 export function SchedulingClient({ userId }: SchedulingClientProps) {
@@ -80,7 +85,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
     appointmentDate: '',
     startTime: '09:00',
     endTime: '10:00',
-    locationType: 'onsite' as 'onsite' | 'video' | 'phone',
+    locationType: 'onsite' as 'onsite' | 'remote' | 'phone',
     locationAddress: '',
     notes: '',
   });
@@ -199,7 +204,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
   const getTypeIcon = (type: Appointment['type']) => {
     switch (type) {
-      case 'video':
+      case 'remote':
         return <Video className="w-4 h-4" />;
       case 'onsite':
         return <MapPin className="w-4 h-4" />;
@@ -210,7 +215,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
   const getTypeColor = (type: Appointment['type']) => {
     switch (type) {
-      case 'video':
+      case 'remote':
         return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'onsite':
         return 'bg-emerald-100 text-emerald-700 border-emerald-200';
@@ -233,7 +238,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
       const response = await fetch('/api/contractor/appointments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCSRFToken() },
         body: JSON.stringify(newAppt),
       });
 
@@ -272,7 +277,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
     try {
       const response = await fetch('/api/contractor/availability', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCSRFToken() },
         body: JSON.stringify({ availability }),
       });
 
@@ -708,7 +713,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         { type: 'onsite' as const, label: 'On-site', icon: MapPin },
-                        { type: 'video' as const, label: 'Video Call', icon: Video },
+                        { type: 'remote' as const, label: 'Video Call', icon: Video },
                         { type: 'phone' as const, label: 'Phone Call', icon: Phone },
                       ].map((option) => {
                         const Icon = option.icon;

@@ -144,6 +144,9 @@ export default function ContractorSettingsPage() {
   const handleSaveProfile = async () => {
     setIsSaving(true);
     try {
+      const csrfRes = await fetch('/api/csrf', { method: 'GET', credentials: 'include' });
+      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
+      if (csrfToken) await new Promise(r => setTimeout(r, 50));
       const formData = new FormData();
       formData.append('firstName', profileData.first_name);
       formData.append('lastName', profileData.last_name);
@@ -154,7 +157,7 @@ export default function ContractorSettingsPage() {
       if (profileData.address) formData.append('address', profileData.address);
       if (profileData.postcode) formData.append('postcode', profileData.postcode);
       formData.append('isAvailable', String((user as typeof user & { is_available?: boolean }).is_available !== false));
-      const response = await fetch('/api/contractor/update-profile', { method: 'POST', body: formData });
+      const response = await fetch('/api/contractor/update-profile', { method: 'POST', credentials: 'include', headers: { 'x-csrf-token': csrfToken }, body: formData });
       if (response.ok) { toast.success('Profile updated successfully. Location geocoded.'); refresh(); }
       else { const error = await response.json(); toast.error(error.message || 'Failed to update profile'); }
     } catch (error) { toast.error('Error updating profile'); }

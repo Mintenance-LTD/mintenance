@@ -14,6 +14,7 @@ interface ProfileHeroHeaderProps {
   lastName: string;
   email: string;
   joinDate: string;
+  profileImageUrl?: string | null;
   isEditing: boolean;
   onStartEditing: () => void;
   onSave: () => void;
@@ -26,6 +27,7 @@ export function ProfileHeroHeader({
   lastName,
   email,
   joinDate,
+  profileImageUrl,
   isEditing,
   onStartEditing,
   onSave,
@@ -44,7 +46,15 @@ export function ProfileHeroHeader({
           <div className="flex items-center gap-6">
             <div className="relative">
               <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-sm border-4 border-white/30 flex items-center justify-center overflow-hidden">
-                <User className="w-12 h-12 text-white" />
+                {profileImageUrl ? (
+                  <img
+                    src={profileImageUrl}
+                    alt={`${firstName} ${lastName}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-12 h-12 text-white" />
+                )}
               </div>
               <button
                 onClick={onAvatarChange}

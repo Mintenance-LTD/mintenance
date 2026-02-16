@@ -77,7 +77,7 @@ export async function POST(
     // Fetch the job
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, status, amount, title, completion_confirmed_by_homeowner')
+      .select('id, homeowner_id, contractor_id, status, title, completion_confirmed_by_homeowner')
       .eq('id', jobId)
       .single();
 
@@ -200,33 +200,7 @@ export async function POST(
       // Don't fail the request
     }
 
-    // Create notification for contractor
-    try {
-      const { error: notificationError } = await serverSupabase
-        .from('notifications')
-        .insert({
-          user_id: job.contractor_id,
-          title: 'Job Completion Confirmed!',
-          message: `The homeowner has confirmed completion of "${job.title}". Payment release is being processed.`,
-          type: 'completion_confirmed',
-          read: false,
-          action_url: `/contractor/jobs/${jobId}`,
-          created_at: new Date().toISOString(),
-        });
-
-      if (notificationError) {
-        logger.error('Failed to create completion notification', notificationError, {
-          service: 'jobs',
-          jobId,
-          contractorId: job.contractor_id,
-        });
-      }
-    } catch (notificationError) {
-      logger.error('Unexpected error creating completion notification', notificationError, {
-        service: 'jobs',
-        jobId,
-      });
-    }
+    // Duplicate notification removed - notifyJobConfirmed() above already handles this
 
     logger.info('Job completion confirmed successfully', {
       service: 'jobs',

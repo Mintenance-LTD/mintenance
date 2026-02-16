@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { MaintenanceAssessmentService, type MaintenanceAssessment } from '@/lib/services/maintenance/MaintenanceAssessmentService';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getUser } from '@/lib/auth';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Get assessment
     const { data: assessment, error } = await supabase
@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
  * Rate limiting check
  */
 async function checkRateLimit(userId: string): Promise<boolean> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = serverSupabase;
 
   // Check recent assessments count
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -212,7 +212,7 @@ async function checkRateLimit(userId: string): Promise<boolean> {
  * Track usage metrics
  */
 async function trackUsageMetrics(userId: string, assessment: MaintenanceAssessment): Promise<void> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = serverSupabase;
 
   try {
     // Update daily metrics

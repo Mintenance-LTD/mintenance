@@ -21,6 +21,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
+import { supabase } from '../../config/supabase';
+import { useAuth } from '../../contexts/AuthContext';
+import { sanitize } from '@mintenance/security';
 
 interface VerificationScreenProps {
   navigation: unknown;
@@ -35,6 +38,7 @@ interface VerificationData {
 }
 
 export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = ({ navigation }) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<VerificationData>({
     companyName: '',
@@ -50,11 +54,38 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
   }, []);
 
   const checkVerificationStatus = async () => {
-    // TODO: Check contractor verification status from API
-    setIsVerified(false);
+    if (!user?.id) return;
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('company_name, business_address, license_number, license_type, license_expiry, verification_status')
+        .eq('id', user.id)
+        .single();
+      if (data) {
+        if (data.verification_status === 'verified') {
+          setIsVerified(true);
+        }
+        if (data.company_name) {
+          setFormData({
+            companyName: data.company_name || '',
+            businessAddress: data.business_address || '',
+            licenseNumber: data.license_number || '',
+            licenseType: data.license_type || 'trade',
+            licenseExpiry: data.license_expiry || '',
+          });
+        }
+      }
+    } catch {
+      // Continue with empty form if profile fetch fails
+    }
   };
 
   const handleSubmit = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'You must be logged in to submit verification');
+      return;
+    }
+
     // Validation
     if (!formData.companyName.trim()) {
       Alert.alert('Required', 'Please enter your company name');
@@ -72,15 +103,19 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
     try {
       setLoading(true);
 
-      // TODO: Call verification API
-      // const response = await fetch('/api/contractor/verification', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          company_name: sanitize.companyName(formData.companyName),
+          business_address: sanitize.address(formData.businessAddress),
+          license_number: sanitize.text(formData.licenseNumber.trim(), 50),
+          license_type: formData.licenseType,
+          license_expiry: formData.licenseExpiry || null,
+          verification_status: 'pending',
+        })
+        .eq('id', user.id);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (error) throw error;
 
       Alert.alert(
         'Verification Submitted',
@@ -92,7 +127,7 @@ export const ContractorVerificationScreen: React.FC<VerificationScreenProps> = (
           },
         ]
       );
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to submit verification. Please try again.');
     } finally {
       setLoading(false);

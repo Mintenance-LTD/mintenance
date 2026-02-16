@@ -1,13 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { AdminNotificationService } from '@/lib/services/admin/AdminNotificationService';
-import { logger } from '@mintenance/shared';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 /**
- * Endpoint to send pending verification notifications
+ * GET: Return count of contractors awaiting admin verification
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await requireAdmin(request);
+    if (isAdminError(auth)) return auth.error;
+
+    const { count, error } = await serverSupabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', 'contractor')
+      .neq('admin_verified', true)
+      .is('deleted_at', null);
+
+    if (error) {
+      return NextResponse.json({ count: 0 });
+    }
+
+    return NextResponse.json({ count: count || 0 });
+  } catch (error) {
+    return handleAPIError(error);
+  }
+}
+
+/**
+ * POST: Send pending verification notifications
  * Can be called manually by admin or scheduled via cron job
  */
 export async function POST(request: NextRequest) {

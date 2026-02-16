@@ -225,31 +225,8 @@ export async function POST(
       .eq('id', jobId)
       .single();
 
-    // Create notifications for both contractor and homeowner
-    // Use NotificationHelper for job status change (assigned status)
+    // Create bid acceptance notification for contractor
     try {
-      const { notifyJobStatusChange } = await import('@/lib/services/notifications/NotificationHelper');
-      
-      // Get job details including status
-      const { data: jobData } = await serverSupabase
-        .from('jobs')
-        .select('title, status, homeowner_id, contractor_id')
-        .eq('id', jobId)
-        .single();
-
-      if (jobData) {
-        // Notify about job assignment (status change to assigned)
-        await notifyJobStatusChange({
-          jobId,
-          jobTitle: jobData.title,
-          oldStatus: 'posted',
-          newStatus: 'assigned',
-          homeownerId: jobData.homeowner_id,
-          contractorId: jobData.contractor_id,
-        });
-      }
-
-      // Also create bid acceptance notification for contractor (existing logic)
       logger.info('Creating notification for contractor', {
         service: 'jobs',
         contractorId: bid.contractor_id,
@@ -301,60 +278,83 @@ export async function POST(
       // Don't fail the request if notification fails
     }
 
-    // Auto-create welcome message thread - send initial message from homeowner to contractor
+    // Notify homeowner that bid was accepted (confirmation)
+    try {
+      await serverSupabase.from('notifications').insert({
+        user_id: user.id,
+        title: 'Bid Accepted',
+        message: `You accepted a bid of £${Number(bid.amount || 0).toLocaleString()} for "${jobDetails?.title || 'your job'}". A contract has been created - review and sign it to proceed.`,
+        type: 'bid_accepted',
+        read: false,
+        action_url: `/jobs/${jobId}`,
+        created_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      logger.error('Failed to create homeowner bid acceptance notification', err, { service: 'jobs', jobId });
+    }
+
+    // Auto-create welcome message thread + insert welcome message
     try {
       const welcomeMessage = `Hi! I've accepted your bid for "${jobDetails?.title || 'this job'}". Let's discuss the details and schedule a start date. Feel free to ask any questions!`;
 
-      // Find or create message_thread for this job
-      let { data: threadData } = await serverSupabase
+      // Ensure message_thread exists for this job
+      const { data: existingThread } = await serverSupabase
         .from('message_threads')
         .select('id')
         .eq('job_id', jobId)
         .single();
 
-      if (!threadData) {
-        const { data: newThread } = await serverSupabase
+      if (!existingThread) {
+        await serverSupabase
           .from('message_threads')
           .insert({
             job_id: jobId,
             participant_ids: [user.id, bid.contractor_id].filter(Boolean),
             last_message_at: new Date().toISOString(),
-          })
-          .select('id')
-          .single();
-        threadData = newThread;
+          });
       }
 
-      if (threadData) {
-        const { error: messageError } = await serverSupabase
-          .from('messages')
-          .insert({
-            thread_id: threadData.id,
-            sender_id: user.id,
-            content: welcomeMessage,
-            message_type: 'text',
-            read_by: [],
-          });
+      // Insert welcome message using production schema (job_id, receiver_id, read)
+      const { error: messageError } = await serverSupabase
+        .from('messages')
+        .insert({
+          job_id: jobId,
+          sender_id: user.id,
+          receiver_id: bid.contractor_id,
+          content: welcomeMessage,
+          message_type: 'text',
+          read: false,
+        });
 
-        if (messageError) {
-          logger.error('Failed to create welcome message', messageError, {
-            service: 'jobs',
-            jobId,
-            contractorId: bid.contractor_id,
-          });
-        } else {
-          // Update thread last_message_at
-          await serverSupabase
-            .from('message_threads')
-            .update({ last_message_at: new Date().toISOString() })
-            .eq('id', threadData.id);
+      if (messageError) {
+        logger.error('Failed to create welcome message', messageError, {
+          service: 'jobs',
+          jobId,
+          contractorId: bid.contractor_id,
+        });
+      } else {
+        // Update thread last_message_at
+        await serverSupabase
+          .from('message_threads')
+          .update({ last_message_at: new Date().toISOString() })
+          .eq('job_id', jobId);
 
-          logger.info('Welcome message created', {
-            service: 'jobs',
-            jobId,
-            contractorId: bid.contractor_id,
-          });
-        }
+        logger.info('Welcome message created', {
+          service: 'jobs',
+          jobId,
+          contractorId: bid.contractor_id,
+        });
+
+        // Notify contractor about the new message
+        await serverSupabase.from('notifications').insert({
+          user_id: bid.contractor_id,
+          title: 'New Message',
+          message: `You have a new message from the homeowner about "${jobDetails?.title || 'your job'}"`,
+          type: 'message',
+          read: false,
+          action_url: `/contractor/messages`,
+          created_at: new Date().toISOString(),
+        });
       }
     } catch (messageError) {
       logger.error('Unexpected error creating welcome message', messageError, {
@@ -400,6 +400,28 @@ export async function POST(
           jobId,
           contractorId: bid.contractor_id,
         });
+
+        // Notify both parties about the contract
+        await serverSupabase.from('notifications').insert([
+          {
+            user_id: bid.contractor_id,
+            title: 'Contract Ready for Review',
+            message: `A contract for "${jobDetails?.title || 'the job'}" has been created. Review the terms and sign to proceed.`,
+            type: 'contract_created',
+            read: false,
+            action_url: `/contractor/jobs/${jobId}`,
+            created_at: new Date().toISOString(),
+          },
+          {
+            user_id: user.id,
+            title: 'Contract Created',
+            message: `A contract for "${jobDetails?.title || 'your job'}" has been created. It will be ready for your signature once the contractor reviews it.`,
+            type: 'contract_created',
+            read: false,
+            action_url: `/jobs/${jobId}`,
+            created_at: new Date().toISOString(),
+          },
+        ]);
       }
     } catch (contractError) {
       logger.error('Unexpected error creating draft contract', contractError, {

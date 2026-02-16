@@ -13,7 +13,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { MotionArticle, MotionDiv } from '@/components/ui/MotionDiv';
 import { logger } from '@mintenance/shared';
-import { Zap, Eye, Star, PoundSterling, MapPin } from 'lucide-react';
+import { Zap, Eye, Star, PoundSterling, MapPin, CheckCircle, Clock, Briefcase } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -66,7 +66,7 @@ export default function ContractorJobsPage2025() {
   const { user, loading: loadingUser } = useCurrentUser();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
-  const [filter, setFilter] = useState<'active' | 'viewed' | 'saved' | 'bid'>('active');
+  const [filter, setFilter] = useState<'active' | 'viewed' | 'saved' | 'bid' | 'completed'>('active');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   // Separate state for KPI stats (all jobs, not filtered)
   const [allJobsStats, setAllJobsStats] = useState({
@@ -125,6 +125,9 @@ export default function ContractorJobsPage2025() {
             break;
           case 'bid':
             endpoint = '/api/contractor/my-jobs?status=bid';
+            break;
+          case 'completed':
+            endpoint = '/api/contractor/my-jobs?status=completed';
             break;
           case 'active':
           default:
@@ -282,10 +285,11 @@ export default function ContractorJobsPage2025() {
                 {/* Filter Tabs */}
                 <div className="flex items-center gap-2 overflow-x-auto">
                   {[
-                    { label: 'Active', value: 'active' as const, icon: <Zap size={16} /> },
-                    { label: 'Viewed', value: 'viewed' as const, icon: <Eye size={16} /> },
+                    { label: 'In Progress', value: 'active' as const, icon: <Zap size={16} /> },
+                    { label: 'Bids Pending', value: 'bid' as const, icon: <Clock size={16} /> },
+                    { label: 'Completed', value: 'completed' as const, icon: <CheckCircle size={16} /> },
                     { label: 'Saved', value: 'saved' as const, icon: <Star size={16} /> },
-                    { label: 'Bid Placed', value: 'bid' as const, icon: <PoundSterling size={16} /> },
+                    { label: 'Viewed', value: 'viewed' as const, icon: <Eye size={16} /> },
                   ].map((tab) => (
                     <button
                       key={tab.value}

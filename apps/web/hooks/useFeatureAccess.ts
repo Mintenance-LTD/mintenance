@@ -46,26 +46,52 @@ export function useFeatureAccess() {
 
   // Fetch subscription info
   useEffect(() => {
-    if (!user || user.role !== 'contractor') {
+    if (!user || (user.role !== 'contractor' && user.role !== 'homeowner')) {
       setLoading(false);
       return;
     }
 
     const fetchSubscription = async () => {
       try {
-        // Server-side status endpoint includes early-access entitlement.
+        // Server-side status endpoint includes early-access entitlement for both roles.
         const statusResponse = await fetch('/api/subscriptions/status', { cache: 'no-store' });
         if (statusResponse.ok) {
           const statusPayload = await statusResponse.json();
           if (statusPayload?.earlyAccess?.eligible) {
+            // Early access: max tier depends on role
+            const maxTier = statusPayload.role === 'homeowner' ? 'agency' : 'enterprise';
             setSubscription({
-              tier: 'enterprise',
+              tier: maxTier,
               status: 'active',
             });
             return;
           }
         }
 
+        // Homeowners: check homeowner_subscriptions
+        if (user.role === 'homeowner') {
+          const { data, error } = await supabase
+            .from('homeowner_subscriptions')
+            .select('plan_type, status, current_period_end')
+            .eq('homeowner_id', user.id)
+            .in('status', ['active', 'trial', 'past_due'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!error && data) {
+            setSubscription({
+              tier: data.plan_type as SubscriptionTier,
+              status: data.status as SubscriptionInfo['status'],
+              currentPeriodEnd: data.current_period_end,
+            });
+          } else {
+            setSubscription({ tier: 'free', status: 'free' });
+          }
+          return;
+        }
+
+        // Contractors: check contractor_subscriptions
         const { data, error } = await supabase
           .from('contractor_subscriptions')
           .select('plan_type, status, current_period_end')
@@ -77,7 +103,6 @@ export function useFeatureAccess() {
 
         if (error) {
           logger.error('[FeatureAccess] Failed to fetch subscription', error);
-          // Default to free if no subscription found
           setSubscription({
             tier: 'free',
             status: 'free',
@@ -92,7 +117,6 @@ export function useFeatureAccess() {
             currentPeriodEnd: data.current_period_end,
           });
         } else {
-          // No subscription found, default to free
           setSubscription({
             tier: 'free',
             status: 'free',

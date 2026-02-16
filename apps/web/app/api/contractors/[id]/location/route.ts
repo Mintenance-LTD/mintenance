@@ -4,7 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 
 const updateLocationSchema = z.object({
@@ -130,10 +130,7 @@ export async function POST(  request: NextRequest,
       },
     });
   } catch (error) {
-    logger.error('Unexpected error in POST location', error, {
-      service: 'contractor_locations',
-    });
-    throw new InternalServerError('Internal server error');
+    return handleAPIError(error);
   }
 }
 
@@ -232,10 +229,7 @@ export async function GET(
       location: locations[0],
     });
   } catch (error) {
-    logger.error('Unexpected error in GET location', error, {
-      service: 'contractor_locations',
-    });
-    throw new InternalServerError('Internal server error');
+    return handleAPIError(error);
   }
 }
 

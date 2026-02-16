@@ -4,23 +4,33 @@
  * Defines all features and their access levels for different user roles and subscription tiers.
  *
  * Subscription Tiers:
- * - Homeowners: Free (all features included)
+ * - Homeowners:
+ *   - free: Core features + AI matching, 1 property
+ *   - landlord: £24.99/month - compliance dashboard, tenant reporting, portfolio analytics, up to 25 properties
+ *   - agency: £49.99/month - team access, bulk operations, unlimited properties
  * - Contractors:
- *   - free: Forever free with 5 bids/month
+ *   - free: Forever free with 10 bids/month
  *   - basic: £29/month
  *   - professional: £79/month
  *   - enterprise: £199/month
  */
 
-export type SubscriptionTier = 'free' | 'basic' | 'professional' | 'enterprise';
+export type ContractorSubscriptionTier = 'free' | 'basic' | 'professional' | 'enterprise';
+export type HomeownerSubscriptionTier = 'free' | 'landlord' | 'agency';
+export type SubscriptionTier = ContractorSubscriptionTier | HomeownerSubscriptionTier;
 export type UserRole = 'homeowner' | 'contractor' | 'admin';
 
 export interface FeatureLimit {
+  // Contractor tiers
   free?: number | boolean | 'unlimited';
   basic?: number | boolean | 'unlimited';
   professional?: number | boolean | 'unlimited';
   enterprise?: number | boolean | 'unlimited';
+  // Homeowner tiers (backward-compatible: `homeowner: true` means all tiers)
   homeowner?: boolean;
+  homeowner_free?: number | boolean | 'unlimited';
+  homeowner_landlord?: number | boolean | 'unlimited';
+  homeowner_agency?: number | boolean | 'unlimited';
 }
 
 export interface FeatureDefinition {
@@ -160,6 +170,125 @@ const HOMEOWNER_FEATURES: Record<string, FeatureDefinition> = {
     description: 'Manage multiple properties',
     category: 'Properties',
     limits: { homeowner: true },
+  },
+  HOMEOWNER_PROPERTY_LIMIT: {
+    id: 'HOMEOWNER_PROPERTY_LIMIT',
+    name: 'Property Limit',
+    description: 'Maximum number of properties you can manage',
+    category: 'Properties',
+    limits: {
+      homeowner_free: 1,
+      homeowner_landlord: 25,
+      homeowner_agency: 'unlimited',
+    },
+    upgradeMessage: 'Upgrade to manage more properties.',
+    learnMoreUrl: '/pricing',
+  },
+
+  // Landlord & Agency Features
+  HOMEOWNER_COMPLIANCE_DASHBOARD: {
+    id: 'HOMEOWNER_COMPLIANCE_DASHBOARD',
+    name: 'Compliance Dashboard',
+    description: 'Track gas safety, electrical, EPC and other compliance certificates per property',
+    category: 'Compliance',
+    limits: {
+      homeowner_free: false,
+      homeowner_landlord: true,
+      homeowner_agency: true,
+    },
+    upgradeMessage: 'Upgrade to Landlord to track compliance certificates and get expiry reminders.',
+    learnMoreUrl: '/pricing',
+  },
+  HOMEOWNER_TENANT_REPORTING: {
+    id: 'HOMEOWNER_TENANT_REPORTING',
+    name: 'Tenant Reporting Links',
+    description: 'Shareable links for tenants to report maintenance issues without an account',
+    category: 'Tenant Management',
+    limits: {
+      homeowner_free: false,
+      homeowner_landlord: true,
+      homeowner_agency: true,
+    },
+    upgradeMessage: 'Upgrade to Landlord to give tenants a simple way to report issues.',
+    learnMoreUrl: '/pricing',
+  },
+  HOMEOWNER_RECURRING_MAINTENANCE: {
+    id: 'HOMEOWNER_RECURRING_MAINTENANCE',
+    name: 'Recurring Maintenance',
+    description: 'Schedule recurring maintenance tasks with automatic job creation',
+    category: 'Maintenance',
+    limits: {
+      homeowner_free: false,
+      homeowner_landlord: true,
+      homeowner_agency: true,
+    },
+    upgradeMessage: 'Upgrade to Landlord to schedule recurring maintenance automatically.',
+    learnMoreUrl: '/pricing',
+  },
+  HOMEOWNER_PORTFOLIO_ANALYTICS: {
+    id: 'HOMEOWNER_PORTFOLIO_ANALYTICS',
+    name: 'Portfolio Analytics',
+    description: 'Spend tracking, maintenance history, and analytics per property',
+    category: 'Analytics',
+    limits: {
+      homeowner_free: false,
+      homeowner_landlord: true,
+      homeowner_agency: true,
+    },
+    upgradeMessage: 'Upgrade to Landlord for detailed per-property analytics and spend tracking.',
+    learnMoreUrl: '/pricing',
+  },
+  HOMEOWNER_TENANT_CONTACTS: {
+    id: 'HOMEOWNER_TENANT_CONTACTS',
+    name: 'Tenant & Contact Records',
+    description: 'Store tenant details, lease dates, and key contacts per property',
+    category: 'Tenant Management',
+    limits: {
+      homeowner_free: false,
+      homeowner_landlord: true,
+      homeowner_agency: true,
+    },
+    upgradeMessage: 'Upgrade to Landlord to manage tenant and contact records.',
+    learnMoreUrl: '/pricing',
+  },
+  HOMEOWNER_TEAM_ACCESS: {
+    id: 'HOMEOWNER_TEAM_ACCESS',
+    name: 'Team Access',
+    description: 'Invite team members with role-based access to manage properties',
+    category: 'Team',
+    limits: {
+      homeowner_free: false,
+      homeowner_landlord: false,
+      homeowner_agency: true,
+    },
+    upgradeMessage: 'Upgrade to Agency for team member invites and role-based access.',
+    learnMoreUrl: '/pricing',
+  },
+  HOMEOWNER_BULK_OPERATIONS: {
+    id: 'HOMEOWNER_BULK_OPERATIONS',
+    name: 'Bulk Operations',
+    description: 'Bulk job posting and compliance exports across properties',
+    category: 'Team',
+    limits: {
+      homeowner_free: false,
+      homeowner_landlord: false,
+      homeowner_agency: true,
+    },
+    upgradeMessage: 'Upgrade to Agency for bulk operations across your portfolio.',
+    learnMoreUrl: '/pricing',
+  },
+  HOMEOWNER_YOY_COMPARISON: {
+    id: 'HOMEOWNER_YOY_COMPARISON',
+    name: 'Year-over-Year Comparison',
+    description: 'Compare maintenance spend and activity across years',
+    category: 'Analytics',
+    limits: {
+      homeowner_free: false,
+      homeowner_landlord: false,
+      homeowner_agency: true,
+    },
+    upgradeMessage: 'Upgrade to Agency for year-over-year portfolio comparisons.',
+    learnMoreUrl: '/pricing',
   },
 };
 
@@ -572,6 +701,10 @@ export const FEATURE_CATEGORIES = [
   'Payments',
   'Reviews',
   'Properties',
+  'Compliance',
+  'Tenant Management',
+  'Maintenance',
+  'Team',
 ] as const;
 
 export type FeatureCategory = typeof FEATURE_CATEGORIES[number];
@@ -581,6 +714,40 @@ export type FeatureCategory = typeof FEATURE_CATEGORIES[number];
  */
 export function getFeaturesByCategory(category: FeatureCategory): FeatureDefinition[] {
   return Object.values(FEATURES).filter(feature => feature.category === category);
+}
+
+/**
+ * Resolve the effective homeowner tier key for FeatureLimit lookup
+ */
+function getHomeownerTierKey(tier?: SubscriptionTier): keyof FeatureLimit {
+  switch (tier) {
+    case 'agency': return 'homeowner_agency';
+    case 'landlord': return 'homeowner_landlord';
+    default: return 'homeowner_free';
+  }
+}
+
+/**
+ * Check a homeowner feature limit, falling back to the legacy `homeowner` boolean
+ */
+function resolveHomeownerLimit(
+  limits: FeatureLimit,
+  tier?: SubscriptionTier
+): number | boolean | 'unlimited' {
+  const tierKey = getHomeownerTierKey(tier);
+  const tierValue = limits[tierKey];
+
+  // If the feature has tier-specific homeowner limits, use them
+  if (tierValue !== undefined) {
+    return tierValue;
+  }
+
+  // Fall back to legacy `homeowner: true` (means all tiers get access)
+  if (limits.homeowner !== undefined) {
+    return limits.homeowner;
+  }
+
+  return false;
 }
 
 /**
@@ -595,7 +762,10 @@ export function getAvailableFeatures(
   }
 
   if (role === 'homeowner') {
-    return Object.values(HOMEOWNER_FEATURES);
+    return Object.values(HOMEOWNER_FEATURES).filter(feature => {
+      const limit = resolveHomeownerLimit(feature.limits, tier);
+      return limit !== false && limit !== 0;
+    });
   }
 
   // Contractor features based on tier
@@ -604,7 +774,7 @@ export function getAvailableFeatures(
   }
 
   return Object.values(CONTRACTOR_FEATURES).filter(feature => {
-    const limit = feature.limits[tier];
+    const limit = feature.limits[tier as ContractorSubscriptionTier];
     return limit !== false && limit !== 0;
   });
 }
@@ -627,9 +797,10 @@ export function hasFeatureAccess(
     return true;
   }
 
-  // Homeowner features
+  // Homeowner features - check tier-specific limits
   if (role === 'homeowner') {
-    return feature.limits.homeowner === true;
+    const limit = resolveHomeownerLimit(feature.limits, tier);
+    return limit !== false && limit !== 0;
   }
 
   // Contractor features require a tier
@@ -637,7 +808,7 @@ export function hasFeatureAccess(
     return false;
   }
 
-  const limit = feature.limits[tier];
+  const limit = feature.limits[tier as ContractorSubscriptionTier];
   return limit !== false && limit !== 0;
 }
 
@@ -659,9 +830,9 @@ export function getFeatureLimit(
     return 'unlimited';
   }
 
-  // Homeowner features
+  // Homeowner features - check tier-specific limits
   if (role === 'homeowner') {
-    return feature.limits.homeowner === true ? 'unlimited' : false;
+    return resolveHomeownerLimit(feature.limits, tier);
   }
 
   // Contractor features
@@ -669,7 +840,7 @@ export function getFeatureLimit(
     return false;
   }
 
-  return feature.limits[tier] ?? false;
+  return feature.limits[tier as ContractorSubscriptionTier] ?? false;
 }
 
 /**
@@ -685,14 +856,16 @@ export function getUpgradeTiers(
     return [];
   }
 
-  const tierOrder: SubscriptionTier[] = ['free', 'basic', 'professional', 'enterprise'];
-  const currentIndex = tierOrder.indexOf(currentTier);
+  const tierOrder: ContractorSubscriptionTier[] = ['free', 'basic', 'professional', 'enterprise'];
+  const currentIndex = tierOrder.indexOf(currentTier as ContractorSubscriptionTier);
   const upgradeTiers: SubscriptionTier[] = [];
+
+  if (currentIndex === -1) return []; // Not a contractor tier
 
   for (let i = currentIndex + 1; i < tierOrder.length; i++) {
     const tier = tierOrder[i];
     const limit = feature.limits[tier];
-    const currentLimit = feature.limits[currentTier];
+    const currentLimit = feature.limits[currentTier as ContractorSubscriptionTier];
 
     // Check if this tier has better access
     if (limit === 'unlimited' && currentLimit !== 'unlimited') {
@@ -708,7 +881,7 @@ export function getUpgradeTiers(
 }
 
 /**
- * Pricing information for subscription tiers
+ * Pricing information for contractor subscription tiers
  */
 export const TIER_PRICING = {
   free: {
@@ -735,5 +908,35 @@ export const TIER_PRICING = {
     price: 199,
     period: 'month',
     description: 'Complete solution for established businesses',
+  },
+} as const;
+
+/**
+ * Pricing information for homeowner subscription tiers
+ */
+export const HOMEOWNER_TIER_PRICING = {
+  free: {
+    name: 'Free',
+    price: 0,
+    period: 'forever',
+    description: 'Core features + AI matching for your home',
+    propertyLimit: 1,
+  },
+  landlord: {
+    name: 'Landlord',
+    price: 24.99,
+    period: 'month',
+    annualPrice: 249,
+    description: 'Complete property management for landlords',
+    propertyLimit: 25,
+    popular: true,
+  },
+  agency: {
+    name: 'Agency',
+    price: 49.99,
+    period: 'month',
+    annualPrice: 499,
+    description: 'Multi-user portfolio management for letting agents',
+    propertyLimit: 'unlimited' as const,
   },
 } as const;

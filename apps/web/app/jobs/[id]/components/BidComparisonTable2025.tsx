@@ -252,7 +252,7 @@ export function BidComparisonTable2025({
 
                   {/* Details */}
                   <div className="flex-1 min-w-0">
-                    <Link href={`/contractors/${bid.contractor.id}`}>
+                    <Link href={`/contractors/${bid.contractor.id}?returnTo=job&jobId=${jobId}&bidId=${bid.id}&bidAmount=${bid.bid_amount}`}>
                       <h3 className="font-bold text-gray-900 hover:text-teal-600 transition-colors line-clamp-1">
                         {getContractorName(bid)}
                       </h3>

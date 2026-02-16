@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getUser } from '@/lib/auth';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user is a contractor
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = serverSupabase;
 
     // Get contractor's feedback statistics
     const { data: stats, error } = await supabase
@@ -231,7 +231,7 @@ async function createCorrection(
   feedback: { actualIssue?: string; actualSeverity?: string; contractorNotes?: string; wasAccurate: boolean },
   contractorId: string
 ): Promise<void> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = serverSupabase;
 
   try {
     // Create correction record
@@ -270,7 +270,7 @@ async function updateContributorStats(
   contractorId: string,
   wasAccurate: boolean
 ): Promise<void> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = serverSupabase;
 
   try {
     // Get current stats
@@ -311,7 +311,7 @@ async function updateContributorStats(
  * Update contributor level based on contributions
  */
 async function updateContributorLevel(contractorId: string): Promise<void> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = serverSupabase;
 
   const { data: stats } = await supabase
     .from('contractor_contributions')
@@ -350,7 +350,7 @@ async function updateContributorLevel(contractorId: string): Promise<void> {
  * Check if retraining threshold is met
  */
 async function checkRetrainingThreshold(): Promise<boolean> {
-  const supabase = await createServerSupabaseClient();
+  const supabase = serverSupabase;
 
   const { data: result } = await supabase.rpc('check_retraining_threshold');
 

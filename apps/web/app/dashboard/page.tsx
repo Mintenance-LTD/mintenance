@@ -74,7 +74,12 @@ export default async function DashboardPage2025() {
     ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}`.trim() || user.email
     : user.email;
 
-  const totalSpent = kpiData.jobsData.totalRevenue;
+  // Calculate total spent from actual payments (escrow transactions), not job budgets
+  const totalSpent = payments.length > 0
+    ? payments
+        .filter((p: { status?: string }) => p.status === 'released' || p.status === 'held' || p.status === 'completed')
+        .reduce((sum: number, p: { amount?: number }) => sum + (Number(p.amount) || 0), 0)
+    : kpiData.jobsData.totalRevenue; // Fallback to budget sum if no payment records
 
   // PERFORMANCE FIX: Batch queries instead of N+1
   // Collect all job and contractor IDs

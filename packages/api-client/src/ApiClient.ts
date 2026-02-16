@@ -4,7 +4,7 @@
  * Unified HTTP client for web API endpoints with consistent error handling,
  * retry logic, and request/response interceptors.
  */
-import { parseError, logError, ApiError, NetworkError } from './ErrorHandler';
+import { parseError, logError, ApiError, NetworkError, IApiError } from './ErrorHandler';
 export interface ApiClientConfig {
   baseURL?: string;
   timeout?: number;
@@ -70,7 +70,7 @@ export class ApiClient {
       ...this.defaultHeaders,
       ...fetchOptions.headers,
     };
-    let lastError: ApiError | NetworkError | null = null;
+    let lastError: IApiError | null = null;
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         // Create abort controller for timeout

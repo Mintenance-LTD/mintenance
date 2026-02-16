@@ -68,6 +68,11 @@ export function EscrowReviewDashboardClient() {
   const [notes, setNotes] = useState('');
   const [reason, setReason] = useState('');
   const [errorDialog, setErrorDialog] = useState<{ open: boolean; message: string }>({ open: false, message: '' });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkApproveDialog, setBulkApproveDialog] = useState(false);
+  const [bulkHoldDialog, setBulkHoldDialog] = useState(false);
+  const [bulkReason, setBulkReason] = useState('');
+  const [bulkNotes, setBulkNotes] = useState('');
 
   const fetchPendingReviews = useCallback(async () => {
     setLoading(true);
@@ -190,6 +195,82 @@ export function EscrowReviewDashboardClient() {
     }
   };
 
+  const handleToggleSelect = (escrowId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(escrowId)) next.delete(escrowId);
+      else next.add(escrowId);
+      return next;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(reviews.map((r) => r.escrowId)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.size === 0) return;
+    setActionLoading(true);
+    let success = 0;
+    let failed = 0;
+    for (const escrowId of selectedIds) {
+      try {
+        const response = await fetch('/api/admin/escrow/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ escrowId, notes: bulkNotes || undefined }),
+        });
+        if (response.ok) success++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+    }
+    setActionLoading(false);
+    setBulkApproveDialog(false);
+    setBulkNotes('');
+    setSelectedIds(new Set());
+    await fetchPendingReviews();
+    if (failed > 0) {
+      setErrorDialog({ open: true, message: `Bulk approve: ${success} succeeded, ${failed} failed` });
+    }
+  };
+
+  const handleBulkHold = async () => {
+    if (selectedIds.size === 0 || !bulkReason.trim()) return;
+    setActionLoading(true);
+    let success = 0;
+    let failed = 0;
+    for (const escrowId of selectedIds) {
+      try {
+        const response = await fetch('/api/admin/escrow/hold', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ escrowId, reason: bulkReason }),
+        });
+        if (response.ok) success++;
+        else failed++;
+      } catch {
+        failed++;
+      }
+    }
+    setActionLoading(false);
+    setBulkHoldDialog(false);
+    setBulkReason('');
+    setSelectedIds(new Set());
+    await fetchPendingReviews();
+    if (failed > 0) {
+      setErrorDialog({ open: true, message: `Bulk hold: ${success} succeeded, ${failed} failed` });
+    }
+  };
+
+  const allSelected = reviews.length > 0 && reviews.every((r) => selectedIds.has(r.escrowId));
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -232,6 +313,33 @@ export function EscrowReviewDashboardClient() {
           },
         ]}
       />
+
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: theme.spacing[3],
+          padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
+          marginBottom: theme.spacing[4],
+          backgroundColor: '#EFF6FF',
+          borderRadius: theme.borderRadius.md,
+          border: '1px solid #BFDBFE',
+        }}>
+          <span style={{ fontSize: theme.typography.fontSize.sm, fontWeight: 600, color: '#1E40AF' }}>
+            {selectedIds.size} selected
+          </span>
+          <Button size="sm" onClick={() => setBulkApproveDialog(true)} disabled={actionLoading}>
+            Approve Selected
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setBulkHoldDialog(true)} disabled={actionLoading}>
+            Hold Selected
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+            Clear
+          </Button>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div style={{
@@ -294,6 +402,16 @@ export function EscrowReviewDashboardClient() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ backgroundColor: theme.colors.backgroundSecondary }}>
+                  <th style={{ ...tableHeaderStyle, width: '48px' }}>
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={(input) => { if (input) input.indeterminate = someSelected; }}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      aria-label="Select all escrow reviews"
+                    />
+                  </th>
                   <th style={tableHeaderStyle}>Job</th>
                   <th style={tableHeaderStyle}>Contractor</th>
                   <th style={tableHeaderStyle}>Homeowner</th>
@@ -308,6 +426,15 @@ export function EscrowReviewDashboardClient() {
               <tbody>
                 {reviews.map((review) => (
                   <tr key={review.id} style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
+                    <td style={tableCellStyle}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(review.escrowId)}
+                        onChange={() => handleToggleSelect(review.escrowId)}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        aria-label={`Select escrow for ${review.jobTitle}`}
+                      />
+                    </td>
                     <td style={tableCellStyle}>{review.jobTitle}</td>
                     <td style={tableCellStyle}>{review.contractorName}</td>
                     <td style={tableCellStyle}>{review.homeownerName}</td>
@@ -485,6 +612,56 @@ export function EscrowReviewDashboardClient() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <Button onClick={handleHold} disabled={!reason.trim() || actionLoading}>
               {actionLoading ? <Spinner size="sm" /> : 'Hold'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Approve Dialog */}
+      <AlertDialog open={bulkApproveDialog} onOpenChange={setBulkApproveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bulk Approve Escrow Releases</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to approve {selectedIds.size} escrow release{selectedIds.size > 1 ? 's' : ''}. Funds will be released to the contractors.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div style={{ marginTop: theme.spacing.md }}>
+            <Input
+              placeholder="Optional notes for all approvals"
+              value={bulkNotes}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBulkNotes(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button onClick={handleBulkApprove} disabled={actionLoading}>
+              {actionLoading ? <Spinner size="sm" /> : `Approve ${selectedIds.size}`}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Hold Dialog */}
+      <AlertDialog open={bulkHoldDialog} onOpenChange={setBulkHoldDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bulk Hold Escrows</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to hold {selectedIds.size} escrow{selectedIds.size > 1 ? 's' : ''} for review. Please provide a reason.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div style={{ marginTop: theme.spacing.md }}>
+            <Input
+              placeholder="Reason for hold (required)"
+              value={bulkReason}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBulkReason(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button onClick={handleBulkHold} disabled={!bulkReason.trim() || actionLoading}>
+              {actionLoading ? <Spinner size="sm" /> : `Hold ${selectedIds.size}`}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

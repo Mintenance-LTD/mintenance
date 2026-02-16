@@ -29,6 +29,24 @@
       ],
       "@mintenance/shared": [
         "../../packages/shared/src"
+      ],
+      "@mintenance/design-tokens": [
+        "../../packages/design-tokens/src"
+      ],
+      "@mintenance/api-client": [
+        "../../packages/api-client/src"
+      ],
+      "@mintenance/ai-core": [
+        "../../packages/ai-core/src"
+      ],
+      "@mintenance/security": [
+        "../../packages/security/src"
+      ],
+      "@mintenance/shared-ui": [
+        "../../packages/shared-ui/src"
+      ],
+      "@mintenance/auth": [
+        "../../packages/auth/src"
       ]
     }
   },
@@ -58,6 +76,24 @@
     },
     {
       "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/design-tokens"
+    },
+    {
+      "path": "../../packages/api-client"
+    },
+    {
+      "path": "../../packages/ai-core"
+    },
+    {
+      "path": "../../packages/security"
+    },
+    {
+      "path": "../../packages/shared-ui"
+    },
+    {
+      "path": "../../packages/auth"
     }
   ]
 }

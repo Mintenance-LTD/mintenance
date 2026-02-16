@@ -64,7 +64,12 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
     try {
       const sessionManager = SessionManager.getInstance();
       sessionManager.clearSession();
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'x-csrf-token': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || window.csrfToken || '',
+        },
+      });
       router.push('/login');
       router.refresh();
     } catch (error) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
 import { logger } from '@mintenance/shared';
@@ -47,7 +47,7 @@ export async function GET(
     const { id: jobId } = await params;
 
     // Get job details
-    const supabase = serverSupabase();
+    const supabase = serverSupabase;
     const { data: job, error: jobError } = await supabase
       .from('jobs')
       .select('id, title, budget, homeowner_id, contractor_id, status')

@@ -10,7 +10,11 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 // Mock dependencies
 vi.mock('../BuildingSurveyorService');
 vi.mock('../critic');
-vi.mock('@/lib/api/supabaseServer');
+vi.mock('@/lib/api/supabaseServer', () => ({
+  serverSupabase: {
+    from: vi.fn(),
+  },
+}));
 
 describe('ABTestIntegration', () => {
   const experimentId = 'test-experiment-id';

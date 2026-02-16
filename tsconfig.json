@@ -56,5 +56,6 @@
     "*.config.js",
     "*.setup.js",
     "*.js"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

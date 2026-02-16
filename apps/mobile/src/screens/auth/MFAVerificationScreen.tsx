@@ -25,6 +25,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '@mintenance/shared';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 
 interface MFAVerificationScreenProps {
   preMfaToken: string;
@@ -113,36 +114,16 @@ export default function MFAVerificationScreen() {
     setLoading(true);
 
     try {
-      // Get CSRF token
-      const { config } = require('../../config/environment');
-      const csrfResponse = await fetch(
-        `${config.apiBaseUrl}/api/csrf`
-      );
-      const { csrfToken } = await csrfResponse.json();
-
-      // Verify MFA
-      const response = await fetch(
-        `${config.apiBaseUrl}/api/auth/mfa/verify`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken,
-          },
-          body: JSON.stringify({
-            preMfaToken,
-            code,
-            method,
-            rememberDevice,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Verification failed');
-      }
+      // Verify MFA via API client (handles auth headers and retries)
+      const data = await mobileApiClient.post<{
+        requiresNewBackupCodes?: boolean;
+        user: { role: string };
+      }>('/api/auth/mfa/verify', {
+        preMfaToken,
+        code,
+        method,
+        rememberDevice,
+      });
 
       // Store trusted device token if provided
       if (rememberDevice) {

@@ -14,7 +14,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
-import { type Invoice } from '../services/contractor-business';
+import { type Invoice, FinancialManagementService } from '../services/contractor-business';
 import { InvoiceCard } from '../components/InvoiceCard';
 import Button from '../components/ui/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -44,8 +44,8 @@ export const InvoiceManagementScreen: React.FC<
     if (!user) return;
 
     try {
-      // TODO: implement invoice listing API in contractorBusinessSuite
-      setInvoices([]);
+      const data = await FinancialManagementService.getInvoices(user.id);
+      setInvoices(data);
     } catch (error) {
       logger.error('Error loading invoices', error);
       Alert.alert('Error', 'Failed to load invoices');
@@ -69,9 +69,13 @@ export const InvoiceManagementScreen: React.FC<
     if (!selectedInvoice || !user) return;
 
     try {
-      // TODO: implement reminder API; placeholder success
+      // Mark invoice as 'sent' to trigger reminder flow
+      await FinancialManagementService.updateInvoiceStatus(
+        selectedInvoice.id,
+        'sent'
+      );
       Alert.alert('Success', 'Reminder sent successfully');
-      await loadInvoices(); // Refresh to update reminder count
+      await loadInvoices();
     } catch (error) {
       Alert.alert('Error', 'Failed to send reminder');
     } finally {
@@ -90,7 +94,10 @@ export const InvoiceManagementScreen: React.FC<
           text: 'Mark Paid',
           onPress: async () => {
             try {
-              // TODO: implement mark-paid API; placeholder success
+              await FinancialManagementService.updateInvoiceStatus(
+                invoice.id,
+                'paid'
+              );
               Alert.alert('Success', 'Invoice marked as paid');
               await loadInvoices();
             } catch (error) {

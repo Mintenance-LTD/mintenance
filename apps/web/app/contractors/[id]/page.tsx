@@ -154,6 +154,23 @@ function ContractorPublicProfilePage2025() {
     return null;
   });
 
+  const [bidId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('bidId');
+    }
+    return null;
+  });
+
+  const [bidAmount] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const amt = new URLSearchParams(window.location.search).get('bidAmount');
+      return amt ? parseFloat(amt) : 0;
+    }
+    return 0;
+  });
+
+  const [bidProcessing, setBidProcessing] = useState(false);
+
   useEffect(() => {
     const fetchContractorData = async () => {
       try {
@@ -305,6 +322,56 @@ function ContractorPublicProfilePage2025() {
     router.push(`/jobs/create?contractorId=${contractor.id}&action=request-quote`);
   };
 
+  const handleAcceptBid = async () => {
+    if (!bidId || !jobId) return;
+    setBidProcessing(true);
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/bids/${bidId}/accept`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        },
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || data.error || 'Failed to accept bid');
+      }
+      toast.success('Bid accepted! The contractor has been notified.');
+      router.push(`/jobs/${jobId}`);
+    } catch (err) {
+      logger.error('Error accepting bid:', err, { service: 'ui' });
+      toast.error(err instanceof Error ? err.message : 'Failed to accept bid');
+      setBidProcessing(false);
+    }
+  };
+
+  const handleDeclineBid = async () => {
+    if (!bidId || !jobId) return;
+    setBidProcessing(true);
+    try {
+      const response = await fetch(`/api/jobs/${jobId}/bids/${bidId}/decline`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        },
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || data.error || 'Failed to decline bid');
+      }
+      toast.success('Bid declined.');
+      router.push(`/jobs/${jobId}`);
+    } catch (err) {
+      logger.error('Error declining bid:', err, { service: 'ui' });
+      toast.error(err instanceof Error ? err.message : 'Failed to decline bid');
+      setBidProcessing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Back Navigation */}
@@ -373,6 +440,13 @@ function ContractorPublicProfilePage2025() {
               yearsExperience={contractor.yearsExperience}
               onRequestQuote={handleRequestQuote}
               onSendMessage={navigateToMessageFlow}
+              bidContext={bidId && jobId && bidAmount ? {
+                bidId,
+                bidAmount,
+                onAccept: handleAcceptBid,
+                onDecline: handleDeclineBid,
+                processing: bidProcessing,
+              } : undefined}
             />
           </div>
         </div>

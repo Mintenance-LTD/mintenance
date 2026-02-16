@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BuildingAssessmentsClient } from './components/BuildingAssessmentsClient';
 
 export const metadata = {
@@ -6,7 +6,7 @@ export const metadata = {
 };
 
 export default async function AdminBuildingAssessmentsPage() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = serverSupabase;
 
   const { data: assessments } = await supabase
     .from('building_assessments')
