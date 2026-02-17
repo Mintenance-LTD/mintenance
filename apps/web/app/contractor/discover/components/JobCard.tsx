@@ -107,9 +107,10 @@ export const JobCard: React.FC<JobCardProps> = ({ job, contractorLocation, contr
     ? sanitizedDescription
     : sanitizedDescription.substring(0, MAX_DESCRIPTION_LENGTH) + '...';
 
-  // Format location
-  const locationShort = formatLocationShort(job.location);
-  const locationFull = cleanAddress(job.location) || 'Not specified';
+  // Format location — job.location is JSONB so may be string or object
+  const locationStr = typeof job.location === 'string' ? job.location : null;
+  const locationShort = formatLocationShort(locationStr);
+  const locationFull = cleanAddress(locationStr) || 'Not specified';
 
   // Calculate distance if contractor location available
   let distanceText: string | null = null;
