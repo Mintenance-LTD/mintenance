@@ -213,15 +213,12 @@ export const useContractorMap = ({ contractorId, initialRegion, navigation }: Us
     Linking.openURL('tel:+1234567890');
   };
 
-  const handleMessage = (contractor: ContractorLocation) => {
-    navigation.navigate('Chat', { contractorId: contractor.id });
+  const handleMessage = (_contractor: ContractorLocation) => {
+    Alert.alert('Coming Soon', 'Direct messaging from the map is coming soon.');
   };
 
-  const handleBookService = (contractor: ContractorLocation) => {
-    navigation.navigate('ServiceBooking', {
-      contractorId: contractor.id,
-      contractorName: contractor.name,
-    });
+  const handleBookService = (_contractor: ContractorLocation) => {
+    Alert.alert('Coming Soon', 'Service booking from the map is coming soon.');
   };
 
   const handleSearch = (query: string) => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,8 +7,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
-  Image,
   ScrollView,
+  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,20 +17,30 @@ import { JobService } from '../services/JobService';
 import { Job } from '@mintenance/types';
 import { theme, getStatusColor as themeGetStatusColor } from '../theme';
 import { NavigationHeader } from '../components/navigation';
+import { ImageCarousel } from '../components/ui/ImageCarousel';
 import {
   ResponsiveContainer,
-  ResponsiveGrid,
-  useResponsive,
-  useMultiColumnLayout
 } from '../components/responsive';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
+
+const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  plumbing: 'water-outline',
+  electrical: 'flash-outline',
+  roofing: 'home-outline',
+  painting: 'color-palette-outline',
+  carpentry: 'hammer-outline',
+  landscaping: 'leaf-outline',
+  cleaning: 'sparkles-outline',
+  hvac: 'thermometer-outline',
+  general: 'construct-outline',
+};
 
 const JobsScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<unknown>();
-  const { isDesktop, isTablet } = useResponsive();
-  const { columns, containerStyle, columnStyle } = useMultiColumnLayout();
 
   const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
@@ -68,7 +78,7 @@ const JobsScreen: React.FC = () => {
         (j) =>
           j.title.toLowerCase().includes(q) ||
           j.description.toLowerCase().includes(q) ||
-          j.location.toLowerCase().includes(q)
+          (typeof j.location === 'string' && j.location.toLowerCase().includes(q))
       );
     }
     return data;
@@ -83,12 +93,12 @@ const JobsScreen: React.FC = () => {
     }
   };
 
-  const renderItem = ({ item }: { item: Job }) => (
-    <JobListItem
+  const renderItem = useCallback(({ item }: { item: Job }) => (
+    <JobCard
       item={item}
       onPress={() => navigation.navigate('JobDetails', { jobId: item.id })}
     />
-  );
+  ), [navigation]);
 
   return (
     <View style={styles.mainContainer}>
@@ -115,7 +125,7 @@ const JobsScreen: React.FC = () => {
           desktop: 1200,
         }}
         padding={{
-          mobile: 0,
+          mobile: 24,
           tablet: 16,
           desktop: 24,
         }}
@@ -123,193 +133,194 @@ const JobsScreen: React.FC = () => {
         testID="jobs-screen"
       >
         <View style={styles.header}>
-
-        {error && (
-          <View style={styles.errorBanner}>
-            <Ionicons name='alert-circle' size={18} color={theme.colors.error} />
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity onPress={() => void loadJobs()} accessibilityRole='button' accessibilityLabel='Retry loading jobs'>
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {user?.role === 'contractor' && (
-          <View style={styles.searchSection}>
-            <View style={styles.searchContainer}>
-              <Ionicons
-                name='search'
-                size={20}
-                color={theme.colors.textSecondary}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={styles.searchInput}
-                placeholder='Search jobs...'
-                placeholderTextColor={theme.colors.textTertiary}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                accessibilityLabel='Search jobs'
-                accessibilityHint='Type to search by title, description, or location'
-              />
+          {error && (
+            <View style={styles.errorBanner}>
+              <Ionicons name='alert-circle' size={18} color={theme.colors.error} />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity onPress={() => void loadJobs()} accessibilityRole='button' accessibilityLabel='Retry loading jobs'>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.filterRow}>
-                {(
-                  [
-                    'all',
-                    'posted',
-                    'in_progress',
-                    'completed',
-                  ] as FilterStatus[]
-                ).map((key) => (
-                  <TouchableOpacity
-                    key={key}
-                    style={[
-                      styles.filterChip,
-                      selectedFilter === key && styles.filterChipActive,
-                    ]}
-                    onPress={() => setSelectedFilter(key)}
-                    accessibilityRole='button'
-                    accessibilityLabel={`Filter by ${key === 'all' ? 'all jobs' : key === 'in_progress' ? 'in progress' : key}`}
-                    accessibilityState={{ selected: selectedFilter === key }}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        selectedFilter === key && styles.filterChipTextActive,
-                      ]}
-                    >
-                      {key === 'all'
-                        ? 'All'
-                        : key === 'in_progress'
-                          ? 'In Progress'
-                          : key.charAt(0).toUpperCase() + key.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-        )}
-      </View>
+          )}
 
-      <FlatList
-        data={filteredJobs}
-        renderItem={renderItem}
-        keyExtractor={(it) => it.id}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={() => (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>No Jobs</Text>
-            <Text style={styles.emptyDescription}>
-              {user?.role === 'homeowner'
-                ? 'Post your first maintenance job'
-                : 'Check back later for new opportunities'}
-            </Text>
-          </View>
-        )}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        showsVerticalScrollIndicator={false}
-      />
-    </ResponsiveContainer>
+          {user?.role === 'contractor' && (
+            <View style={styles.searchSection}>
+              <View style={styles.searchContainer}>
+                <Ionicons
+                  name='search'
+                  size={20}
+                  color={theme.colors.textSecondary}
+                  style={styles.searchIcon}
+                />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder='Search jobs...'
+                  placeholderTextColor={theme.colors.textTertiary}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  accessibilityLabel='Search jobs'
+                  accessibilityHint='Type to search by title, description, or location'
+                />
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.filterRow}>
+                  {(
+                    ['all', 'posted', 'in_progress', 'completed'] as FilterStatus[]
+                  ).map((key) => (
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.filterChip,
+                        selectedFilter === key && styles.filterChipActive,
+                      ]}
+                      onPress={() => setSelectedFilter(key)}
+                      accessibilityRole='button'
+                      accessibilityLabel={`Filter by ${key === 'all' ? 'all jobs' : key === 'in_progress' ? 'in progress' : key}`}
+                      accessibilityState={{ selected: selectedFilter === key }}
+                    >
+                      <Text
+                        style={[
+                          styles.filterChipText,
+                          selectedFilter === key && styles.filterChipTextActive,
+                        ]}
+                      >
+                        {key === 'all'
+                          ? 'All'
+                          : key === 'in_progress'
+                            ? 'In Progress'
+                            : key.charAt(0).toUpperCase() + key.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
+        <FlatList
+          data={filteredJobs}
+          renderItem={renderItem}
+          keyExtractor={(it) => it.id}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="briefcase-outline" size={48} color={theme.colors.textTertiary} />
+              <Text style={styles.emptyTitle}>No Jobs</Text>
+              <Text style={styles.emptyDescription}>
+                {user?.role === 'homeowner'
+                  ? 'Post your first maintenance job'
+                  : 'Check back later for new opportunities'}
+              </Text>
+            </View>
+          )}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      </ResponsiveContainer>
     </View>
   );
 };
 
-const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
+// ============================================================================
+// IMAGE-FORWARD JOB CARD (Airbnb Pattern)
+// ============================================================================
+
+const JobCard: React.FC<{ item: Job; onPress: () => void }> = ({
   item,
   onPress,
 }) => {
   const daysAgo = Math.floor(
-    (Date.now() -
-      new Date(
-        item.created_at || item.createdAt || Date.now()
-      ).getTime()) /
+    (Date.now() - new Date(item.created_at || item.createdAt || Date.now()).getTime()) /
       (1000 * 3600 * 24)
   );
-  const hasPhotos = !!(item.photos && item.photos.length > 0);
-
-  const statusColor = getStatusColor(item.status);
-  const statusIcon = getStatusIcon(item.status);
+  const photos = item.photos || item.images || [];
+  const hasPhotos = photos.length > 0;
+  const locationStr = typeof item.location === 'string' ? item.location : item.city || '';
+  const budget = item.budget || item.budget_min || 0;
+  const urgency = item.urgency || item.priority || 'medium';
+  const categoryIcon = CATEGORY_ICONS[item.category?.toLowerCase() || ''] || 'construct-outline';
 
   return (
     <TouchableOpacity
       style={styles.jobCard}
       onPress={onPress}
+      activeOpacity={0.9}
       accessibilityRole='button'
-      accessibilityLabel={`${item.title}, ${formatStatus(item.status)}, budget £${item.budget.toLocaleString()}, ${item.location}`}
+      accessibilityLabel={`${item.title}, ${formatStatus(item.status)}, budget £${budget.toLocaleString()}, ${locationStr}`}
       accessibilityHint='Double tap to view job details'
     >
-      <View style={styles.jobCardHeader}>
-        <View style={styles.jobTitleSection}>
-          <View style={styles.titlePriorityRow}>
-            <Text style={styles.jobTitle} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <View
-              style={[styles.priorityBadge, { backgroundColor: theme.colors.textTertiary }]}
-            >
-              <Text style={styles.priorityText}>
-                {(item.priority || 'NORMAL').toUpperCase()}
-              </Text>
+      {/* Hero Image Section */}
+      {hasPhotos ? (
+        <View style={styles.heroSection}>
+          <ImageCarousel
+            images={photos}
+            height={260}
+            width={SCREEN_WIDTH - 40}
+            showDots={photos.length > 1}
+            gradientOverlay
+            overlayContent={
+              <View style={styles.overlayRow}>
+                <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status) }]}>
+                  <Text style={styles.statusTagText}>{formatStatus(item.status)}</Text>
+                </View>
+                {urgency === 'high' || urgency === 'emergency' ? (
+                  <View style={styles.urgentTag}>
+                    <Ionicons name="flame" size={12} color="#FFFFFF" />
+                    <Text style={styles.urgentTagText}>Urgent</Text>
+                  </View>
+                ) : null}
+              </View>
+            }
+          />
+        </View>
+      ) : (
+        <View style={styles.placeholderHero}>
+          <Ionicons name={categoryIcon} size={48} color={theme.colors.textTertiary} />
+          <View style={styles.placeholderOverlay}>
+            <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status) }]}>
+              <Text style={styles.statusTagText}>{formatStatus(item.status)}</Text>
             </View>
           </View>
-          <Text style={styles.jobTimeAgo}>
-            {daysAgo === 0
-              ? 'Today'
-              : daysAgo === 1
-                ? '1 day ago'
-                : `${daysAgo} days ago`}
-          </Text>
-        </View>
-        <Text style={styles.jobBudget}>£{item.budget.toLocaleString()}</Text>
-      </View>
-
-      {hasPhotos && (
-        <View style={styles.photosSection}>
-          <View style={styles.photosSectionHeader}>
-            <Ionicons name='camera' size={16} color={theme.colors.info} />
-            <Text style={styles.photosTitle}>
-              Problem Photos ({item.photos?.length || 0})
-            </Text>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.photosScroll}
-          >
-            {item.photos?.slice(0, 3).map((photo, idx) => (
-              <Image
-                key={idx}
-                source={{ uri: photo }}
-                style={styles.problemPhoto}
-              />
-            ))}
-          </ScrollView>
         </View>
       )}
 
-      <Text style={styles.jobDescription} numberOfLines={2}>
-        {item.description}
-      </Text>
+      {/* Content Section */}
+      <View style={styles.cardContent}>
+        <Text style={styles.jobTitle} numberOfLines={1}>
+          {item.title}
+        </Text>
 
-      <View style={styles.jobMeta}>
-        <View style={styles.locationContainer}>
-          <Ionicons name='location-outline' size={14} color={theme.colors.textSecondary} />
-          <Text style={styles.jobLocation}>{item.location}</Text>
+        {locationStr ? (
+          <View style={styles.locationRow}>
+            <Ionicons name='location-outline' size={14} color={theme.colors.textSecondary} />
+            <Text style={styles.locationText} numberOfLines={1}>{locationStr}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.metaRow}>
+          {budget > 0 && (
+            <Text style={styles.priceText}>
+              {'\u00A3'}{budget.toLocaleString()}
+            </Text>
+          )}
+          {item.category && (
+            <View style={styles.categoryTag}>
+              <Text style={styles.categoryTagText}>
+                {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.timeText}>
+            {daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`}
+          </Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-          <Ionicons
-            name={statusIcon}
-            size={12}
-            color={theme.colors.white}
-            style={styles.statusIcon}
-          />
-          <Text style={styles.statusText}>{formatStatus(item.status)}</Text>
-        </View>
+
+        <Text style={styles.jobDescription} numberOfLines={2}>
+          {item.description}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -317,35 +328,19 @@ const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
 
 const getStatusColor = (status: string) => themeGetStatusColor(status);
 
-const getStatusIcon = (status: string): unknown => {
+const formatStatus = (status: string) => {
   switch (status) {
-    case 'posted':
-      return 'radio-button-on';
-    case 'assigned':
-      return 'person-add';
-    case 'in_progress':
-      return 'hammer';
-    case 'completed':
-      return 'checkmark-circle';
-    default:
-      return 'help-circle';
+    case 'posted': return 'Open';
+    case 'assigned': return 'Assigned';
+    case 'in_progress': return 'In Progress';
+    case 'completed': return 'Completed';
+    default: return status;
   }
 };
 
-const formatStatus = (status: string) => {
-  switch (status) {
-    case 'posted':
-      return 'Open';
-    case 'assigned':
-      return 'Assigned';
-    case 'in_progress':
-      return 'In Progress';
-    case 'completed':
-      return 'Completed';
-    default:
-      return status;
-  }
-};
+// ============================================================================
+// STYLES
+// ============================================================================
 
 const styles = StyleSheet.create({
   mainContainer: {
@@ -354,42 +349,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.background,
   },
   header: {
     backgroundColor: theme.colors.background,
     paddingBottom: 12,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  addButton: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-    marginLeft: 8,
   },
   searchSection: {
     paddingHorizontal: 20,
@@ -398,11 +362,12 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceSecondary,
-    borderRadius: 24,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 20,
     marginBottom: 12,
     paddingHorizontal: 16,
     height: 48,
+    ...theme.shadows.base,
   },
   searchIcon: {
     marginRight: 12,
@@ -418,14 +383,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   filterChip: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 20,
-    marginRight: 8,
   },
   filterChipActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.textPrimary,
+    borderColor: theme.colors.textPrimary,
   },
   filterChipText: {
     fontSize: 14,
@@ -433,129 +400,135 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   filterChipTextActive: {
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   listContainer: {
-    padding: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
+
+  // ── Image-Forward Job Card ──
   jobCard: {
-    backgroundColor: theme.colors.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    marginBottom: 20,
+    overflow: 'hidden',
     ...theme.shadows.base,
   },
-  jobCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+  heroSection: {
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    overflow: 'hidden',
   },
-  jobTitleSection: {
-    flex: 1,
+  placeholderHero: {
+    height: 220,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  titlePriorityRow: {
+  placeholderOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  overlayRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    gap: 8,
+  },
+  statusTag: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  statusTagText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  urgentTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    gap: 4,
+  },
+  urgentTagText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // ── Card Content ──
+  cardContent: {
+    padding: 18,
   },
   jobTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginRight: 8,
-    flexShrink: 1,
+    marginBottom: 4,
   },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  priorityText: {
-    fontSize: 11,
-    color: theme.colors.textInverse,
-    fontWeight: '700',
-  },
-  jobTimeAgo: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-  },
-  jobBudget: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  photosSection: {
-    marginBottom: 12,
-  },
-  photosSectionHeader: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     marginBottom: 8,
   },
-  photosTitle: {
-    fontSize: 14,
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-  photosScroll: {
-    paddingVertical: 4,
-  },
-  problemPhoto: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  jobDescription: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    marginBottom: 12,
-    lineHeight: 22,
-  },
-  jobMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  jobLocation: {
+  locationText: {
     fontSize: 14,
     color: theme.colors.textSecondary,
-    marginLeft: 6,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  priceText: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  categoryTag: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  categoryTagText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusIcon: {
-    marginRight: 6,
-  },
-  statusText: {
+  timeText: {
     fontSize: 13,
-    color: theme.colors.textInverse,
-    fontWeight: '600',
+    color: theme.colors.textTertiary,
   },
+  jobDescription: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
+  },
+
+  // ── Empty & Error ──
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingTop: 80,
     paddingHorizontal: 40,
+    gap: 12,
   },
   emptyTitle: {
     fontSize: 22,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 12,
     textAlign: 'center',
   },
   emptyDescription: {
@@ -568,7 +541,7 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.errorLight + '20',
+    backgroundColor: theme.colors.accentLight,
     marginHorizontal: 16,
     marginTop: 12,
     padding: 12,

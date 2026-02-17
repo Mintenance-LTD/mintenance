@@ -23,6 +23,7 @@ export class JobService {
     subcategory?: string;
     priority?: 'low' | 'medium' | 'high';
     photos?: string[];
+    property_id?: string;
   }): Promise<Job> {
     return JobCRUDService.createJob(jobData);
   }

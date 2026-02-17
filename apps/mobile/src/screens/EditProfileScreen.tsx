@@ -113,7 +113,7 @@ const EditProfileScreen: React.FC = () => {
               accessibilityRole='button'
               accessibilityLabel='Change profile photo'
             >
-              <Ionicons name='camera' size={20} color={theme.colors.info} />
+              <Ionicons name='camera' size={20} color={theme.colors.primary} />
             </TouchableOpacity>
           </View>
           <TouchableOpacity
@@ -160,7 +160,7 @@ const EditProfileScreen: React.FC = () => {
               placeholderTextColor={theme.colors.textTertiary}
             />
             <Text style={styles.helperText}>
-              Email cannot be changed. Contact support if needed.
+              Email changes require verification. Contact support at help@mintenance.co.uk to update your email.
             </Text>
           </View>
 
@@ -296,8 +296,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     width: 40,
@@ -309,7 +307,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
@@ -319,7 +317,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: theme.colors.primary,
-    borderRadius: 16,
+    borderRadius: 12,
   },
   saveButtonText: {
     fontSize: 16,
@@ -387,7 +385,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 20,
   },
@@ -403,7 +401,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: theme.colors.border,
-    borderRadius: 8,
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,

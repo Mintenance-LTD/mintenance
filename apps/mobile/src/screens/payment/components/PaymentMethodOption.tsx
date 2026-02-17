@@ -59,7 +59,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
         </View>
       </View>
       {isSelected && (
-        <Ionicons name="checkmark-circle" size={24} color={theme.colors.secondary} />
+        <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
       )}
     </TouchableOpacity>
   );
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.sm,
   },
   selectedMethod: {
-    borderColor: theme.colors.secondary,
+    borderColor: theme.colors.primary,
     backgroundColor: theme.colors.surfaceSecondary,
   },
   methodContent: {
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   defaultLabel: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.secondary,
+    color: theme.colors.primary,
     marginTop: theme.spacing.xs,
   },
 });

@@ -39,6 +39,7 @@ export class CostControlService {
   private static readonly COST_RATES = {
     'gpt-4o': { input: 0.005, output: 0.015 }, // per 1K tokens
     'mint-ai-vlm': { input: 0.005, output: 0.015 }, // Phase 4: same as gpt-4o until in-house VLM
+    'qwen2.5-vl-3b': { input: 0.0002, output: 0.0006 }, // Student VLM (~25x cheaper than gpt-4o)
     'gpt-4-vision-preview': { input: 0.01, output: 0.03 }, // per 1K tokens
     'gpt-4': { input: 0.03, output: 0.06 }, // per 1K tokens
     'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 }, // per 1K tokens

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
-import { requireCSRF } from '@/lib/csrf';
+import { requireCSRFFromCookieAuth } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
@@ -13,7 +13,7 @@ import { stripe } from '@/lib/stripe';
 export async function POST(request: NextRequest) {
   try {
     // CSRF protection
-    await requireCSRF(request);
+    await requireCSRFFromCookieAuth(request);
 
     // Rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Authenticate user
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required');
     }

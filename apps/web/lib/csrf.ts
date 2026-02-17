@@ -76,6 +76,25 @@ export async function requireCSRF(request: NextRequest): Promise<void> {
 }
 
 /**
+ * Bearer-authenticated API requests are not CSRF-prone because they do not rely on browser cookies.
+ */
+export function hasBearerAuth(request: NextRequest): boolean {
+  const authorization = request.headers.get('authorization') || '';
+  return authorization.toLowerCase().startsWith('bearer ');
+}
+
+/**
+ * Enforce CSRF protection for cookie-authenticated requests while allowing bearer-token clients (mobile).
+ */
+export async function requireCSRFFromCookieAuth(request: NextRequest): Promise<void> {
+  if (hasBearerAuth(request)) {
+    return;
+  }
+
+  await requireCSRF(request);
+}
+
+/**
  * Generate CSRF token (for setting in cookies)
  */
 export function generateCSRFToken(): string {

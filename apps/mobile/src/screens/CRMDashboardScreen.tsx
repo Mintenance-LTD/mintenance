@@ -122,7 +122,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   };
 
   const handleMessage = (client: ClientData) => {
-    navigation.navigate('ClientChat', { clientId: client.client_id });
+    Alert.alert('Coming Soon', 'Client chat is coming soon.');
   };
 
   const handleEmail = async (client: ClientData) => {
@@ -197,7 +197,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         <Text style={styles.headerTitle}>Client Management</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => navigation.navigate('AddClient')}
+          onPress={() => Alert.alert('Coming Soon', 'Add client is coming soon.')}
         >
           <Ionicons name='person-add' size={24} color={theme.colors.white} />
         </TouchableOpacity>
@@ -205,7 +205,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
 
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -298,7 +298,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
               {!searchQuery && (
                 <TouchableOpacity
                   style={styles.addClientButton}
-                  onPress={() => navigation.navigate('AddClient')}
+                  onPress={() => Alert.alert('Coming Soon', 'Add client is coming soon.')}
                 >
                   <Text style={styles.addClientButtonText}>Add Client</Text>
                 </TouchableOpacity>
@@ -310,9 +310,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
                 key={client.id}
                 client={client}
                 onPress={() =>
-                  navigation.navigate('ClientDetail', {
-                    clientId: client.client_id,
-                  })
+                  Alert.alert('Coming Soon', 'Client details coming soon.')
                 }
                 onCall={() => handleCall(client)}
                 onMessage={() => handleMessage(client)}
@@ -344,7 +342,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.white,
   },
   addButton: {
@@ -423,7 +421,7 @@ const styles = StyleSheet.create({
   },
   sortButtonActive: {
     borderColor: theme.colors.primary,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: theme.colors.primaryLight,
   },
   sortText: {
     fontSize: 12,

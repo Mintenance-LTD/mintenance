@@ -1,8 +1,8 @@
 /**
  * JobPreviewCard Component
  *
- * Displays a job preview card at the bottom of the map when a marker is tapped.
- * Shows key job info with "View Details" and "Bid Now" action buttons.
+ * Airbnb-style horizontal listing preview card shown at the bottom
+ * of the map when a marker is tapped. Image + info + dismiss.
  */
 
 import React from 'react';
@@ -11,20 +11,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 import type { JobMapItem } from '../viewmodels/ExploreMapViewModel';
 
-const URGENCY_COLORS: Record<string, string> = {
-  low: theme.colors.success,
-  medium: theme.colors.info,
-  high: theme.colors.warning,
-  emergency: theme.colors.error,
-};
-
-const CATEGORY_ICONS: Record<string, string> = {
+const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   plumbing: 'water',
   electrical: 'flash',
   roofing: 'home',
   painting: 'color-palette',
   carpentry: 'hammer',
   cleaning: 'sparkles',
+  hvac: 'thermometer',
   general: 'construct',
 };
 
@@ -42,157 +36,157 @@ interface JobPreviewCardProps {
   job: JobMapItem;
   onViewDetails: () => void;
   onBidNow: () => void;
+  onDismiss: () => void;
 }
 
 export const JobPreviewCard: React.FC<JobPreviewCardProps> = ({
   job,
   onViewDetails,
   onBidNow,
+  onDismiss,
 }) => {
-  const urgencyColor = URGENCY_COLORS[job.urgency] || theme.colors.info;
   const iconName = CATEGORY_ICONS[job.category.toLowerCase()] || 'construct';
-
-  const budgetText =
-    job.budget_min && job.budget_max
-      ? `£${job.budget_min} - £${job.budget_max}`
-      : job.budget_max
-        ? `Up to £${job.budget_max}`
-        : 'Budget TBD';
+  const budget = job.budget_max || job.budget_min;
+  const budgetText = budget ? `\u00A3${budget.toLocaleString()} total` : 'Budget TBD';
+  const categoryLabel = job.category.charAt(0).toUpperCase() + job.category.slice(1);
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={onViewDetails}
-      accessibilityRole="button"
-      accessibilityLabel={`${job.title}, ${job.distance} km away, ${budgetText}`}
-      accessibilityHint="Double tap to view job details"
-    >
-      <View style={styles.topRow}>
-        <View style={[styles.categoryIcon, { backgroundColor: urgencyColor + '20' }]}>
-          <Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={22} color={urgencyColor} />
+    <View style={styles.container}>
+      {/* Dismiss button */}
+      <TouchableOpacity
+        style={styles.dismissButton}
+        onPress={onDismiss}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss job preview"
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="close" size={16} color={theme.colors.textInverse} />
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.cardContent}
+        onPress={onViewDetails}
+        accessibilityRole="button"
+        accessibilityLabel={`${job.title}, ${job.distance} km away, ${budgetText}`}
+        accessibilityHint="Double tap to view job details"
+        activeOpacity={0.95}
+      >
+        {/* Thumbnail */}
+        <View style={styles.thumbnail}>
+          <Ionicons name={iconName} size={28} color={theme.colors.textSecondary} />
         </View>
+
+        {/* Info */}
         <View style={styles.info}>
-          <Text style={styles.title} numberOfLines={1}>{job.title}</Text>
-          <View style={styles.metaRow}>
-            <View style={[styles.urgencyBadge, { backgroundColor: urgencyColor }]}>
-              <Text style={styles.urgencyText}>{job.urgency}</Text>
+          <Text style={styles.location} numberOfLines={1}>
+            {job.homeowner_name} · {categoryLabel}
+          </Text>
+          <Text style={styles.dates}>
+            {timeAgo(job.created_at)} · {job.distance} km away
+          </Text>
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>{budgetText}</Text>
+            <View style={styles.ratingContainer}>
+              <Ionicons name="star" size={12} color={theme.colors.textPrimary} />
+              <Text style={styles.ratingText}>New</Text>
             </View>
-            <Text style={styles.distance}>{job.distance} km</Text>
-            <Text style={styles.posted}>{timeAgo(job.created_at)}</Text>
           </View>
         </View>
-      </View>
 
-      <Text style={styles.budget}>{budgetText}</Text>
-
-      <View style={styles.actions}>
+        {/* Heart / save icon */}
         <TouchableOpacity
-          style={styles.detailsButton}
-          onPress={onViewDetails}
-          accessibilityRole="button"
-          accessibilityLabel="View job details"
-        >
-          <Text style={styles.detailsButtonText}>View Details</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.bidButton}
+          style={styles.heartButton}
           onPress={onBidNow}
           accessibilityRole="button"
-          accessibilityLabel="Place a bid on this job"
+          accessibilityLabel="Bid on this job"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.bidButtonText}>Bid Now</Text>
+          <Ionicons name="heart-outline" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.md,
-    ...theme.shadows.base,
+    position: 'relative',
   },
-  topRow: {
+  dismissButton: {
+    position: 'absolute',
+    top: -12,
+    left: -4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.textPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  categoryIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
+  thumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
-    marginRight: theme.spacing.md,
+    justifyContent: 'center',
+    marginRight: 12,
   },
   info: {
     flex: 1,
   },
-  title: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+  location: {
+    fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  dates: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
-  metaRow: {
+  priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    justifyContent: 'space-between',
   },
-  urgencyBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  urgencyText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.colors.white,
-    textTransform: 'capitalize',
-  },
-  distance: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textSecondary,
-  },
-  posted: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textTertiary,
-  },
-  budget: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.secondary,
-    marginBottom: theme.spacing.md,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-  },
-  detailsButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: theme.borderRadius.base,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  detailsButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.medium,
+  price: {
+    fontSize: 14,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
   },
-  bidButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: theme.borderRadius.base,
-    backgroundColor: theme.colors.secondary,
+  ratingContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 2,
   },
-  bidButtonText: {
-    fontSize: theme.typography.fontSize.base,
-    fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white,
+  ratingText: {
+    fontSize: 13,
+    color: theme.colors.textPrimary,
+  },
+  heartButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

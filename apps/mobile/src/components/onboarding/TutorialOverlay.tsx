@@ -263,9 +263,9 @@ const styles = StyleSheet.create({
   highlightRing: {
     position: 'absolute',
     borderWidth: 3,
-    borderColor: '#0066CC',
+    borderColor: '#10B981',
     borderRadius: 12,
-    shadowColor: '#0066CC',
+    shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   tooltip: {
     position: 'absolute',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -296,15 +296,15 @@ const styles = StyleSheet.create({
   },
   progressDotActive: {
     width: 24,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#10B981',
   },
   progressDotCompleted: {
-    backgroundColor: '#0066CC',
+    backgroundColor: '#10B981',
   },
   stepCounter: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0066CC',
+    color: '#10B981',
     marginBottom: 8,
   },
   title: {
@@ -326,10 +326,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   primaryButton: {
-    backgroundColor: '#0066CC',
+    backgroundColor: '#10B981',
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   primaryButtonText: {
     color: '#FFFFFF',

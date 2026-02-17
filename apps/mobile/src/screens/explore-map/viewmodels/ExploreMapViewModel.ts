@@ -39,11 +39,15 @@ export interface JobsMapViewModel {
   jobs: JobMapItem[];
   searchQuery: string;
   selectedJob: JobMapItem | null;
+  selectedCategory: string | null;
   loading: boolean;
+  jobCount: number;
   handleRegionChange: (region: MapRegion) => void;
   handleSearch: (query: string) => void;
   handleJobSelect: (job: JobMapItem | null) => void;
+  handleCategorySelect: (category: string | null) => void;
   handleFilterPress: () => void;
+  centerOnUser: () => void;
   refreshJobs: () => void;
 }
 
@@ -72,6 +76,7 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
   const [jobs, setJobs] = useState<JobMapItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJob, setSelectedJob] = useState<JobMapItem | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
@@ -161,29 +166,54 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
     setSelectedJob(job);
   }, []);
 
+  const handleCategorySelect = useCallback((category: string | null) => {
+    setSelectedCategory(category);
+  }, []);
+
   const handleFilterPress = useCallback(() => {
     logger.info('Filter button pressed');
   }, []);
 
-  // Filter jobs by search query
-  const filteredJobs = searchQuery
-    ? jobs.filter(
-        (j) =>
-          j.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          j.category.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : jobs;
+  const centerOnUser = useCallback(async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+        setUserLocation(coords);
+        setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+      }
+    } catch (err) {
+      logger.warn('Could not get current location', err);
+    }
+  }, []);
+
+  // Filter jobs by search query and category
+  const filteredJobs = jobs.filter((j) => {
+    if (selectedCategory && j.category.toLowerCase() !== selectedCategory.toLowerCase()) {
+      return false;
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return j.title.toLowerCase().includes(q) || j.category.toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   return {
     region,
     jobs: filteredJobs,
     searchQuery,
     selectedJob,
+    selectedCategory,
     loading,
+    jobCount: filteredJobs.length,
     handleRegionChange,
     handleSearch,
     handleJobSelect,
+    handleCategorySelect,
     handleFilterPress,
+    centerOnUser,
     refreshJobs: fetchJobs,
   };
 };

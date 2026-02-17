@@ -177,10 +177,10 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           <View
             style={[
               styles.statCard,
-              { borderLeftColor: theme.colors.secondary },
+              { borderLeftColor: theme.colors.primary },
             ]}
           >
-            <Text style={[styles.statValue, { color: theme.colors.secondary }]}>
+            <Text style={[styles.statValue, { color: theme.colors.primary }]}>
               {stats.acceptance_rate.toFixed(1)}%
             </Text>
             <Text style={styles.statLabel}>Success Rate</Text>
@@ -259,7 +259,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -273,7 +273,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('QuoteTemplates')}
+            onPress={() => Alert.alert('Coming Soon', 'Quote templates coming soon.')}
           >
             <Ionicons
               name='document-text'
@@ -285,7 +285,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => navigation.navigate('QuoteAnalytics')}
+            onPress={() => Alert.alert('Coming Soon', 'Quote analytics coming soon.')}
           >
             <Ionicons name='analytics' size={24} color={theme.colors.primary} />
             <Text style={styles.actionButtonText}>Analytics</Text>
@@ -338,10 +338,10 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
                 key={quote.id}
                 quote={quote}
                 onPress={() =>
-                  navigation.navigate('QuoteDetail', { quoteId: quote.id })
+                  Alert.alert('Coming Soon', 'Quote details coming soon.')
                 }
                 onEdit={() =>
-                  navigation.navigate('EditQuote', { quoteId: quote.id })
+                  Alert.alert('Coming Soon', 'Quote editing coming soon.')
                 }
                 onSend={() => handleSendQuote(quote.id)}
                 onDuplicate={() => handleDuplicateQuote(quote.id)}
@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.white,
   },
   addButton: {
@@ -386,14 +386,14 @@ const styles = StyleSheet.create({
   statsContainer: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
-    padding: 16,
+    padding: 20,
     marginTop: 16,
     marginBottom: 16,
     ...theme.shadows.base,
   },
   statsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },
@@ -406,12 +406,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.surfaceSecondary,
     borderRadius: theme.borderRadius.base,
-    padding: 12,
+    padding: 16,
     borderLeftWidth: 4,
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700',
     marginBottom: 4,
   },
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },

@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.border,
   },
   paymentButton: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     flexDirection: 'row',

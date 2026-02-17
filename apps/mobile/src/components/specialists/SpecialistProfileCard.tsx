@@ -267,10 +267,10 @@ export const SpecialistsList: React.FC<{
 const styles = StyleSheet.create({
   container: {
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: 12,
     padding: theme.spacing.lg,
     margin: theme.spacing.lg,
-    ...theme.shadows.lg,
+    ...theme.shadows.base,
   },
   header: {
     flexDirection: 'row',
@@ -285,8 +285,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    borderWidth: 3,
-    borderColor: theme.colors.secondary,
   },
   onlineIndicator: {
     position: 'absolute',
@@ -311,7 +309,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.fontSize.base,
-    color: theme.colors.secondary,
+    color: theme.colors.textSecondary,
     fontWeight: theme.typography.fontWeight.medium,
     marginBottom: theme.spacing.xs,
   },
@@ -344,7 +342,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: theme.typography.fontSize['2xl'],
     fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   priceUnit: {
     fontSize: theme.typography.fontSize.sm,
@@ -354,9 +352,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: theme.spacing.lg,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: theme.colors.border,
+    marginVertical: theme.spacing.md,
     marginBottom: theme.spacing.lg,
   },
   statItem: {
@@ -381,7 +377,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '700' as const,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing.md,
   },
@@ -394,12 +390,9 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.surfaceSecondary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   availableBadge: {
-    backgroundColor: theme.colors.secondary + '20',
-    borderColor: theme.colors.secondary,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
   availabilityText: {
     fontSize: theme.typography.fontSize.sm,
@@ -407,7 +400,7 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.fontWeight.medium,
   },
   availableText: {
-    color: theme.colors.secondary,
+    color: theme.colors.primary,
   },
   specialtiesSection: {
     marginBottom: theme.spacing.lg,
@@ -418,16 +411,14 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   specialtyBadge: {
-    backgroundColor: theme.colors.primary + '10',
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '30',
   },
   specialtyText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: theme.typography.fontWeight.medium,
   },
   bioSection: {
@@ -470,7 +461,7 @@ const styles = StyleSheet.create({
   },
   contactButton: {
     flex: 1,
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
     paddingVertical: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     alignItems: 'center',
@@ -525,7 +516,7 @@ const styles = StyleSheet.create({
   },
   compactTitle: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.secondary,
+    color: theme.colors.textSecondary,
     marginBottom: theme.spacing.xs,
   },
   compactMeta: {
@@ -546,7 +537,7 @@ const styles = StyleSheet.create({
   compactPrice: {
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginBottom: theme.spacing.sm,
   },
   compactBookButton: {
@@ -596,8 +587,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
   },
   listOnlineIndicator: {
     position: 'absolute',

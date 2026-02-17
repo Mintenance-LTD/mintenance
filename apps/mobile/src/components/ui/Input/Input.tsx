@@ -51,9 +51,9 @@ export interface InputProps extends Omit<TextInputProps, 'style'> {
 // ============================================================================
 
 const INPUT_SIZES = {
-  sm: { height: 32, paddingHorizontal: 12, fontSize: theme.typography.fontSize.sm },
-  md: { height: 40, paddingHorizontal: 16, fontSize: theme.typography.fontSize.base },
-  lg: { height: 48, paddingHorizontal: 16, fontSize: theme.typography.fontSize.lg },
+  sm: { height: 36, paddingHorizontal: 12, fontSize: theme.typography.fontSize.sm },
+  md: { height: 48, paddingHorizontal: 16, fontSize: theme.typography.fontSize.base },
+  lg: { height: 52, paddingHorizontal: 16, fontSize: theme.typography.fontSize.lg },
 };
 
 // ============================================================================
@@ -301,14 +301,12 @@ const getContainerStyles = (
     case 'outline':
       return {
         ...baseStyle,
-        borderWidth: isFocused ? 2 : 1, // Thicker border when focused
-        borderRadius: theme.borderRadius.lg, // More rounded
+        borderWidth: isFocused ? 2 : 1,
+        borderRadius: theme.borderRadius.lg,
         borderColor: getBorderColor(state, isFocused),
         backgroundColor: state === 'disabled'
           ? theme.colors.backgroundSecondary
           : theme.colors.background,
-        // Add subtle elevation when focused
-        ...(isFocused ? theme.shadows.sm : {}),
       };
 
     case 'filled':
@@ -320,7 +318,7 @@ const getContainerStyles = (
         backgroundColor: state === 'disabled'
           ? theme.colors.backgroundTertiary
           : theme.colors.backgroundSecondary,
-        borderBottomWidth: isFocused ? 3 : 2, // Thicker underline when focused
+        borderBottomWidth: isFocused ? 2 : 1,
         borderBottomColor: getBorderColor(state, isFocused),
       };
 

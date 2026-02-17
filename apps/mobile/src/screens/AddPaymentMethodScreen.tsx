@@ -98,123 +98,32 @@ const AddPaymentMethodScreen: React.FC = () => {
   };
 
   const renderCardForm = () => (
-    <>
-      <Input
-        label='Card Number'
-        placeholder="1234 5678 9012 3456"
-        value={formData.cardNumber}
-        onChangeText={(value) => handleInputChange('cardNumber', value)}
-        keyboardType="numeric"
-        maxLength={19}
-        state={errors.cardNumber ? 'error' : 'default'}
-        errorText={errors.cardNumber}
-        leftIcon='card-outline'
-        variant='outline'
-        size='lg'
-        fullWidth
-        required
+    <View style={styles.cardFieldContainer}>
+      <Text style={styles.label}>Card Details</Text>
+      <CardField
+        postalCodeEnabled={true}
+        placeholders={{ number: '4242 4242 4242 4242' }}
+        cardStyle={{
+          backgroundColor: theme.colors.surface,
+          textColor: theme.colors.textPrimary,
+          borderWidth: 1,
+          borderColor: theme.colors.borderLight,
+          borderRadius: 12,
+          fontSize: 16,
+          placeholderColor: theme.colors.textSecondary,
+        }}
+        style={styles.cardField}
+        onCardChange={(details) => {
+          setCardComplete(details.complete);
+          setCardBrand(details.brand || '');
+        }}
       />
-
-      <View style={styles.row}>
-        <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-          <Text style={styles.label}>Expiry Date</Text>
-          <TextInput
-            style={[styles.input, errors.expiryDate && styles.inputError]}
-            placeholder="MM/YY"
-            placeholderTextColor={theme.colors.textSecondary}
-            value={formData.expiryDate}
-            onChangeText={(value) => handleInputChange('expiryDate', value)}
-            keyboardType="numeric"
-            maxLength={5}
-          />
-          {errors.expiryDate && <Text style={styles.errorText}>{errors.expiryDate}</Text>}
-        </View>
-
-        <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-          <Text style={styles.label}>CVV</Text>
-          <TextInput
-            style={[styles.input, errors.cvv && styles.inputError]}
-            placeholder="123"
-            placeholderTextColor={theme.colors.textSecondary}
-            value={formData.cvv}
-            onChangeText={(value) => handleInputChange('cvv', value)}
-            keyboardType="numeric"
-            maxLength={4}
-            secureTextEntry
-          />
-          {errors.cvv && <Text style={styles.errorText}>{errors.cvv}</Text>}
-        </View>
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Cardholder Name</Text>
-        <TextInput
-          style={[styles.input, errors.cardholderName && styles.inputError]}
-          placeholder="John Doe"
-          placeholderTextColor={theme.colors.textSecondary}
-          value={formData.cardholderName}
-          onChangeText={(value) => handleInputChange('cardholderName', value)}
-          autoCapitalize="words"
-        />
-        {errors.cardholderName && <Text style={styles.errorText}>{errors.cardholderName}</Text>}
-      </View>
-
-      <Text style={styles.sectionTitle}>Billing Address</Text>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Address</Text>
-        <TextInput
-          style={[styles.input, errors.billingAddress && styles.inputError]}
-          placeholder="123 Main Street"
-          placeholderTextColor={theme.colors.textSecondary}
-          value={formData.billingAddress}
-          onChangeText={(value) => handleInputChange('billingAddress', value)}
-        />
-        {errors.billingAddress && <Text style={styles.errorText}>{errors.billingAddress}</Text>}
-      </View>
-
-      <View style={styles.row}>
-        <View style={[styles.inputGroup, { flex: 2, marginRight: 8 }]}>
-          <Text style={styles.label}>City</Text>
-          <TextInput
-            style={[styles.input, errors.city && styles.inputError]}
-            placeholder="New York"
-            placeholderTextColor={theme.colors.textSecondary}
-            value={formData.city}
-            onChangeText={(value) => handleInputChange('city', value)}
-          />
-          {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
-        </View>
-
-        <View style={[styles.inputGroup, { flex: 1, marginHorizontal: 4 }]}>
-          <Text style={styles.label}>State</Text>
-          <TextInput
-            style={[styles.input, errors.state && styles.inputError]}
-            placeholder="NY"
-            placeholderTextColor={theme.colors.textSecondary}
-            value={formData.state}
-            onChangeText={(value) => handleInputChange('state', value.toUpperCase())}
-            maxLength={2}
-            autoCapitalize="characters"
-          />
-          {errors.state && <Text style={styles.errorText}>{errors.state}</Text>}
-        </View>
-
-        <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-          <Text style={styles.label}>ZIP</Text>
-          <TextInput
-            style={[styles.input, errors.zipCode && styles.inputError]}
-            placeholder="10001"
-            placeholderTextColor={theme.colors.textSecondary}
-            value={formData.zipCode}
-            onChangeText={(value) => handleInputChange('zipCode', value)}
-            keyboardType="numeric"
-            maxLength={5}
-          />
-          {errors.zipCode && <Text style={styles.errorText}>{errors.zipCode}</Text>}
-        </View>
-      </View>
-    </>
+      {cardBrand ? (
+        <Text style={styles.cardBrandText}>
+          {cardBrand.charAt(0).toUpperCase() + cardBrand.slice(1)} card detected
+        </Text>
+      ) : null}
+    </View>
   );
 
   const renderPayPalForm = () => (
@@ -279,39 +188,33 @@ const AddPaymentMethodScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.paymentTypeButton, paymentType === 'paypal' && styles.paymentTypeButtonActive]}
-            onPress={() => setPaymentType('paypal')}
+          <View
+            style={[styles.paymentTypeButton, styles.paymentTypeDisabled]}
           >
             <Ionicons
               name="logo-paypal"
               size={24}
-              color={paymentType === 'paypal' ? theme.colors.textInverse : '#003087'}
+              color={theme.colors.textTertiary}
             />
-            <Text style={[
-              styles.paymentTypeText,
-              paymentType === 'paypal' && styles.paymentTypeTextActive
-            ]}>
+            <Text style={[styles.paymentTypeText, styles.paymentTypeTextDisabled]}>
               PayPal
             </Text>
-          </TouchableOpacity>
+            <Text style={styles.comingSoonBadge}>Soon</Text>
+          </View>
 
-          <TouchableOpacity
-            style={[styles.paymentTypeButton, paymentType === 'bank' && styles.paymentTypeButtonActive]}
-            onPress={() => setPaymentType('bank')}
+          <View
+            style={[styles.paymentTypeButton, styles.paymentTypeDisabled]}
           >
             <Ionicons
               name="business"
               size={24}
-              color={paymentType === 'bank' ? theme.colors.textInverse : theme.colors.primary}
+              color={theme.colors.textTertiary}
             />
-            <Text style={[
-              styles.paymentTypeText,
-              paymentType === 'bank' && styles.paymentTypeTextActive
-            ]}>
+            <Text style={[styles.paymentTypeText, styles.paymentTypeTextDisabled]}>
               Bank Account
             </Text>
-          </TouchableOpacity>
+            <Text style={styles.comingSoonBadge}>Soon</Text>
+          </View>
         </View>
 
         {/* Form Content */}
@@ -324,7 +227,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         {/* Security Info */}
         <View style={styles.securityInfo}>
           <View style={styles.securityHeader}>
-            <Ionicons name="shield-checkmark" size={20} color={theme.colors.secondary} />
+            <Ionicons name="shield-checkmark" size={20} color={theme.colors.primary} />
             <Text style={styles.securityTitle}>Your information is secure</Text>
           </View>
           <Text style={styles.securityText}>
@@ -400,8 +303,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.borderLight,
   },
   paymentTypeButtonActive: {
-    backgroundColor: theme.colors.secondary,
-    borderColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   paymentTypeText: {
     fontSize: 12,
@@ -413,8 +316,38 @@ const styles = StyleSheet.create({
   paymentTypeTextActive: {
     color: theme.colors.textInverse,
   },
+  paymentTypeDisabled: {
+    opacity: 0.5,
+  },
+  paymentTypeTextDisabled: {
+    color: theme.colors.textTertiary,
+  },
+  comingSoonBadge: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+    backgroundColor: theme.colors.backgroundTertiary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
   formContainer: {
     marginBottom: 32,
+  },
+  cardFieldContainer: {
+    marginBottom: 16,
+  },
+  cardField: {
+    width: '100%',
+    height: 50,
+    marginTop: 4,
+  },
+  cardBrandText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 6,
   },
   sectionTitle: {
     fontSize: 18,

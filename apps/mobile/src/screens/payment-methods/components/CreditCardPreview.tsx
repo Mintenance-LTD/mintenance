@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   },
   visa: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.white,
     alignSelf: 'flex-end',
   },

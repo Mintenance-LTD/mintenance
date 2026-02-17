@@ -274,11 +274,9 @@ const getBadgeStyles = (
   return {
     ...sizeStyles,
     ...colorStyles,
-    borderRadius: rounded ? 100 : theme.borderRadius.lg, // More rounded for modern look
+    borderRadius: rounded ? 100 : theme.borderRadius.lg,
     alignSelf: 'flex-start',
     overflow: 'hidden',
-    // Add subtle shadow for depth
-    ...theme.shadows.sm,
   };
 };
 
@@ -325,46 +323,31 @@ const getVariantStyles = (variant: BadgeVariant): ViewStyle => {
   switch (variant) {
     case 'primary':
       return {
-        backgroundColor: theme.colors.primary,
-        // Enhanced gradient-like effect with subtle border
-        borderWidth: 1,
-        borderColor: theme.colors.primaryDark,
+        backgroundColor: theme.colors.primaryLight,
       };
     case 'secondary':
       return {
-        backgroundColor: theme.colors.secondary,
-        borderWidth: 1,
-        borderColor: theme.colors.secondaryDark,
+        backgroundColor: theme.colors.secondaryLight,
       };
     case 'success':
       return {
-        backgroundColor: theme.colors.success,
-        borderWidth: 1,
-        borderColor: theme.colors.successDark,
+        backgroundColor: theme.colors.successLight,
       };
     case 'error':
       return {
-        backgroundColor: theme.colors.error,
-        borderWidth: 1,
-        borderColor: theme.colors.errorDark,
+        backgroundColor: theme.colors.errorLight,
       };
     case 'warning':
       return {
-        backgroundColor: theme.colors.warning,
-        borderWidth: 1,
-        borderColor: theme.colors.warningDark,
+        backgroundColor: theme.colors.warningLight,
       };
     case 'info':
       return {
-        backgroundColor: theme.colors.info,
-        borderWidth: 1,
-        borderColor: theme.colors.infoDark,
+        backgroundColor: theme.colors.infoLight,
       };
     case 'neutral':
       return {
         backgroundColor: theme.colors.backgroundTertiary,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
       };
     default:
       return {};
@@ -376,9 +359,16 @@ const getBadgeTextStyles = (variant: BadgeVariant, size: BadgeSize): TextStyle =
                    size === 'md' ? theme.typography.fontSize.sm :
                    theme.typography.fontSize.base;
 
-  const color = variant === 'neutral'
-    ? theme.colors.textPrimary
-    : theme.colors.white;
+  const variantTextColors: Record<BadgeVariant, string> = {
+    primary: theme.colors.primaryDark,
+    secondary: theme.colors.secondaryDark,
+    success: theme.colors.successDark,
+    error: theme.colors.errorDark,
+    warning: theme.colors.warningDark,
+    info: theme.colors.infoDark,
+    neutral: theme.colors.textPrimary,
+  };
+  const color = variantTextColors[variant];
 
   return {
     fontSize,

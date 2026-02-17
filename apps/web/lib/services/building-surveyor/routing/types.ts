@@ -14,7 +14,7 @@ import { getActiveDomain } from '../config/BuildingSurveyorConfig';
 /**
  * Inference route options
  */
-export type InferenceRoute = 'internal' | 'gpt4_vision' | 'hybrid';
+export type InferenceRoute = 'internal' | 'gpt4_vision' | 'hybrid' | 'student_vlm' | 'student_shadow';
 
 /**
  * Default confidence thresholds (residential).

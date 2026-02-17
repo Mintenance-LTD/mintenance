@@ -64,7 +64,7 @@ export const Card: React.FC<CardProps> = ({
     if (disabled) return;
     setIsPressed(true);
     Animated.spring(scaleAnimation, {
-      toValue: 0.98,
+      toValue: 0.99,
       useNativeDriver: true,
       tension: 300,
       friction: 10,
@@ -199,33 +199,29 @@ const getCardStyles = (
   isPressed: boolean = false
 ): ViewStyle => {
   const baseStyle: ViewStyle = {
-    borderRadius: theme.borderRadius.xl, // More rounded for modern look
+    borderRadius: theme.borderRadius.lg,
     overflow: 'hidden',
   };
 
-  // Add padding
   if (padding !== 'none') {
     const paddingMap = {
       sm: theme.spacing[3],
-      md: theme.spacing[5], // Slightly more padding
+      md: theme.spacing[5],
       lg: theme.spacing[6],
       xl: theme.spacing[8],
     };
     baseStyle.padding = paddingMap[padding];
   }
 
-  // Apply variant styles with enhanced Material Design 3 patterns
   switch (variant) {
     case 'elevated':
       return {
         ...baseStyle,
         backgroundColor: theme.colors.background,
-        ...(isPressed ? theme.shadows.lg : theme.shadows.md), // Dynamic shadow
+        ...(isPressed ? theme.shadows.base : theme.shadows.sm),
+        borderWidth: 0.5,
+        borderColor: theme.colors.border,
         opacity: disabled ? 0.5 : 1,
-        // Add subtle state overlay for interactive cards
-        ...(interactive && !disabled && isPressed ? {
-          backgroundColor: theme.colors.backgroundSecondary,
-        } : {}),
       };
 
     case 'outlined':
@@ -233,13 +229,8 @@ const getCardStyles = (
         ...baseStyle,
         backgroundColor: theme.colors.background,
         borderWidth: 1,
-        borderColor: isPressed && interactive
-          ? theme.colors.gray100
-          : theme.colors.border,
+        borderColor: theme.colors.border,
         opacity: disabled ? 0.5 : 1,
-        ...(interactive && !disabled && isPressed ? {
-          backgroundColor: theme.colors.gray25,
-        } : {}),
       };
 
     case 'filled':
@@ -249,7 +240,6 @@ const getCardStyles = (
           ? theme.colors.backgroundTertiary
           : theme.colors.backgroundSecondary,
         opacity: disabled ? 0.5 : 1,
-        ...(interactive && !disabled ? theme.shadows.sm : {}),
       };
 
     default:
@@ -265,8 +255,6 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: theme.spacing[3],
     paddingBottom: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   body: {
     flex: 1,
@@ -274,8 +262,6 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: theme.spacing[3],
     paddingTop: theme.spacing[3],
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
   },
 
   // Specialized card styles

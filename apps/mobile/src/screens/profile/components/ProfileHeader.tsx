@@ -55,7 +55,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
                 <Ionicons
                   name='shield-checkmark'
                   size={16}
-                  color={theme.colors.info}
+                  color={theme.colors.primary}
                 />
               </View>
             )}
@@ -88,7 +88,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
           <Ionicons
             name={user?.role === 'contractor' ? 'construct' : 'home'}
             size={14}
-            color={user?.role === 'contractor' ? theme.colors.accent : theme.colors.info}
+            color={user?.role === 'contractor' ? theme.colors.accent : theme.colors.primary}
           />
           <Text
             style={[
@@ -113,35 +113,35 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
 
 const styles = StyleSheet.create({
   profileInfo: {
-    backgroundColor: theme.colors.surface,
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 24,
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 24,
     alignItems: 'center',
-    borderRadius: 20,
-    ...theme.shadows.base,
-    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+    marginBottom: 8,
   },
   avatarContainer: {
     position: 'relative',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: theme.colors.primary,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.colors.textPrimary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
   },
   avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     color: theme.colors.textInverse,
   },
   verificationBadges: {
@@ -164,10 +164,10 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   userName: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: 4,
     textAlign: 'center',
   },
   contractorTitle: {
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   userEmail: {
-    fontSize: 17,
+    fontSize: 14,
     color: theme.colors.textSecondary,
     marginBottom: 16,
     textAlign: 'center',
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   contractorRoleText: {
-    color: theme.colors.secondary,
+    color: theme.colors.primary,
   },
   memberSinceBadge: {
     backgroundColor: theme.colors.surfaceSecondary,

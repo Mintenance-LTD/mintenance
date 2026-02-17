@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EBEBEB',
     zIndex: 1000,
   },
   tooltipTop: {
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     backgroundColor: '#DBEAFE',
-    borderRadius: 8,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   primaryButton: {
-    backgroundColor: '#0066CC',
+    backgroundColor: '#10B981',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#0066CC',
+    backgroundColor: '#10B981',
   },
 });
 

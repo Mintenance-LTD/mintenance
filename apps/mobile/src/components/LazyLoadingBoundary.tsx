@@ -8,6 +8,7 @@ import { View, StyleSheet, Text } from 'react-native';
 import { LoadingSpinner } from './LoadingSpinner';
 import { logger } from '../utils/logger';
 import { codeSplittingManager } from '../utils/codeSplitting';
+import { theme } from '../theme';
 
 interface LazyLoadingBoundaryProps {
   children: React.ReactNode;
@@ -287,13 +288,13 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
     textAlign: 'center',
   },
   errorDetails: {
     fontSize: 12,
-    color: '#999',
+    color: theme.colors.textTertiary,
     marginBottom: 20,
     textAlign: 'center',
     fontFamily: 'monospace',

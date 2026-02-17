@@ -109,11 +109,11 @@ const styles = StyleSheet.create({
   container: {
     width: cardWidth,
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius['2xl'],
+    borderRadius: 12,
     marginHorizontal: 16,
     marginVertical: 8,
     overflow: 'hidden',
-    ...theme.shadows.lg,
+    ...theme.shadows.base,
   },
   coverContainer: {
     height: 180,
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   availabilityBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
@@ -178,8 +178,6 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     marginRight: theme.spacing.md,
-    borderWidth: 3,
-    borderColor: theme.colors.secondary,
   },
   contractorInfo: {
     flex: 1,
@@ -192,7 +190,7 @@ const styles = StyleSheet.create({
   },
   specialty: {
     fontSize: theme.typography.fontSize.base,
-    color: theme.colors.secondary,
+    color: theme.colors.textSecondary,
     fontWeight: theme.typography.fontWeight.medium,
     marginBottom: theme.spacing.xs,
   },
@@ -219,8 +217,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   skillText: {
     fontSize: theme.typography.fontSize.sm,
@@ -242,8 +238,8 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
+    fontWeight: '700' as const,
+    color: theme.colors.textPrimary,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -254,13 +250,13 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.md,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.border,
     backgroundColor: 'transparent',
   },
   viewProfileText: {
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   bookButton: {
     paddingHorizontal: theme.spacing.xl,

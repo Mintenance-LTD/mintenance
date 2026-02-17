@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
@@ -18,12 +18,15 @@ export const ContractorMarker: React.FC<ContractorMarkerProps> = ({
   onPress,
 }) => {
   return (
-    <View
+    <TouchableOpacity
       style={[
         styles.markerContainer,
         isSelected && styles.selectedMarker,
       ]}
-      onTouchEnd={onPress}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`Contractor marker${contractor.verified ? ', verified' : ''}`}
+      accessibilityState={{ selected: isSelected }}
     >
       <View style={styles.marker}>
         <Ionicons
@@ -41,7 +44,7 @@ export const ContractorMarker: React.FC<ContractorMarkerProps> = ({
           <Ionicons name='checkmark' size={8} color={theme.colors.white} />
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -71,7 +74,7 @@ const styles = {
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     borderWidth: 2,

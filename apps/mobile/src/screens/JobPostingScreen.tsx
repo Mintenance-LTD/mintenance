@@ -56,7 +56,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   // Check if user is homeowner and redirect if not
   useEffect(() => {
     if (user && user.role !== 'homeowner') {
-      navigation.navigate('Home');
+      navigation.navigate('HomeTab' as never);
     }
   }, [user, navigation]);
 
@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textInverse,
   },
   placeholder: {
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   form: {
-    padding: 20,
+    padding: 24,
   },
   label: {
     fontSize: theme.typography.fontSize.base,
@@ -723,14 +723,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   budgetComparisonContainer: {
-    backgroundColor: `${theme.colors.info}20`,
+    backgroundColor: `${theme.colors.primary}20`,
     padding: theme.spacing[2],
     borderRadius: theme.borderRadius.sm,
     marginTop: theme.spacing[1],
   },
   budgetComparisonText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.info,
+    color: theme.colors.primary,
     fontWeight: theme.typography.fontWeight.medium,
   },
   budgetHint: {
@@ -746,10 +746,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   footer: {
-    padding: 20,
+    padding: 24,
     backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
   },
   submitButton: {
     height: 50,
@@ -836,7 +834,7 @@ const styles = StyleSheet.create({
   deletePhotoText: {
     color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     lineHeight: 16,
   },
   messageContainer: {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,15 +20,15 @@ export const ServiceAreasHeader: React.FC<ServiceAreasHeaderProps> = ({ navigati
         <Ionicons
           name='arrow-back'
           size={24}
-          color={theme.colors.textInverse}
+          color={theme.colors.textPrimary}
         />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Service Areas</Text>
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => navigation.navigate('CreateServiceArea')}
+        onPress={() => Alert.alert('Coming Soon', 'Service area creation coming soon.')}
       >
-        <Ionicons name='add' size={24} color={theme.colors.textInverse} />
+        <Ionicons name='add' size={24} color={theme.colors.textPrimary} />
       </TouchableOpacity>
     </View>
   );
@@ -41,16 +41,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 16,
-    backgroundColor: theme.colors.primary,
+    paddingBottom: 12,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
   },
   addButton: {
     padding: 8,

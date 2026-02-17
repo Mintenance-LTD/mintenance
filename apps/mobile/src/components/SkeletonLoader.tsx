@@ -187,11 +187,11 @@ export const SkeletonDashboard: React.FC = () => (
 
 const styles = StyleSheet.create({
   skeleton: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: theme.colors.surfaceSecondary,
   },
   cardContainer: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 20,
     marginBottom: 16,
     ...theme.shadows.base,
@@ -210,14 +210,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 16,
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
   },
   postCard: {
     backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginVertical: 8,
-    borderRadius: 20,
+    borderRadius: 12,
     padding: 20,
     ...theme.shadows.base,
   },
@@ -239,15 +237,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
   },
   messageCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 12,
     marginBottom: 12,
     ...theme.shadows.base,
   },
@@ -263,7 +259,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     flex: 1,
@@ -281,7 +277,7 @@ const styles = StyleSheet.create({
   },
   scheduleCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     ...theme.shadows.base,
   },

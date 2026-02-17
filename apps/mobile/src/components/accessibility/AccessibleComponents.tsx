@@ -549,7 +549,7 @@ const styles = {
 
   // Header styles
   header: {
-    fontWeight: 'bold' as const,
+    fontWeight: '700' as const,
     color: '#000000',
   },
   header_h1: {
@@ -612,7 +612,7 @@ const styles = {
   checkmark: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold' as const,
+    fontWeight: '700' as const,
   },
   checkboxLabel: {
     fontSize: 16,
@@ -666,7 +666,7 @@ const styles = {
 
   // Accessibility styles
   boldText: {
-    fontWeight: 'bold' as const,
+    fontWeight: '700' as const,
   },
 };
 

@@ -127,7 +127,7 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
    */
   openProfileScreen = () => {
     this.haptics.selection();
-    this.navigation.navigate('ProfileTab', { screen: 'Profile' });
+    this.navigation.navigate('ProfileTab', { screen: 'ProfileMain' });
   };
 
   /**
@@ -135,7 +135,7 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
    */
   openSettingsScreen = () => {
     this.haptics.selection();
-    this.navigation.navigate('ProfileTab', { screen: 'Settings' });
+    this.navigation.navigate('ProfileTab', { screen: 'NotificationSettings' });
   };
 
   /**

@@ -107,8 +107,8 @@ const lightTheme: Theme = {
     // Backgrounds
     background: {
       primary: '#FFFFFF',
-      secondary: '#F8FAFC',
-      tertiary: '#F1F5F9',
+      secondary: '#F8F8F8',
+      tertiary: '#F0F0F0',
       elevated: '#FFFFFF',
       overlay: 'rgba(0, 0, 0, 0.5)',
     },
@@ -116,20 +116,20 @@ const lightTheme: Theme = {
     // Surfaces
     surface: {
       primary: '#FFFFFF',
-      secondary: '#F8FAFC',
-      tertiary: '#E2E8F0',
+      secondary: '#F8F8F8',
+      tertiary: '#D0D0D0',
       elevated: '#FFFFFF',
-      disabled: '#F1F5F9',
+      disabled: '#F0F0F0',
     },
 
-    // Text
+    // Text (pure black + neutral grays)
     text: {
-      primary: '#0F172A',
-      secondary: '#475569',
-      tertiary: '#64748B',
+      primary: '#000000',
+      secondary: '#808080',
+      tertiary: '#D0D0D0',
       inverse: '#FFFFFF',
-      disabled: '#94A3B8',
-      link: colors.primary[600],
+      disabled: '#DDDDDD',
+      link: '#10B981',
       success: colors.success[700],
       warning: colors.warning[700],
       error: colors.error[700],
@@ -137,9 +137,9 @@ const lightTheme: Theme = {
 
     // Borders
     border: {
-      primary: '#E2E8F0',
-      secondary: '#CBD5E1',
-      focus: colors.primary[500],
+      primary: '#D0D0D0',
+      secondary: '#E0E0E0',
+      focus: '#000000',
       error: colors.error[500],
       success: colors.success[500],
       warning: colors.warning[500],
@@ -152,7 +152,7 @@ const lightTheme: Theme = {
     info: colors.info,
     status: {
       upcoming: '#E6F2FF',
-      completed: '#EAF7EE',
+      completed: '#D1FAE5',
       cancelled: '#FDECEA',
     },
   },
@@ -161,30 +161,30 @@ const lightTheme: Theme = {
     sm: {
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
+      shadowOpacity: 0.04,
+      shadowRadius: 3,
       elevation: 1,
     },
     md: {
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 2,
     },
     lg: {
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.15,
-      shadowRadius: 8,
-      elevation: 6,
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 3,
     },
     xl: {
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.2,
-      shadowRadius: 16,
-      elevation: 10,
+      shadowOpacity: 0.15,
+      shadowRadius: 24,
+      elevation: 6,
     },
   },
 };
@@ -197,56 +197,56 @@ const darkTheme: Theme = {
     primary: colors.primary,
     secondary: colors.secondary,
 
-    // Backgrounds (dark variants)
+    // Backgrounds (warm dark variants)
     background: {
-      primary: '#0F172A',
-      secondary: '#1E293B',
-      tertiary: '#334155',
-      elevated: '#1E293B',
+      primary: '#181818',
+      secondary: '#222222',
+      tertiary: '#333333',
+      elevated: '#2A2A2A',
       overlay: 'rgba(0, 0, 0, 0.8)',
     },
 
-    // Surfaces
+    // Surfaces (warm dark)
     surface: {
-      primary: '#1E293B',
-      secondary: '#334155',
-      tertiary: '#475569',
-      elevated: '#334155',
-      disabled: '#475569',
+      primary: '#222222',
+      secondary: '#2A2A2A',
+      tertiary: '#3A3A3A',
+      elevated: '#333333',
+      disabled: '#3A3A3A',
     },
 
-    // Text (inverted for readability)
+    // Text (warm light for dark backgrounds)
     text: {
-      primary: '#F8FAFC',
-      secondary: '#CBD5E1',
-      tertiary: '#94A3B8',
-      inverse: '#0F172A',
-      disabled: '#64748B',
-      link: colors.primary[400],
+      primary: '#F5F5F5',
+      secondary: '#B0B0B0',
+      tertiary: '#717171',
+      inverse: '#000000',
+      disabled: '#555555',
+      link: '#34D399',
       success: colors.success[400],
       warning: colors.warning[400],
       error: colors.error[400],
     },
 
-    // Borders (subtle in dark mode)
+    // Borders (subtle warm in dark mode)
     border: {
-      primary: '#334155',
-      secondary: '#475569',
-      focus: colors.primary[400],
+      primary: '#333333',
+      secondary: '#444444',
+      focus: '#34D399',
       error: colors.error[500],
       success: colors.success[500],
       warning: colors.warning[500],
     },
 
-    // Status colors (adjusted for dark backgrounds)
+    // Status colors (adjusted for warm dark backgrounds)
     success: colors.success,
     warning: colors.warning,
     error: colors.error,
     info: colors.info,
     status: {
-      upcoming: '#18324D',
-      completed: '#173A2A',
-      cancelled: '#4A1714',
+      upcoming: '#1A2E40',
+      completed: '#1A3A2A',
+      cancelled: '#3A1A1A',
     },
   },
 
@@ -254,30 +254,30 @@ const darkTheme: Theme = {
     sm: {
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.3,
-      shadowRadius: 2,
+      shadowOpacity: 0.2,
+      shadowRadius: 3,
       elevation: 1,
     },
     md: {
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.4,
-      shadowRadius: 4,
-      elevation: 3,
+      shadowOpacity: 0.25,
+      shadowRadius: 8,
+      elevation: 2,
     },
     lg: {
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.5,
-      shadowRadius: 8,
-      elevation: 6,
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      elevation: 4,
     },
     xl: {
       shadowColor: '#000000',
       shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.6,
-      shadowRadius: 16,
-      elevation: 10,
+      shadowOpacity: 0.4,
+      shadowRadius: 24,
+      elevation: 6,
     },
   },
 };

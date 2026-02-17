@@ -6,7 +6,6 @@ import type { ProfileStackParamList } from '../types';
 import ProfileScreen from '../../screens/ProfileScreen';
 import EditProfileScreen from '../../screens/EditProfileScreen';
 import NotificationSettingsScreen from '../../screens/NotificationSettingsScreen';
-import { NotificationScreen } from '../../screens/NotificationScreen';
 import { PaymentMethodsScreen } from '../../screens/payment-methods';
 import AddPaymentMethodScreen from '../../screens/AddPaymentMethodScreen';
 import HelpCenterScreen from '../../screens/HelpCenterScreen';
@@ -109,12 +108,6 @@ const SafeContractorCardEditorScreen = withScreenErrorBoundary(
   { fallbackRoute: 'ProfileMain' }
 );
 
-const SafeNotificationScreen = withScreenErrorBoundary(
-  NotificationScreen,
-  'Notifications',
-  { fallbackRoute: 'ProfileMain' }
-);
-
 const SafeContractorVerificationScreen = withScreenErrorBoundary(
   ContractorVerificationScreen,
   'Contractor Verification',
@@ -163,6 +156,10 @@ export const ProfileNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
         gestureEnabled: true,
+        transitionSpec: {
+          open: { animation: 'timing', config: { duration: 300 } },
+          close: { animation: 'timing', config: { duration: 250 } },
+        },
         cardStyleInterpolator: ({ current, layouts }) => ({
           cardStyle: {
             transform: [
@@ -314,16 +311,6 @@ export const ProfileNavigator: React.FC = () => {
         component={SafeContractorCardEditorScreen}
         options={{
           title: 'Edit Discovery Card',
-          headerShown: false,
-          gestureEnabled: true,
-        }}
-      />
-
-      <ProfileStack.Screen
-        name="Notifications"
-        component={SafeNotificationScreen}
-        options={{
-          title: 'Notifications',
           headerShown: false,
           gestureEnabled: true,
         }}

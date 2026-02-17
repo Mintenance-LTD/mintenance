@@ -20,9 +20,9 @@ export const ServiceAreasStats: React.FC<ServiceAreasStatsProps> = ({ serviceAre
     color: string
   ) => (
     <View style={[styles.statCard, { borderLeftColor: color }]}>
-      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={color} />
+      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={theme.colors.textSecondary} />
       <View style={styles.statContent}>
-        <Text style={[styles.statValue, { color }]}>{value}</Text>
+        <Text style={styles.statValue}>{value}</Text>
         <Text style={styles.statLabel}>{title}</Text>
       </View>
     </View>
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
-    padding: 16,
+    padding: 20,
     borderLeftWidth: 4,
     ...theme.shadows.base,
   },
@@ -82,6 +82,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: '700',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   statLabel: {

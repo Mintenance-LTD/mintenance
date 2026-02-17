@@ -109,7 +109,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.trustRow}>
             {TRUST_ITEMS.map((item) => (
               <View key={item.label} style={styles.trustPill}>
-                <Ionicons name={item.icon} size={13} color={theme.colors.secondary} />
+                <Ionicons name={item.icon} size={13} color={theme.colors.textSecondary} />
                 <Text style={styles.trustText}>{item.label}</Text>
               </View>
             ))}
@@ -232,7 +232,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
                 {/* Log In Button */}
                 <Button
-                  variant='success'
+                  variant='primary'
                   title={
                     loading ? String(t('auth.loggingIn')) : String(auth.login())
                   }
@@ -294,16 +294,16 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary,
-    paddingTop: 24,
-    paddingBottom: 20,
+    backgroundColor: theme.colors.background,
+    paddingTop: 20,
+    paddingBottom: 12,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
@@ -321,11 +321,11 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 15,
-    color: theme.colors.textInverseMuted,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   trustPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: theme.colors.backgroundSecondary,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   trustText: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: theme.colors.textSecondary,
   },
   keyboardContainer: {
     flex: 1,
@@ -353,9 +353,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 28,
+    paddingTop: 20,
     paddingBottom: 24,
   },
   formHeading: {
@@ -363,9 +361,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: theme.colors.secondary,
+    fontSize: 22,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   formSubtitle: {
@@ -381,8 +379,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   forgotPasswordText: {
-    color: theme.colors.secondary,
-    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   dividerSection: {
     flexDirection: 'row',
@@ -416,7 +415,7 @@ const styles = StyleSheet.create({
   devTitle: {
     textAlign: 'center',
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textTertiary,
     marginBottom: 4,
   },

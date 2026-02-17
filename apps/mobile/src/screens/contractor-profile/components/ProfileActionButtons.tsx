@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.secondary, // Emerald Green
+    backgroundColor: theme.colors.primary, // Emerald Green
     borderRadius: theme.borderRadius.base,
     paddingVertical: theme.spacing.md,
     gap: 6,

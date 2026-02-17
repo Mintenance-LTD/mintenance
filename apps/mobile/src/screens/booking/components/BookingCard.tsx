@@ -140,7 +140,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
             <Ionicons
               name="calendar-outline"
               size={16}
-              color={theme.colors.info}
+              color={theme.colors.primary}
             />
             <Text style={styles.rescheduleButtonText}>Reschedule</Text>
           </TouchableOpacity>
@@ -267,7 +267,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
             <Ionicons
               name="information-circle-outline"
               size={16}
-              color={theme.colors.info}
+              color={theme.colors.primary}
             />
             <Text style={styles.instructionsText}>
               {booking.specialInstructions}
@@ -452,13 +452,13 @@ const styles = StyleSheet.create({
   rescheduleButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: theme.colors.info,
+    borderColor: theme.colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   rescheduleButtonText: {
-    color: theme.colors.info,
+    color: theme.colors.primary,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   reviewButton: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: theme.colors.primary,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,

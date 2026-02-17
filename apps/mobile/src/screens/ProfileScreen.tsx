@@ -38,11 +38,18 @@ const ProfileScreen: React.FC = () => {
       { label: 'Payment Methods', icon: 'card-outline', onPress: () => navigation.navigate('PaymentMethods') },
     ];
 
+    items.push(
+      { label: 'Calendar', icon: 'calendar-outline', onPress: () => navigation.navigate('Calendar') },
+      { label: 'Reviews', icon: 'star-outline', onPress: () => navigation.navigate('Reviews') },
+    );
+
     if (user?.role === 'contractor') {
       items.push(
         { label: 'Finance Dashboard', icon: 'analytics-outline', onPress: () => navigation.navigate('FinanceDashboard') },
         { label: 'Invoice Management', icon: 'receipt-outline', onPress: () => navigation.navigate('InvoiceManagement') },
         { label: 'Client Management', icon: 'people-outline', onPress: () => navigation.navigate('CRMDashboard') },
+        { label: 'Quote Builder', icon: 'document-text-outline', onPress: () => navigation.navigate('QuoteBuilder') },
+        { label: 'Service Areas', icon: 'map-outline', onPress: () => navigation.navigate('ServiceAreas') },
         { label: 'Edit Discovery Card', icon: 'card', onPress: () => navigation.navigate('ContractorCardEditor') },
       );
     }
@@ -143,9 +150,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     paddingTop: 16,
     paddingBottom: 12,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    paddingHorizontal: 24,
   },
   headerTitle: {
     fontSize: 28,
@@ -161,7 +166,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   signOutButton: {
-    backgroundColor: theme.colors.secondary,
     marginTop: 0,
     marginBottom: 0,
   },

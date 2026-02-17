@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const demoRequestSchema = z.object({
-  imageUrls: z.array(z.string()).min(1).max(3),
+  imageUrls: z.array(z.string().url()).min(1).max(3),
   context: z.object({
     propertyType: z.enum(['residential', 'commercial', 'industrial']).optional(),
     ageOfProperty: z.number().optional(),

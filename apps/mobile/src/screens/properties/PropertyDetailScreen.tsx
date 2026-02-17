@@ -106,7 +106,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
       >
         <View style={styles.addressCard}>
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing[3],
   },

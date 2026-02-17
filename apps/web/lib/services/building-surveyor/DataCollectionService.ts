@@ -494,6 +494,20 @@ export class DataCollectionService {
         });
         // Don't fail validation if feedback collection fails
       }
+
+      // Update VLM student calibration from human validation (gold standard)
+      try {
+        const assessment = assessmentRecord.assessment_data as Phase1BuildingAssessment;
+        const category = assessment?.damageAssessment?.damageType?.toLowerCase() || 'unknown';
+        const { CalibrationFeedbackService } = await import('./distillation/CalibrationFeedbackService');
+        await CalibrationFeedbackService.updateFromHumanValidation(
+          category,
+          true, // wasCorrect
+          1.0   // safetyRecall (validated = no safety issues)
+        );
+      } catch {
+        // Non-fatal: VLM calibration update failure doesn't block validation
+      }
     } catch (error) {
       logger.error('Error validating assessment', error, {
         service: 'DataCollectionService',

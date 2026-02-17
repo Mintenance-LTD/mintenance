@@ -20,6 +20,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
 import { supabase } from '../config/supabase';
 import { sanitize } from '@mintenance/security';
+import { useQuery } from '@tanstack/react-query';
+import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
+import type { Property } from '@mintenance/types';
 
 interface Props {
   navigation: StackNavigationProp<unknown>;
@@ -38,7 +41,7 @@ const serviceCategories: ServiceCategory[] = [
     id: 'plumbing',
     name: 'Plumbing',
     icon: 'water-outline',
-    color: theme.colors.info,
+    color: theme.colors.primary,
     subcategories: [
       'Leaking',
       'Blocked Drain',
@@ -148,12 +151,23 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+
+  const { data: properties } = useQuery({
+    queryKey: ['properties', user?.id],
+    queryFn: () => apiClient.get<Property[]>('/api/properties'),
+    enabled: !!user,
+  });
 
   const handleCategorySelect = (category: ServiceCategory) => {
     setSelectedCategory(category);
     setSelectedSubcategory('');
     // Auto-generate title based on category
     setTitle(`${category.name} Service Request`);
+    // Auto-fill location from selected property
+    if (selectedProperty) {
+      setLocation(`${selectedProperty.address_line1}, ${selectedProperty.city}, ${selectedProperty.postcode}`);
+    }
   };
 
   const handleSubcategorySelect = (subcategory: string) => {
@@ -297,6 +311,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
         subcategory: selectedSubcategory ? sanitize.text(selectedSubcategory, 100) : undefined,
         priority,
         photos: uploadedPhotoUrls,
+        property_id: selectedProperty?.id,
       });
 
       Alert.alert(
@@ -322,7 +337,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
             accessibilityRole='button'
             accessibilityLabel='Go back'
           >
-            <Ionicons name='arrow-back' size={24} color={theme.colors.white} />
+            <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} accessibilityRole='header'>Request Service</Text>
           <View style={styles.placeholder} />
@@ -376,7 +391,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
           accessibilityRole='button'
           accessibilityLabel='Go back to category selection'
         >
-          <Ionicons name='arrow-back' size={24} color={theme.colors.white} />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>{selectedCategory.name} Service</Text>
         <View style={styles.placeholder} />
@@ -418,6 +433,57 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Property Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Which property?</Text>
+          <Text style={styles.sectionSubtitle}>
+            Select the property for this service request
+          </Text>
+
+          {properties && properties.length > 0 ? (
+            <View>
+              {properties.map((property) => (
+                <TouchableOpacity
+                  key={property.id}
+                  style={[
+                    styles.propertyOption,
+                    selectedProperty?.id === property.id && styles.propertyOptionSelected,
+                  ]}
+                  onPress={() => setSelectedProperty(property)}
+                  accessibilityRole='radio'
+                  accessibilityLabel={`${property.address_line1}, ${property.city}`}
+                  accessibilityState={{ selected: selectedProperty?.id === property.id }}
+                >
+                  <View style={styles.propertyOptionContent}>
+                    <Ionicons
+                      name='home-outline'
+                      size={20}
+                      color={selectedProperty?.id === property.id ? theme.colors.primary : theme.colors.textSecondary}
+                    />
+                    <View style={styles.propertyOptionText}>
+                      <Text style={[
+                        styles.propertyAddress,
+                        selectedProperty?.id === property.id && styles.propertyAddressSelected,
+                      ]}>{property.address_line1}</Text>
+                      <Text style={styles.propertyLocation}>{property.city}, {property.postcode}</Text>
+                    </View>
+                    {selectedProperty?.id === property.id && (
+                      <Ionicons name='checkmark-circle' size={22} color={theme.colors.primary} />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.noPropertiesHint}>
+              <Ionicons name='information-circle-outline' size={18} color={theme.colors.textSecondary} />
+              <Text style={styles.noPropertiesText}>
+                No properties added yet. You can add one from your profile.
+              </Text>
+            </View>
+          )}
+        </View>
+
         {/* Job Details */}
         <View style={styles.section}>
           <Text style={styles.label}>Service Title *</Text>
@@ -452,7 +518,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.input}
             value={budget}
             onChangeText={setBudget}
-            placeholder='Enter your budget in dollars'
+            placeholder='Enter your budget in pounds'
             keyboardType='numeric'
           />
         </View>
@@ -485,7 +551,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                 <Text
                   style={[
                     styles.priorityDescription,
-                    { color: priority === level.id ? theme.colors.white : '#666' },
+                    { color: priority === level.id ? theme.colors.white : theme.colors.textSecondary },
                   ]}
                 >
                   {level.description}
@@ -529,7 +595,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                 accessibilityLabel='Add photo'
                 accessibilityHint='Double tap to take or choose a photo of the problem'
               >
-                <Ionicons name='camera' size={30} color='#666' />
+                <Ionicons name='camera' size={30} color={theme.colors.textSecondary} />
                 <Text style={styles.addPhotoText}>Add Photo</Text>
               </TouchableOpacity>
             )}
@@ -562,23 +628,25 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: theme.colors.primary,
+    paddingBottom: 12,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     padding: 5,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.textInverse,
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
   },
   placeholder: {
     width: 40,
@@ -596,7 +664,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -689,7 +757,7 @@ const styles = StyleSheet.create({
   },
   priorityName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   priorityDescription: {
     fontSize: 14,
@@ -748,7 +816,54 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+  },
+  propertyOption: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    backgroundColor: theme.colors.background,
+  },
+  propertyOptionSelected: {
+    borderColor: theme.colors.primary,
+    backgroundColor: '#F0FDF4',
+  },
+  propertyOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  propertyOptionText: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  propertyAddress: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  propertyAddressSelected: {
+    color: theme.colors.primary,
+  },
+  propertyLocation: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  noPropertiesHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 12,
+  },
+  noPropertiesText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 20,
   },
 });
 

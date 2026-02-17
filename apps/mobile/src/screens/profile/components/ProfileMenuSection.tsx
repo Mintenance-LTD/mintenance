@@ -36,7 +36,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
               <Ionicons
                 name={item.icon as keyof typeof Ionicons.glyphMap}
                 size={20}
-                color={theme.colors.primary}
+                color={theme.colors.textPrimary}
               />
             </View>
             <Text style={styles.menuText}>{item.label}</Text>
@@ -50,25 +50,23 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
 
 const styles = StyleSheet.create({
   section: {
-    backgroundColor: theme.colors.surface,
-    marginHorizontal: 16,
-    marginBottom: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    borderRadius: 20,
-    ...theme.shadows.base,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 16,
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
   menuItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderLight,
   },
@@ -77,17 +75,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surfaceSecondary,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuText: {
-    fontSize: 17,
+    fontSize: 16,
     color: theme.colors.textPrimary,
-    marginLeft: 16,
-    fontWeight: '500',
+    marginLeft: 12,
   },
 });

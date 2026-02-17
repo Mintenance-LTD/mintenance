@@ -30,6 +30,8 @@ export const JobCard: React.FC<JobCardProps> = ({
       style={styles.card}
       onPress={() => onPress(job)}
       testID='job-card'
+      accessibilityRole="button"
+      accessibilityLabel={`Job: ${job.title}, ${job.category || ''}, ${job.status}`}
     >
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={2}>
@@ -63,7 +65,12 @@ export const JobCard: React.FC<JobCardProps> = ({
       )}
 
       {showBidButton && onBid && (
-        <TouchableOpacity style={styles.bidButton} onPress={() => onBid(job)}>
+        <TouchableOpacity
+          style={styles.bidButton}
+          onPress={() => onBid(job)}
+          accessibilityRole="button"
+          accessibilityLabel={`Place bid on ${job.title}`}
+        >
           <Text style={styles.bidButtonText}>Place Bid</Text>
         </TouchableOpacity>
       )}
@@ -95,8 +102,8 @@ const styles = StyleSheet.create({
   },
   budget: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
+    fontWeight: '700' as const,
+    color: theme.colors.textPrimary,
   },
   description: {
     fontSize: theme.typography.fontSize.base,

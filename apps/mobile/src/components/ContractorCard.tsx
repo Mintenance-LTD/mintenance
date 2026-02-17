@@ -116,7 +116,11 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
               )}
 
               <View style={styles.ratingContainer}>
-                <View style={styles.starsContainer}>
+                <View
+                  style={styles.starsContainer}
+                  accessibilityLabel={`Rated ${(contractor.rating || 0).toFixed(1)} out of 5 stars`}
+                  accessibilityRole="text"
+                >
                   {renderStars(contractor.rating || 0)}
                 </View>
                 <Text style={styles.ratingText}>
@@ -143,21 +147,21 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           <View style={styles.detailsGrid}>
             {contractor.hourlyRate && (
               <View style={styles.detailItem}>
-                <Ionicons name="cash-outline" size={16} color={theme.colors.primary} />
+                <Ionicons name="cash-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.detailText}>${contractor.hourlyRate}/hr</Text>
               </View>
             )}
 
             {contractor.yearsExperience && (
               <View style={styles.detailItem}>
-                <Ionicons name="time-outline" size={16} color={theme.colors.primary} />
+                <Ionicons name="time-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.detailText}>{contractor.yearsExperience} years exp</Text>
               </View>
             )}
 
             {contractor.availability && (
               <View style={styles.detailItem}>
-                <Ionicons name="calendar-outline" size={16} color={theme.colors.primary} />
+                <Ionicons name="calendar-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.detailText}>
                   {contractor.availability.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </Text>
@@ -166,7 +170,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
             {contractor.businessAddress && (
               <View style={styles.detailItem}>
-                <Ionicons name="location-outline" size={16} color={theme.colors.primary} />
+                <Ionicons name="location-outline" size={16} color={theme.colors.textSecondary} />
                 <Text style={styles.detailText} numberOfLines={1}>
                   {contractor.businessAddress}
                 </Text>
@@ -213,7 +217,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
             <Ionicons
               name={showDetails ? 'chevron-up' : 'chevron-down'}
               size={16}
-              color={theme.colors.info}
+              color={theme.colors.textPrimary}
             />
           </TouchableOpacity>
 
@@ -310,7 +314,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
                 backgroundColor: theme.colors.error,
                 color: 'white',
                 fontSize: 24,
-                fontWeight: 'bold',
+                fontWeight: '700',
                 borderRadius: 8,
                 padding: 10,
               },
@@ -330,7 +334,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
                 backgroundColor: theme.colors.success,
                 color: 'white',
                 fontSize: 24,
-                fontWeight: 'bold',
+                fontWeight: '700',
                 borderRadius: 8,
                 padding: 10,
               },
@@ -382,7 +386,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
   },
   cardStyle: {
@@ -418,7 +422,7 @@ const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -436,8 +440,7 @@ const styles = StyleSheet.create({
   },
   distanceText: {
     fontSize: 14,
-    color: theme.colors.info,
-    fontWeight: '500',
+    color: theme.colors.textSecondary,
   },
   bioSection: {
     marginBottom: 20,
@@ -470,7 +473,7 @@ const styles = StyleSheet.create({
   },
   skillText: {
     fontSize: 14,
-    color: theme.colors.info,
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   locationSection: {
@@ -495,7 +498,7 @@ const styles = StyleSheet.create({
   },
   detailsButtonText: {
     fontSize: 16,
-    color: theme.colors.info,
+    color: theme.colors.textPrimary,
     fontWeight: '500',
     marginRight: 5,
   },
@@ -538,8 +541,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 60,
     paddingVertical: 20,
     backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    shadowColor: theme.colors.black,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   passButton: {
     width: 60,
@@ -593,9 +599,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginVertical: 15,
     paddingVertical: 10,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: theme.colors.border,
   },
   detailItem: {
     flexDirection: 'row',
@@ -617,7 +620,7 @@ const styles = StyleSheet.create({
   },
   portfolioTitle: {
     fontSize: 22,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   portfolioSubtitle: {
@@ -652,14 +655,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   specialtyTag: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: theme.borderRadius.full,
   },
   specialtyText: {
     fontSize: 12,
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   connectButton: {

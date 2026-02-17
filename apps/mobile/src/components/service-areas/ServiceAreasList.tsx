@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { ServiceAreaCard } from '../ServiceAreaCard';
@@ -57,14 +57,10 @@ export const ServiceAreasList: React.FC<ServiceAreasListProps> = ({
           <ServiceAreaCard
             serviceArea={area}
             onPress={() =>
-              navigation.navigate('ServiceAreaDetail', {
-                areaId: area.id,
-              })
+              Alert.alert('Coming Soon', 'Service area details coming soon.')
             }
             onEdit={() =>
-              navigation.navigate('EditServiceArea', {
-                areaId: area.id,
-              })
+              Alert.alert('Coming Soon', 'Service area editing coming soon.')
             }
             onToggleActive={() => onToggleActive(area)}
             onDelete={() => onDelete(area)}
@@ -90,7 +86,7 @@ export const ServiceAreasList: React.FC<ServiceAreasListProps> = ({
           <Button
             variant='primary'
             title='Create Service Area'
-            onPress={() => navigation.navigate('CreateServiceArea')}
+            onPress={() => Alert.alert('Coming Soon', 'Service area creation coming soon.')}
           />
         </View>
       }

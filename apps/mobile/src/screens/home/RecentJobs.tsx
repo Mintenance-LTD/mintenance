@@ -1,19 +1,33 @@
 /**
  * RecentJobs Component
  *
- * Displays recent jobs for homeowners with real status badges and relative timestamps.
+ * Airbnb listing-style cards: borderless, full-width rounded images,
+ * heart overlay, title + location + star rating layout.
  */
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme, getStatusColor } from '../../theme';
+import { OptimizedImage } from '../../components/optimized/OptimizedImage';
 
 interface RecentJobsProps {
   jobs: any[];
   onViewAllPress: () => void;
   onJobPress?: (jobId: string) => void;
 }
+
+const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  plumbing: 'water-outline',
+  electrical: 'flash-outline',
+  roofing: 'home-outline',
+  painting: 'color-palette-outline',
+  carpentry: 'hammer-outline',
+  landscaping: 'leaf-outline',
+  cleaning: 'sparkles-outline',
+  hvac: 'thermometer-outline',
+  general: 'construct-outline',
+};
 
 function getRelativeTime(dateString: string): string {
   const now = new Date();
@@ -47,7 +61,6 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
           onPress={onViewAllPress}
           accessibilityRole="button"
           accessibilityLabel="View all recent jobs"
-          accessibilityHint="Navigates to the full list of your jobs"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Text style={styles.viewAllLink}>View All</Text>
@@ -57,31 +70,70 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
       {displayJobs.length > 0 ? (
         displayJobs.map((job) => {
           const statusColor = getStatusColor(job.status || 'posted');
+          const photos = job.photos || job.images || [];
+          const hasPhoto = photos.length > 0;
+          const budget = job.budget || job.budget_min || 0;
+          const categoryIcon = CATEGORY_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
+
           return (
             <TouchableOpacity
               key={job.id}
-              style={[styles.serviceRequestCard, { borderLeftWidth: 3, borderLeftColor: statusColor }]}
+              style={styles.listing}
               onPress={() => onJobPress?.(job.id)}
               accessibilityRole="button"
               accessibilityLabel={`${job.title}, ${formatStatus(job.status || 'posted')}`}
+              activeOpacity={0.95}
             >
-              <View style={styles.serviceRequestHeader}>
-                <View style={styles.serviceRequestIcon}>
-                  <Ionicons
-                    name='construct'
-                    size={16}
-                    color={theme.colors.primary}
+              {/* Image - Airbnb style with rounded corners, no card wrapper */}
+              <View style={styles.imageContainer}>
+                {hasPhoto ? (
+                  <OptimizedImage
+                    source={{ uri: photos[0] }}
+                    style={styles.heroImage}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
                   />
+                ) : (
+                  <View style={styles.placeholderHero}>
+                    <Ionicons name={categoryIcon} size={48} color={theme.colors.textTertiary} />
+                  </View>
+                )}
+
+                {/* Heart/save overlay (top-right) */}
+                <View style={styles.heartOverlay}>
+                  <Ionicons name="heart-outline" size={22} color="#FFFFFF" />
                 </View>
-                <View style={styles.serviceRequestInfo}>
-                  <Text style={styles.serviceRequestTitle} numberOfLines={1}>{job.title}</Text>
-                  <Text style={styles.serviceRequestMeta}>
-                    {formatStatus(job.status || 'posted')} {job.created_at ? `\u00b7 ${getRelativeTime(job.created_at)}` : ''}
-                  </Text>
-                </View>
+
+                {/* Status badge overlay (top-left) */}
                 <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                  <Text style={styles.statusBadgeText}>{formatStatus(job.status || 'posted')}</Text>
+                  <Text style={styles.statusText}>{formatStatus(job.status || 'posted')}</Text>
                 </View>
+              </View>
+
+              {/* Content below image - Airbnb listing layout */}
+              <View style={styles.listingContent}>
+                <View style={styles.titleRow}>
+                  <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
+                  {budget > 0 && (
+                    <View style={styles.ratingContainer}>
+                      <Ionicons name="star" size={12} color={theme.colors.textPrimary} />
+                      <Text style={styles.ratingText}>New</Text>
+                    </View>
+                  )}
+                </View>
+                {job.category && (
+                  <Text style={styles.subtitleText}>
+                    {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
+                  </Text>
+                )}
+                <Text style={styles.dateText}>
+                  {job.created_at ? getRelativeTime(job.created_at) : ''}
+                </Text>
+                {budget > 0 && (
+                  <Text style={styles.priceText}>
+                    <Text style={styles.priceBold}>{'\u00A3'}{budget.toLocaleString()}</Text> estimated
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
           );
@@ -90,7 +142,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
         <View style={styles.emptyState}>
           <Ionicons name="briefcase-outline" size={32} color={theme.colors.textTertiary} />
           <Text style={styles.emptyText}>No jobs posted yet</Text>
-          <Text style={styles.sectionSubtitle}>
+          <Text style={styles.emptySubtext}>
             Post your first job to get started!
           </Text>
         </View>
@@ -102,7 +154,6 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
 const styles = StyleSheet.create({
   section: {
     marginBottom: 32,
-    marginTop: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -111,69 +162,104 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
   },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-  },
   viewAllLink: {
-    fontSize: 14,
-    color: theme.colors.primary,
+    fontSize: 16,
+    color: theme.colors.textPrimary,
     fontWeight: '600',
+    textDecorationLine: 'underline',
   },
-  serviceRequestCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    ...theme.shadows.sm,
+  listing: {
+    marginBottom: 24,
   },
-  serviceRequestHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  imageContainer: {
+    position: 'relative',
+    borderRadius: 18,
+    overflow: 'hidden',
   },
-  serviceRequestIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
+  heroImage: {
+    width: '100%',
+    height: 290,
+    borderRadius: 18,
+  },
+  placeholderHero: {
+    width: '100%',
+    height: 180,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
-  serviceRequestInfo: {
-    flex: 1,
-  },
-  serviceRequestTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  serviceRequestMeta: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
+  heartOverlay: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 6,
   },
-  statusBadgeText: {
-    fontSize: 11,
-    color: theme.colors.textInverse,
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  listingContent: {
+    paddingTop: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  jobTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
+  ratingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginLeft: 8,
+  },
+  ratingText: {
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  dateText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  priceText: {
+    fontSize: 17,
+    color: theme.colors.textPrimary,
+    marginTop: 6,
+  },
+  priceBold: {
     fontWeight: '600',
   },
   emptyState: {
-    backgroundColor: theme.colors.surface,
     padding: 40,
-    borderRadius: 20,
     alignItems: 'center',
-    ...theme.shadows.sm,
   },
   emptyText: {
     fontSize: 16,
@@ -181,5 +267,10 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     textAlign: 'center',
     marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
   },
 });

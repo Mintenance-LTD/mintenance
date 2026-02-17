@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.text,
   },
   section: {
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
   },
   testTitle: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#856404',
     marginBottom: 8,
   },

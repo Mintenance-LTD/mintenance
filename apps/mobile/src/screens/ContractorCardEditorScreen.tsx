@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textInverse,
   },
   previewButton: {
@@ -403,18 +403,18 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   section: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
-    padding: 16,
+    padding: 20,
     marginTop: 16,
     ...theme.shadows.sm,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -554,12 +554,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   previewTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   previewContent: {
@@ -582,7 +580,7 @@ const styles = StyleSheet.create({
   },
   previewCompanyName: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -594,8 +592,8 @@ const styles = StyleSheet.create({
   },
   previewRate: {
     fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.primary,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
   },
 });
 

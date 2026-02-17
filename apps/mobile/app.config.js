@@ -102,7 +102,7 @@ module.exports = {
     splash: {
       image: "./assets/splash.png",
       resizeMode: "contain",
-      backgroundColor: "#0EA5E9"
+      backgroundColor: "#10B981"
     },
     assetBundlePatterns: [
       "**/*"
@@ -124,7 +124,7 @@ module.exports = {
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#0EA5E9"
+        backgroundColor: "#10B981"
       },
       config: { 
         googleMaps: { 
@@ -205,7 +205,7 @@ module.exports = {
       }],
       ["expo-notifications", {
         icon: "./assets/notification-icon.png",
-        color: "#0EA5E9",
+        color: "#10B981",
         defaultChannel: "default"
       }],
       ["expo-local-authentication", {

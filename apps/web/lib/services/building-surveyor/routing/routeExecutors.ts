@@ -201,6 +201,25 @@ export function convertInternalPredictionToAssessment(
     };
 }
 
+/**
+ * Execute student VLM route (delegates to AssessmentOrchestrator which calls student VLM)
+ */
+export async function executeStudentRoute(
+    imageUrls: string[],
+    context: AssessmentContext | undefined,
+    routeDecision: RouteDecision
+): Promise<HybridInferenceResult> {
+    const assessment = await AssessmentOrchestrator.assessDamage(imageUrls, context);
+
+    return {
+        assessment,
+        route: routeDecision.route,
+        confidence: assessment.damageAssessment.confidence,
+        reasoning: routeDecision.reasoning,
+        inferenceTimeMs: 0,
+    };
+}
+
 // --- Helper functions ---
 
 function calculateSafetyScore(urgency: UrgencyLevel): number {

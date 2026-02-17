@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AssessmentResults } from '../types';
+import { theme } from '../../../theme';
 
 interface AIInsightsCardProps {
   results: AssessmentResults;
@@ -72,7 +73,7 @@ const styles = StyleSheet.create({
   },
   insightText: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   viewInsightsButton: {
     flexDirection: 'row',

@@ -27,6 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import VideoService from '../../services/VideoService';
 import { logger } from '@mintenance/shared';
+import { theme } from '../../theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -189,15 +190,12 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
 
   const handleViewResults = () => {
     if (processingResults) {
-      navigation.navigate('AssessmentResults', {
-        assessmentId,
-        results: processingResults,
-      });
+      Alert.alert('Coming Soon', 'Full assessment results coming soon.');
     }
   };
 
   const handleDone = () => {
-    navigation.navigate('Home');
+    navigation.navigate('HomeTab' as never);
   };
 
   const progressBarStyle = useAnimatedStyle(() => ({
@@ -251,7 +249,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name="arrow-back" size={24} color="#333" />
+          <Icon name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Video Processing</Text>
         <View style={styles.placeholder} />
@@ -335,7 +333,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
             style={styles.resultsCard}
           >
             <View style={styles.resultsHeader}>
-              <Icon name="assessment" size={24} color="#333" />
+              <Icon name="assessment" size={24} color={theme.colors.textPrimary} />
               <Text style={styles.resultsTitle}>Assessment Results</Text>
             </View>
 
@@ -438,7 +436,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({ navigation, route
         {/* Tips Section */}
         {!isComplete && !error && (
           <View style={styles.tipsCard}>
-            <Icon name="info-outline" size={20} color="#666" />
+            <Icon name="info-outline" size={20} color={theme.colors.textSecondary} />
             <Text style={styles.tipsText}>
               AI processing typically takes 1-2 minutes for a 60-second video.
               You can leave this screen and come back later to check results.
@@ -463,7 +461,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
     padding: 8,
@@ -471,7 +469,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   placeholder: {
     width: 40,
@@ -497,12 +495,12 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   statusDescription: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -512,7 +510,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 6,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#EBEBEB',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -539,7 +537,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F44336',
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 8,
   },
   retryButtonText: {
@@ -561,7 +559,7 @@ const styles = StyleSheet.create({
   queueTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   queueStats: {
@@ -578,7 +576,7 @@ const styles = StyleSheet.create({
   },
   queueStatLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   resultsCard: {
@@ -601,11 +599,11 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   overallAssessment: {
     backgroundColor: '#F5F5F5',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 20,
   },
@@ -616,12 +614,12 @@ const styles = StyleSheet.create({
   },
   assessmentLabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   assessmentValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   severity_early: {
     color: '#4CAF50',
@@ -638,12 +636,12 @@ const styles = StyleSheet.create({
   damageSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   damageItem: {
     backgroundColor: '#F9F9F9',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 12,
     marginBottom: 8,
   },
@@ -656,7 +654,7 @@ const styles = StyleSheet.create({
   damageType: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     textTransform: 'capitalize',
   },
   severityBadge: {
@@ -676,11 +674,11 @@ const styles = StyleSheet.create({
   },
   damageDetailText: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   prioritySection: {
     backgroundColor: '#FFF3E0',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 20,
   },
@@ -702,23 +700,23 @@ const styles = StyleSheet.create({
   },
   priorityText: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginLeft: 4,
   },
   metadataSection: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: '#EBEBEB',
   },
   metadataTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   metadataText: {
     fontSize: 12,
-    color: '#999',
+    color: theme.colors.textTertiary,
     marginBottom: 4,
   },
   actions: {
@@ -742,14 +740,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   secondaryButtonText: {
-    color: '#333',
+    color: theme.colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
   tipsCard: {
     flexDirection: 'row',
     backgroundColor: '#E3F2FD',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     marginTop: 16,
     gap: 12,

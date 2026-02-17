@@ -8,10 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 
 export const NAVIGATION_CONSTANTS = {
-  TAB_BAR_HEIGHT: 60,
+  TAB_BAR_HEIGHT: 64,
   TAB_BAR_PADDING: 8,
-  ICON_SIZE: 24,
-  ACTIVE_ICON_SIZE: 26,
+  ICON_SIZE: 22,
+  ACTIVE_ICON_SIZE: 24,
 };
 
 export const TAB_CONFIG = {
@@ -53,13 +53,17 @@ export const TAB_STYLES = {
     paddingBottom: NAVIGATION_CONSTANTS.TAB_BAR_PADDING,
     paddingTop: NAVIGATION_CONSTANTS.TAB_BAR_PADDING,
     backgroundColor: theme.colors.background,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopWidth: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
   },
   tabBarLabelStyle: {
-    fontSize: 12,
-    fontWeight: '500' as const,
-    marginTop: 4,
+    fontSize: 11,
+    fontWeight: '400' as const,
+    marginTop: 2,
   },
   tabBarIconStyle: {
     marginTop: 2,

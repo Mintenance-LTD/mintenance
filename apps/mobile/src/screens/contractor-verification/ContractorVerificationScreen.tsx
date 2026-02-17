@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.text,
   },
   scrollView: {
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   },
   infoBannerTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.text,
     marginBottom: 4,
   },
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   },
   benefitsTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
   },
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: 'white',
   },
   privacyNote: {

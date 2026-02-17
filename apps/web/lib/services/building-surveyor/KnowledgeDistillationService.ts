@@ -857,6 +857,170 @@ export class KnowledgeDistillationService {
   }
 
   // ========================================================================
+  // VLM STUDENT DISTILLATION
+  // ========================================================================
+
+  /**
+   * Train student VLM by exporting buffer data and creating a distillation job.
+   * Called by the vlm-retraining cron or manually via admin API.
+   */
+  static async trainStudentVLM(options?: {
+    maxExamples?: number;
+    minQuality?: 'high' | 'medium';
+    triggeredBy?: 'scheduled' | 'manual' | 'accuracy_drop' | 'threshold_reached';
+  }): Promise<TrainingJobResult> {
+    const { TrainingDataExporter } = await import('./distillation/TrainingDataExporter');
+
+    const triggeredBy = options?.triggeredBy ?? 'manual';
+    const maxExamples = options?.maxExamples ?? 5000;
+    const minQuality = options?.minQuality ?? 'medium';
+
+    // 1. Create the distillation job record
+    const jobInput: KnowledgeDistillationJobInput = {
+      jobType: 'vlm_distillation',
+      config: {
+        learningRate: 2e-4,
+        batchSize: 2,
+        epochs: 3,
+        optimizer: 'adamw',
+        lossFunction: 'cross_entropy',
+        loraRank: 16,
+        loraAlpha: 32,
+        maxExamples,
+        minQuality,
+      },
+      trainingSamplesCount: 0,
+      modelVersion: `mint-vlm-${Date.now()}`,
+      baseModelVersion: 'qwen2.5-vl-3b',
+      triggeredBy,
+      notes: `VLM distillation: max ${maxExamples} examples, min quality ${minQuality}`,
+    };
+
+    const jobId = await this.createTrainingJob(jobInput);
+    await this.updateJobStatus(jobId, 'running');
+    const startTime = Date.now();
+
+    try {
+      // 2. Export training data from buffer
+      const exportResult = await TrainingDataExporter.exportToQwenFormat({
+        maxExamples,
+        minQuality,
+      });
+
+      if (exportResult.count < 10) {
+        await this.updateJobStatus(jobId, 'failed', {
+          errorMessage: `Insufficient training data: ${exportResult.count} examples (need >= 10)`,
+        });
+        return {
+          jobId,
+          success: false,
+          modelVersion: jobInput.modelVersion,
+          metrics: {},
+          durationSeconds: (Date.now() - startTime) / 1000,
+          samplesUsed: exportResult.count,
+          error: `Insufficient training data: ${exportResult.count} examples`,
+        };
+      }
+
+      // 3. Upload JSONL to Supabase Storage
+      const storagePath = `vlm-training/${jobId}/training_data.jsonl`;
+      const { error: uploadError } = await serverSupabase.storage
+        .from('training-data')
+        .upload(storagePath, exportResult.jsonl, { contentType: 'application/jsonl', upsert: true });
+
+      if (uploadError) {
+        logger.warn('Failed to upload training JSONL to storage', {
+          service: 'KnowledgeDistillationService',
+          error: uploadError.message,
+        });
+      }
+
+      // 4. POST to training webhook if configured (validated HTTPS only)
+      const webhookUrl = process.env.VLM_TRAINING_WEBHOOK_URL?.trim();
+      if (webhookUrl) {
+        let webhookValid = false;
+        try {
+          const parsed = new URL(webhookUrl);
+          webhookValid = parsed.protocol === 'https:' ||
+            (process.env.NODE_ENV !== 'production' && parsed.protocol === 'http:');
+        } catch { /* invalid URL */ }
+
+        if (!webhookValid) {
+          logger.warn('VLM_TRAINING_WEBHOOK_URL is not a valid HTTPS URL, skipping', {
+            service: 'KnowledgeDistillationService',
+          });
+        } else {
+          const { data: urlData } = await serverSupabase.storage
+            .from('training-data')
+            .createSignedUrl(storagePath, 3600); // 1h expiry (shorter = less leak risk)
+
+          await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jobId,
+              modelVersion: jobInput.modelVersion,
+              storagePath, // Send path, not signed URL — webhook can generate its own
+              samplesCount: exportResult.count,
+              config: jobInput.config,
+            }),
+          });
+        }
+      }
+
+      // 5. Mark buffer rows as used
+      await TrainingDataExporter.markExported(exportResult.ids, 1);
+
+      const durationSeconds = (Date.now() - startTime) / 1000;
+      const metrics = {
+        samplesExported: exportResult.count,
+        storagePath,
+        webhookNotified: !!webhookUrl,
+      };
+
+      await this.updateJobStatus(jobId, 'completed', {
+        metrics,
+        outputModelPath: storagePath,
+      });
+
+      // Update training samples count
+      await serverSupabase
+        .from('knowledge_distillation_jobs')
+        .update({
+          training_samples_count: exportResult.count,
+          duration_seconds: Math.round(durationSeconds),
+        })
+        .eq('id', jobId);
+
+      return {
+        jobId,
+        success: true,
+        modelVersion: jobInput.modelVersion,
+        metrics,
+        outputModelPath: storagePath,
+        durationSeconds: Math.round(durationSeconds),
+        samplesUsed: exportResult.count,
+      };
+    } catch (error) {
+      const durationSeconds = (Date.now() - startTime) / 1000;
+      await this.updateJobStatus(jobId, 'failed', {
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        // Intentionally omit error.stack — stack traces may leak file paths and internals
+      });
+
+      return {
+        jobId,
+        success: false,
+        modelVersion: jobInput.modelVersion,
+        metrics: {},
+        durationSeconds: Math.round(durationSeconds),
+        samplesUsed: 0,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  // ========================================================================
   // STATISTICS AND MONITORING
   // ========================================================================
 

@@ -1,8 +1,8 @@
 /**
  * WelcomeBanner Component
  *
- * Displays the welcome banner for homeowners with greeting,
- * and a search row matching the web's Where/When/What pattern.
+ * Airbnb-style search pill with greeting text.
+ * Search bar matches Airbnb's "Where to?" pattern with filter icon.
  */
 
 import React from 'react';
@@ -23,24 +23,29 @@ function getTimeGreeting(): string {
   return 'Good evening,';
 }
 
-export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ user, onSearchPress }) => {
+export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ user: _user, onSearchPress }) => {
   return (
     <View style={styles.welcomeBanner}>
       <View style={styles.welcomeContent}>
         <Text style={styles.welcomeSubGreeting}>{getTimeGreeting()}</Text>
-        <Text style={styles.welcomeName}>{user?.firstName}</Text>
       </View>
 
-      {/* Search Row - matching web's Where/When/What */}
+      {/* Airbnb-style search pill */}
       {onSearchPress && (
         <TouchableOpacity
-          style={styles.searchRow}
+          style={styles.searchPill}
           onPress={onSearchPress}
           accessibilityRole="search"
           accessibilityLabel="Search for services or contractors"
         >
-          <Ionicons name="search-outline" size={18} color={theme.colors.textTertiary} />
-          <Text style={styles.searchPlaceholder}>What do you need help with?</Text>
+          <Ionicons name="search" size={20} color={theme.colors.textPrimary} />
+          <View style={styles.searchTextContainer}>
+            <Text style={styles.searchTitle}>Where to?</Text>
+            <Text style={styles.searchSubtitle}>Anywhere · Any week · Add details</Text>
+          </View>
+          <View style={styles.filterButton}>
+            <Ionicons name="options-outline" size={17} color={theme.colors.textPrimary} />
+          </View>
         </TouchableOpacity>
       )}
     </View>
@@ -49,37 +54,55 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ user, onSearchPres
 
 const styles = StyleSheet.create({
   welcomeBanner: {
-    backgroundColor: theme.colors.primary,
-    paddingTop: 16,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    backgroundColor: theme.colors.background,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: 24,
   },
   welcomeContent: {
     flex: 1,
   },
   welcomeSubGreeting: {
-    fontSize: 16,
-    color: theme.colors.textInverseMuted,
-    marginBottom: 4,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 0,
   },
-  welcomeName: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
-    marginBottom: 8,
-  },
-  searchRow: {
+  searchPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginTop: 12,
-    gap: 10,
+    paddingLeft: 16,
+    paddingRight: 9,
+    paddingVertical: 11,
+    marginTop: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  searchPlaceholder: {
-    color: theme.colors.textTertiary,
-    fontSize: 15,
+  searchTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  searchTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  searchSubtitle: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+  },
+  filterButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

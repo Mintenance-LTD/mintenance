@@ -89,7 +89,8 @@ export interface SAM3TrainingMaskInput {
 export type KnowledgeDistillationJobType =
   | 'damage_classifier'
   | 'segmentation_model'
-  | 'yolo_enhancement';
+  | 'yolo_enhancement'
+  | 'vlm_distillation';
 
 export type KnowledgeDistillationJobStatus =
   | 'pending'

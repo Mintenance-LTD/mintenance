@@ -12,7 +12,7 @@ interface LoadingScreenProps {
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({
   message = 'Loading...',
   size = 'large',
-  color = '#0066CC',
+  color = '#10B981',
   fullScreen = true,
   overlay = false,
 }) => {
@@ -35,7 +35,7 @@ export const LoadingIndicator: React.FC<{
   size?: 'small' | 'large';
   color?: string;
   style?: ViewStyle;
-}> = ({ size = 'small', color = '#0066CC', style }) => {
+}> = ({ size = 'small', color = '#10B981', style }) => {
   return <ActivityIndicator size={size} color={color} style={style} />;
 };
 
@@ -84,7 +84,7 @@ export const LoadingOverlay: React.FC<{
   return (
     <View style={styles.overlayContainer}>
       <View style={styles.overlayContent}>
-        <ActivityIndicator size="large" color="#0066CC" />
+        <ActivityIndicator size="large" color="#10B981" />
         {message && <Text style={styles.overlayMessage}>{message}</Text>}
       </View>
     </View>
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   },
   fullScreen: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F7F7F7',
   },
   overlay: {
     position: 'absolute',
@@ -176,14 +176,14 @@ const styles = StyleSheet.create({
   message: {
     marginTop: 16,
     fontSize: 16,
-    color: '#666666',
+    color: '#717171',
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#0066CC',
+    backgroundColor: '#10B981',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 48,
@@ -217,19 +217,19 @@ const styles = StyleSheet.create({
   overlayMessage: {
     marginTop: 12,
     fontSize: 14,
-    color: '#333333',
+    color: '#222222',
   },
   skeleton: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#EBEBEB',
     overflow: 'hidden',
   },
   listItem: {
     backgroundColor: '#FFFFFF',
     padding: 16,
     marginBottom: 8,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#EBEBEB',
   },
   listItemHeader: {
     flexDirection: 'row',
@@ -241,9 +241,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#EBEBEB',
     marginBottom: 16,
     overflow: 'hidden',
   },

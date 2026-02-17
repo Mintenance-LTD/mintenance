@@ -123,8 +123,8 @@ export const BidReviewScreen: React.FC = () => {
     setProcessing(true);
     try {
       await BidService.rejectBid(bid.id, user.id);
-    } catch {
-      // Silently continue to next card
+    } catch (err) {
+      Alert.alert('Error', 'Failed to reject bid. Please try again.');
     } finally {
       setProcessing(false);
     }
@@ -331,8 +331,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
   },
   headerCenter: {
     flex: 1,
@@ -352,7 +350,7 @@ const styles = StyleSheet.create({
   bidCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.secondary,
+    color: theme.colors.primary,
   },
   swiperContainer: {
     flex: 1,
@@ -363,7 +361,7 @@ const styles = StyleSheet.create({
   bidCard: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
     ...theme.shadows.base,
   },
@@ -421,8 +419,8 @@ const styles = StyleSheet.create({
   },
   amountValue: {
     fontSize: 32,
-    fontWeight: '800',
-    color: theme.colors.secondary,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
   },
   detailRow: {
     flexDirection: 'row',
@@ -487,7 +485,7 @@ const styles = StyleSheet.create({
   },
   overlayPassText: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '700',
     color: theme.colors.error,
   },
   overlayAccept: {
@@ -495,7 +493,7 @@ const styles = StyleSheet.create({
   },
   overlayAcceptText: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '700',
     color: theme.colors.success,
   },
   emptyTitle: {
@@ -514,7 +512,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     backgroundColor: theme.colors.primary,
   },
   backButtonText: {

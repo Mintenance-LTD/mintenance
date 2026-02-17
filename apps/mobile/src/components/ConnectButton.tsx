@@ -142,7 +142,7 @@ const ConnectButton: React.FC<ConnectButtonProps> = ({
         return {
           text: 'Connected',
           icon: 'checkmark-circle' as const,
-          backgroundColor: theme.colors.secondary,
+          backgroundColor: theme.colors.primary,
           textColor: theme.colors.textInverse,
           onPress: () => {
             Alert.alert(

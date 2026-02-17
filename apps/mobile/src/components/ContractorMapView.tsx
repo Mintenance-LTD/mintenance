@@ -86,7 +86,7 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
             <Ionicons
               name='person'
               size={20}
-              color={theme.colors.info}
+              color={theme.colors.primary}
             />
           )}
         </View>
@@ -129,7 +129,7 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
       {/* Web Map Placeholder */}
       <View style={styles.mapPlaceholder}>
         <View style={styles.mapHeader}>
-          <Ionicons name="map-outline" size={32} color={theme.colors.info} />
+          <Ionicons name="map-outline" size={32} color={theme.colors.primary} />
           <Text style={styles.mapTitle}>Contractor Locations</Text>
           <Text style={styles.mapSubtitle}>
             Your location: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
@@ -187,7 +187,7 @@ const ContractorMapView: React.FC<Props> = ({ userLocation, contractors }) => {
                         <Ionicons
                           name='person'
                           size={30}
-                          color={theme.colors.info}
+                          color={theme.colors.primary}
                         />
                       )}
                     </View>
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   },
   mapTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginTop: 8,
   },
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   },
   listTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   },
   contractorItemName: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   closeButton: {
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
   },
   distanceText: {
     fontSize: 14,
-    color: theme.colors.info,
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   bioSection: {
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 10,
   },
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
   },
   skillText: {
     fontSize: 14,
-    color: theme.colors.info,
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   performanceSection: {
@@ -487,8 +487,8 @@ const styles = StyleSheet.create({
   },
   performanceValue: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: theme.colors.info,
+    fontWeight: '700',
+    color: theme.colors.primary,
   },
   performanceLabel: {
     fontSize: 12,
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.info,
+    backgroundColor: theme.colors.primary,
     paddingVertical: 12,
     borderRadius: 8,
     marginLeft: 10,

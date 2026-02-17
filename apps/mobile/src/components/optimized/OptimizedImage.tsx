@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   placeholder: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
   },

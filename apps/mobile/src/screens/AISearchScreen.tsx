@@ -125,7 +125,7 @@ export const AISearchScreen: React.FC = () => {
       case 'job':
         return theme.colors.primary;
       case 'contractor':
-        return theme.colors.secondary;
+        return theme.colors.primary;
       case 'service':
         return theme.colors.accent;
       default:
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: theme.typography.fontSize.xs,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.secondary,
+    color: theme.colors.primary,
   },
   emptyContainer: {
     flex: 1,

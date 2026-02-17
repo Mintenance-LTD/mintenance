@@ -56,7 +56,7 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
             <Ionicons
               name='briefcase'
               size={18}
-              color={theme.colors.info}
+              color={theme.colors.primary}
               accessible={false}
             />
             <Text style={styles.performanceValue}>85</Text>
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 20,
     padding: 20,
-    borderRadius: 20,
+    borderRadius: 12,
     ...theme.shadows.base,
   },
   sectionTitle: {
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: theme.colors.surfaceSecondary,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 12,
     marginRight: '2%',
     marginBottom: 12,
   },
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   verificationTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },

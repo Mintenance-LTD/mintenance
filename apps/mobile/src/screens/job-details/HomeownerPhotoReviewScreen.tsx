@@ -365,8 +365,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
   },
   headerCenter: {
     flex: 1,
@@ -386,7 +384,7 @@ const styles = StyleSheet.create({
   photoCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.secondary,
+    color: theme.colors.primary,
   },
   content: {
     flex: 1,
@@ -440,7 +438,7 @@ const styles = StyleSheet.create({
     margin: 16,
     padding: 16,
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     ...theme.shadows.sm,
   },
   changesLabel: {

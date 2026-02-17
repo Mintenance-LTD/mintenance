@@ -10,6 +10,7 @@ import { PaymentMethodsScreen as PaymentMethodsScreenRefactored } from '../../sc
 import { CreateQuoteScreen } from '../../screens/create-quote';
 import { MeetingScheduleScreen } from '../../screens/meeting-schedule';
 import MeetingDetailsScreen from '../../screens/MeetingDetailsScreen';
+import { NotificationScreen } from '../../screens/NotificationScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -54,6 +55,12 @@ const SafeEnhancedHomeScreen = withScreenErrorBoundary(
   { fallbackRoute: 'Main' }
 );
 
+const SafeNotificationScreen = withScreenErrorBoundary(
+  NotificationScreen,
+  'Notifications',
+  { fallbackRoute: 'Main' }
+);
+
 // Note: PaymentMethodsScreenRefactored ready but not yet replacing ProfileNavigator version
 
 // ============================================================================
@@ -69,6 +76,10 @@ export const ModalNavigator: React.FC = () => {
         headerShown: false,
         presentation: 'modal',
         gestureEnabled: true,
+        transitionSpec: {
+          open: { animation: 'timing', config: { duration: 300 } },
+          close: { animation: 'timing', config: { duration: 250 } },
+        },
         cardStyleInterpolator: ({ current, layouts }) => ({
           cardStyle: {
             transform: [
@@ -139,6 +150,15 @@ export const ModalNavigator: React.FC = () => {
         component={SafeEnhancedHomeScreen}
         options={{
           title: 'Home',
+          gestureEnabled: true,
+        }}
+      />
+
+      <ModalStack.Screen
+        name="Notifications"
+        component={SafeNotificationScreen}
+        options={{
+          title: 'Notifications',
           gestureEnabled: true,
         }}
       />

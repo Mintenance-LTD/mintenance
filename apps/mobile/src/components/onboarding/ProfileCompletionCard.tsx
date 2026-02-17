@@ -78,7 +78,7 @@ export function ProfileCompletionCard({
               cx={50}
               cy={50}
               r={radius}
-              stroke="#E5E7EB"
+              stroke="#EBEBEB"
               strokeWidth={8}
               fill="none"
             />
@@ -91,7 +91,7 @@ export function ProfileCompletionCard({
                 completion === 100
                   ? '#10B981'
                   : completion >= 75
-                  ? '#0066CC'
+                  ? '#10B981'
                   : completion >= 50
                   ? '#F59E0B'
                   : '#F97316'
@@ -176,7 +176,7 @@ export function ProfileCompletionCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -204,21 +204,21 @@ const styles = StyleSheet.create({
   },
   percentageText: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: '700',
+    color: '#222222',
   },
   headerContent: {
     flex: 1,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 4,
   },
   headerDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#717171',
   },
   itemsContainer: {
     gap: 8,
@@ -229,19 +229,19 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
+    borderColor: '#EBEBEB',
+    borderRadius: 12,
   },
   itemCompleted: {
-    backgroundColor: '#F9FAFB',
-    borderColor: '#E5E7EB',
+    backgroundColor: '#F7F7F7',
+    borderColor: '#EBEBEB',
   },
   checkbox: {
     width: 20,
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: '#EBEBEB',
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -259,15 +259,15 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: '#111827',
+    color: '#222222',
   },
   itemLabelCompleted: {
-    color: '#9CA3AF',
+    color: '#B0B0B0',
     textDecorationLine: 'line-through',
   },
   arrow: {
     fontSize: 20,
-    color: '#9CA3AF',
+    color: '#B0B0B0',
   },
   celebration: {
     flexDirection: 'row',
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 12,
     backgroundColor: '#F0FDF4',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#86EFAC',
   },

@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.md,
   },
   completedCircle: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
   },
   activeCircle: {
     backgroundColor: theme.colors.primary,
@@ -793,7 +793,7 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
   },
   bookButton: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
     paddingVertical: theme.spacing.lg,
     borderRadius: theme.borderRadius.lg,
     alignItems: 'center',

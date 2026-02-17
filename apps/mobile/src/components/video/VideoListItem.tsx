@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { theme } from '../../theme';
 import { formatDistanceToNow } from 'date-fns';
 
 interface VideoListItemProps {
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
     flex: 1,
     marginRight: 8,
   },
@@ -234,11 +235,11 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 13,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   timeText: {
     fontSize: 11,
-    color: '#999',
+    color: theme.colors.textTertiary,
   },
   resultsRow: {
     flexDirection: 'row',
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   },
   resultText: {
     fontSize: 13,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   severityBadge: {
     paddingHorizontal: 8,

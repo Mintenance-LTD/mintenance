@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { requireCSRF } from '@/lib/csrf';
+import { getUserFromRequest } from '@/lib/auth';
+import { requireCSRFFromCookieAuth } from '@/lib/csrf';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-    await requireCSRF(request);
+    await requireCSRFFromCookieAuth(request);
 
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to create dispute');
     }

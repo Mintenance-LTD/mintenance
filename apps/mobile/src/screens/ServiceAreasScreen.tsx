@@ -42,7 +42,7 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
         showsVerticalScrollIndicator={false}
       >

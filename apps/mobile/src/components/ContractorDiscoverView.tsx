@@ -224,7 +224,7 @@ const ContractorDiscoverView: React.FC<Props> = ({
             <Text style={styles.businessDetailText}>Licensed & Insured</Text>
           </View>
           <View style={styles.businessDetailItem}>
-            <Ionicons name='calendar' size={16} color={theme.colors.info} />
+            <Ionicons name='calendar' size={16} color={theme.colors.primary} />
             <Text style={styles.businessDetailText}>Available 7 days/week</Text>
           </View>
         </View>
@@ -236,7 +236,7 @@ const ContractorDiscoverView: React.FC<Props> = ({
           <Ionicons
             name='chatbubble-outline'
             size={20}
-            color={theme.colors.info}
+            color={theme.colors.primary}
           />
           <Text style={styles.messageButtonText}>Message</Text>
         </TouchableOpacity>
@@ -349,13 +349,13 @@ const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   contractorTitle: {
     fontSize: 16,
-    color: theme.colors.info,
+    color: theme.colors.primary,
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -392,7 +392,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
@@ -406,8 +406,8 @@ const styles = StyleSheet.create({
   },
   performanceValue: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: theme.colors.info,
+    fontWeight: '700',
+    color: theme.colors.primary,
     marginBottom: 4,
   },
   performanceLabel: {
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.borderLight,
   },
   skillsContainer: {
     flexDirection: 'row',
@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
   },
   specialtyText: {
     fontSize: 14,
-    color: theme.colors.info,
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   featuredSpecialty: {
@@ -490,10 +490,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: theme.colors.info,
+    borderColor: theme.colors.primary,
   },
   messageButtonText: {
-    color: theme.colors.info,
+    color: theme.colors.primary,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 6,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.info,
+    backgroundColor: theme.colors.primary,
     paddingVertical: 12,
     borderRadius: 8,
     marginLeft: 8,
@@ -536,7 +536,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textSecondary,
     marginTop: 20,
     marginBottom: 10,

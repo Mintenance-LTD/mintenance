@@ -30,6 +30,7 @@ interface DatabaseJobRow {
   subcategory?: string;
   priority?: 'low' | 'medium' | 'high';
   photos?: string[];
+  property_id?: string;
 }
 
 export class JobCRUDService {
@@ -44,6 +45,7 @@ export class JobCRUDService {
     subcategory?: string;
     priority?: 'low' | 'medium' | 'high';
     photos?: string[];
+    property_id?: string;
   }): Promise<Job> {
     const context = {
       service: 'JobCRUDService',
@@ -90,6 +92,7 @@ export class JobCRUDService {
             subcategory: jobData.subcategory,
             priority: jobData.priority,
             photos: jobData.photos,
+            property_id: jobData.property_id,
             status: 'posted',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

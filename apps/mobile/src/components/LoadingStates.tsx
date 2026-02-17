@@ -434,14 +434,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     textAlign: 'center',
     marginBottom: theme.spacing.sm,
   },
   errorTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.error,
     textAlign: 'center',
     marginBottom: theme.spacing.sm,

@@ -210,7 +210,7 @@ const RegisterScreen: React.FC<Props> = () => {
 
               <Button
                 testID={loading ? 'loading-spinner' : 'register-button'}
-                variant='success'
+                variant='primary'
                 title={loading ? 'Creating Account...' : 'Create Account'}
                 onPress={handleRegister}
                 disabled={loading}
@@ -259,16 +259,16 @@ const RegisterScreen: React.FC<Props> = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary,
-    paddingTop: 24,
-    paddingBottom: 20,
+    backgroundColor: theme.colors.background,
+    paddingTop: 20,
+    paddingBottom: 12,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
@@ -287,11 +287,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 15,
-    color: theme.colors.textInverseMuted,
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   keyboardContainer: {
@@ -300,9 +300,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 28,
+    paddingTop: 20,
     paddingBottom: 32,
   },
   formHeading: {
@@ -310,9 +308,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: theme.colors.secondary,
+    fontSize: 22,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   formSubtitle: {

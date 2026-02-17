@@ -38,9 +38,9 @@ let Marker: unknown;
 if (Platform.OS === 'web') {
   // Web fallback components
   MapView = ({ children, ...props }: unknown) => (
-    <View style={{ flex: 1, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ color: '#666', fontSize: 16 }}>Map view available on mobile devices</Text>
-      <Text style={{ color: '#999', fontSize: 12, marginTop: 8 }}>Download our mobile app to view contractors on map</Text>
+    <View style={{ flex: 1, backgroundColor: theme.colors.surfaceSecondary, justifyContent: 'center', alignItems: 'center' }}>
+      <Text style={{ color: theme.colors.textSecondary, fontSize: 16 }}>Map view available on mobile devices</Text>
+      <Text style={{ color: theme.colors.textTertiary, fontSize: 12, marginTop: 8 }}>Download our mobile app to view contractors on map</Text>
       {children}
     </View>
   );
@@ -212,7 +212,7 @@ const FindContractorsScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color={theme.colors.info} />
+        <ActivityIndicator size='large' color={theme.colors.primary} />
         <Text style={styles.loadingText}>Finding contractors near you...</Text>
       </View>
     );

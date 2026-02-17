@@ -181,7 +181,7 @@ export const InvoiceManagementScreen: React.FC<
         <Text style={styles.headerTitle}>Invoice Management</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => navigation.navigate('CreateInvoice')}
+          onPress={() => Alert.alert('Coming Soon', 'Invoice creation coming soon.')}
         >
           <Ionicons name='add' size={24} color={theme.colors.textInverse} />
         </TouchableOpacity>
@@ -227,7 +227,7 @@ export const InvoiceManagementScreen: React.FC<
       <ScrollView
         style={styles.invoiceList}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -248,7 +248,7 @@ export const InvoiceManagementScreen: React.FC<
               <Button
                 variant='primary'
                 title='Create Invoice'
-                onPress={() => navigation.navigate('CreateInvoice')}
+                onPress={() => Alert.alert('Coming Soon', 'Invoice creation coming soon.')}
               />
             )}
           </View>
@@ -258,7 +258,7 @@ export const InvoiceManagementScreen: React.FC<
               key={invoice.id}
               invoice={invoice}
               onPress={() =>
-                navigation.navigate('InvoiceDetail', { invoiceId: invoice.id })
+                Alert.alert('Coming Soon', 'Invoice details coming soon.')
               }
               onSendReminder={() => handleSendReminder(invoice)}
               onMarkPaid={() => handleMarkPaid(invoice)}
@@ -280,8 +280,8 @@ export const InvoiceManagementScreen: React.FC<
             {selectedInvoice && (
               <Text style={styles.modalText}>
                 Send payment reminder for invoice #
-                {selectedInvoice.invoice_number} to client{' '}
-                {selectedInvoice.client_id}?
+                {selectedInvoice.invoice_number} to{' '}
+                {selectedInvoice.client_name || 'client'}?
               </Text>
             )}
             <View style={styles.modalActions}>
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textInverse,
   },
   addButton: {

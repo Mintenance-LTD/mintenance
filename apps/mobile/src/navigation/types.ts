@@ -82,7 +82,6 @@ export type ProfileStackParamList = {
   ProfileMain: undefined;
   EditProfile: undefined;
   NotificationSettings: undefined;
-  Notifications: undefined;
   PaymentMethods: undefined;
   AddPaymentMethod: undefined;
   HelpCenter: undefined;
@@ -120,6 +119,7 @@ export type ModalStackParamList = {
     contractorName?: string;
   };
   EnhancedHome: undefined;
+  Notifications: undefined;
 };
 
 // ============================================================================

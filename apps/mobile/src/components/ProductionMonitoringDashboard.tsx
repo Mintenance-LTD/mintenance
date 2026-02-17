@@ -15,6 +15,7 @@ import {
   webPlatform
 } from '../utils/productionSetupGuide';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface DashboardStatus {
   overall: {
@@ -310,21 +311,21 @@ export function ProductionMonitoringDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    padding: 16,
+    backgroundColor: '#F7F7F7',
+    padding: 24,
   },
   header: {
     marginBottom: 20,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#717171',
     marginBottom: 12,
   },
   headerButtons: {
@@ -332,25 +333,25 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   refreshButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#10B981',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   refreshButtonText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontSize: 14,
   },
   healthButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: theme.colors.success,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
   },
   healthButtonText: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontSize: 14,
   },
   card: {
@@ -358,16 +359,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...theme.shadows.base,
   },
   cardTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#222222',
     marginBottom: 12,
   },
   statusRow: {
@@ -378,12 +375,12 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#717171',
   },
   statusValue: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#222222',
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -393,19 +390,19 @@ const styles = StyleSheet.create({
   metric: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.surfaceSecondary,
     padding: 12,
     borderRadius: 8,
   },
   metricLabel: {
     fontSize: 12,
-    color: '#666',
+    color: '#717171',
     marginBottom: 4,
   },
   metricValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#222222',
   },
   vulnerabilitiesGrid: {
     flexDirection: 'row',
@@ -417,13 +414,13 @@ const styles = StyleSheet.create({
   },
   vulnerabilityLabel: {
     fontSize: 12,
-    color: '#666',
+    color: '#717171',
     marginBottom: 4,
   },
   vulnerabilityValue: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '700',
+    color: '#222222',
   },
   footer: {
     marginTop: 20,
@@ -431,13 +428,13 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: '#666',
+    color: '#717171',
     textAlign: 'center',
     fontStyle: 'italic',
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: '#717171',
     textAlign: 'center',
     marginTop: 50,
   },

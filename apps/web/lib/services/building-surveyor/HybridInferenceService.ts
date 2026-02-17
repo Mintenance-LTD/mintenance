@@ -32,6 +32,7 @@ import {
     executeInternalRoute,
     executeGPT4Route,
     executeHybridRoute,
+    executeStudentRoute,
 } from './routing/routeExecutors';
 import {
     recordRoutingDecision,
@@ -88,6 +89,10 @@ export class HybridInferenceService {
                     break;
                 case 'hybrid':
                     result = await executeHybridRoute(imageUrls, features, context, routeDecision);
+                    break;
+                case 'student_vlm':
+                case 'student_shadow':
+                    result = await executeStudentRoute(imageUrls, context, routeDecision);
                     break;
                 default:
                     throw new Error(`Unknown route: ${routeDecision.route}`);

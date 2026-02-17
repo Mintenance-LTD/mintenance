@@ -480,11 +480,11 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    ...theme.shadows.md,
+    ...theme.shadows.base,
   },
 
   minimal: {
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.lg,
     paddingVertical: theme.spacing[2],
     paddingHorizontal: theme.spacing[3],
   },

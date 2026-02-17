@@ -214,7 +214,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
       }
       showsVerticalScrollIndicator={false}
     >
@@ -459,12 +459,10 @@ const styles = StyleSheet.create({
   header: {
     padding: theme.spacing[4],
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   headerTitle: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700' as const,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing[1],
   },
@@ -474,7 +472,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '700' as const,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing[3],
   },
@@ -491,8 +489,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing[4],
     borderLeftWidth: 4,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    ...theme.shadows.base,
     width: isTablet ? '48%' : '100%',
     minHeight: 120,
   },
@@ -509,7 +506,7 @@ const styles = StyleSheet.create({
   },
   kpiValue: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700' as const,
     marginBottom: theme.spacing[1],
   },
   kpiSubtitle: {
@@ -534,8 +531,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing[4],
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    ...theme.shadows.base,
   },
   healthScoreMain: {
     flexDirection: 'row',
@@ -591,8 +587,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing[3],
     marginBottom: theme.spacing[2],
     borderLeftWidth: 4,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    ...theme.shadows.base,
   },
   insightHeader: {
     flexDirection: 'row',
@@ -660,8 +655,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing[3],
     alignItems: 'center',
     width: isTablet ? '23%' : '48%',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    ...theme.shadows.base,
   },
   quickActionText: {
     fontSize: theme.typography.fontSize.sm,
@@ -685,8 +679,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing[4],
     alignItems: 'center',
     width: isTablet ? '31%' : '48%',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    ...theme.shadows.base,
     minHeight: 130,
     justifyContent: 'center',
   },

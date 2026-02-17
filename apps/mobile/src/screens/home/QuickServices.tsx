@@ -1,15 +1,14 @@
 /**
  * QuickServices Component
- * 
- * Displays quick service shortcuts for homeowners to find contractors
- * for common services like plumbing, electrical, etc.
+ *
+ * Airbnb-style horizontal scrollable category tabs with icons.
+ * Matches the "Rooms / Amazing views / Beachfront" pattern from Airbnb.
  */
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
-import { ResponsiveGrid } from '../../components/responsive';
 import { useHaptics } from '../../utils/haptics';
 
 export interface QuickServicesProps {
@@ -17,179 +16,134 @@ export interface QuickServicesProps {
   onBrowseAllPress: () => void;
 }
 
+const SERVICES = [
+  {
+    id: 'plumbing',
+    name: 'Plumbing',
+    icon: 'water-outline' as keyof typeof Ionicons.glyphMap,
+    params: { serviceCategory: 'plumbing', filter: { skills: ['Plumbing', 'Pipe Repair', 'Leak Repair'] } },
+  },
+  {
+    id: 'electrical',
+    name: 'Electrical',
+    icon: 'flash-outline' as keyof typeof Ionicons.glyphMap,
+    params: { serviceCategory: 'electrical', filter: { skills: ['Electrical', 'Wiring', 'Electrical Repair'] } },
+  },
+  {
+    id: 'appliance',
+    name: 'Appliances',
+    icon: 'home-outline' as keyof typeof Ionicons.glyphMap,
+    params: { serviceCategory: 'appliance', filter: { skills: ['Appliance Repair', 'Washing Machine', 'Refrigerator'] } },
+  },
+  {
+    id: 'hvac',
+    name: 'HVAC',
+    icon: 'snow-outline' as keyof typeof Ionicons.glyphMap,
+    params: { serviceCategory: 'hvac', filter: { skills: ['HVAC', 'Air Conditioning', 'Heating'] } },
+  },
+  {
+    id: 'roofing',
+    name: 'Roofing',
+    icon: 'home-outline' as keyof typeof Ionicons.glyphMap,
+    params: { serviceCategory: 'roofing', filter: { skills: ['Roofing', 'Roof Repair'] } },
+  },
+  {
+    id: 'painting',
+    name: 'Painting',
+    icon: 'color-palette-outline' as keyof typeof Ionicons.glyphMap,
+    params: { serviceCategory: 'painting', filter: { skills: ['Painting', 'Decorating'] } },
+  },
+  {
+    id: 'carpentry',
+    name: 'Carpentry',
+    icon: 'hammer-outline' as keyof typeof Ionicons.glyphMap,
+    params: { serviceCategory: 'carpentry', filter: { skills: ['Carpentry', 'Woodwork'] } },
+  },
+  {
+    id: 'cleaning',
+    name: 'Cleaning',
+    icon: 'sparkles-outline' as keyof typeof Ionicons.glyphMap,
+    params: { serviceCategory: 'cleaning', filter: { skills: ['Cleaning', 'Deep Clean'] } },
+  },
+];
+
 export const QuickServices: React.FC<QuickServicesProps> = ({
   onServicePress,
-  onBrowseAllPress,
 }) => {
   const haptics = useHaptics();
-
-  const services = [
-    {
-      id: 'plumbing',
-      name: 'Plumbing',
-      subtitle: 'Leaks, pipes, drains',
-      icon: 'water',
-      iconColor: theme.colors.infoDark,
-      backgroundColor: theme.colors.infoLight,
-      params: {
-        serviceCategory: 'plumbing',
-        filter: { skills: ['Plumbing', 'Pipe Repair', 'Leak Repair'] },
-      },
-    },
-    {
-      id: 'electrical',
-      name: 'Electrical',
-      subtitle: 'Wiring, outlets, lights',
-      icon: 'flash',
-      iconColor: theme.colors.warningDark,
-      backgroundColor: theme.colors.warningLight,
-      params: {
-        serviceCategory: 'electrical',
-        filter: { skills: ['Electrical', 'Wiring', 'Electrical Repair'] },
-      },
-    },
-    {
-      id: 'appliance',
-      name: 'Appliances',
-      subtitle: 'Washer, fridge, oven',
-      icon: 'home',
-      iconColor: theme.colors.primary,
-      backgroundColor: theme.colors.surfaceTertiary,
-      params: {
-        serviceCategory: 'appliance',
-        filter: { skills: ['Appliance Repair', 'Washing Machine', 'Refrigerator'] },
-      },
-    },
-    {
-      id: 'hvac',
-      name: 'HVAC',
-      subtitle: 'AC, heating, vents',
-      icon: 'snow',
-      iconColor: theme.colors.successDark,
-      backgroundColor: theme.colors.successLight,
-      params: {
-        serviceCategory: 'hvac',
-        filter: { skills: ['HVAC', 'Air Conditioning', 'Heating'] },
-      },
-    },
-  ];
+  const [activeId, setActiveId] = useState<string | null>(SERVICES[0].id);
 
   return (
-    <View style={styles.quickServicesSection}>
-      <Text style={styles.sectionTitle}>Need Help With?</Text>
-      <Text style={styles.sectionSubtitle}>Quick access to common services</Text>
-
-      <ResponsiveGrid
-        columns={2}
-        gap={16}
-        responsive={{
-          mobile: 2,
-          tablet: 3,
-          desktop: 4,
-        }}
-        style={styles.quickServicesGrid}
+    <View style={styles.container}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        {services.map((service) => (
-          <TouchableOpacity
-            key={service.id}
-            style={styles.quickServiceCard}
-            onPress={() => {
-              haptics.buttonPress();
-              onServicePress(service.params);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`Find ${service.name.toLowerCase()} contractors`}
-          >
-            <View style={[
-              styles.quickServiceIcon,
-              { backgroundColor: service.backgroundColor },
-            ]}>
-              <Ionicons name={service.icon as unknown} size={24} color={service.iconColor} />
-            </View>
-            <Text style={styles.quickServiceText} numberOfLines={1} adjustsFontSizeToFit>{service.name}</Text>
-            <Text style={styles.quickServiceSubtext} numberOfLines={1}>{service.subtitle}</Text>
-          </TouchableOpacity>
-        ))}
-      </ResponsiveGrid>
-
-      {/* Browse All Services Button */}
-      <TouchableOpacity
-        style={styles.browseAllButton}
-        onPress={() => {
-          haptics.buttonPress();
-          onBrowseAllPress();
-        }}
-        accessibilityRole="button"
-        accessibilityLabel="Browse all services"
-      >
-        <Ionicons name="grid-outline" size={20} color={theme.colors.primary} />
-        <Text style={styles.browseAllText}>Browse All Services</Text>
-        <Ionicons name="arrow-forward" size={16} color={theme.colors.primary} />
-      </TouchableOpacity>
+        {SERVICES.map((service) => {
+          const isActive = activeId === service.id;
+          return (
+            <TouchableOpacity
+              key={service.id}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => {
+                haptics.buttonPress();
+                setActiveId(isActive ? null : service.id);
+                onServicePress(service.params);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Find ${service.name.toLowerCase()} contractors`}
+            >
+              <Ionicons
+                name={service.icon}
+                size={24}
+                color={isActive ? theme.colors.textPrimary : theme.colors.textSecondary}
+              />
+              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                {service.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+      <View style={styles.divider} />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  quickServicesSection: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 16,
-  },
-  quickServicesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+  container: {
     marginBottom: 20,
+    marginHorizontal: -24,
   },
-  quickServiceCard: {
-    backgroundColor: theme.colors.surface,
-    padding: 16,
-    borderRadius: 16,
+  scrollContent: {
+    paddingHorizontal: 24,
+    gap: 18,
+  },
+  tab: {
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    paddingVertical: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    minWidth: 68,
   },
-  quickServiceIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
+  tabActive: {
+    borderBottomColor: theme.colors.textPrimary,
   },
-  quickServiceText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  quickServiceSubtext: {
-    fontSize: 12,
+  tabLabel: {
+    fontSize: 13,
+    fontWeight: '500',
     color: theme.colors.textSecondary,
+    marginTop: 5,
     textAlign: 'center',
-    lineHeight: 16,
   },
-  browseAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 8,
-  },
-  browseAllText: {
-    fontSize: 15,
+  tabLabelActive: {
+    color: theme.colors.textPrimary,
     fontWeight: '600',
-    color: theme.colors.primary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.borderLight,
   },
 });

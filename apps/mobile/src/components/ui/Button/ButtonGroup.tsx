@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   button: {
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: theme.borderRadius.lg,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   selectedButtonText: {
-    color: theme.colors.white,
+    color: '#FFFFFF',
   },
   disabledButtonText: {
     color: theme.colors.textSecondary,

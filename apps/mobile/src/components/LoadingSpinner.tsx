@@ -11,7 +11,7 @@ interface LoadingSpinnerProps {
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   message = 'Loading...',
   size = 'large',
-  color = theme.colors.info,
+  color = theme.colors.primary,
 }) => {
   return (
     <View style={styles.container} testID='loading-spinner'>
@@ -34,7 +34,7 @@ export const FullScreenLoading: React.FC<FullScreenLoadingProps> = ({
 }) => {
   return (
     <View style={styles.fullScreenContainer}>
-      <ActivityIndicator size='large' color={theme.colors.info} />
+      <ActivityIndicator size='large' color={theme.colors.primary} />
       <Text style={styles.fullScreenMessage}>{message}</Text>
     </View>
   );

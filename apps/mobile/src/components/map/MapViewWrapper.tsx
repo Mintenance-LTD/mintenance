@@ -7,7 +7,7 @@ interface MapViewProps extends ViewProps {
 }
 
 export const MapView: React.FC<MapViewProps> = ({ children, ...props }) => (
-  <View style={{ flex: 1, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }} {...props}>
+  <View style={{ flex: 1, backgroundColor: '#F7F7F7', justifyContent: 'center', alignItems: 'center' }} {...props}>
     <Text>Map view available on mobile devices</Text>
     {children}
   </View>

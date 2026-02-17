@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   },
   reminderButton: {
     borderColor: theme.colors.primary,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
   },
   reminderButtonText: {
     fontSize: 12,
