@@ -17,7 +17,7 @@ import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../../services/ApiClient';
+import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 
 interface Props {

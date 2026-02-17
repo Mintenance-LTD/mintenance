@@ -24,7 +24,7 @@ export class ApiClient {
   private retryDelay: number;
   private defaultHeaders: Record<string, string>;
   constructor(config: ApiClientConfig = {}) {
-    this.baseURL = config.baseURL || (typeof window !== 'undefined' ? window.location.origin : '');
+    this.baseURL = config.baseURL || (typeof window !== 'undefined' && window.location ? window.location.origin : '');
     this.timeout = config.timeout || 30000; // 30 seconds
     this.defaultRetries = config.retries || 3;
     this.retryDelay = config.retryDelay || 1000; // 1 second

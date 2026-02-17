@@ -17,7 +17,7 @@ import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../services/ApiClient';
+import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 
 interface Review {
   id: string;

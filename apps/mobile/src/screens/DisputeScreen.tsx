@@ -18,7 +18,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { ScreenHeader, LoadingSpinner } from '../components/shared';
 import { useAuth } from '../contexts/AuthContext';
-import { apiClient } from '../services/ApiClient';
+import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 
 interface DisputeScreenParams {

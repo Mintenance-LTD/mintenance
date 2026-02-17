@@ -20,7 +20,7 @@ import { theme } from '../../theme';
 import { ScreenHeader } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../../services/ApiClient';
+import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
 
 interface Props {
