@@ -21,12 +21,12 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
       <Text style={styles.sectionSubtitle}>Track your performance</Text>
 
       <View style={styles.statsGrid}>
-        <View style={styles.statCard} accessibilityLabel={`Total earnings: $${stats?.totalEarnings?.toFixed(0) || '0'}`}>
+        <View style={styles.statCard} accessibilityLabel={`Total earnings: £${stats?.totalEarnings?.toFixed(0) || '0'}`}>
           <View style={styles.statIcon}>
             <Ionicons name="cash" size={20} color={theme.colors.successDark} accessible={false} />
           </View>
           <Text style={styles.statValue}>
-            ${stats?.totalEarnings?.toFixed(0) || '0'}
+            £{stats?.totalEarnings?.toFixed(0) || '0'}
           </Text>
           <Text style={styles.statLabel}>Total Earnings</Text>
         </View>
@@ -84,21 +84,21 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 12,
   },
   statCard: {
     backgroundColor: theme.colors.surface,
-    width: '48%',
+    flex: 1,
+    minWidth: '45%',
     padding: 16,
     borderRadius: 16,
     alignItems: 'center',
-    marginBottom: 12,
-    ...theme.shadows.base,
+    ...theme.shadows.sm,
   },
   statIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: theme.colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',

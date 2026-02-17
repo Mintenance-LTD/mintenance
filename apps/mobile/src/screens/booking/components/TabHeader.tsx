@@ -11,6 +11,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../../theme';
 import type { BookingStatus, TabInfo } from '../viewmodels/BookingViewModel';
 
@@ -29,10 +30,11 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
   onBackPress,
   onSearchPress,
 }) => {
+  const insets = useSafeAreaInsets();
   return (
     <View style={styles.container}>
       {/* Navigation Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={onBackPress} style={styles.headerButton}>
           <Ionicons
             name="arrow-back"
@@ -93,7 +95,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
+    paddingTop: 16,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },

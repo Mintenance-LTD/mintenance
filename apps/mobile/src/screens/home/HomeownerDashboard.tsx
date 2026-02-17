@@ -28,7 +28,9 @@ import { QuickServices } from './QuickServices';
 import { PreviousContractors } from './PreviousContractors';
 import { RecentJobs } from './RecentJobs';
 import { WelcomeBanner } from './WelcomeBanner';
-import { FindContractorsButton } from './FindContractorsButton';
+import { StatsCards } from './StatsCards';
+import { BidsReceived } from './BidsReceived';
+// FindContractorsButton repurposed as "Post a Job" button
 
 export const HomeownerDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -40,7 +42,7 @@ export const HomeownerDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showFindContractorsButton, setShowFindContractorsButton] = useState(true);
+  const [showPostJobButton, setShowPostJobButton] = useState(true);
 
   useEffect(() => {
     loadDashboardData();
@@ -95,15 +97,8 @@ export const HomeownerDashboard: React.FC = () => {
     setRefreshing(false);
   };
 
-  const openContractorDiscovery = (params: Record<string, unknown>) => {
-    navigation.getParent?.()?.navigate('Modal', {
-      screen: 'ContractorDiscovery',
-      params,
-    });
-  };
-
-  const openFindContractors = () => {
-    navigation.getParent?.()?.navigate('Modal', { screen: 'FindContractors' });
+  const openJobPosting = () => {
+    navigation.navigate('JobsTab', { screen: 'JobPosting' });
   };
 
   const openServiceRequest = (params?: Record<string, unknown>) => {
@@ -144,16 +139,10 @@ export const HomeownerDashboard: React.FC = () => {
       <NavigationHeader
         title="Mintenance"
         subtitle={user?.first_name ? `Welcome back, ${user.first_name}!` : 'Homeowner Dashboard'}
-        rightIcon={{
-          name: 'notifications-outline',
-          onPress: () => navigation.navigate('NotificationsScreen'),
-        }}
+        onNotificationPress={() => navigation.navigate('NotificationsScreen')}
+        userInitials={user?.first_name && user?.last_name ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : undefined}
+        onUserPress={() => navigation.navigate('ProfileTab' as never)}
       />
-
-      {/* Test-friendly greetings (visible for tests) */}
-      {user?.first_name ? (
-        <Text style={{ fontSize: 1 }}>{`Welcome back, ${user.first_name}!`}</Text>
-      ) : null}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -162,20 +151,31 @@ export const HomeownerDashboard: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        <WelcomeBanner user={user} />
+        <WelcomeBanner user={user} onSearchPress={openServiceRequest} />
 
         <View style={styles.homeownerContent}>
-          <QuickServices 
-            onServicePress={openContractorDiscovery}
-            onBrowseAllPress={openFindContractors}
+          <StatsCards
+            activeJobs={homeownerJobs.filter((j: any) => j?.status === 'in_progress' || j?.status === 'assigned').length}
+            completedJobs={homeownerJobs.filter((j: any) => j?.status === 'completed').length}
           />
 
-          <RecentJobs 
-            jobs={homeownerJobs}
+          <BidsReceived
+            bids={[]}
             onViewAllPress={openJobsList}
           />
 
-          <PreviousContractors 
+          <QuickServices
+            onServicePress={openServiceRequest}
+            onBrowseAllPress={openJobPosting}
+          />
+
+          <RecentJobs
+            jobs={homeownerJobs}
+            onViewAllPress={openJobsList}
+            onJobPress={(jobId) => navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId } })}
+          />
+
+          <PreviousContractors
             contractors={previousContractors}
             onMessagePress={openConversation}
             onRehirePress={openServiceRequest}
@@ -183,11 +183,27 @@ export const HomeownerDashboard: React.FC = () => {
         </View>
       </ScrollView>
 
-      <FindContractorsButton 
-        visible={showFindContractorsButton}
-        onPress={openFindContractors}
-        onDismiss={() => setShowFindContractorsButton(false)}
-      />
+      {showPostJobButton && (
+        <View style={styles.floatingButtonContainer}>
+          <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={openJobPosting}
+            accessibilityRole="button"
+            accessibilityLabel="Post a job"
+          >
+            <Ionicons name="add-circle" size={20} color={theme.colors.textInverse} />
+            <Text style={styles.floatingButtonText}>Post a Job</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.dismissButton}
+            onPress={() => setShowPostJobButton(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss"
+          >
+            <Ionicons name="close" size={16} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
@@ -200,7 +216,7 @@ const styles = StyleSheet.create({
   homeownerContent: {
     paddingHorizontal: 20,
     backgroundColor: theme.colors.background,
-    paddingTop: 20,
+    paddingTop: 24,
   },
   errorContainer: {
     flex: 1,
@@ -227,5 +243,40 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
+  },
+  floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  floatingButton: {
+    flex: 1,
+    backgroundColor: theme.colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    gap: 8,
+    ...theme.shadows.large,
+  },
+  floatingButtonText: {
+    color: theme.colors.textInverse,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  dismissButton: {
+    backgroundColor: theme.colors.surface,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.shadows.base,
   },
 });

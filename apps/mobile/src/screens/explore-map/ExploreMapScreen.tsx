@@ -1,21 +1,40 @@
 /**
- * ExploreMapScreen Container
- * 
- * Map-based contractor discovery with location services.
- * 
- * @filesize Target: <100 lines
+ * ExploreMapScreen - Job Discovery for Contractors
+ *
+ * Shows posted jobs as map markers. Contractors can tap a marker
+ * to see job details and navigate to bid submission.
+ *
  * @compliance MVVM - Thin container
  */
 
 import React from 'react';
-import { SafeAreaView, View, StyleSheet } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { theme } from '../../theme';
 import { useExploreMapViewModel } from './viewmodels/ExploreMapViewModel';
-import { MapSearchBar, ContractorCard } from './components';
+import { MapSearchBar, JobPreviewCard } from './components';
+
+const URGENCY_MARKER_COLORS: Record<string, string> = {
+  low: theme.colors.success,
+  medium: theme.colors.info,
+  high: theme.colors.warning,
+  emergency: theme.colors.error,
+};
 
 export const ExploreMapScreen: React.FC = () => {
   const viewModel = useExploreMapViewModel();
+  const navigation = useNavigation<any>();
+
+  const handleViewDetails = (jobId: string) => {
+    viewModel.handleJobSelect(null);
+    navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId } });
+  };
+
+  const handleBidNow = (jobId: string) => {
+    viewModel.handleJobSelect(null);
+    navigation.navigate('JobsTab', { screen: 'BidSubmission', params: { jobId } });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -27,20 +46,22 @@ export const ExploreMapScreen: React.FC = () => {
         showsUserLocation
         showsMyLocationButton
       >
-        {viewModel.contractors.map((contractor) => (
-          <Marker
-            key={contractor.id}
-            coordinate={{
-              latitude: contractor.latitude,
-              longitude: contractor.longitude,
-            }}
-            onPress={() => viewModel.handleContractorSelect(contractor)}
-          >
-            <View style={styles.markerContainer}>
-              <View style={styles.marker} />
-            </View>
-          </Marker>
-        ))}
+        {viewModel.jobs.map((job) => {
+          const color = URGENCY_MARKER_COLORS[job.urgency] || theme.colors.info;
+          return (
+            <Marker
+              key={job.id}
+              coordinate={{ latitude: job.latitude, longitude: job.longitude }}
+              onPress={() => viewModel.handleJobSelect(job)}
+            >
+              <View style={styles.markerContainer}>
+                <View style={[styles.marker, { backgroundColor: color }]}>
+                  <Text style={styles.markerText}>£</Text>
+                </View>
+              </View>
+            </Marker>
+          );
+        })}
       </MapView>
 
       <MapSearchBar
@@ -49,14 +70,18 @@ export const ExploreMapScreen: React.FC = () => {
         onFilterPress={viewModel.handleFilterPress}
       />
 
-      {viewModel.selectedContractor && (
+      {viewModel.loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+        </View>
+      )}
+
+      {viewModel.selectedJob && (
         <View style={styles.cardContainer}>
-          <ContractorCard
-            contractor={viewModel.selectedContractor}
-            onPress={() => {
-              // Navigate to contractor profile
-              viewModel.handleContractorSelect(null);
-            }}
+          <JobPreviewCard
+            job={viewModel.selectedJob}
+            onViewDetails={() => handleViewDetails(viewModel.selectedJob!.id)}
+            onBidNow={() => handleBidNow(viewModel.selectedJob!.id)}
           />
         </View>
       )}
@@ -76,19 +101,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   marker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.primary,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 3,
     borderColor: theme.colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
     ...theme.shadows.base,
+  },
+  markerText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: theme.colors.white,
   },
   cardContainer: {
     position: 'absolute',
     bottom: 16,
     left: 16,
     right: 16,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 80,
+    alignSelf: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 20,
+    padding: 8,
+    ...theme.shadows.base,
   },
 });
 

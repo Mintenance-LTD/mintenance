@@ -53,6 +53,11 @@ export type JobsStackParamList = {
   JobDetails: { jobId: string };
   JobPosting: undefined;
   BidSubmission: { jobId: string };
+  JobPayment: { jobId: string; amount: number; contractorId: string; contractorName?: string };
+  JobTimeline: { jobId: string };
+  Dispute: { jobId: string; jobTitle: string };
+  BidReview: { jobId: string };
+  PhotoReview: { jobId: string };
 };
 
 // ============================================================================
@@ -77,6 +82,7 @@ export type ProfileStackParamList = {
   ProfileMain: undefined;
   EditProfile: undefined;
   NotificationSettings: undefined;
+  Notifications: undefined;
   PaymentMethods: undefined;
   AddPaymentMethod: undefined;
   HelpCenter: undefined;
@@ -87,7 +93,12 @@ export type ProfileStackParamList = {
   QuoteBuilder: undefined;
   CreateQuote: { jobId?: string };
   ContractorCardEditor: undefined;
-  Connections: undefined;
+  ContractorVerification: undefined;
+  Properties: undefined;
+  PropertyDetail: { propertyId: string };
+  AddProperty: undefined;
+  Calendar: undefined;
+  Reviews: undefined;
 };
 
 // ============================================================================
@@ -96,8 +107,6 @@ export type ProfileStackParamList = {
 
 export type ModalStackParamList = {
   ServiceRequest: undefined;
-  FindContractors: undefined;
-  ContractorDiscovery: undefined;
   CreateQuote: { jobId?: string };
   MeetingSchedule: {
     contractorId: string;

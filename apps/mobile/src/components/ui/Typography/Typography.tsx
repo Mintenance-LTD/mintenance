@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TextStyle, StyleSheet } from 'react-native';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -169,111 +169,111 @@ const getVariantStyles = (variant: TypographyVariant): TextStyle => {
   switch (variant) {
     case 'display1':
       return {
-        fontSize: designTokens.typography.fontSize['8xl'],
-        fontWeight: designTokens.typography.fontWeight.bold,
-        lineHeight: designTokens.typography.lineHeight.tight,
+        fontSize: 96,
+        fontWeight: theme.typography.fontWeight.bold,
+        lineHeight: theme.typography.lineHeight.tight,
       };
 
     case 'display2':
       return {
-        fontSize: designTokens.typography.fontSize['7xl'],
-        fontWeight: designTokens.typography.fontWeight.bold,
-        lineHeight: designTokens.typography.lineHeight.tight,
+        fontSize: 72,
+        fontWeight: theme.typography.fontWeight.bold,
+        lineHeight: theme.typography.lineHeight.tight,
       };
 
     case 'h1':
       return {
-        fontSize: designTokens.typography.fontSize['6xl'],
-        fontWeight: designTokens.typography.fontWeight.bold,
-        lineHeight: designTokens.typography.lineHeight.tight,
+        fontSize: 60,
+        fontWeight: theme.typography.fontWeight.bold,
+        lineHeight: theme.typography.lineHeight.tight,
       };
 
     case 'h2':
       return {
-        fontSize: designTokens.typography.fontSize['5xl'],
-        fontWeight: designTokens.typography.fontWeight.bold,
-        lineHeight: designTokens.typography.lineHeight.tight,
+        fontSize: theme.typography.fontSize['5xl'],
+        fontWeight: theme.typography.fontWeight.bold,
+        lineHeight: theme.typography.lineHeight.tight,
       };
 
     case 'h3':
       return {
-        fontSize: designTokens.typography.fontSize['4xl'],
-        fontWeight: designTokens.typography.fontWeight.semibold,
-        lineHeight: designTokens.typography.lineHeight.snug,
+        fontSize: theme.typography.fontSize['4xl'],
+        fontWeight: theme.typography.fontWeight.semibold,
+        lineHeight: 1.375,
       };
 
     case 'h4':
       return {
-        fontSize: designTokens.typography.fontSize['3xl'],
-        fontWeight: designTokens.typography.fontWeight.semibold,
-        lineHeight: designTokens.typography.lineHeight.snug,
+        fontSize: theme.typography.fontSize['3xl'],
+        fontWeight: theme.typography.fontWeight.semibold,
+        lineHeight: 1.375,
       };
 
     case 'h5':
       return {
-        fontSize: designTokens.typography.fontSize['2xl'],
-        fontWeight: designTokens.typography.fontWeight.semibold,
-        lineHeight: designTokens.typography.lineHeight.snug,
+        fontSize: theme.typography.fontSize['2xl'],
+        fontWeight: theme.typography.fontWeight.semibold,
+        lineHeight: 1.375,
       };
 
     case 'h6':
       return {
-        fontSize: designTokens.typography.fontSize.xl,
-        fontWeight: designTokens.typography.fontWeight.semibold,
-        lineHeight: designTokens.typography.lineHeight.normal,
+        fontSize: theme.typography.fontSize.xl,
+        fontWeight: theme.typography.fontWeight.semibold,
+        lineHeight: theme.typography.lineHeight.normal,
       };
 
     case 'subtitle1':
       return {
-        fontSize: designTokens.typography.fontSize.lg,
-        fontWeight: designTokens.typography.fontWeight.medium,
-        lineHeight: designTokens.typography.lineHeight.normal,
+        fontSize: theme.typography.fontSize.lg,
+        fontWeight: theme.typography.fontWeight.medium,
+        lineHeight: theme.typography.lineHeight.normal,
       };
 
     case 'subtitle2':
       return {
-        fontSize: designTokens.typography.fontSize.base,
-        fontWeight: designTokens.typography.fontWeight.medium,
-        lineHeight: designTokens.typography.lineHeight.normal,
+        fontSize: theme.typography.fontSize.base,
+        fontWeight: theme.typography.fontWeight.medium,
+        lineHeight: theme.typography.lineHeight.normal,
       };
 
     case 'body1':
       return {
-        fontSize: designTokens.typography.fontSize.base,
-        fontWeight: designTokens.typography.fontWeight.normal,
-        lineHeight: designTokens.typography.lineHeight.relaxed,
+        fontSize: theme.typography.fontSize.base,
+        fontWeight: theme.typography.fontWeight.regular,
+        lineHeight: theme.typography.lineHeight.relaxed,
       };
 
     case 'body2':
       return {
-        fontSize: designTokens.typography.fontSize.sm,
-        fontWeight: designTokens.typography.fontWeight.normal,
-        lineHeight: designTokens.typography.lineHeight.normal,
+        fontSize: theme.typography.fontSize.sm,
+        fontWeight: theme.typography.fontWeight.regular,
+        lineHeight: theme.typography.lineHeight.normal,
       };
 
     case 'button':
       return {
-        fontSize: designTokens.typography.fontSize.base,
-        fontWeight: designTokens.typography.fontWeight.semibold,
-        lineHeight: designTokens.typography.lineHeight.none,
+        fontSize: theme.typography.fontSize.base,
+        fontWeight: theme.typography.fontWeight.semibold,
+        lineHeight: 1,
         textTransform: 'uppercase',
-        letterSpacing: designTokens.typography.letterSpacing.wide,
+        letterSpacing: 0.025,
       };
 
     case 'caption':
       return {
-        fontSize: designTokens.typography.fontSize.xs,
-        fontWeight: designTokens.typography.fontWeight.normal,
-        lineHeight: designTokens.typography.lineHeight.normal,
+        fontSize: theme.typography.fontSize.xs,
+        fontWeight: theme.typography.fontWeight.regular,
+        lineHeight: theme.typography.lineHeight.normal,
       };
 
     case 'overline':
       return {
-        fontSize: designTokens.typography.fontSize.xs,
-        fontWeight: designTokens.typography.fontWeight.semibold,
-        lineHeight: designTokens.typography.lineHeight.normal,
+        fontSize: theme.typography.fontSize.xs,
+        fontWeight: theme.typography.fontWeight.semibold,
+        lineHeight: theme.typography.lineHeight.normal,
         textTransform: 'uppercase',
-        letterSpacing: designTokens.typography.letterSpacing.widest,
+        letterSpacing: 0.1,
       };
 
     default:
@@ -284,25 +284,25 @@ const getVariantStyles = (variant: TypographyVariant): TextStyle => {
 const getColorStyles = (color: TypographyColor): TextStyle => {
   switch (color) {
     case 'primary':
-      return { color: designTokens.semanticColors.text.primary };
+      return { color: theme.colors.textPrimary };
     case 'secondary':
-      return { color: designTokens.semanticColors.text.secondary };
+      return { color: theme.colors.textSecondary };
     case 'tertiary':
-      return { color: designTokens.semanticColors.text.tertiary };
+      return { color: theme.colors.textTertiary };
     case 'quaternary':
-      return { color: designTokens.semanticColors.text.quaternary };
+      return { color: theme.colors.textQuaternary };
     case 'inverse':
-      return { color: designTokens.semanticColors.text.inverse };
+      return { color: theme.colors.white };
     case 'disabled':
-      return { color: designTokens.semanticColors.text.disabled };
+      return { color: theme.colors.placeholder };
     case 'success':
-      return { color: designTokens.semanticColors.text.success };
+      return { color: theme.colors.successDark };
     case 'error':
-      return { color: designTokens.semanticColors.text.error };
+      return { color: theme.colors.errorDark };
     case 'warning':
-      return { color: designTokens.semanticColors.text.warning };
+      return { color: theme.colors.warningDark };
     case 'info':
-      return { color: designTokens.semanticColors.text.info };
+      return { color: theme.colors.infoDark };
     default:
       return {};
   }
@@ -314,7 +314,7 @@ const getColorStyles = (color: TypographyColor): TextStyle => {
 
 const styles = StyleSheet.create({
   base: {
-    fontFamily: designTokens.typography.fontFamily.sans,
+    fontFamily: theme.typography.fontFamily.regular,
   },
 });
 

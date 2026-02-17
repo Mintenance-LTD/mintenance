@@ -9,7 +9,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -274,11 +274,11 @@ const getBadgeStyles = (
   return {
     ...sizeStyles,
     ...colorStyles,
-    borderRadius: rounded ? 100 : designTokens.borderRadius.lg, // More rounded for modern look
+    borderRadius: rounded ? 100 : theme.borderRadius.lg, // More rounded for modern look
     alignSelf: 'flex-start',
     overflow: 'hidden',
     // Add subtle shadow for depth
-    ...designTokens.shadows.sm,
+    ...theme.shadows.sm,
   };
 };
 
@@ -292,7 +292,7 @@ const getChipStyles = (
   return {
     ...baseStyles,
     borderWidth: selected ? 0 : 1,
-    borderColor: selected ? 'transparent' : designTokens.semanticColors.border.primary,
+    borderColor: selected ? 'transparent' : theme.colors.border,
   };
 };
 
@@ -300,20 +300,20 @@ const getSizeStyles = (size: BadgeSize): ViewStyle => {
   switch (size) {
     case 'sm':
       return {
-        paddingHorizontal: designTokens.spacing[2],
-        paddingVertical: designTokens.spacing[0.5],
+        paddingHorizontal: theme.spacing[2],
+        paddingVertical: theme.spacing[0.5],
         minHeight: 20,
       };
     case 'md':
       return {
-        paddingHorizontal: designTokens.spacing[3],
-        paddingVertical: designTokens.spacing[1],
+        paddingHorizontal: theme.spacing[3],
+        paddingVertical: theme.spacing[1],
         minHeight: 24,
       };
     case 'lg':
       return {
-        paddingHorizontal: designTokens.spacing[4],
-        paddingVertical: designTokens.spacing[1.5],
+        paddingHorizontal: theme.spacing[4],
+        paddingVertical: theme.spacing[1.5],
         minHeight: 32,
       };
     default:
@@ -325,46 +325,46 @@ const getVariantStyles = (variant: BadgeVariant): ViewStyle => {
   switch (variant) {
     case 'primary':
       return {
-        backgroundColor: designTokens.colors.primary[500],
+        backgroundColor: theme.colors.primary,
         // Enhanced gradient-like effect with subtle border
         borderWidth: 1,
-        borderColor: designTokens.colors.primary[600],
+        borderColor: theme.colors.primaryDark,
       };
     case 'secondary':
       return {
-        backgroundColor: designTokens.colors.secondary[500],
+        backgroundColor: theme.colors.secondary,
         borderWidth: 1,
-        borderColor: designTokens.colors.secondary[600],
+        borderColor: theme.colors.secondaryDark,
       };
     case 'success':
       return {
-        backgroundColor: designTokens.colors.success[500],
+        backgroundColor: theme.colors.success,
         borderWidth: 1,
-        borderColor: designTokens.colors.success[600],
+        borderColor: theme.colors.successDark,
       };
     case 'error':
       return {
-        backgroundColor: designTokens.colors.error[500],
+        backgroundColor: theme.colors.error,
         borderWidth: 1,
-        borderColor: designTokens.colors.error[600],
+        borderColor: theme.colors.errorDark,
       };
     case 'warning':
       return {
-        backgroundColor: designTokens.colors.warning[500],
+        backgroundColor: theme.colors.warning,
         borderWidth: 1,
-        borderColor: designTokens.colors.warning[600],
+        borderColor: theme.colors.warningDark,
       };
     case 'info':
       return {
-        backgroundColor: designTokens.colors.info[500],
+        backgroundColor: theme.colors.info,
         borderWidth: 1,
-        borderColor: designTokens.colors.info[600],
+        borderColor: theme.colors.infoDark,
       };
     case 'neutral':
       return {
-        backgroundColor: designTokens.colors.neutral[100],
+        backgroundColor: theme.colors.backgroundTertiary,
         borderWidth: 1,
-        borderColor: designTokens.colors.neutral[200],
+        borderColor: theme.colors.border,
       };
     default:
       return {};
@@ -372,17 +372,17 @@ const getVariantStyles = (variant: BadgeVariant): ViewStyle => {
 };
 
 const getBadgeTextStyles = (variant: BadgeVariant, size: BadgeSize): TextStyle => {
-  const fontSize = size === 'sm' ? designTokens.typography.fontSize.xs :
-                   size === 'md' ? designTokens.typography.fontSize.sm :
-                   designTokens.typography.fontSize.base;
+  const fontSize = size === 'sm' ? theme.typography.fontSize.xs :
+                   size === 'md' ? theme.typography.fontSize.sm :
+                   theme.typography.fontSize.base;
 
   const color = variant === 'neutral'
-    ? designTokens.semanticColors.text.primary
-    : designTokens.semanticColors.text.inverse;
+    ? theme.colors.textPrimary
+    : theme.colors.white;
 
   return {
     fontSize,
-    fontWeight: designTokens.typography.fontWeight.medium,
+    fontWeight: theme.typography.fontWeight.medium,
     color,
     textAlign: 'center',
   };
@@ -398,7 +398,7 @@ const getChipTextStyles = (
   if (!selected && variant === 'neutral') {
     return {
       ...baseStyles,
-      color: designTokens.semanticColors.text.primary,
+      color: theme.colors.textPrimary,
     };
   }
 
@@ -407,8 +407,8 @@ const getChipTextStyles = (
 
 const getIconColor = (variant: BadgeVariant): string => {
   return variant === 'neutral'
-    ? designTokens.semanticColors.text.primary
-    : designTokens.semanticColors.text.inverse;
+    ? theme.colors.textPrimary
+    : theme.colors.white;
 };
 
 const getIconSize = (size: BadgeSize): number => {
@@ -454,11 +454,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   icon: {
-    marginRight: designTokens.spacing[1],
+    marginRight: theme.spacing[1],
   },
   deleteButton: {
-    marginLeft: designTokens.spacing[1],
-    padding: designTokens.spacing[0.5],
+    marginLeft: theme.spacing[1],
+    padding: theme.spacing[0.5],
   },
 });
 

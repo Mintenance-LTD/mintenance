@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { JobService } from '../services/JobService';
 import { Job } from '@mintenance/types';
-import { theme } from '../theme';
+import { theme, getStatusColor as themeGetStatusColor } from '../theme';
 import { NavigationHeader } from '../components/navigation';
 import {
   ResponsiveContainer,
@@ -140,13 +140,13 @@ const JobsScreen: React.FC = () => {
               <Ionicons
                 name='search'
                 size={20}
-                color='#666'
+                color={theme.colors.textSecondary}
                 style={styles.searchIcon}
               />
               <TextInput
                 style={styles.searchInput}
                 placeholder='Search jobs...'
-                placeholderTextColor='#999'
+                placeholderTextColor={theme.colors.textTertiary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 accessibilityLabel='Search jobs'
@@ -240,7 +240,7 @@ const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
       style={styles.jobCard}
       onPress={onPress}
       accessibilityRole='button'
-      accessibilityLabel={`${item.title}, ${formatStatus(item.status)}, budget $${item.budget.toLocaleString()}, ${item.location}`}
+      accessibilityLabel={`${item.title}, ${formatStatus(item.status)}, budget £${item.budget.toLocaleString()}, ${item.location}`}
       accessibilityHint='Double tap to view job details'
     >
       <View style={styles.jobCardHeader}>
@@ -250,7 +250,7 @@ const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
               {item.title}
             </Text>
             <View
-              style={[styles.priorityBadge, { backgroundColor: '#8E8E93' }]}
+              style={[styles.priorityBadge, { backgroundColor: theme.colors.textTertiary }]}
             >
               <Text style={styles.priorityText}>
                 {(item.priority || 'NORMAL').toUpperCase()}
@@ -265,7 +265,7 @@ const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
                 : `${daysAgo} days ago`}
           </Text>
         </View>
-        <Text style={styles.jobBudget}>${item.budget.toLocaleString()}</Text>
+        <Text style={styles.jobBudget}>£{item.budget.toLocaleString()}</Text>
       </View>
 
       {hasPhotos && (
@@ -298,7 +298,7 @@ const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
 
       <View style={styles.jobMeta}>
         <View style={styles.locationContainer}>
-          <Ionicons name='location-outline' size={14} color='#666' />
+          <Ionicons name='location-outline' size={14} color={theme.colors.textSecondary} />
           <Text style={styles.jobLocation}>{item.location}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
@@ -315,20 +315,7 @@ const JobListItem: React.FC<{ item: Job; onPress: () => void }> = ({
   );
 };
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'posted':
-      return theme.colors.info;
-    case 'assigned':
-      return '#5856D6';
-    case 'in_progress':
-      return '#FF9500';
-    case 'completed':
-      return '#34C759';
-    default:
-      return '#8E8E93';
-  }
-};
+const getStatusColor = (status: string) => themeGetStatusColor(status);
 
 const getStatusIcon = (status: string): unknown => {
   switch (status) {
@@ -370,9 +357,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceSecondary,
   },
   header: {
-    backgroundColor: theme.colors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    backgroundColor: theme.colors.background,
+    paddingBottom: 12,
   },
   headerTop: {
     flexDirection: 'row',
@@ -384,16 +370,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: theme.colors.textInverseMuted,
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   addButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
@@ -401,7 +387,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   addButtonText: {
-    color: theme.colors.textInverse,
+    color: theme.colors.primary,
     fontWeight: '600',
     marginLeft: 8,
   },
@@ -412,8 +398,8 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 25,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 24,
     marginBottom: 12,
     paddingHorizontal: 16,
     height: 48,
@@ -424,7 +410,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
   },
   filterRow: {
     flexDirection: 'row',
@@ -432,24 +418,23 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   filterChip: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 12,
+    backgroundColor: theme.colors.surfaceSecondary,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   filterChipActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: theme.colors.primary,
   },
   filterChipText: {
     fontSize: 14,
-    color: theme.colors.textInverse,
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
-  filterChipTextActive: {},
+  filterChipTextActive: {
+    color: theme.colors.textInverse,
+  },
   listContainer: {
     padding: 16,
   },
@@ -583,7 +568,7 @@ const styles = StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: theme.colors.errorLight + '20',
     marginHorizontal: 16,
     marginTop: 12,
     padding: 12,

@@ -140,15 +140,17 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
+    backgroundColor: theme.colors.background,
+    paddingTop: 16,
+    paddingBottom: 12,
     paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
   },
   content: {
     flex: 1,

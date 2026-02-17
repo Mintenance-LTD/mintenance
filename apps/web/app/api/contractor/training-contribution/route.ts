@@ -316,7 +316,7 @@ async function updateContributorStats(contractorId: string): Promise<void> {
     // Get current stats
     const { data: current } = await supabase
       .from('contractor_contributions')
-      .select('*')
+      .select('images_contributed, credits_earned')
       .eq('contractor_id', contractorId)
       .single();
 
@@ -356,7 +356,7 @@ async function checkAndAwardRewards(contractorId: string): Promise<{
 
   const { data: stats } = await supabase
     .from('contractor_contributions')
-    .select('*')
+    .select('images_contributed, credits_earned')
     .eq('contractor_id', contractorId)
     .single();
 

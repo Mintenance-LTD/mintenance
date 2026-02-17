@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { sanitizeJobDescription, sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
-import { checkJobCreationRateLimit, rateLimiter } from '@/lib/rate-limiter';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError, ForbiddenError } from '@/lib/errors/api-error';
+import { checkJobCreationRateLimit } from '@/lib/rate-limiter';
+import { BadRequestError, RateLimitError, ForbiddenError } from '@/lib/errors/api-error';
 import { JobQueryService } from '@/lib/services/job-query-service';
 import { JobCreationService } from '@/lib/services/job-creation-service';
 import { validateRequest } from '@/lib/validation/validator';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const listQuerySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -34,35 +33,9 @@ const createJobSchema = z.object({
   longitude: z.coerce.number().min(-180).max(180).optional(),
 });
 
-export async function GET(request: NextRequest) {
-  try {
-    // Rate limiting check
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 30
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(30),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-          }
-        }
-      );
-    }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view jobs');
-    }
-
+export const GET = withApiHandler(
+  { csrf: false },
+  async (request: NextRequest, { user }) => {
     const url = new URL(request.url);
     const parsed = listQuerySchema.safeParse({
       limit: url.searchParams.get('limit') ?? undefined,
@@ -81,43 +54,12 @@ export async function GET(request: NextRequest) {
     );
 
     return NextResponse.json({ jobs: items, nextCursor });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);
 
-export async function POST(request: NextRequest) {
-  try {
-    // Rate limiting check
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 30
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(30),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-          }
-        }
-      );
-    }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to create jobs');
-    }
-
+export const POST = withApiHandler(
+  { roles: ['homeowner'] },
+  async (request: NextRequest, { user }) => {
     // Rate limiting: 10 jobs per hour per user
     const skipRateLimit = process.env.NODE_ENV === 'development';
 
@@ -170,7 +112,5 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ job }, { status: 201 });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);

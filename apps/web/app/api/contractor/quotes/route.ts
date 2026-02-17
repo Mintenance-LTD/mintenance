@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = serverSupabase
       .from('contractor_quotes')
-      .select('*')
+      .select('id, title, client_name, client_email, status, total_amount, quote_date, created_at, sent_at, valid_until, line_items, quote_number, template_id')
       .eq('contractor_id', user.id)
       .order('created_at', { ascending: false });
 

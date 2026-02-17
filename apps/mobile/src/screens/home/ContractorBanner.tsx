@@ -1,11 +1,12 @@
 /**
  * ContractorBanner Component
- * 
- * Displays the contractor-specific banner with greeting and profile icon.
+ *
+ * Displays the contractor-specific welcome banner with dark gradient-style
+ * background and emerald accent, matching the web's contractor dashboard.
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { User } from '@mintenance/types';
@@ -14,26 +15,28 @@ interface ContractorBannerProps {
   user: User | null;
 }
 
+function getTimeGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning,';
+  if (hour < 18) return 'Good afternoon,';
+  return 'Good evening,';
+}
+
 export const ContractorBanner: React.FC<ContractorBannerProps> = ({ user }) => {
   return (
     <View style={styles.contractorBanner}>
+      <View style={styles.accentBar} />
       <View style={styles.contractorContent}>
-        <Text style={styles.contractorGreeting}>Mintenance Service Hub</Text>
-        <Text style={styles.contractorSubGreeting}>Good morning,</Text>
+        <View style={styles.iconRow}>
+          <View style={styles.proIcon}>
+            <Ionicons name="shield-checkmark" size={18} color={theme.colors.secondary} />
+          </View>
+          <Text style={styles.proBadge}>Verified Pro</Text>
+        </View>
+        <Text style={styles.contractorGreeting}>{getTimeGreeting()}</Text>
         <Text style={styles.contractorName}>{user?.firstName}</Text>
+        <Text style={styles.contractorSubtext}>Ready to grow your business today</Text>
       </View>
-      <TouchableOpacity
-        style={styles.profileIcon}
-        accessibilityRole='button'
-        accessibilityLabel='Profile'
-        accessibilityHint='Double tap to view and edit your profile'
-      >
-        <Ionicons
-          name='person-circle'
-          size={48}
-          color={theme.colors.textInverse}
-        />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -41,24 +44,43 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({ user }) => {
 const styles = StyleSheet.create({
   contractorBanner: {
     backgroundColor: theme.colors.primary,
-    paddingTop: 60,
-    paddingBottom: 32,
-    paddingHorizontal: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+    paddingTop: 20,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+  },
+  accentBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: theme.colors.secondary,
   },
   contractorContent: {
     flex: 1,
-    paddingLeft: 20,
+  },
+  iconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  proIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  proBadge: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.secondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   contractorGreeting: {
-    fontSize: 14,
-    color: theme.colors.textInverseMuted,
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  contractorSubGreeting: {
     fontSize: 16,
     color: theme.colors.textInverseMuted,
     marginBottom: 4,
@@ -67,10 +89,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: theme.colors.textInverse,
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  profileIcon: {
-    padding: 4,
-    paddingRight: 20,
+  contractorSubtext: {
+    fontSize: 14,
+    color: theme.colors.textInverseMuted,
   },
 });

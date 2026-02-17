@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input } from '../ui/Input';
 import { theme } from '../../theme';
 
@@ -17,8 +18,9 @@ export const MapHeader: React.FC<MapHeaderProps> = ({
   onBackPress,
   onFilterPress,
 }) => {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: insets.top }]}>
       <TouchableOpacity onPress={onBackPress}>
         <Ionicons
           name='arrow-back'
@@ -52,7 +54,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 60,
     paddingBottom: 16,
     paddingHorizontal: 20,
     backgroundColor: theme.colors.background,

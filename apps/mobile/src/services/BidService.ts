@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { checkRateLimit } from '../middleware/RateLimiter';
 
 export interface BidData {
   job_id: string;
@@ -38,6 +39,11 @@ export interface Bid extends BidData {
 
 export class BidService {
   static async createBid(bidData: BidData): Promise<Bid> {
+    // Rate limit check
+    if (!checkRateLimit('bid_submit', bidData.contractor_id)) {
+      throw new Error('Too many bid submissions. Please try again later.');
+    }
+
     // Validation
     if (bidData.amount <= 0) {
       throw new Error('Bid amount must be greater than 0');

@@ -58,13 +58,13 @@ export async function GET(request: NextRequest) {
 
         const { count: correctionCount } = await supabase
             .from('user_corrections')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .gte('created_at', startDate.toISOString());
 
         // 2. Model Performance Trend
         const { data: performanceSnapshots } = await supabase
             .from('model_performance_snapshots')
-            .select('*')
+            .select('timestamp, metrics, performance_score')
             .gte('timestamp', startDate.toISOString())
             .order('timestamp', { ascending: true });
 
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
         // 5. Model Versions
         const { data: models } = await supabase
             .from('yolo_models')
-            .select('*')
+            .select('version, metrics, created_at, is_active')
             .order('created_at', { ascending: true });
 
         // 6. User Feedback Stats
@@ -119,9 +119,9 @@ export async function GET(request: NextRequest) {
         });
 
         // 8. High Quality Training Examples
-        const { data: highQualityExamples, count: highQualityCount } = await supabase
+        const { count: highQualityCount } = await supabase
             .from('model_predictions_log')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact', head: true })
             .eq('gpt4_agreement', true)
             .gte('confidence', 0.85)
             .gte('created_at', startDate.toISOString());

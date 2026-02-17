@@ -196,7 +196,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
 
           {contractor.address && (
             <View style={styles.locationSection}>
-              <Ionicons name='location-outline' size={16} color='#666' />
+              <Ionicons name='location-outline' size={16} color={theme.colors.textSecondary} />
               <Text style={styles.locationText}>{contractor.address}</Text>
             </View>
           )}
@@ -204,6 +204,8 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           <TouchableOpacity
             style={styles.detailsButton}
             onPress={() => setShowDetails(!showDetails)}
+            accessibilityRole="button"
+            accessibilityLabel={showDetails ? 'Show less details' : 'View reviews'}
           >
             <Text style={styles.detailsButtonText}>
               {showDetails ? 'Show Less' : 'View Reviews'}
@@ -305,7 +307,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
             title: 'PASS',
             style: {
               label: {
-                backgroundColor: '#FF3B30',
+                backgroundColor: theme.colors.error,
                 color: 'white',
                 fontSize: 24,
                 fontWeight: 'bold',
@@ -325,7 +327,7 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
             title: 'LIKE',
             style: {
               label: {
-                backgroundColor: '#4CD964',
+                backgroundColor: theme.colors.success,
                 color: 'white',
                 fontSize: 24,
                 fontWeight: 'bold',
@@ -346,8 +348,8 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
       />
 
       <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.passButton} onPress={onPass}>
-          <Ionicons name='close' size={30} color='#FF3B30' />
+        <TouchableOpacity style={styles.passButton} onPress={onPass} accessibilityRole="button" accessibilityLabel="Pass on this contractor">
+          <Ionicons name='close' size={30} color={theme.colors.error} />
         </TouchableOpacity>
 
         {currentUserId && (
@@ -361,8 +363,8 @@ const ContractorCard: React.FC<Props> = ({ contractor, currentUserId, onLike, on
           />
         )}
 
-        <TouchableOpacity style={styles.likeButton} onPress={onLike}>
-          <Ionicons name='leaf' size={30} color='#4CD964' />
+        <TouchableOpacity style={styles.likeButton} onPress={onLike} accessibilityRole="button" accessibilityLabel="Like this contractor">
+          <Ionicons name='leaf' size={30} color={theme.colors.success} />
         </TouchableOpacity>
       </View>
     </View>
@@ -375,10 +377,10 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
@@ -406,7 +408,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
   },
   placeholderImage: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: theme.colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -417,7 +419,7 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   ratingContainer: {
@@ -545,11 +547,11 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderColor: '#FF3B30',
+    borderColor: theme.colors.error,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -560,11 +562,11 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     backgroundColor: theme.colors.surface,
     borderWidth: 2,
-    borderColor: '#4CD964',
+    borderColor: theme.colors.success,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: theme.colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,

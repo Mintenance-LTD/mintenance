@@ -63,12 +63,12 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             {React.createElement(Ionicons, {
               name: (iconName || 'help-outline') as keyof typeof Ionicons.glyphMap,
               size: isFocused ? NAVIGATION_CONSTANTS.ACTIVE_ICON_SIZE : NAVIGATION_CONSTANTS.ICON_SIZE,
-              color: isFocused ? theme.colors.primary : theme.colors.textSecondary,
+              color: isFocused ? theme.colors.secondary : theme.colors.textSecondary,
               style: TAB_STYLES.tabBarIconStyle,
             })}
             <Text style={[
               TAB_STYLES.tabBarLabelStyle,
-              { color: isFocused ? theme.colors.primary : theme.colors.textSecondary }
+              { color: isFocused ? theme.colors.secondary : theme.colors.textSecondary }
             ]}>
               {String(label)}
             </Text>
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: theme.colors.black,
         shadowOffset: { width: 0, height: -2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,

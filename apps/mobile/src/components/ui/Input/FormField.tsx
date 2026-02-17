@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 import { Input, InputProps } from './Input';
 
 // ============================================================================
@@ -46,7 +46,7 @@ export const FormField: React.FC<FormFieldProps> = ({
 
 const styles = StyleSheet.create({
   fieldContainer: {
-    marginBottom: designTokens.spacing[4],
+    marginBottom: theme.spacing[4],
   },
 });
 

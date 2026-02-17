@@ -7,7 +7,7 @@ import {
   TouchableOpacityProps,
   Animated,
 } from 'react-native';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -199,17 +199,17 @@ const getCardStyles = (
   isPressed: boolean = false
 ): ViewStyle => {
   const baseStyle: ViewStyle = {
-    borderRadius: designTokens.borderRadius.xl, // More rounded for modern look
+    borderRadius: theme.borderRadius.xl, // More rounded for modern look
     overflow: 'hidden',
   };
 
   // Add padding
   if (padding !== 'none') {
     const paddingMap = {
-      sm: designTokens.spacing[3],
-      md: designTokens.spacing[5], // Slightly more padding
-      lg: designTokens.spacing[6],
-      xl: designTokens.spacing[8],
+      sm: theme.spacing[3],
+      md: theme.spacing[5], // Slightly more padding
+      lg: theme.spacing[6],
+      xl: theme.spacing[8],
     };
     baseStyle.padding = paddingMap[padding];
   }
@@ -219,26 +219,26 @@ const getCardStyles = (
     case 'elevated':
       return {
         ...baseStyle,
-        backgroundColor: designTokens.semanticColors.background.primary,
-        ...(isPressed ? designTokens.shadows.lg : designTokens.shadows.md), // Dynamic shadow
-        opacity: disabled ? designTokens.opacity[50] : 1,
+        backgroundColor: theme.colors.background,
+        ...(isPressed ? theme.shadows.lg : theme.shadows.md), // Dynamic shadow
+        opacity: disabled ? 0.5 : 1,
         // Add subtle state overlay for interactive cards
         ...(interactive && !disabled && isPressed ? {
-          backgroundColor: designTokens.colors.neutral[50],
+          backgroundColor: theme.colors.backgroundSecondary,
         } : {}),
       };
 
     case 'outlined':
       return {
         ...baseStyle,
-        backgroundColor: designTokens.semanticColors.background.primary,
+        backgroundColor: theme.colors.background,
         borderWidth: 1,
         borderColor: isPressed && interactive
-          ? designTokens.colors.primary[200]
-          : designTokens.semanticColors.border.primary,
-        opacity: disabled ? designTokens.opacity[50] : 1,
+          ? theme.colors.gray100
+          : theme.colors.border,
+        opacity: disabled ? 0.5 : 1,
         ...(interactive && !disabled && isPressed ? {
-          backgroundColor: designTokens.colors.primary[50],
+          backgroundColor: theme.colors.gray25,
         } : {}),
       };
 
@@ -246,10 +246,10 @@ const getCardStyles = (
       return {
         ...baseStyle,
         backgroundColor: isPressed && interactive
-          ? designTokens.colors.neutral[100]
-          : designTokens.semanticColors.background.secondary,
-        opacity: disabled ? designTokens.opacity[50] : 1,
-        ...(interactive && !disabled ? designTokens.shadows.sm : {}),
+          ? theme.colors.backgroundTertiary
+          : theme.colors.backgroundSecondary,
+        opacity: disabled ? 0.5 : 1,
+        ...(interactive && !disabled ? theme.shadows.sm : {}),
       };
 
     default:
@@ -263,33 +263,33 @@ const getCardStyles = (
 
 const styles = StyleSheet.create({
   header: {
-    marginBottom: designTokens.spacing[3],
-    paddingBottom: designTokens.spacing[3],
+    marginBottom: theme.spacing[3],
+    paddingBottom: theme.spacing[3],
     borderBottomWidth: 1,
-    borderBottomColor: designTokens.semanticColors.border.primary,
+    borderBottomColor: theme.colors.border,
   },
   body: {
     flex: 1,
   },
   footer: {
-    marginTop: designTokens.spacing[3],
-    paddingTop: designTokens.spacing[3],
+    marginTop: theme.spacing[3],
+    paddingTop: theme.spacing[3],
     borderTopWidth: 1,
-    borderTopColor: designTokens.semanticColors.border.primary,
+    borderTopColor: theme.colors.border,
   },
 
   // Specialized card styles
   jobCard: {
-    marginVertical: designTokens.spacing[2],
-    marginHorizontal: designTokens.spacing[4],
+    marginVertical: theme.spacing[2],
+    marginHorizontal: theme.spacing[4],
   },
   contractorCard: {
-    marginVertical: designTokens.spacing[2],
-    marginHorizontal: designTokens.spacing[4],
+    marginVertical: theme.spacing[2],
+    marginHorizontal: theme.spacing[4],
   },
   statCard: {
     flex: 1,
-    margin: designTokens.spacing[2],
+    margin: theme.spacing[2],
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 100,

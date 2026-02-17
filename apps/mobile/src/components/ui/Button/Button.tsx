@@ -11,7 +11,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 import { useHaptics } from '../../../utils/haptics';
 
 // ============================================================================
@@ -65,6 +65,17 @@ export interface ButtonProps {
 }
 
 // ============================================================================
+// BUTTON SIZE PRESETS (replaces old componentSizes.button)
+// ============================================================================
+
+const BUTTON_SIZES = {
+  sm: { height: 32, paddingHorizontal: 12, fontSize: theme.typography.fontSize.sm },
+  md: { height: 40, paddingHorizontal: 16, fontSize: theme.typography.fontSize.base },
+  lg: { height: 48, paddingHorizontal: 24, fontSize: theme.typography.fontSize.lg },
+  xl: { height: 56, paddingHorizontal: 32, fontSize: theme.typography.fontSize.xl },
+};
+
+// ============================================================================
 // BUTTON COMPONENT
 // ============================================================================
 
@@ -103,7 +114,7 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
     const buttonStyles = getButtonStyles(variant, size, fullWidth, disabled, loading);
     const textStyles = getTextStyles(variant, size, disabled);
     const iconColor = getIconColor(variant, disabled);
-    const computedIconSize = iconSize || designTokens.componentSizes.icon[size === 'sm' ? 'sm' : 'md'];
+    const computedIconSize = iconSize || (size === 'sm' ? 16 : 20);
 
     // ========================================================================
     // EVENT HANDLERS
@@ -161,8 +172,8 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
         size={computedIconSize}
         color={iconColor}
         style={[
-          position === 'left' && { marginRight: designTokens.spacing[2] },
-          position === 'right' && { marginLeft: designTokens.spacing[2] },
+          position === 'left' && { marginRight: theme.spacing[2] },
+          position === 'right' && { marginLeft: theme.spacing[2] },
         ]}
       />
     );
@@ -174,7 +185,7 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
             <ActivityIndicator
               size="small"
               color={iconColor}
-              style={{ marginRight: designTokens.spacing[2] }}
+              style={{ marginRight: theme.spacing[2] }}
             />
             <Text style={[textStyles, textStyle]} numberOfLines={1}>
               {typeof children === 'string' ? children : 'Loading...'}
@@ -245,13 +256,13 @@ const getButtonStyles = (
   loading: boolean
 ): ViewStyle => {
   const baseStyle: ViewStyle = {
-    ...designTokens.componentSizes.button[size],
-    borderRadius: designTokens.borderRadius.xl, // More rounded for modern look
+    ...BUTTON_SIZES[size],
+    borderRadius: theme.borderRadius.xl, // More rounded for modern look
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
-    minWidth: designTokens.accessibility.minTouchTarget.width,
-    minHeight: designTokens.accessibility.minTouchTarget.height,
+    minWidth: theme.layout.minTouchTarget,
+    minHeight: theme.layout.minTouchTarget,
     overflow: 'hidden', // For ripple effect
   };
 
@@ -265,9 +276,9 @@ const getButtonStyles = (
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? designTokens.semanticColors.interactive.primaryDisabled
-          : designTokens.semanticColors.interactive.primary,
-        ...designTokens.shadows.md, // Enhanced shadow
+          ? theme.colors.gray100
+          : theme.colors.primary,
+        ...theme.shadows.md, // Enhanced shadow
         // State overlay for pressed state
         ...(disabled || loading ? {} : {
           // Subtle state layer effect
@@ -278,13 +289,13 @@ const getButtonStyles = (
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? designTokens.semanticColors.interactive.secondaryDisabled
-          : designTokens.colors.secondary[50], // Lighter tinted background
+          ? theme.colors.gray100
+          : '#F0FDF9', // Light tinted background
         borderWidth: 1,
         borderColor: disabled || loading
-          ? designTokens.colors.neutral[200]
-          : designTokens.semanticColors.interactive.secondary,
-        ...designTokens.shadows.sm,
+          ? theme.colors.gray100
+          : theme.colors.secondary,
+        ...theme.shadows.sm,
       };
 
     case 'outline':
@@ -293,33 +304,33 @@ const getButtonStyles = (
         backgroundColor: 'transparent',
         borderWidth: 1.5, // Slightly thicker border
         borderColor: disabled || loading
-          ? designTokens.semanticColors.border.primary
-          : designTokens.semanticColors.interactive.primary,
+          ? theme.colors.border
+          : theme.colors.primary,
       };
 
     case 'ghost':
       return {
         ...baseStyle,
         backgroundColor: 'transparent',
-        borderRadius: designTokens.borderRadius.lg, // Slightly less rounded
+        borderRadius: theme.borderRadius.lg, // Slightly less rounded
       };
 
     case 'danger':
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? designTokens.colors.neutral[200]
-          : designTokens.colors.error[500],
-        ...designTokens.shadows.md,
+          ? theme.colors.gray100
+          : theme.colors.error,
+        ...theme.shadows.md,
       };
 
     case 'success':
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? designTokens.colors.neutral[200]
-          : designTokens.colors.success[500],
-        ...designTokens.shadows.md,
+          ? theme.colors.gray100
+          : theme.colors.success,
+        ...theme.shadows.md,
       };
 
     default:
@@ -333,8 +344,8 @@ const getTextStyles = (
   disabled: boolean
 ): TextStyle => {
   const baseStyle: TextStyle = {
-    fontSize: designTokens.componentSizes.button[size].fontSize,
-    fontWeight: designTokens.typography.fontWeight.semibold,
+    fontSize: BUTTON_SIZES[size].fontSize,
+    fontWeight: theme.typography.fontWeight.semibold,
     textAlign: 'center',
   };
 
@@ -347,8 +358,8 @@ const getTextStyles = (
       return {
         ...baseStyle,
         color: disabled
-          ? designTokens.semanticColors.text.disabled
-          : designTokens.semanticColors.text.inverse,
+          ? theme.colors.placeholder
+          : theme.colors.white,
       };
 
     case 'outline':
@@ -356,10 +367,10 @@ const getTextStyles = (
       return {
         ...baseStyle,
         color: disabled
-          ? designTokens.semanticColors.text.disabled
+          ? theme.colors.placeholder
           : variant === 'outline'
-          ? designTokens.semanticColors.interactive.primary
-          : designTokens.semanticColors.text.primary,
+          ? theme.colors.primary
+          : theme.colors.textPrimary,
       };
 
     default:
@@ -369,7 +380,7 @@ const getTextStyles = (
 
 const getIconColor = (variant: ButtonVariant, disabled: boolean): string => {
   if (disabled) {
-    return designTokens.semanticColors.text.disabled;
+    return theme.colors.placeholder;
   }
 
   switch (variant) {
@@ -377,16 +388,16 @@ const getIconColor = (variant: ButtonVariant, disabled: boolean): string => {
     case 'secondary':
     case 'danger':
     case 'success':
-      return designTokens.semanticColors.text.inverse;
+      return theme.colors.white;
 
     case 'outline':
-      return designTokens.semanticColors.interactive.primary;
+      return theme.colors.primary;
 
     case 'ghost':
-      return designTokens.semanticColors.text.primary;
+      return theme.colors.textPrimary;
 
     default:
-      return designTokens.semanticColors.text.primary;
+      return theme.colors.textPrimary;
   }
 };
 

@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { NextRequest } from 'next/server';
 import { DatabaseManager } from './database';
 import { generateJWT, verifyJWT, generateTokenPair, hashRefreshToken, ConfigManager } from '@mintenance/auth';
 import { serverSupabase } from './api/supabaseServer';
@@ -473,6 +474,70 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 
   return null;
+}
+
+/**
+ * Get current user from Bearer token in Authorization header.
+ * Used by mobile clients that send Supabase JWTs.
+ * Verifies the token server-side via Supabase's auth.getUser().
+ */
+export async function getCurrentUserFromBearerToken(
+  request: NextRequest
+): Promise<Pick<User, 'id' | 'email' | 'role' | 'first_name' | 'last_name'> | null> {
+  try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return null;
+    }
+
+    const token = authHeader.slice(7);
+    if (!token) {
+      return null;
+    }
+
+    // Verify the Supabase JWT server-side
+    const { data: { user }, error } = await serverSupabase.auth.getUser(token);
+
+    if (error || !user) {
+      logger.warn('Bearer token verification failed', {
+        service: 'auth',
+        error: error?.message,
+      });
+      return null;
+    }
+
+    // Extract user info from Supabase user metadata
+    const role = user.user_metadata?.role || 'homeowner';
+    if (!['homeowner', 'contractor', 'admin'].includes(role)) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      email: user.email || '',
+      role: role as 'homeowner' | 'contractor' | 'admin',
+      first_name: user.user_metadata?.first_name || '',
+      last_name: user.user_metadata?.last_name || '',
+    };
+  } catch (error) {
+    logger.error('Failed to get user from Bearer token', error);
+    return null;
+  }
+}
+
+/**
+ * Unified auth: tries cookie auth first (browsers), then Bearer token (mobile).
+ * Use this in API routes that need to support both web and mobile clients.
+ */
+export async function getUserFromRequest(
+  request: NextRequest
+): Promise<Pick<User, 'id' | 'email' | 'role' | 'first_name' | 'last_name'> | null> {
+  // Try cookie auth first (web browsers)
+  const cookieUser = await getCurrentUserFromCookies();
+  if (cookieUser) return cookieUser;
+
+  // Fall back to Bearer token (mobile clients)
+  return getCurrentUserFromBearerToken(request);
 }
 
 // Alias export for backward compatibility

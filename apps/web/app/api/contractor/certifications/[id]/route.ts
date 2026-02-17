@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const certificationUpdateSchema = z.object({
   name: z.string().min(1).max(255).optional(),
@@ -17,48 +15,18 @@ const certificationUpdateSchema = z.object({
   category: z.enum(['safety', 'electrical', 'plumbing', 'kitchen', 'general', 'other']).optional(),
 });
 
-interface Params {
-  params: Promise<{ id: string }>;
-}
-
 /**
  * GET /api/contractor/certifications/[id]
  * Get a specific certification
  */
-export async function GET(request: NextRequest, context: Params) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor authentication required');
-    }
-
-    const { id } = await context.params;
+export const GET = withApiHandler(
+  { roles: ['contractor'], csrf: false },
+  async (_request, { user, params }) => {
+    const { id } = params;
 
     const { data: certification, error } = await serverSupabase
       .from('contractor_certifications')
-      .select('*')
+      .select('id, name, issuer, issue_date, expiry_date, credential_id, document_url, is_verified, category, contractor_id, created_at')
       .eq('id', id)
       .eq('contractor_id', user.id)
       .single();
@@ -68,47 +36,17 @@ export async function GET(request: NextRequest, context: Params) {
     }
 
     return NextResponse.json({ certification });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);
 
 /**
  * PUT /api/contractor/certifications/[id]
  * Update a certification
  */
-export async function PUT(request: NextRequest, context: Params) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor authentication required');
-    }
-
-    const { id } = await context.params;
+export const PUT = withApiHandler(
+  { roles: ['contractor'] },
+  async (request: NextRequest, { user, params }) => {
+    const { id } = params;
     const body = await request.json();
     const validation = certificationUpdateSchema.safeParse(body);
     if (!validation.success) {
@@ -162,47 +100,17 @@ export async function PUT(request: NextRequest, context: Params) {
     });
 
     return NextResponse.json({ certification });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);
 
 /**
  * DELETE /api/contractor/certifications/[id]
  * Delete a certification
  */
-export async function DELETE(request: NextRequest, context: Params) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor authentication required');
-    }
-
-    const { id } = await context.params;
+export const DELETE = withApiHandler(
+  { roles: ['contractor'] },
+  async (_request, { user, params }) => {
+    const { id } = params;
 
     // Verify the certification belongs to the user
     const { data: existingCert, error: checkError } = await serverSupabase
@@ -238,7 +146,5 @@ export async function DELETE(request: NextRequest, context: Params) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

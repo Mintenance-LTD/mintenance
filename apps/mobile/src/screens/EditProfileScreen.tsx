@@ -73,7 +73,7 @@ const EditProfileScreen: React.FC = () => {
           <Ionicons
             name='arrow-back'
             size={24}
-            color={theme.colors.textInverse}
+            color={theme.colors.textPrimary}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>Edit Profile</Text>
@@ -157,7 +157,7 @@ const EditProfileScreen: React.FC = () => {
               style={[styles.input, styles.disabledInput]}
               value={user?.email || ''}
               editable={false}
-              placeholderTextColor='#999'
+              placeholderTextColor={theme.colors.textTertiary}
             />
             <Text style={styles.helperText}>
               Email cannot be changed. Contact support if needed.
@@ -171,7 +171,7 @@ const EditProfileScreen: React.FC = () => {
               value={phone}
               onChangeText={setPhone}
               placeholder='Enter your phone number'
-              placeholderTextColor='#999'
+              placeholderTextColor={theme.colors.textTertiary}
               keyboardType='phone-pad'
             />
           </View>
@@ -192,7 +192,7 @@ const EditProfileScreen: React.FC = () => {
                   ? 'Tell homeowners about your experience and expertise...'
                   : 'Tell contractors about your project preferences...'
               }
-              placeholderTextColor='#999'
+              placeholderTextColor={theme.colors.textTertiary}
               multiline
               numberOfLines={4}
             />
@@ -257,10 +257,10 @@ const EditProfileScreen: React.FC = () => {
             accessibilityLabel='Change password'
           >
             <View style={styles.actionLeft}>
-              <Ionicons name='key-outline' size={20} color='#666' />
+              <Ionicons name='key-outline' size={20} color={theme.colors.textSecondary} />
               <Text style={styles.actionText}>Change Password</Text>
             </View>
-            <Ionicons name='chevron-forward' size={16} color='#ccc' />
+            <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -270,12 +270,12 @@ const EditProfileScreen: React.FC = () => {
             accessibilityHint='This action cannot be undone'
           >
             <View style={styles.actionLeft}>
-              <Ionicons name='trash-outline' size={20} color='#FF3B30' />
+              <Ionicons name='trash-outline' size={20} color={theme.colors.error} />
               <Text style={[styles.actionText, styles.dangerText]}>
                 Delete Account
               </Text>
             </View>
-            <Ionicons name='chevron-forward' size={16} color='#FF3B30' />
+            <Ionicons name='chevron-forward' size={16} color={theme.colors.error} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -289,26 +289,28 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceSecondary,
   },
   header: {
-    backgroundColor: theme.colors.primary,
-    paddingTop: 60,
-    paddingBottom: 16,
+    backgroundColor: theme.colors.background,
+    paddingTop: 16,
+    paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: theme.borderRadius.xxl,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: theme.colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
@@ -316,13 +318,13 @@ const styles = StyleSheet.create({
   saveButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: theme.colors.primary,
     borderRadius: 16,
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.textInverse,
   },
   content: {
     flex: 1,
@@ -465,7 +467,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   dangerText: {
-    color: '#FF3B30',
+    color: theme.colors.error,
   },
 });
 

@@ -41,7 +41,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
             </View>
             <Text style={styles.menuText}>{item.label}</Text>
           </View>
-          <Ionicons name='chevron-forward' size={16} color='#C7C7CC' />
+          <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
         </TouchableOpacity>
       ))}
     </View>

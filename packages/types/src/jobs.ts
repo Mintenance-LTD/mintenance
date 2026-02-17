@@ -5,18 +5,23 @@ export interface Job {
   id: string;
   title: string;
   description: string;
-  location: string;
+  location: string | Record<string, unknown>; // JSONB in DB, string in some UI contexts
   homeowner_id: string; // Database field (snake_case)
   contractor_id?: string; // Database field (snake_case)
-  status: 'draft' | 'open' | 'in_progress' | 'completed' | 'cancelled';
-  budget: number;
+  status: 'draft' | 'posted' | 'open' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+  budget?: number; // Legacy single budget field
+  budget_min?: number; // DB: budget_min DECIMAL
+  budget_max?: number; // DB: budget_max DECIMAL
   created_at: string; // Database field (snake_case)
   updated_at: string; // Database field (snake_case)
   // Core MVP fields
   category?: string;
   subcategory?: string;
-  priority?: 'low' | 'medium' | 'high';
+  priority?: 'low' | 'medium' | 'high' | 'emergency';
+  urgency?: 'low' | 'medium' | 'high' | 'emergency'; // DB column name
   photos?: string[]; // Max 3 photos for MVP
+  images?: string[]; // DB: images TEXT[]
+  postcode?: string;
   // Computed/alias fields for UI layer (camelCase)
   homeownerId?: string; // Alias for homeowner_id
   contractorId?: string; // Alias for contractor_id
@@ -59,6 +64,7 @@ export interface Bid {
   contractorId: string;
   amount: number;
   description: string;
+  message?: string; // DB column name (maps to description in UI)
   createdAt: string;
   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
   contractorName?: string;
@@ -67,6 +73,10 @@ export interface Bid {
   jobDescription?: string;
   jobLocation?: string;
   jobBudget?: number;
+  // DB-specific fields
+  estimated_duration_days?: number;
+  materials_included?: boolean;
+  warranty_months?: number;
   // Database field aliases (snake_case)
   job_id?: string;
   contractor_id?: string;

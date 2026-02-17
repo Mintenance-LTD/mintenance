@@ -8,7 +8,7 @@ import {
   GestureResponderEvent,
 } from 'react-native';
 import { PanGestureHandlerEventPayload } from 'react-native-gesture-handler';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -410,7 +410,7 @@ export interface LoadingAnimationProps {
 
 export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
   type = 'pulse',
-  color = designTokens.colors.primary[500],
+  color = theme.colors.secondary,
   size = 40,
   speed = 'normal',
   style,

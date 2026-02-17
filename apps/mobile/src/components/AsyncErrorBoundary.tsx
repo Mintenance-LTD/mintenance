@@ -62,7 +62,7 @@ export const AsyncErrorBoundary: React.FC<AsyncErrorBoundaryProps> = ({
   const renderAsyncErrorFallback = (error: Error, resetError: () => void) => (
     <View style={styles.container}>
       <View style={styles.iconContainer}>
-        <Ionicons name='alert-circle-outline' size={54} color='#FF3B30' />
+        <Ionicons name='alert-circle-outline' size={54} color={theme.colors.error} />
       </View>
 
       <Text style={styles.title}>Operation Failed</Text>

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { Booking } from './BookingStatusScreen';
@@ -28,41 +28,41 @@ export const BookingList: React.FC<BookingListProps> = ({
   onShare,
   onViewDetails,
 }) => {
-  if (bookings.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Ionicons
-          name="calendar-outline"
-          size={64}
-          color={theme.colors.textTertiary}
-          accessible={false}
-        />
-        <Text style={styles.emptyTitle}>No bookings found</Text>
-        <Text style={styles.emptySubtitle}>
-          Your bookings will appear here once you have them
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView
+    <FlatList
       style={styles.container}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.contentContainer}
-    >
-      {bookings.map((booking) => (
+      data={bookings}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
         <BookingCard
-          key={booking.id}
-          booking={booking}
+          booking={item}
           onCancel={onCancel}
           onReschedule={onReschedule}
           onRate={onRate}
           onShare={onShare}
           onViewDetails={onViewDetails}
         />
-      ))}
-    </ScrollView>
+      )}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={[
+        styles.contentContainer,
+        bookings.length === 0 && styles.emptyContentContainer,
+      ]}
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Ionicons
+            name="calendar-outline"
+            size={64}
+            color={theme.colors.textTertiary}
+            accessible={false}
+          />
+          <Text style={styles.emptyTitle}>No bookings found</Text>
+          <Text style={styles.emptySubtitle}>
+            Your bookings will appear here once you have them
+          </Text>
+        </View>
+      }
+    />
   );
 };
 
@@ -75,9 +75,11 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  emptyContainer: {
+  emptyContentContainer: {
     flex: 1,
     justifyContent: 'center',
+  },
+  emptyContainer: {
     alignItems: 'center',
     padding: 40,
   },

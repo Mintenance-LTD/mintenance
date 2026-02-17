@@ -15,27 +15,32 @@ export const NAVIGATION_CONSTANTS = {
 };
 
 export const TAB_CONFIG = {
-  Home: {
+  HomeTab: {
     icon: 'home-outline' as keyof typeof Ionicons.glyphMap,
     activeIcon: 'home' as keyof typeof Ionicons.glyphMap,
     label: 'Home',
   },
-  Jobs: {
+  JobsTab: {
     icon: 'briefcase-outline' as keyof typeof Ionicons.glyphMap,
     activeIcon: 'briefcase' as keyof typeof Ionicons.glyphMap,
     label: 'Jobs',
   },
-  Discover: {
-    icon: 'search-outline' as keyof typeof Ionicons.glyphMap,
-    activeIcon: 'search' as keyof typeof Ionicons.glyphMap,
-    label: 'Discover',
+  DiscoverTab: {
+    icon: 'map-outline' as keyof typeof Ionicons.glyphMap,
+    activeIcon: 'map' as keyof typeof Ionicons.glyphMap,
+    label: 'Find Jobs',
   },
-  Messages: {
+  AddTab: {
+    icon: 'add-circle-outline' as keyof typeof Ionicons.glyphMap,
+    activeIcon: 'add-circle' as keyof typeof Ionicons.glyphMap,
+    label: '',
+  },
+  MessagingTab: {
     icon: 'chatbubbles-outline' as keyof typeof Ionicons.glyphMap,
     activeIcon: 'chatbubbles' as keyof typeof Ionicons.glyphMap,
     label: 'Messages',
   },
-  Profile: {
+  ProfileTab: {
     icon: 'person-outline' as keyof typeof Ionicons.glyphMap,
     activeIcon: 'person' as keyof typeof Ionicons.glyphMap,
     label: 'Profile',

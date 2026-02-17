@@ -1,11 +1,9 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import type { ModalStackParamList } from '@mintenance/types';
+import type { ModalStackParamList } from '../types';
 
 // Import existing screens
 import ServiceRequestScreen from '../../screens/ServiceRequestScreen';
-import FindContractorsScreen from '../../screens/FindContractorsScreen';
-import ContractorDiscoveryScreen from '../../screens/ContractorDiscoveryScreen';
 import { ContractorProfileScreen } from '../../screens/contractor-profile';
 import { EnhancedHomeScreen } from '../../screens/enhanced-home';
 import { PaymentMethodsScreen as PaymentMethodsScreenRefactored } from '../../screens/payment-methods';
@@ -23,18 +21,6 @@ import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider'
 const SafeServiceRequestScreen = withScreenErrorBoundary(
   ServiceRequestScreen,
   'Service Request',
-  { fallbackRoute: 'Main' }
-);
-
-const SafeFindContractorsScreen = withScreenErrorBoundary(
-  FindContractorsScreen,
-  'Find Contractors',
-  { fallbackRoute: 'Main' }
-);
-
-const SafeContractorDiscoveryScreen = withScreenErrorBoundary(
-  ContractorDiscoveryScreen,
-  'Contractor Discovery',
   { fallbackRoute: 'Main' }
 );
 
@@ -111,25 +97,7 @@ export const ModalNavigator: React.FC = () => {
           gestureEnabled: true,
         }}
       />
-      
-      <ModalStack.Screen
-        name="FindContractors"
-        component={SafeFindContractorsScreen}
-        options={{
-          title: 'Find Contractors',
-          gestureEnabled: true,
-        }}
-      />
-      
-      <ModalStack.Screen
-        name="ContractorDiscovery"
-        component={SafeContractorDiscoveryScreen}
-        options={{
-          title: 'Discover Contractors',
-          gestureEnabled: true,
-        }}
-      />
-      
+
       <ModalStack.Screen
         name="CreateQuote"
         component={SafeCreateQuoteScreen}

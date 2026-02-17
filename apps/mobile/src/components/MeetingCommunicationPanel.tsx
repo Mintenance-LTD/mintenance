@@ -20,6 +20,7 @@ import {
   MeetingUpdate,
   Message,
 } from '@mintenance/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
@@ -37,6 +38,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
   onClose,
 }) => {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<'chat' | 'schedule'>('chat');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -205,7 +207,7 @@ const MeetingCommunicationPanel: React.FC<Props> = ({
       onRequestClose={onClose}
     >
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
@@ -506,7 +508,6 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: theme.colors.surface,
-    paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',

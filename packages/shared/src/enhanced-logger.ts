@@ -100,8 +100,8 @@ export class EnhancedLogger {
     if (this.config.enableBatching) {
       this.flushTimer = setInterval(() => this.flush(), this.config.flushInterval);
 
-      // Ensure logs are flushed on process exit
-      if (typeof process !== 'undefined') {
+      // Ensure logs are flushed on process exit (Node.js only, not React Native)
+      if (typeof process !== 'undefined' && typeof process.on === 'function') {
         process.on('exit', () => this.flush());
         process.on('SIGINT', () => {
           this.flush();

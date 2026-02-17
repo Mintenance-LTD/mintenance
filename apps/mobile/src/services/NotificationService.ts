@@ -14,16 +14,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import * as sentry from '../config/sentry';
-import type { Tables } from '../types/database';
-
 // Storage keys for notification queue
 const NOTIFICATION_QUEUE_KEY = '@mintenance/notification_queue';
 const LAST_NOTIFICATION_ID_KEY = '@mintenance/last_notification_id';
 
-// Database row types (snake_case)
-type DatabaseNotificationRow = Tables['notifications']['Row'];
-type DatabaseUserPushTokenRow = Tables['user_push_tokens']['Row'];
-type DatabaseNotificationPreferencesRow = Tables['user_notification_preferences']['Row'];
+// Database row type (snake_case matching Supabase schema)
+interface DatabaseNotificationRow {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  data: unknown | null;
+  type: string;
+  priority: 'low' | 'normal' | 'high';
+  read: boolean;
+  created_at: string;
+  updated_at: string | null;
+}
 
 // Type for notification data in deep links
 interface NotificationDeepLinkData {
@@ -594,11 +601,11 @@ export class NotificationService {
     try {
       const { error } = await supabase
         .from('user_notification_preferences')
-        .update({
+        .upsert({
+          user_id: userId,
           preferences,
           updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId);
+        });
 
       if (error) throw error;
       logger.info('Notification preferences updated', { userId });
@@ -638,10 +645,10 @@ export class NotificationService {
       return (data || []).map((row: DatabaseNotificationRow) => ({
         id: row.id,
         title: row.title,
-        body: row.body,
+        body: row.message || '',
         data: row.data,
         type: row.type,
-        priority: row.priority,
+        priority: row.priority || 'normal',
         userId: row.user_id,
         createdAt: row.created_at,
         read: row.read,
@@ -715,7 +722,7 @@ export class NotificationService {
         .from('notifications')
         .insert({
           title: notification.title,
-          body: notification.body,
+          message: notification.body,
           data: notification.data,
           type: notification.type,
           priority: notification.priority,

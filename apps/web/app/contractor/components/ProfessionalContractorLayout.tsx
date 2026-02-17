@@ -286,7 +286,7 @@ export function ProfessionalContractorLayout({
           <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
             <Link href="/contractor/dashboard-enhanced" className="flex items-center gap-3">
               <img
-                src="/assets/mintenance-leaf-icon.png"
+                src="/assets/icon.png"
                 alt="Mintenance"
                 className="w-8 h-8"
               />

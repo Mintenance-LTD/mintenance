@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
@@ -66,59 +66,64 @@ const MessagesListScreen: React.FC = () => {
           <Ionicons
             name='search-outline'
             size={24}
-            color={theme.colors.textInverse}
+            color={theme.colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
 
       {/* Messages List */}
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
-            progressBackgroundColor={theme.colors.surface}
+      {loading ? (
+        <View style={styles.content}>{renderSkeletonMessages()}</View>
+      ) : error ? (
+        <View style={[styles.content, styles.errorContainer]}>
+          <Banner
+            message='Failed to load messages'
+            variant='error'
+            testID='messages-error-banner'
           />
-        }
-      >
-        {loading ? (
-          renderSkeletonMessages()
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Banner
-              message='Failed to load messages'
-              variant='error'
-              testID='messages-error-banner'
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={handleRefresh}
+            accessibilityRole='button'
+            accessibilityLabel='Retry loading messages'
+          >
+            <Ionicons
+              name='refresh'
+              size={18}
+              color={theme.colors.textInverse}
+              style={styles.retryIcon}
             />
-            <TouchableOpacity
-              style={styles.retryButton}
-              onPress={handleRefresh}
-              accessibilityRole='button'
-              accessibilityLabel='Retry loading messages'
-            >
-              <Ionicons
-                name='refresh'
-                size={18}
-                color={theme.colors.textInverse}
-                style={styles.retryIcon}
-              />
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        ) : conversations.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name='chatbubbles-outline' size={48} color={theme.colors.textTertiary} accessible={false} />
-            <Text style={styles.emptyText}>No conversations yet</Text>
-            <Text style={styles.emptySubtext}>
-              Start messaging contractors about your projects!
-            </Text>
-          </View>
-        ) : (
-          conversations.map((thread: unknown) => {
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={conversations}
+          keyExtractor={(item: unknown) => item.jobId}
+          contentContainerStyle={[
+            styles.content,
+            conversations.length === 0 && styles.emptyContainer,
+          ]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+              progressBackgroundColor={theme.colors.surface}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name='chatbubbles-outline' size={48} color={theme.colors.textTertiary} accessible={false} />
+              <Text style={styles.emptyText}>No conversations yet</Text>
+              <Text style={styles.emptySubtext}>
+                Start messaging contractors about your projects!
+              </Text>
+            </View>
+          }
+          renderItem={({ item: thread }) => {
             const otherParticipant =
               thread.participants.find(
                 (p: unknown) => p.id !== user?.id
@@ -141,11 +146,9 @@ const MessagesListScreen: React.FC = () => {
 
             return (
               <TouchableOpacity
-                key={thread.jobId}
                 style={styles.conversationCard}
                 onPress={() => {
                   haptics.buttonPress();
-                  // Navigate to individual messaging screen
                   navigation.navigate('Messaging', {
                     jobId: thread.jobId,
                     jobTitle: thread.jobTitle,
@@ -204,9 +207,9 @@ const MessagesListScreen: React.FC = () => {
                 />
               </TouchableOpacity>
             );
-          })
-        )}
-      </ScrollView>
+          }}
+        />
+      )}
     </View>
     </SafeAreaView>
   );
@@ -222,18 +225,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary, // Dark blue header
-    paddingTop: 60,
-    paddingBottom: 20,
+    backgroundColor: theme.colors.background,
+    paddingTop: 16,
+    paddingBottom: 12,
     paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
   },
   searchButton: {
     padding: 8,

@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     const { data: certifications, error } = await serverSupabase
       .from('contractor_certifications')
-      .select('*')
+      .select('id, name, issuer, issue_date, expiry_date, credential_id, document_url, is_verified, category')
       .eq('contractor_id', user.id)
       .order('issue_date', { ascending: false });
 

@@ -1,10 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /** Type for Supabase edge function error with possible extended properties */
 interface EdgeFunctionError extends Error {
@@ -30,44 +26,9 @@ function getErrorDetails(error: unknown): { code?: string; statusCode?: number; 
  * POST /api/contractor/payout/setup
  * Set up Stripe Connect account for contractor payouts
  */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Authenticate user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    // Verify user is a contractor
-    if (user.role !== 'contractor') {
-      throw new ForbiddenError('Only contractors can set up payout accounts');
-    }
-
+export const POST = withApiHandler(
+  { roles: ['contractor'] },
+  async (_request, { user }) => {
     // Invoke Supabase Edge Function to set up Stripe Connect
     // Explicitly pass authorization header to ensure authentication
     // The service role key should be used for server-side function invocations
@@ -148,7 +109,7 @@ export async function POST(request: NextRequest) {
       // IMPORTANT: When Edge Function returns non-2xx, Supabase client puts the response body in 'data' field
       let errorMessage = err.message || 'Failed to set up payout account';
       let responseErrorDetails: unknown = undefined;
-      
+
       // Try to extract detailed error information from data
       // The Edge Function returns: { error: string, details?: unknown } when there's an error
       if (data) {
@@ -174,7 +135,7 @@ export async function POST(request: NextRequest) {
           errorMessage = data;
         }
       }
-      
+
       // Log comprehensive error information for debugging
       logger.error('Edge Function error', {
         service: 'payments',
@@ -187,7 +148,7 @@ export async function POST(request: NextRequest) {
         errorObject: error,
         responseData: data,
       });
-      
+
       // Return a more descriptive error message
       throw new Error(errorMessage);
     }
@@ -208,8 +169,5 @@ export async function POST(request: NextRequest) {
       accountUrl,
       message: 'Redirecting to Stripe onboarding...',
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

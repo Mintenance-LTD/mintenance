@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ViewStyle, TouchableOpacity, Text } from 'react-native';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 import { Button, ButtonProps } from './Button';
 
 // ============================================================================
@@ -21,7 +21,7 @@ export interface ButtonGroupProps {
   selectionMode?: 'single' | 'multiple';
   selectedValues?: string[];
   orientation?: 'horizontal' | 'vertical';
-  spacing?: keyof typeof designTokens.spacing;
+  spacing?: keyof typeof theme.spacing;
   style?: ViewStyle;
   layout?: 'horizontal' | 'vertical';
   // Legacy props for backward compatibility
@@ -69,7 +69,7 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
 
   // Legacy mode: render children
   if (children && !buttons) {
-    const spacingValue = designTokens.spacing[spacing];
+    const spacingValue = theme.spacing[spacing];
 
     const containerStyle: ViewStyle = {
       flexDirection: orientation === 'horizontal' ? 'row' : 'column',
@@ -104,7 +104,7 @@ export const ButtonGroup: React.FC<ButtonGroupProps> = ({
         style={StyleSheet.flatten([
           styles.container,
           orientation === 'vertical' && styles.verticalContainer,
-          { gap: designTokens.spacing[spacing] },
+          { gap: theme.spacing[spacing] },
           style,
         ])}
         testID="button-group"
@@ -155,35 +155,35 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   button: {
-    paddingHorizontal: designTokens.spacing.md,
-    paddingVertical: designTokens.spacing.sm,
-    borderRadius: designTokens.borderRadius.md,
-    backgroundColor: designTokens.colors.surface,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: designTokens.colors.border,
+    borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
   },
   selectedButton: {
-    backgroundColor: designTokens.colors.primary,
-    borderColor: designTokens.colors.primary,
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   disabledButton: {
-    backgroundColor: designTokens.colors.surface,
-    borderColor: designTokens.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
     opacity: 0.5,
   },
   buttonText: {
-    fontSize: designTokens.typography.body.fontSize,
-    fontWeight: designTokens.typography.body.fontWeight,
-    color: designTokens.colors.text,
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.regular,
+    color: theme.colors.textPrimary,
   },
   selectedButtonText: {
-    color: designTokens.colors.white,
+    color: theme.colors.white,
   },
   disabledButtonText: {
-    color: designTokens.colors.textSecondary,
+    color: theme.colors.textSecondary,
   },
 });
 

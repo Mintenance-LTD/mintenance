@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
 import { releaseEscrowSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { PaymentStateMachine, PaymentAction, PaymentState } from '@/lib/payment-state-machine';
-import { requireCSRF } from '@/lib/csrf';
 import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
@@ -15,50 +13,17 @@ import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
 import { env } from '@/lib/env';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError, ConflictError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError, ConflictError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Initialize Stripe with validated secret key (server-side only)
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-04-10',
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Authenticate user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      logger.warn('Unauthorized escrow release attempt', {
-        service: 'payments',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
-      throw new UnauthorizedError('Authentication required');
-    }
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user }) => {
 
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, releaseEscrowSchema);
@@ -691,46 +656,5 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json(responseData);
-
-  } catch (error) {
-    // Handle CSRF validation errors specifically
-    if (error instanceof Error && error.message === 'CSRF validation failed') {
-      logger.warn('CSRF validation failed', {
-        service: 'payments',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
-
-      return NextResponse.json(
-        { error: 'CSRF validation failed' },
-        { status: 403 }
-      );
-    }
-
-    // Use sanitized error handling
-    const { createPaymentErrorResponse } = await import('@/lib/errors/payment-errors');
-
-    // Safely access user from getCurrentUserFromCookies if not in scope
-    let userId: string | undefined;
-    try {
-      const userFromCookies = await getCurrentUserFromCookies();
-      userId = userFromCookies?.id;
-    } catch {
-      userId = undefined;
-    }
-
-    const errorResponse = createPaymentErrorResponse(error, {
-      operation: 'release_escrow',
-      userId,
-      ip: request.headers.get('x-forwarded-for') || undefined,
-    });
-
-    return NextResponse.json(
-      {
-        error: errorResponse.error,
-        code: errorResponse.code,
-        retryable: errorResponse.retryable
-      },
-      { status: errorResponse.status }
-    );
   }
-}
+);

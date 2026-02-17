@@ -1,11 +1,12 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import type { ProfileStackParamList } from '@mintenance/types';
+import type { ProfileStackParamList } from '../types';
 
 // Import existing screens
 import ProfileScreen from '../../screens/ProfileScreen';
 import EditProfileScreen from '../../screens/EditProfileScreen';
 import NotificationSettingsScreen from '../../screens/NotificationSettingsScreen';
+import { NotificationScreen } from '../../screens/NotificationScreen';
 import { PaymentMethodsScreen } from '../../screens/payment-methods';
 import AddPaymentMethodScreen from '../../screens/AddPaymentMethodScreen';
 import HelpCenterScreen from '../../screens/HelpCenterScreen';
@@ -16,6 +17,12 @@ import ServiceAreasScreen from '../../screens/ServiceAreasScreen';
 import QuoteBuilderScreen from '../../screens/QuoteBuilderScreen';
 import { CreateQuoteScreen } from '../../screens/create-quote';
 import ContractorCardEditorScreen from '../../screens/ContractorCardEditorScreen';
+import { ContractorVerificationScreen } from '../../screens/contractor-verification/ContractorVerificationScreen';
+import { PropertiesScreen } from '../../screens/properties/PropertiesScreen';
+import { PropertyDetailScreen } from '../../screens/properties/PropertyDetailScreen';
+import { AddPropertyScreen } from '../../screens/properties/AddPropertyScreen';
+import { CalendarScreen } from '../../screens/CalendarScreen';
+import { ReviewsScreen } from '../../screens/ReviewsScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -99,6 +106,48 @@ const SafeCreateQuoteScreen = withScreenErrorBoundary(
 const SafeContractorCardEditorScreen = withScreenErrorBoundary(
   ContractorCardEditorScreen,
   'Edit Discovery Card',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeNotificationScreen = withScreenErrorBoundary(
+  NotificationScreen,
+  'Notifications',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeContractorVerificationScreen = withScreenErrorBoundary(
+  ContractorVerificationScreen,
+  'Contractor Verification',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafePropertiesScreen = withScreenErrorBoundary(
+  PropertiesScreen,
+  'Properties',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafePropertyDetailScreen = withScreenErrorBoundary(
+  PropertyDetailScreen,
+  'Property Detail',
+  { fallbackRoute: 'Properties' }
+);
+
+const SafeAddPropertyScreen = withScreenErrorBoundary(
+  AddPropertyScreen,
+  'Add Property',
+  { fallbackRoute: 'Properties' }
+);
+
+const SafeCalendarScreen = withScreenErrorBoundary(
+  CalendarScreen,
+  'Calendar',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeReviewsScreen = withScreenErrorBoundary(
+  ReviewsScreen,
+  'Reviews',
   { fallbackRoute: 'ProfileMain' }
 );
 
@@ -265,6 +314,76 @@ export const ProfileNavigator: React.FC = () => {
         component={SafeContractorCardEditorScreen}
         options={{
           title: 'Edit Discovery Card',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Notifications"
+        component={SafeNotificationScreen}
+        options={{
+          title: 'Notifications',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="ContractorVerification"
+        component={SafeContractorVerificationScreen}
+        options={{
+          title: 'Verify Business',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Properties"
+        component={SafePropertiesScreen}
+        options={{
+          title: 'My Properties',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="PropertyDetail"
+        component={SafePropertyDetailScreen}
+        options={{
+          title: 'Property Details',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="AddProperty"
+        component={SafeAddPropertyScreen}
+        options={{
+          title: 'Add Property',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Calendar"
+        component={SafeCalendarScreen}
+        options={{
+          title: 'Calendar',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Reviews"
+        component={SafeReviewsScreen}
+        options={{
+          title: 'Reviews',
           headerShown: false,
           gestureEnabled: true,
         }}

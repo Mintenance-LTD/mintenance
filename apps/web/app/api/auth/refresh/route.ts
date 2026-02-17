@@ -1,43 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { rotateTokens, setAuthCookie } from '@/lib/auth';
-import { verifyToken } from '@/lib/auth';
+import { rotateTokens, setAuthCookie, verifyToken } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { UnauthorizedError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
  * Token Refresh API
  * Handles automatic token refresh for persistent sessions
  */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 5
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(5),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
+export const POST = withApiHandler(
+  { auth: false, csrf: true, rateLimit: { maxRequests: 5 } },
+  async (request) => {
     const cookieStore = await cookies();
     const currentToken = cookieStore.get('__Host-mintenance-auth')?.value;
     const refreshToken = cookieStore.get('__Host-mintenance-refresh')?.value;
@@ -97,38 +71,15 @@ export async function POST(request: NextRequest) {
       });
       throw new UnauthorizedError('Missing refresh token. Please sign in again.');
     }
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);
 
 /**
  * GET endpoint to check token status
  */
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 5
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(5),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
+export const GET = withApiHandler(
+  { auth: false, rateLimit: { maxRequests: 5 } },
+  async (request) => {
     const cookieStore = await cookies();
     const currentToken = cookieStore.get('__Host-mintenance-auth')?.value;
 
@@ -150,7 +101,5 @@ export async function GET(request: NextRequest) {
       expiresIn: timeUntilExpiry,
       needsRefresh: timeUntilExpiry < 15 * 60,
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

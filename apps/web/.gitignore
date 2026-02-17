@@ -21,10 +21,22 @@
 .DS_Store
 *.pem
 
-# Debug
+# Debug and build output logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+build_*.txt
+build_*.log
+tsc_*.txt
+tsc_*.log
+type-check-*.txt
+test-*.txt
+*-tests-report.txt
+coverage-output.txt
+*-test-*.txt
+dev-*.log
+CUsers*.txt
 
 # Local env files
 .env*.local

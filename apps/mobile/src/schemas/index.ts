@@ -5,6 +5,8 @@
  * It provides a centralized location for data validation and type checking.
  */
 
+import { BUSINESS_RULES } from '@mintenance/shared';
+
 // Export validation utilities
 export {
   ValidationError,
@@ -53,7 +55,7 @@ export const VALIDATION_LIMITS = {
   title: { min: 5, max: 100 },
   description: { min: 10, max: 1000 },
   budget: { min: 1, max: 100000 },
-  photos: { max: 10 },
+  photos: { max: BUSINESS_RULES.MAX_PHOTOS_PER_JOB },
 
   // Bid fields
   bidDescription: { min: 10, max: 500 },

@@ -14,6 +14,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHaptics } from '../utils/haptics';
 
 interface PaymentMethodParams {
@@ -41,6 +42,7 @@ interface PaymentMethod {
 
 const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId, amount, jobTitle } = route.params || {};
+  const insets = useSafeAreaInsets();
   const haptics = useHaptics();
   const [selectedMethod, setSelectedMethod] =
     useState<PaymentMethodType | null>(null);
@@ -279,7 +281,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
       onRequestClose={() => setShowCardModal(false)}
     >
       <View style={styles.cardModalContainer}>
-        <View style={styles.cardModalHeader}>
+        <View style={[styles.cardModalHeader, { paddingTop: insets.top }]}>
           <TouchableOpacity onPress={() => setShowCardModal(false)}>
             <Ionicons
               name='arrow-back'
@@ -396,7 +398,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons
             name='arrow-back'
@@ -454,7 +456,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
     backgroundColor: theme.colors.background,
@@ -588,7 +589,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
   },

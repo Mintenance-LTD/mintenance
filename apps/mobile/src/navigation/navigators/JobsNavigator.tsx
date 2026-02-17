@@ -1,12 +1,17 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import type { JobsStackParamList } from '@mintenance/types';
+import type { JobsStackParamList } from '../types';
 
 // Import existing screens
 import JobsScreen from '../../screens/JobsScreen';
 import { JobDetailsScreen } from '../../screens/job-details';
 import JobPostingScreen from '../../screens/JobPostingScreen';
 import BidSubmissionScreen from '../../screens/BidSubmissionScreen';
+import PaymentScreen from '../../screens/PaymentScreen';
+import { JobTimelineScreen } from '../../screens/job-details/JobTimelineScreen';
+import { DisputeScreen } from '../../screens/DisputeScreen';
+import { BidReviewScreen } from '../../screens/BidReviewScreen';
+import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -36,6 +41,36 @@ const SafeJobPostingScreen = withScreenErrorBoundary(
 const SafeBidSubmissionScreen = withScreenErrorBoundary(
   BidSubmissionScreen,
   'Bid Submission',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafePaymentScreen = withScreenErrorBoundary(
+  PaymentScreen,
+  'Payment',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafeJobTimelineScreen = withScreenErrorBoundary(
+  JobTimelineScreen,
+  'Job Timeline',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafeDisputeScreen = withScreenErrorBoundary(
+  DisputeScreen,
+  'Dispute',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafeBidReviewScreen = withScreenErrorBoundary(
+  BidReviewScreen,
+  'Bid Review',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafePhotoReviewScreen = withScreenErrorBoundary(
+  HomeownerPhotoReviewScreen,
+  'Photo Review',
   { fallbackRoute: 'JobDetails' }
 );
 
@@ -125,6 +160,90 @@ export const JobsNavigator: React.FC = () => {
               ],
             },
           }),
+        }}
+      />
+
+      <JobsStack.Screen
+        name="JobPayment"
+        component={SafePaymentScreen}
+        options={{
+          title: 'Payment',
+          presentation: 'modal',
+          gestureEnabled: true,
+          cardStyleInterpolator: ({ current, layouts }) => ({
+            cardStyle: {
+              transform: [
+                {
+                  translateY: current.progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [layouts.screen.height, 0],
+                  }),
+                },
+              ],
+            },
+          }),
+        }}
+      />
+
+      <JobsStack.Screen
+        name="JobTimeline"
+        component={SafeJobTimelineScreen}
+        options={{
+          title: 'Job Timeline',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <JobsStack.Screen
+        name="Dispute"
+        component={SafeDisputeScreen}
+        options={{
+          title: 'Raise Dispute',
+          presentation: 'modal',
+          gestureEnabled: true,
+          cardStyleInterpolator: ({ current, layouts }) => ({
+            cardStyle: {
+              transform: [
+                {
+                  translateY: current.progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [layouts.screen.height, 0],
+                  }),
+                },
+              ],
+            },
+          }),
+        }}
+      />
+      <JobsStack.Screen
+        name="BidReview"
+        component={SafeBidReviewScreen}
+        options={{
+          title: 'Review Bids',
+          presentation: 'modal',
+          gestureEnabled: true,
+          cardStyleInterpolator: ({ current, layouts }) => ({
+            cardStyle: {
+              transform: [
+                {
+                  translateY: current.progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [layouts.screen.height, 0],
+                  }),
+                },
+              ],
+            },
+          }),
+        }}
+      />
+      <JobsStack.Screen
+        name="PhotoReview"
+        component={SafePhotoReviewScreen}
+        options={{
+          title: 'Review Work',
+          headerShown: false,
+          gestureEnabled: true,
         }}
       />
     </JobsStack.Navigator>

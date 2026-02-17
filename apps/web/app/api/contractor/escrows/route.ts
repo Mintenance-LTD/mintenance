@@ -1,43 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { InternalServerError } from '@/lib/errors/api-error';
 
 /**
  * GET /api/contractor/escrows
  * Get contractor's escrow transactions
  */
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor authentication required');
-    }
-
+export const GET = withApiHandler(
+  { roles: ['contractor'], csrf: false },
+  async (_request, { user }) => {
     const { data: escrows, error } = await serverSupabase
       .from('escrow_transactions')
       .select(
@@ -89,8 +62,5 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: formattedEscrows });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

@@ -3,4 +3,4 @@
  */
 
 export { MapSearchBar } from './MapSearchBar';
-export { ContractorCard } from './ContractorCard';
+export { JobPreviewCard } from './JobPreviewCard';

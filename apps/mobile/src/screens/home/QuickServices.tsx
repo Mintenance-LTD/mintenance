@@ -106,8 +106,8 @@ export const QuickServices: React.FC<QuickServicesProps> = ({
             ]}>
               <Ionicons name={service.icon as unknown} size={24} color={service.iconColor} />
             </View>
-            <Text style={styles.quickServiceText}>{service.name}</Text>
-            <Text style={styles.quickServiceSubtext}>{service.subtitle}</Text>
+            <Text style={styles.quickServiceText} numberOfLines={1} adjustsFontSizeToFit>{service.name}</Text>
+            <Text style={styles.quickServiceSubtext} numberOfLines={1}>{service.subtitle}</Text>
           </TouchableOpacity>
         ))}
       </ResponsiveGrid>
@@ -153,17 +153,16 @@ const styles = StyleSheet.create({
   },
   quickServiceCard: {
     backgroundColor: theme.colors.surface,
-    width: '48%',
     padding: 16,
     borderRadius: 16,
     alignItems: 'center',
-    marginBottom: 12,
-    ...theme.shadows.base,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
   },
   quickServiceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -182,22 +181,15 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   browseAllButton: {
-    backgroundColor: theme.colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+    paddingVertical: 12,
     gap: 8,
   },
   browseAllText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.primary,
-    flex: 1,
-    textAlign: 'center',
   },
 });

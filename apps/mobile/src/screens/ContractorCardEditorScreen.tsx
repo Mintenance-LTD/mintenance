@@ -11,6 +11,7 @@ import {
   Switch,
   Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -30,6 +31,7 @@ interface ContractorCardEditorScreenProps {
 export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProps> = ({
   navigation,
 }) => {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -153,7 +155,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -352,7 +354,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
         onRequestClose={() => setPreviewVisible(false)}
       >
         <View style={styles.previewContainer}>
-          <View style={styles.previewHeader}>
+          <View style={[styles.previewHeader, { paddingTop: insets.top }]}>
             <Text style={styles.previewTitle}>Discovery Card Preview</Text>
             <TouchableOpacity onPress={() => setPreviewVisible(false)}>
               <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
@@ -385,7 +387,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: theme.colors.primary,
   },
@@ -552,7 +553,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,

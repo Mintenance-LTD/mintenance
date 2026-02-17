@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 import {
   useAddEndorsement,
@@ -77,6 +78,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
   onClose,
   onEndorsementAdded,
 }) => {
+  const insets = useSafeAreaInsets();
   const [selectedSkill, setSelectedSkill] = useState<string>('');
   const [customSkill, setCustomSkill] = useState<string>('');
   const [message, setMessage] = useState<string>('');
@@ -174,7 +176,7 @@ export const CommunityEndorsement: React.FC<CommunityEndorsementProps> = ({
     >
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
@@ -361,7 +363,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing[4],
-    paddingTop: 60,
     paddingBottom: theme.spacing[4],
     backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,

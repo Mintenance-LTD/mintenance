@@ -118,10 +118,9 @@ export const ContractorDashboard: React.FC = () => {
       <NavigationHeader
         title="Mintenance Pro"
         subtitle={user?.first_name ? `Welcome back, ${user.first_name}!` : 'Contractor Dashboard'}
-        rightIcon={{
-          name: 'notifications-outline',
-          onPress: () => navigation.navigate('NotificationsScreen'),
-        }}
+        onNotificationPress={() => navigation.navigate('NotificationsScreen')}
+        userInitials={user?.first_name && user?.last_name ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : undefined}
+        onUserPress={() => navigation.navigate('ProfileTab' as never)}
       />
 
       <ScrollView
@@ -132,13 +131,6 @@ export const ContractorDashboard: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {/* Test-friendly greetings */}
-        {user?.first_name ? (
-          <Text style={{ position: 'absolute', opacity: 0 }}>
-            {`Welcome back, ${user.first_name}!`}
-          </Text>
-        ) : null}
-
         <ContractorBanner user={user} />
 
       <StatsSection stats={contractorStats} />
