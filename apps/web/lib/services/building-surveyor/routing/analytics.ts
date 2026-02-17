@@ -146,9 +146,9 @@ export async function getRoutingStatistics(
             agreementScores: [] as number[],
         };
 
-        const routeCounts = { internal: 0, gpt4_vision: 0, hybrid: 0 };
-        const confSums = { internal: 0, gpt4_vision: 0, hybrid: 0 };
-        const timeSums = { internal: 0, gpt4_vision: 0, hybrid: 0 };
+        const routeCounts: Record<InferenceRoute, number> = { internal: 0, gpt4_vision: 0, hybrid: 0, student_vlm: 0, student_shadow: 0 };
+        const confSums: Record<InferenceRoute, number> = { internal: 0, gpt4_vision: 0, hybrid: 0, student_vlm: 0, student_shadow: 0 };
+        const timeSums: Record<InferenceRoute, number> = { internal: 0, gpt4_vision: 0, hybrid: 0, student_vlm: 0, student_shadow: 0 };
 
         for (const decision of decisions) {
             const route = decision.route_selected as InferenceRoute;

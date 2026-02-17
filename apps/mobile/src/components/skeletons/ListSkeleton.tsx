@@ -81,9 +81,9 @@ export const ListSkeleton: React.FC<ListSkeletonProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EBEBEB',
     overflow: 'hidden',
   },
   item: {
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#F7F7F7',
   },
   content: {
     flex: 1,

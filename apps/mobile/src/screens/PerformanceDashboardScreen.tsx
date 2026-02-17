@@ -326,12 +326,10 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#111827',
     marginBottom: 4,
   },
@@ -358,7 +356,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#111827',
     marginBottom: 4,
   },
@@ -396,7 +394,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#111827',
     marginBottom: 12,
   },
@@ -449,7 +447,7 @@ const styles = StyleSheet.create({
   statusIcon: {
     fontSize: 16,
     color: '#ffffff',
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   budgetDetails: {
     gap: 8,
@@ -509,7 +507,7 @@ const styles = StyleSheet.create({
   },
   severityText: {
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#ffffff',
   },
   violationTime: {

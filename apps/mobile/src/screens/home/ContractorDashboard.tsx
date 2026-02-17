@@ -118,7 +118,7 @@ export const ContractorDashboard: React.FC = () => {
       <NavigationHeader
         title="Mintenance Pro"
         subtitle={user?.first_name ? `Welcome back, ${user.first_name}!` : 'Contractor Dashboard'}
-        onNotificationPress={() => navigation.navigate('NotificationsScreen')}
+        onNotificationPress={() => navigation.getParent?.()?.navigate('Modal', { screen: 'Notifications' })}
         userInitials={user?.first_name && user?.last_name ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : undefined}
         onUserPress={() => navigation.navigate('ProfileTab' as never)}
       />
@@ -128,7 +128,7 @@ export const ContractorDashboard: React.FC = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
       >
         <ContractorBanner user={user} />
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
   },
   loadingContainer: {
     flex: 1,
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 16,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },

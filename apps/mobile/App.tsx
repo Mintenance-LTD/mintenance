@@ -11,6 +11,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import QueryProvider from './src/providers/QueryProvider';
+import { AnimatedSplash } from './src/components/AnimatedSplash';
 
 // ============================================================================
 // SPLASH SCREEN - prevent auto-hide so we control when it dismisses
@@ -63,6 +64,7 @@ Sentry.init({
 
 export default function App(): React.JSX.Element {
   const [isReady, setIsReady] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     const initialize = async (): Promise<void> => {
@@ -81,11 +83,12 @@ export default function App(): React.JSX.Element {
 
   const onLayoutRootView = useCallback(async () => {
     if (isReady) {
+      // Hide the native splash immediately - our animated one takes over
       await SplashScreen.hideAsync();
     }
   }, [isReady]);
 
-  // Keep splash screen visible while initializing
+  // Keep native splash screen visible while initializing
   if (!isReady) {
     return <View style={{ flex: 1 }} />;
   }
@@ -121,6 +124,10 @@ export default function App(): React.JSX.Element {
             </QueryProvider>
           </StripeProvider>
         </ErrorBoundary>
+
+        {showSplash && (
+          <AnimatedSplash onFinish={() => setShowSplash(false)} />
+        )}
       </View>
     </SafeAreaProvider>
   );

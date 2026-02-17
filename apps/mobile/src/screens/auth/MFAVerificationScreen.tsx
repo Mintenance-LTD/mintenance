@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   methodButtonActive: {
-    borderBottomColor: theme.colors.info,
+    borderBottomColor: theme.colors.primary,
   },
   methodButtonText: {
     fontSize: 14,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   methodButtonTextActive: {
-    color: theme.colors.info,
+    color: theme.colors.primary,
   },
   inputContainer: {
     marginBottom: 24,
@@ -381,8 +381,8 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: theme.colors.white,
     borderWidth: 1,
-    borderColor: theme.colors.borderDark,
-    borderRadius: 8,
+    borderColor: theme.colors.border,
+    borderRadius: 12,
     padding: 16,
     fontSize: 20,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
@@ -411,21 +411,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.info,
-    borderColor: theme.colors.info,
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
   },
   checkmark: {
     color: theme.colors.white,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   checkboxLabel: {
     fontSize: 14,
     color: theme.colors.textPrimary,
   },
   button: {
-    backgroundColor: theme.colors.info,
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 24,
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
   },
   helpLink: {
     fontSize: 14,
-    color: theme.colors.info,
+    color: theme.colors.primary,
     fontWeight: '500',
   },
   backButton: {

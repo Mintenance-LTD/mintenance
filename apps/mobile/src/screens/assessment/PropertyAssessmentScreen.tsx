@@ -23,6 +23,7 @@ import { ProgressBar } from './components/ProgressBar';
 import { StepCard } from './components/StepCard';
 import { AIInsightsCard } from './components/AIInsightsCard';
 import { QuickActions, TipsCard } from './components/QuickActions';
+import { theme } from '../../theme';
 
 interface Props {
   navigation: { navigate: (screen: string, params?: Record<string, unknown>) => void; goBack: () => void };
@@ -106,23 +107,11 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
   };
 
   const handleStartVideoCapture = () => {
-    navigation.navigate('VideoCaptureScreen', {
-      assessmentId,
-      propertyId,
-      onComplete: (_videoId: string) => {
-        updateStepStatus('video_walkthrough', 'in_progress');
-      },
-    });
+    Alert.alert('Coming Soon', 'Video capture for assessments coming soon.');
   };
 
-  const handleVideoPress = (video: AssessmentVideo) => {
-    if (video.status === 'completed') {
-      navigation.navigate('VideoProcessingStatus', {
-        videoId: video.id,
-        assessmentId,
-        propertyId,
-      });
-    }
+  const handleVideoPress = (_video: AssessmentVideo) => {
+    Alert.alert('Coming Soon', 'Video processing status coming soon.');
   };
 
   const handleRetryVideo = async (_videoId: string) => {
@@ -164,11 +153,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
       return;
     }
 
-    navigation.navigate('AssessmentReview', {
-      assessmentId,
-      propertyId,
-      videos: capturedVideos,
-    });
+    Alert.alert('Coming Soon', 'Assessment review coming soon.');
   };
 
   const progressPercentage = Math.round(
@@ -222,10 +207,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
           <AIInsightsCard
             results={assessmentResults}
             onViewFullAnalysis={() =>
-              navigation.navigate('AssessmentResults', {
-                assessmentId,
-                results: assessmentResults,
-              })
+              Alert.alert('Coming Soon', 'Full assessment results coming soon.')
             }
           />
         )}
@@ -251,7 +233,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 16,
   },
   videosSection: {

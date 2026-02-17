@@ -1,6 +1,7 @@
 import React, { ReactNode, ErrorInfo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logger } from '../utils/logger';
+import { theme } from '../theme';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 25,
@@ -129,12 +130,12 @@ const styles = StyleSheet.create({
   errorDetailsTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   errorDetailsText: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     fontFamily: 'monospace',
     lineHeight: 16,
   },
@@ -152,7 +153,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 12,
-    color: '#999',
+    color: theme.colors.textTertiary,
     textAlign: 'center',
     fontStyle: 'italic',
   },

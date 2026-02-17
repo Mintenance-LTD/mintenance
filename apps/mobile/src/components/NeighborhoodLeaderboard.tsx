@@ -122,7 +122,7 @@ export const NeighborhoodLeaderboard: React.FC<
             </Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name='time' size={12} color={theme.colors.info} />
+            <Ionicons name='time' size={12} color={theme.colors.textSecondary} />
             <Text style={styles.metaText}>
               {formatResponseTime(contractor.response_time_avg)}
             </Text>
@@ -204,7 +204,7 @@ export const NeighborhoodLeaderboard: React.FC<
 
           {(jobSuccess.before_photo || jobSuccess.after_photo) && (
             <View style={styles.photoIndicator}>
-              <Ionicons name='images' size={14} color={theme.colors.primary} />
+              <Ionicons name='images' size={14} color={theme.colors.textSecondary} />
               <Text style={styles.photoText}>Photos</Text>
             </View>
           )}
@@ -303,7 +303,7 @@ export const NeighborhoodLeaderboard: React.FC<
     <ScrollView
       style={styles.container}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
       }
       showsVerticalScrollIndicator={false}
     >
@@ -496,8 +496,6 @@ const styles = StyleSheet.create({
   header: {
     padding: theme.spacing[4],
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   neighborhoodTitle: {
     flexDirection: 'row',
@@ -530,8 +528,6 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   tab: {
     flex: 1,
@@ -564,8 +560,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[2],
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    ...theme.shadows.base,
   },
   topThreeItem: {
     borderLeftWidth: 4,
@@ -630,7 +625,7 @@ const styles = StyleSheet.create({
   specialtyChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${theme.colors.primary}20`,
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[1],
     borderRadius: theme.borderRadius.sm,
@@ -643,7 +638,7 @@ const styles = StyleSheet.create({
   },
   specialtyText: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: theme.typography.fontWeight.medium,
   },
   moreSpecialties: {
@@ -654,14 +649,14 @@ const styles = StyleSheet.create({
   endorsementBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${theme.colors.primary}20`,
+    backgroundColor: theme.colors.surfaceSecondary,
     paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[1],
     borderRadius: theme.borderRadius.sm,
   },
   endorsementCount: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: theme.typography.fontWeight.bold,
     marginLeft: theme.spacing[1],
   },
@@ -721,7 +716,7 @@ const styles = StyleSheet.create({
   },
   photoText: {
     fontSize: theme.typography.fontSize.xs,
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
     marginLeft: theme.spacing[1],
   },
   championRank: {

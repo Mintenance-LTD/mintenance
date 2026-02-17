@@ -1,8 +1,8 @@
 /**
  * HomeownerDashboard Component
- * 
- * Displays the homeowner-specific dashboard with service shortcuts,
- * recent jobs, and previously used contractors.
+ *
+ * Airbnb-style homeowner dashboard with profile header,
+ * stats overview, quick services, and recent jobs.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -13,42 +13,38 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
-import { UserService, UserProfile } from '../../services/UserService';
 import { JobService } from '../../services/JobService';
+import { BidService, Bid as ServiceBid } from '../../services/BidService';
 import { theme } from '../../theme';
-import { useHaptics } from '../../utils/haptics';
 import { logger } from '../../utils/logger';
-import { ResponsiveGrid } from '../../components/responsive';
-import { NavigationHeader } from '../../components/navigation';
 import { QuickServices } from './QuickServices';
-import { PreviousContractors } from './PreviousContractors';
 import { RecentJobs } from './RecentJobs';
 import { WelcomeBanner } from './WelcomeBanner';
 import { StatsCards } from './StatsCards';
 import { BidsReceived } from './BidsReceived';
-// FindContractorsButton repurposed as "Post a Job" button
+
+const appIcon = require('../../../assets/icon.png');
 
 export const HomeownerDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<unknown>();
-  const haptics = useHaptics();
 
-  const [previousContractors, setPreviousContractors] = useState<UserProfile[]>([]);
   const [homeownerJobs, setHomeownerJobs] = useState<unknown[]>([]);
+  const [recentBids, setRecentBids] = useState<{ id: string; contractorName: string; jobTitle: string; amount: number; status: string; jobId: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPostJobButton, setShowPostJobButton] = useState(true);
 
   useEffect(() => {
     loadDashboardData();
   }, [user]);
 
-  const loadDashboardData = async (opts?: { skipJobs?: boolean }) => {
+  const loadDashboardData = async () => {
     if (!user) {
       setLoading(false);
       return;
@@ -56,23 +52,37 @@ export const HomeownerDashboard: React.FC = () => {
 
     try {
       setError(null);
+      const jobs = await JobService.getUserJobs(user.id);
+      setHomeownerJobs(jobs || []);
 
-      // Load homeowner jobs list
-      if (!opts?.skipJobs) {
-        try {
-          const jobs = await JobService.getUserJobs(user.id);
-          setHomeownerJobs(jobs || []);
-        } catch (e) {
-          // non-fatal
+      // Fetch recent bids for homeowner's active jobs
+      const activeJobIds = (jobs || [])
+        .filter((j: { status?: string }) => j?.status === 'posted' || j?.status === 'assigned')
+        .map((j: { id?: string }) => j?.id)
+        .filter(Boolean) as string[];
+
+      if (activeJobIds.length > 0) {
+        const allBids: ServiceBid[] = [];
+        for (const jobId of activeJobIds.slice(0, 5)) {
+          try {
+            const bids = await BidService.getBidsByJob(jobId, 'pending');
+            allBids.push(...bids);
+          } catch {
+            // Skip individual job bid fetch errors
+          }
         }
-      }
-
-      // Previous contractors (optional)
-      try {
-        const contractors = await UserService.getPreviousContractors(user.id);
-        setPreviousContractors(contractors || []);
-      } catch (e) {
-        setError('Failed to load dashboard data');
+        setRecentBids(
+          allBids.slice(0, 5).map((b) => ({
+            id: b.id,
+            contractorName: b.contractor
+              ? `${b.contractor.first_name} ${b.contractor.last_name}`
+              : 'Unknown',
+            jobTitle: b.job?.title || 'Untitled job',
+            amount: b.amount,
+            status: b.status,
+            jobId: b.job_id,
+          }))
+        );
       }
     } catch (error) {
       logger.error('Error loading dashboard data:', error);
@@ -84,16 +94,12 @@ export const HomeownerDashboard: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.resolve();
-    
-    if (user?.role === 'homeowner') {
+    if (user) {
       try {
         const jobs = await JobService.getUserJobs(user.id);
         setHomeownerJobs(jobs || []);
       } catch {}
     }
-    
-    await loadDashboardData({ skipJobs: true });
     setRefreshing(false);
   };
 
@@ -112,13 +118,6 @@ export const HomeownerDashboard: React.FC = () => {
     navigation.navigate('JobsTab', { screen: 'JobsList' });
   };
 
-  const openConversation = (params: Record<string, unknown>) => {
-    navigation.navigate('MessagingTab', {
-      screen: 'Messaging',
-      params,
-    });
-  };
-
   // Error state
   if (error) {
     return (
@@ -134,21 +133,54 @@ export const HomeownerDashboard: React.FC = () => {
     );
   }
 
+  const userName = user?.firstName || user?.first_name || 'there';
+  const userInitial = userName[0].toUpperCase();
+
   return (
     <View style={styles.container}>
-      <NavigationHeader
-        title="Mintenance"
-        subtitle={user?.first_name ? `Welcome back, ${user.first_name}!` : 'Homeowner Dashboard'}
-        onNotificationPress={() => navigation.navigate('NotificationsScreen')}
-        userInitials={user?.first_name && user?.last_name ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : undefined}
-        onUserPress={() => navigation.navigate('ProfileTab' as never)}
-      />
+      {/* Clean white top bar - Airbnb style */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.brandButton}
+          onPress={() => navigation.navigate('HomeTab' as never)}
+          accessibilityRole="button"
+          accessibilityLabel="Mintenance home"
+        >
+          <Image source={appIcon} style={styles.brandIcon} />
+          <View>
+            <Text style={styles.brandText}>Mintenance</Text>
+            <Text style={styles.brandSubtext}>Welcome back, {userName.toLowerCase()}!</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.rightActions}>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={() => navigation.getParent?.()?.navigate('Modal', { screen: 'Notifications' })}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="notifications-outline" size={22} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => navigation.navigate('ProfileTab' as never)}
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+          >
+            <View style={styles.profileAvatar}>
+              <Text style={styles.profileAvatarText}>{userInitial}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         testID='home-scroll-view'
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
       >
         <WelcomeBanner user={user} onSearchPress={openServiceRequest} />
@@ -160,8 +192,14 @@ export const HomeownerDashboard: React.FC = () => {
           />
 
           <BidsReceived
-            bids={[]}
+            bids={recentBids}
             onViewAllPress={openJobsList}
+            onReviewPress={(bidId) => {
+              const bid = recentBids.find((b) => b.id === bidId);
+              if (bid?.jobId) {
+                navigation.navigate('JobsTab', { screen: 'BidReview', params: { jobId: bid.jobId } });
+              }
+            }}
           />
 
           <QuickServices
@@ -174,36 +212,8 @@ export const HomeownerDashboard: React.FC = () => {
             onViewAllPress={openJobsList}
             onJobPress={(jobId) => navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId } })}
           />
-
-          <PreviousContractors
-            contractors={previousContractors}
-            onMessagePress={openConversation}
-            onRehirePress={openServiceRequest}
-          />
         </View>
       </ScrollView>
-
-      {showPostJobButton && (
-        <View style={styles.floatingButtonContainer}>
-          <TouchableOpacity
-            style={styles.floatingButton}
-            onPress={openJobPosting}
-            accessibilityRole="button"
-            accessibilityLabel="Post a job"
-          >
-            <Ionicons name="add-circle" size={20} color={theme.colors.textInverse} />
-            <Text style={styles.floatingButtonText}>Post a Job</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.dismissButton}
-            onPress={() => setShowPostJobButton(false)}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss"
-          >
-            <Ionicons name="close" size={16} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      )}
     </View>
   );
 };
@@ -213,8 +223,69 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  homeownerContent: {
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  brandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandIcon: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+  },
+  brandText: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    lineHeight: 34,
+  },
+  brandSubtext: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  profileButton: {
+    minHeight: 44,
+    minWidth: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.textPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
+  },
+  notificationButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  homeownerContent: {
+    paddingHorizontal: 24,
     backgroundColor: theme.colors.background,
     paddingTop: 24,
   },
@@ -235,7 +306,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 16,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -243,40 +314,5 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
-  },
-  floatingButtonContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  floatingButton: {
-    flex: 1,
-    backgroundColor: theme.colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    gap: 8,
-    ...theme.shadows.large,
-  },
-  floatingButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  dismissButton: {
-    backgroundColor: theme.colors.surface,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.base,
   },
 });

@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 16,
     paddingHorizontal: 20,
-    borderRadius: 16,
+    borderRadius: 12,
     gap: 8,
     ...theme.shadows.large,
   },

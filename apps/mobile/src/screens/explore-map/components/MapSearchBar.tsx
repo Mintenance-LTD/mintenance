@@ -1,60 +1,58 @@
 /**
  * MapSearchBar Component
- * 
- * Search bar with filter button for map view.
- * 
- * @filesize Target: <80 lines
- * @compliance Single Responsibility - Search UI
+ *
+ * Airbnb-style search pill for map view.
+ * Shows context (category/job count) with circular filter button.
  */
 
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 
 interface MapSearchBarProps {
-  value: string;
-  onChangeText: (text: string) => void;
+  jobCount: number;
+  selectedCategory: string | null;
+  onPress?: () => void;
   onFilterPress: () => void;
 }
 
 export const MapSearchBar: React.FC<MapSearchBarProps> = ({
-  value,
-  onChangeText,
+  jobCount,
+  selectedCategory,
+  onPress,
   onFilterPress,
 }) => {
+  const subtitle = [
+    selectedCategory
+      ? selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)
+      : 'Any category',
+    `${jobCount} job${jobCount !== 1 ? 's' : ''} nearby`,
+  ].join(' \u00B7 ');
+
   return (
     <View style={styles.container}>
-      <View style={styles.searchBar}>
-        <Ionicons name="search" size={20} color={theme.colors.textTertiary} />
-        <TextInput
-          style={styles.input}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder="Search jobs near you..."
-          placeholderTextColor={theme.colors.textTertiary}
-          accessibilityLabel='Search jobs on map'
-          accessibilityRole='search'
-        />
-        {value.length > 0 && (
-          <TouchableOpacity
-            onPress={() => onChangeText('')}
-            accessibilityRole='button'
-            accessibilityLabel='Clear search'
-          >
-            <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
-          </TouchableOpacity>
-        )}
-      </View>
-
       <TouchableOpacity
-        style={styles.filterButton}
-        onPress={onFilterPress}
-        accessibilityRole='button'
-        accessibilityLabel='Open map filters'
-        accessibilityHint='Double tap to adjust search filters'
+        style={styles.pill}
+        onPress={onPress}
+        accessibilityRole="search"
+        accessibilityLabel={`Search jobs. ${subtitle}`}
+        activeOpacity={0.9}
       >
-        <Ionicons name="options" size={24} color={theme.colors.white} />
+        <Ionicons name="search" size={18} color={theme.colors.textPrimary} />
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Near you</Text>
+          <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={onFilterPress}
+          accessibilityRole="button"
+          accessibilityLabel="Open filters"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="options-outline" size={16} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
       </TouchableOpacity>
     </View>
   );
@@ -66,33 +64,43 @@ const styles = StyleSheet.create({
     top: 16,
     left: 16,
     right: 16,
-    flexDirection: 'row',
-    gap: theme.spacing.md,
-    zIndex: 1,
+    zIndex: 10,
   },
-  searchBar: {
-    flex: 1,
+  pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    paddingHorizontal: theme.spacing.lg,
-    height: 50,
-    gap: theme.spacing.sm,
-    ...theme.shadows.base,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 32,
+    paddingLeft: 16,
+    paddingRight: 8,
+    paddingVertical: 10,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  input: {
+  textContainer: {
     flex: 1,
-    fontSize: theme.typography.fontSize.lg,
+    marginLeft: 12,
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
   },
+  subtitle: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
   filterButton: {
-    width: 50,
-    height: 50,
-    borderRadius: theme.borderRadius.lg,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
     alignItems: 'center',
-    ...theme.shadows.base,
+    justifyContent: 'center',
   },
 });

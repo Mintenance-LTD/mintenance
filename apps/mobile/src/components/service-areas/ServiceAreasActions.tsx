@@ -15,7 +15,7 @@ export const ServiceAreasActions: React.FC<ServiceAreasActionsProps> = ({ naviga
 
       <TouchableOpacity
         style={styles.actionButton}
-        onPress={() => navigation.navigate('ServiceAreaAnalytics')}
+        onPress={() => Alert.alert('Coming Soon', 'Service area analytics coming soon.')}
       >
         <Ionicons
           name='analytics'
@@ -35,7 +35,7 @@ export const ServiceAreasActions: React.FC<ServiceAreasActionsProps> = ({ naviga
 
       <TouchableOpacity
         style={styles.actionButton}
-        onPress={() => navigation.navigate('CoverageMap')}
+        onPress={() => Alert.alert('Coming Soon', 'Coverage map coming soon.')}
       >
         <Ionicons
           name='location'

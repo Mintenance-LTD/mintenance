@@ -26,10 +26,10 @@ export const KPICard: React.FC<KPICardProps> = ({
       onPress={onPress}
     >
       <View style={styles.kpiHeader}>
-        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={color} />
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={theme.colors.textSecondary} />
         <Text style={styles.kpiTitle}>{title}</Text>
       </View>
-      <Text style={[styles.kpiValue, { color }]}>{value}</Text>
+      <Text style={styles.kpiValue}>{value}</Text>
       {change && (
         <View style={styles.changeContainer}>
           <Ionicons
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     minWidth: 150,
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
-    padding: 16,
+    padding: 20,
     borderLeftWidth: 4,
     ...theme.shadows.base,
   },
@@ -82,6 +82,7 @@ const styles = StyleSheet.create({
   kpiValue: {
     fontSize: 18,
     fontWeight: '700',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   changeContainer: {

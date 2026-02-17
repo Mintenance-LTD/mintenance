@@ -511,11 +511,20 @@ export class AlertingService {
   }
 
   /**
-   * Send webhook alert
+   * Send webhook alert — only uses pre-configured URLs (never from payload to prevent SSRF)
    */
   private static async sendWebhookAlert(payload: AlertPayload): Promise<void> {
     try {
-      const urls = payload.recipients?.webhookUrls || this.config.channels.webhook.urls;
+      // Security: only use env-configured URLs, never payload.recipients.webhookUrls
+      const urls = this.config.channels.webhook.urls;
+
+      if (urls.length === 0) {
+        logger.debug('No webhook URLs configured, skipping', { service: 'AlertingService' });
+        return;
+      }
+
+      // Strip recipients from payload before sending to external webhooks
+      const { recipients: _recipients, ...safePayload } = payload;
 
       const promises = urls.map(url =>
         fetch(url, {
@@ -523,7 +532,7 @@ export class AlertingService {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(safePayload)
         })
       );
 

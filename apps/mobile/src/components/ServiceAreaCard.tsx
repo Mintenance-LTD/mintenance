@@ -106,7 +106,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
           <Ionicons
             name={getAreaTypeIcon(serviceArea.area_type) as keyof typeof Ionicons.glyphMap}
             size={16}
-            color={theme.colors.primary}
+            color={theme.colors.textSecondary}
           />
           <Text style={styles.areaTypeText}>
             {getAreaTypeLabel(serviceArea.area_type)}
@@ -202,7 +202,7 @@ export const ServiceAreaCard: React.FC<ServiceAreaCardProps> = ({
 
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
-          <Ionicons name='pencil' size={16} color={theme.colors.primary} />
+          <Ionicons name='pencil' size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={onToggleActive}>
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   primaryBadge: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: theme.borderRadius.sm,
@@ -330,8 +330,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
     marginBottom: 8,
   },
   pricingItem: {
@@ -345,7 +343,7 @@ const styles = StyleSheet.create({
   },
   pricingValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   surchargesRow: {
@@ -359,8 +357,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: theme.borderRadius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   emergencyChip: {
     backgroundColor: 'rgba(255, 59, 48, 0.1)',
@@ -379,8 +375,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 8,
     paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
   },
   actionButton: {
     width: 32,

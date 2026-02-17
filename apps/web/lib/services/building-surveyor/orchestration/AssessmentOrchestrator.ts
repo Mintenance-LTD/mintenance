@@ -19,6 +19,7 @@ import { getConfig } from '../config/BuildingSurveyorConfig';
 import { SAM3Service } from '../SAM3Service';
 import { HybridInferenceService } from '../HybridInferenceService';
 import { KnowledgeDistillationService } from '../KnowledgeDistillationService';
+import { StudentShadowService } from '../distillation/StudentShadowService';
 import { GPT4CacheService } from '../../ai/GPT4CacheService';
 import type {
     AssessmentContext,
@@ -575,13 +576,23 @@ export class AssessmentOrchestrator {
                 });
             }
 
+            // Build messages for shadow comparison (reuses existing prompt builder)
+            const shadowMessages = PromptBuilder.buildMessages(
+                validatedImageUrls,
+                context,
+                roboflowDetections,
+                visionAnalysis
+            );
+
             // Capture training data asynchronously (non-blocking)
             this.captureTrainingDataAsync(
                 context?.assessmentId,
                 validatedImageUrls,
                 assessment,
                 sam3Result,
-                context
+                context,
+                shadowMessages,
+                config.openaiApiKey
             ).catch(error => {
                 logger.warn('Failed to capture training data (non-critical)', {
                     service: 'AssessmentOrchestrator',
@@ -859,14 +870,17 @@ export class AssessmentOrchestrator {
 
     /**
      * Capture training data asynchronously (non-blocking)
-     * Records GPT-4 outputs and SAM3 masks for knowledge distillation
+     * Records GPT-4 outputs and SAM3 masks for knowledge distillation,
+     * and runs student VLM shadow comparison if MINT_AI_VLM_ENDPOINT is set.
      */
     private static async captureTrainingDataAsync(
         assessmentId: string | undefined,
         imageUrls: string[],
         assessment: Phase1BuildingAssessment,
         sam3Result: Awaited<ReturnType<typeof SAM3Service.segmentDamageTypes>> | null,
-        context?: AssessmentContext
+        context?: AssessmentContext,
+        promptMessages?: Array<{ role: string; content: unknown }>,
+        apiKey?: string
     ): Promise<void> {
         try {
             // Only capture if we have an assessment ID (saved to database)
@@ -901,6 +915,22 @@ export class AssessmentOrchestrator {
                         i
                     );
                 }
+            }
+
+            // Run student VLM shadow comparison (fire-and-forget)
+            if (process.env.MINT_AI_VLM_ENDPOINT && promptMessages && apiKey) {
+                StudentShadowService.runShadowComparison(
+                    assessmentId,
+                    imageUrls,
+                    assessment,
+                    promptMessages as import('../generator/AssessmentGenerator').GeneratorMessage[],
+                    apiKey
+                ).catch(err => {
+                    logger.debug('Shadow comparison failed (non-critical)', {
+                        service: 'AssessmentOrchestrator',
+                        error: err instanceof Error ? err.message : String(err),
+                    });
+                });
             }
 
             logger.debug('Training data captured successfully', {

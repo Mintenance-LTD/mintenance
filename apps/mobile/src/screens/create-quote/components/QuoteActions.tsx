@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   sendButton: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
   },
   primaryButtonText: {
     fontSize: theme.typography.fontSize.lg,

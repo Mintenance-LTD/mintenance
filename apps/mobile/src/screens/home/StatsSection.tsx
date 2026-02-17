@@ -56,7 +56,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
             <Ionicons name="time" size={20} color={theme.colors.infoDark} accessible={false} />
           </View>
           <Text style={styles.statValue}>
-            {stats?.responseTimeMinutes || 'N/A'}
+            {stats?.responseTimeMinutes != null ? `${stats.responseTimeMinutes}m` : 'N/A'}
           </Text>
           <Text style={styles.statLabel}>Avg Response Time</Text>
         </View>
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 4,
@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     flex: 1,
     minWidth: '45%',
-    padding: 16,
-    borderRadius: 16,
+    padding: 20,
+    borderRadius: 12,
     alignItems: 'center',
     ...theme.shadows.sm,
   },
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 4,

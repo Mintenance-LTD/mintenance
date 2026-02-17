@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { theme } from '../../../theme';
 
 interface AssessmentHeaderProps {
   propertyAddress: string | undefined;
@@ -48,12 +49,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   menuButton: {

@@ -96,7 +96,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
 const styles = StyleSheet.create({
   container: {
     width: IMAGE_WIDTH,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
     alignSelf: 'center',
     backgroundColor: theme.colors.surfaceSecondary,

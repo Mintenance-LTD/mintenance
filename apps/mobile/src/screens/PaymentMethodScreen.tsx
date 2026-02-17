@@ -119,13 +119,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
         {
           text: 'Confirm',
           onPress: () => {
-            // Navigate to payment confirmation or job completion
-            navigation.navigate('PaymentConfirmation', {
-              method: 'cash',
-              amount,
-              jobId,
-              jobTitle,
-            });
+            navigation.goBack();
           },
         },
       ]
@@ -154,13 +148,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
           {
             text: 'Continue',
             onPress: () => {
-              navigation.navigate('PaymentConfirmation', {
-                method: 'card',
-                amount,
-                jobId,
-                jobTitle,
-                cardLast4: cardNumber.slice(-4),
-              });
+              navigation.goBack();
             },
           },
         ]
@@ -184,13 +172,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
         {
           text: 'Continue to PayPal',
           onPress: () => {
-            // In a real app, this would open PayPal SDK
-            navigation.navigate('PaymentConfirmation', {
-              method: 'paypal',
-              amount,
-              jobId,
-              jobTitle,
-            });
+            navigation.goBack();
           },
         },
       ]
@@ -370,7 +352,7 @@ const PaymentMethodScreen: React.FC<Props> = ({ route, navigation }) => {
               <Ionicons
                 name='checkmark-circle'
                 size={20}
-                color={theme.colors.secondary}
+                color={theme.colors.primary}
               />
               <Text style={styles.saveCardText}>Save Card</Text>
             </View>
@@ -462,7 +444,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   content: {
@@ -503,14 +485,14 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   section: {
     marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },

@@ -34,7 +34,7 @@ interface Region {
 }
 
 const MapView = ({ children, ...props }: unknown) => (
-  <View style={{ flex: 1, backgroundColor: '#f0f0f0', justifyContent: 'center', alignItems: 'center' }}>
+  <View style={{ flex: 1, backgroundColor: theme.colors.surfaceSecondary, justifyContent: 'center', alignItems: 'center' }}>
     <Text>Map view available on mobile devices</Text>
     {children}
   </View>
@@ -191,10 +191,13 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleMessageContractor = () => {
     if (meeting?.jobId) {
-      navigation.navigate('MessagingScreen', {
-        jobId: meeting.jobId,
-        contractorId: meeting.contractorId
-      });
+      navigation.navigate('MessagingTab' as never, {
+        screen: 'Messaging',
+        params: {
+          conversationId: meeting.jobId,
+          recipientId: meeting.contractorId,
+        },
+      } as never);
     }
   };
 
@@ -261,7 +264,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const getStatusColor = (status: ContractorMeeting['status']): string => {
     switch (status) {
       case 'scheduled':
-        return theme.colors.info;
+        return theme.colors.primary;
       case 'confirmed':
         return theme.colors.success;
       case 'in_progress':
@@ -306,7 +309,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading || !meeting) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.info} />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={styles.loadingText}>Loading meeting details...</Text>
       </View>
     );
@@ -355,7 +358,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <View style={styles.participantInfo}>
             <View style={styles.participant}>
-              <Ionicons name="person-circle" size={40} color={theme.colors.info} />
+              <Ionicons name="person-circle" size={40} color={theme.colors.primary} />
               <View>
                 <Text style={styles.participantName}>
                   {meeting.contractor
@@ -395,7 +398,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   }}
                   title="Meeting Location"
                   description={meeting.location.address}
-                  pinColor={theme.colors.info}
+                  pinColor={theme.colors.primary}
                 />
 
                 {/* Contractor Location Marker */}
@@ -428,7 +431,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                         longitude: meeting.location.longitude,
                       },
                     ]}
-                    strokeColor={theme.colors.info}
+                    strokeColor={theme.colors.primary}
                     strokeWidth={3}
                     lineDashPattern={[5, 10]}
                   />
@@ -440,7 +443,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.locationOverlay}>
               {contractorLocation && distance && (
                 <View style={styles.distanceInfo}>
-                  <Ionicons name="location" size={16} color={theme.colors.info} />
+                  <Ionicons name="location" size={16} color={theme.colors.primary} />
                   <Text style={styles.distanceText}>
                     {distance.toFixed(1)} km away
                   </Text>
@@ -475,7 +478,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             ) : (
               <View style={styles.trackingActiveContainer}>
                 <View style={styles.etaDisplay}>
-                  <Ionicons name="time" size={20} color={theme.colors.info} />
+                  <Ionicons name="time" size={20} color={theme.colors.primary} />
                   <Text style={styles.etaText}>
                     ETA: {travelTracking.eta ? `${travelTracking.eta} minutes` : 'Calculating...'}
                   </Text>
@@ -520,7 +523,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleMessageContractor}
             >
-              <Ionicons name="chatbubble" size={20} color={theme.colors.info} />
+              <Ionicons name="chatbubble" size={20} color={theme.colors.primary} />
               <Text style={styles.actionButtonText}>Message</Text>
             </TouchableOpacity>
 
@@ -560,7 +563,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                         : 'notifications'
                     }
                     size={16}
-                    color={theme.colors.info}
+                    color={theme.colors.primary}
                   />
                 </View>
                 <View style={styles.updateContent}>
@@ -595,7 +598,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   header: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: theme.colors.primary,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
@@ -606,7 +609,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textInverse,
   },
   content: {
@@ -630,7 +633,7 @@ const styles = StyleSheet.create({
   },
   meetingTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   statusBadge: {
@@ -686,7 +689,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
@@ -767,7 +770,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   startTravelButton: {
-    backgroundColor: theme.colors.info,
+    backgroundColor: theme.colors.primary,
   },
   arrivedButton: {
     backgroundColor: theme.colors.success,

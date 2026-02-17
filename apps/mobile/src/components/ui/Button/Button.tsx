@@ -69,9 +69,9 @@ export interface ButtonProps {
 // ============================================================================
 
 const BUTTON_SIZES = {
-  sm: { height: 32, paddingHorizontal: 12, fontSize: theme.typography.fontSize.sm },
-  md: { height: 40, paddingHorizontal: 16, fontSize: theme.typography.fontSize.base },
-  lg: { height: 48, paddingHorizontal: 24, fontSize: theme.typography.fontSize.lg },
+  sm: { height: 36, paddingHorizontal: 16, fontSize: theme.typography.fontSize.sm },
+  md: { height: 48, paddingHorizontal: 20, fontSize: theme.typography.fontSize.base },
+  lg: { height: 52, paddingHorizontal: 28, fontSize: theme.typography.fontSize.lg },
   xl: { height: 56, paddingHorizontal: 32, fontSize: theme.typography.fontSize.xl },
 };
 
@@ -125,7 +125,7 @@ export const Button = forwardRef<React.ElementRef<typeof TouchableOpacity>, Butt
 
       setIsPressed(true);
       Animated.spring(pressAnimation, {
-        toValue: 0.96,
+        toValue: 0.97,
         useNativeDriver: true,
         tension: 300,
         friction: 10,
@@ -257,52 +257,44 @@ const getButtonStyles = (
 ): ViewStyle => {
   const baseStyle: ViewStyle = {
     ...BUTTON_SIZES[size],
-    borderRadius: theme.borderRadius.xl, // More rounded for modern look
+    borderRadius: theme.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
     minWidth: theme.layout.minTouchTarget,
     minHeight: theme.layout.minTouchTarget,
-    overflow: 'hidden', // For ripple effect
+    overflow: 'hidden',
   };
 
   if (fullWidth) {
     baseStyle.width = '100%';
   }
 
-  // Variant-specific styles with enhanced Material Design 3 patterns
   switch (variant) {
     case 'primary':
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? theme.colors.gray100
+          ? '#DDDDDD'
           : theme.colors.primary,
-        ...theme.shadows.md, // Enhanced shadow
-        // State overlay for pressed state
-        ...(disabled || loading ? {} : {
-          // Subtle state layer effect
-        }),
+        ...theme.shadows.sm,
       };
 
     case 'secondary':
       return {
         ...baseStyle,
-        backgroundColor: disabled || loading
-          ? theme.colors.gray100
-          : '#F0FDF9', // Light tinted background
+        backgroundColor: 'transparent',
         borderWidth: 1,
         borderColor: disabled || loading
-          ? theme.colors.gray100
-          : theme.colors.secondary,
-        ...theme.shadows.sm,
+          ? '#DDDDDD'
+          : '#DDDDDD',
       };
 
     case 'outline':
       return {
         ...baseStyle,
         backgroundColor: 'transparent',
-        borderWidth: 1.5, // Slightly thicker border
+        borderWidth: 1,
         borderColor: disabled || loading
           ? theme.colors.border
           : theme.colors.primary,
@@ -312,25 +304,24 @@ const getButtonStyles = (
       return {
         ...baseStyle,
         backgroundColor: 'transparent',
-        borderRadius: theme.borderRadius.lg, // Slightly less rounded
       };
 
     case 'danger':
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? theme.colors.gray100
+          ? '#DDDDDD'
           : theme.colors.error,
-        ...theme.shadows.md,
+        ...theme.shadows.sm,
       };
 
     case 'success':
       return {
         ...baseStyle,
         backgroundColor: disabled || loading
-          ? theme.colors.gray100
+          ? '#DDDDDD'
           : theme.colors.success,
-        ...theme.shadows.md,
+        ...theme.shadows.sm,
       };
 
     default:
@@ -349,17 +340,23 @@ const getTextStyles = (
     textAlign: 'center',
   };
 
-  // Variant-specific text colors
   switch (variant) {
     case 'primary':
-    case 'secondary':
     case 'danger':
     case 'success':
       return {
         ...baseStyle,
         color: disabled
           ? theme.colors.placeholder
-          : theme.colors.white,
+          : '#FFFFFF',
+      };
+
+    case 'secondary':
+      return {
+        ...baseStyle,
+        color: disabled
+          ? theme.colors.placeholder
+          : theme.colors.textPrimary,
       };
 
     case 'outline':
@@ -385,10 +382,12 @@ const getIconColor = (variant: ButtonVariant, disabled: boolean): string => {
 
   switch (variant) {
     case 'primary':
-    case 'secondary':
     case 'danger':
     case 'success':
-      return theme.colors.white;
+      return '#FFFFFF';
+
+    case 'secondary':
+      return theme.colors.textPrimary;
 
     case 'outline':
       return theme.colors.primary;

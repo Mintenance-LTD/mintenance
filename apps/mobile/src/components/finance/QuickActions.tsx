@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../../theme';
@@ -15,22 +15,22 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
     {
       icon: 'receipt-outline',
       label: 'Create Invoice',
-      onPress: () => navigation.navigate('CreateInvoice'),
+      onPress: () => Alert.alert('Coming Soon', 'Invoice creation coming soon.'),
     },
     {
       icon: 'card-outline',
       label: 'Add Expense',
-      onPress: () => navigation.navigate('AddExpense'),
+      onPress: () => Alert.alert('Coming Soon', 'Expense tracking coming soon.'),
     },
     {
       icon: 'checkmark-circle-outline',
       label: 'Record Payment',
-      onPress: () => navigation.navigate('RecordPayment'),
+      onPress: () => Alert.alert('Coming Soon', 'Payment recording coming soon.'),
     },
     {
       icon: 'analytics-outline',
       label: 'View Reports',
-      onPress: () => navigation.navigate('FinanceReports'),
+      onPress: () => Alert.alert('Coming Soon', 'Finance reports coming soon.'),
     },
   ];
 
@@ -47,7 +47,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
             <Ionicons
               name={action.icon as keyof typeof Ionicons.glyphMap}
               size={24}
-              color={theme.colors.primary}
+              color={theme.colors.textSecondary}
             />
             <Text style={styles.actionButtonText}>{action.label}</Text>
           </TouchableOpacity>
@@ -61,13 +61,13 @@ const styles = StyleSheet.create({
   actionsContainer: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
     ...theme.shadows.base,
   },
   actionsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 16,
   },
@@ -82,9 +82,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 12,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderRadius: 12,
     backgroundColor: theme.colors.surfaceSecondary,
   },
   actionButtonText: {

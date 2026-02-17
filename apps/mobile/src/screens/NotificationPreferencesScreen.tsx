@@ -123,7 +123,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: theme.colors.border, true: theme.colors.secondary }}
+          trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
           thumbColor={value ? theme.colors.textInverse : theme.colors.textSecondary}
         />
       </View>
@@ -212,7 +212,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
               <Switch
                 value={preferences.quietHours.enabled}
                 onValueChange={(value) => updateQuietHours('enabled', value)}
-                trackColor={{ false: theme.colors.border, true: theme.colors.secondary }}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
                 thumbColor={preferences.quietHours.enabled ? theme.colors.textInverse : theme.colors.textSecondary}
               />
             </View>

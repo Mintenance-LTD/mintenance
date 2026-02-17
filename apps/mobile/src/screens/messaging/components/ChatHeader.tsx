@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {

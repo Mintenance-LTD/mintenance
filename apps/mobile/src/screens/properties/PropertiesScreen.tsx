@@ -17,7 +17,7 @@ import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../../services/ApiClient';
+import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 
 interface Props {
@@ -129,7 +129,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           contentContainerStyle={styles.listContainer}
         />

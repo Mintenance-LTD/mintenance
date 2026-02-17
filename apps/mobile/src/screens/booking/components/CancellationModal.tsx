@@ -186,8 +186,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   closeButton: {
     width: 44,
@@ -198,7 +196,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.text,
   },
   spacer: {
@@ -276,9 +274,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   footer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    padding: 24,
   },
   confirmButton: {
     backgroundColor: theme.colors.error,

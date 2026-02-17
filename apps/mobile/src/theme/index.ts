@@ -37,13 +37,54 @@ type BorderRadiusMap = {
 const tokens = mobileTokens;
 
 export const theme = {
-  // Colors from design tokens (exact same values)
+  // Colors from design tokens with Airbnb-inspired warm overrides
   colors: {
     ...tokens.colors,
-    // Mobile-specific overlay helpers
+
+    // ── Airbnb-style palette (design brief V2) ──
+    // Brand: Emerald green (matching web app #10B981)
+    primary: '#10B981',
+    primaryLight: '#D1FAE5',
+    primaryDark: '#059669',
+
+    // Accent: Coral for urgency & important pricing
+    accent: '#FF6B6B',
+    accentLight: '#FFE6E6',
+
+    // Rating gold for star ratings
+    ratingGold: '#FFD700',
+
+    // Text: high-contrast neutral hierarchy
+    textPrimary: '#222222',
+    textSecondary: '#717171',
+    textTertiary: '#9A9A9A',
+
+    // Backgrounds
+    background: '#FFFFFF',
+    backgroundSecondary: '#F7F7F7',
+    backgroundTertiary: '#EFEFEF',
+
+    // Surfaces
+    surface: '#FFFFFF',
+    surfaceSecondary: '#F8F8F8',
+
+    // Borders
+    border: '#EBEBEB',
+    borderLight: '#F0F0F0',
+
+    // Placeholder
+    placeholder: '#B0B0B0',
+
+    // Text inverse (for dark backgrounds)
+    textInverse: '#FFFFFF',
+    textInverseMuted: 'rgba(255, 255, 255, 0.78)',
+
+    // Overlay helpers
     overlayWhite10: 'rgba(255, 255, 255, 0.10)',
     overlayWhite15: 'rgba(255, 255, 255, 0.15)',
     overlayWhite20: 'rgba(255, 255, 255, 0.20)',
+    overlayDark30: 'rgba(0, 0, 0, 0.3)',
+    overlayDark50: 'rgba(0, 0, 0, 0.5)',
   },
 
   // Typography from design tokens with mobile normalization
@@ -93,9 +134,19 @@ export const theme = {
     // Line Heights (mobile uses numbers, not strings)
     lineHeight: {
       tight: 1.2,
-      normal: 1.4, // Mobile uses 1.4 instead of 1.5 for better readability
+      normal: 1.4,
       relaxed: 1.6,
       loose: 1.8,
+    },
+    // Brief-aligned size presets (non-normalized, direct px values)
+    briefSizes: {
+      body: 14,
+      bodyLarge: 16,
+      secondary: 18,
+      title: 20,
+      headline: 24,
+      display: 32,
+      hero: 48,
     },
   },
 
@@ -110,88 +161,124 @@ export const theme = {
     xxl: 20, // Mobile-specific addition
   } as BorderRadiusMap,
 
-  // Shadows from design tokens (React Native format)
+  // Shadows (Airbnb-inspired: subtler, wider spread)
   shadows: {
     ...tokens.shadows,
+    // Override with softer Airbnb-style shadows
+    sm: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.04,
+      shadowRadius: 3,
+      elevation: 1,
+    },
+    base: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    md: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 3,
+    },
+    large: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 4,
+    },
+    xl: {
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.15,
+      shadowRadius: 24,
+      elevation: 6,
+    },
   },
 
-  // Component Variants (using design tokens)
+  // Component Variants (Airbnb-inspired)
   components: {
     button: {
       primary: {
-        backgroundColor: tokens.colors.primary,
-        color: tokens.colors.white,
-        borderColor: tokens.colors.primary,
+        backgroundColor: '#10B981',
+        color: '#FFFFFF',
+        borderColor: '#10B981',
       },
       secondary: {
         backgroundColor: 'transparent',
-        color: tokens.colors.primary,
-        borderColor: tokens.colors.primary,
+        color: '#000000',
+        borderColor: '#D0D0D0',
       },
       tertiary: {
         backgroundColor: 'transparent',
-        color: tokens.colors.info,
+        color: '#808080',
         borderColor: 'transparent',
       },
       success: {
-        backgroundColor: tokens.colors.secondary,
-        color: tokens.colors.white,
-        borderColor: tokens.colors.secondary,
+        backgroundColor: '#10B981',
+        color: '#FFFFFF',
+        borderColor: '#10B981',
       },
       danger: {
         backgroundColor: tokens.colors.error,
-        color: tokens.colors.white,
+        color: '#FFFFFF',
         borderColor: tokens.colors.error,
       },
       ghost: {
         backgroundColor: 'transparent',
-        color: tokens.colors.primary,
+        color: '#000000',
         borderColor: 'transparent',
       },
     },
     card: {
       default: {
-        backgroundColor: tokens.colors.white,
-        borderColor: tokens.colors.border,
-        borderWidth: 1,
-        borderRadius: tokens.borderRadius.xl,
+        backgroundColor: '#FFFFFF',
+        borderColor: '#D0D0D0',
+        borderWidth: 0,
+        borderRadius: 16,
       },
       elevated: {
-        backgroundColor: tokens.colors.white,
+        backgroundColor: '#FFFFFF',
         borderColor: 'transparent',
         borderWidth: 0,
       },
       outlined: {
         backgroundColor: 'transparent',
-        borderColor: tokens.colors.border,
+        borderColor: '#D0D0D0',
         borderWidth: 1,
-        borderRadius: tokens.borderRadius.xl,
+        borderRadius: 16,
       },
     },
     input: {
       default: {
-        backgroundColor: tokens.colors.white,
-        borderColor: tokens.colors.border,
-        color: tokens.colors.textPrimary,
-        placeholderTextColor: tokens.colors.placeholder,
+        backgroundColor: '#FFFFFF',
+        borderColor: '#D0D0D0',
+        color: '#000000',
+        placeholderTextColor: '#D0D0D0',
       },
       outline: {
-        backgroundColor: tokens.colors.white,
-        borderColor: tokens.colors.border,
-        color: tokens.colors.textPrimary,
-        placeholderTextColor: tokens.colors.placeholder,
+        backgroundColor: '#FFFFFF',
+        borderColor: '#D0D0D0',
+        color: '#000000',
+        placeholderTextColor: '#D0D0D0',
       },
       filled: {
-        backgroundColor: tokens.colors.backgroundSecondary,
-        borderColor: tokens.colors.border,
-        color: tokens.colors.textPrimary,
-        placeholderTextColor: tokens.colors.placeholder,
+        backgroundColor: '#F8F8F8',
+        borderColor: '#D0D0D0',
+        color: '#000000',
+        placeholderTextColor: '#D0D0D0',
       },
       focused: {
-        borderColor: tokens.colors.primary,
-        backgroundColor: tokens.colors.white,
-        shadowColor: tokens.colors.primary,
-        shadowOpacity: 0.1,
+        borderColor: '#000000',
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000000',
+        shadowOpacity: 0.05,
       },
       error: {
         borderColor: tokens.colors.errorDark,
@@ -201,19 +288,21 @@ export const theme = {
     },
   },
 
-  // Layout Constants (mobile-specific)
+  // Layout Constants (Airbnb-inspired: more generous spacing)
   layout: {
-    screenPadding: tokens.spacing[4],
-    cardPadding: tokens.spacing[4],
-    sectionSpacing: tokens.spacing[6],
-    buttonHeight: 44,
-    buttonHeightLarge: 48,
-    inputHeight: 44,
-    inputHeightLarge: 48,
-    headerHeight: 56,
+    screenPadding: 24,           // was 16 - more breathing room
+    cardPadding: 20,             // was 16
+    sectionSpacing: 32,          // was 24 - generous section gaps
+    cardGap: 16,                 // consistent gap between cards
+    listItemGap: 12,             // gap between list items
+    buttonHeight: 48,            // was 44 - taller buttons
+    buttonHeightLarge: 52,       // was 48
+    inputHeight: 48,             // was 44 - taller inputs
+    inputHeightLarge: 52,        // was 48
+    headerHeight: 60,            // was 56
     tabBarHeight: {
       ios: 83,
-      android: 56,
+      android: 60,               // was 56
     },
     minTouchTarget: 44,
     breakpoints: {

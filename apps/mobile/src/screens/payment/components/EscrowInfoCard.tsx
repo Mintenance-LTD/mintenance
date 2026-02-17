@@ -7,7 +7,7 @@ export const EscrowInfoCard: React.FC = () => {
   return (
     <View style={styles.escrowCard}>
       <View style={styles.escrowHeader}>
-        <Ionicons name="shield-checkmark-outline" size={24} color={theme.colors.secondary} />
+        <Ionicons name="shield-checkmark-outline" size={24} color={theme.colors.primary} />
         <Text style={styles.escrowTitle}>Escrow Protection</Text>
       </View>
       <Text style={styles.escrowDescription}>
@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.lg,
     borderLeftWidth: 4,
-    borderLeftColor: theme.colors.secondary,
+    borderLeftColor: theme.colors.primary,
   },
   escrowHeader: {
     flexDirection: 'row',

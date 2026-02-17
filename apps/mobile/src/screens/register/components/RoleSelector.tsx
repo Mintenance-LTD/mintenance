@@ -28,7 +28,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
           <Ionicons
             name="home-outline"
             size={18}
-            color={role === 'homeowner' ? theme.colors.primary : theme.colors.textSecondary}
+            color={role === 'homeowner' ? theme.colors.textPrimary : theme.colors.textSecondary}
           />
           <Text
             style={[
@@ -62,7 +62,7 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
           <Ionicons
             name="construct-outline"
             size={18}
-            color={role === 'contractor' ? theme.colors.primary : theme.colors.textSecondary}
+            color={role === 'contractor' ? theme.colors.textPrimary : theme.colors.textSecondary}
           />
           <Text
             style={[
@@ -89,20 +89,23 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
 const styles = StyleSheet.create({
   roleSelectionContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surfaceTertiary,
-    borderRadius: 20,
-    padding: 4,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 16,
+    padding: 6,
     marginBottom: 24,
   },
   roleToggle: {
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
     alignItems: 'center',
   },
   roleToggleActive: {
     backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.primary,
     ...theme.shadows.sm,
   },
   roleRow: {
@@ -116,7 +119,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   roleToggleTextActive: {
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   roleDescription: {

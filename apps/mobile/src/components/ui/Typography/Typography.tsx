@@ -169,56 +169,56 @@ const getVariantStyles = (variant: TypographyVariant): TextStyle => {
   switch (variant) {
     case 'display1':
       return {
-        fontSize: 96,
-        fontWeight: theme.typography.fontWeight.bold,
-        lineHeight: theme.typography.lineHeight.tight,
+        fontSize: theme.typography.fontSize['5xl'],
+        fontWeight: '700',
+        lineHeight: 1.1,
       };
 
     case 'display2':
       return {
-        fontSize: 72,
-        fontWeight: theme.typography.fontWeight.bold,
-        lineHeight: theme.typography.lineHeight.tight,
+        fontSize: theme.typography.fontSize['4xl'],
+        fontWeight: '700',
+        lineHeight: 1.1,
       };
 
     case 'h1':
       return {
-        fontSize: 60,
-        fontWeight: theme.typography.fontWeight.bold,
-        lineHeight: theme.typography.lineHeight.tight,
+        fontSize: theme.typography.fontSize['3xl'],
+        fontWeight: '700',
+        lineHeight: 1.15,
       };
 
     case 'h2':
       return {
-        fontSize: theme.typography.fontSize['5xl'],
-        fontWeight: theme.typography.fontWeight.bold,
-        lineHeight: theme.typography.lineHeight.tight,
+        fontSize: theme.typography.fontSize['2xl'],
+        fontWeight: '700',
+        lineHeight: 1.2,
       };
 
     case 'h3':
       return {
-        fontSize: theme.typography.fontSize['4xl'],
-        fontWeight: theme.typography.fontWeight.semibold,
-        lineHeight: 1.375,
+        fontSize: theme.typography.fontSize.xl,
+        fontWeight: theme.typography.fontWeight.bold,
+        lineHeight: 1.25,
       };
 
     case 'h4':
       return {
-        fontSize: theme.typography.fontSize['3xl'],
+        fontSize: theme.typography.fontSize.lg,
         fontWeight: theme.typography.fontWeight.semibold,
-        lineHeight: 1.375,
+        lineHeight: 1.3,
       };
 
     case 'h5':
       return {
-        fontSize: theme.typography.fontSize['2xl'],
+        fontSize: theme.typography.fontSize.base,
         fontWeight: theme.typography.fontWeight.semibold,
-        lineHeight: 1.375,
+        lineHeight: 1.35,
       };
 
     case 'h6':
       return {
-        fontSize: theme.typography.fontSize.xl,
+        fontSize: theme.typography.fontSize.sm,
         fontWeight: theme.typography.fontWeight.semibold,
         lineHeight: theme.typography.lineHeight.normal,
       };
@@ -241,7 +241,7 @@ const getVariantStyles = (variant: TypographyVariant): TextStyle => {
       return {
         fontSize: theme.typography.fontSize.base,
         fontWeight: theme.typography.fontWeight.regular,
-        lineHeight: theme.typography.lineHeight.relaxed,
+        lineHeight: 1.6,
       };
 
     case 'body2':
@@ -256,7 +256,6 @@ const getVariantStyles = (variant: TypographyVariant): TextStyle => {
         fontSize: theme.typography.fontSize.base,
         fontWeight: theme.typography.fontWeight.semibold,
         lineHeight: 1,
-        textTransform: 'uppercase',
         letterSpacing: 0.025,
       };
 
@@ -265,6 +264,7 @@ const getVariantStyles = (variant: TypographyVariant): TextStyle => {
         fontSize: theme.typography.fontSize.xs,
         fontWeight: theme.typography.fontWeight.regular,
         lineHeight: theme.typography.lineHeight.normal,
+        color: theme.colors.textSecondary,
       };
 
     case 'overline':
@@ -272,8 +272,7 @@ const getVariantStyles = (variant: TypographyVariant): TextStyle => {
         fontSize: theme.typography.fontSize.xs,
         fontWeight: theme.typography.fontWeight.semibold,
         lineHeight: theme.typography.lineHeight.normal,
-        textTransform: 'uppercase',
-        letterSpacing: 0.1,
+        letterSpacing: 0.05,
       };
 
     default:

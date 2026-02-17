@@ -335,8 +335,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing[4],
     marginVertical: theme.spacing[2],
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   header: {
     flexDirection: 'row',
@@ -405,7 +403,7 @@ const styles = StyleSheet.create({
   priceRange: {
     fontSize: theme.typography.fontSize['2xl'],
     fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginBottom: theme.spacing[1],
   },
   optimalPrice: {

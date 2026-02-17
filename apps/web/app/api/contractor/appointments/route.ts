@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
 
     if (!user || user.role !== 'contractor') {
       throw new UnauthorizedError('Contractor access required');
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
 
     if (!user || user.role !== 'contractor') {
       throw new UnauthorizedError('Contractor access required');

@@ -89,7 +89,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             <Ionicons
               name={getClientTypeIcon(client.client_type) as keyof typeof Ionicons.glyphMap}
               size={16}
-              color={theme.colors.primary}
+              color={theme.colors.textSecondary}
             />
             <Text style={styles.clientName}>{clientName}</Text>
           </View>
@@ -166,7 +166,7 @@ export const ClientCard: React.FC<ClientCardProps> = ({
       <View style={styles.actions}>
         {onCall && (
           <TouchableOpacity style={styles.actionButton} onPress={onCall}>
-            <Ionicons name='call' size={16} color={theme.colors.primary} />
+            <Ionicons name='call' size={16} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         )}
         {onMessage && (
@@ -174,20 +174,20 @@ export const ClientCard: React.FC<ClientCardProps> = ({
             <Ionicons
               name='chatbubble'
               size={16}
-              color={theme.colors.primary}
+              color={theme.colors.textSecondary}
             />
           </TouchableOpacity>
         )}
         {onEmail && (
           <TouchableOpacity style={styles.actionButton} onPress={onEmail}>
-            <Ionicons name='mail' size={16} color={theme.colors.primary} />
+            <Ionicons name='mail' size={16} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         )}
         <TouchableOpacity style={[styles.actionButton, styles.moreButton]}>
           <Ionicons
             name='ellipsis-horizontal'
             size={16}
-            color={theme.colors.primary}
+            color={theme.colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -262,8 +262,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
     paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
   },
   metric: {
     alignItems: 'center',
@@ -272,7 +270,7 @@ const styles = StyleSheet.create({
   metricValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   metricLabel: {
@@ -289,8 +287,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
     paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
   },
   lastActivityText: {
     fontSize: 12,
@@ -306,7 +302,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: theme.borderRadius.full,
-    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    backgroundColor: theme.colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -17,7 +17,7 @@ import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../services/ApiClient';
+import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 
 interface Review {
   id: string;
@@ -27,6 +27,17 @@ interface Review {
   rating: number;
   comment: string;
   created_at: string;
+}
+
+interface ReviewsResponse {
+  reviews: Array<{
+    id: string;
+    author: string;
+    rating: number;
+    date: string;
+    comment: string;
+    jobType?: string;
+  }>;
 }
 
 interface Props {
@@ -80,7 +91,22 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
 
   const { data: reviews, isLoading, error, refetch } = useQuery({
     queryKey: ['contractor-reviews', user?.id],
-    queryFn: () => apiClient.get<Review[]>('/api/contractor/reviews'),
+    queryFn: async () => {
+      if (!user?.id) {
+        return [];
+      }
+
+      const response = await apiClient.get<ReviewsResponse>(`/api/contractors/${user.id}/reviews`);
+      return (response.reviews || []).map((review) => ({
+        id: review.id,
+        job_id: '',
+        job_title: review.jobType || 'Completed job',
+        reviewer_name: review.author || 'Anonymous',
+        rating: review.rating,
+        comment: review.comment || '',
+        created_at: review.date,
+      })) as Review[];
+    },
     enabled: !!user,
   });
 
@@ -121,7 +147,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
           keyExtractor={item => item.id}
           renderItem={({ item }) => <ReviewCard review={item} />}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           contentContainerStyle={styles.listContainer}
         />

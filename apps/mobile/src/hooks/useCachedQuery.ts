@@ -8,6 +8,7 @@ import type { Job } from '@/types';
 import { CacheService } from '../services/CacheService';
 import { CACHE_TIMES, STALE_TIMES, QUERY_KEYS } from '../config/reactQuery.config';
 import { logger } from '../utils/logger';
+import { mobileApiClient } from '../utils/mobileApiClient';
 
 interface CachedQueryOptions<TData> {
   queryKey: QueryKey;
@@ -280,10 +281,7 @@ export const CACHE_PATTERNS = {
 export function useJobsWithCache() {
   return useCachedQuery({
     queryKey: QUERY_KEYS.JOBS_LIST,
-    queryFn: async () => {
-      const response = await fetch('/api/jobs');
-      return response.json();
-    },
+    queryFn: () => mobileApiClient.get('/api/jobs'),
     ...CACHE_PATTERNS.DYNAMIC,
   });
 }
@@ -294,10 +292,7 @@ export function useJobsWithCache() {
 export function useContractorProfile(contractorId: string) {
   return useCachedQuery({
     queryKey: QUERY_KEYS.CONTRACTOR_PROFILE(contractorId),
-    queryFn: async () => {
-      const response = await fetch(`/api/contractors/${contractorId}`);
-      return response.json();
-    },
+    queryFn: () => mobileApiClient.get(`/api/contractors/${contractorId}`),
     ...CACHE_PATTERNS.SEMI_STATIC,
     enabled: !!contractorId,
   });
@@ -308,13 +303,7 @@ export function useContractorProfile(contractorId: string) {
  */
 export function useCreateJob() {
   return useCachedMutation({
-    mutationFn: async (jobData: unknown) => {
-      const response = await fetch('/api/jobs', {
-        method: 'POST',
-        body: JSON.stringify(jobData),
-      });
-      return response.json();
-    },
+    mutationFn: (jobData: unknown) => mobileApiClient.post('/api/jobs', jobData),
     invalidateKeys: [QUERY_KEYS.JOBS_LIST],
     optimisticUpdate: {
       queryKey: QUERY_KEYS.JOBS_LIST,

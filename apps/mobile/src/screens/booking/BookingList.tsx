@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   contentContainer: {
-    padding: 16,
+    padding: 20,
     gap: 12,
   },
   emptyContentContainer: {
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,

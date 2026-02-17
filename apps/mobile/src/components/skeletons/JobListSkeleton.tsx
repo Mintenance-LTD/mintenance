@@ -199,18 +199,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F7F7F7',
   },
   skeleton: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#EBEBEB',
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#EBEBEB',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -267,11 +267,11 @@ const styles = StyleSheet.create({
   },
   contractorCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#EBEBEB',
   },
   contractorHeader: {
     flexDirection: 'row',

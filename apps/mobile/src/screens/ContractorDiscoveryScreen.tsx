@@ -120,7 +120,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color={theme.colors.info} accessibilityLabel='Loading contractors' />
+        <ActivityIndicator size='large' color={theme.colors.primary} accessibilityLabel='Loading contractors' />
         <Text style={styles.loadingText}>Finding contractors near you...</Text>
       </View>
     );
@@ -173,7 +173,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
             color={
               viewMode === 'discover'
                 ? theme.colors.textInverse
-                : theme.colors.info
+                : theme.colors.primary
             }
           />
           <Text
@@ -200,7 +200,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
             name='map-outline'
             size={20}
             color={
-              viewMode === 'map' ? theme.colors.textInverse : theme.colors.info
+              viewMode === 'map' ? theme.colors.textInverse : theme.colors.primary
             }
           />
           <Text
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.white,
   },
   headerSubtitle: {
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: theme.colors.white,
     margin: 20,
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 4,
   },
   toggleButton: {
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingHorizontal: 30,
     paddingVertical: 15,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   retryButtonText: {
     color: theme.colors.white,

@@ -16,6 +16,7 @@ interface Bid {
   jobTitle: string;
   amount: number;
   status: string;
+  jobId?: string;
 }
 
 interface BidsReceivedProps {
@@ -29,7 +30,25 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
   onReviewPress,
   onViewAllPress,
 }) => {
-  if (bids.length === 0) return null;
+  if (bids.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Bids Received</Text>
+        </View>
+        <View style={styles.emptyCard}>
+          <Ionicons name='mail-open-outline' size={20} color={theme.colors.textSecondary} />
+          <Text style={styles.emptyText}>No bids yet</Text>
+          <Text style={styles.emptySubtext}>When contractors bid on your job, they will appear here.</Text>
+          {onViewAllPress ? (
+            <TouchableOpacity onPress={onViewAllPress} accessibilityRole='button' accessibilityLabel='View your posted jobs'>
+              <Text style={styles.emptyLink}>View jobs</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -81,12 +100,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
   },
   viewAll: {
-    color: theme.colors.secondary,
+    color: theme.colors.primary,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -95,10 +114,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.colors.white,
     borderRadius: 12,
-    padding: 14,
+    padding: 16,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    ...theme.shadows.sm,
+  },
+  emptyCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    ...theme.shadows.sm,
+    gap: 6,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  emptyLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    textDecorationLine: 'underline',
   },
   bidAvatar: {
     width: 40,
@@ -129,12 +169,12 @@ const styles = StyleSheet.create({
   bidAmount: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.secondary,
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   reviewButton: {
-    backgroundColor: theme.colors.secondary,
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },

@@ -35,7 +35,7 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
           accessibilityRole='button'
           accessibilityLabel={`Current location: ${location}. Double tap to change`}
         >
-          <Ionicons name="location" size={16} color={theme.colors.secondary} />
+          <Ionicons name="location" size={16} color={theme.colors.primary} />
           <Text style={styles.locationText}>{location}</Text>
           <Ionicons name="chevron-down" size={16} color={theme.colors.white} />
         </TouchableOpacity>

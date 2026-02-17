@@ -205,7 +205,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
               <Ionicons
                 name='document-text-outline'
                 size={12}
-                color={theme.colors.primary}
+                color={theme.colors.textSecondary}
               />
               <Text style={styles.infoChipText}>Has Notes</Text>
             </View>
@@ -222,7 +222,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             onEdit();
           }}
         >
-          <Ionicons name='pencil' size={16} color={theme.colors.primary} />
+          <Ionicons name='pencil' size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         {quote.status === 'draft' && (
@@ -244,7 +244,7 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
             onDuplicate();
           }}
         >
-          <Ionicons name='copy' size={16} color={theme.colors.warning} />
+          <Ionicons name='copy' size={16} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   amount: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   amountLabel: {
@@ -349,8 +349,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
     marginBottom: 8,
   },
   breakdownItem: {
@@ -394,9 +392,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    paddingTop: 12,
   },
   actionButton: {
     width: 32,

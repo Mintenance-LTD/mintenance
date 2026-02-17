@@ -150,7 +150,7 @@ const BiometricSettings: React.FC = () => {
           disabled={loading}
           trackColor={{
             false: theme.colors.border,
-            true: theme.colors.secondary,
+            true: theme.colors.primary,
           }}
           thumbColor={
             isEnabled ? theme.colors.surface : theme.colors.textTertiary

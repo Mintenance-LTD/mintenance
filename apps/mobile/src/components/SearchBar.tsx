@@ -137,7 +137,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const borderColor = focusAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [theme.colors.border, theme.colors.primary],
+    outputRange: [theme.colors.border, theme.colors.textPrimary],
   });
 
   const backgroundColor = focusAnimation.interpolate({
@@ -161,7 +161,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <Ionicons
           name='search'
           size={20}
-          color={isFocused ? theme.colors.primary : theme.colors.textTertiary}
+          color={isFocused ? theme.colors.textPrimary : theme.colors.textTertiary}
           style={styles.searchIcon}
         />
 
@@ -232,7 +232,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               name='options'
               size={20}
               color={
-                isFocused ? theme.colors.primary : theme.colors.textSecondary
+                isFocused ? theme.colors.textPrimary : theme.colors.textSecondary
               }
             />
           </TouchableOpacity>
@@ -275,10 +275,10 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: theme.borderRadius['2xl'],
+    borderRadius: 12,
     borderWidth: 1,
     paddingHorizontal: 16,
-    height: 50,
+    height: 48,
     ...theme.shadows.sm,
   },
   searchIcon: {

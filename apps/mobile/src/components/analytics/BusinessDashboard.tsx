@@ -49,7 +49,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
   trend = 'neutral',
   color = theme.colors.primary,
 }) => {
-  const trendColor = trend === 'up' ? '#10B981' : trend === 'down' ? '#EF4444' : '#6B7280';
+  const trendColor = trend === 'up' ? '#10B981' : trend === 'down' ? '#EF4444' : '#717171';
   
   return (
     <View style={[styles.metricCard, { borderLeftColor: color }]}>
@@ -143,14 +143,14 @@ const BusinessDashboard: React.FC<DashboardProps> = ({
           value={formatPercentage(metrics.userGrowth)}
           change="+25% this quarter"
           trend="up"
-          color={theme.colors.info}
+          color={theme.colors.primary}
         />
         <MetricCard
           title="Contractor Util."
           value={formatPercentage(metrics.contractorUtilization)}
           change="+5% this month"
           trend="up"
-          color={theme.colors.secondary}
+          color={theme.colors.primary}
         />
       </View>
 
@@ -215,12 +215,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: theme.spacing[4],
     paddingVertical: theme.spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   title: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700' as const,
     color: theme.colors.textPrimary,
   },
   refreshButton: {
@@ -243,14 +241,10 @@ const styles = StyleSheet.create({
   metricCard: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: 12,
     padding: theme.spacing[4],
     borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...theme.shadows.base,
   },
   metricTitle: {
     fontSize: theme.typography.fontSize.sm,
@@ -260,7 +254,7 @@ const styles = StyleSheet.create({
   },
   metricValue: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
+    fontWeight: '700' as const,
     marginBottom: theme.spacing[1],
   },
   changeContainer: {
@@ -276,17 +270,16 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '700' as const,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing[3],
   },
   insightCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: 12,
     padding: theme.spacing[4],
     marginBottom: theme.spacing[3],
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    ...theme.shadows.base,
   },
   insightTitle: {
     fontSize: theme.typography.fontSize.base,
@@ -302,12 +295,12 @@ const styles = StyleSheet.create({
   actionGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: theme.spacing[2],
+    gap: 12,
   },
   actionButton: {
-    width: (width - theme.spacing[4] * 2 - theme.spacing[2]) / 2,
+    width: (width - theme.spacing[4] * 2 - 12) / 2,
     backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.md,
+    borderRadius: 12,
     padding: theme.spacing[3],
     alignItems: 'center',
     justifyContent: 'center',

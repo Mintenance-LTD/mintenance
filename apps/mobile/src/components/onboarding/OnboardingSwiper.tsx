@@ -219,19 +219,19 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   activeDot: {
-    backgroundColor: '#0066CC',
+    backgroundColor: '#10B981',
     width: 24,
   },
   inactiveDot: {
     backgroundColor: '#D1D5DB',
   },
   button: {
-    backgroundColor: '#0066CC',
+    backgroundColor: '#10B981',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0066CC',
+    shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

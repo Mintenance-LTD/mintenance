@@ -7,8 +7,35 @@ import { logger } from '@mintenance/shared';
 import { fetchWithOpenAIRetry } from '@/lib/utils/openai-rate-limit';
 
 export const USE_MINT_AI_VLM = process.env.USE_MINT_AI_VLM === 'true';
-const MINT_AI_VLM_ENDPOINT = process.env.MINT_AI_VLM_ENDPOINT?.trim() || '';
 const MINT_AI_VLM_API_KEY = process.env.MINT_AI_VLM_API_KEY?.trim() || '';
+
+/** Block SSRF: only allow HTTPS URLs to non-internal hosts */
+function validateVlmEndpoint(raw: string): string {
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    if (url.protocol !== 'https:' && process.env.NODE_ENV === 'production') {
+      logger.warn('MINT_AI_VLM_ENDPOINT must be HTTPS in production, ignoring', { service: 'AssessmentGenerator' });
+      return '';
+    }
+    if (!['https:', 'http:'].includes(url.protocol)) {
+      return '';
+    }
+    const h = url.hostname;
+    // Block cloud metadata + reserved IPs (SSRF targets)
+    if (h === '169.254.169.254' || h === 'metadata.google.internal' ||
+        h.endsWith('.internal') || h === '[::1]') {
+      logger.warn('MINT_AI_VLM_ENDPOINT points to reserved address, ignoring', { service: 'AssessmentGenerator' });
+      return '';
+    }
+    return raw;
+  } catch {
+    logger.warn('MINT_AI_VLM_ENDPOINT is not a valid URL, ignoring', { service: 'AssessmentGenerator' });
+    return '';
+  }
+}
+
+const MINT_AI_VLM_ENDPOINT = validateVlmEndpoint(process.env.MINT_AI_VLM_ENDPOINT?.trim() || '');
 
 export interface GeneratorMessage {
   role: 'system' | 'user' | 'assistant';
@@ -65,7 +92,7 @@ async function callGPT4o(messages: GeneratorMessage[], apiKey: string): Promise<
  * Call in-house Mint AI VLM at MINT_AI_VLM_ENDPOINT (OpenAI-compatible chat completions).
  * Uses MINT_AI_VLM_API_KEY if set, else apiKey (e.g. gateway).
  */
-async function callMintAiVLM(
+export async function callMintAiVLM(
   messages: GeneratorMessage[],
   apiKey: string
 ): Promise<GeneratorResult> {
@@ -121,13 +148,43 @@ async function mintAiStub(
 }
 
 /**
- * Get assessment JSON content from the configured generator (GPT-4o or Mint AI in-house VLM).
- * Priority: MINT_AI_VLM_ENDPOINT -> USE_MINT_AI_VLM (stub) -> GPT-4o.
+ * Get assessment JSON content from the configured generator.
+ * Priority: StudentRoutingGate (if VLM_ROUTING_MODE=auto) -> MINT_AI_VLM_ENDPOINT -> USE_MINT_AI_VLM (stub) -> GPT-4o.
  */
 export async function getGeneratorContent(
   messages: GeneratorMessage[],
-  apiKey: string
+  apiKey: string,
+  context?: { assessmentId?: string; damageCategory?: string; propertyType?: string }
 ): Promise<GeneratorResult> {
+  // Phase 4: Confidence-based student routing (only when VLM_ROUTING_MODE=auto)
+  if (MINT_AI_VLM_ENDPOINT && process.env.VLM_ROUTING_MODE === 'auto' && context?.damageCategory) {
+    try {
+      const { StudentRoutingGate } = await import('../distillation/StudentRoutingGate');
+      const routingContext = context.propertyType
+        ? { propertyType: context.propertyType } as import('../types').AssessmentContext
+        : undefined;
+      const decision = await StudentRoutingGate.shouldUseStudent(
+        routingContext,
+        context.damageCategory
+      );
+
+      if (decision.decision === 'student_only') {
+        try {
+          return await callMintAiVLM(messages, apiKey);
+        } catch (err) {
+          logger.warn('Student VLM failed, falling back to GPT-4o', {
+            service: 'AssessmentGenerator',
+            error: err instanceof Error ? err.message : String(err),
+          });
+          return callGPT4o(messages, apiKey);
+        }
+      }
+      // teacher_only or shadow_compare -> fall through to existing logic
+    } catch {
+      // Routing gate failure is non-fatal, fall through
+    }
+  }
+
   if (MINT_AI_VLM_ENDPOINT) {
     try {
       return await callMintAiVLM(messages, apiKey);

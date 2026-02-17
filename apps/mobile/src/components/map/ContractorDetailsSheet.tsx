@@ -55,7 +55,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
               <Ionicons
                 name='checkmark-circle'
                 size={16}
-                color={theme.colors.secondary}
+                color={theme.colors.primary}
               />
             )}
           </View>
@@ -92,7 +92,7 @@ export const ContractorDetailsSheet: React.FC<ContractorDetailsSheetProps> = ({
           <Ionicons
             name='cash-outline'
             size={16}
-            color={theme.colors.secondary}
+            color={theme.colors.primary}
           />
           <Text style={styles.pricingText}>{contractor.pricing}</Text>
         </View>
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   pricingText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.secondary,
+    color: theme.colors.primary,
   },
   estimateInfo: {
     flexDirection: 'row',

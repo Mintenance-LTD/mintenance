@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   durationButtonSelected: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.primary,
   },
   durationText: {
     fontSize: theme.typography.fontSize.md,

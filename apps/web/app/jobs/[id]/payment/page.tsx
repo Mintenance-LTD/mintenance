@@ -303,7 +303,7 @@ function JobPaymentPageContent() {
                       alignItems: 'center',
                       gap: '4px'
                     }}>
-                      <MapPin size={14} /> {job.location}
+                      <MapPin size={14} /> {typeof job.location === 'string' ? job.location : 'Not specified'}
                     </div>
                   </div>
                 )}

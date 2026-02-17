@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
+import { requireCSRFFromCookieAuth } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
@@ -43,10 +43,10 @@ export async function POST(request: NextRequest) {
   }
 
     // CSRF protection
-    await requireCSRF(request);
+    await requireCSRFFromCookieAuth(request);
 
     // Authenticate user
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required');
     }

@@ -19,7 +19,7 @@ import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../../services/ApiClient';
+import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 
@@ -106,7 +106,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
       >
         <View style={styles.addressCard}>
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing[3],
   },

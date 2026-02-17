@@ -18,7 +18,7 @@ import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '../services/ApiClient';
+import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 
 interface ScheduleItem {
   id: string;
@@ -30,6 +30,21 @@ interface ScheduleItem {
   type: 'job' | 'meeting' | 'deadline';
   status: string;
   address?: string;
+}
+
+interface AppointmentsResponse {
+  appointments: Array<{
+    id: string;
+    jobId?: string;
+    jobTitle?: string;
+    title: string;
+    date: string;
+    time: string;
+    endTime?: string;
+    type?: 'job' | 'meeting' | 'deadline' | string;
+    status: string;
+    location?: string;
+  }>;
 }
 
 interface Props {
@@ -52,7 +67,7 @@ const ScheduleCard: React.FC<{
   const getTypeColor = () => {
     switch (item.type) {
       case 'job': return theme.colors.primary;
-      case 'meeting': return theme.colors.info;
+      case 'meeting': return theme.colors.primary;
       case 'deadline': return theme.colors.warning;
       default: return theme.colors.textSecondary;
     }
@@ -88,7 +103,22 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
 
   const { data: schedule, isLoading, error, refetch } = useQuery({
     queryKey: ['contractor-schedule', user?.id],
-    queryFn: () => apiClient.get<ScheduleItem[]>('/api/contractor/schedule'),
+    queryFn: async () => {
+      const response = await apiClient.get<AppointmentsResponse>('/api/contractor/appointments');
+      return (response.appointments || []).map((appointment) => ({
+        id: appointment.id,
+        job_id: appointment.jobId || appointment.id,
+        job_title: appointment.jobTitle || appointment.title,
+        date: appointment.date,
+        time_start: appointment.time,
+        time_end: appointment.endTime,
+        type: (appointment.type === 'job' || appointment.type === 'meeting' || appointment.type === 'deadline')
+          ? appointment.type
+          : 'meeting',
+        status: appointment.status,
+        address: appointment.location,
+      })) as ScheduleItem[];
+    },
     enabled: !!user,
   });
 
@@ -122,7 +152,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           contentContainerStyle={styles.listContainer}
         />

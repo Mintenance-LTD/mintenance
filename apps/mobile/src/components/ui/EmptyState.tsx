@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: '700' as const,
     color: theme.colors.textPrimary,
     marginTop: theme.spacing[4],
     marginBottom: theme.spacing[2],
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     paddingVertical: theme.spacing[3],
     paddingHorizontal: theme.spacing[6],
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.borderRadius.lg,
   },
   ctaText: {
     color: '#fff',

@@ -207,7 +207,7 @@ export const ErrorFallback: React.FC<ErrorFallbackProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F7F7F7',
   },
   scrollContent: {
     flexGrow: 1,
@@ -246,8 +246,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
     padding: 12,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
   },
   errorIdLabel: {
     fontSize: 12,
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
     marginVertical: 6,
   },
   primaryButton: {
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   outlineButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EBEBEB',
   },
   outlineButtonText: {
     fontSize: 16,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#EBEBEB',
     marginBottom: 24,
   },
   tipsTitle: {
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   debugContent: {
     backgroundColor: '#FFFFFF',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   debugLabel: {
     fontSize: 12,
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
   stackTrace: {
     maxHeight: 120,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F7F7F7',
     padding: 8,
     borderRadius: 4,
     marginBottom: 8,

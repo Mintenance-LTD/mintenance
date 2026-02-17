@@ -19,7 +19,7 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
       datasets: [
         {
           data: financialData.monthly_revenue.slice(-6),
-          color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+          color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
           strokeWidth: 2,
         },
       ],
@@ -67,7 +67,7 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
       {
         name: 'Materials',
         value: 45,
-        color: theme.colors.info,
+        color: theme.colors.primary,
         legendFontColor: theme.colors.textSecondary,
       },
       {

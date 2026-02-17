@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: theme.colors.white,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: 12,
     padding: theme.spacing.lg,
     ...theme.shadows.base,
     position: 'relative',
@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
   offerCard: {
     width: screenWidth * 0.8,
     backgroundColor: theme.colors.primary,
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: 12,
     padding: theme.spacing.lg,
     marginRight: theme.spacing.md,
     marginLeft: theme.spacing.lg,

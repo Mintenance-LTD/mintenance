@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { theme } from '../../../theme';
 
 interface QuickActionsProps {
   onStartVideoCapture: () => void;
@@ -91,7 +92,7 @@ const styles = StyleSheet.create({
   secondaryActionText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   tipsCard: {
     flexDirection: 'row',

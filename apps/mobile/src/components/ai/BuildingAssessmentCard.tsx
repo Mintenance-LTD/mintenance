@@ -397,11 +397,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderRadius: 12,
     marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    ...theme.shadows.base,
   },
   runAssessmentButton: {
     backgroundColor: theme.colors.primary,
@@ -441,8 +437,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -455,7 +449,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 8,
     color: theme.colors.textPrimary,
   },
@@ -476,8 +470,6 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   safetySection: {
     backgroundColor: '#FFF5F5',
@@ -596,8 +588,8 @@ const styles = StyleSheet.create({
   },
   costValue: {
     fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.primary,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
   },
   costRange: {
     marginTop: 4,
@@ -695,11 +687,11 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.border,
   },
   correctionButtonText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginLeft: 4,
   },
   refreshButton: {

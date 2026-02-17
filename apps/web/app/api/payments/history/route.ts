@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { EscrowTransaction } from '@mintenance/types';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to view payment history');
     }

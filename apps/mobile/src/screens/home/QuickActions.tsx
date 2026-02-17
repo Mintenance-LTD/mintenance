@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 16,
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   actionCard: {
     flex: 1,
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
     alignItems: 'center',
     ...theme.shadows.base,

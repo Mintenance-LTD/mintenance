@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CardField, useConfirmPayment } from '@stripe/stripe-react-native';
+import { theme } from '../theme';
 
 interface StripePaymentFormProps {
   amount: number;
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 20,
   },
-  title: { fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 16 },
+  title: { fontSize: 18, fontWeight: '600', color: theme.colors.textPrimary, marginBottom: 16 },
   cardField: {
     width: '100%',
     height: 50,

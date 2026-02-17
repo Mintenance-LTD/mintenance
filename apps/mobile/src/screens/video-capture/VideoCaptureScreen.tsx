@@ -22,6 +22,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import VideoService, { VideoGuidancePhase } from '../../services/VideoService';
+import { theme } from '../../theme';
 import { logger } from '@mintenance/shared';
 import Reanimated, {
   useAnimatedStyle,
@@ -234,11 +235,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
       logger.info('Video queued for processing', { videoId });
 
-      (navigation as { navigate: (screen: string, params: Record<string, unknown>) => void }).navigate('VideoProcessingStatus', {
-        videoId,
-        assessmentId,
-        propertyId,
-      });
+      Alert.alert('Video Uploaded', 'Your video has been queued for processing.');
 
       if (onComplete) {
         onComplete(videoId);
@@ -494,13 +491,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginTop: 16,
     marginBottom: 24,
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   permissionButton: {
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
   },
   permissionButtonText: {
     color: 'white',
@@ -573,15 +570,15 @@ const styles = StyleSheet.create({
   phaseTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   phaseTimer: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   progressBar: {
     height: 4,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#EBEBEB',
     borderRadius: 2,
     marginBottom: 16,
     overflow: 'hidden',
@@ -609,7 +606,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFF9E6',
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   tipText: {
     marginLeft: 8,
@@ -682,12 +679,12 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     backgroundColor: 'white',
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#EBEBEB',
   },
   previewTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#333',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   videoPreviewContainer: {
@@ -699,7 +696,7 @@ const styles = StyleSheet.create({
   videoPlaceholder: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#EBEBEB',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -707,14 +704,14 @@ const styles = StyleSheet.create({
   videoInfo: {
     marginTop: 8,
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   previewActions: {
     flexDirection: 'row',
     padding: 16,
     backgroundColor: 'white',
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: '#EBEBEB',
     gap: 12,
   },
   actionButton: {
@@ -727,15 +724,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   retakeButton: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: theme.colors.surfaceSecondary,
   },
   confirmButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
   },
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
   confirmButtonText: {
     fontSize: 16,

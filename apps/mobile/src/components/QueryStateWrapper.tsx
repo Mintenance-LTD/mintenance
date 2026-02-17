@@ -168,11 +168,11 @@ export const QueryStateWrapper = <TData,>({
       {!isOnline && query.data && (
         <View
           style={{
-            backgroundColor: '#f0f0f0',
+            backgroundColor: theme.colors.surfaceSecondary,
             padding: 12,
             alignItems: 'center',
             borderBottomWidth: 1,
-            borderBottomColor: '#e0e0e0',
+            borderBottomColor: '#EBEBEB',
           }}
         >
           <NetworkStatusIndicator
@@ -293,7 +293,7 @@ export const MutationStateWrapper = <TData, TVariables>({
             style={{
               backgroundColor: 'white',
               padding: 24,
-              borderRadius: 8,
+              borderRadius: 12,
               alignItems: 'center',
             }}
           >

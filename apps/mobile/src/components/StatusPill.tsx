@@ -6,9 +6,9 @@ type Status = 'upcoming' | 'completed' | 'cancelled';
 
 export const StatusPill: React.FC<{ status: Status; style?: ViewStyle }> = ({ status, style }) => {
   const cfg = {
-    upcoming: { bg: theme.colors.status?.upcoming ?? '#E6F2FF', fg: theme.colors.primary[600] ?? theme.colors.primary, label: 'Upcoming' },
-    completed: { bg: theme.colors.status?.completed ?? '#EAF7EE', fg: theme.colors.success[700] ?? '#2E7D32', label: 'Completed' },
-    cancelled: { bg: theme.colors.status?.cancelled ?? '#FDECEA', fg: theme.colors.error[700] ?? theme.colors.error, label: 'Cancelled' },
+    upcoming: { bg: '#D1FAE5', fg: '#059669', label: 'Upcoming' },
+    completed: { bg: '#F0F0F0', fg: '#222222', label: 'Completed' },
+    cancelled: { bg: '#FDECEA', fg: '#B91C1C', label: 'Cancelled' },
   }[status];
 
   return (

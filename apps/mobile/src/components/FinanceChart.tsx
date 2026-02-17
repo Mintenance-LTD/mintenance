@@ -29,7 +29,7 @@ export const FinanceChart: React.FC<FinanceChartProps> = ({
     backgroundGradientFromOpacity: 0,
     backgroundGradientTo: '#ffffff',
     backgroundGradientToOpacity: 0,
-    color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`,
+    color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
     strokeWidth: 2,
     barPercentage: 0.7,
     decimalPlaces: 0,
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },

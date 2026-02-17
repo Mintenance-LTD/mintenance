@@ -17,8 +17,7 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { ScreenHeader, LoadingSpinner } from '../components/shared';
-import { useAuth } from '../contexts/AuthContext';
-import { apiClient } from '../services/ApiClient';
+import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 
 interface DisputeScreenParams {
@@ -43,7 +42,6 @@ const DISPUTE_REASONS = [
 
 export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId, jobTitle } = route.params;
-  const { user } = useAuth();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -60,10 +58,15 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
 
     setSubmitting(true);
     try {
-      await apiClient.post(`/api/jobs/${jobId}/disputes`, {
+      const escrowResponse = await apiClient.get<{
+        escrow: { id: string };
+      }>(`/api/jobs/${jobId}/escrow`);
+
+      await apiClient.post('/api/disputes/create', {
+        escrowId: escrowResponse.escrow.id,
         reason: selectedReason,
         description: description.trim(),
-        created_by: user?.id,
+        priority: 'medium',
       });
       Alert.alert(
         'Dispute Submitted',
@@ -180,7 +183,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.textPrimary,
     marginBottom: theme.spacing[3],
   },
@@ -236,7 +239,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: theme.colors.error,
     paddingVertical: theme.spacing[4],
-    borderRadius: theme.borderRadius.xl,
+    borderRadius: theme.borderRadius.lg,
     marginBottom: theme.spacing[4],
   },
   submitButtonDisabled: {

@@ -52,13 +52,13 @@ export interface SkeletonProps {
 
   /**
    * Background color
-   * @default '#E5E7EB'
+   * @default '#EBEBEB'
    */
   backgroundColor?: string;
 
   /**
    * Shimmer color
-   * @default '#F3F4F6'
+   * @default '#F7F7F7'
    */
   shimmerColor?: string;
 
@@ -73,8 +73,8 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   height = 20,
   borderRadius = 8,
   animate = true,
-  backgroundColor = '#E5E7EB',
-  shimmerColor = '#F3F4F6',
+  backgroundColor = '#EBEBEB',
+  shimmerColor = '#F7F7F7',
   style,
 }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;

@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: theme.colors.textPrimary,
   },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 32,
     alignItems: 'center',
     ...theme.shadows.sm,
@@ -160,8 +160,8 @@ const styles = StyleSheet.create({
   },
   scheduleCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 20,
     marginBottom: 12,
     ...theme.shadows.sm,
   },
@@ -207,14 +207,14 @@ const styles = StyleSheet.create({
   },
   completedSectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 12,
   },
   completedCard: {
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 20,
     ...theme.shadows.sm,
   },
   completedHeader: {

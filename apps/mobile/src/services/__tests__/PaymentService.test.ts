@@ -594,11 +594,11 @@ describe('PaymentService', () => {
           card: {
             brand: 'Visa',
             last4: '4242',
-            expiryMonth: 12,
-            expiryYear: 2025,
+            expMonth: 12,
+            expYear: 2025,
           },
           isDefault: true,
-          createdAt: '2025-01-01T00:00:00Z',
+          created: 1735689600,
         },
         {
           id: 'pm_2',
@@ -606,17 +606,17 @@ describe('PaymentService', () => {
           card: {
             brand: 'Mastercard',
             last4: '5555',
-            expiryMonth: 6,
-            expiryYear: 2026,
+            expMonth: 6,
+            expYear: 2026,
           },
           isDefault: false,
-          createdAt: '2025-01-02T00:00:00Z',
+          created: 1735776000,
         },
       ];
 
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ methods: mockMethods }),
+        json: async () => ({ paymentMethods: mockMethods }),
       });
 
       const result = await PaymentService.getPaymentMethods();
@@ -627,7 +627,30 @@ describe('PaymentService', () => {
           Authorization: `Bearer ${mockSession.session.access_token}`,
         },
       });
-      expect(result).toEqual({ methods: mockMethods });
+      expect(result).toEqual({
+        methods: [
+          expect.objectContaining({
+            id: 'pm_1',
+            isDefault: true,
+            card: expect.objectContaining({
+              brand: 'Visa',
+              last4: '4242',
+              expiryMonth: 12,
+              expiryYear: 2025,
+            }),
+          }),
+          expect.objectContaining({
+            id: 'pm_2',
+            isDefault: false,
+            card: expect.objectContaining({
+              brand: 'Mastercard',
+              last4: '5555',
+              expiryMonth: 6,
+              expiryYear: 2026,
+            }),
+          }),
+        ],
+      });
     });
 
     it('should handle authentication error', async () => {
@@ -673,7 +696,7 @@ describe('PaymentService', () => {
 
       const result = await PaymentService.savePaymentMethod('pm_test_123', true);
 
-      expect(fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/payments/save-method`, {
+      expect(fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/payments/add-method`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -723,12 +746,14 @@ describe('PaymentService', () => {
       const result = await PaymentService.deletePaymentMethod('pm_test_123');
 
       expect(fetch).toHaveBeenCalledWith(
-        `${config.apiBaseUrl}/api/payments/methods/pm_test_123`,
+        `${config.apiBaseUrl}/api/payments/remove-method`,
         {
           method: 'DELETE',
           headers: {
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${mockSession.session.access_token}`,
           },
+          body: JSON.stringify({ paymentMethodId: 'pm_test_123' }),
         }
       );
       expect(result).toEqual({ success: true });
@@ -1077,19 +1102,35 @@ describe('PaymentService', () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
+          payments: [{ id: 'payment-123', jobId: 'job-123' }],
+        }),
+      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          payments: [{ id: 'payment-123', jobId: 'job-123' }],
+        }),
+      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
           refundId: 'refund-123',
         }),
       });
 
       const result = await PaymentService.requestRefund('payment-123', 'Service not delivered');
 
-      expect(fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/payments/payment-123/refund`, {
+      expect(fetch).toHaveBeenNthCalledWith(2, `${config.apiBaseUrl}/api/payments/refund`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${mockSession.session.access_token}`,
         },
-        body: JSON.stringify({ reason: 'Service not delivered' }),
+        body: JSON.stringify({
+          jobId: 'job-123',
+          escrowTransactionId: 'payment-123',
+          reason: 'Service not delivered',
+        }),
       });
       expect(result).toEqual({
         success: true,
@@ -1107,6 +1148,18 @@ describe('PaymentService', () => {
       });
 
       (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          payments: [{ id: 'payment-123', jobId: 'job-123' }],
+        }),
+      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          payments: [{ id: 'payment-123', jobId: 'job-123' }],
+        }),
+      });
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Refund period expired' }),
       });

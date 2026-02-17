@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit';
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Authenticate user
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to view payment methods');
     }

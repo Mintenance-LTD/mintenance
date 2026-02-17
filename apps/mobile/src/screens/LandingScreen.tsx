@@ -71,7 +71,7 @@ export default function LandingScreen() {
             <View style={styles.heroOverlay} />
             <View style={styles.heroContent}>
               <View style={styles.badge}>
-                <Ionicons name="sparkles" size={14} color={theme.colors.secondary} />
+                <Ionicons name="sparkles" size={14} color={theme.colors.textPrimary} />
                 <Text style={styles.badgeText}>Smart Matching • Escrow • Live Chat</Text>
               </View>
 
@@ -123,7 +123,7 @@ export default function LandingScreen() {
               accessibilityRole='button'
               accessibilityLabel={`${c.label} services`}
             >
-              <Ionicons name={c.icon as unknown} size={18} color={theme.colors.primary} />
+              <Ionicons name={c.icon as unknown} size={18} color={theme.colors.textSecondary} />
               <Text style={styles.chipText}>{c.label}</Text>
             </TouchableOpacity>
           ))}
@@ -172,7 +172,7 @@ function Feature({ icon, title, text }: { icon: unknown; title: string; text: st
   return (
     <View style={styles.featureCard}>
       <View style={styles.featureIcon}>
-        <Ionicons name={icon} size={20} color={theme.colors.secondary} />
+        <Ionicons name={icon} size={20} color={theme.colors.textPrimary} />
       </View>
       <Text style={styles.featureTitle}>{title}</Text>
       <Text style={styles.featureText}>{text}</Text>
@@ -192,8 +192,8 @@ function TrustPill({ icon, text }: { icon: unknown; text: string }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.colors.background },
   topbar: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -204,50 +204,50 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 8,
   },
   logoText: { marginLeft: 10, color: theme.colors.textPrimary, fontSize: 18, fontWeight: '700' },
-  actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  link: { color: theme.colors.textPrimary, opacity: 0.8 },
-  primaryBtn: { backgroundColor: theme.colors.secondaryLight, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10 },
-  primaryBtnText: { color: theme.colors.white, fontWeight: '600' },
+  actionsRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  link: { color: theme.colors.textPrimary, fontWeight: '500' },
+  primaryBtn: { backgroundColor: theme.colors.primary, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 },
+  primaryBtnText: { color: '#FFFFFF', fontWeight: '600' },
 
   heroWrap: { paddingHorizontal: 20, marginTop: 8 },
-  heroBg: { height: 280, borderRadius: 24, overflow: 'hidden', justifyContent: 'flex-end' },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.25)' },
-  heroContent: { padding: 16 },
-  badge: { alignSelf: 'flex-start', backgroundColor: 'rgba(255, 255, 255, 0.85)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  heroBg: { height: 340, borderRadius: 20, overflow: 'hidden', justifyContent: 'flex-end' },
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0, 0, 0, 0.3)' },
+  heroContent: { padding: 20 },
+  badge: { alignSelf: 'flex-start', backgroundColor: 'rgba(255, 255, 255, 0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 },
   badgeText: { color: theme.colors.textPrimary, fontSize: 12, fontWeight: '600' },
-  heroTitle: { color: theme.colors.white, fontSize: 24, fontWeight: '800', marginBottom: 4 },
-  heroSub: { color: theme.colors.white, opacity: 0.95, fontSize: 13, lineHeight: 18, marginBottom: 10 },
-  heroCTAs: { flexDirection: 'row', gap: 10, marginBottom: 8 },
-  ctaSolid: { backgroundColor: theme.colors.secondaryLight, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12 },
-  ctaSolidText: { color: theme.colors.white, fontWeight: '700' },
-  ctaGhost: { borderWidth: 2, borderColor: theme.colors.textInverseMuted, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10 },
-  ctaGhostText: { color: theme.colors.white, fontWeight: '600' },
+  heroTitle: { color: '#FFFFFF', fontSize: 28, fontWeight: '700', marginBottom: 6, lineHeight: 34 },
+  heroSub: { color: '#FFFFFF', opacity: 0.95, fontSize: 14, lineHeight: 20, marginBottom: 14 },
+  heroCTAs: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  ctaSolid: { backgroundColor: theme.colors.primary, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 14 },
+  ctaSolidText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
+  ctaGhost: { borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.6)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  ctaGhostText: { color: '#FFFFFF', fontWeight: '600' },
   trustRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  trustPill: { flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.25)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
-  trustPillText: { color: theme.colors.white, fontSize: 12, fontWeight: '600' },
+  trustPill: { flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.3)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  trustPillText: { color: '#FFFFFF', fontSize: 12, fontWeight: '500' },
 
-  sectionHeader: { marginTop: 18, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
-  sectionAction: { color: theme.colors.primary, fontWeight: '600' },
+  sectionHeader: { marginTop: 24, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary },
+  sectionAction: { color: theme.colors.textPrimary, fontWeight: '600', textDecorationLine: 'underline' },
 
-  chipsRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.surfaceSecondary, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999 },
-  chipText: { color: theme.colors.textPrimary, fontWeight: '600' },
+  chipsRow: { paddingHorizontal: 20, paddingVertical: 14, gap: 10 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.colors.surfaceSecondary, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 999 },
+  chipText: { color: theme.colors.textPrimary, fontWeight: '500' },
 
   featuresGrid: {
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 10,
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingTop: 12,
   },
   featuresRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
-  featureCard: { flex: 1, backgroundColor: theme.colors.white, borderRadius: 16, padding: 12, borderWidth: 1, borderColor: theme.colors.border },
-  featureIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: theme.colors.secondary + '20', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  featureTitle: { fontWeight: '800', fontSize: 13, color: theme.colors.textPrimary, marginBottom: 2 },
-  featureText: { color: theme.colors.textSecondary, fontSize: 12 },
+  featureCard: { flex: 1, backgroundColor: theme.colors.background, borderRadius: 12, padding: 20, ...theme.shadows.base },
+  featureIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: theme.colors.backgroundSecondary, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  featureTitle: { fontWeight: '700', fontSize: 14, color: theme.colors.textPrimary, marginBottom: 4 },
+  featureText: { color: theme.colors.textSecondary, fontSize: 13, lineHeight: 18 },
 
-  footer: { alignItems: 'center', paddingVertical: 24 },
-  footerText: { color: theme.colors.textSecondary, fontSize: 12 },
+  footer: { alignItems: 'center', paddingVertical: 32 },
+  footerText: { color: theme.colors.textTertiary, fontSize: 12 },
 });

@@ -37,6 +37,10 @@ export const MessagingNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
         gestureEnabled: true,
+        transitionSpec: {
+          open: { animation: 'timing', config: { duration: 300 } },
+          close: { animation: 'timing', config: { duration: 250 } },
+        },
         cardStyleInterpolator: ({ current, layouts }) => ({
           cardStyle: {
             transform: [

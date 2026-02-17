@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { KPICard } from './KPICard';
 import { theme } from '../../theme';
@@ -31,7 +31,7 @@ export const KPIContainer: React.FC<KPIContainerProps> = ({
           value: financialData.quarterly_growth,
           isPositive: financialData.quarterly_growth > 0,
         }}
-        onPress={() => navigation.navigate('RevenueDetail')}
+        onPress={() => Alert.alert('Coming Soon', 'Revenue details coming soon.')}
       />
 
       <KPICard
@@ -47,7 +47,7 @@ export const KPIContainer: React.FC<KPIContainerProps> = ({
         value={formatCurrency(financialData.overdue_amount)}
         icon='warning'
         color={theme.colors.error}
-        onPress={() => navigation.navigate('OverdueInvoices')}
+        onPress={() => Alert.alert('Coming Soon', 'Overdue invoices view coming soon.')}
       />
 
       <KPICard
@@ -55,7 +55,7 @@ export const KPIContainer: React.FC<KPIContainerProps> = ({
         value={formatCurrency(financialData.tax_obligations)}
         icon='receipt'
         color={theme.colors.textSecondary}
-        onPress={() => navigation.navigate('TaxCenter')}
+        onPress={() => Alert.alert('Coming Soon', 'Tax center coming soon.')}
       />
     </View>
   );

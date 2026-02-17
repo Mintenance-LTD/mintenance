@@ -41,7 +41,7 @@ export function JobResultCard({ job, onClick }: JobResultCardProps) {
             color: theme.colors.textSecondary,
             margin: 0
           }}>
-            {job.location} &bull; {job.category}
+            {typeof job.location === 'string' ? job.location : 'Not specified'} &bull; {job.category}
           </p>
         </div>
         <div style={{

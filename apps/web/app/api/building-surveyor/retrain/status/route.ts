@@ -62,17 +62,6 @@ export async function GET(request: Request) {
       envVarValue === 'true' || 
       String(envVarValue).toLowerCase() === 'true';
     
-    // Debug log (remove after verification)
-    logger.info('YOLO Status API Environment variable check', {
-      service: 'YOLORetrainingStatusAPI',
-      rawValue: envVarValue,
-      type: typeof envVarValue,
-      isTrue: envVarValue === 'true',
-      enabled: continuousLearningEnabled,
-      allEnvKeys: Object.keys(process.env).filter(k => k.includes('YOLO')),
-      cwd: process.cwd(),
-    });
-    
     logger.info('YOLO Continuous Learning Status', {
       service: 'YOLORetrainingStatusAPI',
       envVar: envVarValue,
@@ -102,13 +91,6 @@ export async function GET(request: Request) {
         correctionsNeeded,
       },
       continuousLearningEnabled,
-      // Debug info (remove after fixing)
-      _debug: {
-        envVarValue,
-        envVarType: typeof envVarValue,
-        allYoloEnvKeys: Object.keys(process.env).filter(k => k.includes('YOLO')),
-        cwd: process.cwd(),
-      },
     });
   } catch (error) {
     return handleAPIError(error);

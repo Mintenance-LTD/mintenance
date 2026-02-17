@@ -22,7 +22,7 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
     switch (status) {
       case 'completed': return theme.colors.success;
       case 'in_progress': return theme.colors.warning;
-      case 'pending': return theme.colors.info;
+      case 'pending': return theme.colors.primary;
       case 'cancelled': return theme.colors.error;
       default: return theme.colors.textSecondary;
     }

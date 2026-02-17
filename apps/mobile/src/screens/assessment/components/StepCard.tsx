@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { AssessmentStep } from '../types';
+import { theme } from '../../../theme';
 
 interface StepCardProps {
   step: AssessmentStep;
@@ -11,7 +12,7 @@ interface StepCardProps {
 const getStepStatusIcon = (status: AssessmentStep['status']) => {
   switch (status) {
     case 'completed':
-      return <Icon name="check-circle" size={24} color="#4CAF50" />;
+      return <Icon name="check-circle" size={24} color={theme.colors.success} />;
     case 'in_progress':
       return <Icon name="pending" size={24} color="#FF9800" />;
     default:
@@ -33,7 +34,7 @@ export const StepCard: React.FC<StepCardProps> = ({ step, onPress }) => {
         <Icon
           name={step.icon}
           size={24}
-          color={step.status === 'completed' ? '#4CAF50' : '#666'}
+          color={step.status === 'completed' ? theme.colors.success : theme.colors.textSecondary}
         />
       </View>
       <View style={styles.stepContent}>
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.textPrimary,
   },
   requiredBadge: {
     fontSize: 11,
@@ -101,6 +102,6 @@ const styles = StyleSheet.create({
   },
   stepDescription: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
   },
 });

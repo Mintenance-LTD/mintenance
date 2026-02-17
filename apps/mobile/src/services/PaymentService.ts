@@ -527,19 +527,10 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/create-setup-intent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create setup intent');
-      }
+      const data = await PaymentService.apiRequest<{ clientSecret: string }>(
+        '/api/payments/create-setup-intent',
+        { method: 'POST' }
+      );
 
       return { setupIntentClientSecret: data.clientSecret };
     } catch (error) {
@@ -561,7 +552,7 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/save-method`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/add-method`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -616,7 +607,35 @@ export class PaymentService {
         throw new Error(data.error || 'Failed to fetch payment methods');
       }
 
-      return { methods: data.methods };
+      const methods = (data.paymentMethods || data.methods || []).map((method: {
+        id: string;
+        type: string;
+        isDefault?: boolean;
+        created?: number;
+        card?: {
+          brand: string;
+          last4: string;
+          expMonth: number;
+          expYear: number;
+        } | null;
+      }) => ({
+        id: method.id,
+        type: method.type,
+        isDefault: !!method.isDefault,
+        createdAt: method.created
+          ? new Date(method.created * 1000).toISOString()
+          : new Date().toISOString(),
+        card: method.card
+          ? {
+              brand: method.card.brand,
+              last4: method.card.last4,
+              expiryMonth: method.card.expMonth,
+              expiryYear: method.card.expYear,
+            }
+          : undefined,
+      })) as PaymentMethod[];
+
+      return { methods };
     } catch (error) {
       logger.error('Failed to fetch payment methods', { error });
       return { error: error instanceof Error ? error.message : 'Failed to fetch payment methods' };
@@ -635,11 +654,13 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/methods/${paymentMethodId}`, {
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/remove-method`, {
         method: 'DELETE',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.session.access_token}`,
         },
+        body: JSON.stringify({ paymentMethodId }),
       });
 
       if (!response.ok) {
@@ -670,11 +691,13 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/methods/${paymentMethodId}/default`, {
-        method: 'PUT',
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/set-default`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.session.access_token}`,
         },
+        body: JSON.stringify({ paymentMethodId }),
       });
 
       if (!response.ok) {
@@ -735,7 +758,7 @@ export class PaymentService {
       }
 
       // Check if 3D Secure is required
-      if (data.requiresAction) {
+      if (data.requiresAction || data.clientSecret) {
         logger.info('Payment requires 3D Secure authentication', { jobId });
         return {
           success: false,
@@ -840,13 +863,26 @@ export class PaymentService {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/${paymentId}/refund`, {
+      const history = await PaymentService.getPaymentHistory(50, 0) as {
+        payments?: Array<{ id: string; jobId: string }>;
+      };
+
+      const payment = history.payments?.find((entry) => entry.id === paymentId);
+      if (!payment?.jobId) {
+        throw new Error('Payment record not found');
+      }
+
+      const response = await fetch(`${config.apiBaseUrl}/api/payments/refund`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.session.access_token}`,
         },
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify({
+          jobId: payment.jobId,
+          escrowTransactionId: paymentId,
+          reason,
+        }),
       });
 
       const data = await response.json();
@@ -855,10 +891,10 @@ export class PaymentService {
         throw new Error(data.error || 'Failed to request refund');
       }
 
-      logger.info('Refund requested successfully', { paymentId, refundId: data.refundId });
+      logger.info('Refund requested successfully', { paymentId, refundId: data.refundId || data.id });
       return {
         success: true,
-        refundId: data.refundId,
+        refundId: data.refundId || data.id || paymentId,
       };
     } catch (error) {
       logger.error('Failed to request refund', { error, paymentId });

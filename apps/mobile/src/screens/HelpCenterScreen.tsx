@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textInverse,
     flex: 1,
     textAlign: 'center',
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 20,
   },

@@ -23,8 +23,8 @@ interface StatusConfig {
 
 const STATUS_CONFIG: Record<string, StatusConfig> = {
   posted: {
-    color: '#3B82F6',
-    bgColor: '#EFF6FF',
+    color: '#222222',
+    bgColor: '#F7F7F7',
     icon: 'megaphone-outline',
     label: 'Posted',
     description: 'Waiting for contractor bids',
@@ -37,8 +37,8 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     description: 'Contractor assigned, waiting to start',
   },
   in_progress: {
-    color: '#8B5CF6',
-    bgColor: '#F3E8FF',
+    color: '#F59E0B',
+    bgColor: '#FFFBEB',
     icon: 'hammer-outline',
     label: 'In Progress',
     description: 'Work is currently underway',
@@ -237,7 +237,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                   styles.timelineIcon,
                   {
                     backgroundColor:
-                      isActive || isPassed ? config.color : '#E5E7EB',
+                      isActive || isPassed ? config.color : '#EBEBEB',
                     opacity: isCancelled && !isActive ? 0.3 : 1,
                   },
                 ]}
@@ -245,14 +245,14 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                 <Ionicons
                   name={config.icon}
                   size={16}
-                  color={isActive || isPassed ? '#FFFFFF' : '#9CA3AF'}
+                  color={isActive || isPassed ? '#FFFFFF' : '#B0B0B0'}
                 />
               </View>
               <Text
                 style={[
                   styles.timelineLabel,
                   {
-                    color: isActive ? config.color : '#6B7280',
+                    color: isActive ? config.color : '#717171',
                     fontWeight: isActive ? '600' : '400',
                     opacity: isCancelled && !isActive ? 0.3 : 1,
                   },
@@ -265,7 +265,7 @@ export const JobStatusTracker: React.FC<JobStatusTrackerProps> = ({
                   style={[
                     styles.timelineLine,
                     {
-                      backgroundColor: isPassed ? config.color : '#E5E7EB',
+                      backgroundColor: isPassed ? config.color : '#EBEBEB',
                       opacity: isCancelled ? 0.3 : 1,
                     },
                   ]}
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 12,
     gap: 6,
   },
   actionButtonText: {

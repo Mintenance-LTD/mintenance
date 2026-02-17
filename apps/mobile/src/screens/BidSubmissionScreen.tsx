@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: theme.colors.info,
+    backgroundColor: theme.colors.primary,
   },
   backButton: {
     padding: 5,
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textInverse,
   },
   placeholder: {
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   jobTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 10,
   },
@@ -259,8 +259,8 @@ const styles = StyleSheet.create({
   },
   jobBudget: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: theme.colors.info,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
   },
   form: {
     backgroundColor: theme.colors.surface,
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   },
   tipTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: theme.colors.successDark,
     marginBottom: 10,
   },
@@ -304,14 +304,12 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   footer: {
-    padding: 20,
+    padding: 24,
     backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
   },
   submitButton: {
     height: 50,
-    backgroundColor: theme.colors.info,
+    backgroundColor: theme.colors.primary,
     borderRadius: theme.borderRadius.base,
     justifyContent: 'center',
     alignItems: 'center',
@@ -322,7 +320,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: theme.colors.textInverse,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 
