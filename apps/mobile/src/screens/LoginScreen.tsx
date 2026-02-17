@@ -33,6 +33,12 @@ interface Props {
   navigation: LoginScreenNavigationProp;
 }
 
+const TRUST_ITEMS = [
+  { icon: 'shield-checkmark-outline' as const, label: 'Secure' },
+  { icon: 'checkmark-circle-outline' as const, label: 'Verified' },
+  { icon: 'people-outline' as const, label: 'Trusted' },
+];
+
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,7 +52,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const headerTitleText = useAccessibleText(28);
   const buttonText = useAccessibleText(18);
   const linkText = useAccessibleText(14);
-  // Note: Input text uses fixed size from theme, no accessible text hook needed
 
   // Haptic feedback
   const haptics = useHaptics();
@@ -77,260 +82,331 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container} testID="login-screen">
-        {/* Dark Blue Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Image
-            source={require('../../assets/icon.png')}
-            style={styles.headerLogo}
-            resizeMode='contain'
-            accessible={false}
-          />
-          <Text
-            style={[styles.headerTitle, headerTitleText.textStyle]}
-            accessibilityRole='header'
-          >
-            Mintenance
-          </Text>
-        </View>
-        <Text
-          style={styles.headerSubtitle}
-          accessibilityRole='text'
-        >
-          Connect homeowners and contractors easily
-        </Text>
-      </View>
-
-      <KeyboardAvoidingView
-        style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps='handled'
-        >
-          {errorMessage ? (
-            <Banner
-              message={errorMessage}
-              variant='error'
-              testID='login-error-banner'
+        {/* Header with brand and trust indicators */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <Image
+              source={require('../../assets/icon.png')}
+              style={styles.headerLogo}
+              resizeMode='contain'
+              accessible={false}
             />
-          ) : null}
-          {/* Login Form */}
-          <View style={styles.formContainer}>
-            {/* Email Input with Enhanced Component */}
-            <Input
-              testID="email-input"
-              label={String(auth.email())}
-              placeholder={String(auth.email())}
-              value={email}
-              onChangeText={(value) => {
-                setEmail(value);
-                if (errorMessage) {
-                  setErrorMessage(null);
-                }
-              }}
-              leftIcon='mail-outline'
-              keyboardType='email-address'
-              autoCapitalize='none'
-              autoCorrect={false}
-              accessibilityHint={String(
-                t(
-                  'auth.emailHint',
-                  'Please enter your email address to sign in'
-                )
-              )}
-              textContentType='emailAddress'
-              autoComplete='email'
-              variant='outline'
-              size='lg'
-              fullWidth
-              required
-            />
-
-            {/* Password Input with Enhanced Component */}
-            <Input
-              testID="password-input"
-              label={String(auth.password())}
-              placeholder={String(auth.password())}
-              value={password}
-              onChangeText={(value) => {
-                setPassword(value);
-                if (errorMessage) {
-                  setErrorMessage(null);
-                }
-              }}
-              leftIcon='lock-closed-outline'
-              secureTextEntry
-              accessibilityHint={String(
-                t(
-                  'auth.passwordHint',
-                  'Please enter your password to sign in'
-                )
-              )}
-              textContentType='password'
-              autoComplete='password'
-              variant='outline'
-              size='lg'
-              fullWidth
-              required
-            />
-
-            {/* Loading Spinner */}
-            {loading && (
-              <ActivityIndicator
-                testID="loading-spinner"
-                size="large"
-                color={theme.colors.primary}
-                style={{ marginVertical: 20 }}
-                accessibilityLabel="Signing in"
-              />
-            )}
-
-            {/* Green Log In Button */}
-            <Button
-              variant='success'
-              title={
-                loading ? String(t('auth.loggingIn')) : String(auth.login())
-              }
-              onPress={handleLogin}
-              disabled={loading}
-              loading={loading}
-              accessibilityLabel={
-                loading ? String(t('auth.loggingIn')) : String(auth.login())
-              }
-              fullWidth
-              style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 32 }}
-              textStyle={buttonText.textStyle as unknown}
-            />
-
-            {/* Development Test Login Notice */}
-            {isDev && (
-              <View style={styles.devSection}>
-                <Text style={styles.devTitle}>Development Mode</Text>
-                <Text style={styles.devNote}>
-                  Use test accounts from your local Supabase instance.
-                  {'\n'}Create test users via: npm run create-test-users
-                </Text>
-              </View>
-            )}
-
-            {/* Links */}
-            <View style={styles.linksContainer}>
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={() => {
-                  haptics.buttonPress();
-                  navigation.navigate('ForgotPassword');
-                }}
-                accessibilityRole='button'
-                accessibilityLabel={String(auth.forgotPassword())}
-                accessibilityHint={String(
-                  t(
-                    'auth.forgotPasswordHint',
-                    'Double tap to reset your password'
-                  )
-                )}
-              >
-                <Text style={[styles.linkText, linkText.textStyle]}>
-                  {String(auth.forgotPassword())}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.linkButton}
-                onPress={() => {
-                  haptics.buttonPress();
-                  navigation.navigate('Register');
-                }}
-                accessibilityRole='button'
-                accessibilityLabel={String(
-                  t('auth.signUpForAccount', 'Sign up for new account')
-                )}
-                accessibilityHint={String(
-                  t('auth.signUpHint', 'Double tap to create a new account')
-                )}
-              >
-                <Text style={[styles.linkText, linkText.textStyle]}>
-                  {String(auth.register())}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Text
+              style={[styles.headerTitle, headerTitleText.textStyle]}
+              accessibilityRole='header'
+            >
+              Mintenance
+            </Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
-  </SafeAreaView>
+          <Text
+            style={styles.headerSubtitle}
+            accessibilityRole='text'
+          >
+            Connect homeowners and contractors easily
+          </Text>
+
+          {/* Trust indicators */}
+          <View style={styles.trustRow}>
+            {TRUST_ITEMS.map((item) => (
+              <View key={item.label} style={styles.trustPill}>
+                <Ionicons name={item.icon} size={13} color={theme.colors.secondary} />
+                <Text style={styles.trustText}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <KeyboardAvoidingView
+          style={styles.keyboardContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps='handled'
+          >
+            {/* Form heading */}
+            <View style={styles.formHeading}>
+              <Text style={styles.formTitle}>Sign in to your account</Text>
+              <Text style={styles.formSubtitle}>Enter your details below</Text>
+            </View>
+
+              {errorMessage ? (
+                <Banner
+                  message={errorMessage}
+                  variant='error'
+                  testID='login-error-banner'
+                />
+              ) : null}
+
+              {/* Login Form */}
+              <View style={styles.formContainer}>
+                <Input
+                  testID="email-input"
+                  label={String(auth.email())}
+                  placeholder={String(auth.email())}
+                  value={email}
+                  onChangeText={(value) => {
+                    setEmail(value);
+                    if (errorMessage) {
+                      setErrorMessage(null);
+                    }
+                  }}
+                  leftIcon='mail-outline'
+                  keyboardType='email-address'
+                  autoCapitalize='none'
+                  autoCorrect={false}
+                  accessibilityHint={String(
+                    t(
+                      'auth.emailHint',
+                      'Please enter your email address to sign in'
+                    )
+                  )}
+                  textContentType='emailAddress'
+                  autoComplete='email'
+                  variant='outline'
+                  size='lg'
+                  fullWidth
+                  required
+                  containerStyle={{ marginBottom: 16 }}
+                />
+
+                <Input
+                  testID="password-input"
+                  label={String(auth.password())}
+                  placeholder={String(auth.password())}
+                  value={password}
+                  onChangeText={(value) => {
+                    setPassword(value);
+                    if (errorMessage) {
+                      setErrorMessage(null);
+                    }
+                  }}
+                  leftIcon='lock-closed-outline'
+                  secureTextEntry
+                  accessibilityHint={String(
+                    t(
+                      'auth.passwordHint',
+                      'Please enter your password to sign in'
+                    )
+                  )}
+                  textContentType='password'
+                  autoComplete='password'
+                  variant='outline'
+                  size='lg'
+                  fullWidth
+                  required
+                />
+
+                {/* Forgot password link (right-aligned) */}
+                <TouchableOpacity
+                  style={styles.forgotPasswordLink}
+                  onPress={() => {
+                    haptics.buttonPress();
+                    navigation.navigate('ForgotPassword');
+                  }}
+                  accessibilityRole='button'
+                  accessibilityLabel={String(auth.forgotPassword())}
+                  accessibilityHint={String(
+                    t(
+                      'auth.forgotPasswordHint',
+                      'Double tap to reset your password'
+                    )
+                  )}
+                >
+                  <Text style={[styles.forgotPasswordText, linkText.textStyle]}>
+                    {String(auth.forgotPassword())}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Loading Spinner */}
+                {loading && (
+                  <ActivityIndicator
+                    testID="loading-spinner"
+                    size="large"
+                    color={theme.colors.primary}
+                    style={{ marginVertical: 20 }}
+                    accessibilityLabel="Signing in"
+                  />
+                )}
+
+                {/* Log In Button */}
+                <Button
+                  variant='success'
+                  title={
+                    loading ? String(t('auth.loggingIn')) : String(auth.login())
+                  }
+                  onPress={handleLogin}
+                  disabled={loading}
+                  loading={loading}
+                  accessibilityLabel={
+                    loading ? String(t('auth.loggingIn')) : String(auth.login())
+                  }
+                  fullWidth
+                  style={{ borderRadius: theme.borderRadius.xxl, marginTop: 8 }}
+                  textStyle={buttonText.textStyle as unknown}
+                />
+              </View>
+
+            {/* Divider + Sign Up CTA */}
+              <View style={styles.dividerSection}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>New to Mintenance?</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <View style={{ paddingHorizontal: 24 }}>
+                <Button
+                  variant='outline'
+                  title='Create Account'
+                  onPress={() => {
+                    haptics.buttonPress();
+                    navigation.navigate('Register');
+                  }}
+                  accessibilityLabel={String(
+                    t('auth.signUpForAccount', 'Sign up for new account')
+                  )}
+                  accessibilityHint={String(
+                    t('auth.signUpHint', 'Double tap to create a new account')
+                  )}
+                  fullWidth
+                  style={{ borderRadius: theme.borderRadius.xxl }}
+                />
+              </View>
+
+              {/* Development Test Login Notice */}
+              {isDev && (
+                <View style={styles.devSection}>
+                  <Text style={styles.devTitle}>Development Mode</Text>
+                  <Text style={styles.devNote}>
+                    Use test accounts from your local Supabase instance.
+                    {'\n'}Create test users via: npm run create-test-users
+                  </Text>
+                </View>
+              )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.primary,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.primary,
   },
   header: {
     backgroundColor: theme.colors.primary,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: 24,
+    paddingBottom: 20,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   headerLogo: {
-    width: 32,
-    height: 32,
-    marginRight: 12,
+    width: 36,
+    height: 36,
+    marginRight: 10,
+    backgroundColor: theme.colors.white,
+    borderRadius: 8,
   },
   headerTitle: {
-    // fontSize handled by useAccessibleText hook
     fontWeight: '700',
     color: theme.colors.textInverse,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: theme.colors.textInverseMuted,
     textAlign: 'center',
+    marginBottom: 16,
+  },
+  trustRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  trustPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    gap: 4,
+  },
+  trustText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   keyboardContainer: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 28,
+    paddingBottom: 24,
+  },
+  formHeading: {
     paddingHorizontal: 24,
-    paddingVertical: 40,
+    marginBottom: 20,
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: theme.colors.secondary,
+    marginBottom: 4,
+  },
+  formSubtitle: {
+    fontSize: 14,
+    color: theme.colors.textTertiary,
   },
   formContainer: {
     paddingHorizontal: 24,
   },
-  linksContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  forgotPasswordLink: {
+    alignSelf: 'flex-end',
+    paddingVertical: 4,
+    marginBottom: 8,
   },
-  linkButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  linkText: {
-    color: theme.colors.primary,
+  forgotPasswordText: {
+    color: theme.colors.secondary,
     fontWeight: '500',
-    textDecorationLine: 'underline',
+  },
+  dividerSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginTop: 16,
+    marginBottom: 12,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: theme.colors.border,
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    fontSize: 13,
+    color: theme.colors.textTertiary,
+    fontWeight: '500',
   },
   // Development styles
   devSection: {
-    marginTop: 20,
-    padding: 15,
+    marginTop: 16,
+    marginHorizontal: 24,
+    padding: 12,
     backgroundColor: theme.colors.surfaceSecondary,
     borderRadius: 8,
     borderWidth: 1,
@@ -339,15 +415,15 @@ const styles = StyleSheet.create({
   },
   devTitle: {
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    color: theme.colors.textSecondary,
-    marginBottom: 10,
+    color: theme.colors.textTertiary,
+    marginBottom: 4,
   },
   devNote: {
     textAlign: 'center',
-    fontSize: 12,
-    color: theme.colors.textSecondary,
+    fontSize: 11,
+    color: theme.colors.textTertiary,
   },
 });
 

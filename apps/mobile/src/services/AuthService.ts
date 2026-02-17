@@ -2,8 +2,35 @@ import { supabase } from '../config/supabase';
 import type { User } from '@mintenance/types';
 import { Session } from '@supabase/supabase-js';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
-import { NetworkDiagnosticsService } from '../utils/networkDiagnostics';
 import { logger } from '../utils/logger';
+import { checkRateLimit, resetRateLimit } from '../middleware/RateLimiter';
+
+// Validation functions matching @mintenance/auth rules
+// (can't import @mintenance/auth directly — bcryptjs requires Node's crypto module)
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateEmailFormat(email: string): boolean {
+  return EMAIL_REGEX.test(email);
+}
+
+function validatePasswordStrength(password: string): { valid: boolean; message?: string } {
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters long' };
+  }
+  if (!/(?=.*[a-z])/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one lowercase letter' };
+  }
+  if (!/(?=.*[A-Z])/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one uppercase letter' };
+  }
+  if (!/(?=.*\d)/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one number' };
+  }
+  if (!/(?=.*[@$!%*?&])/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one special character (@$!%*?&)' };
+  }
+  return { valid: true };
+}
 
 export interface SignUpData {
   email: string;
@@ -38,11 +65,21 @@ export class AuthService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
-      // Validation using ServiceErrorHandler
+      // Rate limit check
+      if (!checkRateLimit('auth_register', userData.email)) {
+        throw new Error('Too many registration attempts. Please try again later.');
+      }
+
+      // Validation using auth-equivalent validators + ServiceErrorHandler
       ServiceErrorHandler.validateRequired(userData.email, 'Email', context);
-      ServiceErrorHandler.validateEmail(userData.email, context);
+      if (!validateEmailFormat(userData.email)) {
+        throw new Error('Please enter a valid email address');
+      }
       ServiceErrorHandler.validateRequired(userData.password, 'Password', context);
-      ServiceErrorHandler.validatePassword(userData.password, context);
+      const passwordResult = validatePasswordStrength(userData.password);
+      if (!passwordResult.valid) {
+        throw new Error(passwordResult.message || 'Password does not meet requirements');
+      }
       ServiceErrorHandler.validateRequired(userData.firstName, 'First name', context);
       ServiceErrorHandler.validateRequired(userData.lastName, 'Last name', context);
 
@@ -88,6 +125,11 @@ export class AuthService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
+      // Rate limit check (5 attempts per 15 min, matching web API)
+      if (!checkRateLimit('auth_login', email)) {
+        throw new Error('Too many login attempts. Please try again in 15 minutes.');
+      }
+
       // Validation using ServiceErrorHandler
       ServiceErrorHandler.validateRequired(email, 'Email', context);
       ServiceErrorHandler.validateEmail(email, context);
@@ -113,6 +155,7 @@ export class AuthService {
       }
 
       logger.info('✅ Supabase auth successful');
+      resetRateLimit('auth_login', email);
 
       // Get user profile
       if (data.user) {
@@ -236,9 +279,7 @@ export class AuthService {
     userId: string,
     updates: Partial<User>
   ): Promise<User> {
-    // RFC 5322 compliant email validation
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    if (updates.email && !emailRegex.test(updates.email)) {
+    if (updates.email && !validateEmailFormat(updates.email)) {
       throw new Error('Invalid email format');
     }
 
@@ -254,9 +295,7 @@ export class AuthService {
   }
 
   static async resetPassword(email: string): Promise<void> {
-    // RFC 5322 compliant email validation
-    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-    if (!email || !emailRegex.test(email)) {
+    if (!email || !validateEmailFormat(email)) {
       throw new Error('Please enter a valid email address');
     }
 

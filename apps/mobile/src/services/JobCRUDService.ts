@@ -12,6 +12,7 @@ import { supabase } from '../config/supabase';
 import type { Job } from '@mintenance/types';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
+import { checkRateLimit } from '../middleware/RateLimiter';
 
 // Database row interface for Supabase queries (snake_case)
 interface DatabaseJobRow {
@@ -56,6 +57,12 @@ export class JobCRUDService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
+      // Rate limit check
+      const ownerId = jobData.homeowner_id ?? jobData.homeownerId ?? 'unknown';
+      if (!checkRateLimit('job_create', ownerId)) {
+        throw new Error('Too many job creation attempts. Please try again later.');
+      }
+
       // Basic input sanitization
       const safeTitle = sanitizeText(jobData.title).trim();
       const safeDescription = sanitizeText(jobData.description).trim();

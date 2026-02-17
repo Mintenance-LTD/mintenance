@@ -57,6 +57,7 @@ const RegisterScreen: React.FC<Props> = () => {
             />
             <Text style={styles.headerTitle} accessibilityRole='header'>Mintenance</Text>
           </View>
+          <Text style={styles.headerSubtitle}>Create your free account</Text>
         </View>
 
         <KeyboardAvoidingView
@@ -68,6 +69,12 @@ const RegisterScreen: React.FC<Props> = () => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps='handled'
           >
+            {/* Form heading */}
+            <View style={styles.formHeading}>
+              <Text style={styles.formTitle}>Get Started</Text>
+              <Text style={styles.formSubtitle}>Fill in your details to create an account</Text>
+            </View>
+
             <View style={styles.formContainer}>
               {submissionSuccess ? (
                 <Banner message={submissionSuccess} variant='success' testID='register-success-banner' />
@@ -80,6 +87,9 @@ const RegisterScreen: React.FC<Props> = () => {
                 role={form.role}
                 onRoleChange={(role) => updateField('role', role)}
               />
+
+              {/* Personal Details */}
+              <Text style={styles.sectionLabel}>Personal Details</Text>
 
               <Input
                 testID="first-name-input"
@@ -115,6 +125,9 @@ const RegisterScreen: React.FC<Props> = () => {
                 required
               />
 
+              {/* Contact Information */}
+              <Text style={styles.sectionLabel}>Contact Information</Text>
+
               <Input
                 testID="email-input"
                 label='Email'
@@ -148,6 +161,9 @@ const RegisterScreen: React.FC<Props> = () => {
                 size='lg'
                 fullWidth
               />
+
+              {/* Create Password */}
+              <Text style={styles.sectionLabel}>Create Password</Text>
 
               <Input
                 testID="password-input"
@@ -201,18 +217,24 @@ const RegisterScreen: React.FC<Props> = () => {
                 loading={loading}
                 accessibilityLabel={loading ? 'Creating account' : 'Create account'}
                 fullWidth
-                style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 24 }}
+                style={{ borderRadius: theme.borderRadius.xxl, marginBottom: 16 }}
               />
 
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Login')}
-                style={styles.loginLinkContainer}
-                accessibilityRole='link'
-                accessibilityLabel='Already have an account? Sign in'
-                accessibilityHint='Double tap to go to the login screen'
-              >
-                <Text style={styles.loginLinkText}>Already have an account? Sign In</Text>
-              </TouchableOpacity>
+              {/* Sign In link */}
+              <View style={styles.loginSection}>
+                <View style={styles.loginDivider} />
+                <View style={styles.loginLinkContainer}>
+                  <Text style={styles.loginPromptText}>Already have an account?</Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('Login')}
+                    accessibilityRole='link'
+                    accessibilityLabel='Already have an account? Sign in'
+                    accessibilityHint='Double tap to go to the login screen'
+                  >
+                    <Text style={styles.loginLinkText}> Sign In</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -241,49 +263,96 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.primary,
   },
   header: {
     backgroundColor: theme.colors.primary,
-    paddingTop: 60,
-    paddingBottom: 30,
+    paddingTop: 24,
+    paddingBottom: 20,
     paddingHorizontal: 24,
     alignItems: 'center',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 8,
   },
   headerLogo: {
-    width: 32,
-    height: 32,
-    marginRight: 12,
+    width: 36,
+    height: 36,
+    marginRight: 10,
+    backgroundColor: theme.colors.white,
+    borderRadius: 8,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: theme.colors.textInverse,
   },
+  headerSubtitle: {
+    fontSize: 15,
+    color: theme.colors.textInverseMuted,
+    textAlign: 'center',
+  },
   keyboardContainer: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 28,
+    paddingBottom: 32,
+  },
+  formHeading: {
     paddingHorizontal: 24,
-    paddingVertical: 32,
+    marginBottom: 20,
+  },
+  formTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: theme.colors.secondary,
+    marginBottom: 4,
+  },
+  formSubtitle: {
+    fontSize: 14,
+    color: theme.colors.textTertiary,
   },
   formContainer: {
-    flex: 1,
+    paddingHorizontal: 24,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textTertiary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  loginSection: {
+    marginTop: 8,
+  },
+  loginDivider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginBottom: 16,
   },
   loginLinkContainer: {
-    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 8,
+  },
+  loginPromptText: {
+    color: theme.colors.textSecondary,
+    fontSize: 15,
   },
   loginLinkText: {
     color: theme.colors.primary,
-    fontSize: 16,
-    fontWeight: '500',
-    textDecorationLine: 'underline' as const,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
 

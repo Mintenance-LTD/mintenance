@@ -10,6 +10,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useJobTravelTracking } from '../hooks/useJobTravelTracking';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -52,6 +53,7 @@ interface Props {
 }
 
 const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { meetingId } = route.params;
 
@@ -322,7 +324,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -594,7 +596,6 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: theme.colors.info,
-    paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',

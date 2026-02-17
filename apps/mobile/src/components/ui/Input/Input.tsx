@@ -10,7 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -45,6 +45,16 @@ export interface InputProps extends Omit<TextInputProps, 'style'> {
   // Accessibility
   testID?: string;
 }
+
+// ============================================================================
+// INPUT SIZE CONSTANTS (replaces designTokens.componentSizes.input)
+// ============================================================================
+
+const INPUT_SIZES = {
+  sm: { height: 32, paddingHorizontal: 12, fontSize: theme.typography.fontSize.sm },
+  md: { height: 40, paddingHorizontal: 16, fontSize: theme.typography.fontSize.base },
+  lg: { height: 48, paddingHorizontal: 16, fontSize: theme.typography.fontSize.lg },
+};
 
 // ============================================================================
 // INPUT COMPONENT
@@ -103,12 +113,12 @@ export const Input = forwardRef<TextInput, InputProps>(
       Animated.parallel([
         Animated.timing(borderAnimation, {
           toValue: 1,
-          duration: designTokens.animation.duration.fast,
+          duration: theme.animation.duration.fast,
           useNativeDriver: false,
         }),
         Animated.timing(labelAnimation, {
           toValue: 1,
-          duration: designTokens.animation.duration.fast,
+          duration: theme.animation.duration.fast,
           useNativeDriver: false,
         }),
       ]).start();
@@ -122,7 +132,7 @@ export const Input = forwardRef<TextInput, InputProps>(
       // Animate border
       Animated.timing(borderAnimation, {
         toValue: 0,
-        duration: designTokens.animation.duration.fast,
+        duration: theme.animation.duration.fast,
         useNativeDriver: false,
       }).start();
 
@@ -130,7 +140,7 @@ export const Input = forwardRef<TextInput, InputProps>(
       if (!hasValue) {
         Animated.timing(labelAnimation, {
           toValue: 0,
-          duration: designTokens.animation.duration.fast,
+          duration: theme.animation.duration.fast,
           useNativeDriver: false,
         }).start();
       }
@@ -154,20 +164,20 @@ export const Input = forwardRef<TextInput, InputProps>(
       if (variant === 'outline') {
         const animatedLabelStyle = {
           position: 'absolute' as const,
-          left: designTokens.spacing[4],
-          backgroundColor: designTokens.semanticColors.background.primary,
-          paddingHorizontal: designTokens.spacing[1],
+          left: theme.spacing[4],
+          backgroundColor: theme.colors.background,
+          paddingHorizontal: theme.spacing[1],
           fontSize: labelAnimation.interpolate({
             inputRange: [0, 1],
-            outputRange: [designTokens.typography.fontSize.base, designTokens.typography.fontSize.sm],
+            outputRange: [theme.typography.fontSize.base, theme.typography.fontSize.sm],
           }),
           top: labelAnimation.interpolate({
             inputRange: [0, 1],
-            outputRange: [designTokens.spacing[3], -designTokens.spacing[2]],
+            outputRange: [theme.spacing[3], -theme.spacing[2]],
           }),
           color: isFocused
-            ? designTokens.semanticColors.interactive.primary
-            : designTokens.semanticColors.text.secondary,
+            ? theme.colors.primary
+            : theme.colors.textSecondary,
           zIndex: 1,
         };
 
@@ -193,7 +203,7 @@ export const Input = forwardRef<TextInput, InputProps>(
       onPress?: () => void
     ) => {
       const IconComponent = onPress ? TouchableOpacity : View;
-      const iconSize = designTokens.componentSizes.icon[size === 'sm' ? 'sm' : 'md'];
+      const iconSize = size === 'sm' ? 16 : 20;
 
       return (
         <IconComponent
@@ -246,8 +256,8 @@ export const Input = forwardRef<TextInput, InputProps>(
             onBlur={handleBlur}
             onChangeText={handleChangeText}
             editable={state !== 'disabled'}
-            placeholderTextColor={variant === 'outline' && label ? 'transparent' : designTokens.semanticColors.text.quaternary}
-            selectionColor={designTokens.semanticColors.interactive.primary}
+            placeholderTextColor={variant === 'outline' && label ? 'transparent' : theme.colors.textQuaternary}
+            selectionColor={theme.colors.primary}
             {...textInputProps}
           />
 
@@ -276,10 +286,10 @@ const getContainerStyles = (
   hasRightIcon: boolean
 ): ViewStyle => {
   const baseStyle: ViewStyle = {
-    ...designTokens.componentSizes.input[size],
+    ...INPUT_SIZES[size],
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: designTokens.accessibility.minTouchTarget.height,
+    minHeight: theme.layout.minTouchTarget,
   };
 
   if (fullWidth) {
@@ -292,24 +302,24 @@ const getContainerStyles = (
       return {
         ...baseStyle,
         borderWidth: isFocused ? 2 : 1, // Thicker border when focused
-        borderRadius: designTokens.borderRadius.lg, // More rounded
+        borderRadius: theme.borderRadius.lg, // More rounded
         borderColor: getBorderColor(state, isFocused),
         backgroundColor: state === 'disabled'
-          ? designTokens.colors.neutral[50]
-          : designTokens.semanticColors.background.primary,
+          ? theme.colors.backgroundSecondary
+          : theme.colors.background,
         // Add subtle elevation when focused
-        ...(isFocused ? designTokens.shadows.sm : {}),
+        ...(isFocused ? theme.shadows.sm : {}),
       };
 
     case 'filled':
       return {
         ...baseStyle,
-        borderRadius: designTokens.borderRadius.lg,
+        borderRadius: theme.borderRadius.lg,
         borderBottomLeftRadius: 0,
         borderBottomRightRadius: 0,
         backgroundColor: state === 'disabled'
-          ? designTokens.colors.neutral[100]
-          : designTokens.colors.neutral[50],
+          ? theme.colors.backgroundTertiary
+          : theme.colors.backgroundSecondary,
         borderBottomWidth: isFocused ? 3 : 2, // Thicker underline when focused
         borderBottomColor: getBorderColor(state, isFocused),
       };
@@ -331,41 +341,41 @@ const getContainerStyles = (
 const getTextStyles = (size: InputSize, state: InputState) => {
   return {
     flex: 1,
-    fontSize: designTokens.componentSizes.input[size].fontSize,
+    fontSize: INPUT_SIZES[size].fontSize,
     color: state === 'disabled'
-      ? designTokens.semanticColors.text.disabled
-      : designTokens.semanticColors.text.primary,
-    fontFamily: designTokens.typography.fontFamily.sans,
+      ? theme.colors.placeholder
+      : theme.colors.textPrimary,
+    fontFamily: theme.typography.fontFamily.regular,
   };
 };
 
 const getBorderColor = (state: InputState, isFocused: boolean): string => {
   if (state === 'error') {
-    return designTokens.semanticColors.border.error;
+    return theme.colors.error;
   }
   if (state === 'success') {
-    return designTokens.semanticColors.border.success;
+    return theme.colors.success;
   }
   if (isFocused) {
-    return designTokens.semanticColors.border.focus;
+    return theme.colors.borderFocus;
   }
-  return designTokens.semanticColors.border.primary;
+  return theme.colors.border;
 };
 
 const getIconColor = (state: InputState, isFocused: boolean): string => {
   if (state === 'error') {
-    return designTokens.colors.error[500];
+    return theme.colors.error;
   }
   if (state === 'success') {
-    return designTokens.colors.success[500];
+    return theme.colors.success;
   }
   if (state === 'disabled') {
-    return designTokens.semanticColors.text.disabled;
+    return theme.colors.placeholder;
   }
   if (isFocused) {
-    return designTokens.semanticColors.interactive.primary;
+    return theme.colors.primary;
   }
-  return designTokens.semanticColors.text.tertiary;
+  return theme.colors.textTertiary;
 };
 
 // ============================================================================
@@ -374,39 +384,39 @@ const getIconColor = (state: InputState, isFocused: boolean): string => {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: designTokens.spacing[4],
+    marginBottom: theme.spacing[4],
   },
   label: {
-    fontSize: designTokens.typography.fontSize.sm,
-    fontWeight: designTokens.typography.fontWeight.medium,
-    color: designTokens.semanticColors.text.primary,
-    marginBottom: designTokens.spacing[1],
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.medium,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing[1],
   },
   required: {
-    color: designTokens.colors.error[500],
+    color: theme.colors.error,
   },
   iconContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: designTokens.accessibility.minTouchTarget.width,
-    minHeight: designTokens.accessibility.minTouchTarget.height,
+    minWidth: theme.layout.minTouchTarget,
+    minHeight: theme.layout.minTouchTarget,
   },
   leftIconContainer: {
-    paddingLeft: designTokens.spacing[3],
-    paddingRight: designTokens.spacing[2],
+    paddingLeft: theme.spacing[3],
+    paddingRight: theme.spacing[2],
   },
   rightIconContainer: {
-    paddingLeft: designTokens.spacing[2],
-    paddingRight: designTokens.spacing[3],
+    paddingLeft: theme.spacing[2],
+    paddingRight: theme.spacing[3],
   },
   helperText: {
-    fontSize: designTokens.typography.fontSize.xs,
-    color: designTokens.semanticColors.text.tertiary,
-    marginTop: designTokens.spacing[1],
-    lineHeight: designTokens.typography.lineHeight.normal,
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.textTertiary,
+    marginTop: theme.spacing[1],
+    lineHeight: theme.typography.lineHeight.normal,
   },
   errorText: {
-    color: designTokens.colors.error[600],
+    color: theme.colors.errorDark,
   },
 });
 

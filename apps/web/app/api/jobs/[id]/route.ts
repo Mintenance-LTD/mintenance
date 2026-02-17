@@ -12,6 +12,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import crypto from 'crypto';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -85,18 +86,15 @@ const updateJobSchema = z.object({
   message: 'At least one field must be provided',
 });
 
-export async function GET(_req: NextRequest, context: Params) {
-  try {
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view job');
-    }
-    const { id } = await context.params;
+export const GET = withApiHandler(
+  { csrf: false },
+  async (_req, { user, params }) => {
+    const { id } = params;
 
-    // Simplified select query to avoid FK join failures
+    // Explicit column selection to avoid leaking sensitive data
     const { data, error } = await serverSupabase
       .from('jobs')
-      .select('*')
+      .select('id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, priority, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, images, created_at, updated_at')
       .eq('id', id)
       .single();
 
@@ -175,25 +173,16 @@ export async function GET(_req: NextRequest, context: Params) {
     }
 
     return NextResponse.json({ job: formattedJob });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);
 
 /**
  * PUT /api/jobs/[id] - Update job with comprehensive AI analysis
  */
-export async function PUT(request: NextRequest, context: Params) {
-  try {
-    // CSRF protection
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to update job');
-    }
-
-    const { id: jobId } = await context.params;
+export const PUT = withApiHandler(
+  { roles: ['homeowner'] },
+  async (request, { user, params }) => {
+    const { id: jobId } = params;
 
     // Check job ownership and fetch necessary fields for fallback values
     const { data: existingJob, error: fetchError } = await serverSupabase
@@ -214,7 +203,7 @@ export async function PUT(request: NextRequest, context: Params) {
       throw new BadRequestError('Cannot edit job that is already in progress or completed');
     }
 
-    // Rate limiting for AI analysis
+    // Rate limiting for AI analysis (business-specific, separate from middleware rate limit)
     const rateLimitResult = await rateLimiter.checkRateLimit({
       windowMs: 60 * 60 * 1000, // 1 hour
       maxRequests: 30,
@@ -474,10 +463,8 @@ export async function PUT(request: NextRequest, context: Params) {
       aiAnalysis: aiAnalysisResult,
       geocode: geocodeResult,
     });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);
 
 export async function PATCH(request: NextRequest, context: Params) {
   try {

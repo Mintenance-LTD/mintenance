@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Input } from '../../../components/ui/Input';
 import { theme } from '../../../theme';
 import type { Booking, CancellationReason } from '../viewmodels/BookingViewModel';
@@ -53,6 +54,8 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
     setCustomReason('');
   };
 
+  const insets = useSafeAreaInsets();
+
   const handleClose = () => {
     setSelectedReason('');
     setCustomReason('');
@@ -72,7 +75,7 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
     >
       <View style={styles.container}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons
               name="arrow-back"
@@ -180,7 +183,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
+    paddingTop: 16,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,

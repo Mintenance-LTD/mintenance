@@ -127,16 +127,16 @@ const TabNavigator: React.FC = () => {
           ),
         }}
       />
-      {enableMap && (
+      {enableMap && user?.role === 'contractor' && (
         <Tab.Screen
           name="DiscoverTab"
           component={DiscoverNavigator}
           options={{
-            tabBarLabel: 'Discover',
+            tabBarLabel: 'Find Jobs',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="map" size={size} color={color} />
             ),
-            tabBarAccessibilityLabel: 'Discover tab',
+            tabBarAccessibilityLabel: 'Find jobs near you',
           }}
           listeners={{
             tabPress: () => handleTabPress('DiscoverTab' as keyof RootTabParamList),

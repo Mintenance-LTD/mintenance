@@ -4,6 +4,7 @@ import { logger } from '../utils/logger';
 import { sanitizeText } from '../utils/sanitize';
 import { sanitizeForSQL, isValidSearchTerm } from '../utils/sqlSanitization';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
+import { checkRateLimit } from '../middleware/RateLimiter';
 
 // ============================================================================
 // DATABASE ROW INTERFACES (snake_case from database)
@@ -95,6 +96,11 @@ export class MessagingService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
+      // Rate limit check
+      if (!checkRateLimit('message_send', senderId)) {
+        throw new Error('Too many messages. Please slow down and try again.');
+      }
+
       // Validation
       ServiceErrorHandler.validateRequired(jobId, 'Job ID', context);
       ServiceErrorHandler.validateRequired(receiverId, 'Receiver ID', context);
@@ -192,55 +198,53 @@ export class MessagingService {
 
       if (jobsError) throw jobsError;
 
-      const threads: MessageThread[] = [];
+      // Batch fetch: run all per-job queries in parallel instead of serial loop
+      const threads: MessageThread[] = await Promise.all(
+        jobs.map(async (job) => {
+          // Parallel: fetch last message + unread count for this job concurrently
+          const [lastMessageResult, unreadResult] = await Promise.all([
+            supabase
+              .from('messages')
+              .select(
+                `
+                id, job_id, sender_id, receiver_id, message_text, message_type,
+                attachment_url, read, created_at,
+                sender:users!messages_sender_id_fkey(first_name, last_name, role)
+              `
+              )
+              .eq('job_id', job.id)
+              .order('created_at', { ascending: false })
+              .limit(1),
+            supabase
+              .from('messages')
+              .select('id', { count: 'exact', head: true })
+              .eq('job_id', job.id)
+              .eq('receiver_id', userId)
+              .eq('read', false),
+          ]);
 
-      for (const job of jobs) {
-        // Get last message for this job
-        const { data: lastMessage } = await supabase
-          .from('messages')
-          .select(
-            `
-            *,
-            sender:users!messages_sender_id_fkey(first_name, last_name, role)
-          `
-          )
-          .eq('job_id', job.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        // Get unread count for current user
-        const { count: unreadCount } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('job_id', job.id)
-          .eq('receiver_id', userId)
-          .eq('read', false);
-
-        // Determine other participant
-        const otherParticipant =
-          job.homeowner_id === userId ? job.contractor : job.homeowner;
-
-        threads.push({
-          jobId: job.id,
-          jobTitle: job.title,
-          lastMessage: lastMessage?.[0]
-            ? this.formatMessage(lastMessage[0] as DatabaseMessageRow)
-            : undefined,
-          unreadCount: unreadCount || 0,
-          participants: [
-            {
-              id: job.homeowner_id,
-              name: `${job.homeowner?.first_name || ''} ${job.homeowner?.last_name || ''}`.trim(),
-              role: job.homeowner?.role || 'homeowner',
-            },
-            job.contractor && {
-              id: job.contractor_id,
-              name: `${job.contractor?.first_name || ''} ${job.contractor?.last_name || ''}`.trim(),
-              role: job.contractor?.role || 'contractor',
-            },
-          ].filter(Boolean),
-        });
-      }
+          return {
+            jobId: job.id,
+            jobTitle: job.title,
+            lastMessage: lastMessageResult.data?.[0]
+              ? this.formatMessage(lastMessageResult.data[0] as DatabaseMessageRow)
+              : undefined,
+            unreadCount: unreadResult.count || 0,
+            participants: [
+              {
+                id: job.homeowner_id,
+                name: `${job.homeowner?.first_name || ''} ${job.homeowner?.last_name || ''}`.trim(),
+                role: job.homeowner?.role || 'homeowner',
+              },
+              job.contractor && {
+                id: job.contractor_id,
+                name: `${job.contractor?.first_name || ''} ${job.contractor?.last_name || ''}`.trim(),
+                role: job.contractor?.role || 'contractor',
+              },
+            ].filter(Boolean),
+          };
+        })
+      );
 
       return threads.sort((a, b) => {
         const aTime = a.lastMessage?.createdAt || '0';

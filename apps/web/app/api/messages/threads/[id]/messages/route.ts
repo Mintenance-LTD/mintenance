@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { sanitizeMessage } from '@/lib/sanitizer';
 import {
   MESSAGE_TYPES,
@@ -15,6 +12,7 @@ import {
   mapMessageRow,
 } from '@/app/api/messages/utils';
 import { validateRequest } from '@/lib/validation/validator';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const bodySchema = z.object({
   content: z.string().trim().min(1).optional().transform(val => val ? sanitizeMessage(val) : val),
@@ -24,39 +22,10 @@ const bodySchema = z.object({
   attachments: z.array(z.string().trim().min(1)).optional(),
 });
 
-interface Params {
-  params: Promise<{ id: string }>;
-}
-
-export async function GET(request: NextRequest, context: Params) {
-  try {
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 30
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(30),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-          }
-        }
-      );
-    }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view messages');
-    }
-
-    const { id: jobId } = await context.params;
+export const GET = withApiHandler(
+  { csrf: false, rateLimit: { maxRequests: 30 } },
+  async (request: NextRequest, { user, params }) => {
+    const jobId = params.id;
     if (!jobId) {
       throw new BadRequestError('Job id is required');
     }
@@ -94,44 +63,13 @@ export async function GET(request: NextRequest, context: Params) {
     );
 
     return NextResponse.json({ messages });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);
 
-export async function POST(request: NextRequest, context: Params) {
-  try {
-    // Rate limiting check
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 30
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(30),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-          }
-        }
-      );
-    }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to send messages');
-    }
-
-    const { id: jobId } = await context.params;
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request: NextRequest, { user, params }) => {
+    const jobId = params.id;
     if (!jobId) {
       throw new BadRequestError('Job id is required');
     }
@@ -282,7 +220,5 @@ export async function POST(request: NextRequest, context: Params) {
     });
 
     return NextResponse.json({ message }, { status: 201 });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);

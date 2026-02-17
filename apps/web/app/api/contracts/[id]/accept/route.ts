@@ -1,48 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const { id: contractId } = await params;
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
+export const POST = withApiHandler(
+  {},
+  async (_request, { user, params }) => {
+    const { id: contractId } = params;
 
     // SECURITY: Validate UUID format before database query
     if (!isValidUUID(contractId)) {
@@ -52,7 +18,7 @@ export async function POST(
     // SECURITY: Fix IDOR - check ownership in query, not after fetch
     const { data: contract, error: contractError } = await serverSupabase
       .from('contracts')
-      .select('*')
+      .select('id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at')
       .eq('id', contractId)
       .or(`contractor_id.eq.${user.id},homeowner_id.eq.${user.id}`)
       .single();
@@ -110,7 +76,7 @@ export async function POST(
       .from('contracts')
       .update(updateData)
       .eq('id', contractId)
-      .select()
+      .select('id, job_id, contractor_id, homeowner_id, status, title, start_date, end_date, amount, contractor_signed_at, homeowner_signed_at, created_at, updated_at')
       .single();
 
     if (updateError) {
@@ -258,12 +224,10 @@ export async function POST(
     return NextResponse.json({
       success: true,
       contract: updatedContract,
-      message: updatedContract.status === 'accepted' 
-        ? 'Contract accepted! Both parties have signed.' 
+      message: updatedContract.status === 'accepted'
+        ? 'Contract accepted! Both parties have signed.'
         : 'Contract signed. Waiting for other party to sign.',
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);
 

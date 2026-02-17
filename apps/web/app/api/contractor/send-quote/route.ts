@@ -2,62 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { EmailService } from '@/lib/email-service';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Validation schema
 const sendQuoteSchema = z.object({
   quoteId: z.string().uuid(),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
-    await requireCSRF(request);
-// Authenticate user
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      logger.warn('Unauthorized send quote attempt', { service: 'contractor' });
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    // Verify user is a contractor
-    if (user.role !== 'contractor') {
-      logger.warn('Non-contractor attempted to send quote', {
-        service: 'contractor',
-        userId: user.id,
-        role: user.role
-      });
-      throw new ForbiddenError('Only contractors can send quotes');
-    }
-
+export const POST = withApiHandler(
+  { roles: ['contractor'] },
+  async (request: NextRequest, { user }) => {
     // Parse and validate request body
     const body = await request.json();
     const validation = sendQuoteSchema.safeParse(body);
@@ -69,7 +25,7 @@ export async function POST(request: NextRequest) {
     // Verify quote exists and belongs to contractor
     const { data: quote, error: quoteError } = await serverSupabase
       .from('contractor_quotes')
-      .select('*')
+      .select('id, status, client_email, client_name, quote_number, total_amount')
       .eq('id', validatedData.quoteId)
       .eq('contractor_id', user.id)
       .single();
@@ -137,8 +93,5 @@ export async function POST(request: NextRequest) {
       message: 'Quote sent successfully',
       quoteId: validatedData.quoteId
     });
-
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

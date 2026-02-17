@@ -22,7 +22,7 @@ export async function GET(
     // Fetch the invoice
     const { data: invoice, error } = await serverSupabase
       .from('contractor_invoices')
-      .select('*')
+      .select('id, contractor_id, client_email, line_items, tax_rate, invoice_number, title, description, client_name, client_address, payment_terms, notes, due_date, created_at, vat_number')
       .eq('id', invoiceId)
       .single();
 

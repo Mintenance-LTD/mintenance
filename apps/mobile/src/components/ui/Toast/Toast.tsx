@@ -11,8 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../../design-system/theme';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 import { useHaptics } from '../../../utils/haptics';
 
 // ============================================================================
@@ -71,7 +70,6 @@ export const Toast: React.FC<ToastProps> = ({
   onShow,
   onHide,
 }) => {
-  const { theme } = useTheme();
   const haptics = useHaptics();
 
   const translateY = useRef(new Animated.Value(getInitialOffset())).current;
@@ -120,45 +118,45 @@ export const Toast: React.FC<ToastProps> = ({
     switch (type) {
       case 'success':
         return {
-          background: theme.colors.success[50],
-          border: theme.colors.success[200],
-          icon: theme.colors.success[600],
-          text: theme.colors.success[800],
+          background: '#F0FDF4',
+          border: '#BBF7D0',
+          icon: theme.colors.successDark,
+          text: '#166534',
         };
       case 'error':
         return {
-          background: theme.colors.error[50],
-          border: theme.colors.error[200],
-          icon: theme.colors.error[600],
-          text: theme.colors.error[800],
+          background: '#FEF2F2',
+          border: '#FECACA',
+          icon: theme.colors.errorDark,
+          text: '#991B1B',
         };
       case 'warning':
         return {
-          background: theme.colors.warning[50],
-          border: theme.colors.warning[200],
-          icon: theme.colors.warning[600],
-          text: theme.colors.warning[800],
+          background: '#FFFBEB',
+          border: '#FDE68A',
+          icon: theme.colors.warningDark,
+          text: '#92400E',
         };
       case 'info':
         return {
-          background: theme.colors.info[50],
-          border: theme.colors.info[200],
-          icon: theme.colors.info[600],
-          text: theme.colors.info[800],
+          background: '#EFF6FF',
+          border: '#BFDBFE',
+          icon: theme.colors.infoDark,
+          text: '#1E40AF',
         };
       case 'loading':
         return {
-          background: theme.colors.surface.secondary,
-          border: theme.colors.border.primary,
-          icon: theme.colors.primary[600],
-          text: theme.colors.text.primary,
+          background: theme.colors.surfaceSecondary,
+          border: theme.colors.border,
+          icon: theme.colors.primaryLight,
+          text: theme.colors.textPrimary,
         };
       default:
         return {
-          background: theme.colors.surface.primary,
-          border: theme.colors.border.primary,
-          icon: theme.colors.text.secondary,
-          text: theme.colors.text.primary,
+          background: theme.colors.surface,
+          border: theme.colors.border,
+          icon: theme.colors.textSecondary,
+          text: theme.colors.textPrimary,
         };
     }
   };
@@ -428,8 +426,8 @@ export const Toast: React.FC<ToastProps> = ({
             style={[
               styles.actionButton,
               {
-                backgroundColor: action.style === 'primary' ? theme.colors.primary[500] : 'transparent',
-                borderColor: action.style === 'destructive' ? theme.colors.error[500] : colors.icon,
+                backgroundColor: action.style === 'primary' ? theme.colors.primary : 'transparent',
+                borderColor: action.style === 'destructive' ? theme.colors.error : colors.icon,
               },
             ]}
           >
@@ -438,9 +436,9 @@ export const Toast: React.FC<ToastProps> = ({
                 styles.actionText,
                 {
                   color: action.style === 'primary'
-                    ? theme.colors.text.inverse
+                    ? theme.colors.white
                     : action.style === 'destructive'
-                    ? theme.colors.error[600]
+                    ? theme.colors.errorDark
                     : colors.text,
                 },
               ]}
@@ -476,70 +474,70 @@ export const Toast: React.FC<ToastProps> = ({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    zIndex: designTokens.zIndex.toast,
+    zIndex: 1700,
   },
 
   container: {
-    borderRadius: designTokens.borderRadius.lg,
+    borderRadius: theme.borderRadius.lg,
     borderWidth: 1,
-    ...designTokens.shadows.md,
+    ...theme.shadows.md,
   },
 
   minimal: {
-    borderRadius: designTokens.borderRadius.md,
-    paddingVertical: designTokens.spacing[2],
-    paddingHorizontal: designTokens.spacing[3],
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing[2],
+    paddingHorizontal: theme.spacing[3],
   },
 
   banner: {
     borderRadius: 0,
     borderLeftWidth: 0,
     borderRightWidth: 0,
-    paddingVertical: designTokens.spacing[4],
+    paddingVertical: theme.spacing[4],
   },
 
   content: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    padding: designTokens.spacing[4],
+    padding: theme.spacing[4],
   },
 
   iconContainer: {
-    marginRight: designTokens.spacing[3],
-    marginTop: designTokens.spacing[0.5],
+    marginRight: theme.spacing[3],
+    marginTop: 2,
   },
 
   textContainer: {
     flex: 1,
-    marginRight: designTokens.spacing[2],
+    marginRight: theme.spacing[2],
   },
 
   title: {
-    fontWeight: designTokens.typography.fontWeight.semibold,
+    fontWeight: theme.typography.fontWeight.semibold,
     lineHeight: 20,
   },
 
   message: {
-    marginTop: designTokens.spacing[1],
+    marginTop: theme.spacing[1],
     lineHeight: 18,
   },
 
   actionButton: {
     borderWidth: 1,
-    borderRadius: designTokens.borderRadius.md,
-    paddingVertical: designTokens.spacing[1.5],
-    paddingHorizontal: designTokens.spacing[3],
-    marginLeft: designTokens.spacing[2],
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 6,
+    paddingHorizontal: theme.spacing[3],
+    marginLeft: theme.spacing[2],
   },
 
   actionText: {
     fontSize: 14,
-    fontWeight: designTokens.typography.fontWeight.medium,
+    fontWeight: theme.typography.fontWeight.medium,
   },
 
   closeButton: {
-    padding: designTokens.spacing[1],
-    marginLeft: designTokens.spacing[1],
+    padding: theme.spacing[1],
+    marginLeft: theme.spacing[1],
   },
 });
 

@@ -4,6 +4,10 @@ import { render, createMockNavigation } from '../../test-utils';
 import { FinanceHeader } from '../FinanceHeader';
 import { theme } from '../../../theme';
 
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
 /**
  * FinanceHeader Component Tests
  *
@@ -239,13 +243,14 @@ describe('FinanceHeader', () => {
       );
     });
 
-    it('should apply paddingTop of 60 to header', () => {
+    it('should apply dynamic paddingTop from safe area insets', () => {
       const { getByTestId } = render(<FinanceHeader navigation={mockNavigation as any} />);
       const header = getByTestId('finance-header');
 
+      // useSafeAreaInsets mock returns top: 0
       expect(header.props.style).toEqual(
         expect.objectContaining({
-          paddingTop: 60,
+          paddingTop: 0,
         })
       );
     });

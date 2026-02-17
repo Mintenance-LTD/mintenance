@@ -88,7 +88,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
           <Ionicons
             name={user?.role === 'contractor' ? 'construct' : 'home'}
             size={14}
-            color={user?.role === 'contractor' ? '#FF6B35' : theme.colors.info}
+            color={user?.role === 'contractor' ? theme.colors.accent : theme.colors.info}
           />
           <Text
             style={[
@@ -101,7 +101,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
         </View>
 
         <View style={styles.memberSinceBadge}>
-          <Ionicons name='calendar-outline' size={14} color='#666' />
+          <Ionicons name='calendar-outline' size={14} color={theme.colors.textSecondary} />
           <Text style={styles.memberSinceText}>
             Since {joinDate}
           </Text>
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   profileInfo: {
     backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
-    marginTop: -16,
+    marginTop: 16,
     padding: 24,
     alignItems: 'center',
     borderRadius: 20,

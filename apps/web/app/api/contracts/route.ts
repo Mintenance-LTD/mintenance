@@ -29,7 +29,7 @@ export const GET = withApiHandler({ csrf: false }, async (request, { user }) => 
 
   let query = serverSupabase
     .from('contracts')
-    .select('*');
+    .select('id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, contractor_signed_at, homeowner_signed_at, created_at, updated_at');
 
   // Filter by role
   if (user.role === 'contractor') {
@@ -126,7 +126,7 @@ export const POST = withApiHandler(
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .select()
+      .select('id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, created_at, updated_at')
       .single();
 
     if (contractError) {
@@ -341,7 +341,7 @@ export const PUT = withApiHandler({}, async (request, { user }) => {
     .from('contracts')
     .update(updateData)
     .eq('id', contractId)
-    .select()
+    .select('id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, contractor_signed_at, homeowner_signed_at, created_at, updated_at')
     .single();
 
   if (updateError) {

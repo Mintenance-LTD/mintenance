@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BUSINESS_RULES } from '@mintenance/shared';
 
 // ============================================================================
 // BASE SCHEMAS
@@ -138,7 +139,7 @@ export const JobSchema = z.object({
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
   }),
-  photos: z.array(z.string().url('Invalid photo URL')).max(10, 'Maximum 10 photos allowed'),
+  photos: z.array(z.string().url('Invalid photo URL')).max(BUSINESS_RULES.MAX_PHOTOS_PER_JOB, `Maximum ${BUSINESS_RULES.MAX_PHOTOS_PER_JOB} photos allowed`),
   requirements: z.array(z.string()).optional(),
   preferred_start_date: DateSchema.optional(),
   estimated_duration: z.string().optional(),
@@ -163,7 +164,7 @@ export const CreateJobSchema = z.object({
     state: z.string().min(2, 'State is required').max(2, 'State must be 2 characters'),
     zip_code: z.string().regex(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format'),
   }),
-  photos: z.array(z.string().url('Invalid photo URL')).max(10, 'Maximum 10 photos allowed').default([]),
+  photos: z.array(z.string().url('Invalid photo URL')).max(BUSINESS_RULES.MAX_PHOTOS_PER_JOB, `Maximum ${BUSINESS_RULES.MAX_PHOTOS_PER_JOB} photos allowed`).default([]),
   requirements: z.array(z.string()).optional(),
   preferred_start_date: DateSchema.optional(),
   estimated_duration: z.string().optional(),

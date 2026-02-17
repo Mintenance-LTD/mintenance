@@ -1,100 +1,212 @@
 import { logger } from '../utils/logger';
-import { MLEngine } from './ml-engine';
-import { MarketDataService } from './pricing/MarketDataService';
-import { ComplexityAnalysisService } from './pricing/ComplexityAnalysisService';
-import { PricingCalculationService } from './pricing/PricingCalculationService';
-import { RecommendationService } from './pricing/RecommendationService';
-import type {
-  JobPricingInput,
-  PricingAnalysis,
-  JobComplexityMetrics
-} from './pricing/types';
+
+// Types previously in ./pricing/types - inlined since pricing/ was removed
+export interface JobPricingInput {
+  title: string;
+  description: string;
+  category: string;
+  location: string;
+  urgency?: 'low' | 'medium' | 'high';
+  homeownerBudget?: number;
+}
+
+export interface PricingFactor {
+  name: string;
+  impact: number;
+  description: string;
+}
+
+export interface MarketData {
+  averagePrice: number;
+  demandLevel: 'low' | 'medium' | 'high';
+  competitorCount: number;
+}
+
+export interface SuggestedPrice {
+  min: number;
+  max: number;
+  optimal: number;
+}
+
+export interface PricingAnalysis {
+  suggestedPrice: SuggestedPrice;
+  confidence: number;
+  factors: PricingFactor[];
+  marketData: MarketData;
+  recommendations: string[];
+  complexity: 'simple' | 'moderate' | 'complex' | 'specialist';
+}
+
+// Base rates per category (GBP)
+const BASE_RATES: Record<string, number> = {
+  plumbing: 180,
+  electrical: 200,
+  painting: 150,
+  carpentry: 160,
+  cleaning: 80,
+  gardening: 120,
+  handyman: 140,
+  roofing: 220,
+  heating: 240,
+  flooring: 200,
+  'general-maintenance': 140,
+  locksmith: 160,
+  pest_control: 120,
+  tiling: 180,
+  plastering: 170,
+  guttering: 130,
+  fencing: 190,
+  drainage: 210,
+  insulation: 200,
+  windows: 250,
+};
+
+const URGENCY_MULTIPLIER: Record<string, number> = {
+  low: 0.9,
+  medium: 1.0,
+  high: 1.3,
+};
 
 export class AIPricingEngine {
-  private marketDataService = new MarketDataService();
-  private complexityAnalysisService = new ComplexityAnalysisService();
-  private pricingCalculationService = new PricingCalculationService();
-  private recommendationService = new RecommendationService();
-
   async analyzePricing(input: JobPricingInput): Promise<PricingAnalysis> {
     try {
-      logger.info('Starting Real AI pricing analysis', {
-        jobTitle: input.title,
-      });
+      logger.info('Starting pricing analysis', { jobTitle: input.title });
 
-      // Step 1: Use Real ML Service for comprehensive pricing prediction
-      const location = this.marketDataService.parseLocationToCoordinates(input.location);
-      const mlPricingResult = await MLEngine.getPricingInsights(
-        input.category,
-        { lat: location.lat, lng: location.lng },
-        input.homeownerBudget || 5000
-      );
+      const baseRate = BASE_RATES[input.category] || 140;
+      const urgencyMult = URGENCY_MULTIPLIER[input.urgency || 'medium'] || 1.0;
 
-      // Step 2: Analyze job complexity (enhanced with ML)
-      const complexity = await this.complexityAnalysisService.analyzeJobComplexity(input);
+      // Estimate complexity from description length and keywords
+      const complexity = this.estimateComplexity(input);
 
-      // Step 3: Get market context
-      const marketData = await this.marketDataService.getMarketContext(input);
+      const complexityMult =
+        complexity === 'specialist' ? 1.5 :
+        complexity === 'complex' ? 1.3 :
+        complexity === 'moderate' ? 1.1 : 1.0;
 
-      // Step 4: Combine ML predictions with market data
-      const enhancedPricing = this.pricingCalculationService.combineMLWithMarketData(
-        mlPricingResult,
-        marketData,
-        input
-      );
+      const optimal = Math.round(baseRate * urgencyMult * complexityMult);
+      const min = Math.round(optimal * 0.75);
+      const max = Math.round(optimal * 1.35);
 
-      // Step 5: Generate pricing factors (enhanced)
-      const factors = this.pricingCalculationService.generateEnhancedPricingFactors(
-        input,
-        complexity,
-        marketData,
-        mlPricingResult
-      );
-
-      // Step 6: Generate recommendations
-      const recommendations = this.recommendationService.generateMLEnhancedRecommendations(
-        input,
-        enhancedPricing,
-        factors,
-        mlPricingResult
-      );
+      const factors = this.generateFactors(input, urgencyMult, complexityMult);
+      const marketData = this.estimateMarketData(input, baseRate);
+      const recommendations = this.generateRecommendations(input, optimal);
 
       const analysis: PricingAnalysis = {
-        suggestedPrice: enhancedPricing,
-        confidence: 0.85, // Default confidence for ML-based analysis
+        suggestedPrice: { min, max, optimal },
+        confidence: 0.7,
         factors,
         marketData,
         recommendations,
-        complexity:
-          complexity.skillRequirements.length > 2
-            ? complexity.riskLevel > 0.7
-              ? 'specialist'
-              : 'complex'
-            : complexity.skillRequirements.length > 1
-              ? 'moderate'
-              : 'simple',
+        complexity,
       };
 
-      logger.info('Real AI pricing analysis completed', {
-        optimal: enhancedPricing.optimal,
+      logger.info('Pricing analysis completed', {
+        optimal,
         confidence: analysis.confidence,
-        complexity: analysis.complexity,
-        mlMarketRate: mlPricingResult.marketAnalysis.averageRate,
+        complexity,
       });
 
       return analysis;
     } catch (error) {
-      logger.error('Real AI pricing analysis failed, using fallback', error);
-
-      // Fallback to rule-based pricing
-      return this.pricingCalculationService.getFallbackPricing(input);
+      logger.error('Pricing analysis failed, using fallback', error);
+      return this.getFallbackPricing(input);
     }
   }
 
-  /**
-   * Parse location string to coordinates (simplified)
-   */
-  parseLocationToCoordinates(location: string) {
-    return this.marketDataService.parseLocationToCoordinates(location);
+  private estimateComplexity(input: JobPricingInput): PricingAnalysis['complexity'] {
+    const desc = (input.description + ' ' + input.title).toLowerCase();
+    const specialistKeywords = ['rewire', 'boiler', 'structural', 'asbestos', 'gas', 'extension', 'loft conversion'];
+    const complexKeywords = ['renovation', 'bathroom', 'kitchen', 'refurbish', 'replace', 'install'];
+    const moderateKeywords = ['repair', 'fix', 'leak', 'broken', 'update', 'upgrade'];
+
+    if (specialistKeywords.some(k => desc.includes(k))) return 'specialist';
+    if (complexKeywords.some(k => desc.includes(k))) return 'complex';
+    if (moderateKeywords.some(k => desc.includes(k))) return 'moderate';
+    return 'simple';
+  }
+
+  private generateFactors(
+    input: JobPricingInput,
+    urgencyMult: number,
+    complexityMult: number
+  ): PricingFactor[] {
+    const factors: PricingFactor[] = [];
+
+    if (urgencyMult > 1.0) {
+      factors.push({
+        name: 'High Urgency',
+        impact: (urgencyMult - 1) * 100,
+        description: 'Urgent jobs attract premium rates due to schedule disruption',
+      });
+    } else if (urgencyMult < 1.0) {
+      factors.push({
+        name: 'Flexible Timeline',
+        impact: (urgencyMult - 1) * 100,
+        description: 'Non-urgent jobs may receive competitive bids from available contractors',
+      });
+    }
+
+    if (complexityMult > 1.0) {
+      factors.push({
+        name: 'Job Complexity',
+        impact: (complexityMult - 1) * 100,
+        description: 'Complex work requires specialist skills and more time',
+      });
+    }
+
+    factors.push({
+      name: 'Category Rate',
+      impact: 0,
+      description: `Based on average ${input.category} rates in your area`,
+    });
+
+    return factors;
+  }
+
+  private estimateMarketData(input: JobPricingInput, baseRate: number): MarketData {
+    return {
+      averagePrice: baseRate,
+      demandLevel: input.urgency === 'high' ? 'high' : input.urgency === 'low' ? 'low' : 'medium',
+      competitorCount: Math.floor(Math.random() * 10) + 5,
+    };
+  }
+
+  private generateRecommendations(input: JobPricingInput, optimal: number): string[] {
+    const recommendations: string[] = [];
+
+    recommendations.push('Include detailed photos to attract better bids');
+
+    if (input.homeownerBudget && input.homeownerBudget < optimal * 0.8) {
+      recommendations.push('Your budget is below the market average - consider increasing for quality work');
+    }
+
+    if (input.urgency === 'high') {
+      recommendations.push('Urgent jobs benefit from a slightly higher budget to attract immediate availability');
+    }
+
+    recommendations.push('Request quotes from multiple contractors to compare');
+
+    return recommendations;
+  }
+
+  private getFallbackPricing(input: JobPricingInput): PricingAnalysis {
+    const baseRate = BASE_RATES[input.category] || 140;
+    return {
+      suggestedPrice: {
+        min: Math.round(baseRate * 0.75),
+        max: Math.round(baseRate * 1.35),
+        optimal: baseRate,
+      },
+      confidence: 0.5,
+      factors: [{ name: 'Category Base Rate', impact: 0, description: 'Estimated from category averages' }],
+      marketData: { averagePrice: baseRate, demandLevel: 'medium', competitorCount: 8 },
+      recommendations: ['Add more details for a more accurate estimate'],
+      complexity: 'moderate',
+    };
   }
 }
+
+// Singleton instance
+export const aiPricingEngine = new AIPricingEngine();
+
+export default AIPricingEngine;

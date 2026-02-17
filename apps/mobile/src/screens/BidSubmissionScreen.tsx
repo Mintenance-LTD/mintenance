@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Job } from '@mintenance/types';
 import { JobsStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../theme';
 
 type BidSubmissionScreenRouteProp = RouteProp<
@@ -33,6 +34,7 @@ interface Props {
 
 const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId } = route.params;
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [amount, setAmount] = useState('');
@@ -110,7 +112,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -212,7 +214,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 20,
     backgroundColor: theme.colors.info,
   },
@@ -286,20 +287,20 @@ const styles = StyleSheet.create({
     paddingTop: 15,
   },
   tipBox: {
-    backgroundColor: '#E8F5E8',
+    backgroundColor: theme.colors.successLight,
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
     marginTop: 20,
   },
   tipTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2E7D32',
+    color: theme.colors.successDark,
     marginBottom: 10,
   },
   tipText: {
     fontSize: 14,
-    color: '#2E7D32',
+    color: theme.colors.successDark,
     marginBottom: 5,
   },
   footer: {

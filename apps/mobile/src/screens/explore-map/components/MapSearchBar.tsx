@@ -31,9 +31,9 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
           style={styles.input}
           value={value}
           onChangeText={onChangeText}
-          placeholder="Search contractors..."
+          placeholder="Search jobs near you..."
           placeholderTextColor={theme.colors.textTertiary}
-          accessibilityLabel='Search contractors on map'
+          accessibilityLabel='Search jobs on map'
           accessibilityRole='search'
         />
         {value.length > 0 && (

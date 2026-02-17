@@ -570,6 +570,24 @@ export async function middleware(request: NextRequest) {
     
     response.headers.set('Content-Security-Policy', cspHeader);
 
+    // CSP Report-Only with nonce — monitors what would break if we enforced nonce-based CSP.
+    // Once violations are zero in production logs, we can replace the main CSP header above.
+    const strictCspHeader = [
+      "default-src 'self'",
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://maps.googleapis.com`,
+      `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
+      "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      connectSrc,
+      "frame-src https://js.stripe.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      "report-uri /api/csp-report"
+    ].join('; ');
+    response.headers.set('Content-Security-Policy-Report-Only', strictCspHeader);
+
     // API versioning header for all /api/ routes
     if (pathname.startsWith('/api/')) {
       response.headers.set('X-API-Version', process.env.API_VERSION || '2026-02-09');

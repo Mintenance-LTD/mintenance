@@ -11,6 +11,7 @@ import {
   ActionSheetIOS,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -135,6 +136,7 @@ const priorityLevels = [
 ];
 
 const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] =
     useState<ServiceCategory | null>(null);
@@ -313,7 +315,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   if (!selectedCategory) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
@@ -367,7 +369,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => setSelectedCategory(null)}
@@ -567,7 +569,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 20,
     backgroundColor: theme.colors.primary,
   },

@@ -26,6 +26,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '@mintenance/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { theme } from '../../theme';
 
 interface MFAVerificationScreenProps {
   preMfaToken: string;
@@ -241,7 +242,7 @@ export default function MFAVerificationScreen() {
             value={code}
             onChangeText={handleCodeChange}
             placeholder={method === 'totp' ? '000000' : 'XXXXXXXX'}
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={theme.colors.placeholder}
             maxLength={method === 'totp' ? 6 : 8}
             keyboardType={method === 'totp' ? 'number-pad' : 'default'}
             autoCapitalize="characters"
@@ -285,7 +286,7 @@ export default function MFAVerificationScreen() {
           accessibilityLabel={loading ? 'Verifying code' : 'Verify code'}
         >
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={theme.colors.white} />
           ) : (
             <Text style={styles.buttonText}>Verify</Text>
           )}
@@ -321,7 +322,7 @@ export default function MFAVerificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   scrollContent: {
     flexGrow: 1,
@@ -335,20 +336,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   methodSelector: {
     flexDirection: 'row',
     marginBottom: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: theme.colors.border,
   },
   methodButton: {
     flex: 1,
@@ -358,15 +359,15 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   methodButtonActive: {
-    borderBottomColor: '#3B82F6',
+    borderBottomColor: theme.colors.info,
   },
   methodButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
   },
   methodButtonTextActive: {
-    color: '#3B82F6',
+    color: theme.colors.info,
   },
   inputContainer: {
     marginBottom: 24,
@@ -374,13 +375,13 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.white,
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: theme.colors.borderDark,
     borderRadius: 8,
     padding: 16,
     fontSize: 20,
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -403,37 +404,37 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: theme.colors.borderDark,
     borderRadius: 4,
     marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: '#3B82F6',
-    borderColor: '#3B82F6',
+    backgroundColor: theme.colors.info,
+    borderColor: theme.colors.info,
   },
   checkmark: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
     fontSize: 14,
     fontWeight: 'bold',
   },
   checkboxLabel: {
     fontSize: 14,
-    color: '#374151',
+    color: theme.colors.textPrimary,
   },
   button: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: theme.colors.info,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
     marginBottom: 24,
   },
   buttonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: theme.colors.gray300,
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: theme.colors.white,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -442,16 +443,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderTopColor: theme.colors.border,
   },
   helpText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   helpLink: {
     fontSize: 14,
-    color: '#3B82F6',
+    color: theme.colors.info,
     fontWeight: '500',
   },
   backButton: {
@@ -459,6 +460,6 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: theme.colors.textSecondary,
   },
 });

@@ -1,6 +1,6 @@
 /**
  * Submit Bid API Route
- * 
+ *
  * Handles bid submission from contractors.
  * Refactored to use extracted modules for better maintainability.
  */
@@ -9,43 +9,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { checkApiRateLimit } from '@/lib/rate-limiter';
 import { BidAcceptanceAgent } from '@/lib/services/agents/BidAcceptanceAgent';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
-import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
+import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { submitBidSchema, type SubmitBidInput } from './validation';
 import { processBid, getDatabaseErrorMessage } from './bid-processor';
 import { prepareQuoteData, processQuote } from './quote-processor';
 import { sendBidNotifications } from './notifications';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Rate limiting
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const rateLimitResult = await checkApiRateLimit(`submit-bid:${ip}`);
-
-    if (!rateLimitResult.allowed) {
-      throw new RateLimitError();
-    }
-
-    // Authenticate user
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to submit bids');
-    }
-
-    // Verify user is a contractor
-    if (user.role !== 'contractor') {
-      throw new ForbiddenError('Only contractors can submit bids');
-    }
-
+export const POST = withApiHandler(
+  { roles: ['contractor'] },
+  async (request: NextRequest, { user }): Promise<NextResponse> => {
     // Check subscription requirement
     const { requireSubscriptionForAction, checkSubscriptionLimits } = await import('@/lib/middleware/subscription-check');
     const subscriptionCheck = await requireSubscriptionForAction(request, 'submit_bid');
@@ -110,7 +86,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       bidAmount: bodyData.bidAmount,
       proposalTextLength: typeof bodyData.proposalText === 'string' ? bodyData.proposalText.length : 0,
     });
-    
+
     let validatedData: SubmitBidInput;
     try {
       validatedData = submitBidSchema.parse(body);
@@ -127,7 +103,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           const path = issue.path.join('.');
           return `${path}: ${issue.message}`;
         });
-        
+
         logger.warn('[BID_SUBMIT] Validation failed', {
           service: 'contractor',
           errors: validationError.issues,
@@ -139,7 +115,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           bidAmount: bodyData.bidAmount,
           proposalTextLength: typeof bodyData.proposalText === 'string' ? bodyData.proposalText.length : 0,
         });
-        
+
         // Return first error message in a user-friendly format
         const firstError = validationError.issues[0];
         let userMessage = 'Invalid bid data';
@@ -162,7 +138,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             userMessage = firstError.message;
           }
         }
-        
+
         return NextResponse.json({
           error: userMessage,
           details: validationError.issues,
@@ -348,11 +324,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         hasEstimatedDuration: 'estimated_duration' in bidPayload,
         hasProposedStartDate: 'proposed_start_date' in bidPayload,
       });
-      
+
       const result = await processBid(validatedData, user.id, bidPayload);
       bid = result.bid;
       isUpdate = result.isUpdate;
-      
+
       logger.debug('[BID_SUBMIT] processBid succeeded', {
         service: 'contractor',
         isUpdate,
@@ -361,7 +337,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       const dbError = error as { code?: string; message?: string; details?: string; hint?: string };
-      
+
       // Log the actual database error details
       logger.error('[BID_SUBMIT] processBid failed', {
         service: 'contractor',
@@ -374,7 +350,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         jobId: validatedData.jobId,
         contractorId: user.id,
       });
-      
+
       // Check if it's a database error we can handle
       if (dbError.code || dbError.message) {
         const userMessage = getDatabaseErrorMessage(dbError);
@@ -384,7 +360,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           actualErrorCode: dbError.code,
           actualErrorMessage: dbError.message,
         });
-        return NextResponse.json({ 
+        return NextResponse.json({
           error: userMessage,
           // Include actual error details in development for debugging
           ...(process.env.NODE_ENV === 'development' && {
@@ -500,8 +476,5 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
 
     return NextResponse.json(responseData, { status: 201 });
-
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

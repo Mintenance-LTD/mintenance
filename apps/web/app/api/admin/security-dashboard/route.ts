@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
         // Continue with empty metrics instead of failing
         const { data: recentEvents, error: eventsError } = await serverSupabase
           .from('security_events')
-          .select('*')
+          .select('id, event_type, severity, ip_address, user_id, description, metadata, resolved, created_at')
           .order('created_at', { ascending: false })
           .limit(50);
 
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
     // Get recent security events
     const { data: recentEvents, error: eventsError } = await serverSupabase
       .from('security_events')
-      .select('*')
+      .select('id, event_type, severity, ip_address, user_id, description, metadata, resolved, created_at')
       .order('created_at', { ascending: false })
       .limit(50);
 

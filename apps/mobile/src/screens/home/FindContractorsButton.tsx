@@ -34,10 +34,10 @@ export const FindContractorsButton: React.FC<FindContractorsButtonProps> = ({
           onPress();
         }}
         accessibilityRole="button"
-        accessibilityLabel="Find contractors"
+        accessibilityLabel="Post a job"
       >
-        <Ionicons name="search" size={20} color={theme.colors.textInverse} />
-        <Text style={styles.floatingButtonText}>Find Contractors</Text>
+        <Ionicons name="add-circle" size={20} color={theme.colors.textInverse} />
+        <Text style={styles.floatingButtonText}>Post a Job</Text>
       </TouchableOpacity>
       
       <TouchableOpacity

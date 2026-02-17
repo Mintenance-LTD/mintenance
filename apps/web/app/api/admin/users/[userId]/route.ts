@@ -1,48 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { VerificationService } from '@/lib/services/admin/VerificationService';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, NotFoundError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { NotFoundError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 10
-  });
+export const GET = withApiHandler(
+  { roles: ['admin'], rateLimit: { maxRequests: 10 }, csrf: false },
+  async (request: NextRequest, { params }) => {
+    const { userId } = params;
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(10),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const auth = await requireAdmin(request);
-    if (isAdminError(auth)) return auth.error;
-    const user = auth.user;
-
-    const { userId } = await params;
-
-    // Fetch full user data
+    // Fetch user data with explicit columns
     const { data: userData, error: userError } = await serverSupabase
       .from('profiles')
-      .select('*')
+      .select('id, email, first_name, last_name, role, phone, profile_image_url, company_name, license_number, business_address, latitude, longitude, insurance_provider, insurance_policy_number, insurance_expiry_date, years_experience, admin_verified, created_at, updated_at')
       .eq('id', userId)
       .single();
 
@@ -74,7 +45,7 @@ export async function GET(
         ]);
 
         // Set a 10 second timeout for verification checks
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Verification check timeout')), 10000)
         );
 
@@ -138,8 +109,5 @@ export async function GET(
       },
       verification: verificationData,
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

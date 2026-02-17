@@ -4,33 +4,32 @@ import App from './App';
 // Global error handlers for unhandled errors
 import { logger } from './src/utils/logger';
 
-// Handle unhandled promise rejections
-global.addEventListener('unhandledrejection', (event) => {
-  logger.error('Unhandled Promise Rejection', event.reason, {
+// Handle unhandled promise rejections using React Native's ErrorUtils
+// (global.addEventListener is a DOM API, not available in Hermes/React Native)
+const globalErrorHandler = ErrorUtils.getGlobalHandler();
+ErrorUtils.setGlobalHandler((error, isFatal) => {
+  logger.error(isFatal ? 'Fatal Error' : 'Uncaught Exception', error, {
     service: 'global-error-handler',
-    type: 'unhandled-promise-rejection'
+    type: isFatal ? 'fatal-error' : 'uncaught-exception',
   });
-  
-  // Prevent the default behavior (crashing the app)
-  event.preventDefault();
+  // Call the default handler so React Native can still show the red screen in dev
+  if (globalErrorHandler) {
+    globalErrorHandler(error, isFatal);
+  }
 });
 
-// Handle uncaught exceptions
-global.addEventListener('error', (event) => {
-  logger.error('Uncaught Exception', event.error, {
-    service: 'global-error-handler',
-    type: 'uncaught-exception'
+// Enable promise rejection tracking via Hermes or polyfill
+if (typeof (global as any).HermesInternal?.enablePromiseRejectionTracker === 'function') {
+  (global as any).HermesInternal.enablePromiseRejectionTracker({
+    allRejections: true,
+    onUnhandled: (id: number, rejection: unknown) => {
+      logger.error('Unhandled Promise Rejection', rejection, {
+        service: 'global-error-handler',
+        type: 'unhandled-promise-rejection',
+        promiseId: id,
+      });
+    },
   });
-});
-
-// React Native specific error handling
-if (__DEV__) {
-  // Log React Native warnings in development
-  const originalConsoleWarn = console.warn;
-  console.warn = (...args) => {
-    logger.warn('React Native Warning', { message: args.join(' ') });
-    originalConsoleWarn.apply(console, args);
-  };
 }
 
 registerRootComponent(App);

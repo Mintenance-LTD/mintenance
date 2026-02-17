@@ -17,7 +17,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import type { User } from '@mintenance/types';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getCurrentUserFromCookies, getCurrentUserFromBearerToken } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
 import {
@@ -135,24 +135,33 @@ export function withApiHandler(
         }
       }
 
-      // 2. CSRF (default: on for mutating methods)
+      // 2. Detect Bearer token auth (mobile clients)
+      const hasBearerToken = request.headers.get('authorization')?.startsWith('Bearer ');
+
+      // 3. CSRF (default: on for mutating methods, skip for Bearer-authenticated requests)
+      // CSRF protects against cookie-based cross-site attacks, not needed for Bearer tokens
       const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method);
-      const shouldCheckCSRF = csrf !== undefined ? csrf : isMutating;
+      const shouldCheckCSRF = csrf !== undefined ? csrf : (isMutating && !hasBearerToken);
       if (shouldCheckCSRF) {
         await requireCSRF(request);
       }
 
-      // 3. Resolve route params
+      // 4. Resolve route params
       const params = segmentData?.params ? await segmentData.params : {};
 
-      // 4. Authentication
+      // 5. Authentication (cookie-first, then Bearer token fallback for mobile)
       if (auth) {
-        const user = await getCurrentUserFromCookies();
+        let user = await getCurrentUserFromCookies();
+
+        if (!user && hasBearerToken) {
+          user = await getCurrentUserFromBearerToken(request);
+        }
+
         if (!user) {
           throw new UnauthorizedError('Authentication required');
         }
 
-        // 5. Role check
+        // 6. Role check
         if (roles && roles.length > 0 && !roles.includes(user.role)) {
           throw new ForbiddenError(`This action requires one of: ${roles.join(', ')}`);
         }

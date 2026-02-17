@@ -17,12 +17,21 @@ export interface EscrowTransaction {
   payerId: string;
   payeeId: string;
   amount: number;
-  status: 'pending' | 'held' | 'released' | 'refunded';
+  status: 'pending' | 'held' | 'release_pending' | 'released' | 'refunded' | 'awaiting_homeowner_approval' | 'failed' | 'cancelled';
   createdAt: string;
   updatedAt: string;
   paymentIntentId?: string;
   releasedAt?: string;
   refundedAt?: string;
+  // Database field aliases (snake_case)
+  job_id?: string;
+  payer_id?: string;
+  payee_id?: string;
+  payment_intent_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  released_at?: string;
+  refunded_at?: string;
   // Populated fields
   job?: {
     title: string;

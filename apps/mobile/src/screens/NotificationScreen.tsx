@@ -16,10 +16,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
-import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
-import { NotificationService, NotificationData } from '../../services/NotificationService';
-import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
+import { theme } from '../theme';
+import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
+import { NotificationService, NotificationData } from '../services/NotificationService';
+import { useAuth } from '../contexts/AuthContext';
+import { logger } from '../utils/logger';
 
 interface NotificationItemProps {
   notification: NotificationData;
@@ -108,6 +110,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
 
 export const NotificationScreen: React.FC = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -148,7 +151,56 @@ export const NotificationScreen: React.FC = () => {
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
-    // Handle navigation based on notification type
+
+    // Navigate based on notification type and embedded data
+    const data = notification.data as Record<string, string> | undefined;
+    switch (notification.type) {
+      case 'job_update':
+      case 'payment_received':
+      case 'quote_sent':
+      case 'bid_accepted':
+        if (data?.jobId) {
+          navigation.navigate('Main', {
+            screen: 'JobsTab',
+            params: { screen: 'JobDetails', params: { jobId: data.jobId } },
+          });
+        }
+        break;
+      case 'bid_received':
+        if (data?.jobId) {
+          navigation.navigate('Main', {
+            screen: 'JobsTab',
+            params: { screen: 'BidReview', params: { jobId: data.jobId } },
+          });
+        }
+        break;
+      case 'message_received':
+        if (data?.conversationId) {
+          navigation.navigate('Main', {
+            screen: 'MessagingTab',
+            params: {
+              screen: 'Messaging',
+              params: {
+                conversationId: data.conversationId,
+                jobTitle: data.jobTitle,
+                recipientId: data.senderId,
+                recipientName: data.senderName,
+              },
+            },
+          });
+        }
+        break;
+      case 'meeting_scheduled':
+        if (data?.meetingId) {
+          navigation.navigate('Modal', {
+            screen: 'MeetingDetails',
+            params: { meetingId: data.meetingId },
+          });
+        }
+        break;
+      default:
+        break;
+    }
   };
 
   const handleMarkAllAsRead = async () => {

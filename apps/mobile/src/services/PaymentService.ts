@@ -5,7 +5,23 @@ import {
   confirmPayment as stripeConfirmPayment,
   createPaymentMethod as stripeCreatePaymentMethod,
 } from '@stripe/stripe-react-native';
-import type { PaymentTables } from '../types/database/payments';
+interface EscrowTransactionRow {
+  id: string;
+  job_id: string;
+  homeowner_id: string;
+  contractor_id: string;
+  amount: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'disputed';
+  stripe_payment_intent_id: string | null;
+  stripe_transfer_id: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+  refunded_at: string | null;
+  dispute_reason: string | null;
+  platform_fee: number | null;
+  contractor_payout: number | null;
+}
 
 interface PaymentMethod {
   id: string;
@@ -32,7 +48,42 @@ interface CreateSetupIntentResponse {
 
 export class PaymentService {
   /**
-   * Initialize a payment by creating a Stripe payment intent via Supabase
+   * Get authenticated session token for API requests
+   */
+  private static async getAuthToken(): Promise<string> {
+    const { data: session } = await supabase.auth.getSession();
+    if (!session?.session?.access_token) {
+      throw new Error('Not authenticated');
+    }
+    return session.session.access_token;
+  }
+
+  /**
+   * Make an authenticated API request
+   */
+  private static async apiRequest<T>(
+    path: string,
+    options: { method: string; body?: Record<string, unknown> }
+  ): Promise<T> {
+    const token = await PaymentService.getAuthToken();
+    const response = await fetch(`${config.apiBaseUrl}${path}`, {
+      method: options.method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || `API request failed: ${path}`);
+    }
+    return data as T;
+  }
+
+  /**
+   * Initialize a payment by creating a Stripe payment intent
    */
   static async initializePayment({
     amount,
@@ -50,25 +101,16 @@ export class PaymentService {
       throw new Error('Amount cannot exceed £10,000');
     }
 
-    const amountInCents = Math.round(amount * 100);
-
     try {
-      const { data, error } = await supabase.functions.invoke(
-        'create-payment-intent',
+      const data = await PaymentService.apiRequest<{ clientSecret: string }>(
+        '/api/payments/create-intent',
         {
-          body: {
-            amount: amountInCents,
-            jobId,
-            contractorId,
-          },
+          method: 'POST',
+          body: { amount, jobId, contractorId },
         }
       );
 
-      if (error) {
-        throw new Error(error.message || 'Failed to initialize payment');
-      }
-
-      return data as { client_secret: string };
+      return { client_secret: data.clientSecret };
     } catch (error) {
       const errorInstance =
         error instanceof Error ? error : new Error(String(error));
@@ -215,20 +257,14 @@ export class PaymentService {
 
     const contractorId = (transaction as Record<string, Record<string, string>>).job?.contractor_id;
 
-    const { error: releaseError } = await supabase.functions.invoke(
-      'release-escrow-payment',
-      {
-        body: {
-          transactionId,
-          contractorId,
-          amount: (transaction as Record<string, unknown>).amount,
-        },
-      }
-    );
-
-    if (releaseError) {
-      throw new Error(releaseError.message || 'Failed to release escrow payment');
-    }
+    await PaymentService.apiRequest('/api/payments/release-escrow', {
+      method: 'POST',
+      body: {
+        transactionId,
+        contractorId,
+        amount: (transaction as Record<string, unknown>).amount,
+      },
+    });
 
     const { error: updateError } = await supabase
       .from('escrow_transactions')
@@ -248,14 +284,10 @@ export class PaymentService {
    * Refund escrow payment by transaction id
    */
   static async refundEscrowPayment(transactionId: string): Promise<void> {
-    const { error: refundError } = await supabase.functions.invoke(
-      'refund-escrow-payment',
-      { body: { transactionId } }
-    );
-
-    if (refundError) {
-      throw new Error(refundError.message || 'Failed to refund escrow payment');
-    }
+    await PaymentService.apiRequest('/api/payments/refund', {
+      method: 'POST',
+      body: { transactionId },
+    });
 
     const { error: updateError } = await supabase
       .from('escrow_transactions')
@@ -277,16 +309,13 @@ export class PaymentService {
   static async setupContractorPayout(
     contractorId: string
   ): Promise<{ accountUrl: string }> {
-    const { data, error } = await supabase.functions.invoke(
-      'setup-contractor-payout',
-      { body: { contractorId } }
+    return PaymentService.apiRequest<{ accountUrl: string }>(
+      '/api/contractor/payout/setup',
+      {
+        method: 'POST',
+        body: { contractorId },
+      }
     );
-
-    if (error) {
-      throw new Error(error.message || 'Failed to setup contractor payout');
-    }
-
-    return data as { accountUrl: string };
   }
 
   /**
@@ -346,7 +375,7 @@ export class PaymentService {
    * Get escrow transactions for a specific job
    */
   static async getJobEscrowTransactions(jobId: string): Promise<
-    (PaymentTables['escrow_transactions']['Row'] & { jobId: string })[]
+    (EscrowTransactionRow & { jobId: string })[]
   > {
     const { data, error } = await supabase
       .from('escrow_transactions')
@@ -359,7 +388,7 @@ export class PaymentService {
       return [];
     }
 
-    return (data || []).map((transaction: PaymentTables['escrow_transactions']['Row']) => ({
+    return (data || []).map((transaction: EscrowTransactionRow) => ({
       ...transaction,
       jobId: transaction.job_id,
     }));
@@ -374,14 +403,10 @@ export class PaymentService {
     contractorId: string;
     amount: number;
   }): Promise<{ success: boolean; transfer_id?: string }> {
-    const { data, error } = await supabase.functions.invoke(
-      'release-escrow-payment',
-      { body: params }
+    const data = await PaymentService.apiRequest<{ success: boolean; transfer_id?: string }>(
+      '/api/payments/release-escrow',
+      { method: 'POST', body: params as unknown as Record<string, unknown> }
     );
-
-    if (error) {
-      throw new Error(error.message || 'Failed to release escrow payment');
-    }
 
     const { error: updateError } = await supabase
       .from('jobs')
@@ -410,19 +435,17 @@ export class PaymentService {
       throw new Error('Refund amount must be greater than 0');
     }
 
-    const { data, error } = await supabase.functions.invoke('process-refund', {
-      body: {
-        paymentIntentId: params.paymentIntentId,
-        amount: params.amount,
-        reason: params.reason,
-      },
-    });
-
-    if (error) {
-      throw new Error(error.message || 'Failed to process refund');
-    }
-
-    return data as { success: boolean; refund_id?: string };
+    return PaymentService.apiRequest<{ success: boolean; refund_id?: string }>(
+      '/api/payments/refund',
+      {
+        method: 'POST',
+        body: {
+          paymentIntentId: params.paymentIntentId,
+          amount: params.amount,
+          reason: params.reason,
+        },
+      }
+    );
   }
 
   /**
@@ -467,29 +490,25 @@ export class PaymentService {
     paymentMethodId?: string
   ): Promise<CreatePaymentIntentResponse> {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
+      // Verify contract is signed before allowing payment
+      const { data: contract, error: contractError } = await supabase
+        .from('contracts')
+        .select('id, status')
+        .eq('job_id', jobId)
+        .eq('status', 'accepted')
+        .single();
+
+      if (contractError || !contract) {
+        throw new Error('Contract must be signed by both parties before payment');
       }
 
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/create-intent`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`,
-        },
-        body: JSON.stringify({
-          jobId,
-          amount,
-          paymentMethodId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create payment intent');
-      }
+      const data = await PaymentService.apiRequest<{ clientSecret: string }>(
+        '/api/payments/create-intent',
+        {
+          method: 'POST',
+          body: { jobId, amount, paymentMethodId },
+        }
+      );
 
       return { clientSecret: data.clientSecret };
     } catch (error) {

@@ -91,7 +91,7 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
           <div className="flex h-16 items-center px-6 border-b border-gray-200">
             <Link href="/contractor/dashboard-enhanced" className="flex items-center gap-3">
               <img
-                src="/assets/mintenance-leaf-icon.png"
+                src="/assets/icon.png"
                 alt="Mintenance"
                 className="w-8 h-8"
               />
@@ -177,7 +177,7 @@ export function ModernContractorLayout(props: ModernContractorLayoutProps) {
                 <div className="flex h-16 shrink-0 items-center">
                   <Link href="/contractor/dashboard-enhanced" className="flex items-center gap-3">
                     <img
-                      src="/assets/mintenance-leaf-icon.png"
+                      src="/assets/icon.png"
                       alt="Mintenance"
                       className="w-8 h-8"
                     />

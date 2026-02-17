@@ -9,6 +9,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
@@ -29,6 +30,7 @@ interface CRMDashboardScreenProps {
 export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   navigation,
 }) => {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [clients, setClients] = useState<ClientData[]>([]);
   const [analytics, setAnalytics] = useState<ClientAnalytics | null>(null);
@@ -185,7 +187,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -334,7 +336,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: theme.colors.primary,
   },

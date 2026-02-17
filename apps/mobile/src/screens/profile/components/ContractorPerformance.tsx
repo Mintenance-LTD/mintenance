@@ -18,7 +18,7 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
       <View style={styles.performanceGrid}>
         <View style={styles.performanceItem} accessibilityLabel={`Overall rating: ${rating.toFixed(1)} stars, based on 127 reviews`}>
           <View style={styles.performanceHeader}>
-            <Ionicons name='star' size={18} color='#FFD700' accessible={false} />
+            <Ionicons name='star' size={18} color={theme.colors.warning} accessible={false} />
             <Text style={styles.performanceValue}>
               {rating.toFixed(1)}
             </Text>
@@ -31,7 +31,7 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
 
         <View style={styles.performanceItem} accessibilityLabel='Success rate: 98%, jobs completed successfully'>
           <View style={styles.performanceHeader}>
-            <Ionicons name='checkmark-circle' size={18} color='#34C759' accessible={false} />
+            <Ionicons name='checkmark-circle' size={18} color={theme.colors.success} accessible={false} />
             <Text style={styles.performanceValue}>98%</Text>
           </View>
           <Text style={styles.performanceLabel}>Success Rate</Text>
@@ -42,7 +42,7 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
 
         <View style={styles.performanceItem} accessibilityLabel={`Response time: ${responseTime}, average response`}>
           <View style={styles.performanceHeader}>
-            <Ionicons name='time' size={18} color='#FF9500' accessible={false} />
+            <Ionicons name='time' size={18} color={theme.colors.statusInProgress} accessible={false} />
             <Text style={styles.performanceValue}>
               {responseTime}
             </Text>

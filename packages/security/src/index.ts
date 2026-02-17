@@ -349,8 +349,8 @@ export const utils = {
 export const defaultRateLimiter = RateLimiterFactory.getInstance('sanitization');
 export const sqlRateLimiter = RateLimiterFactory.getInstance('sql');
 export const authRateLimiter = RateLimiterFactory.getInstance('auth');
-// Cleanup on process exit
-if (typeof process !== 'undefined') {
+// Cleanup on process exit (Node.js only, not React Native)
+if (typeof process !== 'undefined' && typeof process.on === 'function') {
   process.on('exit', () => {
     RateLimiterFactory.destroyAll();
   });

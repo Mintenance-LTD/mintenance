@@ -1,49 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
-export async function POST(  request: NextRequest,
-  { params }: { params: Promise<{ id: string; bidId: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-    const { id: jobId, bidId } = await params;
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to reject bids');
-    }
-
-    if (user.role !== 'homeowner') {
-      throw new ForbiddenError('Only homeowners can reject bids');
-    }
+export const POST = withApiHandler(
+  { roles: ['homeowner'] },
+  async (_request, { user, params }) => {
+    const jobId = params.id;
+    const bidId = params.bidId;
 
     // Verify the job belongs to this homeowner
     const { data: job, error: jobError } = await serverSupabase
@@ -111,8 +76,5 @@ export async function POST(  request: NextRequest,
       success: true,
       message: 'Bid rejected successfully',
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

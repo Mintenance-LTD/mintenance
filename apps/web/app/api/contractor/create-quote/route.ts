@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // Line item schema
 const lineItemSchema = z.object({
@@ -58,51 +56,9 @@ const createQuoteSchema = z.object({
   message: 'Quote math validation failed: line items sum, tax calculation, or total amount does not match',
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Authenticate user
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      logger.warn('Unauthorized quote creation attempt', { service: 'contractor' });
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    // Verify user is a contractor
-    if (user.role !== 'contractor') {
-      logger.warn('Non-contractor attempted to create quote', {
-        service: 'contractor',
-        userId: user.id,
-        role: user.role
-      });
-      throw new ForbiddenError('Only contractors can create quotes');
-    }
-
+export const POST = withApiHandler(
+  { roles: ['contractor'] },
+  async (request: NextRequest, { user }) => {
     // Parse and validate request body
     const body = await request.json();
     const validation = createQuoteSchema.safeParse(body);
@@ -174,8 +130,5 @@ export async function POST(request: NextRequest) {
         createdAt: quote.created_at
       }
     }, { status: 201 });
-
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

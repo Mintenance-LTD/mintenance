@@ -7,8 +7,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../../design-system/theme';
-import { designTokens } from '../../../design-system/tokens';
+import { theme } from '../../../theme';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -33,11 +32,12 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   style,
   testID,
 }) => {
-  const { theme, colorScheme, toggleTheme } = useTheme();
+  const colorScheme = 'light'; // Static - dark mode not currently active
+  const toggleTheme = () => {}; // No-op for now
 
   const iconSize = getIconSize(size);
-  const buttonStyles = getButtonStyles(theme, variant, size);
-  const textStyles = getTextStyles(theme, size);
+  const buttonStyles = getButtonStyles(variant, size);
+  const textStyles = getTextStyles(size);
 
   const renderIcon = () => {
     const iconName = colorScheme === 'light' ? 'moon' : 'sunny';
@@ -45,7 +45,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       <Ionicons
         name={iconName}
         size={iconSize}
-        color={theme.colors.text.primary}
+        color={theme.colors.textPrimary}
       />
     );
   };
@@ -66,10 +66,10 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
       case 'switch':
         return (
-          <View style={[styles.switchContainer, getSwitchStyles(theme)]}>
+          <View style={[styles.switchContainer, getSwitchStyles()]}>
             <View style={[
               styles.switchThumb,
-              getSwitchThumbStyles(theme, colorScheme),
+              getSwitchThumbStyles(colorScheme),
             ]}>
               <Ionicons
                 name={colorScheme === 'light' ? 'sunny' : 'moon'}
@@ -80,13 +80,13 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             <Ionicons
               name="sunny"
               size={14}
-              color={colorScheme === 'light' ? theme.colors.primary[500] : theme.colors.text.tertiary}
+              color={colorScheme === 'light' ? theme.colors.primary : theme.colors.textTertiary}
               style={styles.switchIconLeft}
             />
             <Ionicons
               name="moon"
               size={14}
-              color={colorScheme === 'dark' ? theme.colors.primary[500] : theme.colors.text.tertiary}
+              color={colorScheme === 'dark' ? theme.colors.primary : theme.colors.textTertiary}
               style={styles.switchIconRight}
             />
           </View>
@@ -125,7 +125,8 @@ export const ThemeModeSelector: React.FC<ThemeModeSelectorProps> = ({
   style,
   testID,
 }) => {
-  const { theme, themeMode, setThemeMode } = useTheme();
+  const themeMode = 'light'; // Static
+  const setThemeMode = (_mode: 'light' | 'dark' | 'system') => {}; // No-op
 
   const modes: { key: 'light' | 'dark' | 'system'; label: string; icon: string }[] = [
     { key: 'light', label: 'Light', icon: 'sunny' },
@@ -135,7 +136,7 @@ export const ThemeModeSelector: React.FC<ThemeModeSelectorProps> = ({
 
   return (
     <View style={[styles.selectorContainer, style]} testID={testID}>
-      <Text style={[styles.selectorTitle, { color: theme.colors.text.primary }]}>
+      <Text style={[styles.selectorTitle, { color: theme.colors.textPrimary }]}>
         Theme
       </Text>
       <View style={styles.selectorOptions}>
@@ -146,9 +147,9 @@ export const ThemeModeSelector: React.FC<ThemeModeSelectorProps> = ({
               styles.selectorOption,
               {
                 backgroundColor: themeMode === mode.key
-                  ? theme.colors.primary[500]
-                  : theme.colors.surface.secondary,
-                borderColor: theme.colors.border.primary,
+                  ? theme.colors.primary
+                  : theme.colors.surfaceSecondary,
+                borderColor: theme.colors.border,
               },
             ]}
             onPress={() => setThemeMode(mode.key)}
@@ -161,8 +162,8 @@ export const ThemeModeSelector: React.FC<ThemeModeSelectorProps> = ({
               size={20}
               color={
                 themeMode === mode.key
-                  ? theme.colors.text.inverse
-                  : theme.colors.text.primary
+                  ? theme.colors.white
+                  : theme.colors.textPrimary
               }
             />
             <Text
@@ -170,8 +171,8 @@ export const ThemeModeSelector: React.FC<ThemeModeSelectorProps> = ({
                 styles.selectorOptionText,
                 {
                   color: themeMode === mode.key
-                    ? theme.colors.text.inverse
-                    : theme.colors.text.primary,
+                    ? theme.colors.white
+                    : theme.colors.textPrimary,
                 },
               ]}
             >
@@ -200,7 +201,7 @@ const getIconSize = (size: 'sm' | 'md' | 'lg'): number => {
   }
 };
 
-const getButtonStyles = (theme: typeof import('../../../theme').theme, variant: string, size: string) => {
+const getButtonStyles = (variant: string, size: string) => {
   const baseSize = size === 'sm' ? 36 : size === 'lg' ? 48 : 42;
 
   const baseStyle = {
@@ -215,10 +216,10 @@ const getButtonStyles = (theme: typeof import('../../../theme').theme, variant: 
     case 'button':
       return {
         ...baseStyle,
-        backgroundColor: theme.colors.surface.secondary,
+        backgroundColor: theme.colors.surfaceSecondary,
         borderWidth: 1,
-        borderColor: theme.colors.border.primary,
-        paddingHorizontal: designTokens.spacing[4],
+        borderColor: theme.colors.border,
+        paddingHorizontal: theme.spacing[4],
         width: undefined,
       };
 
@@ -236,32 +237,32 @@ const getButtonStyles = (theme: typeof import('../../../theme').theme, variant: 
     default:
       return {
         ...baseStyle,
-        backgroundColor: theme.colors.surface.secondary,
+        backgroundColor: theme.colors.surfaceSecondary,
         borderWidth: 1,
-        borderColor: theme.colors.border.primary,
+        borderColor: theme.colors.border,
       };
   }
 };
 
-const getTextStyles = (theme: typeof import('../../../theme').theme, size: string) => ({
+const getTextStyles = (size: string) => ({
   fontSize: size === 'sm' ? 12 : size === 'lg' ? 16 : 14,
   fontWeight: '500' as const,
-  color: theme.colors.text.primary,
-  marginLeft: designTokens.spacing[2],
+  color: theme.colors.textPrimary,
+  marginLeft: theme.spacing[2],
 });
 
-const getSwitchStyles = (theme: unknown) => ({
-  backgroundColor: theme.colors.surface.secondary,
+const getSwitchStyles = () => ({
+  backgroundColor: theme.colors.surfaceSecondary,
   borderWidth: 2,
-  borderColor: theme.colors.border.primary,
+  borderColor: theme.colors.border,
 });
 
-const getSwitchThumbStyles = (theme: typeof import('../../../theme').theme, colorScheme: string) => ({
+const getSwitchThumbStyles = (colorScheme: string) => ({
   position: 'absolute' as const,
   left: colorScheme === 'light' ? 4 : 44,
-  backgroundColor: theme.colors.background.primary,
+  backgroundColor: theme.colors.background,
   borderWidth: 1,
-  borderColor: theme.colors.border.secondary,
+  borderColor: theme.colors.borderDark,
 });
 
 // ============================================================================
@@ -290,7 +291,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    ...designTokens.shadows.sm,
+    ...theme.shadows.sm,
   },
 
   switchIconLeft: {
@@ -304,18 +305,18 @@ const styles = StyleSheet.create({
   },
 
   selectorContainer: {
-    padding: designTokens.spacing[4],
+    padding: theme.spacing[4],
   },
 
   selectorTitle: {
-    fontSize: designTokens.typography.fontSize.lg,
-    fontWeight: designTokens.typography.fontWeight.semibold,
-    marginBottom: designTokens.spacing[3],
+    fontSize: theme.typography.fontSize.lg,
+    fontWeight: theme.typography.fontWeight.semibold,
+    marginBottom: theme.spacing[3],
   },
 
   selectorOptions: {
     flexDirection: 'row',
-    gap: designTokens.spacing[2],
+    gap: theme.spacing[2],
   },
 
   selectorOption: {
@@ -323,15 +324,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: designTokens.spacing[3],
-    borderRadius: designTokens.borderRadius.md,
+    padding: theme.spacing[3],
+    borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    gap: designTokens.spacing[1],
+    gap: theme.spacing[1],
   },
 
   selectorOptionText: {
-    fontSize: designTokens.typography.fontSize.sm,
-    fontWeight: designTokens.typography.fontWeight.medium,
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.medium,
   },
 });
 

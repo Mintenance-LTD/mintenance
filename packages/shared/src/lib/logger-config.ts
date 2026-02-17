@@ -37,8 +37,8 @@ export class DatadogTransport implements LogTransport {
     const flushInterval = config.flushInterval || 5000;
     this.flushTimer = setInterval(() => this.flush(), flushInterval);
 
-    // Ensure flush on process exit
-    if (typeof process !== 'undefined') {
+    // Ensure flush on process exit (Node.js only, not React Native)
+    if (typeof process !== 'undefined' && typeof process.on === 'function') {
       process.on('exit', () => this.flush());
       process.on('SIGINT', () => {
         this.flush();

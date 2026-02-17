@@ -130,14 +130,15 @@ describe('MapHeader', () => {
       );
     });
 
-    it('should apply paddingTop of 60 to header', () => {
+    it('should apply dynamic paddingTop from safe area insets', () => {
       const { getByTestId } = render(<MapHeader {...defaultProps} />);
       const input = getByTestId('search-input');
       const container = input.parent?.parent;
 
+      // useSafeAreaInsets mock returns top: 0
       expect(container?.props.style).toEqual(
         expect.objectContaining({
-          paddingTop: 60,
+          paddingTop: 0,
         })
       );
     });
