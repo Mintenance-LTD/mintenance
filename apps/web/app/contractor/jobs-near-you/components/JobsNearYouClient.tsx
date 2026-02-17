@@ -6,14 +6,13 @@ import { DynamicGoogleMap } from '@/components/maps';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge.unified';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
-import { getGradientCardStyle, getCardHoverStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
-import { formatMoney } from '@/lib/utils/currency';
+import { getGradientCardStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
 import { logger } from '@mintenance/shared';
+
+import { calculateDistance, calculateRecommendationScore } from './jobsNearYouUtils';
+import { updateMarkers, handleMapLoad } from './JobsMapController';
+import { NearbyJobCard } from './NearbyJobCard';
+import { JobsFilterBar } from './JobsFilterBar';
 
 interface ContractorLocation {
   latitude?: number | null;
@@ -60,35 +59,6 @@ interface JobsNearYouClientProps {
 
 type SortBy = 'distance' | 'budget' | 'newest' | 'skillMatch';
 type ViewMode = 'map' | 'list';
-
-function calculateDistance(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-// Calculate recommendation score
-function calculateRecommendationScore(job: JobWithDistance): number {
-  const skillMatchScore = (job.skillMatchCount || 0) * 40;
-  const distanceScore = job.distance ? Math.max(0, 30 * (1 - job.distance / 500)) : 0;
-  const budgetScore = job.budget ? Math.min(20, (parseFloat(job.budget) / 1000) * 20) : 0;
-  const daysSincePosted = Math.floor((Date.now() - new Date(job.created_at).getTime()) / (1000 * 60 * 60 * 24));
-  const recencyScore = Math.max(0, 10 * (1 - daysSincePosted / 30));
-  return skillMatchScore + distanceScore + budgetScore + recencyScore;
-}
 
 export function JobsNearYouClient({
   contractorLocation,
@@ -196,7 +166,7 @@ export function JobsNearYouClient({
               );
 
               const jobRequiredSkills = job.required_skills || [];
-              const matchedSkills = contractorSkills.filter(skill => 
+              const matchedSkills = contractorSkills.filter(skill =>
                 jobRequiredSkills.includes(skill)
               );
               const skillMatchCount = matchedSkills.length;
@@ -237,7 +207,7 @@ export function JobsNearYouClient({
   // Handle save/unsave job
   const handleSaveJob = useCallback(async (jobId: string, isSaved: boolean) => {
     if (savingJobId === jobId) return;
-    
+
     setSavingJobId(jobId);
     try {
       if (isSaved) {
@@ -250,7 +220,7 @@ export function JobsNearYouClient({
             newSet.delete(jobId);
             return newSet;
           });
-          setJobsWithDistance(prev => 
+          setJobsWithDistance(prev =>
             prev.map(job => job.id === jobId ? { ...job, isSaved: false } : job)
           );
         }
@@ -262,7 +232,7 @@ export function JobsNearYouClient({
         });
         if (response.ok) {
           setSavedJobIds(prev => new Set([...prev, jobId]));
-          setJobsWithDistance(prev => 
+          setJobsWithDistance(prev =>
             prev.map(job => job.id === jobId ? { ...job, isSaved: true } : job)
           );
         }
@@ -314,114 +284,16 @@ export function JobsNearYouClient({
       .slice(0, 5);
   }, [filteredAndSortedJobs]);
 
-  const handleMapLoad = (map: google.maps.Map) => {
-    mapRef.current = map;
-    updateMarkers();
-  };
+  // Map refs bundle for the controller
+  const mapRefs = { mapRef, markersRef, infoWindowsRef };
 
-  const updateMarkers = () => {
-    if (!mapRef.current || !contractorCoords) return;
-
-    markersRef.current.forEach((marker) => marker.setMap(null));
-    markersRef.current = [];
-    infoWindowsRef.current.forEach((window) => window.close());
-    infoWindowsRef.current.clear();
-
-    const contractorMarker = new google.maps.Marker({
-      position: contractorCoords,
-      map: mapRef.current,
-      title: 'Your Location',
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 10,
-        fillColor: '#1F2937',
-        fillOpacity: 1,
-        strokeColor: '#FFFFFF',
-        strokeWeight: 2,
-      },
-    });
-
-    const contractorInfoWindow = new google.maps.InfoWindow({
-      content: `
-        <div style="padding: 8px;">
-          <strong style="color: #111827; font-size: 14px;">Your Location</strong>
-          ${contractorLocation.city || contractorLocation.country
-            ? `<p style="margin: 4px 0 0 0; color: #6B7280; font-size: 12px;">${[contractorLocation.city, contractorLocation.country].filter(Boolean).join(', ')}</p>`
-            : ''}
-        </div>
-      `,
-    });
-
-    contractorMarker.addListener('click', () => {
-      infoWindowsRef.current.forEach((window) => window.close());
-      contractorInfoWindow.open(mapRef.current, contractorMarker);
-    });
-
-    markersRef.current.push(contractorMarker);
-    infoWindowsRef.current.set('contractor', contractorInfoWindow);
-
-    filteredAndSortedJobs.forEach((job) => {
-      if (!job.coordinates) return;
-
-      const jobMarker = new google.maps.Marker({
-        position: job.coordinates,
-        map: mapRef.current,
-        title: job.title,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#10B981',
-          fillOpacity: 1,
-          strokeColor: '#FFFFFF',
-          strokeWeight: 2,
-        },
-      });
-
-      const homeownerName = job.homeowner
-        ? `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || job.homeowner.email
-        : 'Unknown';
-
-      const jobInfoWindow = new google.maps.InfoWindow({
-        content: `
-          <div style="padding: 8px; max-width: 250px;">
-            <strong style="color: #111827; font-size: 14px;">${job.title}</strong>
-            <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 12px;">${job.location || 'Location not specified'}</p>
-            ${job.distance !== undefined
-              ? `<p style="margin: 4px 0 0 0; color: #3B82F6; font-size: 12px; font-weight: 600;">${job.distance.toFixed(1)} km away</p>`
-              : ''}
-            ${job.budget
-              ? `<p style="margin: 4px 0 0 0; color: #10B981; font-size: 12px; font-weight: 600;">${formatMoney(parseFloat(job.budget))}</p>`
-              : ''}
-            <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 11px;">Posted by: ${homeownerName}</p>
-          </div>
-        `,
-      });
-
-      jobMarker.addListener('click', () => {
-        infoWindowsRef.current.forEach((window) => window.close());
-        jobInfoWindow.open(mapRef.current, jobMarker);
-      });
-
-      markersRef.current.push(jobMarker);
-      infoWindowsRef.current.set(job.id, jobInfoWindow);
-    });
-
-    if (markersRef.current.length > 0) {
-      const bounds = new google.maps.LatLngBounds();
-      markersRef.current.forEach((marker) => {
-        const position = marker.getPosition();
-        if (position) bounds.extend(position);
-      });
-      mapRef.current.fitBounds(bounds, 50);
-    } else {
-      mapRef.current.setCenter(contractorCoords);
-      mapRef.current.setZoom(12);
-    }
-  };
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    handleMapLoad(map, mapRefs, contractorCoords, contractorLocation, filteredAndSortedJobs);
+  }, [contractorCoords, contractorLocation, filteredAndSortedJobs]);
 
   useEffect(() => {
     if (mapRef.current && filteredAndSortedJobs.length > 0 && viewMode === 'map') {
-      updateMarkers();
+      updateMarkers(mapRefs, contractorCoords, contractorLocation, filteredAndSortedJobs);
     }
   }, [filteredAndSortedJobs, contractorCoords, viewMode]);
 
@@ -431,376 +303,6 @@ export function JobsNearYouClient({
   const handleJobClick = useCallback((jobId: string) => {
     router.push(`/contractor/bid/${jobId}`);
   }, [router]);
-
-  // Render job card component
-  const renderJobCard = (job: JobWithDistance, isRecommended = false) => {
-    return (
-    <Card
-      key={job.id}
-      padding="lg"
-      hover={true}
-      onClick={() => handleJobClick(job.id)}
-      style={{
-        cursor: 'pointer',
-        position: 'relative',
-        ...getCardHoverStyle(),
-        border: isRecommended ? `2px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
-        boxShadow: isRecommended ? theme.shadows.lg : theme.shadows.md,
-        borderRadius: theme.borderRadius.xl,
-        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        paddingTop: theme.spacing[5],
-        paddingBottom: theme.spacing[5],
-        paddingLeft: theme.spacing[5],
-        paddingRight: theme.spacing[5],
-      }}
-    >
-      {/* Recommended Badge - Top Right */}
-      {isRecommended && (
-        <Badge
-          variant="primary"
-          style={{
-            position: 'absolute',
-            top: theme.spacing[4],
-            right: theme.spacing[4],
-            zIndex: 10,
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-            fontSize: theme.typography.fontSize.xs,
-            fontWeight: theme.typography.fontWeight.semibold,
-            padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[1],
-          }}
-        >
-          <Icon name="star" size={12} color={theme.colors.white} />
-          Recommended
-        </Badge>
-      )}
-      
-      {/* Header with title and bookmark */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[3], marginBottom: theme.spacing[4] }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {/* Category and NEW Badges */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: theme.spacing[2], 
-            marginBottom: theme.spacing[2],
-            flexWrap: 'wrap',
-          }}>
-            {job.category && (
-              <Badge 
-                variant="info" 
-                style={{ 
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                  backgroundColor: theme.colors.backgroundTertiary,
-                  color: theme.colors.textPrimary,
-                  border: `1px solid ${theme.colors.border}`,
-                  textTransform: 'lowercase',
-                }}
-              >
-                {job.category}
-              </Badge>
-            )}
-            {job.created_at && new Date(job.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 && (
-              <Badge 
-                variant="success" 
-                style={{ 
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.bold,
-                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                  backgroundColor: theme.colors.success,
-                  color: theme.colors.white,
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                NEW
-              </Badge>
-            )}
-          </div>
-          <h3 className="text-lg font-[560] text-gray-900 m-0 tracking-normal">
-            {job.title}
-          </h3>
-          {job.description && (
-            <p
-              style={{
-                margin: 0,
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-                lineHeight: 1.5,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-              }}
-            >
-              {job.description}
-            </p>
-          )}
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-            e.stopPropagation();
-            handleSaveJob(job.id, job.isSaved || false);
-          }}
-          disabled={savingJobId === job.id}
-          aria-label={job.isSaved ? 'Unsave job' : 'Save job'}
-        >
-          {savingJobId === job.id ? (
-            <Icon 
-              name="loader" 
-              size={20} 
-              color={theme.colors.textSecondary}
-              style={{
-                animation: 'spin 1s linear infinite',
-              }}
-            />
-          ) : (
-            <Icon 
-              name={job.isSaved ? "bookmark" : "bookmarkOutline"} 
-              size={20} 
-              color={job.isSaved ? theme.colors.primary : theme.colors.textSecondary} 
-            />
-          )}
-        </Button>
-      </div>
-
-      {/* Budget and Location Metrics */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: theme.spacing[3],
-        marginBottom: theme.spacing[4],
-        padding: theme.spacing[4],
-        ...getGradientCardStyle('success'),
-        borderRadius: theme.borderRadius.lg,
-        border: `1px solid ${theme.colors.success}20`,
-      }}>
-        {job.budget && (
-          <div>
-            <div style={{
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[1],
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}>
-              Budget
-            </div>
-            <div style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
-              <AnimatedCounter value={parseFloat(job.budget)} formatType="currency" currency="GBP" />
-            </div>
-          </div>
-        )}
-        {job.location && (
-          <div>
-            <div style={{
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[1],
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}>
-              Location
-            </div>
-            <div style={{
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[1],
-            }}>
-              <Icon name="mapPin" size={16} color={theme.colors.primary} />
-              <span>{job.location.split(',').slice(-2).join(',').trim()}</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Job Metadata */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2], marginBottom: theme.spacing[3] }}>
-        {job.distance !== undefined && (
-          <Badge 
-            variant="info" 
-            style={{ 
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.medium,
-              padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-              backgroundColor: theme.colors.backgroundSecondary,
-              color: theme.colors.textPrimary,
-              border: `1px solid ${theme.colors.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[1],
-            }}
-          >
-            <Icon name="mapPin" size={12} color={theme.colors.textSecondary} />
-            {job.distance.toFixed(1)} km
-          </Badge>
-        )}
-        
-        {job.skillMatchCount !== undefined && job.skillMatchCount > 0 && (
-          <Badge variant="success" style={{ fontSize: theme.typography.fontSize.xs }}>
-            <Icon name="checkCircle" size={12} color={theme.colors.success} style={{ marginRight: theme.spacing[1] }} />
-            {job.skillMatchCount} match{job.skillMatchCount !== 1 ? 'es' : ''}
-          </Badge>
-        )}
-      </div>
-
-      {/* Matched Skills */}
-      {job.matchedSkills && job.matchedSkills.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2], marginBottom: theme.spacing[4] }}>
-          {job.matchedSkills.slice(0, 3).map((skill, idx) => (
-            <Badge
-              key={idx}
-              variant="success"
-              style={{
-                fontSize: theme.typography.fontSize.xs,
-                backgroundColor: `${theme.colors.success}20`,
-                color: theme.colors.success,
-                border: `1px solid ${theme.colors.success}40`,
-              }}
-            >
-              {skill}
-            </Badge>
-          ))}
-          {job.matchedSkills.length > 3 && (
-            <Badge variant="info" style={{ fontSize: theme.typography.fontSize.xs }}>
-              +{job.matchedSkills.length - 3}
-            </Badge>
-          )}
-        </div>
-      )}
-
-      {/* Posted By */}
-      {job.homeowner && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-          marginBottom: theme.spacing[4],
-          padding: theme.spacing[2],
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderRadius: theme.borderRadius.md,
-        }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: theme.borderRadius.full,
-            backgroundColor: theme.colors.primary + '20',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <span style={{
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.primary,
-            }}>
-              {job.homeowner.first_name?.[0] || job.homeowner.email?.[0] || 'U'}
-            </span>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[1],
-            }}>
-              Posted by
-            </div>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
-              {job.homeowner.first_name && job.homeowner.last_name
-                ? `${job.homeowner.first_name} ${job.homeowner.last_name}`
-                : job.homeowner.email || 'Unknown'}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Footer with date and action */}
-      <div
-        style={{
-          paddingTop: theme.spacing[4],
-          borderTop: `1px solid ${theme.colors.border}`,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: theme.spacing[3],
-        }}
-      >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[1],
-        }}>
-          <Icon name="calendar" size={14} color={theme.colors.textTertiary} />
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              fontWeight: theme.typography.fontWeight.medium,
-            }}
-          >
-            {new Date(job.created_at).toLocaleDateString('en-GB', { 
-              day: 'numeric', 
-              month: 'short', 
-              year: 'numeric' 
-            })}
-          </span>
-        </div>
-        <Button
-          variant="primary"
-          onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-            e.stopPropagation();
-            handleJobClick(job.id);
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-            padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-            fontWeight: theme.typography.fontWeight.semibold,
-            fontSize: theme.typography.fontSize.sm,
-            borderRadius: theme.borderRadius.lg,
-            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
-          }}
-        >
-          Quick Bid
-          <Icon name="arrowRight" size={14} />
-        </Button>
-      </div>
-    </Card>
-    );
-  };
 
   return (
     <div
@@ -812,128 +314,17 @@ export function JobsNearYouClient({
         maxWidth: '100%',
       }}
     >
-      {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-xl p-8 mb-6">
-        <div className="flex justify-between items-start flex-wrap gap-6">
-          <div>
-            <div className="flex items-center gap-4 mb-3">
-              <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center">
-                <Icon name="mapPin" size={28} color={theme.colors.primary} />
-              </div>
-              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-                Discover Jobs
-              </h1>
-            </div>
-            <p className="text-base text-gray-600 leading-relaxed max-w-2xl">
-              {contractorLocation.city || contractorLocation.country
-                ? `Find your next project opportunity near ${[contractorLocation.city, contractorLocation.country].filter(Boolean).join(', ')}`
-                : 'Find your next project opportunity'}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            {filteredAndSortedJobs.length > 0 && (
-              <div className="px-6 py-4 bg-gray-50 rounded-xl border border-gray-200 text-center min-w-[120px]">
-                <div className="text-2xl font-bold text-gray-900 mb-1">
-                  <AnimatedCounter value={filteredAndSortedJobs.length} />
-                </div>
-                <div className="text-xs font-medium text-gray-600 uppercase tracking-wider">
-                  Available
-                </div>
-              </div>
-            )}
-            <Button
-              variant="secondary"
-              onClick={() => setViewMode(viewMode === 'map' ? 'list' : 'map')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-              }}
-            >
-              <Icon name={viewMode === 'map' ? 'menu' : 'mapPin'} size={18} />
-              {viewMode === 'map' ? 'List View' : 'Map View'}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters and Sorting */}
-      {/* Filters and Sorting - Collapsible */}
-      <details className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden group relative">
-        {/* Gradient bar - appears on hover, always visible on large screens */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary-500 via-secondary-500 to-primary-500 opacity-0 lg:opacity-100 group-hover:opacity-100 transition-opacity z-10"></div>
-        <summary className="px-6 py-4 cursor-pointer list-none flex items-center justify-between hover:bg-gray-50 transition-colors">
-          <h3 className="text-lg font-[560] text-gray-900 m-0 tracking-normal flex items-center gap-2">
-            <Icon name="filter" size={20} color={theme.colors.primary} />
-            Filters & Sorting
-          </h3>
-          <Icon name="chevronDown" size={20} color={theme.colors.textSecondary} className="transition-transform duration-200 details-open:rotate-180" />
-        </summary>
-        <div className="px-6 pb-4 pt-2 border-t border-gray-100">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <Label className="text-sm font-semibold text-gray-900">
-                Sort:
-              </Label>
-              <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as SortBy)}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="skillMatch">Best Match</SelectItem>
-                  <SelectItem value="distance">Closest First</SelectItem>
-                  <SelectItem value="budget">Highest Budget</SelectItem>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Label className="text-sm font-semibold text-gray-900">
-                Max Distance:
-              </Label>
-              <Select 
-                value={filters.maxDistance.toString()} 
-                onValueChange={(value: string) => setFilters({ ...filters, maxDistance: Number(value) })}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5 km</SelectItem>
-                  <SelectItem value="10">10 km</SelectItem>
-                  <SelectItem value="25">25 km</SelectItem>
-                  <SelectItem value="50">50 km</SelectItem>
-                  <SelectItem value="100">100 km</SelectItem>
-                  <SelectItem value="500">500+ km</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Label className="text-sm font-semibold text-gray-900">
-                Min Skill Match:
-              </Label>
-              <Select 
-                value={filters.minSkillMatch.toString()} 
-                onValueChange={(value: string) => setFilters({ ...filters, minSkillMatch: Number(value) })}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Any</SelectItem>
-                  <SelectItem value="1">1+ skills</SelectItem>
-                  <SelectItem value="2">2+ skills</SelectItem>
-                  <SelectItem value="3">3+ skills</SelectItem>
-                  <SelectItem value="4">4+ skills</SelectItem>
-                  <SelectItem value="5">All skills</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-      </details>
+      {/* Header and Filters */}
+      <JobsFilterBar
+        contractorLocation={contractorLocation}
+        jobCount={filteredAndSortedJobs.length}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        filters={filters}
+        setFilters={setFilters}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+      />
 
       {/* Map and Jobs List */}
       <div
@@ -964,7 +355,7 @@ export function JobsNearYouClient({
               <DynamicGoogleMap
                 center={center}
                 zoom={12}
-                onMapLoad={handleMapLoad}
+                onMapLoad={onMapLoad}
                 style={{ width: '100%', height: '100%' }}
               />
             ) : (
@@ -1012,9 +403,9 @@ export function JobsNearYouClient({
                 color: theme.colors.textSecondary,
               }}
             >
-              <Icon 
-                name="loader" 
-                size={32} 
+              <Icon
+                name="loader"
+                size={32}
                 color={theme.colors.textTertiary}
                 style={{
                   animation: 'spin 1s linear infinite',
@@ -1023,7 +414,7 @@ export function JobsNearYouClient({
             </div>
           )}
           {!loading && filteredAndSortedJobs.length === 0 && (
-            <Card 
+            <Card
               padding="lg"
               style={{
                 ...getGradientCardStyle('primary'),
@@ -1046,16 +437,16 @@ export function JobsNearYouClient({
                 }}>
                   <Icon name="briefcase" size={40} color={theme.colors.primary} />
                 </div>
-                <p style={{ 
-                  marginTop: theme.spacing[4], 
+                <p style={{
+                  marginTop: theme.spacing[4],
                   fontSize: theme.typography.fontSize.xl,
                   fontWeight: theme.typography.fontWeight.semibold,
                   color: theme.colors.textPrimary,
                 }}>
                   No jobs found
                 </p>
-                <p style={{ 
-                  marginTop: theme.spacing[2], 
+                <p style={{
+                  marginTop: theme.spacing[2],
                   fontSize: theme.typography.fontSize.sm,
                   color: theme.colors.textSecondary,
                 }}>
@@ -1066,8 +457,8 @@ export function JobsNearYouClient({
           )}
           {!loading && filteredAndSortedJobs.length > 0 && (
             <div>
-              <div style={{ 
-                fontSize: theme.typography.fontSize.sm, 
+              <div style={{
+                fontSize: theme.typography.fontSize.sm,
                 fontWeight: theme.typography.fontWeight.medium,
                 color: theme.colors.textSecondary,
                 marginBottom: theme.spacing[2],
@@ -1079,7 +470,16 @@ export function JobsNearYouClient({
                 flexDirection: 'column',
                 gap: theme.spacing[4],
               }}>
-                {filteredAndSortedJobs.map((job) => renderJobCard(job))}
+                {filteredAndSortedJobs.map((job) => (
+                  <NearbyJobCard
+                    key={job.id}
+                    job={job}
+                    savedJobIds={savedJobIds}
+                    savingJobId={savingJobId}
+                    onSave={handleSaveJob}
+                    onClick={handleJobClick}
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -1113,7 +513,17 @@ export function JobsNearYouClient({
               gap: theme.spacing[5],
             }}
           >
-            {recommendations.map(job => renderJobCard(job, true))}
+            {recommendations.map(job => (
+              <NearbyJobCard
+                key={job.id}
+                job={job}
+                isRecommended={true}
+                savedJobIds={savedJobIds}
+                savingJobId={savingJobId}
+                onSave={handleSaveJob}
+                onClick={handleJobClick}
+              />
+            ))}
           </div>
         </div>
       )}
