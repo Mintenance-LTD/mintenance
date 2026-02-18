@@ -53,7 +53,10 @@ export const HomeownerDashboard: React.FC = () => {
 
   const { data: properties } = useQuery({
     queryKey: ['properties', user?.id],
-    queryFn: () => apiClient.get<Property[]>('/api/properties'),
+    queryFn: async () => {
+      const res = await apiClient.get<{ properties: Property[] }>('/api/properties');
+      return res.properties || [];
+    },
     enabled: !!user,
   });
 
@@ -274,8 +277,8 @@ export const HomeownerDashboard: React.FC = () => {
                       color={selectedSearchProperty?.id === item.id ? theme.colors.primary : theme.colors.textSecondary}
                     />
                     <View style={styles.pickerOptionText}>
-                      <Text style={styles.pickerOptionTitle}>{item.address_line1}</Text>
-                      <Text style={styles.pickerOptionSubtitle}>{item.city}, {item.postcode}</Text>
+                      <Text style={styles.pickerOptionTitle}>{item.property_name}</Text>
+                      <Text style={styles.pickerOptionSubtitle} numberOfLines={2}>{item.address}</Text>
                     </View>
                     {selectedSearchProperty?.id === item.id && (
                       <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} />
@@ -363,7 +366,7 @@ export const HomeownerDashboard: React.FC = () => {
           onWherePress={() => setShowPropertyPicker(true)}
           onUrgencyPress={() => setShowUrgencyPicker(true)}
           onServicePress={openServiceRequest}
-          propertyLabel={selectedSearchProperty?.address_line1}
+          propertyLabel={selectedSearchProperty?.property_name}
           urgencyLabel={
             selectedUrgency === 'low' ? 'Low' :
             selectedUrgency === 'high' ? 'Urgent' :

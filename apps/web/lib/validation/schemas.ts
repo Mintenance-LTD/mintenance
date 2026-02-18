@@ -685,22 +685,29 @@ export const enableLocationSharingSchema = z.object({
 // ============================================================================
 
 export const createPropertySchema = z.object({
-  property_name: z.string()
-    .min(1, 'Property name is required')
-    .max(255, 'Property name too long')
-    .transform(val => sanitizeText(val.trim(), 255)),
-  address: z.string()
-    .min(1, 'Address is required')
-    .max(500, 'Address too long')
-    .transform(val => sanitizeText(val.trim(), 500)),
-  property_type: z.enum(['residential', 'commercial', 'rental'], {
-    errorMap: () => ({ message: 'Valid property type is required (residential, commercial, or rental)' }),
-  }),
+  // Web format: single address + property_name
+  property_name: z.string().max(255).optional(),
+  address: z.string().max(500).optional(),
+  // Mobile format: split address fields
+  address_line1: z.string().max(255).optional(),
+  address_line2: z.string().max(255).optional(),
+  city: z.string().max(100).optional(),
+  county: z.string().max(100).optional(),
+  postcode: z.string().max(20).optional(),
+  country: z.string().max(50).optional(),
+  // Both formats
+  property_type: z.string().min(1, 'Property type is required'),
   is_primary: z.boolean().default(false),
   photos: z.array(
     z.string().url('Invalid photo URL')
   ).max(20, 'Maximum 20 photos allowed').optional(),
-});
+  bedrooms: z.number().int().min(0).optional(),
+  bathrooms: z.number().int().min(0).optional(),
+  notes: z.string().max(1000).optional(),
+}).refine(
+  data => data.address || data.address_line1,
+  { message: 'Address is required (provide address or address_line1)' }
+);
 
 export const updatePropertySchema = z.object({
   name: z.string()

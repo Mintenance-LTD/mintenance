@@ -111,12 +111,9 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
       >
         <View style={styles.addressCard}>
           <Ionicons name="home" size={32} color={theme.colors.primary} />
-          <Text style={styles.addressLine1}>{property.address_line1}</Text>
-          {property.address_line2 && (
-            <Text style={styles.addressLine2}>{property.address_line2}</Text>
-          )}
+          <Text style={styles.addressLine1}>{property.property_name}</Text>
           <Text style={styles.addressCity}>
-            {property.city}{property.county ? `, ${property.county}` : ''}, {property.postcode}
+            {property.address}
           </Text>
         </View>
 

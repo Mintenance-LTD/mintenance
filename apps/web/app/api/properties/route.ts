@@ -17,6 +17,10 @@ interface PropertyInsertData {
   property_type: string;
   is_primary: boolean;
   photos?: string[];
+  city?: string;
+  postcode?: string;
+  bedrooms?: number;
+  bathrooms?: number;
 }
 
 /**
@@ -55,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     const { data: properties, error } = await serverSupabase
       .from('properties')
-      .select('id, property_name, address, property_type, is_primary, photos')
+      .select('id, property_name, address, property_type, is_primary, photos, city, postcode, bedrooms, bathrooms, created_at, updated_at')
       .eq('owner_id', user.id)
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: false });
@@ -118,7 +122,25 @@ export async function POST(request: NextRequest) {
       return validation;
     }
 
-    const { property_name, address, property_type, is_primary, photos } = validation.data;
+    const body = validation.data;
+
+    // Compose address from mobile's split fields or use web's single address
+    const address = body.address
+      || [body.address_line1, body.address_line2, body.city, body.county, body.postcode, body.country]
+          .filter(Boolean)
+          .join(', ');
+
+    // Map mobile property types to DB types
+    const typeMap: Record<string, string> = {
+      house: 'residential', flat: 'residential', bungalow: 'residential',
+      maisonette: 'residential', other: 'residential',
+    };
+    const property_type = typeMap[body.property_type] || body.property_type;
+
+    // Auto-generate property_name if not provided (mobile doesn't send it)
+    const property_name = body.property_name || body.address_line1 || address.split(',')[0];
+
+    const is_primary = body.is_primary ?? false;
 
     // If setting as primary, unset all other primary properties for this user
     if (is_primary) {
@@ -129,18 +151,24 @@ export async function POST(request: NextRequest) {
         .eq('is_primary', true);
     }
 
-    // Create the property with sanitized data (Zod schema already sanitizes via .transform())
+    // Create the property with sanitized data
     const insertData: PropertyInsertData = {
       owner_id: user.id,
-      property_name,
-      address,
+      property_name: sanitizeText(property_name, 255),
+      address: sanitizeText(address, 500),
       property_type,
-      is_primary: is_primary ?? false,
+      is_primary,
     };
 
-    // Add photos if provided (as JSONB array or text array)
-    if (photos && photos.length > 0) {
-      insertData.photos = photos;
+    // Store city/postcode if provided (from mobile's split fields)
+    if (body.city) insertData.city = sanitizeText(body.city, 100);
+    if (body.postcode) insertData.postcode = sanitizeText(body.postcode, 20);
+    if (body.bedrooms) insertData.bedrooms = body.bedrooms;
+    if (body.bathrooms) insertData.bathrooms = body.bathrooms;
+
+    // Add photos if provided
+    if (body.photos && body.photos.length > 0) {
+      insertData.photos = body.photos;
     }
 
     const { data: property, error: createError } = await serverSupabase

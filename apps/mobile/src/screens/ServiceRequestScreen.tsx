@@ -160,7 +160,10 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
 
   const { data: properties } = useQuery({
     queryKey: ['properties', user?.id],
-    queryFn: () => apiClient.get<Property[]>('/api/properties'),
+    queryFn: async () => {
+      const res = await apiClient.get<{ properties: Property[] }>('/api/properties');
+      return res.properties || [];
+    },
     enabled: !!user,
   });
 
@@ -170,7 +173,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
       const prop = properties.find((p) => p.id === initialPropertyId);
       if (prop) {
         setSelectedProperty(prop);
-        setLocation(`${prop.address_line1}, ${prop.city}, ${prop.postcode}`);
+        setLocation(prop.address);
       }
     }
   }, [initialPropertyId, properties]);
@@ -182,7 +185,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
     setTitle(`${category.name} Service Request`);
     // Auto-fill location from selected property
     if (selectedProperty) {
-      setLocation(`${selectedProperty.address_line1}, ${selectedProperty.city}, ${selectedProperty.postcode}`);
+      setLocation(selectedProperty.address);
     }
   };
 
@@ -467,7 +470,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                   ]}
                   onPress={() => setSelectedProperty(property)}
                   accessibilityRole='radio'
-                  accessibilityLabel={`${property.address_line1}, ${property.city}`}
+                  accessibilityLabel={`${property.property_name}, ${property.address}`}
                   accessibilityState={{ selected: selectedProperty?.id === property.id }}
                 >
                   <View style={styles.propertyOptionContent}>
@@ -480,8 +483,8 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                       <Text style={[
                         styles.propertyAddress,
                         selectedProperty?.id === property.id && styles.propertyAddressSelected,
-                      ]}>{property.address_line1}</Text>
-                      <Text style={styles.propertyLocation}>{property.city}, {property.postcode}</Text>
+                      ]}>{property.property_name}</Text>
+                      <Text style={styles.propertyLocation} numberOfLines={2}>{property.address}</Text>
                     </View>
                     {selectedProperty?.id === property.id && (
                       <Ionicons name='checkmark-circle' size={22} color={theme.colors.primary} />

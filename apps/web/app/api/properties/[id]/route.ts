@@ -7,6 +7,34 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { updatePropertySchema } from '@/lib/validation/schemas';
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const resolvedParams = await params;
+    const user = await getCurrentUserFromCookies();
+    if (!user) {
+      throw new UnauthorizedError('Authentication required to view property');
+    }
+
+    const { data, error } = await serverSupabase
+      .from('properties')
+      .select('*')
+      .eq('id', resolvedParams.id)
+      .eq('owner_id', user.id)
+      .single();
+
+    if (error || !data) {
+      throw new NotFoundError('Property not found');
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    return handleAPIError(error);
+  }
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
