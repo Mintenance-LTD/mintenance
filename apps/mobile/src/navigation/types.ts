@@ -105,7 +105,7 @@ export type ProfileStackParamList = {
 // ============================================================================
 
 export type ModalStackParamList = {
-  ServiceRequest: undefined;
+  ServiceRequest: { propertyId?: string; priority?: 'low' | 'medium' | 'high' } | undefined;
   CreateQuote: { jobId?: string };
   MeetingSchedule: {
     contractorId: string;

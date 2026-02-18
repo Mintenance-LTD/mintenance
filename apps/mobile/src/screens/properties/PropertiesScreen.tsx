@@ -105,7 +105,9 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
 
       {!properties || properties.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="home-outline" size={64} color={theme.colors.textTertiary} />
+          <View style={styles.emptyIconCircle}>
+            <Ionicons name="home-outline" size={48} color={theme.colors.primary} />
+          </View>
           <Text style={styles.emptyTitle}>No Properties</Text>
           <Text style={styles.emptySubtitle}>
             Add your first property to start managing maintenance.
@@ -194,6 +196,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: theme.spacing[6],
+  },
+  emptyIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: {
     fontSize: theme.typography.fontSize.xl,

@@ -1,53 +1,63 @@
 /**
  * WelcomeBanner Component
  *
- * Airbnb-style search pill with greeting text.
- * Search bar matches Airbnb's "Where to?" pattern with filter icon.
+ * Functional segmented search bar: Property | Urgency | Service.
+ * Each segment opens its own picker or the ServiceRequest modal.
  */
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
-import { User } from '@mintenance/types';
 
 interface WelcomeBannerProps {
-  user: User | null;
-  onSearchPress?: () => void;
+  onWherePress?: () => void;
+  onUrgencyPress?: () => void;
+  onServicePress?: () => void;
+  propertyLabel?: string;
+  urgencyLabel?: string;
 }
 
-function getTimeGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning,';
-  if (hour < 18) return 'Good afternoon,';
-  return 'Good evening,';
-}
-
-export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ user: _user, onSearchPress }) => {
+export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
+  onWherePress,
+  onUrgencyPress,
+  onServicePress,
+  propertyLabel,
+  urgencyLabel,
+}) => {
   return (
     <View style={styles.welcomeBanner}>
-      <View style={styles.welcomeContent}>
-        <Text style={styles.welcomeSubGreeting}>{getTimeGreeting()}</Text>
-      </View>
-
-      {/* Airbnb-style search pill */}
-      {onSearchPress && (
+      <View style={styles.searchBar}>
         <TouchableOpacity
-          style={styles.searchPill}
-          onPress={onSearchPress}
-          accessibilityRole="search"
-          accessibilityLabel="Search for services or contractors"
+          style={styles.searchIconContainer}
+          onPress={onServicePress}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Request a service"
         >
-          <Ionicons name="search" size={20} color={theme.colors.textPrimary} />
-          <View style={styles.searchTextContainer}>
-            <Text style={styles.searchTitle}>Where to?</Text>
-            <Text style={styles.searchSubtitle}>Anywhere · Any week · Add details</Text>
-          </View>
-          <View style={styles.filterButton}>
-            <Ionicons name="options-outline" size={17} color={theme.colors.textPrimary} />
-          </View>
+          <Ionicons name="search" size={18} color={theme.colors.textInverse} />
         </TouchableOpacity>
-      )}
+        <View style={styles.searchSegments}>
+          <TouchableOpacity style={styles.segment} onPress={onWherePress} activeOpacity={0.6}>
+            <Text style={styles.segmentLabel}>Property</Text>
+            <Text style={[styles.segmentValue, propertyLabel ? styles.segmentValueActive : null]} numberOfLines={1}>
+              {propertyLabel || 'Select'}
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.segmentDivider} />
+          <TouchableOpacity style={styles.segment} onPress={onUrgencyPress} activeOpacity={0.6}>
+            <Text style={styles.segmentLabel}>Urgency</Text>
+            <Text style={[styles.segmentValue, urgencyLabel && urgencyLabel !== 'Medium' ? styles.segmentValueActive : null]} numberOfLines={1}>
+              {urgencyLabel || 'Medium'}
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.segmentDivider} />
+          <TouchableOpacity style={styles.segment} onPress={onServicePress} activeOpacity={0.6}>
+            <Text style={styles.segmentLabel}>Service</Text>
+            <Text style={styles.segmentValue} numberOfLines={1}>Browse all</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 };
@@ -55,54 +65,62 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ user: _user, onSea
 const styles = StyleSheet.create({
   welcomeBanner: {
     backgroundColor: theme.colors.background,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: 4,
+    paddingBottom: 8,
     paddingHorizontal: 24,
   },
-  welcomeContent: {
-    flex: 1,
-  },
-  welcomeSubGreeting: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 0,
-  },
-  searchPill: {
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    paddingLeft: 16,
-    paddingRight: 9,
-    paddingVertical: 11,
-    marginTop: 8,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
-  searchTextContainer: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  searchTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  searchSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  filterButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
+  searchIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
+  },
+  searchSegments: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  segment: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  segmentLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  segmentValue: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    marginTop: 1,
+  },
+  segmentValueActive: {
+    color: theme.colors.textPrimary,
+    fontWeight: '600',
+  },
+  segmentDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: theme.colors.borderLight,
   },
 });

@@ -18,6 +18,20 @@ import { SkeletonMessageCard } from '../components/SkeletonLoader';
 import { Banner } from '../components/ui/Banner';
 import { useMessageThreadsWithRealTime } from '../hooks/useMessaging';
 
+const AVATAR_COLORS = ['#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#06B6D4'];
+
+function getAvatarColor(name: string): string {
+  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+}
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+}
+
 const MessagesListScreen: React.FC = () => {
   const navigation = useNavigation<unknown>();
   const { user } = useAuth();
@@ -161,11 +175,11 @@ const MessagesListScreen: React.FC = () => {
                 accessibilityHint='Double tap to open conversation'
               >
                 <View style={styles.avatarContainer}>
-                  <Ionicons
-                    name='person-circle'
-                    size={50}
-                    color={theme.colors.textTertiary}
-                  />
+                  <View style={[styles.avatarCircle, { backgroundColor: getAvatarColor(otherParticipant.name) }]}>
+                    <Text style={styles.avatarInitials}>
+                      {getInitials(otherParticipant.name)}
+                    </Text>
+                  </View>
                   {thread.unreadCount > 0 && <View style={styles.unreadDot} />}
                 </View>
 
@@ -188,7 +202,7 @@ const MessagesListScreen: React.FC = () => {
                       thread.unreadCount > 0 && styles.unreadSnippet,
                     ]}
                   >
-                    {thread.lastMessage?.messageText || 'No messages yet'}
+                    {thread.lastMessage?.messageText || 'Start the conversation'}
                   </Text>
 
                   {thread.unreadCount > 0 && (
@@ -256,6 +270,18 @@ const styles = StyleSheet.create({
   avatarContainer: {
     position: 'relative',
     marginRight: 12,
+  },
+  avatarCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   unreadDot: {
     position: 'absolute',

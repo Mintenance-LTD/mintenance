@@ -38,6 +38,12 @@ const ProfileScreen: React.FC = () => {
       { label: 'Payment Methods', icon: 'card-outline', onPress: () => navigation.navigate('PaymentMethods') },
     ];
 
+    if (user?.role === 'homeowner') {
+      items.push(
+        { label: 'My Properties', icon: 'home-outline', onPress: () => navigation.navigate('Properties') },
+      );
+    }
+
     items.push(
       { label: 'Calendar', icon: 'calendar-outline', onPress: () => navigation.navigate('Calendar') },
       { label: 'Reviews', icon: 'star-outline', onPress: () => navigation.navigate('Reviews') },

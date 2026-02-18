@@ -29,23 +29,6 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   general: 'construct-outline',
 };
 
-function getRelativeTime(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-}
-
 function formatStatus(status: string): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -56,7 +39,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Service Requests</Text>
+        <Text style={styles.sectionTitle}>Active Projects</Text>
         <TouchableOpacity
           onPress={onViewAllPress}
           accessibilityRole="button"
@@ -95,7 +78,15 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
                   />
                 ) : (
                   <View style={styles.placeholderHero}>
-                    <Ionicons name={categoryIcon} size={48} color={theme.colors.textTertiary} />
+                    <View style={styles.placeholderIconCircle}>
+                      <Ionicons name={categoryIcon} size={32} color={theme.colors.textSecondary} />
+                    </View>
+                    {job.category && (
+                      <Text style={styles.placeholderCategory}>
+                        {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
+                      </Text>
+                    )}
+                    <Text style={styles.placeholderHint}>No photos yet</Text>
                   </View>
                 )}
 
@@ -110,30 +101,34 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
                 </View>
               </View>
 
-              {/* Content below image - Airbnb listing layout */}
+              {/* Content below image - Web dashboard style */}
               <View style={styles.listingContent}>
                 <View style={styles.titleRow}>
                   <Text style={styles.jobTitle} numberOfLines={1}>{job.title}</Text>
-                  {budget > 0 && (
-                    <View style={styles.ratingContainer}>
-                      <Ionicons name="star" size={12} color={theme.colors.textPrimary} />
-                      <Text style={styles.ratingText}>New</Text>
-                    </View>
-                  )}
                 </View>
                 {job.category && (
-                  <Text style={styles.subtitleText}>
-                    {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
-                  </Text>
+                  <View style={styles.categoryBadge}>
+                    <Ionicons name={categoryIcon} size={12} color={theme.colors.primary} />
+                    <Text style={styles.categoryBadgeText}>
+                      {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
+                    </Text>
+                  </View>
                 )}
-                <Text style={styles.dateText}>
-                  {job.created_at ? getRelativeTime(job.created_at) : ''}
-                </Text>
                 {budget > 0 && (
-                  <Text style={styles.priceText}>
-                    <Text style={styles.priceBold}>{'\u00A3'}{budget.toLocaleString()}</Text> estimated
-                  </Text>
+                  <View style={styles.budgetRow}>
+                    <Text style={styles.budgetLabel}>Budget</Text>
+                    <Text style={styles.budgetAmount}>{'\u00A3'}{budget.toLocaleString()}</Text>
+                  </View>
                 )}
+                <TouchableOpacity
+                  style={styles.viewDetailsButton}
+                  onPress={() => onJobPress?.(job.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`View details for ${job.title}`}
+                >
+                  <Text style={styles.viewDetailsText}>View Details</Text>
+                  <Ionicons name="arrow-forward" size={14} color={theme.colors.textInverse} />
+                </TouchableOpacity>
               </View>
             </TouchableOpacity>
           );
@@ -188,10 +183,29 @@ const styles = StyleSheet.create({
   placeholderHero: {
     width: '100%',
     height: 180,
-    backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F3F4F6',
+  },
+  placeholderIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placeholderCategory: {
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  placeholderHint: {
+    marginTop: 4,
+    fontSize: 12,
+    color: theme.colors.textTertiary,
   },
   heartOverlay: {
     position: 'absolute',
@@ -229,33 +243,51 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     flex: 1,
   },
-  ratingContainer: {
+  categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginLeft: 8,
-  },
-  ratingText: {
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-  },
-  subtitleText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  dateText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  priceText: {
-    fontSize: 17,
-    color: theme.colors.textPrimary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    alignSelf: 'flex-start',
     marginTop: 6,
   },
-  priceBold: {
+  categoryBadgeText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  budgetRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  budgetLabel: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  budgetAmount: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  viewDetailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginTop: 12,
+    gap: 6,
+  },
+  viewDetailsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textInverse,
   },
   emptyState: {
     padding: 40,
