@@ -243,7 +243,7 @@ export async function GET(request: NextRequest) {
       return {
         jobId: job.id,
         jobTitle: job.title ?? 'Untitled Job',
-        participants: buildThreadParticipants(job),
+        participants: buildThreadParticipants(job) || [],
         unreadCount: unreadCounts.get(job.id) ?? 0,
         lastMessage: lastMessage ?? undefined,
         lastActivity,

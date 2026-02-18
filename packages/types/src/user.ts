@@ -13,6 +13,7 @@ export interface User {
   email_verified?: boolean;
   location?: string;
   profile_image_url?: string;
+  avatar_url?: string; // DB original column (profile_image_url added later)
   // Computed fields for backward compatibility
   firstName?: string;
   lastName?: string;

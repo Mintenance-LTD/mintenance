@@ -112,7 +112,7 @@ export function MessagesSidebar({
               <div
                 key={conversation.jobId}
                 onClick={() => {
-                  const customerId = conversation.participants.find((p) => p.id !== currentUserId)?.id;
+                  const customerId = (conversation.participants || []).find((p) => p.id !== currentUserId)?.id;
                   if (customerId) setSelectedCustomerId(customerId);
                 }}
                 className="cursor-pointer"
@@ -121,7 +121,7 @@ export function MessagesSidebar({
                   conversation={conversation}
                   currentUserId={currentUserId}
                   onClick={() => {
-                    const customerId = conversation.participants.find((p) => p.id !== currentUserId)?.id;
+                    const customerId = (conversation.participants || []).find((p) => p.id !== currentUserId)?.id;
                     if (customerId) setSelectedCustomerId(customerId);
                   }}
                 />

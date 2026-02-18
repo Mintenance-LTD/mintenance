@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
@@ -30,7 +30,7 @@ interface PropertyInsertData {
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to view properties');
     }
@@ -108,10 +108,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-    // CSRF protection
-    await requireCSRF(request);
+    // CSRF protection (skip for mobile Bearer token auth)
+    const hasBearerToken = request.headers.get('authorization')?.startsWith('Bearer ');
+    if (!hasBearerToken) {
+      await requireCSRF(request);
+    }
 
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to create properties');
     }

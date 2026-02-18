@@ -19,5 +19,8 @@ export * from './property';
 export * from './business';
 export * from './features';
 
-// Export contract types (only those not already defined in index.ts)
-export type { JobSummary, JobDetail, ContractorSummary, UserSummary, Service, TimelineEvent, ThreadSummary } from './contracts';
+// Export contract types (selective to avoid name conflicts with jobs.ts, messaging.ts)
+export type {
+  Contract, ContractStatus, Dispute, DisputeStatus,
+  JobSummary, JobDetail, ContractorSummary, UserSummary, Service, TimelineEvent, ThreadSummary, Paginated
+} from './contracts';

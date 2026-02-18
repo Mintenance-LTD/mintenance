@@ -9,6 +9,7 @@
 
 import { supabase } from '../config/supabase';
 import { Bid } from '@mintenance/types';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 
 /**
@@ -96,7 +97,7 @@ export class BidManagementService {
   }
 
   static async acceptBid(bidId: string): Promise<void> {
-    // Start transaction
+    // Fetch bid to get job_id for the API URL
     const { data: bid, error: bidError } = await supabase
       .from('bids')
       .select('job_id, contractor_id')
@@ -112,34 +113,8 @@ export class BidManagementService {
     }
     if (!bid) throw new Error('Bid not found');
 
-    // Accept the bid
-    const { error: updateBidError } = await supabase
-      .from('bids')
-      .update({ status: 'accepted' })
-      .eq('id', bidId);
-
-    if (updateBidError) throw updateBidError;
-
-    // Update job status and assign contractor
-    const { error: updateJobError } = await supabase
-      .from('jobs')
-      .update({
-        status: 'assigned',
-        contractor_id: bid.contractor_id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', bid.job_id);
-
-    if (updateJobError) throw updateJobError;
-
-    // Reject other bids
-    const { error: rejectBidsError } = await supabase
-      .from('bids')
-      .update({ status: 'rejected' })
-      .eq('job_id', bid.job_id)
-      .neq('id', bidId);
-
-    if (rejectBidsError) throw rejectBidsError;
+    // Route through web API to ensure contract, message thread, and notifications are created
+    await mobileApiClient.post(`/api/jobs/${bid.job_id}/bids/${bidId}/accept`);
   }
 
   // Helper method

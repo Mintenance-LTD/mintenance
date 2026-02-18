@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
@@ -52,14 +52,17 @@ export async function POST(
     );
   }
 
-    // CSRF protection
-    await requireCSRF(request);
+    // CSRF protection (skip for mobile Bearer token auth)
+    const hasBearerToken = request.headers.get('authorization')?.startsWith('Bearer ');
+    if (!hasBearerToken) {
+      await requireCSRF(request);
+    }
 
     const paramsResolved = await params;
     jobId = paramsResolved.id;
     bidId = paramsResolved.bidId;
 
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
 
     if (!user) {
       throw new UnauthorizedError('Authentication required to accept bids');

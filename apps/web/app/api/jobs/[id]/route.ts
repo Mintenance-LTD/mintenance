@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { JobDetail } from '@mintenance/types/src/contracts';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getCurrentUserFromCookies, getUserFromRequest } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
@@ -468,10 +468,13 @@ export const PUT = withApiHandler(
 
 export async function PATCH(request: NextRequest, context: Params) {
   try {
-    // CSRF protection
-    await requireCSRF(request);
+    // CSRF protection (skip for mobile Bearer token auth)
+    const hasBearerToken = request.headers.get('authorization')?.startsWith('Bearer ');
+    if (!hasBearerToken) {
+      await requireCSRF(request);
+    }
 
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to update job');
     }
@@ -648,10 +651,13 @@ export async function PATCH(request: NextRequest, context: Params) {
 
 export async function DELETE(request: NextRequest, context: Params) {
   try {
-    // CSRF protection
-    await requireCSRF(request);
+    // CSRF protection (skip for mobile Bearer token auth)
+    const hasBearerToken = request.headers.get('authorization')?.startsWith('Bearer ');
+    if (!hasBearerToken) {
+      await requireCSRF(request);
+    }
 
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to delete job');
     }

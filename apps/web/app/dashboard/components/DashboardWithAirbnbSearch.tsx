@@ -92,6 +92,16 @@ interface DashboardWithAirbnbSearchProps {
       message: string;
       timestamp: string;
     }>;
+    upcomingAppointments?: Array<{
+      id: string;
+      title: string;
+      date: string;
+      time: string;
+      endTime?: string;
+      locationType?: string;
+      status: string;
+      contractor?: { name: string };
+    }>;
   };
 }
 
@@ -104,7 +114,7 @@ interface PortfolioAccessState {
 }
 
 export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchProps) {
-  const { homeowner, metrics, activeJobs, pendingBids = [], recentActivity } = data;
+  const { homeowner, metrics, activeJobs, pendingBids = [], recentActivity, upcomingAppointments = [] } = data;
   const [properties, setProperties] = useState<Property[]>([]);
   const [loadingProperties, setLoadingProperties] = useState(true);
   const [portfolioAccess, setPortfolioAccess] = useState<PortfolioAccessState | null>(null);
@@ -145,11 +155,7 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
       .finally(() => setLoadingPortfolioAccess(false));
   }, []);
 
-  // Get upcoming appointments from scheduled jobs
-  const upcomingAppointments = activeJobs
-    .filter(job => job.scheduledDate && new Date(job.scheduledDate) > new Date())
-    .sort((a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime())
-    .slice(0, 3);
+  // upcomingAppointments now provided via props from real appointments table
 
   // Helper function for relative time
   const toRelativeTimeString = (timestamp: string | Date): string => {
@@ -491,13 +497,12 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{appointment.title}</p>
                           <p className="text-sm text-gray-600">
-                            {new Date(appointment.scheduledDate!).toLocaleDateString('en-GB', {
+                            {new Date(appointment.date + 'T00:00:00').toLocaleDateString('en-GB', {
                               weekday: 'short',
                               day: 'numeric',
                               month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
                             })}
+                            {appointment.time ? ` at ${appointment.time.slice(0, 5)}` : ''}
                           </p>
                           {appointment.contractor && (
                             <p className="text-xs text-gray-500 mt-1">

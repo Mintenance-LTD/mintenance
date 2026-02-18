@@ -10,6 +10,7 @@
 
 import { supabase } from '../config/supabase';
 import type { Job } from '@mintenance/types';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { checkRateLimit } from '../middleware/RateLimiter';
@@ -183,27 +184,13 @@ export class JobCRUDService {
   }
 
   static async startJob(jobId: string): Promise<void> {
-    const { error } = await supabase
-      .from('jobs')
-      .update({
-        status: 'in_progress',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-
-    if (error) throw error;
+    // Route through web API to enforce before-photo gate and send notifications
+    await mobileApiClient.post(`/api/jobs/${jobId}/start`);
   }
 
   static async completeJob(jobId: string): Promise<void> {
-    const { error } = await supabase
-      .from('jobs')
-      .update({
-        status: 'completed',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-
-    if (error) throw error;
+    // Route through web API to enforce payment checks and send notifications
+    await mobileApiClient.post(`/api/jobs/${jobId}/complete`);
   }
 
   // Helper method

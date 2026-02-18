@@ -52,6 +52,10 @@ export interface Job {
     company_name?: string;
     profile_image_url?: string;
   };
+  // DB timestamp fields
+  published_at?: string;
+  completed_at?: string;
+  metadata?: Record<string, unknown>; // DB: JSONB
   // Additional computed/display fields
   timeline?: string;
   skills?: string[];
@@ -106,6 +110,13 @@ export interface ContractorSkill {
   contractorId: string;
   skillName: string;
   createdAt: string;
+  // DB fields matching public.contractor_skills
+  contractor_id?: string;
+  skill_name?: string;
+  skill_icon?: string;
+  years_experience?: number;
+  verified?: boolean;
+  created_at?: string;
 }
 
 export interface ContractorMatch {
@@ -121,9 +132,34 @@ export interface Review {
   jobId: string;
   reviewerId: string;
   reviewedId: string;
-  rating: number;
-  comment: string;
+  rating: number; // DB: CHECK (rating >= 1 AND rating <= 5)
+  comment?: string;
+  response?: string; // DB: reviewee's response text
   createdAt: string;
+  // DB field aliases (snake_case)
+  job_id?: string;
+  reviewer_id?: string;
+  reviewee_id?: string; // DB column name (maps to reviewedId)
+  created_at?: string;
+  updated_at?: string;
+}
+
+// JobPhotoMetadata matching DB: public.job_photos_metadata
+export type PhotoType = 'before' | 'after' | 'progress' | 'video';
+
+export interface JobPhotoMetadata {
+  id: string;
+  job_id: string;
+  photo_url: string;
+  photo_type: PhotoType;
+  geolocation?: { lat: number; lng: number; accuracy?: number };
+  timestamp: string;
+  verified: boolean;
+  quality_score?: number; // 0-1
+  angle_type?: string;
+  created_at: string;
+  created_by?: string;
+  geolocation_verified?: boolean;
 }
 
 export interface ProjectUpdateNotification {

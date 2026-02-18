@@ -180,7 +180,7 @@ export const POST = withApiHandler(
         jobId: job_id,
         senderId: user.id,
         receiverId: job.homeowner_id,
-        messageType: 'contract_submitted',
+        messageType: 'system',
         messageLength: contractMessageText.length,
       });
 
@@ -217,7 +217,7 @@ export const POST = withApiHandler(
         sender_id: user.id,
         receiver_id: job.homeowner_id,
         content: contractMessageText,
-        message_type: 'contract_submitted',
+        message_type: 'system',
         read: false,
       };
 

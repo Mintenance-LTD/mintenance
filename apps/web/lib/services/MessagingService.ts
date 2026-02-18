@@ -25,10 +25,7 @@ export class MessagingService {
       | 'text'
       | 'image'
       | 'file'
-      | 'video_call_invitation'
-      | 'video_call_started'
-      | 'video_call_ended'
-      | 'video_call_missed' = 'text',
+      | 'system' = 'text',
     attachmentUrl?: string,
     callId?: string,
     callDuration?: number

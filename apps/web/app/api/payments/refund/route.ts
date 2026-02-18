@@ -363,11 +363,11 @@ export async function POST(request: NextRequest) {
     // Use sanitized error handling
     const { createPaymentErrorResponse } = await import('@/lib/errors/payment-errors');
 
-    // Safely access user from getCurrentUserFromCookies if not in scope
+    // Safely access user from auth if not in scope
     let userId: string | undefined;
     try {
-      const userFromCookies = await getCurrentUserFromCookies();
-      userId = userFromCookies?.id;
+      const userFromRequest = await getUserFromRequest(request);
+      userId = userFromRequest?.id;
     } catch {
       userId = undefined;
     }

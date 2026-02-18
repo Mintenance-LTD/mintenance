@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { handleAPIError, UnauthorizedError, NotFoundError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -13,7 +13,7 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to view property');
     }
@@ -63,7 +63,7 @@ export async function PUT(
   }
 
     const resolvedParams = await params;
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
 
     if (!user) {
       throw new UnauthorizedError('Authentication required to update properties');
@@ -156,7 +156,7 @@ export async function DELETE(
   }
 
     const resolvedParams = await params;
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
 
     if (!user) {
       throw new UnauthorizedError('Authentication required to delete properties');

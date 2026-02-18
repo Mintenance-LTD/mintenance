@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { PhotoVerificationService } from '@/lib/services/escrow/PhotoVerificationService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
@@ -45,19 +45,22 @@ export async function POST(
     );
   }
 
-    // CSRF protection
-    await requireCSRF(request);
+    // CSRF protection (skip for mobile Bearer token auth)
+    const hasBearerToken = request.headers.get('authorization')?.startsWith('Bearer ');
+    if (!hasBearerToken) {
+      await requireCSRF(request);
+    }
     const { id: jobId } = await params;
 
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to upload photos');
     }
 
-    // Verify user is contractor for this job
+    // Verify user is contractor for this job (include location for geolocation check)
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, contractor_id')
+      .select('id, contractor_id, latitude, longitude')
       .eq('id', jobId)
       .single();
 
@@ -87,6 +90,25 @@ export async function POST(
         geolocation = JSON.parse(geolocationStr);
       } catch (e) {
         logger.warn('Invalid geolocation format', { geolocationStr });
+      }
+    }
+
+    // Verify geolocation against job location if both are available
+    let geolocationVerified = false;
+    if (geolocation && job.latitude && job.longitude) {
+      const geoResult = await PhotoVerificationService.verifyGeolocation(
+        '', // URL not needed when passing geolocation directly
+        { lat: job.latitude, lng: job.longitude },
+        geolocation
+      );
+      geolocationVerified = geoResult.withinThreshold;
+      if (!geoResult.withinThreshold) {
+        logger.warn('Photo uploaded outside job location threshold', {
+          service: 'jobs',
+          jobId,
+          distance: geoResult.distance,
+          threshold: 100,
+        });
       }
     }
 
@@ -132,6 +154,7 @@ export async function POST(
         photo_url: urlData.publicUrl,
         photo_type: 'before',
         geolocation: geolocation || null,
+        geolocation_verified: geolocation ? geolocationVerified : null,
         timestamp: new Date().toISOString(),
         verified: qualityResult.passed,
         quality_score: qualityResult.qualityScore,

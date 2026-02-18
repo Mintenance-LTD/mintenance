@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { getUserFromRequest } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
@@ -40,12 +40,15 @@ export async function POST(
     );
   }
 
-    // CSRF protection
-    await requireCSRF(request);
+    // CSRF protection (skip for mobile Bearer token auth)
+    const hasBearerToken = request.headers.get('authorization')?.startsWith('Bearer ');
+    if (!hasBearerToken) {
+      await requireCSRF(request);
+    }
 
     const paramsResolved = await params;
     jobId = paramsResolved.id;
-    const user = await getCurrentUserFromCookies();
+    const user = await getUserFromRequest(request);
 
     if (!user) {
       throw new UnauthorizedError('Authentication required to confirm completion');

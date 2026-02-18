@@ -36,6 +36,19 @@ import { BidsReceived } from './BidsReceived';
 
 const appIcon = require('../../../assets/icon.png');
 
+function formatRelativeTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}d ago`;
+  if (hours > 0) return `${hours}h ago`;
+  if (minutes > 0) return `${minutes}m ago`;
+  return 'just now';
+}
+
 export const HomeownerDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<unknown>();
@@ -56,6 +69,26 @@ export const HomeownerDashboard: React.FC = () => {
     queryFn: async () => {
       const res = await apiClient.get<{ properties: Property[] }>('/api/properties');
       return res.properties || [];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch real notifications for recent activity
+  const { data: notifications } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: async () => {
+      const res = await apiClient.get<Array<{ id: string; type: string; title: string; message: string; created_at: string }>>('/api/notifications');
+      return Array.isArray(res) ? res.slice(0, 5) : [];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch upcoming appointments
+  const { data: appointments } = useQuery({
+    queryKey: ['appointments', user?.id],
+    queryFn: async () => {
+      const res = await apiClient.get<{ appointments: Array<{ id: string; title: string; date: string; time: string; contractor?: { name: string } }> }>('/api/appointments');
+      return res.appointments || [];
     },
     enabled: !!user,
   });
@@ -391,6 +424,50 @@ export const HomeownerDashboard: React.FC = () => {
             }}
           />
 
+          {/* Upcoming Appointments */}
+          {(appointments && appointments.length > 0) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+              </View>
+              {appointments.slice(0, 3).map((apt) => (
+                <View key={apt.id} style={styles.appointmentCard}>
+                  <View style={styles.appointmentIcon}>
+                    <Ionicons name="calendar" size={18} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.appointmentInfo}>
+                    <Text style={styles.appointmentTitle} numberOfLines={1}>{apt.title}</Text>
+                    <Text style={styles.appointmentMeta}>
+                      {new Date(apt.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      {apt.time ? ` at ${apt.time.slice(0, 5)}` : ''}
+                    </Text>
+                    {apt.contractor && (
+                      <Text style={styles.appointmentContractor}>with {apt.contractor.name}</Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Recent Activity */}
+          {(notifications && notifications.length > 0) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Recent Activity</Text>
+              </View>
+              {notifications.slice(0, 5).map((notif) => (
+                <View key={notif.id} style={styles.activityRow}>
+                  <View style={styles.activityDot} />
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityMessage} numberOfLines={2}>{notif.message || notif.title}</Text>
+                    <Text style={styles.activityTime}>{formatRelativeTime(notif.created_at)}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
           <QuickServices
             onServicePress={openServiceRequest}
             onBrowseAllPress={openJobPosting}
@@ -639,5 +716,85 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Sections
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  // Appointments
+  appointmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    ...theme.shadows.sm,
+  },
+  appointmentIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  appointmentInfo: {
+    flex: 1,
+  },
+  appointmentTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  appointmentMeta: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  appointmentContractor: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    marginTop: 2,
+  },
+  // Activity
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    paddingLeft: 4,
+  },
+  activityDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.primary,
+    marginTop: 6,
+    marginRight: 10,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityMessage: {
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    lineHeight: 20,
+  },
+  activityTime: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    marginTop: 2,
   },
 });

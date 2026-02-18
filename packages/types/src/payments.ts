@@ -11,13 +11,17 @@ export interface PaymentIntent {
   client_secret: string;
 }
 
+// Status values matching DB CHECK constraint on escrow_transactions
+export type EscrowStatus = 'pending' | 'held' | 'release_pending' | 'released' | 'refunded'
+  | 'awaiting_homeowner_approval' | 'pending_review' | 'failed' | 'cancelled';
+
 export interface EscrowTransaction {
   id: string;
   jobId: string;
   payerId: string;
   payeeId: string;
   amount: number;
-  status: 'pending' | 'held' | 'release_pending' | 'released' | 'refunded' | 'awaiting_homeowner_approval' | 'failed' | 'cancelled';
+  status: EscrowStatus;
   createdAt: string;
   updatedAt: string;
   paymentIntentId?: string;
@@ -28,6 +32,9 @@ export interface EscrowTransaction {
   payer_id?: string;
   payee_id?: string;
   payment_intent_id?: string;
+  stripe_charge_id?: string; // DB: TEXT
+  description?: string; // DB: TEXT
+  metadata?: Record<string, unknown>; // DB: JSONB
   created_at?: string;
   updated_at?: string;
   released_at?: string;

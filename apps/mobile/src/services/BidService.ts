@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { checkRateLimit } from '../middleware/RateLimiter';
 
 export interface BidData {
@@ -156,55 +157,32 @@ export class BidService {
   }
 
   static async acceptBid(bidId: string, homeownerId: string): Promise<Bid> {
-    // Verify authorization and bid status
+    // Fetch the bid to get job_id for the API URL
     const { data: bid, error: fetchError } = await supabase
       .from('bids')
-      .select(
-        `
-        *,
-        job:job_id (homeowner_id)
-      `
-      )
+      .select('*, job:job_id (homeowner_id)')
       .eq('id', bidId)
       .single();
 
     if (fetchError) throw fetchError;
+    if (!bid) throw new Error('Bid not found');
 
     if (bid.job.homeowner_id !== homeownerId) {
       throw new Error('Not authorized to accept this bid');
     }
 
-    if (bid.status === 'accepted') {
-      throw new Error('Bid has already been accepted');
-    }
+    // Route through web API to ensure contract, message thread, and notifications are created
+    await mobileApiClient.post(`/api/jobs/${bid.job_id}/bids/${bidId}/accept`);
 
-    // Accept the bid
-    const { data, error } = await supabase
+    // Return the updated bid data
+    const { data: updatedBid, error: refetchError } = await supabase
       .from('bids')
-      .update({ status: 'accepted' })
+      .select('*')
       .eq('id', bidId)
-      .select()
       .single();
 
-    if (error) throw error;
-
-    // Reject other bids for the same job
-    await supabase
-      .from('bids')
-      .update({ status: 'rejected' })
-      .eq('job_id', bid.job_id)
-      .neq('id', bidId);
-
-    // Update job status to assigned
-    await supabase
-      .from('jobs')
-      .update({
-        status: 'assigned',
-        contractor_id: bid.contractor_id,
-      })
-      .eq('id', bid.job_id);
-
-    return data;
+    if (refetchError) throw refetchError;
+    return updatedBid;
   }
 
   static async rejectBid(

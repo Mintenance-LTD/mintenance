@@ -47,6 +47,16 @@ interface DashboardClientProps {
       message: string;
       timestamp: string;
     }>;
+    upcomingAppointments?: Array<{
+      id: string;
+      title: string;
+      date: string;
+      time: string;
+      endTime?: string;
+      locationType?: string;
+      status: string;
+      contractor?: { name: string };
+    }>;
   };
 }
 
