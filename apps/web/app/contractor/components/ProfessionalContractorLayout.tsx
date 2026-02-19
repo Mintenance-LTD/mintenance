@@ -23,7 +23,6 @@ import {
   Compass,
   Users,
   Star,
-  Package,
   TrendingUp,
   Megaphone,
   CreditCard,
@@ -36,7 +35,6 @@ import {
   Leaf,
   FolderOpen,
   Video,
-  Heart,
   Pencil,
 } from 'lucide-react';
 
@@ -165,10 +163,7 @@ export function ProfessionalContractorLayout({
       {
         name: 'BUSINESS',
         items: [
-          { label: 'Social Feed', href: '/contractor/social', icon: Heart },
-          { label: 'Connections', href: '/contractor/connections', icon: Users },
-          { label: 'Resources', href: '/contractor/resources', icon: Package },
-          { label: 'Portfolio', href: '/contractor/portfolio', icon: Pencil },
+{ label: 'Portfolio', href: '/contractor/portfolio', icon: Pencil },
           { label: 'Reviews', href: '/contractor/reviews', icon: Star },
           { label: 'Customers', href: '/contractor/customers', icon: Users },
           { label: 'Reports', href: '/contractor/reporting', icon: TrendingUp },
