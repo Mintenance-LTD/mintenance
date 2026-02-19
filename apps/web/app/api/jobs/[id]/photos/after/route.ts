@@ -189,42 +189,66 @@ export async function POST(
     );
 
     // Auto-complete: mark job as completed after successful after photo upload
+    // Safety checks: verify contractor is assigned and escrow payment exists
     let jobCompleted = false;
     if (job.status === 'in_progress') {
       try {
-        const { error: completeError } = await serverSupabase
-          .from('jobs')
-          .update({
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', jobId);
+        // Safety: verify contractor is assigned
+        let canAutoComplete = true;
+        if (!job.contractor_id) {
+          logger.warn('Auto-complete skipped: no contractor assigned', { service: 'jobs', jobId });
+          canAutoComplete = false;
+        } else {
+          // Safety: verify escrow payment is held
+          const { data: escrowCheck } = await serverSupabase
+            .from('escrow_transactions')
+            .select('id')
+            .eq('job_id', jobId)
+            .eq('status', 'held')
+            .limit(1)
+            .single();
 
-        if (!completeError) {
-          jobCompleted = true;
+          if (!escrowCheck) {
+            logger.warn('Auto-complete skipped: no escrow payment held', { service: 'jobs', jobId });
+            canAutoComplete = false;
+          }
+        }
 
-          // Notify homeowner to review and contractor of completion
-          await serverSupabase.from('notifications').insert([
-            {
-              user_id: job.homeowner_id,
-              title: 'Job Completed - Review Required',
-              message: `Work on "${job.title || 'your job'}" is complete. Review the before/after photos and approve.`,
-              type: 'job_completed',
-              read: false,
-              action_url: `/jobs/${jobId}`,
-            },
-            {
-              user_id: user.id,
-              title: 'Job Marked as Completed',
-              message: `Your after photos for "${job.title || 'the job'}" have been submitted. The job is now marked as completed and awaiting homeowner review.`,
-              type: 'job_completed',
-              read: false,
-              action_url: `/contractor/jobs/${jobId}`,
-            },
-          ]);
+        if (canAutoComplete) {
+          const { error: completeError } = await serverSupabase
+            .from('jobs')
+            .update({
+              status: 'completed',
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', jobId);
 
-          logger.info('Job auto-completed after photo upload', { service: 'jobs', jobId });
+          if (!completeError) {
+            jobCompleted = true;
+
+            // Notify homeowner to review and contractor of completion
+            await serverSupabase.from('notifications').insert([
+              {
+                user_id: job.homeowner_id,
+                title: 'Job Completed - Review Required',
+                message: `Work on "${job.title || 'your job'}" is complete. Review the before/after photos and approve.`,
+                type: 'job_completed',
+                read: false,
+                action_url: `/jobs/${jobId}`,
+              },
+              {
+                user_id: user.id,
+                title: 'Job Marked as Completed',
+                message: `Your after photos for "${job.title || 'the job'}" have been submitted. The job is now marked as completed and awaiting homeowner review.`,
+                type: 'job_completed',
+                read: false,
+                action_url: `/contractor/jobs/${jobId}`,
+              },
+            ]);
+
+            logger.info('Job auto-completed after photo upload', { service: 'jobs', jobId });
+          }
         }
       } catch (completionError) {
         logger.error('Auto-completion failed after photo upload', {

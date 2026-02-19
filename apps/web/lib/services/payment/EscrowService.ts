@@ -168,7 +168,7 @@ export class EscrowService {
       if (new Date() >= payoutDeadline) {
         // Check if there are any active disputes
         const { count: disputeCount } = await supabase
-          .from('escrow_payments')
+          .from('escrow_transactions')
           .select('id', { count: 'exact', head: true })
           .eq('job_id', jobId)
           .eq('status', 'disputed');

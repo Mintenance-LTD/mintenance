@@ -41,6 +41,7 @@ import {
     Link2,
     RefreshCw,
     Contact,
+    FolderOpen,
 } from 'lucide-react';
 import { useNotificationCounts } from '@/hooks/useNotificationCounts';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -265,7 +266,8 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
                     shortcut: 'g m'
                 },
                 { label: 'Scheduling', href: '/contractor/scheduling', icon: Calendar, shortcut: 'g s' },
-                { label: 'Video Calls', href: '/contractor/video-calls', icon: Video, shortcut: 'g v' },
+                { label: 'Documents', href: '/contractor/documents', icon: FolderOpen },
+                { label: 'Video Calls', href: '/video-calls', icon: Video, shortcut: 'g v' },
             ]
         },
         {

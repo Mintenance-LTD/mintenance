@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // Verify user has access to this escrow
     const { data: escrow, error: escrowError } = await serverSupabase
-      .from('escrow_payments')
+      .from('escrow_transactions')
       .select('id, contractor_id, client_id, status')
       .eq('id', escrowId)
       .single();
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Update escrow to disputed status
     const { error: disputeError } = await serverSupabase
-      .from('escrow_payments')
+      .from('escrow_transactions')
       .update({
         status: 'disputed',
         dispute_reason: reason,

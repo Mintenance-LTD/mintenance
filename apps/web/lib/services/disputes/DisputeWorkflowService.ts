@@ -32,7 +32,7 @@ export class DisputeWorkflowService {
       const deadline = new Date(Date.now() + sla.hours * 60 * 60 * 1000);
 
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           dispute_priority: priority,
           sla_deadline: deadline.toISOString(),
@@ -67,7 +67,7 @@ export class DisputeWorkflowService {
     try {
       // Get escrow details
       const { data: escrowDetails } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .select('homeowner_id, contractor_id')
         .eq('id', escrowId)
         .single();
@@ -105,7 +105,7 @@ export class DisputeWorkflowService {
 
       // Find disputes approaching SLA deadline
       const { data: disputes, error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .select('id, dispute_priority, sla_deadline, escalation_level')
         .eq('status', 'disputed')
         .not('sla_deadline', 'is', null)
@@ -143,7 +143,7 @@ export class DisputeWorkflowService {
   ): Promise<void> {
     try {
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           escalation_level: currentLevel + 1,
         })

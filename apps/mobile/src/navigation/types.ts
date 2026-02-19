@@ -58,6 +58,8 @@ export type JobsStackParamList = {
   Dispute: { jobId: string; jobTitle: string };
   BidReview: { jobId: string };
   PhotoReview: { jobId: string };
+  PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
+  ContractView: { jobId: string };
 };
 
 // ============================================================================

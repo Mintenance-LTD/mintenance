@@ -40,7 +40,26 @@ export const POST = withApiHandler(
       throw new BadRequestError('Can only request changes on completed jobs');
     }
 
-    // 2. Notify contractor
+    // 2. Roll back job status to in_progress so contractor can re-do work
+    const { error: updateError } = await serverSupabase
+      .from('jobs')
+      .update({
+        status: 'in_progress',
+        completed_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', jobId);
+
+    if (updateError) {
+      logger.error('Failed to roll back job status', {
+        service: 'jobs',
+        jobId,
+        error: updateError.message,
+      });
+      throw new Error('Failed to process change request');
+    }
+
+    // 3. Notify contractor
     await serverSupabase.from('notifications').insert({
       user_id: job.contractor_id,
       title: 'Changes Requested',
@@ -50,7 +69,7 @@ export const POST = withApiHandler(
       action_url: `/contractor/jobs/${jobId}`,
     });
 
-    logger.info('Homeowner requested changes', {
+    logger.info('Homeowner requested changes, job rolled back to in_progress', {
       service: 'jobs',
       jobId,
       homeownerId: user.id,
@@ -59,7 +78,7 @@ export const POST = withApiHandler(
 
     return NextResponse.json({
       success: true,
-      message: 'Change request sent to contractor',
+      message: 'Change request sent to contractor. Job has been reopened for rework.',
     });
   }
 );

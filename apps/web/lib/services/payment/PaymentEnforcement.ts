@@ -20,7 +20,7 @@ export class PaymentEnforcement {
     try {
       // Check for escrow payment
       const { data: escrowPayment, error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .select('id, amount, status')
         .eq('job_id', jobId)
         .in('status', ['held', 'released'])

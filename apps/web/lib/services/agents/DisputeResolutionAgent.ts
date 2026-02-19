@@ -19,7 +19,7 @@ export class DisputeResolutionAgent {
     try {
       // Get dispute/escrow details
       const { data: escrow, error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .select('id, job_id, amount, dispute_reason, status, homeowner_id, contractor_id')
         .eq('id', escrowId)
         .eq('status', 'disputed')
@@ -64,7 +64,7 @@ export class DisputeResolutionAgent {
       if (isLowValue && isHighRated) {
         // Auto-refund to homeowner
         const { error: refundError } = await serverSupabase
-          .from('escrow_payments')
+          .from('escrow_transactions')
           .update({
             status: 'refunded',
             updated_at: new Date().toISOString(),

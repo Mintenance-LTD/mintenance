@@ -16,7 +16,7 @@ export class MediationService {
   ): Promise<boolean> {
     try {
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           mediation_requested: true,
           mediation_requested_by: requestedBy,
@@ -66,7 +66,7 @@ export class MediationService {
   ): Promise<boolean> {
     try {
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           mediation_scheduled_at: scheduledAt.toISOString(),
           mediation_mediator_id: mediatorId,
@@ -103,7 +103,7 @@ export class MediationService {
   ): Promise<boolean> {
     try {
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           mediation_status: 'completed',
           mediation_outcome: outcome,
