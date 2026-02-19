@@ -331,6 +331,48 @@ export function ContractManagement(props: ContractManagementProps) {
         )}
       </div>
 
+      {/* Contract Terms */}
+      {contract.terms && Object.keys(contract.terms).length > 0 && (
+        <div style={{
+          padding: theme.spacing[4],
+          backgroundColor: theme.colors.backgroundSecondary,
+          borderRadius: theme.borderRadius.md,
+          marginBottom: theme.spacing[4],
+        }}>
+          <div style={{
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: theme.colors.textSecondary,
+            marginBottom: theme.spacing[3],
+          }}>
+            Terms & Conditions
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+            {Object.entries(contract.terms).map(([key, value]) => (
+              <div key={key} style={{ display: 'flex', gap: theme.spacing[2] }}>
+                <span style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.textSecondary,
+                  minWidth: '120px',
+                  textTransform: 'capitalize',
+                }}>
+                  {key.replace(/_/g, ' ')}:
+                </span>
+                <span style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textPrimary,
+                  flex: 1,
+                  whiteSpace: 'pre-wrap',
+                }}>
+                  {typeof value === 'string' ? value : JSON.stringify(value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Signatures */}
       <div style={{
         padding: theme.spacing[4],

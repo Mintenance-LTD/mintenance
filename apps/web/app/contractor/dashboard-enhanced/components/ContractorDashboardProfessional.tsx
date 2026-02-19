@@ -65,6 +65,14 @@ interface ContractorDashboardProfessionalProps {
       homeowner: string;
       dueDate?: string;
     }>;
+    availableJobs?: Array<{
+      id: string;
+      title: string;
+      status: string;
+      budget: number;
+      category?: string;
+      homeowner: string;
+    }>;
     notifications: Array<{
       id: string;
       type: string;
@@ -89,7 +97,7 @@ interface ContractorDashboardProfessionalProps {
 
 export function ContractorDashboardProfessional(props: ContractorDashboardProfessionalProps) {
   const { data } = props || {};
-  const { contractor, metrics, progressTrendData, recentJobs } = data || {};
+  const { contractor, metrics, progressTrendData, recentJobs, availableJobs } = data || {};
 
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter'>('month');
 
@@ -549,6 +557,51 @@ export function ContractorDashboardProfessional(props: ContractorDashboardProfes
             </div>
           )}
         </section>
+
+        {/* Available Opportunities */}
+        {availableJobs && availableJobs.length > 0 && (
+          <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-6 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 mb-1">Available Opportunities</h2>
+                  <p className="text-sm text-slate-600">New jobs you can bid on</p>
+                </div>
+                <Link
+                  href="/contractor/jobs-near-you"
+                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-colors"
+                >
+                  Browse All
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {availableJobs.slice(0, 5).map((job) => (
+                <Link
+                  key={job.id}
+                  href={`/contractor/bid/${job.id}/details`}
+                  className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex-1">
+                    <div className="font-semibold text-slate-900">{job.title}</div>
+                    <div className="text-sm text-slate-500 mt-1">
+                      {job.category && <span className="capitalize">{job.category}</span>}
+                      {job.category && job.homeowner && ' · '}
+                      {job.homeowner}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-slate-900">{formatMoney(job.budget, 'GBP')}</div>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                      Open
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Quick Actions Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

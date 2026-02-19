@@ -50,12 +50,12 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
     .single();
 
   if (jobError || !job) {
-    redirect('/contractor/bid');
+    redirect('/contractor/jobs');
   }
 
-  // Verify contractor is assigned to this job
+  // If contractor is not assigned, redirect to job details/bid view
   if (job.contractor_id !== user.id) {
-    redirect('/contractor/bid');
+    redirect(`/contractor/bid/${resolvedParams.id}/details`);
   }
 
   // Fetch homeowner details
@@ -212,68 +212,171 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
           </div>
         </div>
 
-        <div suppressHydrationWarning className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr]" style={{
-          gap: theme.spacing[6],
-        }}>
-          {/* Left Column */}
-          <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-            {/* Budget Card - Gradient */}
-            <Card
-              padding="lg"
-              hover={true}
-              style={{
-                ...getGradientCardStyle('success'),
-                background: `linear-gradient(135deg, ${theme.colors.success}08 0%, ${theme.colors.success}03 100%)`,
-              }}
-            >
-              <div suppressHydrationWarning style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
-                <div suppressHydrationWarning>
-                  <div suppressHydrationWarning style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    color: theme.colors.textSecondary,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1.2px',
-                    marginBottom: theme.spacing[2],
-                  }}>
-                    Budget
-                  </div>
-                  <div suppressHydrationWarning style={{
-                    fontSize: theme.typography.fontSize['3xl'],
-                    fontWeight: theme.typography.fontWeight.bold,
-                    color: theme.colors.textPrimary,
-                    lineHeight: 1.2,
-                  }}>
-                    £{Number(job.budget || 0).toLocaleString()}
-                  </div>
+        {/* Budget + Next Steps - Top Row */}
+        <div suppressHydrationWarning className="grid grid-cols-1 md:grid-cols-2" style={{ gap: theme.spacing[6], marginBottom: theme.spacing[6] }}>
+          {/* Budget Card */}
+          <Card
+            padding="lg"
+            hover={true}
+            style={{
+              ...getGradientCardStyle('success'),
+              background: `linear-gradient(135deg, ${theme.colors.success}08 0%, ${theme.colors.success}03 100%)`,
+            }}
+          >
+            <div suppressHydrationWarning style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <div suppressHydrationWarning>
+                <div suppressHydrationWarning style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.textSecondary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1.2px',
+                  marginBottom: theme.spacing[2],
+                }}>
+                  Budget
                 </div>
                 <div suppressHydrationWarning style={{
-                  width: '56px',
-                  height: '56px',
-                  borderRadius: theme.borderRadius.full,
-                  backgroundColor: `${theme.colors.success}20`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  fontSize: theme.typography.fontSize['3xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.textPrimary,
+                  lineHeight: 1.2,
                 }}>
-                  <PoundSterling className="h-7 w-7" style={{ color: theme.colors.success }} />
+                  £{Number(job.budget || 0).toLocaleString()}
                 </div>
               </div>
-            </Card>
+              <div suppressHydrationWarning style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: theme.borderRadius.full,
+                backgroundColor: `${theme.colors.success}20`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <PoundSterling className="h-7 w-7" style={{ color: theme.colors.success }} />
+              </div>
+            </div>
+          </Card>
 
-            {/* Progress Bar */}
-            {totalMilestones > 0 && (
-              <JobProgressBar
-                current={completedMilestones}
-                total={totalMilestones}
-                label="Job Progress"
-              />
-            )}
+          {/* Next Steps Card */}
+          {job.status !== 'cancelled' && (() => {
+            let title = 'Next Steps';
+            let subtitle = '';
+            let message = '';
+            let accentColor: string = theme.colors.primary;
 
+            if (job.status === 'assigned' && contractStatus === 'none') {
+              subtitle = 'Your bid has been accepted!';
+              message = 'A contract is being prepared. Review and sign it to proceed.';
+            } else if (job.status === 'assigned' && contractStatus === 'pending') {
+              subtitle = 'Contract Ready';
+              message = 'Review the contract terms and sign it. The homeowner will also need to sign before work can proceed.';
+              accentColor = theme.colors.warning;
+            } else if (job.status === 'assigned' && contractStatus === 'accepted' && !escrowHeld) {
+              subtitle = 'Contract Signed';
+              message = 'Both parties have signed. Waiting for the homeowner to make payment into escrow.';
+            } else if (job.status === 'assigned' && escrowHeld) {
+              subtitle = 'Payment Secured - Ready to Start!';
+              message = 'Payment is held in escrow. Upload before photos and start the job.';
+              accentColor = theme.colors.success;
+            } else if (job.status === 'in_progress') {
+              subtitle = 'Work In Progress';
+              message = 'Upload after photos when complete. The homeowner will review and approve.';
+              accentColor = theme.colors.primary;
+            } else if (job.status === 'completed') {
+              subtitle = 'Awaiting Homeowner Review';
+              message = 'Completion photos submitted. Payment will be released once the homeowner approves.';
+              accentColor = theme.colors.success;
+            } else {
+              return null;
+            }
+
+            return (
+              <Card padding="lg" hover={false} style={{
+                ...getGradientCardStyle('primary'),
+                background: `linear-gradient(135deg, ${accentColor}08 0%, ${accentColor}03 100%)`,
+                border: `2px solid ${accentColor}20`,
+              }}>
+                <div suppressHydrationWarning style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: theme.spacing[3],
+                  marginBottom: theme.spacing[3],
+                }}>
+                  <div suppressHydrationWarning style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: theme.borderRadius.full,
+                    backgroundColor: `${accentColor}20`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <CheckCircle2 className="h-5 w-5" style={{ color: accentColor }} />
+                  </div>
+                  <div suppressHydrationWarning>
+                    <h3 suppressHydrationWarning style={{
+                      margin: 0,
+                      marginBottom: theme.spacing[1],
+                      fontSize: theme.typography.fontSize.base,
+                      fontWeight: theme.typography.fontWeight.bold,
+                      color: theme.colors.textPrimary,
+                    }}>
+                      {title}
+                    </h3>
+                    <p suppressHydrationWarning style={{
+                      margin: 0,
+                      fontSize: theme.typography.fontSize.sm,
+                      color: theme.colors.textSecondary,
+                    }}>
+                      {subtitle}
+                    </p>
+                  </div>
+                </div>
+                <p suppressHydrationWarning style={{
+                  margin: 0,
+                  marginBottom: homeowner ? theme.spacing[4] : 0,
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                  lineHeight: 1.6,
+                }}>
+                  {message}
+                </p>
+                {homeowner && (
+                  <Link
+                    href={`/messages/${resolvedParams.id}?userId=${homeowner.id}&userName=${encodeURIComponent(`${homeowner.first_name} ${homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title || 'Job')}`}
+                    className="block"
+                  >
+                    <Button variant="primary" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
+                      Message Homeowner
+                    </Button>
+                  </Link>
+                )}
+              </Card>
+            );
+          })()}
+        </div>
+
+        {/* Progress Bar - Full Width */}
+        {totalMilestones > 0 && (
+          <div suppressHydrationWarning style={{ marginBottom: theme.spacing[6] }}>
+            <JobProgressBar
+              current={completedMilestones}
+              total={totalMilestones}
+              label="Job Progress"
+            />
+          </div>
+        )}
+
+        {/* Main Content - Two Equal Columns */}
+        <div suppressHydrationWarning className="grid grid-cols-1 md:grid-cols-2" style={{ gap: theme.spacing[6], marginBottom: theme.spacing[6] }}>
+          {/* Left Column - Job Info */}
+          <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
             {/* Job Details Card */}
             <Card padding="lg" hover={false}>
               <h2 suppressHydrationWarning style={{
@@ -437,133 +540,35 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                 </div>
               </Card>
             )}
+
+            {/* Photo Upload */}
+            <JobPhotoUpload
+              jobId={resolvedParams.id}
+              jobStatus={job.status || 'posted'}
+              latitude={job.latitude}
+              longitude={job.longitude}
+              location={job.location}
+            />
           </div>
 
-          {/* Right Column */}
+          {/* Right Column - Actions & Progress */}
           <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-            {/* Lifecycle Next Steps Card */}
-            {job.status !== 'cancelled' && (() => {
-              let title = 'Next Steps';
-              let subtitle = '';
-              let message = '';
-              let accentColor: string = theme.colors.primary;
-
-              if (job.status === 'assigned' && contractStatus === 'none') {
-                subtitle = 'Your bid has been accepted!';
-                message = 'A contract is being prepared. Review and sign it to proceed.';
-              } else if (job.status === 'assigned' && contractStatus === 'pending') {
-                subtitle = 'Contract Ready';
-                message = 'Review the contract terms and sign it. The homeowner will also need to sign before work can proceed.';
-                accentColor = theme.colors.warning;
-              } else if (job.status === 'assigned' && contractStatus === 'accepted' && !escrowHeld) {
-                subtitle = 'Contract Signed';
-                message = 'Both parties have signed the contract. Waiting for the homeowner to make payment into escrow before you can start.';
-              } else if (job.status === 'assigned' && escrowHeld) {
-                subtitle = 'Payment Secured - Ready to Start!';
-                message = 'Payment is held in escrow. Upload before photos and start the job when you arrive on site.';
-                accentColor = theme.colors.success;
-              } else if (job.status === 'in_progress') {
-                subtitle = 'Work In Progress';
-                message = 'When the work is complete, upload after photos to mark the job as done. The homeowner will then review and approve.';
-                accentColor = theme.colors.primary;
-              } else if (job.status === 'completed') {
-                subtitle = 'Awaiting Homeowner Review';
-                message = 'You\'ve submitted your completion photos. The homeowner is reviewing the work. Payment will be released once they approve.';
-                accentColor = theme.colors.success;
-              } else {
-                return null;
-              }
-
-              return (
-                <Card padding="lg" hover={false} style={{
-                  ...getGradientCardStyle('primary'),
-                  background: `linear-gradient(135deg, ${accentColor}08 0%, ${accentColor}03 100%)`,
-                  border: `2px solid ${accentColor}20`,
-                }}>
-                  <div suppressHydrationWarning style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[3],
-                    marginBottom: theme.spacing[4],
-                  }}>
-                    <div suppressHydrationWarning style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: theme.borderRadius.full,
-                      backgroundColor: `${accentColor}20`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}>
-                      <CheckCircle2 className="h-6 w-6" style={{ color: accentColor }} />
-                    </div>
-                    <div suppressHydrationWarning>
-                      <h3 suppressHydrationWarning style={{
-                        margin: 0,
-                        marginBottom: theme.spacing[1],
-                        fontSize: theme.typography.fontSize.lg,
-                        fontWeight: theme.typography.fontWeight.bold,
-                        color: theme.colors.textPrimary,
-                      }}>
-                        {title}
-                      </h3>
-                      <p suppressHydrationWarning style={{
-                        margin: 0,
-                        fontSize: theme.typography.fontSize.sm,
-                        color: theme.colors.textSecondary,
-                        lineHeight: 1.5,
-                      }}>
-                        {subtitle}
-                      </p>
-                    </div>
-                  </div>
-                  <p suppressHydrationWarning style={{
-                    margin: 0,
-                    marginBottom: theme.spacing[5],
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                    lineHeight: 1.6,
-                  }}>
-                    {message}
-                  </p>
-                  {homeowner && (
-                    <div suppressHydrationWarning style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: theme.spacing[3],
-                    }}>
-                      <Link
-                        href={`/messages/${resolvedParams.id}?userId=${homeowner.id}&userName=${encodeURIComponent(`${homeowner.first_name} ${homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title || 'Job')}`}
-                        className="block"
-                      >
-                        <Button variant="primary" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
-                          Message Homeowner
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </Card>
-              );
-            })()}
-
             {/* Contract Management */}
             {job.status === 'assigned' && (
-              <ContractManagement 
-                jobId={resolvedParams.id} 
-                userRole="contractor" 
-                userId={user.id} 
+              <ContractManagement
+                jobId={resolvedParams.id}
+                userRole="contractor"
+                userId={user.id}
               />
             )}
 
             {/* Job Scheduling */}
             {job.status === 'assigned' && (
-              <JobScheduling 
+              <JobScheduling
                 jobId={resolvedParams.id}
                 userRole="contractor"
                 userId={user.id}
                 currentSchedule={{
-                  // Use contract dates if job scheduled dates are not set
                   scheduled_start_date: job.scheduled_start_date || contract?.start_date || null,
                   scheduled_end_date: job.scheduled_end_date || contract?.end_date || null,
                   scheduled_duration_hours: job.scheduled_duration_hours || null,
@@ -572,32 +577,23 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
               />
             )}
 
-            {/* On My Way - Trip Tracking */}
+            {/* On My Way + Location Sharing - Side by Side */}
             {(job.status === 'assigned' || job.status === 'in_progress') && (
-              <OnMyWayButton
-                jobId={resolvedParams.id}
-                contractorId={user.id}
-              />
+              <div suppressHydrationWarning className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: theme.spacing[4] }}>
+                <OnMyWayButton
+                  jobId={resolvedParams.id}
+                  contractorId={user.id}
+                />
+                {job.status === 'assigned' && (
+                  <LocationSharing
+                    jobId={resolvedParams.id}
+                    contractorId={user.id}
+                  />
+                )}
+              </div>
             )}
 
-            {/* Location Sharing */}
-            {job.status === 'assigned' && (
-              <LocationSharing
-                jobId={resolvedParams.id}
-                contractorId={user.id}
-              />
-            )}
-
-            {/* Photo Upload with Map */}
-            <JobPhotoUpload
-              jobId={resolvedParams.id}
-              jobStatus={job.status || 'posted'}
-              latitude={job.latitude}
-              longitude={job.longitude}
-              location={job.location}
-            />
-
-            {/* Job Progress Card */}
+            {/* Job Progress Lifecycle */}
             <Card padding="lg" hover={false}>
               <h2 suppressHydrationWarning style={{
                 margin: 0,

@@ -115,6 +115,7 @@ export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
       '/contractor/support': 'Support',
       '/contractor/verification': 'Verification',
       '/contractor/card-editor': 'Card Editor',
+      '/contractor/documents': 'Documents',
       '/contractor/company': 'Company',
       '/scheduling': 'Scheduling',
     };
