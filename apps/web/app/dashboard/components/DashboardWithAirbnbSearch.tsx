@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { HomeownerPageWrapper } from './HomeownerPageWrapper';
 import { formatMoney } from '@/lib/utils/currency';
-import Logo from '@/app/components/Logo';
-import { HomeownerProfileDropdown } from '@/components/profile/HomeownerProfileDropdown';
 import { AirbnbSearchBar } from './AirbnbSearchBar';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -174,30 +171,7 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
   };
 
   return (
-    <HomeownerPageWrapper>
-      <div className="space-y-6 pb-12">
-        {/* Logo Header */}
-        <div className="bg-white border-b border-gray-100">
-          <div className="px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Logo width={40} height={40} />
-                <span className="text-xl font-semibold text-gray-900">Mintenance</span>
-              </div>
-              <HomeownerProfileDropdown
-                userName={homeowner.name}
-                profileImageUrl={homeowner.avatar}
-                initials={(() => {
-                  if (!homeowner.name || typeof homeowner.name !== 'string') {
-                    return '';
-                  }
-                  return homeowner.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                })()}
-              />
-            </div>
-          </div>
-        </div>
-
+    <div className="space-y-6 pb-12">
         {/* Airbnb-Style Search Section */}
         <section className="bg-gradient-to-b from-white to-gray-50 px-4 sm:px-6 lg:px-8 py-8">
           <div className="max-w-6xl mx-auto">
@@ -593,6 +567,5 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
           </div>
         </div>
       </div>
-    </HomeownerPageWrapper>
   );
 }
