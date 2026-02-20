@@ -37,18 +37,22 @@ interface PaymentData {
   id: string;
   amount: number;
   status: string;
-  created_at: string;
+  createdAt: string;
+  updatedAt: string;
+  jobId?: string;
+  payerId?: string;
+  payeeId?: string;
+  job?: { title: string; description?: string } | null;
+  payer?: { first_name: string; last_name: string } | null;
+  payee?: { first_name: string; last_name: string } | null;
+  // snake_case aliases from DB
+  created_at?: string;
   updated_at?: string;
-  payer?: { id: string; email: string };
-  payee?: { id: string; email: string };
-  job?: { title: string } | null;
   job_id?: string;
   job_title?: string;
-  type?: string;
-  transaction_type?: string;
-  reference?: string;
-  contractor_id?: string;
   contractor_name?: string;
+  contractor_id?: string;
+  transaction_type?: string;
   release_reason?: string;
   refund_reason?: string;
 }
@@ -77,20 +81,29 @@ export default function PaymentsPage2025() {
 
         const { payments } = await response.json();
         const transformedTransactions: Transaction[] = (payments || []).map((t: PaymentData) => {
-          const subtotal = t.amount / 1.2;
-          const platformFee = t.amount * 0.05;
-          const processingFee = t.amount * 0.02;
+          const amount = Number(t.amount) || 0;
+          const subtotal = amount / 1.2;
+          const platformFee = amount * 0.05;
+          const processingFee = amount * 0.02;
+
+          // Extract contractor name from payee (API returns first_name/last_name)
+          const contractorName = t.contractor_name
+            || (t.payee ? `${t.payee.first_name || ''} ${t.payee.last_name || ''}`.trim() : undefined);
+
+          // Extract job title from nested job object or flat field
+          const jobTitle = t.job_title || t.job?.title;
+
           return {
             id: t.id,
-            amount: t.amount,
+            amount,
             status: t.status,
-            type: t.transaction_type || 'payment',
-            created_at: t.created_at,
-            updated_at: t.updated_at,
-            job_title: t.job_title,
-            job_id: t.job_id,
-            contractor_name: t.contractor_name,
-            contractor_id: t.contractor_id,
+            type: (t.transaction_type || 'payment') as Transaction['type'],
+            created_at: t.created_at || t.createdAt,
+            updated_at: t.updated_at || t.updatedAt,
+            job_title: jobTitle,
+            job_id: t.job_id || t.jobId,
+            contractor_name: contractorName || undefined,
+            contractor_id: t.contractor_id || t.payeeId,
             release_reason: t.release_reason,
             refund_reason: t.refund_reason,
             subtotal,

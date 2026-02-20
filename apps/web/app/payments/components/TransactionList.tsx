@@ -91,9 +91,7 @@ export function TransactionList({
         className="bg-white rounded-xl border border-gray-200 p-12 text-center"
       >
         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <span className="text-4xl font-bold text-gray-400">&pound;</span>
         </div>
         <h3 className="text-xl font-bold text-gray-900 mb-2">No transactions found</h3>
         <p className="text-gray-600">
@@ -148,9 +146,14 @@ export function TransactionList({
 
             {/* Right: Amount & Status */}
             <div className="text-right">
-              <div className="text-2xl font-bold text-gray-900 mb-2">
+              <div className="text-2xl font-bold text-gray-900">
                 {formatMoney(transaction.amount, 'GBP')}
               </div>
+              {transaction.platformFee != null && transaction.platformFee > 0 && (
+                <p className="text-[11px] text-gray-400 mb-1">
+                  incl. {formatMoney(transaction.platformFee, 'GBP')} platform + {formatMoney(transaction.processingFee || 0, 'GBP')} processing
+                </p>
+              )}
               <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(transaction.status)}`}>
                 {transaction.status.toUpperCase()}
               </span>
