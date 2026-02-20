@@ -41,7 +41,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     notFound();
   }
 
-  // Fetch jobs for this homeowner (property_id not in schema yet)
+  // Fetch jobs linked to this specific property
   const { data: jobs, error: jobsError } = await serverSupabase
     .from('jobs')
     .select(`
@@ -61,6 +61,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
       )
     `)
     .eq('homeowner_id', user.id)
+    .eq('property_id', resolvedParams.id)
     .order('created_at', { ascending: false });
 
   // Calculate stats

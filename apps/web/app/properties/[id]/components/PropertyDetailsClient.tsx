@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ArrowLeft,
   MapPin,
@@ -13,12 +13,9 @@ import {
   Clock,
   Copy,
   BarChart2,
-  Calendar,
-  Users,
-  Layers,
-  TrendingUp,
   Link2,
-  User,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -29,6 +26,11 @@ import { SpendingChart, aggregateSpendingByMonth } from '@/app/properties/compon
 import { calculatePropertyHealthScore } from '@/lib/utils/property-health-score';
 import { PropertyHealthScoreCard } from '@/app/properties/components/PropertyHealthScore';
 import { FeatureGateCard } from '@/components/FeatureGateCard';
+import RecurringMaintenance from './RecurringMaintenance';
+import TenantContacts from './TenantContacts';
+import TeamAccess from './TeamAccess';
+import BulkOperations from './BulkOperations';
+import YearOverYearComparison from './YearOverYearComparison';
 
 interface Job {
   id: string;
@@ -175,6 +177,67 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
     return styles[status as keyof typeof styles] || styles.posted;
   };
 
+  // Photo upload
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(file => formData.append('photos', file));
+
+      const res = await fetch('/api/properties/upload-photos', {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Upload failed');
+      }
+
+      const data = await res.json();
+      const newPhotos = data.urls as string[];
+
+      // Update property with new photos
+      const updateRes = await fetch(`/api/properties/${property.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+        },
+        body: JSON.stringify({
+          name: property.name,
+          address: property.address,
+          city: property.city,
+          postcode: property.postcode,
+          type: property.type,
+          photos: [...property.images, ...newPhotos],
+        }),
+      });
+
+      if (updateRes.ok) {
+        toast.success(`${newPhotos.length} photo${newPhotos.length > 1 ? 's' : ''} uploaded`);
+        router.refresh();
+      } else {
+        toast.error('Photos uploaded but failed to save to property');
+      }
+    } catch (error) {
+      logger.error('Photo upload error', error, { service: 'ui' });
+      toast.error(error instanceof Error ? error.message : 'Failed to upload photos');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this property?')) {
       try {
@@ -261,7 +324,26 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
           <div className="h-[300px] bg-gray-100 rounded-lg flex flex-col items-center justify-center">
             <MapPin className="w-16 h-16 text-gray-300 mb-4" />
             <p className="text-gray-500 text-lg font-medium">No photos yet</p>
-            <p className="text-gray-400 text-sm mt-1">Add photos to showcase your property</p>
+            <p className="text-gray-400 text-sm mt-1 mb-4">Add photos to showcase your property</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              multiple
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="px-5 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              {isUploading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
+              ) : (
+                <><Upload className="w-4 h-4" /> Add Photos</>
+              )}
+            </button>
           </div>
         )}
       </div>
@@ -360,12 +442,12 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
                         <div className="font-semibold text-gray-900">{property.yearBuilt}</div>
                       </div>
                       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">Total Jobs</div>
-                        <div className="font-semibold text-gray-900">{jobs.length}</div>
+                        <div className="text-sm text-gray-600 mb-1">Bedrooms</div>
+                        <div className="font-semibold text-gray-900">{property.bedrooms || '—'}</div>
                       </div>
                       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="text-sm text-gray-600 mb-1">Total Spent</div>
-                        <div className="font-semibold text-gray-900">£{stats.totalSpent.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600 mb-1">Bathrooms</div>
+                        <div className="font-semibold text-gray-900">{property.bathrooms || '—'}</div>
                       </div>
                     </div>
                   </div>
@@ -531,14 +613,7 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
 
                 {/* Recurring Maintenance - Landlord+ */}
                 <FeatureGateCard featureId="HOMEOWNER_RECURRING_MAINTENANCE">
-                  <div className="p-4 border border-gray-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="w-4 h-4 text-teal-600" />
-                      <h4 className="text-sm font-semibold text-gray-900">Recurring Maintenance</h4>
-                    </div>
-                    <p className="text-xs text-gray-500">Schedule automatic recurring maintenance jobs for this property.</p>
-                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
-                  </div>
+                  <RecurringMaintenance propertyId={property.id} />
                 </FeatureGateCard>
 
                 {/* Portfolio Analytics - Landlord+ */}
@@ -557,50 +632,22 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
 
                 {/* Tenant Contacts - Landlord+ */}
                 <FeatureGateCard featureId="HOMEOWNER_TENANT_CONTACTS">
-                  <div className="p-4 border border-gray-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <User className="w-4 h-4 text-teal-600" />
-                      <h4 className="text-sm font-semibold text-gray-900">Tenant & Contact Records</h4>
-                    </div>
-                    <p className="text-xs text-gray-500">Store tenant details, lease dates, and key contacts for this property.</p>
-                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
-                  </div>
+                  <TenantContacts propertyId={property.id} />
                 </FeatureGateCard>
 
                 {/* Team Access - Agency only */}
                 <FeatureGateCard featureId="HOMEOWNER_TEAM_ACCESS">
-                  <div className="p-4 border border-gray-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Users className="w-4 h-4 text-teal-600" />
-                      <h4 className="text-sm font-semibold text-gray-900">Team Access</h4>
-                    </div>
-                    <p className="text-xs text-gray-500">Invite team members with role-based access to manage this property.</p>
-                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
-                  </div>
+                  <TeamAccess propertyId={property.id} />
                 </FeatureGateCard>
 
                 {/* Bulk Operations - Agency only */}
                 <FeatureGateCard featureId="HOMEOWNER_BULK_OPERATIONS">
-                  <div className="p-4 border border-gray-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Layers className="w-4 h-4 text-teal-600" />
-                      <h4 className="text-sm font-semibold text-gray-900">Bulk Operations</h4>
-                    </div>
-                    <p className="text-xs text-gray-500">Bulk job posting and compliance exports across your properties.</p>
-                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
-                  </div>
+                  <BulkOperations propertyId={property.id} jobs={jobs} />
                 </FeatureGateCard>
 
                 {/* YoY Comparison - Agency only */}
                 <FeatureGateCard featureId="HOMEOWNER_YOY_COMPARISON">
-                  <div className="p-4 border border-gray-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2">
-                      <TrendingUp className="w-4 h-4 text-teal-600" />
-                      <h4 className="text-sm font-semibold text-gray-900">Year-over-Year Comparison</h4>
-                    </div>
-                    <p className="text-xs text-gray-500">Compare maintenance spend and activity across years.</p>
-                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
-                  </div>
+                  <YearOverYearComparison jobs={jobs} />
                 </FeatureGateCard>
               </div>
 
