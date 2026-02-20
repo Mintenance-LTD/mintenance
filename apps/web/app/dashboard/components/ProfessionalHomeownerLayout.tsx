@@ -26,6 +26,7 @@ import {
   CreditCard,
   Video,
   Plus,
+  Crown,
 } from 'lucide-react';
 
 type HomeownerSummary = {
@@ -146,6 +147,7 @@ export function ProfessionalHomeownerLayout({
       {
         name: 'ACCOUNT',
         items: [
+          { label: 'Subscription', href: '/subscription-plans', icon: Crown },
           { label: 'Profile', href: '/profile', icon: User },
           { label: 'Settings', href: '/settings', icon: Settings },
         ],
@@ -184,6 +186,7 @@ export function ProfessionalHomeownerLayout({
       '/properties': 'Properties',
       '/financials': 'Financials',
       '/payments': 'Payments',
+      '/subscription-plans': 'Subscription',
       '/profile': 'Profile',
       '/settings': 'Settings',
       '/notifications': 'Notifications',
