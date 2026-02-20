@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';;
 import {
   PoundSterling,
@@ -61,8 +60,6 @@ interface Expense {
 }
 
 export default function ExpenseTrackingPage2025() {
-  const router = useRouter();
-
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('2025-01');
@@ -237,33 +234,28 @@ export default function ExpenseTrackingPage2025() {
   };
 
   return (
-    <div className="min-h-0 bg-gradient-to-br from-emerald-50 via-white to-red-50">
+    <div className="min-h-0 bg-gray-50">
       {/* Header */}
-      <MotionDiv
-        initial="hidden"
-        animate="visible"
-        variants={fadeIn}
-        className="bg-gradient-to-r from-emerald-600 to-red-600 text-white"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="border-b border-gray-200 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-bold mb-2">Expense Tracking</h1>
-              <p className="text-emerald-100">
+              <h1 className="text-3xl font-semibold text-gray-900">Expense Tracking</h1>
+              <p className="text-gray-600 mt-1">
                 Track and manage your business expenses
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleExport}
-                className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/20 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <Download className="w-5 h-5" />
                 Export
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors font-medium"
+                className="flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium"
               >
                 <Plus className="w-5 h-5" />
                 Add Expense
@@ -271,7 +263,7 @@ export default function ExpenseTrackingPage2025() {
             </div>
           </div>
         </div>
-      </MotionDiv>
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
@@ -494,20 +486,23 @@ export default function ExpenseTrackingPage2025() {
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => router.push(`/contractor/expenses/${expense.id}`)}
+                      onClick={() => toast.success(`Viewing: ${expense.description}\nAmount: £${expense.amount.toFixed(2)}\nCategory: ${categories.find((c) => c.value === expense.category)?.label}\nDate: ${new Date(expense.date).toLocaleDateString('en-GB')}`)}
                       className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                      title="View details"
                     >
                       <Eye className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => router.push(`/contractor/expenses/${expense.id}/edit`)}
+                      onClick={() => toast('Edit functionality coming soon', { icon: '🔧' })}
                       className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                      title="Edit expense"
                     >
                       <Edit className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => handleDeleteExpense(expense.id, expense.description)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete expense"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
