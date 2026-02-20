@@ -32,6 +32,15 @@ interface JobApiResponse {
     last_name?: string;
     profile_image_url?: string;
   }>;
+  job_attachments?: Array<{ file_url: string }>;
+}
+
+function getJobPhotos(job: JobApiResponse): string[] {
+  if (job.photos && job.photos.length > 0) return job.photos;
+  if (job.job_attachments && job.job_attachments.length > 0) {
+    return job.job_attachments.map(a => a.file_url);
+  }
+  return [];
 }
 
 /**
@@ -132,6 +141,9 @@ export async function GET(request: NextRequest) {
             first_name,
             last_name,
             profile_image_url
+          ),
+          job_attachments (
+            file_url
           )
         `)
         .in('id', jobIds)
@@ -155,7 +167,7 @@ export async function GET(request: NextRequest) {
         priority: job.priority || job.urgency || 'medium',
         budget: job.budget || job.budget_max || job.budget_min || 0,
         status: job.status,
-        photos: job.photos || [],
+        photos: getJobPhotos(job),
         created_at: job.created_at,
         homeowner_id: job.homeowner_id,
         homeowner_name: job.homeowner
@@ -191,6 +203,9 @@ export async function GET(request: NextRequest) {
             first_name,
             last_name,
             profile_image_url
+          ),
+          job_attachments (
+            file_url
           )
         `)
         .eq('contractor_id', user.id);
@@ -226,7 +241,7 @@ export async function GET(request: NextRequest) {
         priority: job.priority || job.urgency || 'medium',
         budget: job.budget || job.budget_max || job.budget_min || 0,
         status: job.status,
-        photos: job.photos || [],
+        photos: getJobPhotos(job),
         created_at: job.created_at,
         homeowner_id: job.homeowner_id,
         homeowner_name: job.homeowner
