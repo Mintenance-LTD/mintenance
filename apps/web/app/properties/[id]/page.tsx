@@ -85,13 +85,7 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     bathrooms: property.bathrooms || 0,
     squareFeet: property.square_footage || 0,
     yearBuilt: property.year_built || new Date().getFullYear(),
-    images: property.photos && property.photos.length > 0 ? property.photos : [
-      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
-      'https://images.unsplash.com/photo-1565953522043-baea26b83b7e?w=800',
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
-      'https://images.unsplash.com/photo-1558036117-15d82a90b9b1?w=800',
-      'https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=800'
-    ],
+    images: property.photos && property.photos.length > 0 ? property.photos : [],
   };
 
   // Format jobs data

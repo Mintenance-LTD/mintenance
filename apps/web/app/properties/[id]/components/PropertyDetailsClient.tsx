@@ -124,47 +124,57 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
 
       {/* Hero Image Gallery - Airbnb Style */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Main Grid */}
-        <div className="grid grid-cols-4 gap-2 h-[500px] rounded-lg overflow-hidden">
-          {/* Large left image */}
-          <div className="col-span-2 row-span-2 relative">
-            <Image
-              src={property.images[0]}
-              alt="Property main"
-              fill
-              className="object-cover hover:brightness-90 transition-all cursor-pointer"
-            />
-          </div>
-          {/* Four smaller images */}
-          {property.images.slice(1, 5).map((img, idx) => (
-            <div key={idx} className="relative">
-              <Image
-                src={img}
-                alt={`Property ${idx + 2}`}
-                fill
-                className="object-cover hover:brightness-90 transition-all cursor-pointer"
-              />
+        {property.images.length > 0 ? (
+          <>
+            {/* Main Grid */}
+            <div className="grid grid-cols-4 gap-2 h-[500px] rounded-lg overflow-hidden">
+              {/* Large left image */}
+              <div className="col-span-2 row-span-2 relative">
+                <Image
+                  src={property.images[0]}
+                  alt="Property main"
+                  fill
+                  className="object-cover hover:brightness-90 transition-all cursor-pointer"
+                />
+              </div>
+              {/* Four smaller images */}
+              {property.images.slice(1, 5).map((img, idx) => (
+                <div key={idx} className="relative">
+                  <Image
+                    src={img}
+                    alt={`Property ${idx + 2}`}
+                    fill
+                    className="object-cover hover:brightness-90 transition-all cursor-pointer"
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Overlay Buttons */}
-        <div className="absolute bottom-4 right-4 flex gap-2">
-          <button className="px-4 py-2 bg-white rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 border border-gray-200">
-            <Share2 className="w-4 h-4" />
-            Share
-          </button>
-          <button
-            onClick={() => {
-              setIsFavorited(!isFavorited);
-              toast.success(isFavorited ? 'Removed from favorites' : 'Added to favorites');
-            }}
-            className="px-4 py-2 bg-white rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 border border-gray-200"
-          >
-            <Heart className={`w-4 h-4 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
-            Save
-          </button>
-        </div>
+            {/* Overlay Buttons */}
+            <div className="absolute bottom-4 right-4 flex gap-2">
+              <button className="px-4 py-2 bg-white rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 border border-gray-200">
+                <Share2 className="w-4 h-4" />
+                Share
+              </button>
+              <button
+                onClick={() => {
+                  setIsFavorited(!isFavorited);
+                  toast.success(isFavorited ? 'Removed from favorites' : 'Added to favorites');
+                }}
+                className="px-4 py-2 bg-white rounded-lg font-medium text-sm hover:bg-gray-50 transition-colors flex items-center gap-2 border border-gray-200"
+              >
+                <Heart className={`w-4 h-4 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
+                Save
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="h-[300px] bg-gray-100 rounded-lg flex flex-col items-center justify-center">
+            <MapPin className="w-16 h-16 text-gray-300 mb-4" />
+            <p className="text-gray-500 text-lg font-medium">No photos yet</p>
+            <p className="text-gray-400 text-sm mt-1">Add photos to showcase your property</p>
+          </div>
+        )}
       </div>
 
       {/* Content */}
