@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
 import { getCachedUser } from '@/lib/cache';
 import { PropertiesClient2025 } from './components/PropertiesClient2025';
+import { getFeatureLimit, type HomeownerSubscriptionTier } from '@/lib/feature-access-config';
 
 export const metadata: Metadata = {
   title: 'Your Properties | Mintenance',
@@ -101,6 +102,20 @@ export default async function PropertiesPage2025() {
     };
   });
 
+  // Fetch subscription tier for property limit
+  const { data: subscription } = await serverSupabase
+    .from('homeowner_subscriptions')
+    .select('plan_type')
+    .eq('homeowner_id', user.id)
+    .in('status', ['active', 'trial'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const tier = (subscription?.plan_type as HomeownerSubscriptionTier) || 'free';
+  const rawLimit = getFeatureLimit('HOMEOWNER_PROPERTY_LIMIT', 'homeowner', tier);
+  const propertyLimit: number | 'unlimited' = rawLimit === 'unlimited' ? 'unlimited' : (typeof rawLimit === 'number' ? rawLimit : 1);
+
   const userDisplayName = user.first_name && user.last_name
     ? `${user.first_name} ${user.last_name}`.trim()
     : user.email;
@@ -110,6 +125,8 @@ export default async function PropertiesPage2025() {
   return (
     <PropertiesClient2025
       properties={propertiesWithStats}
+      propertyLimit={propertyLimit}
+      tier={tier}
       userInfo={{
         name: userDisplayName,
         email: userProfile?.email || user.email,

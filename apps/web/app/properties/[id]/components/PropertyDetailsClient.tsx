@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft,
   MapPin,
@@ -11,6 +11,14 @@ import {
   Plus,
   CheckCircle,
   Clock,
+  Copy,
+  BarChart2,
+  Calendar,
+  Users,
+  Layers,
+  TrendingUp,
+  Link2,
+  User,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -20,6 +28,7 @@ import { logger } from '@mintenance/shared';
 import { SpendingChart, aggregateSpendingByMonth } from '@/app/properties/components/SpendingChart';
 import { calculatePropertyHealthScore } from '@/lib/utils/property-health-score';
 import { PropertyHealthScoreCard } from '@/app/properties/components/PropertyHealthScore';
+import { FeatureGateCard } from '@/components/FeatureGateCard';
 
 interface Job {
   id: string;
@@ -56,10 +65,90 @@ interface PropertyDetailsClientProps {
   };
 }
 
+interface ReportToken {
+  id: string;
+  property_id: string;
+  label: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
 export default function PropertyDetailsClient({ property, jobs, stats }: PropertyDetailsClientProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'overview' | 'jobs'>('overview');
   const [isFavorited, setIsFavorited] = useState(false);
+
+  // Tenant reporting state
+  const [reportTokens, setReportTokens] = useState<ReportToken[]>([]);
+  const [isGeneratingToken, setIsGeneratingToken] = useState(false);
+
+  const fetchReportTokens = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/properties/${property.id}/report-token`);
+      if (res.ok) {
+        const data = await res.json();
+        setReportTokens(data.tokens || []);
+      }
+    } catch {
+      // Silently fail — tokens are a premium feature
+    }
+  }, [property.id]);
+
+  useEffect(() => {
+    fetchReportTokens();
+  }, [fetchReportTokens]);
+
+  const handleGenerateReportToken = async () => {
+    setIsGeneratingToken(true);
+    try {
+      const res = await fetch(`/api/properties/${property.id}/report-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+        },
+        body: JSON.stringify({ label: `Report link for ${property.name}` }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setReportTokens(prev => [data.token, ...prev]);
+        toast.success('Report link generated');
+      } else {
+        toast.error('Failed to generate report link');
+      }
+    } catch {
+      toast.error('Failed to generate report link');
+    } finally {
+      setIsGeneratingToken(false);
+    }
+  };
+
+  const handleToggleToken = async (tokenId: string, isActive: boolean) => {
+    try {
+      const res = await fetch(`/api/properties/${property.id}/report-token`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+        },
+        body: JSON.stringify({ token_id: tokenId, is_active: !isActive }),
+      });
+      if (res.ok) {
+        setReportTokens(prev =>
+          prev.map(t => t.id === tokenId ? { ...t, is_active: !isActive } : t)
+        );
+        toast.success(isActive ? 'Link deactivated' : 'Link activated');
+      }
+    } catch {
+      toast.error('Failed to update link');
+    }
+  };
+
+  const copyReportLink = (tokenId: string) => {
+    const url = `${window.location.origin}/report/${tokenId}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Link copied to clipboard');
+  };
 
   // Calculate property health score
   const completedJobsList = jobs.filter(j => j.status === 'completed');
@@ -389,6 +478,131 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
 
               {/* Property Health Score */}
               <PropertyHealthScoreCard healthScore={healthScore} showRecommendations={true} />
+
+              {/* Premium Features */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-900 text-sm uppercase tracking-wider">Premium Features</h3>
+
+                {/* Tenant Reporting - Landlord+ */}
+                <FeatureGateCard featureId="HOMEOWNER_TENANT_REPORTING">
+                  <div className="p-4 border border-gray-200 rounded-xl">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Link2 className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-sm font-semibold text-gray-900">Tenant Reporting Links</h4>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Share a link with tenants to report maintenance issues without an account.
+                    </p>
+                    <button
+                      onClick={handleGenerateReportToken}
+                      disabled={isGeneratingToken}
+                      className="w-full px-3 py-2 bg-teal-600 text-white rounded-lg text-xs font-medium hover:bg-teal-700 transition-colors disabled:opacity-50 mb-2"
+                    >
+                      {isGeneratingToken ? 'Generating...' : 'Generate Report Link'}
+                    </button>
+                    {reportTokens.length > 0 && (
+                      <div className="space-y-2 mt-2">
+                        {reportTokens.slice(0, 3).map(token => (
+                          <div key={token.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs">
+                            <span className={`${token.is_active ? 'text-green-600' : 'text-gray-400'} font-medium`}>
+                              {token.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => copyReportLink(token.id)}
+                                className="p-1 hover:bg-gray-200 rounded"
+                                title="Copy link"
+                              >
+                                <Copy className="w-3 h-3 text-gray-500" />
+                              </button>
+                              <button
+                                onClick={() => handleToggleToken(token.id, token.is_active)}
+                                className="p-1 hover:bg-gray-200 rounded text-xs text-gray-500"
+                              >
+                                {token.is_active ? 'Disable' : 'Enable'}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </FeatureGateCard>
+
+                {/* Recurring Maintenance - Landlord+ */}
+                <FeatureGateCard featureId="HOMEOWNER_RECURRING_MAINTENANCE">
+                  <div className="p-4 border border-gray-200 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-sm font-semibold text-gray-900">Recurring Maintenance</h4>
+                    </div>
+                    <p className="text-xs text-gray-500">Schedule automatic recurring maintenance jobs for this property.</p>
+                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
+                  </div>
+                </FeatureGateCard>
+
+                {/* Portfolio Analytics - Landlord+ */}
+                <FeatureGateCard featureId="HOMEOWNER_PORTFOLIO_ANALYTICS">
+                  <div className="p-4 border border-gray-200 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BarChart2 className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-sm font-semibold text-gray-900">Portfolio Analytics</h4>
+                    </div>
+                    <p className="text-xs text-gray-500">Detailed spend tracking and maintenance analytics for this property.</p>
+                    <Link href="/properties/compliance" className="text-xs text-teal-600 mt-2 font-medium inline-block hover:underline">
+                      View Compliance Dashboard
+                    </Link>
+                  </div>
+                </FeatureGateCard>
+
+                {/* Tenant Contacts - Landlord+ */}
+                <FeatureGateCard featureId="HOMEOWNER_TENANT_CONTACTS">
+                  <div className="p-4 border border-gray-200 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <User className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-sm font-semibold text-gray-900">Tenant & Contact Records</h4>
+                    </div>
+                    <p className="text-xs text-gray-500">Store tenant details, lease dates, and key contacts for this property.</p>
+                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
+                  </div>
+                </FeatureGateCard>
+
+                {/* Team Access - Agency only */}
+                <FeatureGateCard featureId="HOMEOWNER_TEAM_ACCESS">
+                  <div className="p-4 border border-gray-200 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Users className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-sm font-semibold text-gray-900">Team Access</h4>
+                    </div>
+                    <p className="text-xs text-gray-500">Invite team members with role-based access to manage this property.</p>
+                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
+                  </div>
+                </FeatureGateCard>
+
+                {/* Bulk Operations - Agency only */}
+                <FeatureGateCard featureId="HOMEOWNER_BULK_OPERATIONS">
+                  <div className="p-4 border border-gray-200 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Layers className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-sm font-semibold text-gray-900">Bulk Operations</h4>
+                    </div>
+                    <p className="text-xs text-gray-500">Bulk job posting and compliance exports across your properties.</p>
+                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
+                  </div>
+                </FeatureGateCard>
+
+                {/* YoY Comparison - Agency only */}
+                <FeatureGateCard featureId="HOMEOWNER_YOY_COMPARISON">
+                  <div className="p-4 border border-gray-200 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-4 h-4 text-teal-600" />
+                      <h4 className="text-sm font-semibold text-gray-900">Year-over-Year Comparison</h4>
+                    </div>
+                    <p className="text-xs text-gray-500">Compare maintenance spend and activity across years.</p>
+                    <p className="text-xs text-teal-600 mt-2 font-medium">Coming soon</p>
+                  </div>
+                </FeatureGateCard>
+              </div>
 
               {/* Action Button */}
               <Link

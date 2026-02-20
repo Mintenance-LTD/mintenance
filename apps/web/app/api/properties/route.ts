@@ -8,6 +8,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
 import { validateRequest } from '@/lib/validation/validator';
 import { createPropertySchema } from '@/lib/validation/schemas';
+import { getFeatureLimit, type HomeownerSubscriptionTier } from '@/lib/feature-access-config';
 
 // Type definition for property insert data
 interface PropertyInsertData {
@@ -117,6 +118,42 @@ export async function POST(request: NextRequest) {
     const user = await getUserFromRequest(request);
     if (!user) {
       throw new UnauthorizedError('Authentication required to create properties');
+    }
+
+    // Enforce property count limit based on subscription tier
+    if (user.role === 'homeowner') {
+      // Get user's subscription tier
+      const { data: sub } = await serverSupabase
+        .from('homeowner_subscriptions')
+        .select('plan_type')
+        .eq('homeowner_id', user.id)
+        .in('status', ['active', 'trial'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const tier = (sub?.plan_type as HomeownerSubscriptionTier) || 'free';
+      const limit = getFeatureLimit('HOMEOWNER_PROPERTY_LIMIT', 'homeowner', tier);
+
+      if (typeof limit === 'number') {
+        const { count } = await serverSupabase
+          .from('properties')
+          .select('id', { count: 'exact', head: true })
+          .eq('owner_id', user.id);
+
+        const currentCount = count || 0;
+        if (currentCount >= limit) {
+          return NextResponse.json(
+            {
+              error: `Property limit reached. Your ${tier === 'free' ? 'Free' : tier} plan allows ${limit} ${limit === 1 ? 'property' : 'properties'}.`,
+              limit,
+              current: currentCount,
+              upgradeUrl: '/subscription-plans',
+            },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     // Validate and sanitize input using Zod schema

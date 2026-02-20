@@ -5,7 +5,7 @@ import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWr
 import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Heart, Home, MapPin, Plus } from 'lucide-react';
+import { ArrowLeft, Crown, Heart, Home, Lock, MapPin, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -36,6 +36,8 @@ interface Property {
 
 interface PropertiesClient2025Props {
   properties: Property[];
+  propertyLimit: number | 'unlimited';
+  tier: string;
   userInfo: {
     name: string;
     email: string;
@@ -43,7 +45,13 @@ interface PropertiesClient2025Props {
   };
 }
 
-export function PropertiesClient2025({ properties, userInfo }: PropertiesClient2025Props) {
+const TIER_LABELS: Record<string, string> = {
+  free: 'Free',
+  landlord: 'Landlord',
+  agency: 'Agency',
+};
+
+export function PropertiesClient2025({ properties, propertyLimit, tier, userInfo }: PropertiesClient2025Props) {
   const router = useRouter();
 
   // Initialize favorites from server data
@@ -158,8 +166,18 @@ export function PropertiesClient2025({ properties, userInfo }: PropertiesClient2
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-gray-900 mb-2">My Properties</h1>
-        <p className="text-gray-600">Manage your properties and maintenance</p>
+        <div className="flex items-center gap-3 mb-2">
+          <h1 className="text-3xl font-semibold text-gray-900">My Properties</h1>
+          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-700">
+            {TIER_LABELS[tier] || 'Free'} plan
+          </span>
+        </div>
+        <p className="text-gray-600">
+          {propertyLimit === 'unlimited'
+            ? `${properties.length} properties`
+            : `${properties.length}/${propertyLimit} properties`}
+          {' '}&middot; Manage your properties and maintenance
+        </p>
       </div>
 
       {/* Toolbar */}
@@ -292,19 +310,41 @@ export function PropertiesClient2025({ properties, userInfo }: PropertiesClient2
               </Link>
             ))}
 
-            {/* Add Property Card */}
-            <Link
-              href="/properties/add"
-              className="group bg-white rounded-xl overflow-hidden border-2 border-dashed border-gray-300 hover:border-teal-500 hover:shadow-lg transition-all duration-300 flex items-center justify-center min-h-[320px]"
-            >
-              <div className="text-center p-8">
-                <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-teal-200 transition-colors">
-                  <Plus className="w-8 h-8 text-teal-600" />
+            {/* Add Property / Upgrade Card */}
+            {propertyLimit !== 'unlimited' && properties.length >= propertyLimit ? (
+              <div className="bg-white rounded-xl overflow-hidden border-2 border-dashed border-gray-300 flex items-center justify-center min-h-[320px]">
+                <div className="text-center p-8">
+                  <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Lock className="w-8 h-8 text-amber-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Property limit reached</h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Your {TIER_LABELS[tier] || 'Free'} plan allows {propertyLimit} {propertyLimit === 1 ? 'property' : 'properties'}.
+                    {tier === 'free' ? ' Upgrade to Landlord for up to 25.' : ' Upgrade to Agency for unlimited.'}
+                  </p>
+                  <Link
+                    href="/subscription-plans"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors text-sm"
+                  >
+                    <Crown className="w-4 h-4" />
+                    Upgrade Plan
+                  </Link>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Add property</h3>
-                <p className="text-gray-600 text-sm">Start managing a new property</p>
               </div>
-            </Link>
+            ) : (
+              <Link
+                href="/properties/add"
+                className="group bg-white rounded-xl overflow-hidden border-2 border-dashed border-gray-300 hover:border-teal-500 hover:shadow-lg transition-all duration-300 flex items-center justify-center min-h-[320px]"
+              >
+                <div className="text-center p-8">
+                  <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-teal-200 transition-colors">
+                    <Plus className="w-8 h-8 text-teal-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Add property</h3>
+                  <p className="text-gray-600 text-sm">Start managing a new property</p>
+                </div>
+              </Link>
+            )}
           </div>
         </>
       )}
