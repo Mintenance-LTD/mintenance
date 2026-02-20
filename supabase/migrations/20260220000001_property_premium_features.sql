@@ -49,17 +49,29 @@ ALTER TABLE property_tenants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE property_team_members ENABLE ROW LEVEL SECURITY;
 
 -- Owner access policies (property owner can manage all)
-CREATE POLICY "Property owner manages schedules" ON recurring_maintenance_schedules
-  FOR ALL USING (property_id IN (SELECT id FROM properties WHERE owner_id = auth.uid()));
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Property owner manages schedules') THEN
+    CREATE POLICY "Property owner manages schedules" ON recurring_maintenance_schedules
+      FOR ALL USING (property_id IN (SELECT id FROM properties WHERE owner_id = auth.uid()));
+  END IF;
+END $$;
 
-CREATE POLICY "Property owner manages tenants" ON property_tenants
-  FOR ALL USING (property_id IN (SELECT id FROM properties WHERE owner_id = auth.uid()));
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Property owner manages tenants') THEN
+    CREATE POLICY "Property owner manages tenants" ON property_tenants
+      FOR ALL USING (property_id IN (SELECT id FROM properties WHERE owner_id = auth.uid()));
+  END IF;
+END $$;
 
-CREATE POLICY "Property owner manages team" ON property_team_members
-  FOR ALL USING (property_id IN (SELECT id FROM properties WHERE owner_id = auth.uid()));
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Property owner manages team') THEN
+    CREATE POLICY "Property owner manages team" ON property_team_members
+      FOR ALL USING (property_id IN (SELECT id FROM properties WHERE owner_id = auth.uid()));
+  END IF;
+END $$;
 
 -- Indexes
-CREATE INDEX idx_recurring_schedules_property ON recurring_maintenance_schedules(property_id);
-CREATE INDEX idx_recurring_schedules_next_due ON recurring_maintenance_schedules(next_due_date) WHERE is_active = true;
-CREATE INDEX idx_tenants_property ON property_tenants(property_id);
-CREATE INDEX idx_team_members_property ON property_team_members(property_id);
+CREATE INDEX IF NOT EXISTS idx_recurring_schedules_property ON recurring_maintenance_schedules(property_id);
+CREATE INDEX IF NOT EXISTS idx_recurring_schedules_next_due ON recurring_maintenance_schedules(next_due_date) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_tenants_property ON property_tenants(property_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_property ON property_team_members(property_id);
