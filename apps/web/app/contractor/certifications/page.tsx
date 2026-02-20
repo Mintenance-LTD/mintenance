@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { getCsrfHeaders } from '@/lib/csrf-client';
-import { Award, Plus, CheckCircle, AlertTriangle, BookOpen, TrendingUp, Search } from 'lucide-react';
+import { Award, Plus, CheckCircle, AlertTriangle, BookOpen, TrendingUp, Search, Loader2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { AddCertificationModal } from './components/AddCertificationModal';
@@ -28,7 +28,7 @@ interface Training {
   certificateUrl?: string; category: string; skills: string[];
 }
 
-export default function CertificationsPage2025() {
+export default function CertificationsPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'certifications' | 'training'>('certifications');
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,11 +40,18 @@ export default function CertificationsPage2025() {
   const [dbsCheckStatus, setDbsCheckStatus] = useState<{ hasCheck: boolean; check?: { status: string; dbsType?: string; certificateNumber?: string; expiryDate?: string; boostPercentage?: number } } | null>(null);
   const [initiatingDBS, setInitiatingDBS] = useState(false);
 
-  const [training, setTraining] = useState<Training[]>([
-    { id: '1', courseName: 'Advanced Kitchen Installation Techniques', provider: 'BMF Training', completionDate: '2024-08-15', hours: 16, certificateUrl: '/certs/kitchen-training.pdf', category: 'kitchen', skills: ['Cabinet Installation', 'Worktop Fitting', 'Design Principles'] },
-    { id: '2', courseName: 'Smart Home Technology Integration', provider: 'ECA Training', completionDate: '2024-05-20', hours: 8, certificateUrl: '/certs/smart-home.pdf', category: 'electrical', skills: ['Smart Lighting', 'Home Automation', 'IoT Systems'] },
-    { id: '3', courseName: 'Modern Heating Systems', provider: 'CIPHE', completionDate: '2024-02-10', hours: 12, category: 'plumbing', skills: ['Heat Pumps', 'Underfloor Heating', 'System Balancing'] },
-  ]);
+  const [training, setTraining] = useState<Training[]>([]);
+  const [loadingTraining, setLoadingTraining] = useState(true);
+
+  // Training form state
+  const [showTrainingModal, setShowTrainingModal] = useState(false);
+  const [submittingTraining, setSubmittingTraining] = useState(false);
+  const [tFormCourseName, setTFormCourseName] = useState('');
+  const [tFormProvider, setTFormProvider] = useState('');
+  const [tFormCompletionDate, setTFormCompletionDate] = useState('');
+  const [tFormHours, setTFormHours] = useState('');
+  const [tFormCategory, setTFormCategory] = useState('general');
+  const [tFormSkills, setTFormSkills] = useState('');
 
   const categories = [
     { value: 'all', label: 'All Categories' }, { value: 'safety', label: 'Health & Safety' },
@@ -66,9 +73,39 @@ export default function CertificationsPage2025() {
     }
   };
 
-  const handleDeleteTraining = (id: string, name: string) => {
-    if (confirm(`Delete training "${name}"?`)) { setTraining(training.filter((t) => t.id !== id)); toast.success('Training deleted'); }
+  const handleDeleteTraining = async (id: string, name: string) => {
+    if (!confirm(`Delete training "${name}"?`)) return;
+    const previous = [...training];
+    setTraining(training.filter((t) => t.id !== id));
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const res = await fetch(`/api/contractor/training?id=${id}`, {
+        method: 'DELETE',
+        headers: { ...csrfHeaders },
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Training deleted');
+    } catch (error) {
+      setTraining(previous);
+      toast.error('Failed to delete training record');
+    }
   };
+
+  const fetchTraining = useCallback(async () => {
+    try {
+      setLoadingTraining(true);
+      const res = await fetch('/api/contractor/training', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setTraining(data.training || []);
+      }
+    } catch (error) {
+      logger.error('Error fetching training:', error, { service: 'app' });
+    } finally {
+      setLoadingTraining(false);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -88,7 +125,8 @@ export default function CertificationsPage2025() {
       finally { setLoadingDBS(false); }
     };
     fetchData();
-  }, []);
+    fetchTraining();
+  }, [fetchTraining]);
 
   const handleInitiateDBSCheck = async (dbsType: 'basic' | 'standard' | 'enhanced' = 'basic') => {
     setInitiatingDBS(true);
@@ -104,6 +142,54 @@ export default function CertificationsPage2025() {
       logger.error('Error initiating DBS check:', error, { service: 'app' });
       toast.error(error instanceof Error ? error.message : 'Failed to initiate DBS check');
     } finally { setInitiatingDBS(false); }
+  };
+
+  const handleAddTraining = async () => {
+    if (!tFormCourseName.trim()) { toast.error('Course name is required'); return; }
+    if (!tFormProvider.trim()) { toast.error('Provider is required'); return; }
+    if (!tFormCompletionDate) { toast.error('Completion date is required'); return; }
+
+    setSubmittingTraining(true);
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const res = await fetch('/api/contractor/training', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        credentials: 'include',
+        body: JSON.stringify({
+          courseName: tFormCourseName.trim(),
+          provider: tFormProvider.trim(),
+          completionDate: tFormCompletionDate,
+          hours: Number(tFormHours) || 0,
+          category: tFormCategory,
+          skills: tFormSkills ? tFormSkills.split(',').map((s) => s.trim()).filter(Boolean) : [],
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to add training');
+      }
+
+      const data = await res.json();
+      setTraining((prev) => [data.training, ...prev]);
+      toast.success('Training record added');
+      setShowTrainingModal(false);
+      resetTrainingForm();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to add training');
+    } finally {
+      setSubmittingTraining(false);
+    }
+  };
+
+  const resetTrainingForm = () => {
+    setTFormCourseName('');
+    setTFormProvider('');
+    setTFormCompletionDate('');
+    setTFormHours('');
+    setTFormCategory('general');
+    setTFormSkills('');
   };
 
   const filteredCertifications = certifications.filter((cert) => {
@@ -134,7 +220,13 @@ export default function CertificationsPage2025() {
               <h1 className="text-4xl font-bold mb-2">Training & Certifications</h1>
               <p className="text-emerald-100">Manage your professional qualifications and training</p>
             </div>
-            <button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors font-medium">
+            <button
+              onClick={() => {
+                if (activeTab === 'certifications') setShowAddModal(true);
+                else { resetTrainingForm(); setShowTrainingModal(true); }
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors font-medium"
+            >
               <Plus className="w-5 h-5" />
               Add {activeTab === 'certifications' ? 'Certification' : 'Training'}
             </button>
@@ -180,9 +272,9 @@ export default function CertificationsPage2025() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={`Search ${activeTab}...`} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent" />
+                <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={`Search ${activeTab}...`} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
               </div>
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent">
                 {categories.map((cat) => (<option key={cat.value} value={cat.value}>{cat.label}</option>))}
               </select>
             </div>
@@ -195,7 +287,7 @@ export default function CertificationsPage2025() {
                     <CertificationCard key={cert.id} cert={cert} onDelete={handleDeleteCertification} />
                   ))}
                   {loadingCertifications ? (
-                    <div className="text-center py-12"><p className="text-gray-600">Loading certifications...</p></div>
+                    <div className="text-center py-12"><Loader2 className="w-8 h-8 animate-spin text-teal-600 mx-auto" /></div>
                   ) : filteredCertifications.length === 0 ? (
                     <div className="text-center py-12">
                       <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -207,15 +299,21 @@ export default function CertificationsPage2025() {
               )}
               {activeTab === 'training' && (
                 <MotionDiv key="training" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4">
-                  {filteredTraining.map((train) => (
-                    <TrainingCard key={train.id} train={train} onDelete={handleDeleteTraining} />
-                  ))}
-                  {filteredTraining.length === 0 && (
-                    <div className="text-center py-12">
-                      <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No training found</h3>
-                      <p className="text-gray-600 mb-6">{searchQuery || selectedCategory !== 'all' ? 'Try adjusting your filters' : 'Add your first training record to get started'}</p>
-                    </div>
+                  {loadingTraining ? (
+                    <div className="text-center py-12"><Loader2 className="w-8 h-8 animate-spin text-teal-600 mx-auto" /></div>
+                  ) : (
+                    <>
+                      {filteredTraining.map((train) => (
+                        <TrainingCard key={train.id} train={train} onDelete={handleDeleteTraining} />
+                      ))}
+                      {filteredTraining.length === 0 && (
+                        <div className="text-center py-12">
+                          <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">No training found</h3>
+                          <p className="text-gray-600 mb-6">{searchQuery || selectedCategory !== 'all' ? 'Try adjusting your filters' : 'Add your first training record to get started'}</p>
+                        </div>
+                      )}
+                    </>
                   )}
                 </MotionDiv>
               )}
@@ -227,13 +325,69 @@ export default function CertificationsPage2025() {
       {showAddModal && activeTab === 'certifications' && (
         <AddCertificationModal onClose={() => setShowAddModal(false)} onSuccess={(certification) => { setCertifications([...certifications, certification]); setShowAddModal(false); toast.success('Certification added successfully'); }} getCsrfHeaders={getCsrfHeaders as unknown as () => Record<string, string>} />
       )}
-      {showAddModal && activeTab === 'training' && (
+
+      {/* Add Training Modal */}
+      {(showTrainingModal || (showAddModal && activeTab === 'training')) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <MotionDiv initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Add Training</h3>
-            <p className="text-gray-600 mb-6">Training form coming soon...</p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowAddModal(false)} className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
+          <MotionDiv initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">Add Training Record</h3>
+              <button onClick={() => { setShowTrainingModal(false); setShowAddModal(false); resetTrainingForm(); }} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Course Name *</label>
+                <input type="text" value={tFormCourseName} onChange={(e) => setTFormCourseName(e.target.value)}
+                  placeholder="e.g. Advanced Kitchen Installation" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Provider *</label>
+                <input type="text" value={tFormProvider} onChange={(e) => setTFormProvider(e.target.value)}
+                  placeholder="e.g. BMF Training" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Completion Date *</label>
+                  <input type="date" value={tFormCompletionDate} onChange={(e) => setTFormCompletionDate(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hours</label>
+                  <input type="number" min="0" value={tFormHours} onChange={(e) => setTFormHours(e.target.value)}
+                    placeholder="0" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select value={tFormCategory} onChange={(e) => setTFormCategory(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent">
+                  {categories.filter((c) => c.value !== 'all').map((cat) => (
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Skills (comma-separated)</label>
+                <input type="text" value={tFormSkills} onChange={(e) => setTFormSkills(e.target.value)}
+                  placeholder="e.g. Cabinet Installation, Design Principles" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent" />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => { setShowTrainingModal(false); setShowAddModal(false); resetTrainingForm(); }}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
+              <button onClick={handleAddTraining} disabled={submittingTraining}
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                {submittingTraining && <Loader2 className="w-4 h-4 animate-spin" />}
+                Add Training
+              </button>
             </div>
           </MotionDiv>
         </div>
