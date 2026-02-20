@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
-import { HomeownerSubscriptionService } from '@/lib/services/subscription/HomeownerSubscriptionService';
+import { HomeownerSubscriptionService, type HomeownerPlanType } from '@/lib/services/subscription/HomeownerSubscriptionService';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf-validator';
@@ -52,17 +52,17 @@ export async function POST(request: NextRequest) {
 
     const { planType, billingCycle } = validatedData;
 
-    // Homeowner premium flow
+    // Homeowner subscription flow (landlord / agency tiers)
     if (user.role === 'homeowner') {
-      if (planType !== 'premium') {
-        throw new BadRequestError('Homeowners can only subscribe to the premium plan');
+      if (planType !== 'landlord' && planType !== 'agency') {
+        throw new BadRequestError('Homeowners can subscribe to the landlord or agency plan');
       }
 
       const existing = await HomeownerSubscriptionService.getCurrentSubscription(user.id);
-      if (existing?.status === 'active' && existing.plan_type === 'premium') {
+      if (existing?.status === 'active' && existing.plan_type === planType) {
         return NextResponse.json({
           success: true,
-          message: 'You are already subscribed to homeowner premium',
+          message: `You are already subscribed to the ${planType} plan`,
           subscriptionId: existing.id,
           requiresPayment: false,
         });
@@ -73,9 +73,10 @@ export async function POST(request: NextRequest) {
         user.email
       );
 
-      const created = await HomeownerSubscriptionService.createPremiumSubscription(
+      const created = await HomeownerSubscriptionService.createSubscription(
         user.id,
         customerId,
+        planType as HomeownerPlanType,
         billingCycle || 'monthly'
       );
 
@@ -87,9 +88,10 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', user.id);
 
-      logger.info('Homeowner premium subscription created', {
+      logger.info('Homeowner subscription created', {
         service: 'subscriptions',
         homeownerId: user.id,
+        planType,
         stripeSubscriptionId: created.stripeSubscriptionId,
       });
 
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Contractor flow
-    if (planType === 'premium') {
+    if (planType === 'landlord' || planType === 'agency') {
       throw new BadRequestError('Invalid contractor plan type');
     }
 

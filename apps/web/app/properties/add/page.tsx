@@ -80,12 +80,59 @@ export default function AddPropertyPage2025() {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      let photoUrls: string[] = [];
+
+      // Step 1: Upload images if any
+      if (formData.images.length > 0) {
+        const uploadFormData = new FormData();
+        formData.images.forEach((file) => {
+          uploadFormData.append('photos', file);
+        });
+
+        const uploadRes = await fetch('/api/properties/upload-photos', {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '' },
+          body: uploadFormData,
+        });
+
+        if (!uploadRes.ok) {
+          const uploadErr = await uploadRes.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(uploadErr.error || 'Failed to upload photos');
+        }
+
+        const uploadData = await uploadRes.json();
+        photoUrls = uploadData.urls || [];
+      }
+
+      // Step 2: Create the property
+      const createRes = await fetch('/api/properties', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+        },
+        body: JSON.stringify({
+          property_name: formData.name.trim(),
+          address: formData.address.trim(),
+          city: formData.city.trim() || undefined,
+          postcode: formData.postcode.trim() || undefined,
+          property_type: formData.propertyType,
+          bedrooms: formData.bedrooms ? parseInt(formData.bedrooms, 10) : undefined,
+          bathrooms: formData.bathrooms ? parseInt(formData.bathrooms, 10) : undefined,
+          photos: photoUrls.length > 0 ? photoUrls : undefined,
+        }),
+      });
+
+      if (!createRes.ok) {
+        const createErr = await createRes.json().catch(() => ({ error: 'Creation failed' }));
+        throw new Error(createErr.error || 'Failed to create property');
+      }
+
       toast.success('Property added successfully!');
       router.push('/properties');
     } catch (error) {
-      toast.error('Failed to add property');
+      const message = error instanceof Error ? error.message : 'Failed to add property';
+      toast.error(message);
       setIsSubmitting(false);
     }
   };

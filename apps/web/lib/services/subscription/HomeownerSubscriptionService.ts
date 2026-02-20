@@ -13,9 +13,13 @@ function getStripe(): Stripe {
   return _stripe;
 }
 
+export type HomeownerPlanType = 'landlord' | 'agency';
+
 export class HomeownerSubscriptionService {
-  private static readonly PREMIUM_MONTHLY_PRICE_GBP = 9.99;
-  private static readonly PREMIUM_YEARLY_PRICE_GBP = 99;
+  private static readonly PLAN_PRICING: Record<HomeownerPlanType, { monthly: number; yearly: number; name: string }> = {
+    landlord: { monthly: 24.99, yearly: 249, name: 'Landlord' },
+    agency: { monthly: 49.99, yearly: 499, name: 'Agency' },
+  };
 
   static async getCurrentSubscription(homeownerId: string) {
     const { data, error } = await serverSupabase
@@ -66,41 +70,42 @@ export class HomeownerSubscriptionService {
     return customer.id;
   }
 
-  static async createPremiumSubscription(
+  static async createSubscription(
     homeownerId: string,
     customerId: string,
+    planType: HomeownerPlanType,
     billingCycle: 'monthly' | 'yearly' = 'monthly'
   ) {
     const stripe = getStripe();
+    const planPricing = this.PLAN_PRICING[planType];
     const isYearly = billingCycle === 'yearly';
-    const premiumPrice = isYearly
-      ? this.PREMIUM_YEARLY_PRICE_GBP
-      : this.PREMIUM_MONTHLY_PRICE_GBP;
+    const price_gbp = isYearly ? planPricing.yearly : planPricing.monthly;
 
+    const stripePlanKey = `homeowner_${planType}`;
     const products = await stripe.products.list({ limit: 100 });
-    let product = products.data.find((p) => p.metadata?.mintenance_plan === 'homeowner_premium');
+    let product = products.data.find((p) => p.metadata?.mintenance_plan === stripePlanKey);
     if (!product) {
       product = await stripe.products.create({
-        name: 'Mintenance Homeowner Premium',
-        metadata: { mintenance_plan: 'homeowner_premium' },
+        name: `Mintenance Homeowner ${planPricing.name}`,
+        metadata: { mintenance_plan: stripePlanKey },
       });
     }
 
     const prices = await stripe.prices.list({ product: product.id, active: true, limit: 20 });
-    let price = prices.data.find((p) =>
+    let stripePrice = prices.data.find((p) =>
       p.currency === 'gbp' &&
-      p.unit_amount === Math.round(premiumPrice * 100) &&
+      p.unit_amount === Math.round(price_gbp * 100) &&
       p.recurring?.interval === (isYearly ? 'year' : 'month')
     );
 
-    if (!price) {
-      price = await stripe.prices.create({
+    if (!stripePrice) {
+      stripePrice = await stripe.prices.create({
         product: product.id,
         currency: 'gbp',
-        unit_amount: Math.round(premiumPrice * 100),
+        unit_amount: Math.round(price_gbp * 100),
         recurring: { interval: isYearly ? 'year' : 'month' },
         metadata: {
-          tier: 'premium',
+          tier: planType,
           userRole: 'homeowner',
           billingCycle,
         },
@@ -109,15 +114,15 @@ export class HomeownerSubscriptionService {
 
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
-      items: [{ price: price.id }],
+      items: [{ price: stripePrice.id }],
       payment_behavior: 'default_incomplete',
       payment_settings: { save_default_payment_method: 'on_subscription' },
       expand: ['latest_invoice.payment_intent'],
       metadata: {
         userRole: 'homeowner',
         userId: homeownerId,
-        tier: 'premium',
-        planType: 'premium',
+        tier: planType,
+        planType,
         billingCycle,
       },
     });
@@ -143,11 +148,11 @@ export class HomeownerSubscriptionService {
         homeowner_id: homeownerId,
         stripe_subscription_id: subscription.id,
         stripe_customer_id: customerId,
-        stripe_price_id: price.id,
-        plan_type: 'premium',
-        plan_name: 'Homeowner Premium',
+        stripe_price_id: stripePrice.id,
+        plan_type: planType,
+        plan_name: `Homeowner ${planPricing.name}`,
         status: subscription.status === 'active' ? 'active' : 'incomplete',
-        amount: premiumPrice,
+        amount: price_gbp,
         currency: 'gbp',
         current_period_start: subscription.current_period_start
           ? new Date(subscription.current_period_start * 1000).toISOString()
@@ -177,6 +182,15 @@ export class HomeownerSubscriptionService {
     };
   }
 
+  /** @deprecated Use createSubscription with planType parameter instead */
+  static async createPremiumSubscription(
+    homeownerId: string,
+    customerId: string,
+    billingCycle: 'monthly' | 'yearly' = 'monthly'
+  ) {
+    return this.createSubscription(homeownerId, customerId, 'landlord', billingCycle);
+  }
+
   static async cancelSubscription(
     homeownerId: string,
     cancelAtPeriodEnd: boolean
@@ -187,6 +201,7 @@ export class HomeownerSubscriptionService {
     }
 
     const stripe = getStripe();
+    const planName = existing.plan_name || 'subscription';
 
     if (cancelAtPeriodEnd) {
       await stripe.subscriptions.update(existing.stripe_subscription_id, {
@@ -203,7 +218,7 @@ export class HomeownerSubscriptionService {
 
       return {
         success: true,
-        message: 'Homeowner premium will be canceled at the end of the billing period',
+        message: `${planName} will be canceled at the end of the billing period`,
       };
     }
 
@@ -220,7 +235,7 @@ export class HomeownerSubscriptionService {
 
     return {
       success: true,
-      message: 'Homeowner premium canceled immediately',
+      message: `${planName} canceled immediately`,
     };
   }
 }

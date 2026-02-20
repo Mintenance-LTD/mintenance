@@ -84,6 +84,24 @@ export async function POST(request: NextRequest) {
       role: result.user.role
     });
 
+    // Initialize trial for contractors (non-blocking)
+    if (role === 'contractor') {
+      try {
+        const { TrialService } = await import('@/lib/services/subscription/TrialService');
+        await TrialService.initializeTrial(result.user.id);
+        logger.info('Trial initialized for new contractor', {
+          service: 'auth',
+          userId: result.user.id,
+        });
+      } catch (trialError) {
+        logger.error('Failed to initialize trial for new contractor', {
+          service: 'auth',
+          userId: result.user.id,
+          error: trialError instanceof Error ? trialError.message : String(trialError),
+        });
+      }
+    }
+
     // Create response
     const response = NextResponse.json(
       {

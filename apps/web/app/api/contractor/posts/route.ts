@@ -173,6 +173,12 @@ export async function GET(request: NextRequest) {
       comments_count?: number;
       shares_count?: number;
       views_count?: number;
+      is_featured?: boolean;
+      is_verified?: boolean;
+      project_category?: string;
+      project_cost?: number;
+      project_duration?: string;
+      skills_used?: string[];
       contractor?: {
         id: string;
         first_name?: string;
@@ -194,6 +200,12 @@ export async function GET(request: NextRequest) {
       comments_count: post.comments_count || 0,
       shares_count: post.shares_count || 0,
       views_count: post.views_count || 0,
+      is_featured: post.is_featured || false,
+      is_verified: post.is_verified || false,
+      project_category: post.project_category || '',
+      project_cost: post.project_cost || 0,
+      project_duration: post.project_duration || '',
+      skills_used: post.skills_used || [],
       liked: likedPostIds.has(post.id),
       contractor: post.contractor ? {
         id: post.contractor.id,

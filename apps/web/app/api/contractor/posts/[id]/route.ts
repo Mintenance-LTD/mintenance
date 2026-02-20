@@ -12,6 +12,7 @@ const updatePostSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   content: z.string().min(1).max(10000).optional(),
   images: z.array(z.string().url()).optional(),
+  is_featured: z.boolean().optional(),
 });
 
 // Type definitions for post operations
@@ -20,6 +21,7 @@ interface PostUpdateData {
   title?: string;
   content?: string;
   images?: string[];
+  is_featured?: boolean;
 }
 
 const supabase = serverSupabase;
@@ -167,7 +169,7 @@ export async function PATCH(
     const postId = id;
     const validation = await validateRequest(request, updatePostSchema);
     if (validation instanceof NextResponse) return validation;
-    const { title, content, images } = validation.data;
+    const { title, content, images, is_featured } = validation.data;
 
     // Verify post exists and belongs to user
     const { data: existingPost, error: fetchError } = await supabase
@@ -199,6 +201,10 @@ export async function PATCH(
 
     if (images !== undefined) {
       updateData.images = images;
+    }
+
+    if (is_featured !== undefined) {
+      updateData.is_featured = is_featured;
     }
 
     // Update post

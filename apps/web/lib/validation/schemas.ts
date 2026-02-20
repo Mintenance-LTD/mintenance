@@ -347,7 +347,7 @@ export const refundRequestSchema = z.object({
 // ============================================================================
 
 export const createSubscriptionSchema = z.object({
-  planType: z.enum(['free', 'basic', 'professional', 'enterprise', 'premium']),
+  planType: z.enum(['free', 'basic', 'professional', 'enterprise', 'landlord', 'agency']),
   billingCycle: z.enum(['monthly', 'yearly']).optional(),
 });
 
