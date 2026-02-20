@@ -142,7 +142,7 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
             requiresSubscription: Boolean(result.requiresSubscription),
             subscriptionStatus: String(result.subscriptionStatus || 'none'),
             message: result.message ?? null,
-            upgradeUrl: result.upgradeUrl || '/pricing?feature=portfolio_mode',
+            upgradeUrl: result.upgradeUrl || '/homeowner/subscription',
           });
         }
       })
@@ -215,7 +215,7 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
                     </div>
                   </div>
                   <Link
-                    href={portfolioAccess.allowed ? '/properties' : (portfolioAccess.upgradeUrl || '/pricing?feature=portfolio_mode')}
+                    href={portfolioAccess.allowed ? '/properties' : (portfolioAccess.upgradeUrl || '/homeowner/subscription')}
                     className={`inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium ${
                       portfolioAccess.allowed
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'

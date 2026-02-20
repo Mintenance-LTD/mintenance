@@ -147,7 +147,7 @@ export function ProfessionalHomeownerLayout({
       {
         name: 'ACCOUNT',
         items: [
-          { label: 'Subscription', href: '/subscription-plans', icon: Crown },
+          { label: 'Subscription', href: '/homeowner/subscription', icon: Crown },
           { label: 'Profile', href: '/profile', icon: User },
           { label: 'Settings', href: '/settings', icon: Settings },
         ],
@@ -186,7 +186,7 @@ export function ProfessionalHomeownerLayout({
       '/properties': 'Properties',
       '/financials': 'Financials',
       '/payments': 'Payments',
-      '/subscription-plans': 'Subscription',
+      '/homeowner/subscription': 'Subscription',
       '/profile': 'Profile',
       '/settings': 'Settings',
       '/notifications': 'Notifications',
