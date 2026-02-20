@@ -4,15 +4,13 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import React from 'react';
 import { theme } from '@/lib/theme';
-import { Briefcase, MapPin, PoundSterling, Calendar, Mail, Phone, CheckCircle2, MessageCircle, Check, UserCheck, Loader2, XCircle, ArrowLeft, LucideIcon } from 'lucide-react';
+import { Briefcase, MapPin, PoundSterling, Calendar, Mail, Phone, CheckCircle2, MessageCircle, Check, UserCheck, Loader2, XCircle, ArrowLeft, LucideIcon, FileText, Clock, Camera, CreditCard, Award } from 'lucide-react';
 import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagement';
 import { LocationSharing } from './components/LocationSharing';
 import { JobScheduling } from '@/app/jobs/[id]/components/JobScheduling';
-import { getGradientCardStyle, getCardHoverStyle } from '@/lib/theme-enhancements';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
-import { JobProgressBar } from './components/JobProgressBar';
 import { JobPhotoUpload } from './components/JobPhotoUpload';
 import { OnMyWayButton } from './components/OnMyWayButton';
 
@@ -21,17 +19,41 @@ export const metadata: Metadata = {
   description: 'View and manage your assigned job details, progress, scheduling, and homeowner communication.',
 };
 
-// Helper function to get Lucide icon component from icon name
-function getStatusIconComponent(iconName: string): LucideIcon {
-  const iconMap: Record<string, LucideIcon> = {
-    briefcase: Briefcase,
-    userCheck: UserCheck,
-    loader: Loader2,
-    checkCircle: CheckCircle2,
-    xCircle: XCircle,
-    check: Check,
-  };
-  return iconMap[iconName] || Briefcase; // Default to Briefcase if not found
+type JobStage =
+  | 'contract_preparing'
+  | 'contract_pending'
+  | 'awaiting_payment'
+  | 'ready_to_start'
+  | 'in_progress'
+  | 'completed';
+
+function determineStage(jobStatus: string, contractStatus: string, escrowHeld: boolean): JobStage {
+  if (jobStatus === 'in_progress') return 'in_progress';
+  if (jobStatus === 'completed') return 'completed';
+  if (jobStatus === 'assigned') {
+    if (contractStatus === 'none') return 'contract_preparing';
+    if (contractStatus === 'pending') return 'contract_pending';
+    if (contractStatus === 'accepted' && !escrowHeld) return 'awaiting_payment';
+    if (contractStatus === 'accepted' && escrowHeld) return 'ready_to_start';
+  }
+  return 'contract_preparing';
+}
+
+function getStageConfig(stage: JobStage): { title: string; subtitle: string; accentColor: string; icon: LucideIcon } {
+  switch (stage) {
+    case 'contract_preparing':
+      return { title: 'Bid Accepted', subtitle: 'A contract is being prepared. You\'ll be able to review and sign it shortly.', accentColor: theme.colors.info, icon: FileText };
+    case 'contract_pending':
+      return { title: 'Sign Your Contract', subtitle: 'Review the contract terms below and sign to proceed.', accentColor: theme.colors.warning, icon: FileText };
+    case 'awaiting_payment':
+      return { title: 'Waiting for Payment', subtitle: 'Both parties have signed. The homeowner needs to deposit payment into escrow before work can begin.', accentColor: theme.colors.info, icon: Clock };
+    case 'ready_to_start':
+      return { title: 'Ready to Start Work', subtitle: 'Payment is secured in escrow. Upload before photos and start the job.', accentColor: theme.colors.success, icon: Camera };
+    case 'in_progress':
+      return { title: 'Work In Progress', subtitle: 'Upload after photos when complete. This will automatically mark the job as done.', accentColor: theme.colors.primary, icon: Camera };
+    case 'completed':
+      return { title: 'Awaiting Review', subtitle: 'Your completion photos have been submitted. Payment will be released once the homeowner approves.', accentColor: theme.colors.success, icon: Award };
+  }
 }
 
 export default async function ContractorJobDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -42,7 +64,6 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
     redirect('/login');
   }
 
-  // Fetch job details
   const { data: job, error: jobError } = await serverSupabase
     .from('jobs')
     .select('*')
@@ -53,54 +74,28 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
     redirect('/contractor/jobs');
   }
 
-  // If contractor is not assigned, redirect to job details/bid view
   if (job.contractor_id !== user.id) {
     redirect(`/contractor/bid/${resolvedParams.id}/details`);
   }
 
-  // Fetch homeowner details
   const { data: homeowner } = job.homeowner_id ? await serverSupabase
     .from('profiles')
     .select('id, first_name, last_name, email, phone, profile_image_url')
     .eq('id', job.homeowner_id)
     .single() : { data: null };
 
-  // Fetch contract for this job (if exists) - include start_date and end_date for scheduling
   const { data: contract } = await serverSupabase
     .from('contracts')
     .select('id, status, contractor_signed_at, homeowner_signed_at, start_date, end_date')
     .eq('job_id', resolvedParams.id)
     .single();
 
-  // Fetch job progress
-  const { data: jobProgress } = await serverSupabase
-    .from('job_progress')
-    .select('progress_percentage, days_remaining, estimated_completion_date')
-    .eq('job_id', resolvedParams.id)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  // Fetch job milestones for progress calculation
-  const { data: milestones } = await serverSupabase
-    .from('job_milestones')
-    .select('id, status')
-    .eq('job_id', resolvedParams.id);
-
-  // Calculate progress: completed milestones / total milestones
-  const totalMilestones = milestones?.length || 0;
-  const completedMilestones = milestones?.filter((m) => m.status === 'completed').length || 0;
-  const progressPercentage = jobProgress?.progress_percentage || (totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0);
-
-  // Determine contract status for scheduling
-  // Contract is accepted if status is 'accepted' OR both parties have signed
   const contractStatus = !contract
     ? 'none'
     : contract.status === 'accepted' || (contract.contractor_signed_at && contract.homeowner_signed_at)
       ? 'accepted'
       : 'pending';
 
-  // Fetch escrow status for lifecycle tracking
   const { data: escrowTransaction } = await serverSupabase
     .from('escrow_transactions')
     .select('id, status')
@@ -112,6 +107,9 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
   const escrowStatus = escrowTransaction?.status || 'none';
   const escrowHeld = ['held', 'release_pending', 'released'].includes(escrowStatus);
 
+  const currentStage = determineStage(job.status || 'posted', contractStatus, escrowHeld);
+  const stageConfig = getStageConfig(currentStage);
+
   const statusConfig: Record<string, { label: string; color: string; icon: LucideIcon }> = {
     posted: { label: 'Posted', color: theme.colors.info, icon: Briefcase },
     assigned: { label: 'Assigned', color: theme.colors.warning, icon: UserCheck },
@@ -119,429 +117,138 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
     completed: { label: 'Completed', color: theme.colors.success, icon: CheckCircle2 },
     cancelled: { label: 'Cancelled', color: theme.colors.error, icon: XCircle },
   };
-
   const currentStatus = statusConfig[job.status || 'posted'] || statusConfig.posted;
 
+  const steps = [
+    { id: 'bid', label: 'Bid Accepted', completed: true, active: false, icon: UserCheck },
+    { id: 'contract', label: 'Contract', completed: contractStatus === 'accepted', active: currentStage === 'contract_pending' || currentStage === 'contract_preparing', icon: FileText },
+    { id: 'payment', label: 'Payment', completed: escrowHeld, active: currentStage === 'awaiting_payment', icon: CreditCard },
+    { id: 'start', label: 'Start Work', completed: job.status === 'in_progress' || job.status === 'completed', active: currentStage === 'ready_to_start', icon: Camera },
+    { id: 'complete', label: 'Complete', completed: job.status === 'completed', active: currentStage === 'in_progress', icon: CheckCircle2 },
+    { id: 'paid', label: 'Paid', completed: escrowStatus === 'released', active: currentStage === 'completed', icon: Award },
+  ];
+
+  const messageHref = homeowner
+    ? `/messages/${resolvedParams.id}?userId=${homeowner.id}&userName=${encodeURIComponent(`${homeowner.first_name} ${homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title || 'Job')}`
+    : null;
+
   return (
-    <div suppressHydrationWarning style={{
-      width: '100%',
-      maxWidth: '100%',
-      margin: 0,
-      padding: 0,
-    }}>
-        {/* Back Navigation */}
-        <div suppressHydrationWarning style={{ marginBottom: theme.spacing[4] }}>
-          <Link
-            href="/contractor/jobs"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
-              textDecoration: 'none',
-              padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-              borderRadius: theme.borderRadius.lg,
-              transition: 'all 0.15s',
-            }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
-          </Link>
-        </div>
+    <div style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0 }}>
+      {/* Back Navigation */}
+      <div style={{ marginBottom: theme.spacing[4] }}>
+        <Link
+          href="/contractor/jobs"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: theme.spacing[2],
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.medium,
+            color: theme.colors.textSecondary,
+            textDecoration: 'none',
+            padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+            borderRadius: theme.borderRadius.lg,
+          }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Jobs
+        </Link>
+      </div>
 
-        {/* Header Section */}
-        <div suppressHydrationWarning style={{
-          marginBottom: theme.spacing[6],
+      {/* Header */}
+      <div style={{ marginBottom: theme.spacing[6] }}>
+        <h1 style={{
+          margin: 0,
+          marginBottom: theme.spacing[3],
+          fontSize: theme.typography.fontSize['3xl'],
+          fontWeight: theme.typography.fontWeight.bold,
+          color: theme.colors.textPrimary,
+          letterSpacing: '-0.02em',
         }}>
-          <div suppressHydrationWarning style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            marginBottom: theme.spacing[4],
-            gap: theme.spacing[4],
+          {job.title || 'Untitled Job'}
+        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], flexWrap: 'wrap' }}>
+          <span style={{
+            padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+            borderRadius: theme.borderRadius.full,
+            backgroundColor: currentStatus.color + '20',
+            color: currentStatus.color,
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.semibold,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: theme.spacing[2],
+            border: `1px solid ${currentStatus.color}30`,
           }}>
-            <div suppressHydrationWarning style={{ flex: 1 }}>
-              <h1 suppressHydrationWarning style={{
-                margin: 0,
-                marginBottom: theme.spacing[3],
-                fontSize: theme.typography.fontSize['3xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-                letterSpacing: '-0.02em',
-              }}>
-                {job.title || 'Untitled Job'}
-              </h1>
-              <div suppressHydrationWarning style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[3],
-                flexWrap: 'wrap',
-              }}>
-                <span suppressHydrationWarning style={{
-                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-                  borderRadius: theme.borderRadius.full,
-                  backgroundColor: currentStatus.color + '20',
-                  color: currentStatus.color,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                  border: `1px solid ${currentStatus.color}30`,
-                }}>
-                  {React.createElement(currentStatus.icon, { className: "h-4 w-4", style: { color: currentStatus.color } })}
-                  {currentStatus.label}
-                </span>
-                {job.location && (
-                  <p suppressHydrationWarning style={{
-                    margin: 0,
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[2],
-                  }}>
-                    <MapPin className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
-                    {job.location}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Budget + Next Steps - Top Row */}
-        <div suppressHydrationWarning className="grid grid-cols-1 md:grid-cols-2" style={{ gap: theme.spacing[6], marginBottom: theme.spacing[6] }}>
-          {/* Budget Card */}
-          <Card
-            padding="lg"
-            hover={true}
-            style={{
-              ...getGradientCardStyle('success'),
-              background: `linear-gradient(135deg, ${theme.colors.success}08 0%, ${theme.colors.success}03 100%)`,
-            }}
-          >
-            <div suppressHydrationWarning style={{
+            {React.createElement(currentStatus.icon, { className: "h-4 w-4", style: { color: currentStatus.color } })}
+            {currentStatus.label}
+          </span>
+          {job.location && (
+            <p style={{
+              margin: 0,
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textSecondary,
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              gap: theme.spacing[2],
             }}>
-              <div suppressHydrationWarning>
-                <div suppressHydrationWarning style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.textSecondary,
-                  textTransform: 'uppercase',
-                  letterSpacing: '1.2px',
-                  marginBottom: theme.spacing[2],
-                }}>
-                  Budget
-                </div>
-                <div suppressHydrationWarning style={{
-                  fontSize: theme.typography.fontSize['3xl'],
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.textPrimary,
-                  lineHeight: 1.2,
-                }}>
-                  £{Number(job.budget || 0).toLocaleString()}
-                </div>
-              </div>
-              <div suppressHydrationWarning style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: theme.borderRadius.full,
-                backgroundColor: `${theme.colors.success}20`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <PoundSterling className="h-7 w-7" style={{ color: theme.colors.success }} />
-              </div>
-            </div>
-          </Card>
-
-          {/* Next Steps Card */}
-          {job.status !== 'cancelled' && (() => {
-            let title = 'Next Steps';
-            let subtitle = '';
-            let message = '';
-            let accentColor: string = theme.colors.primary;
-
-            if (job.status === 'assigned' && contractStatus === 'none') {
-              subtitle = 'Your bid has been accepted!';
-              message = 'A contract is being prepared. Review and sign it to proceed.';
-            } else if (job.status === 'assigned' && contractStatus === 'pending') {
-              subtitle = 'Contract Ready';
-              message = 'Review the contract terms and sign it. The homeowner will also need to sign before work can proceed.';
-              accentColor = theme.colors.warning;
-            } else if (job.status === 'assigned' && contractStatus === 'accepted' && !escrowHeld) {
-              subtitle = 'Contract Signed';
-              message = 'Both parties have signed. Waiting for the homeowner to make payment into escrow.';
-            } else if (job.status === 'assigned' && escrowHeld) {
-              subtitle = 'Payment Secured - Ready to Start!';
-              message = 'Payment is held in escrow. Upload before photos and start the job.';
-              accentColor = theme.colors.success;
-            } else if (job.status === 'in_progress') {
-              subtitle = 'Work In Progress';
-              message = 'Upload after photos when complete. The homeowner will review and approve.';
-              accentColor = theme.colors.primary;
-            } else if (job.status === 'completed') {
-              subtitle = 'Awaiting Homeowner Review';
-              message = 'Completion photos submitted. Payment will be released once the homeowner approves.';
-              accentColor = theme.colors.success;
-            } else {
-              return null;
-            }
-
-            return (
-              <Card padding="lg" hover={false} style={{
-                ...getGradientCardStyle('primary'),
-                background: `linear-gradient(135deg, ${accentColor}08 0%, ${accentColor}03 100%)`,
-                border: `2px solid ${accentColor}20`,
-              }}>
-                <div suppressHydrationWarning style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[3],
-                  marginBottom: theme.spacing[3],
-                }}>
-                  <div suppressHydrationWarning style={{
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: theme.borderRadius.full,
-                    backgroundColor: `${accentColor}20`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <CheckCircle2 className="h-5 w-5" style={{ color: accentColor }} />
-                  </div>
-                  <div suppressHydrationWarning>
-                    <h3 suppressHydrationWarning style={{
-                      margin: 0,
-                      marginBottom: theme.spacing[1],
-                      fontSize: theme.typography.fontSize.base,
-                      fontWeight: theme.typography.fontWeight.bold,
-                      color: theme.colors.textPrimary,
-                    }}>
-                      {title}
-                    </h3>
-                    <p suppressHydrationWarning style={{
-                      margin: 0,
-                      fontSize: theme.typography.fontSize.sm,
-                      color: theme.colors.textSecondary,
-                    }}>
-                      {subtitle}
-                    </p>
-                  </div>
-                </div>
-                <p suppressHydrationWarning style={{
-                  margin: 0,
-                  marginBottom: homeowner ? theme.spacing[4] : 0,
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textSecondary,
-                  lineHeight: 1.6,
-                }}>
-                  {message}
-                </p>
-                {homeowner && (
-                  <Link
-                    href={`/messages/${resolvedParams.id}?userId=${homeowner.id}&userName=${encodeURIComponent(`${homeowner.first_name} ${homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title || 'Job')}`}
-                    className="block"
-                  >
-                    <Button variant="primary" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
-                      Message Homeowner
-                    </Button>
-                  </Link>
-                )}
-              </Card>
-            );
-          })()}
+              <MapPin className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
+              {job.location}
+            </p>
+          )}
         </div>
+      </div>
 
-        {/* Progress Bar - Full Width */}
-        {totalMilestones > 0 && (
-          <div suppressHydrationWarning style={{ marginBottom: theme.spacing[6] }}>
-            <JobProgressBar
-              current={completedMilestones}
-              total={totalMilestones}
-              label="Job Progress"
-            />
-          </div>
-        )}
-
-        {/* Main Content - Two Equal Columns */}
-        <div suppressHydrationWarning className="grid grid-cols-1 md:grid-cols-2" style={{ gap: theme.spacing[6], marginBottom: theme.spacing[6] }}>
-          {/* Left Column - Job Info */}
-          <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-            {/* Job Details Card */}
-            <Card padding="lg" hover={false}>
-              <h2 suppressHydrationWarning style={{
+      {/* ═══ ZONE 2: PRIMARY ACTION CARD ═══ */}
+      {job.status !== 'cancelled' && (
+        <Card padding="lg" hover={false} style={{
+          borderLeft: `4px solid ${stageConfig.accentColor}`,
+          marginBottom: theme.spacing[6],
+          background: `linear-gradient(135deg, ${stageConfig.accentColor}06 0%, transparent 100%)`,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3], marginBottom: theme.spacing[4] }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: theme.borderRadius.full,
+              backgroundColor: `${stageConfig.accentColor}15`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              {React.createElement(stageConfig.icon, { className: "h-5 w-5", style: { color: stageConfig.accentColor } })}
+            </div>
+            <div>
+              <h2 style={{
                 margin: 0,
-                marginBottom: theme.spacing[5],
-                fontSize: theme.typography.fontSize.xl,
+                fontSize: theme.typography.fontSize.lg,
                 fontWeight: theme.typography.fontWeight.bold,
                 color: theme.colors.textPrimary,
               }}>
-                Job Details
+                {stageConfig.title}
               </h2>
+              <p style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.sm,
+                color: theme.colors.textSecondary,
+                marginTop: theme.spacing[1],
+              }}>
+                {stageConfig.subtitle}
+              </p>
+            </div>
+          </div>
 
-              <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[5] }}>
-                <div suppressHydrationWarning>
-                  <div suppressHydrationWarning style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    color: theme.colors.textSecondary,
-                    textTransform: 'uppercase',
-                    letterSpacing: '1px',
-                    marginBottom: theme.spacing[2],
-                  }}>
-                    Description
-                  </div>
-                  <div suppressHydrationWarning style={{
-                    fontSize: theme.typography.fontSize.base,
-                    color: theme.colors.textPrimary,
-                    lineHeight: 1.7,
-                    padding: theme.spacing[4],
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    borderRadius: theme.borderRadius.md,
-                    border: `1px solid ${theme.colors.border}`,
-                  }}>
-                    {job.description || 'No description provided'}
-                  </div>
-                </div>
+          {/* Stage-specific primary content */}
+          {currentStage === 'contract_pending' && (
+            <ContractManagement
+              jobId={resolvedParams.id}
+              userRole="contractor"
+              userId={user.id}
+            />
+          )}
 
-                {job.scheduled_start_date && (
-                  <div suppressHydrationWarning style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[3],
-                    padding: theme.spacing[4],
-                    backgroundColor: theme.colors.backgroundSecondary,
-                    borderRadius: theme.borderRadius.md,
-                    border: `1px solid ${theme.colors.border}`,
-                  }}>
-                    <div suppressHydrationWarning style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: theme.borderRadius.full,
-                      backgroundColor: `${theme.colors.primary}15`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}>
-                      <Calendar className="h-5 w-5" style={{ color: theme.colors.primary }} />
-                    </div>
-                    <div suppressHydrationWarning>
-                      <div suppressHydrationWarning style={{
-                        fontSize: theme.typography.fontSize.xs,
-                        fontWeight: theme.typography.fontWeight.semibold,
-                        color: theme.colors.textSecondary,
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px',
-                        marginBottom: theme.spacing[1],
-                      }}>
-                        Scheduled Start
-                      </div>
-                      <div suppressHydrationWarning style={{
-                        fontSize: theme.typography.fontSize.base,
-                        fontWeight: theme.typography.fontWeight.medium,
-                        color: theme.colors.textPrimary,
-                      }}>
-                        {new Date(job.scheduled_start_date).toLocaleDateString('en-GB', {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
-
-            {/* Homeowner Info Card */}
-            {homeowner && (
-              <Card padding="lg" hover={true} style={getCardHoverStyle()}>
-                <h2 suppressHydrationWarning style={{
-                  margin: 0,
-                  marginBottom: theme.spacing[5],
-                  fontSize: theme.typography.fontSize.xl,
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: theme.colors.textPrimary,
-                }}>
-                  Homeowner
-                </h2>
-
-                <div suppressHydrationWarning style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[4],
-                  padding: theme.spacing[4],
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  borderRadius: theme.borderRadius.md,
-                }}>
-                  <div suppressHydrationWarning style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: theme.borderRadius.full,
-                    background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primary}CC 100%)`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: theme.typography.fontSize.xl,
-                    fontWeight: theme.typography.fontWeight.bold,
-                    color: 'white',
-                    flexShrink: 0,
-                    boxShadow: theme.shadows.md,
-                  }}>
-                    {homeowner.first_name?.[0]}{homeowner.last_name?.[0]}
-                  </div>
-                  <div suppressHydrationWarning style={{ flex: 1 }}>
-                    <div suppressHydrationWarning style={{
-                      fontSize: theme.typography.fontSize.lg,
-                      fontWeight: theme.typography.fontWeight.bold,
-                      color: theme.colors.textPrimary,
-                      marginBottom: theme.spacing[1],
-                    }}>
-                      {homeowner.first_name} {homeowner.last_name}
-                    </div>
-                    <div suppressHydrationWarning style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      color: theme.colors.textSecondary,
-                      marginBottom: theme.spacing[1],
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[2],
-                    }}>
-                      <Mail className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
-                      {homeowner.email}
-                    </div>
-                    {homeowner.phone && (
-                      <div suppressHydrationWarning style={{
-                        fontSize: theme.typography.fontSize.sm,
-                        color: theme.colors.textSecondary,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: theme.spacing[2],
-                      }}>
-                        <Phone className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
-                        {homeowner.phone}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Photo Upload */}
+          {(currentStage === 'ready_to_start' || currentStage === 'in_progress' || currentStage === 'completed') && (
             <JobPhotoUpload
               jobId={resolvedParams.id}
               jobStatus={job.status || 'posted'}
@@ -549,136 +256,292 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
               longitude={job.longitude}
               location={job.location}
             />
-          </div>
+          )}
 
-          {/* Right Column - Actions & Progress */}
-          <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
-            {/* Contract Management */}
-            {job.status === 'assigned' && (
+          {(currentStage === 'contract_preparing' || currentStage === 'awaiting_payment') && messageHref && (
+            <Link href={messageHref} className="block" style={{ marginTop: theme.spacing[2] }}>
+              <Button variant="primary" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
+                Message Homeowner
+              </Button>
+            </Link>
+          )}
+        </Card>
+      )}
+
+      {/* ═══ ZONE 3: HORIZONTAL PROGRESS STEPPER ═══ */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        padding: `${theme.spacing[4]} ${theme.spacing[3]}`,
+        backgroundColor: theme.colors.surface,
+        borderRadius: theme.borderRadius.lg,
+        border: `1px solid ${theme.colors.border}`,
+        marginBottom: theme.spacing[6],
+        overflowX: 'auto',
+      }}>
+        {steps.map((step, i) => (
+          <React.Fragment key={step.id}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              minWidth: '64px',
+              flex: 1,
+            }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: step.completed
+                  ? theme.colors.success
+                  : step.active
+                    ? theme.colors.primary
+                    : theme.colors.backgroundTertiary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: step.completed || step.active ? theme.shadows.sm : 'none',
+              }}>
+                {step.completed ? (
+                  <Check className="h-4 w-4 text-white" />
+                ) : step.active ? (
+                  React.createElement(step.icon, { className: "h-4 w-4", style: { color: 'white' } })
+                ) : (
+                  React.createElement(step.icon, { className: "h-3.5 w-3.5", style: { color: theme.colors.textTertiary } })
+                )}
+              </div>
+              <span style={{
+                fontSize: '11px',
+                color: step.completed || step.active ? theme.colors.textPrimary : theme.colors.textTertiary,
+                fontWeight: step.active ? theme.typography.fontWeight.bold : theme.typography.fontWeight.medium,
+                marginTop: theme.spacing[2],
+                textAlign: 'center',
+                lineHeight: 1.2,
+              }}>
+                {step.label}
+              </span>
+            </div>
+            {i < steps.length - 1 && (
+              <div style={{
+                flex: 1,
+                height: '2px',
+                minWidth: '12px',
+                maxWidth: '60px',
+                backgroundColor: step.completed ? theme.colors.success : theme.colors.border,
+                marginTop: '15px',
+              }} />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* ═══ ZONE 4: SUPPORTING CONTENT ═══ */}
+      <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: theme.spacing[6] }}>
+        {/* Left Column - Info */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+          {/* Budget */}
+          <Card padding="lg" hover={false}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.textSecondary,
+                  textTransform: 'uppercase',
+                  letterSpacing: '1.2px',
+                  marginBottom: theme.spacing[1],
+                }}>
+                  Budget
+                </div>
+                <div style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.textPrimary,
+                }}>
+                  £{Number(job.budget || 0).toLocaleString()}
+                </div>
+              </div>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: theme.borderRadius.full,
+                backgroundColor: `${theme.colors.success}15`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <PoundSterling className="h-5 w-5" style={{ color: theme.colors.success }} />
+              </div>
+            </div>
+          </Card>
+
+          {/* Job Details */}
+          <Card padding="lg" hover={false}>
+            <h3 style={{
+              margin: 0,
+              marginBottom: theme.spacing[4],
+              fontSize: theme.typography.fontSize.base,
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.textPrimary,
+            }}>
+              Job Details
+            </h3>
+            <div style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: theme.colors.textPrimary,
+              lineHeight: 1.7,
+              padding: theme.spacing[3],
+              backgroundColor: theme.colors.backgroundSecondary,
+              borderRadius: theme.borderRadius.md,
+            }}>
+              {job.description || 'No description provided'}
+            </div>
+            {job.scheduled_start_date && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[3],
+                marginTop: theme.spacing[4],
+                padding: theme.spacing[3],
+                backgroundColor: theme.colors.backgroundSecondary,
+                borderRadius: theme.borderRadius.md,
+              }}>
+                <Calendar className="h-4 w-4" style={{ color: theme.colors.primary, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, marginBottom: '2px' }}>
+                    Scheduled Start
+                  </div>
+                  <div style={{ fontSize: theme.typography.fontSize.sm, fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textPrimary }}>
+                    {new Date(job.scheduled_start_date).toLocaleDateString('en-GB', {
+                      weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* Homeowner */}
+          {homeowner && (
+            <Card padding="lg" hover={false}>
+              <h3 style={{
+                margin: 0,
+                marginBottom: theme.spacing[3],
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+              }}>
+                Homeowner
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: theme.borderRadius.full,
+                  background: `linear-gradient(135deg, ${theme.colors.primary} 0%, ${theme.colors.primary}CC 100%)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: theme.typography.fontSize.base,
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: 'white',
+                  flexShrink: 0,
+                }}>
+                  {homeowner.first_name?.[0]}{homeowner.last_name?.[0]}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: theme.typography.fontSize.base,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textPrimary,
+                    marginBottom: '2px',
+                  }}>
+                    {homeowner.first_name} {homeowner.last_name}
+                  </div>
+                  <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, display: 'flex', alignItems: 'center', gap: theme.spacing[1] }}>
+                    <Mail className="h-3 w-3" />
+                    {homeowner.email}
+                  </div>
+                  {homeowner.phone && (
+                    <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, display: 'flex', alignItems: 'center', gap: theme.spacing[1], marginTop: '2px' }}>
+                      <Phone className="h-3 w-3" />
+                      {homeowner.phone}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column - Stage-filtered Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+          {/* Contract summary (collapsed) - only when signed and not the primary action */}
+          {currentStage !== 'contract_pending' && (currentStage === 'awaiting_payment' || currentStage === 'ready_to_start') && (
+            <Card padding="lg" hover={false}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: theme.spacing[2] }}>
+                <h3 style={{ margin: 0, fontSize: theme.typography.fontSize.base, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.textPrimary }}>
+                  Contract
+                </h3>
+                <span style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  color: theme.colors.success,
+                  backgroundColor: `${theme.colors.success}10`,
+                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                  borderRadius: theme.borderRadius.full,
+                }}>
+                  Signed
+                </span>
+              </div>
               <ContractManagement
                 jobId={resolvedParams.id}
                 userRole="contractor"
                 userId={user.id}
               />
-            )}
-
-            {/* Job Scheduling */}
-            {job.status === 'assigned' && (
-              <JobScheduling
-                jobId={resolvedParams.id}
-                userRole="contractor"
-                userId={user.id}
-                currentSchedule={{
-                  scheduled_start_date: job.scheduled_start_date || contract?.start_date || null,
-                  scheduled_end_date: job.scheduled_end_date || contract?.end_date || null,
-                  scheduled_duration_hours: job.scheduled_duration_hours || null,
-                }}
-                contractStatus={contractStatus}
-              />
-            )}
-
-            {/* On My Way + Location Sharing - Side by Side */}
-            {(job.status === 'assigned' || job.status === 'in_progress') && (
-              <div suppressHydrationWarning className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: theme.spacing[4] }}>
-                <OnMyWayButton
-                  jobId={resolvedParams.id}
-                  contractorId={user.id}
-                />
-                {job.status === 'assigned' && (
-                  <LocationSharing
-                    jobId={resolvedParams.id}
-                    contractorId={user.id}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Job Progress Lifecycle */}
-            <Card padding="lg" hover={false}>
-              <h2 suppressHydrationWarning style={{
-                margin: 0,
-                marginBottom: theme.spacing[5],
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-              }}>
-                Job Progress
-              </h2>
-
-              <div suppressHydrationWarning style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-                {[
-                  { label: 'Bid Accepted', status: 'assigned', completed: true, icon: UserCheck },
-                  { label: 'Contract Signed', status: 'contract', completed: contractStatus === 'accepted', icon: Briefcase },
-                  { label: 'Payment in Escrow', status: 'escrow', completed: escrowHeld, icon: PoundSterling },
-                  { label: 'Work In Progress', status: 'in_progress', completed: job.status === 'in_progress' || job.status === 'completed', icon: Loader2 },
-                  { label: 'Work Completed', status: 'completed', completed: job.status === 'completed', icon: CheckCircle2 },
-                  { label: 'Approved & Paid', status: 'paid', completed: escrowStatus === 'released', icon: Check },
-                ].map((step, index) => (
-                  <div
-                    key={step.status}
-                    suppressHydrationWarning
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing[4],
-                      padding: theme.spacing[3],
-                      borderRadius: theme.borderRadius.md,
-                      backgroundColor: step.completed ? `${theme.colors.success}08` : 'transparent',
-                      border: step.completed ? `1px solid ${theme.colors.success}20` : `1px solid transparent`,
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    <div suppressHydrationWarning style={{
-                      position: 'relative',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <div suppressHydrationWarning style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: theme.borderRadius.full,
-                        backgroundColor: step.completed ? theme.colors.success : theme.colors.backgroundTertiary,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        boxShadow: step.completed ? theme.shadows.sm : 'none',
-                      }}>
-                        {step.completed ? (
-                          <Check className="h-5 w-5 text-white" />
-                        ) : (
-                          React.createElement(step.icon, { className: "h-[18px] w-[18px]", style: { color: theme.colors.textTertiary } })
-                        )}
-                      </div>
-                      {index < 5 && (
-                        <div suppressHydrationWarning style={{
-                          position: 'absolute',
-                          top: '44px',
-                          left: '50%',
-                          transform: 'translateX(-50%)',
-                          width: '2px',
-                          height: theme.spacing[4],
-                          backgroundColor: step.completed ? theme.colors.success : theme.colors.border,
-                        }} />
-                      )}
-                    </div>
-                    <div suppressHydrationWarning style={{ flex: 1 }}>
-                      <div suppressHydrationWarning style={{
-                        fontSize: theme.typography.fontSize.base,
-                        fontWeight: step.completed ? theme.typography.fontWeight.bold : theme.typography.fontWeight.medium,
-                        color: step.completed ? theme.colors.textPrimary : theme.colors.textSecondary,
-                      }}>
-                        {step.label}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </Card>
-          </div>
+          )}
+
+          {/* Scheduling - only after contract accepted */}
+          {(currentStage === 'awaiting_payment' || currentStage === 'ready_to_start' || currentStage === 'in_progress') && (
+            <JobScheduling
+              jobId={resolvedParams.id}
+              userRole="contractor"
+              userId={user.id}
+              currentSchedule={{
+                scheduled_start_date: job.scheduled_start_date || contract?.start_date || null,
+                scheduled_end_date: job.scheduled_end_date || contract?.end_date || null,
+                scheduled_duration_hours: job.scheduled_duration_hours || null,
+              }}
+              contractStatus={contractStatus}
+            />
+          )}
+
+          {/* On My Way + Location Sharing - only when work is relevant */}
+          {(currentStage === 'ready_to_start' || currentStage === 'in_progress') && (
+            <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: theme.spacing[4] }}>
+              <OnMyWayButton
+                jobId={resolvedParams.id}
+                contractorId={user.id}
+              />
+              <LocationSharing
+                jobId={resolvedParams.id}
+                contractorId={user.id}
+              />
+            </div>
+          )}
+
+          {/* Message Homeowner - always available */}
+          {messageHref && (
+            <Link href={messageHref} className="block">
+              <Button variant="secondary" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
+                Message Homeowner
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
+    </div>
   );
 }
-
