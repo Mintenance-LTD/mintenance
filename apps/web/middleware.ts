@@ -39,6 +39,15 @@ import type { JWTPayload } from '@mintenance/types';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Coming Soon mode: redirect all traffic to /coming-soon in production
+  if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'coming-soon') {
+    const allowed = ['/coming-soon', '/_next', '/favicon.ico', '/api/coming-soon'];
+    const isAllowed = allowed.some(p => pathname.startsWith(p)) || /\.(png|jpg|jpeg|svg|ico|css|js|woff2?)$/.test(pathname);
+    if (!isAllowed) {
+      return NextResponse.redirect(new URL('/coming-soon', request.url));
+    }
+  }
+
   // Define public routes that don't require authentication
   // IMPORTANT: Public route check MUST happen before ConfigManager to ensure
   // login, CSRF, session-status, and diag routes work even if config fails
