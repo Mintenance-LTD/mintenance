@@ -1,5 +1,5 @@
 import React, { useState, useRef, KeyboardEvent } from 'react';
-import { Paperclip, Smile, ExternalLink, X, FileIcon, Loader2 } from 'lucide-react';
+import { Paperclip, Smile, ExternalLink, X, File, Loader2 } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
@@ -116,7 +116,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       {/* Pending file preview */}
       {pendingFile && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: `${theme.spacing.sm} ${theme.spacing.md}`, backgroundColor: theme.colors.backgroundSecondary, borderBottom: `1px solid ${theme.colors.border}` }}>
-          <FileIcon size={16} style={{ color: theme.colors.primary }} />
+          <File size={16} style={{ color: theme.colors.primary }} />
           <span style={{ fontSize: '13px', color: theme.colors.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pendingFile.name}</span>
           <button onClick={() => setPendingFile(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: theme.colors.textSecondary }}>
             <X size={16} />
