@@ -96,6 +96,51 @@ export const POST = withApiHandler(
   }
 );
 
+// PATCH: Update a training record
+export const PATCH = withApiHandler(
+  { roles: ['contractor'] },
+  async (request: NextRequest, { user }) => {
+    const body = await request.json();
+    const { id, ...updates } = body;
+
+    if (!id) throw new BadRequestError('Missing training id');
+
+    const { data: existing } = await serverSupabase
+      .from('contractor_training')
+      .select('id')
+      .eq('id', id)
+      .eq('contractor_id', user.id)
+      .single();
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Training record not found' }, { status: 404 });
+    }
+
+    const dbUpdates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (updates.courseName !== undefined) dbUpdates.course_name = updates.courseName;
+    if (updates.provider !== undefined) dbUpdates.provider = updates.provider;
+    if (updates.completionDate !== undefined) dbUpdates.completion_date = updates.completionDate;
+    if (updates.hours !== undefined) dbUpdates.hours = updates.hours;
+    if (updates.certificateUrl !== undefined) dbUpdates.certificate_url = updates.certificateUrl;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+    if (updates.skills !== undefined) dbUpdates.skills = updates.skills;
+    if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
+
+    const { error } = await serverSupabase
+      .from('contractor_training')
+      .update(dbUpdates)
+      .eq('id', id)
+      .eq('contractor_id', user.id);
+
+    if (error) {
+      logger.error('Error updating training', error, { service: 'training', userId: user.id });
+      throw new InternalServerError('Failed to update training record');
+    }
+
+    return NextResponse.json({ success: true });
+  }
+);
+
 // DELETE: Remove a training record
 export const DELETE = withApiHandler(
   { roles: ['contractor'] },

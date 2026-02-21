@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
+import toast from 'react-hot-toast';
 import {
   Plus,
   FileText,
@@ -212,33 +215,42 @@ const StatusBadge = ({ status }: { status: InvoiceStatus }) => {
 };
 
 // Action Menu Component - lighter styling
-const ActionMenu = ({ invoice }: { invoice: Invoice }) => {
+const ActionMenu = ({ invoice, onSend, onMarkPaid, onRemind, onDelete, onDownloadPDF }: {
+  invoice: Invoice;
+  onSend: (id: string) => void;
+  onMarkPaid: (id: string) => void;
+  onRemind: (id: string) => void;
+  onDelete: (id: string) => void;
+  onDownloadPDF: (id: string) => void;
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const actions = useMemo(() => {
     const baseActions: InvoiceAction[] = [
       { icon: Eye, label: 'View Details', href: `/invoices/${invoice.id}` },
-      { icon: Download, label: 'Download PDF', action: () => {} }, // logger.info('Download', invoice.id', { service: 'ui' })
+      { icon: Download, label: 'Download PDF', action: () => onDownloadPDF(invoice.id) },
     ];
 
     if (invoice.status === 'draft') {
       baseActions.unshift(
         { icon: Edit, label: 'Edit Invoice', href: `/invoices/${invoice.id}/edit` },
-        { icon: Send, label: 'Send to Client', action: () => {} }, // logger.info('Send', invoice.id', { service: 'ui' })
+        { icon: Send, label: 'Send to Client', action: () => onSend(invoice.id) },
       );
     } else if (invoice.status === 'sent' || invoice.status === 'overdue' || invoice.status === 'partial') {
       baseActions.unshift(
-        { icon: CheckCircle, label: 'Mark as Paid', action: () => {} }, // logger.info('Mark paid', invoice.id', { service: 'ui' })
-        { icon: Send, label: 'Send Reminder', action: () => {} }, // logger.info('Remind', invoice.id', { service: 'ui' })
+        { icon: CheckCircle, label: 'Mark as Paid', action: () => onMarkPaid(invoice.id) },
+        { icon: Send, label: 'Send Reminder', action: () => onRemind(invoice.id) },
       );
     }
 
-    baseActions.push(
-      { icon: Trash2, label: 'Delete', action: () => {}, danger: true }, // logger.info('Delete', invoice.id', { service: 'ui' })
-    );
+    if (invoice.status !== 'paid') {
+      baseActions.push(
+        { icon: Trash2, label: 'Delete', action: () => onDelete(invoice.id), danger: true },
+      );
+    }
 
     return baseActions;
-  }, [invoice]);
+  }, [invoice, onSend, onMarkPaid, onRemind, onDelete, onDownloadPDF]);
 
   return (
     <div className="relative">
@@ -299,7 +311,14 @@ const ActionMenu = ({ invoice }: { invoice: Invoice }) => {
 };
 
 // Invoice Card Component - Calendar styling
-const InvoiceCard = ({ invoice }: { invoice: Invoice }) => {
+const InvoiceCard = ({ invoice, onSend, onMarkPaid, onRemind, onDelete, onDownloadPDF }: {
+  invoice: Invoice;
+  onSend: (id: string) => void;
+  onMarkPaid: (id: string) => void;
+  onRemind: (id: string) => void;
+  onDelete: (id: string) => void;
+  onDownloadPDF: (id: string) => void;
+}) => {
   const isOverdue = invoice.status === 'overdue';
   const isPaid = invoice.status === 'paid';
   const isDraft = invoice.status === 'draft';
@@ -338,7 +357,7 @@ const InvoiceCard = ({ invoice }: { invoice: Invoice }) => {
             </div>
           </div>
 
-          <ActionMenu invoice={invoice} />
+          <ActionMenu invoice={invoice} onSend={onSend} onMarkPaid={onMarkPaid} onRemind={onRemind} onDelete={onDelete} onDownloadPDF={onDownloadPDF} />
         </div>
 
         {/* Divider */}
@@ -387,7 +406,7 @@ const InvoiceCard = ({ invoice }: { invoice: Invoice }) => {
                     Edit
                   </button>
                 </Link>
-                <button className="px-5 py-2.5 rounded-lg bg-teal-600 text-white font-medium hover:bg-teal-700 transition-all text-sm">
+                <button onClick={() => onSend(invoice.id)} className="px-5 py-2.5 rounded-lg bg-teal-600 text-white font-medium hover:bg-teal-700 transition-all text-sm">
                   <Send className="w-4 h-4 inline mr-1.5" />
                   Send
                 </button>
@@ -396,11 +415,11 @@ const InvoiceCard = ({ invoice }: { invoice: Invoice }) => {
 
             {(invoice.status === 'sent' || invoice.status === 'partial') && (
               <>
-                <button className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all text-sm">
+                <button onClick={() => onRemind(invoice.id)} className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all text-sm">
                   <Send className="w-4 h-4 inline mr-1.5" />
                   Remind
                 </button>
-                <button className="px-5 py-2.5 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-all text-sm">
+                <button onClick={() => onMarkPaid(invoice.id)} className="px-5 py-2.5 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-all text-sm">
                   <CheckCircle className="w-4 h-4 inline mr-1.5" />
                   Mark Paid
                 </button>
@@ -409,11 +428,11 @@ const InvoiceCard = ({ invoice }: { invoice: Invoice }) => {
 
             {isOverdue && (
               <>
-                <button className="px-5 py-2.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-all text-sm">
+                <button onClick={() => onRemind(invoice.id)} className="px-5 py-2.5 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-all text-sm">
                   <AlertCircle className="w-4 h-4 inline mr-1.5" />
                   Send Reminder
                 </button>
-                <button className="px-4 py-2.5 rounded-lg border border-green-300 text-green-700 font-medium hover:bg-green-50 transition-all text-sm">
+                <button onClick={() => onMarkPaid(invoice.id)} className="px-4 py-2.5 rounded-lg border border-green-300 text-green-700 font-medium hover:bg-green-50 transition-all text-sm">
                   <CheckCircle className="w-4 h-4 inline mr-1.5" />
                   Mark Paid
                 </button>
@@ -428,7 +447,7 @@ const InvoiceCard = ({ invoice }: { invoice: Invoice }) => {
                     View
                   </button>
                 </Link>
-                <button className="px-5 py-2.5 rounded-lg bg-gray-900 text-white font-medium hover:bg-gray-800 transition-all text-sm">
+                <button onClick={() => onDownloadPDF(invoice.id)} className="px-5 py-2.5 rounded-lg bg-gray-900 text-white font-medium hover:bg-gray-800 transition-all text-sm">
                   <Download className="w-4 h-4 inline mr-1.5" />
                   Download
                 </button>
@@ -511,10 +530,103 @@ const EmptyState = ({ filter }: { filter: string }) => (
 );
 
 // Main Component
-export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementClientProps) {
+export function InvoiceManagementClient({ invoices: initialInvoices, stats }: InvoiceManagementClientProps) {
+  const router = useRouter();
+  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [selectedFilter, setSelectedFilter] = useState<(typeof FILTERS)[number]['id']>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const updateInvoiceStatus = useCallback(async (invoiceId: string, status: string) => {
+    const previous = [...invoices];
+    setInvoices(prev => prev.map(inv => inv.id === invoiceId ? { ...inv, status: status as InvoiceStatus } : inv));
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const res = await fetch(`/api/contractor/invoices?id=${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        credentials: 'include',
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to update invoice'); }
+      return true;
+    } catch (error) {
+      setInvoices(previous);
+      toast.error(error instanceof Error ? error.message : 'Failed to update invoice');
+      return false;
+    }
+  }, [invoices]);
+
+  const handleSend = useCallback(async (invoiceId: string) => {
+    const ok = await updateInvoiceStatus(invoiceId, 'sent');
+    if (ok) toast.success('Invoice sent to client');
+  }, [updateInvoiceStatus]);
+
+  const handleMarkPaid = useCallback(async (invoiceId: string) => {
+    const ok = await updateInvoiceStatus(invoiceId, 'paid');
+    if (ok) toast.success('Invoice marked as paid');
+  }, [updateInvoiceStatus]);
+
+  const handleRemind = useCallback(async (invoiceId: string) => {
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const res = await fetch(`/api/contractor/invoices?id=${invoiceId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        credentials: 'include',
+        body: JSON.stringify({ status: 'sent' }),
+      });
+      if (!res.ok) throw new Error('Failed to send reminder');
+      toast.success('Payment reminder sent');
+    } catch {
+      toast.error('Failed to send reminder');
+    }
+  }, []);
+
+  const handleDelete = useCallback(async (invoiceId: string) => {
+    if (!confirm('Are you sure you want to delete this invoice?')) return;
+    const previous = [...invoices];
+    setInvoices(prev => prev.filter(inv => inv.id !== invoiceId));
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const res = await fetch(`/api/contractor/invoices?id=${invoiceId}`, {
+        method: 'DELETE',
+        headers: { ...csrfHeaders },
+        credentials: 'include',
+      });
+      if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to delete invoice'); }
+      toast.success('Invoice deleted');
+    } catch (error) {
+      setInvoices(previous);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete invoice');
+    }
+  }, [invoices]);
+
+  const handleDownloadPDF = useCallback((invoiceId: string) => {
+    window.open(`/api/contractor/invoices/${invoiceId}/pdf`, '_blank');
+  }, []);
+
+  const handleExportCSV = useCallback(() => {
+    const headers = ['Invoice #', 'Client', 'Email', 'Amount', 'Status', 'Due Date', 'Created'];
+    const rows = invoices.map(inv => [
+      inv.invoice_number,
+      inv.client_name,
+      inv.client_email || '',
+      inv.total_amount.toFixed(2),
+      inv.status,
+      inv.due_date,
+      inv.created_at,
+    ]);
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoices-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Invoices exported to CSV');
+  }, [invoices]);
 
   // Calculate enhanced stats
   const enhancedStats = useMemo(() => {
@@ -676,7 +788,7 @@ export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementCl
             className="space-y-4"
           >
             {filteredInvoices.map((invoice) => (
-              <InvoiceCard key={invoice.id} invoice={invoice} />
+              <InvoiceCard key={invoice.id} invoice={invoice} onSend={handleSend} onMarkPaid={handleMarkPaid} onRemind={handleRemind} onDelete={handleDelete} onDownloadPDF={handleDownloadPDF} />
             ))}
           </motion.div>
         )}
@@ -706,7 +818,7 @@ export function InvoiceManagementClient({ invoices, stats }: InvoiceManagementCl
               </div>
             </div>
 
-            <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all">
+            <button onClick={handleExportCSV} className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all">
               <Download className="w-4 h-4" />
               Export to CSV
             </button>

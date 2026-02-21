@@ -46,6 +46,7 @@ export default function CertificationsPage() {
   // Training form state
   const [showTrainingModal, setShowTrainingModal] = useState(false);
   const [submittingTraining, setSubmittingTraining] = useState(false);
+  const [editingTrainingId, setEditingTrainingId] = useState<string | null>(null);
   const [tFormCourseName, setTFormCourseName] = useState('');
   const [tFormProvider, setTFormProvider] = useState('');
   const [tFormCompletionDate, setTFormCompletionDate] = useState('');
@@ -144,46 +145,75 @@ export default function CertificationsPage() {
     } finally { setInitiatingDBS(false); }
   };
 
+  const handleEditTraining = (id: string) => {
+    const t = training.find((tr) => tr.id === id);
+    if (!t) return;
+    setEditingTrainingId(id);
+    setTFormCourseName(t.courseName);
+    setTFormProvider(t.provider);
+    setTFormCompletionDate(t.completionDate);
+    setTFormHours(String(t.hours));
+    setTFormCategory(t.category);
+    setTFormSkills(t.skills.join(', '));
+    setShowTrainingModal(true);
+  };
+
+  const handleEditCertification = (id: string) => {
+    router.push(`/contractor/certifications/${id}/edit`);
+  };
+
   const handleAddTraining = async () => {
     if (!tFormCourseName.trim()) { toast.error('Course name is required'); return; }
     if (!tFormProvider.trim()) { toast.error('Provider is required'); return; }
     if (!tFormCompletionDate) { toast.error('Completion date is required'); return; }
 
     setSubmittingTraining(true);
+    const payload = {
+      courseName: tFormCourseName.trim(),
+      provider: tFormProvider.trim(),
+      completionDate: tFormCompletionDate,
+      hours: Number(tFormHours) || 0,
+      category: tFormCategory,
+      skills: tFormSkills ? tFormSkills.split(',').map((s) => s.trim()).filter(Boolean) : [],
+    };
+
     try {
       const csrfHeaders = await getCsrfHeaders();
-      const res = await fetch('/api/contractor/training', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
-        credentials: 'include',
-        body: JSON.stringify({
-          courseName: tFormCourseName.trim(),
-          provider: tFormProvider.trim(),
-          completionDate: tFormCompletionDate,
-          hours: Number(tFormHours) || 0,
-          category: tFormCategory,
-          skills: tFormSkills ? tFormSkills.split(',').map((s) => s.trim()).filter(Boolean) : [],
-        }),
-      });
 
-      if (!res.ok) {
+      if (editingTrainingId) {
+        const res = await fetch('/api/contractor/training', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+          credentials: 'include',
+          body: JSON.stringify({ id: editingTrainingId, ...payload }),
+        });
+        if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to update training'); }
+        setTraining((prev) => prev.map((t) => t.id === editingTrainingId ? { ...t, ...payload } : t));
+        toast.success('Training record updated');
+      } else {
+        const res = await fetch('/api/contractor/training', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to add training'); }
         const data = await res.json();
-        throw new Error(data.error || 'Failed to add training');
+        setTraining((prev) => [data.training, ...prev]);
+        toast.success('Training record added');
       }
 
-      const data = await res.json();
-      setTraining((prev) => [data.training, ...prev]);
-      toast.success('Training record added');
       setShowTrainingModal(false);
       resetTrainingForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add training');
+      toast.error(error instanceof Error ? error.message : 'Failed to save training');
     } finally {
       setSubmittingTraining(false);
     }
   };
 
   const resetTrainingForm = () => {
+    setEditingTrainingId(null);
     setTFormCourseName('');
     setTFormProvider('');
     setTFormCompletionDate('');
@@ -284,7 +314,7 @@ export default function CertificationsPage() {
                 <MotionDiv key="certifications" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4">
                   <DBSCheckSection loadingDBS={loadingDBS} dbsCheckStatus={dbsCheckStatus} initiatingDBS={initiatingDBS} onInitiateDBS={handleInitiateDBSCheck} />
                   {filteredCertifications.map((cert) => (
-                    <CertificationCard key={cert.id} cert={cert} onDelete={handleDeleteCertification} />
+                    <CertificationCard key={cert.id} cert={cert} onDelete={handleDeleteCertification} onEdit={handleEditCertification} />
                   ))}
                   {loadingCertifications ? (
                     <div className="text-center py-12"><Loader2 className="w-8 h-8 animate-spin text-teal-600 mx-auto" /></div>
@@ -304,7 +334,7 @@ export default function CertificationsPage() {
                   ) : (
                     <>
                       {filteredTraining.map((train) => (
-                        <TrainingCard key={train.id} train={train} onDelete={handleDeleteTraining} />
+                        <TrainingCard key={train.id} train={train} onDelete={handleDeleteTraining} onEdit={handleEditTraining} />
                       ))}
                       {filteredTraining.length === 0 && (
                         <div className="text-center py-12">
@@ -331,7 +361,7 @@ export default function CertificationsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <MotionDiv initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Add Training Record</h3>
+              <h3 className="text-xl font-bold text-gray-900">{editingTrainingId ? 'Edit Training Record' : 'Add Training Record'}</h3>
               <button onClick={() => { setShowTrainingModal(false); setShowAddModal(false); resetTrainingForm(); }} className="p-1 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
@@ -386,7 +416,7 @@ export default function CertificationsPage() {
               <button onClick={handleAddTraining} disabled={submittingTraining}
                 className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 {submittingTraining && <Loader2 className="w-4 h-4 animate-spin" />}
-                Add Training
+                {editingTrainingId ? 'Save Changes' : 'Add Training'}
               </button>
             </div>
           </MotionDiv>

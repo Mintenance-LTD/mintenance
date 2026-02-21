@@ -622,7 +622,7 @@ export const updateInvoiceSchema = z.object({
     .max(2000, 'Notes too long')
     .optional(),
   dueDate: z.string().optional(),
-  status: z.enum(['draft', 'sent']).optional(),
+  status: z.enum(['draft', 'sent', 'paid', 'cancelled']).optional(),
   clientName: z.string()
     .min(1, 'Client name is required')
     .max(200, 'Client name too long')

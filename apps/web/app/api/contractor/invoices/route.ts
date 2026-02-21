@@ -398,6 +398,69 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
+// DELETE: Remove an invoice (draft/sent only)
+export async function DELETE(request: NextRequest) {
+  try {
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+      windowMs: 60000,
+      maxRequests: 30,
+    });
+
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rateLimitResult.retryAfter || 60) } }
+      );
+    }
+
+    await requireCSRF(request);
+
+    const user = await getCurrentUserFromCookies();
+    if (!user || user.role !== 'contractor') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const invoiceId = searchParams.get('id');
+    if (!invoiceId) {
+      return NextResponse.json({ error: 'Invoice ID is required' }, { status: 400 });
+    }
+
+    const { data: existing } = await serverSupabase
+      .from('contractor_invoices')
+      .select('id, contractor_id, status')
+      .eq('id', invoiceId)
+      .eq('contractor_id', user.id)
+      .single();
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });
+    }
+
+    if (existing.status === 'paid') {
+      return NextResponse.json({ error: 'Cannot delete paid invoices' }, { status: 400 });
+    }
+
+    const { error } = await serverSupabase
+      .from('contractor_invoices')
+      .delete()
+      .eq('id', invoiceId)
+      .eq('contractor_id', user.id);
+
+    if (error) {
+      logger.error('Error deleting invoice', error);
+      return NextResponse.json({ error: 'Failed to delete invoice' }, { status: 500 });
+    }
+
+    logger.info('Invoice deleted', { invoiceId, contractorId: user.id });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    logger.error('Unexpected error in DELETE /api/contractor/invoices', error);
+    return NextResponse.json({ error: 'Failed to delete invoice' }, { status: 500 });
+  }
+}
+
 // Helper function to send invoice email (implement with your email service)
 async function sendInvoiceEmail(invoice: Record<string, unknown>, contractor: Record<string, unknown>): Promise<void> {
   // TODO: Implement email sending logic

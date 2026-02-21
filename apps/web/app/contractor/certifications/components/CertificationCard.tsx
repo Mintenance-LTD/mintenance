@@ -19,6 +19,7 @@ interface Certification {
 interface CertificationCardProps {
   cert: Certification;
   onDelete: (id: string, name: string) => void;
+  onEdit: (id: string) => void;
 }
 
 function getStatusColor(status: Certification['status']) {
@@ -37,7 +38,7 @@ function calculateDaysUntilExpiry(expiryDate?: string) {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
-export function CertificationCard({ cert, onDelete }: CertificationCardProps) {
+export function CertificationCard({ cert, onDelete, onEdit }: CertificationCardProps) {
   const daysUntilExpiry = calculateDaysUntilExpiry(cert.expiryDate);
 
   return (
@@ -83,11 +84,11 @@ export function CertificationCard({ cert, onDelete }: CertificationCardProps) {
         </div>
         <div className="flex flex-wrap gap-2">
           {cert.documentUrl && (
-            <button onClick={() => toast.success('Downloading certificate...')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+            <button onClick={() => window.open(cert.documentUrl, '_blank')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
               <Download className="w-4 h-4" />Download
             </button>
           )}
-          <button onClick={() => toast.success('Edit functionality coming soon')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+          <button onClick={() => onEdit(cert.id)} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
             <Edit className="w-4 h-4" />Edit
           </button>
           <button onClick={() => onDelete(cert.id, cert.name)} className="flex items-center gap-2 px-4 py-2 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm">
