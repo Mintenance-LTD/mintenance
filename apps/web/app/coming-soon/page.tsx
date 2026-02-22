@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, FormEvent } from 'react';
+import Image from 'next/image';
 import { motion, useInView } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import {
@@ -232,9 +233,7 @@ export default function ComingSoonPage() {
       <nav className="sticky top-0 z-50 border-b border-navy-100 bg-white/90 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <a href="/coming-soon" className="flex items-center gap-2" aria-label="Mintenance home">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600">
-              <span className="text-sm font-bold text-white">M</span>
-            </div>
+            <Image src="/assets/icon.png" alt="" width={36} height={36} className="rounded-lg" priority />
             <span className="text-lg font-semibold tracking-tight text-navy-900">
               Mintenance
             </span>
@@ -541,9 +540,7 @@ export default function ComingSoonPage() {
       <footer className="border-t border-navy-100 bg-navy-900 py-12">
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <div className="mb-4 flex items-center justify-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-600">
-              <span className="text-xs font-bold text-white">M</span>
-            </div>
+            <Image src="/assets/icon.png" alt="" width={28} height={28} className="rounded-md" />
             <span className="text-sm font-semibold text-white">Mintenance</span>
           </div>
           <p className="text-sm leading-relaxed text-navy-300">
