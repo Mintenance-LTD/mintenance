@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { BuildingSurveyorService } from '@/lib/services/building-surveyor';
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
-import { logger } from '@mintenance/shared';
-import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { z } from 'zod';
-import { serverSupabase } from '@/lib/api/supabaseServer';
 import * as crypto from 'crypto';
 
 export const runtime = 'nodejs';
@@ -26,6 +21,34 @@ const demoRequestSchema = z.object({
  * Does NOT require authentication (for demo purposes only)
  */
 export async function POST(request: NextRequest) {
+    // Dynamic imports to prevent module-level crashes that cause 405
+    let logger: Awaited<typeof import('@mintenance/shared')>['logger'];
+    let rateLimiter: Awaited<typeof import('@/lib/rate-limiter')>['rateLimiter'];
+    let handleAPIError: Awaited<typeof import('@/lib/errors/api-error')>['handleAPIError'];
+    let BadRequestError: Awaited<typeof import('@/lib/errors/api-error')>['BadRequestError'];
+    let serverSupabase: Awaited<typeof import('@/lib/api/supabaseServer')>['serverSupabase'];
+    let BuildingSurveyorService: Awaited<typeof import('@/lib/services/building-surveyor')>['BuildingSurveyorService'];
+
+    try {
+      const shared = await import('@mintenance/shared');
+      logger = shared.logger;
+      const rl = await import('@/lib/rate-limiter');
+      rateLimiter = rl.rateLimiter;
+      const apiErr = await import('@/lib/errors/api-error');
+      handleAPIError = apiErr.handleAPIError;
+      BadRequestError = apiErr.BadRequestError;
+      const sb = await import('@/lib/api/supabaseServer');
+      serverSupabase = sb.serverSupabase;
+      const bs = await import('@/lib/services/building-surveyor');
+      BuildingSurveyorService = bs.BuildingSurveyorService;
+    } catch (importError) {
+      console.error('Demo route: failed to load dependencies', importError);
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable', details: importError instanceof Error ? importError.message : 'Module load failure' },
+        { status: 503 }
+      );
+    }
+
     logger.debug('Demo route called');
     logger.info('Building Surveyor Demo: Request received', {
       service: 'mint-ai-demo',
