@@ -46,6 +46,8 @@ export async function middleware(request: NextRequest) {
     if (!isAllowed) {
       return NextResponse.redirect(new URL('/coming-soon', request.url));
     }
+    // Allow the coming-soon page and its assets through without auth
+    return NextResponse.next();
   }
 
   // Define public routes that don't require authentication
