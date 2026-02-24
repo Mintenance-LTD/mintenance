@@ -47,7 +47,12 @@ export const registerSchema = z.object({
       if (!val || typeof val !== 'string' || val.trim() === '') {
         return undefined;
       }
-      return val.replace(/[\s\-()]/g, ''); // Strip spaces, dashes, and parentheses
+      const stripped = val.replace(/[\s\-()]/g, ''); // Strip spaces, dashes, and parentheses
+      // Convert UK domestic format (07xxx, 01xxx, 02xxx) to E.164 (+44xxx)
+      if (/^0\d{9,10}$/.test(stripped)) {
+        return '+44' + stripped.slice(1);
+      }
+      return stripped;
     },
     z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number').optional()
   ),
@@ -224,7 +229,14 @@ export const updateProfileSchema = z.object({
     .transform(val => sanitizeText(val, 100))
     .optional(),
   phone: z.string()
-    .transform(val => val.replace(/[\s\-()]/g, '')) // Strip spaces, dashes, and parentheses
+    .transform(val => {
+      const stripped = val.replace(/[\s\-()]/g, ''); // Strip spaces, dashes, and parentheses
+      // Convert UK domestic format (07xxx, 01xxx, 02xxx) to E.164 (+44xxx)
+      if (/^0\d{9,10}$/.test(stripped)) {
+        return '+44' + stripped.slice(1);
+      }
+      return stripped;
+    })
     .pipe(z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'))
     .optional(),
   bio: z.string()
