@@ -30,8 +30,8 @@ export class NotificationAgent {
   private static readonly NOTIFICATION_PRIORITIES: NotificationPriority = {
     urgent: ['dispute', 'payment_issue', 'security_alert', 'account_suspended'],
     high: ['bid_accepted', 'job_assigned', 'payment_released', 'job_cancelled'],
-    medium: ['bid_received', 'message_received', 'review_request', 'job_reminder'],
-    low: ['weekly_summary', 'marketing', 'feature_update', 'system_notification'],
+    medium: ['bid_received', 'message_received', 'review_request', 'review', 'job_reminder', 'review_milestone'],
+    low: ['weekly_summary', 'marketing', 'feature_update', 'system_notification', 'low_activity_nudge'],
   };
 
   /**

@@ -1,5 +1,6 @@
 import { Job } from '@mintenance/types';
 import { logger } from '../utils/logger';
+import { mobileApiClient } from '../utils/mobileApiClient';
 
 export interface AIAnalysis {
   confidence: number;
@@ -27,32 +28,35 @@ export class AIAnalysisService {
    */
   static async analyzeJobPhotos(job: Job): Promise<AIAnalysis | null> {
     try {
-      // Check if job has photos for analysis
+      // Try web API first for real AI analysis
+      const apiResult = await this.analyzeViaAPI(job);
+      if (apiResult) return apiResult;
+    } catch (err) {
+      logger.warn('API analysis unavailable, using local fallback', err);
+    }
+
+    try {
       if (!job.photos || job.photos.length === 0) {
         return this.generateCategoryBasedAnalysis(job);
       }
-
-      // TODO: Replace with real AI service integration
-      // Example implementations:
-
-      // Option 1: OpenAI GPT-4 Vision
-      // return await this.analyzeWithOpenAI(job.photos, job);
-
-      // Option 2: Google Cloud Vision
-      // return await this.analyzeWithGoogleVision(job.photos, job);
-
-      // Option 3: AWS Rekognition + Textract
-      // return await this.analyzeWithAWS(job.photos, job);
-
-      // For now, return intelligent fallback analysis
       return this.generateEnhancedAnalysis(job);
     } catch (error) {
-      logger.error(
-        'AI analysis failed, falling back to category analysis:',
-        error
-      );
+      logger.error('AI analysis failed, falling back to category analysis:', error);
       return this.generateCategoryBasedAnalysis(job);
     }
+  }
+
+  /**
+   * Analyze via web API (server-side AI)
+   */
+  private static async analyzeViaAPI(job: Job): Promise<AIAnalysis | null> {
+    const response = await mobileApiClient.post<{ analysis?: AIAnalysis }>('/api/ai/analyze', {
+      jobId: job.id,
+      category: job.category,
+      description: job.description,
+      photos: job.photos,
+    });
+    return response.analysis || null;
   }
 
   /**

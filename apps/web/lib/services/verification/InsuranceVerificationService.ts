@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 /**
  * UK trade insurance types relevant to property maintenance
@@ -351,16 +352,13 @@ export class InsuranceVerificationService {
       });
 
       // Notify contractors
-      const notifications = data.map(d => ({
-        user_id: d.contractor_id,
+      await Promise.all(data.map(d => NotificationService.createNotification({
+        userId: d.contractor_id,
         title: 'Insurance Expired',
         message: 'Your insurance policy has expired. Please upload a renewed certificate to maintain your verified status.',
         type: 'verification_expired',
-        read: false,
-        action_url: '/contractor/verification?tab=insurance',
-      }));
-
-      await serverSupabase.from('notifications').insert(notifications);
+        actionUrl: '/contractor/verification?tab=insurance',
+      })));
     }
 
     return data?.length || 0;

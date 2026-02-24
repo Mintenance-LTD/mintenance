@@ -13,50 +13,54 @@ import { useHaptics } from '../../utils/haptics';
 interface QuickActionsProps {
   onBrowseJobsPress: () => void;
   onInboxPress: () => void;
+  onQuotesPress?: () => void;
+  onInvoicesPress?: () => void;
+  onExpensesPress?: () => void;
+  onCalendarPress?: () => void;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({
   onBrowseJobsPress,
   onInboxPress,
+  onQuotesPress,
+  onInvoicesPress,
+  onExpensesPress,
+  onCalendarPress,
 }) => {
   const haptics = useHaptics();
+
+  const actions = [
+    { label: 'Browse Jobs', subtitle: 'Find opportunities', icon: 'search', color: theme.colors.primary, onPress: onBrowseJobsPress },
+    { label: 'Inbox', subtitle: 'Messages & updates', icon: 'mail', color: theme.colors.accent, onPress: onInboxPress },
+    ...(onQuotesPress ? [{ label: 'Quotes', subtitle: 'Build & send', icon: 'document-text', color: '#8B5CF6', onPress: onQuotesPress }] : []),
+    ...(onInvoicesPress ? [{ label: 'Invoices', subtitle: 'Manage billing', icon: 'receipt', color: '#F59E0B', onPress: onInvoicesPress }] : []),
+    ...(onExpensesPress ? [{ label: 'Expenses', subtitle: 'Track costs', icon: 'wallet', color: '#EF4444', onPress: onExpensesPress }] : []),
+    ...(onCalendarPress ? [{ label: 'Calendar', subtitle: 'Schedule & plan', icon: 'calendar', color: '#10B981', onPress: onCalendarPress }] : []),
+  ];
 
   return (
     <View style={styles.quickActionsSection}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
-      
-      <View style={styles.actionsGrid}>
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => {
-            haptics.buttonPress();
-            onBrowseJobsPress();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Browse available jobs"
-        >
-          <View style={styles.actionIcon}>
-            <Ionicons name="search" size={24} color={theme.colors.primary} />
-          </View>
-          <Text style={styles.actionTitle}>Browse Jobs</Text>
-          <Text style={styles.actionSubtitle}>Find new opportunities</Text>
-        </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => {
-            haptics.buttonPress();
-            onInboxPress();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel="Open inbox"
-        >
-          <View style={styles.actionIcon}>
-            <Ionicons name="mail" size={24} color={theme.colors.accent} />
-          </View>
-          <Text style={styles.actionTitle}>Inbox</Text>
-          <Text style={styles.actionSubtitle}>Messages & updates</Text>
-        </TouchableOpacity>
+      <View style={styles.actionsGrid}>
+        {actions.map((action) => (
+          <TouchableOpacity
+            key={action.label}
+            style={styles.actionCard}
+            onPress={() => {
+              haptics.buttonPress();
+              action.onPress();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+          >
+            <View style={styles.actionIcon}>
+              <Ionicons name={action.icon as keyof typeof Ionicons.glyphMap} size={24} color={action.color} />
+            </View>
+            <Text style={styles.actionTitle}>{action.label}</Text>
+            <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </View>
   );
@@ -74,13 +78,14 @@ const styles = StyleSheet.create({
   },
   actionsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
   actionCard: {
-    flex: 1,
+    width: '47%',
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
-    padding: 20,
+    padding: 16,
     alignItems: 'center',
     ...theme.shadows.base,
   },

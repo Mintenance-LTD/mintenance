@@ -6,6 +6,7 @@ import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 // Transform empty strings to undefined so optional validators work correctly
 const emptyToUndefined = z.literal('').transform(() => undefined);
@@ -241,14 +242,12 @@ export async function POST(request: NextRequest) {
       const typeLabel = locationType === 'remote' ? 'video call' : locationType === 'phone' ? 'phone call' : 'on-site visit';
 
       if (homeownerId) {
-        await serverSupabase.from('notifications').insert({
-          user_id: homeownerId,
+        await NotificationService.createNotification({
+          userId: homeownerId,
           type: 'appointment_scheduled',
           title: 'Appointment Scheduled',
           message: `${contractorName} scheduled a ${typeLabel}: "${title}" on ${dateStr} at ${startTime}`,
-          data: { appointmentId: newAppointment.id, jobId, contractorId: user.id },
-          read: false,
-          created_at: new Date().toISOString(),
+          metadata: { appointmentId: newAppointment.id, jobId, contractorId: user.id },
         });
       }
     } catch (notifErr) {

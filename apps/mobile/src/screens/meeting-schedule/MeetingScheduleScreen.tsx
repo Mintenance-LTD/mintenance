@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, TextInput, View, Text } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, TextInput, View, Text, KeyboardAvoidingView, Platform } from 'react-native';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { useMeetingScheduleViewModel } from './viewmodels/MeetingScheduleViewModel';
@@ -48,7 +48,8 @@ export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) =>
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <MeetingHeader contractor={contractor} job={job} />
 
         <DateTimeSelector
@@ -90,6 +91,7 @@ export const MeetingScheduleScreen: React.FC<Props> = ({ route, navigation }) =>
           />
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <ScheduleActions
         loading={viewModel.loading}

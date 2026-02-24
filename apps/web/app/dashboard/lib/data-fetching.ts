@@ -14,7 +14,7 @@ import {
   getCachedUserQuotes,
   getCachedUser
 } from '@/lib/cache';
-import { RecommendationsService } from '@/lib/services/RecommendationsService';
+import { RecommendationsService, MaintenanceRecommendation } from '@/lib/services/RecommendationsService';
 import { OnboardingService } from '@/lib/services/OnboardingService';
 import { Job, Property, Subscription, Payment, MessageWithContent, BidWithRelations, QuoteWithRelations } from './types';
 
@@ -33,7 +33,7 @@ export interface DashboardData {
   properties: Property[];
   subscriptions: Subscription[];
   payments: Payment[];
-  recommendations: unknown[];
+  recommendations: MaintenanceRecommendation[];
   onboardingStatus: {
     completed: boolean;
   };

@@ -1,8 +1,8 @@
 /**
  * HomeownerDashboard Component
  *
- * Airbnb-style homeowner dashboard with profile header,
- * stats overview, quick services, and recent jobs.
+ * Homeowner dashboard with profile header,
+ * stats overview, bids, appointments, and recent jobs.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -16,7 +16,6 @@ import {
   Image,
   Modal,
   Pressable,
-  FlatList,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,63 +24,24 @@ import { JobService } from '../../services/JobService';
 import { BidService, Bid as ServiceBid } from '../../services/BidService';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
-import type { Property } from '@mintenance/types';
 import { theme } from '../../theme';
 import { logger } from '../../utils/logger';
-import { QuickServices } from './QuickServices';
 import { RecentJobs } from './RecentJobs';
-import { WelcomeBanner } from './WelcomeBanner';
 import { StatsCards } from './StatsCards';
 import { BidsReceived } from './BidsReceived';
 
 const appIcon = require('../../../assets/icon.png');
 
-function formatRelativeTime(timestamp: string): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return 'just now';
-}
-
 export const HomeownerDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<unknown>();
 
-  const [homeownerJobs, setHomeownerJobs] = useState<unknown[]>([]);
+  const [homeownerJobs, setHomeownerJobs] = useState<{ id?: string; status?: string; title?: string; [key: string]: unknown }[]>([]);
   const [recentBids, setRecentBids] = useState<{ id: string; contractorName: string; jobTitle: string; amount: number; status: string; jobId: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showPropertyPicker, setShowPropertyPicker] = useState(false);
-  const [showUrgencyPicker, setShowUrgencyPicker] = useState(false);
-  const [selectedSearchProperty, setSelectedSearchProperty] = useState<Property | null>(null);
-  const [selectedUrgency, setSelectedUrgency] = useState<'low' | 'medium' | 'high'>('medium');
-
-  const { data: properties } = useQuery({
-    queryKey: ['properties', user?.id],
-    queryFn: async () => {
-      const res = await apiClient.get<{ properties: Property[] }>('/api/properties');
-      return res.properties || [];
-    },
-    enabled: !!user,
-  });
-
-  // Fetch real notifications for recent activity
-  const { data: notifications } = useQuery({
-    queryKey: ['notifications', user?.id],
-    queryFn: async () => {
-      const res = await apiClient.get<Array<{ id: string; type: string; title: string; message: string; created_at: string }>>('/api/notifications');
-      return Array.isArray(res) ? res.slice(0, 5) : [];
-    },
-    enabled: !!user,
-  });
 
   // Fetch upcoming appointments
   const { data: appointments } = useQuery({
@@ -110,8 +70,8 @@ export const HomeownerDashboard: React.FC = () => {
 
       // Fetch recent bids for homeowner's active jobs
       const activeJobIds = (jobs || [])
-        .filter((j: { status?: string }) => j?.status === 'posted' || j?.status === 'assigned')
-        .map((j: { id?: string }) => j?.id)
+        .filter((j) => j?.status === 'posted' || j?.status === 'assigned')
+        .map((j) => j?.id)
         .filter(Boolean) as string[];
 
       if (activeJobIds.length > 0) {
@@ -120,8 +80,8 @@ export const HomeownerDashboard: React.FC = () => {
           try {
             const bids = await BidService.getBidsByJob(jobId, 'pending');
             allBids.push(...bids);
-          } catch {
-            // Skip individual job bid fetch errors
+          } catch (bidErr) {
+            logger.warn('Failed to fetch bids for job', { jobId, error: bidErr });
           }
         }
         setRecentBids(
@@ -151,23 +111,11 @@ export const HomeownerDashboard: React.FC = () => {
       try {
         const jobs = await JobService.getUserJobs(user.id);
         setHomeownerJobs(jobs || []);
-      } catch {}
+      } catch (err) {
+        logger.error('Failed to refresh dashboard', err);
+      }
     }
     setRefreshing(false);
-  };
-
-  const openJobPosting = () => {
-    navigation.navigate('JobsTab', { screen: 'JobPosting' });
-  };
-
-  const openServiceRequest = () => {
-    (navigation as any).navigate('Modal', {
-      screen: 'ServiceRequest',
-      params: {
-        ...(selectedSearchProperty ? { propertyId: selectedSearchProperty.id } : {}),
-        ...(selectedUrgency !== 'medium' ? { priority: selectedUrgency } : {}),
-      },
-    });
   };
 
   const openJobsList = () => {
@@ -193,9 +141,9 @@ export const HomeownerDashboard: React.FC = () => {
   const userInitial = userName[0].toUpperCase();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Clean top bar - Web dashboard style */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity
           style={styles.brandButton}
           onPress={() => navigation.navigate('HomeTab' as never)}
@@ -277,111 +225,6 @@ export const HomeownerDashboard: React.FC = () => {
         </Pressable>
       </Modal>
 
-      {/* Property picker modal */}
-      <Modal
-        visible={showPropertyPicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowPropertyPicker(false)}
-      >
-        <Pressable style={styles.pickerOverlay} onPress={() => setShowPropertyPicker(false)}>
-          <Pressable style={styles.pickerSheet}>
-            <View style={styles.pickerHandle} />
-            <Text style={styles.pickerTitle}>Select Property</Text>
-            {properties && properties.length > 0 ? (
-              <FlatList
-                data={properties}
-                keyExtractor={(item) => item.id}
-                style={styles.pickerList}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.pickerOption,
-                      selectedSearchProperty?.id === item.id && styles.pickerOptionActive,
-                    ]}
-                    onPress={() => {
-                      setSelectedSearchProperty(item);
-                      setShowPropertyPicker(false);
-                    }}
-                  >
-                    <Ionicons
-                      name="home-outline"
-                      size={20}
-                      color={selectedSearchProperty?.id === item.id ? theme.colors.primary : theme.colors.textSecondary}
-                    />
-                    <View style={styles.pickerOptionText}>
-                      <Text style={styles.pickerOptionTitle}>{item.property_name}</Text>
-                      <Text style={styles.pickerOptionSubtitle} numberOfLines={2}>{item.address}</Text>
-                    </View>
-                    {selectedSearchProperty?.id === item.id && (
-                      <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} />
-                    )}
-                  </TouchableOpacity>
-                )}
-              />
-            ) : (
-              <View style={styles.pickerEmpty}>
-                <Ionicons name="home-outline" size={32} color={theme.colors.textTertiary} />
-                <Text style={styles.pickerEmptyText}>No properties added yet</Text>
-                <TouchableOpacity
-                  style={styles.pickerAddButton}
-                  onPress={() => {
-                    setShowPropertyPicker(false);
-                    (navigation as any).navigate('ProfileTab', { screen: 'AddProperty' });
-                  }}
-                >
-                  <Ionicons name="add" size={18} color={theme.colors.textInverse} />
-                  <Text style={styles.pickerAddButtonText}>Add Property</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Urgency picker modal */}
-      <Modal
-        visible={showUrgencyPicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowUrgencyPicker(false)}
-      >
-        <Pressable style={styles.pickerOverlay} onPress={() => setShowUrgencyPicker(false)}>
-          <Pressable style={styles.pickerSheet}>
-            <View style={styles.pickerHandle} />
-            <Text style={styles.pickerTitle}>How urgent is this?</Text>
-            {([
-              { id: 'low' as const, label: 'Low', desc: 'Can wait a few days', color: '#34C759', icon: 'time-outline' as const },
-              { id: 'medium' as const, label: 'Medium', desc: 'This week if possible', color: '#FF9500', icon: 'alert-circle-outline' as const },
-              { id: 'high' as const, label: 'Urgent', desc: 'Needs attention ASAP', color: '#FF3B30', icon: 'warning-outline' as const },
-            ]).map((opt) => (
-              <TouchableOpacity
-                key={opt.id}
-                style={[
-                  styles.pickerOption,
-                  selectedUrgency === opt.id && styles.pickerOptionActive,
-                ]}
-                onPress={() => {
-                  setSelectedUrgency(opt.id);
-                  setShowUrgencyPicker(false);
-                }}
-              >
-                <View style={[styles.urgencyDot, { backgroundColor: opt.color }]}>
-                  <Ionicons name={opt.icon} size={18} color="#FFFFFF" />
-                </View>
-                <View style={styles.pickerOptionText}>
-                  <Text style={styles.pickerOptionTitle}>{opt.label}</Text>
-                  <Text style={styles.pickerOptionSubtitle}>{opt.desc}</Text>
-                </View>
-                {selectedUrgency === opt.id && (
-                  <Ionicons name="checkmark-circle" size={22} color={opt.color} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         testID='home-scroll-view'
@@ -389,28 +232,17 @@ export const HomeownerDashboard: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
       >
-        {/* Welcome greeting + Search */}
+        {/* Welcome greeting */}
         <View style={styles.welcomeRow}>
-          <Text style={styles.welcomeGreeting}>
+          <Text style={[styles.welcomeGreeting, { color: theme.colors.textSecondary }]}>
             Welcome back, {userName}
           </Text>
         </View>
-        <WelcomeBanner
-          onWherePress={() => setShowPropertyPicker(true)}
-          onUrgencyPress={() => setShowUrgencyPicker(true)}
-          onServicePress={openServiceRequest}
-          propertyLabel={selectedSearchProperty?.property_name}
-          urgencyLabel={
-            selectedUrgency === 'low' ? 'Low' :
-            selectedUrgency === 'high' ? 'Urgent' :
-            undefined
-          }
-        />
 
         <View style={styles.homeownerContent}>
           <StatsCards
-            activeJobs={homeownerJobs.filter((j: any) => j?.status === 'in_progress' || j?.status === 'assigned').length}
-            completedJobs={homeownerJobs.filter((j: any) => j?.status === 'completed').length}
+            activeJobs={homeownerJobs.filter((j) => j?.status === 'in_progress' || j?.status === 'assigned').length}
+            completedJobs={homeownerJobs.filter((j) => j?.status === 'completed').length}
           />
 
           <BidsReceived
@@ -449,29 +281,6 @@ export const HomeownerDashboard: React.FC = () => {
               ))}
             </View>
           )}
-
-          {/* Recent Activity */}
-          {(notifications && notifications.length > 0) && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Activity</Text>
-              </View>
-              {notifications.slice(0, 5).map((notif) => (
-                <View key={notif.id} style={styles.activityRow}>
-                  <View style={styles.activityDot} />
-                  <View style={styles.activityContent}>
-                    <Text style={styles.activityMessage} numberOfLines={2}>{notif.message || notif.title}</Text>
-                    <Text style={styles.activityTime}>{formatRelativeTime(notif.created_at)}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-
-          <QuickServices
-            onServicePress={openServiceRequest}
-            onBrowseAllPress={openJobPosting}
-          />
 
           <RecentJobs
             jobs={homeownerJobs}
@@ -630,93 +439,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  pickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  pickerSheet: {
-    backgroundColor: theme.colors.surface,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    maxHeight: '60%',
-  },
-  pickerHandle: {
-    width: 36,
-    height: 4,
-    backgroundColor: theme.colors.borderLight,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 16,
-  },
-  pickerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 16,
-  },
-  pickerList: {
-    maxHeight: 300,
-  },
-  pickerOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 4,
-    gap: 12,
-  },
-  pickerOptionActive: {
-    backgroundColor: '#F0FDF4',
-  },
-  pickerOptionText: {
-    flex: 1,
-  },
-  pickerOptionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  pickerOptionSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 1,
-  },
-  pickerEmpty: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 8,
-  },
-  pickerEmptyText: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-  },
-  pickerAddButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginTop: 8,
-    gap: 6,
-  },
-  pickerAddButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textInverse,
-  },
-  urgencyDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   // Sections
   section: {
     marginBottom: 24,
@@ -765,34 +487,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   appointmentContractor: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-    marginTop: 2,
-  },
-  // Activity
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-    paddingLeft: 4,
-  },
-  activityDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.colors.primary,
-    marginTop: 6,
-    marginRight: 10,
-  },
-  activityContent: {
-    flex: 1,
-  },
-  activityMessage: {
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-    lineHeight: 20,
-  },
-  activityTime: {
     fontSize: 12,
     color: theme.colors.textTertiary,
     marginTop: 2,

@@ -2,6 +2,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { DisputeWorkflowService } from '../disputes/DisputeWorkflowService';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import type { AgentResult, AgentContext } from './types';
 
 /**
@@ -81,25 +82,21 @@ export class DisputeResolutionAgent {
         }
 
         // Create notifications
-        await serverSupabase.from('notifications').insert([
-          {
-            user_id: escrow.homeowner_id,
+        await Promise.all([
+          NotificationService.createNotification({
+            userId: escrow.homeowner_id,
             title: 'Dispute Auto-Resolved',
             message: `Your dispute has been automatically resolved with a full refund.`,
             type: 'dispute_resolved',
-            read: false,
-            action_url: `/jobs/${escrow.job_id}`,
-            created_at: new Date().toISOString(),
-          },
-          {
-            user_id: escrow.contractor_id,
+            actionUrl: `/jobs/${escrow.job_id}`,
+          }),
+          NotificationService.createNotification({
+            userId: escrow.contractor_id,
             title: 'Dispute Resolved',
             message: `A dispute has been automatically resolved.`,
             type: 'dispute_resolved',
-            read: false,
-            action_url: `/contractor/jobs/${escrow.job_id}`,
-            created_at: new Date().toISOString(),
-          },
+            actionUrl: `/contractor/jobs/${escrow.job_id}`,
+          }),
         ]);
 
         // Log the decision

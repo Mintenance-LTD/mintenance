@@ -3,6 +3,7 @@ import { LRUCache } from 'lru-cache';
 import { logger } from '@mintenance/shared';
 import { getGoogleVisionConfig, validateGoogleVisionConfig } from '@/lib/config/google-vision.config';
 import { validateURLs } from '@/lib/security/url-validation';
+import { CircuitBreaker } from './building-surveyor/utils/CircuitBreaker';
 
 export interface ImageAnalysisResult {
   labels: Array<{ description: string; score: number }>;
@@ -31,6 +32,13 @@ export interface ImageAnalysisResult {
  */
 export class ImageAnalysisService {
   private static client: ImageAnnotatorClient | null = null;
+
+  // P1: Circuit breaker for Google Cloud Vision API
+  private static readonly circuitBreaker = new CircuitBreaker({
+    name: 'GoogleCloudVision',
+    failureThreshold: 3,
+    resetTimeoutMs: 300_000, // 5 minutes
+  });
 
   // LRU cache with automatic eviction and TTL (24 hours)
   // O(1) get/set operations, automatic memory management
@@ -144,6 +152,14 @@ export class ImageAnalysisService {
       return null;
     }
 
+    // P1: Check circuit breaker before making API calls
+    if (this.circuitBreaker.isOpen()) {
+      logger.warn('Google Vision circuit breaker open, skipping image analysis', {
+        service: 'ImageAnalysisService',
+      });
+      return null;
+    }
+
     // Limit number of images to analyze (cost optimization)
     const imagesToAnalyze = imageUrls.slice(0, limit);
 
@@ -181,18 +197,20 @@ export class ImageAnalysisService {
           try {
             // Process all three API calls in parallel for this image
             const [labelResult, objectResult, textResult] = await Promise.all([
-              // Label Detection with timeout and error handling
+              // Label Detection with timeout, retry, and error handling
               (async () => {
                 try {
-                  const labelPromise = client.labelDetection({ image: { source: { imageUri: imageUrl } } });
-                  const timeoutPromise = new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error('Label detection timeout')), API_TIMEOUT_MS)
-                  );
-                  const [result] = await Promise.race([labelPromise, timeoutPromise]) as [Record<string, unknown>];
-                  return result;
+                  return await this.retryCall(async () => {
+                    const labelPromise = client.labelDetection({ image: { source: { imageUri: imageUrl } } });
+                    const timeoutPromise = new Promise<never>((_, reject) =>
+                      setTimeout(() => reject(new Error('Label detection timeout')), API_TIMEOUT_MS)
+                    );
+                    const [result] = await Promise.race([labelPromise, timeoutPromise]) as [Record<string, unknown>];
+                    return result;
+                  }, 'labelDetection');
                 } catch (error: unknown) {
                   const err = error as Error;
-                  logger.warn('Label detection failed for image', {
+                  logger.warn('Label detection failed for image after retries', {
                     imageUrl,
                     error: err?.message || 'Unknown error',
                   });
@@ -200,21 +218,24 @@ export class ImageAnalysisService {
                 }
               })(),
 
-              // Object Localization with timeout and error handling
+              // Object Localization with timeout, retry, and error handling
               (async () => {
                 if (!client.objectLocalization) {
                   return null;
                 }
+                const objectLocalizationFn = client.objectLocalization.bind(client);
                 try {
-                  const objectPromise = client.objectLocalization({ image: { source: { imageUri: imageUrl } } });
-                  const timeoutPromise = new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error('Object localization timeout')), API_TIMEOUT_MS)
-                  );
-                  const objectLocalizationResult = await Promise.race([objectPromise, timeoutPromise]) as [Record<string, unknown>] | null;
-                  return objectLocalizationResult ? objectLocalizationResult[0] : null;
+                  return await this.retryCall(async () => {
+                    const objectPromise = objectLocalizationFn({ image: { source: { imageUri: imageUrl } } });
+                    const timeoutPromise = new Promise<never>((_, reject) =>
+                      setTimeout(() => reject(new Error('Object localization timeout')), API_TIMEOUT_MS)
+                    );
+                    const objectLocalizationResult = await Promise.race([objectPromise, timeoutPromise]) as [Record<string, unknown>] | null;
+                    return objectLocalizationResult ? objectLocalizationResult[0] : null;
+                  }, 'objectLocalization');
                 } catch (error: unknown) {
                   const err = error as Error;
-                  logger.warn('Object localization failed for image', {
+                  logger.warn('Object localization failed for image after retries', {
                     imageUrl,
                     error: err?.message || 'Unknown error',
                   });
@@ -222,18 +243,20 @@ export class ImageAnalysisService {
                 }
               })(),
 
-              // Text Detection with timeout and error handling
+              // Text Detection with timeout, retry, and error handling
               (async () => {
                 try {
-                  const textPromise = client.textDetection({ image: { source: { imageUri: imageUrl } } });
-                  const timeoutPromise = new Promise<never>((_, reject) =>
-                    setTimeout(() => reject(new Error('Text detection timeout')), API_TIMEOUT_MS)
-                  );
-                  const [result] = await Promise.race([textPromise, timeoutPromise]) as [Record<string, unknown>];
-                  return result;
+                  return await this.retryCall(async () => {
+                    const textPromise = client.textDetection({ image: { source: { imageUri: imageUrl } } });
+                    const timeoutPromise = new Promise<never>((_, reject) =>
+                      setTimeout(() => reject(new Error('Text detection timeout')), API_TIMEOUT_MS)
+                    );
+                    const [result] = await Promise.race([textPromise, timeoutPromise]) as [Record<string, unknown>];
+                    return result;
+                  }, 'textDetection');
                 } catch (error: unknown) {
                   const err = error as Error;
-                  logger.warn('Text detection failed for image', {
+                  logger.warn('Text detection failed for image after retries', {
                     imageUrl,
                     error: err?.message || 'Unknown error',
                   });
@@ -338,19 +361,48 @@ export class ImageAnalysisService {
 
       // Cache the result
       this.setCachedResult(cacheKey, result);
+      this.circuitBreaker.recordSuccess();
 
       return result;
     } catch (error) {
-      logger.error('Image analysis failed', { 
-        error, 
+      this.circuitBreaker.recordFailure();
+      logger.error('Image analysis failed', {
+        error,
         imageUrls: imagesToAnalyze.length,
         errorMessage: error instanceof Error ? error.message : 'Unknown error',
       });
-      
+
       // Return null on error (graceful degradation)
       // The caller will fall back to text-only analysis
       return null;
     }
+  }
+
+  /**
+   * P1: Retry a Vision API call with exponential backoff
+   */
+  private static async retryCall<T>(
+    fn: () => Promise<T>,
+    label: string,
+    maxRetries = 2,
+  ): Promise<T> {
+    let lastError: Error | null = null;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (attempt < maxRetries) {
+          const delay = 1000 * Math.pow(2, attempt); // 1s, 2s
+          logger.warn(`Vision API ${label} failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms`, {
+            service: 'ImageAnalysisService',
+            error: lastError.message,
+          });
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    throw lastError;
   }
 
   /**

@@ -2,6 +2,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { AutomationPreferencesService } from './AutomationPreferencesService';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import type { AgentResult, AgentContext } from './types';
 
 /**
@@ -156,25 +157,21 @@ export class BidAcceptanceAgent {
           .eq('id', jobId);
 
         // Create notifications
-        await serverSupabase.from('notifications').insert([
-          {
-            user_id: homeownerId,
+        await Promise.all([
+          NotificationService.createNotification({
+            userId: homeownerId,
             title: 'Bid Auto-Accepted',
             message: `A bid has been automatically accepted based on quality criteria.`,
             type: 'bid_accepted',
-            read: false,
-            action_url: `/jobs/${jobId}`,
-            created_at: new Date().toISOString(),
-          },
-          {
-            user_id: bid.contractor_id,
+            actionUrl: `/jobs/${jobId}`,
+          }),
+          NotificationService.createNotification({
+            userId: bid.contractor_id,
             title: 'Bid Accepted',
             message: `Your bid has been accepted!`,
             type: 'bid_accepted',
-            read: false,
-            action_url: `/contractor/jobs/${jobId}`,
-            created_at: new Date().toISOString(),
-          },
+            actionUrl: `/contractor/jobs/${jobId}`,
+          }),
         ]);
 
         // Log the decision

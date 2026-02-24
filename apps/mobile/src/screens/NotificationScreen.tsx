@@ -1,10 +1,10 @@
 /**
  * NotificationScreen Component
- * 
- * Displays user notifications with filtering and management options.
+ *
+ * Displays user notifications with filter tabs and compact card layout.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,90 +23,111 @@ import { NotificationService, NotificationData } from '../services/NotificationS
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 
-interface NotificationItemProps {
-  notification: NotificationData;
-  onPress: () => void;
-  onMarkAsRead: () => void;
+type FilterTab = 'all' | 'unread' | 'jobs' | 'payments' | 'messages';
+
+const FILTER_TABS: { key: FilterTab; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'unread', label: 'Unread' },
+  { key: 'jobs', label: 'Jobs' },
+  { key: 'payments', label: 'Payments' },
+  { key: 'messages', label: 'Messages' },
+];
+
+function formatRelativeTime(timestamp: string): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${days}d ago`;
+  if (hours > 0) return `${hours}h ago`;
+  if (minutes > 0) return `${minutes}m ago`;
+  return 'just now';
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({
-  notification,
-  onPress,
-  onMarkAsRead,
-}) => {
-  const getIconName = (type: NotificationData['type']) => {
-    switch (type) {
-      case 'job_update':
-        return 'briefcase-outline';
-      case 'bid_received':
-        return 'cash-outline';
-      case 'meeting_scheduled':
-        return 'calendar-outline';
-      case 'payment_received':
-        return 'card-outline';
-      case 'message_received':
-        return 'chatbubble-outline';
-      case 'quote_sent':
-        return 'document-text-outline';
-      case 'system':
-        return 'information-circle-outline';
-      default:
-        return 'notifications-outline';
-    }
-  };
-
-  const getPriorityColor = (priority: NotificationData['priority']) => {
-    switch (priority) {
-      case 'high':
-        return theme.colors.error;
-      case 'normal':
-        return theme.colors.primary;
-      case 'low':
-        return theme.colors.textSecondary;
-      default:
-        return theme.colors.textSecondary;
-    }
-  };
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.notificationItem,
-        !notification.read && styles.unreadNotification,
-      ]}
-      onPress={onPress}
-      onLongPress={onMarkAsRead}
-      accessibilityRole='button'
-      accessibilityLabel={`${notification.read ? '' : 'Unread: '}${notification.title}. ${notification.body}`}
-      accessibilityHint='Double tap to view, long press to mark as read'
-    >
-      <View style={styles.notificationContent}>
-        <View style={styles.iconContainer}>
-          <Ionicons
-            name={getIconName(notification.type)}
-            size={24}
-            color={getPriorityColor(notification.priority)}
-          />
-          {!notification.read && <View style={styles.unreadDot} />}
-        </View>
-        
-        <View style={styles.textContainer}>
-          <Text style={styles.notificationTitle}>{notification.title}</Text>
-          <Text style={styles.notificationBody} numberOfLines={2}>
-            {notification.body}
-          </Text>
-          <Text style={styles.notificationTime}>
-            {new Date(notification.createdAt).toLocaleDateString()} at{' '}
-            {new Date(notification.createdAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+const getIconName = (type: NotificationData['type']): keyof typeof Ionicons.glyphMap => {
+  switch (type) {
+    case 'job_update':
+      return 'briefcase-outline';
+    case 'bid_received':
+      return 'cash-outline';
+    case 'meeting_scheduled':
+      return 'calendar-outline';
+    case 'payment_received':
+      return 'card-outline';
+    case 'message_received':
+      return 'chatbubble-outline';
+    case 'quote_sent':
+      return 'document-text-outline';
+    case 'system':
+      return 'information-circle-outline';
+    default:
+      return 'notifications-outline';
+  }
 };
+
+const getIconColor = (type: NotificationData['type']): string => {
+  switch (type) {
+    case 'job_update':
+    case 'bid_received':
+    case 'quote_sent':
+      return theme.colors.primary;
+    case 'payment_received':
+      return '#F59E0B';
+    case 'message_received':
+      return '#3B82F6';
+    case 'meeting_scheduled':
+      return '#8B5CF6';
+    case 'system':
+      return theme.colors.textSecondary;
+    default:
+      return theme.colors.textSecondary;
+  }
+};
+
+const filterNotifications = (notifications: NotificationData[], tab: FilterTab): NotificationData[] => {
+  switch (tab) {
+    case 'unread':
+      return notifications.filter(n => !n.read);
+    case 'jobs':
+      return notifications.filter(n =>
+        ['job_update', 'bid_received', 'quote_sent'].includes(n.type)
+      );
+    case 'payments':
+      return notifications.filter(n => n.type === 'payment_received');
+    case 'messages':
+      return notifications.filter(n =>
+        ['message_received', 'meeting_scheduled'].includes(n.type)
+      );
+    default:
+      return notifications;
+  }
+};
+
+interface CompactNotificationProps {
+  notification: NotificationData;
+  onPress: () => void;
+}
+
+const CompactNotification: React.FC<CompactNotificationProps> = ({ notification, onPress }) => (
+  <TouchableOpacity
+    style={[styles.notifRow, !notification.read && styles.notifRowUnread]}
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={`${notification.read ? '' : 'Unread: '}${notification.title}`}
+  >
+    <View style={[styles.iconCircle, { backgroundColor: getIconColor(notification.type) + '14' }]}>
+      <Ionicons name={getIconName(notification.type)} size={18} color={getIconColor(notification.type)} />
+      {!notification.read && <View style={styles.unreadDot} />}
+    </View>
+    <View style={styles.notifContent}>
+      <Text style={styles.notifTitle} numberOfLines={1}>{notification.title}</Text>
+      <Text style={styles.notifBody} numberOfLines={1}>{notification.body}</Text>
+    </View>
+    <Text style={styles.notifTime}>{formatRelativeTime(notification.createdAt)}</Text>
+  </TouchableOpacity>
+);
 
 export const NotificationScreen: React.FC = () => {
   const { user } = useAuth();
@@ -116,16 +137,20 @@ export const NotificationScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<FilterTab>('all');
+
+  const filteredNotifications = useMemo(
+    () => filterNotifications(notifications, activeTab),
+    [notifications, activeTab]
+  );
 
   const loadNotifications = async () => {
     if (!user) return;
-
     try {
       const [notificationsData, count] = await Promise.all([
         NotificationService.getUserNotifications(user.id),
         NotificationService.getUnreadCount(user.id),
       ]);
-
       setNotifications(notificationsData);
       setUnreadCount(count);
       setError(null);
@@ -152,13 +177,12 @@ export const NotificationScreen: React.FC = () => {
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
 
-    // Navigate based on notification type and embedded data
     const data = notification.data as Record<string, string> | undefined;
     switch (notification.type) {
       case 'job_update':
       case 'payment_received':
       case 'quote_sent':
-      case 'bid_accepted':
+      case 'bid_accepted' as NotificationData['type']:
         if (data?.jobId) {
           navigation.navigate('Main', {
             screen: 'JobsTab',
@@ -205,19 +229,16 @@ export const NotificationScreen: React.FC = () => {
 
   const handleMarkAllAsRead = async () => {
     if (!user) return;
-
     Alert.alert(
       'Mark All as Read',
-      'Are you sure you want to mark all notifications as read?',
+      'Mark all notifications as read?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Mark All',
           onPress: async () => {
             await NotificationService.markAllAsRead(user.id);
-            setNotifications(prev =>
-              prev.map(n => ({ ...n, read: true }))
-            );
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
             setUnreadCount(0);
           },
         },
@@ -238,44 +259,60 @@ export const NotificationScreen: React.FC = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScreenHeader
         title="Notifications"
         rightComponent={
           unreadCount > 0 ? (
-            <TouchableOpacity
-              onPress={handleMarkAllAsRead}
-              accessibilityRole='button'
-              accessibilityLabel={`Mark all ${unreadCount} notifications as read`}
-            >
+            <TouchableOpacity onPress={handleMarkAllAsRead} accessibilityRole="button" accessibilityLabel="Mark all as read">
               <Text style={styles.markAllText}>Mark All</Text>
             </TouchableOpacity>
           ) : null
         }
       />
 
-      {notifications.length === 0 ? (
+      {/* Filter tabs */}
+      <View style={styles.tabsRow}>
+        {FILTER_TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          const count = tab.key === 'unread' ? unreadCount : undefined;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isActive }}
+            >
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {tab.label}
+                {count != null && count > 0 ? ` (${count})` : ''}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {filteredNotifications.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons
-            name="notifications-off-outline"
-            size={64}
-            color={theme.colors.textTertiary}
-            accessible={false}
-          />
-          <Text style={styles.emptyTitle}>No Notifications</Text>
+          <Ionicons name="notifications-off-outline" size={48} color={theme.colors.textTertiary} accessible={false} />
+          <Text style={styles.emptyTitle}>
+            {activeTab === 'unread' ? 'All caught up!' : 'No notifications'}
+          </Text>
           <Text style={styles.emptySubtitle}>
-            You're all caught up! New notifications will appear here.
+            {activeTab === 'unread'
+              ? 'You have no unread notifications.'
+              : 'New notifications will appear here.'}
           </Text>
         </View>
       ) : (
         <FlatList
-          data={notifications}
+          data={filteredNotifications}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
-            <NotificationItem
+            <CompactNotification
               notification={item}
               onPress={() => handleNotificationPress(item)}
-              onMarkAsRead={() => handleNotificationPress(item)}
             />
           )}
           refreshControl={
@@ -294,77 +331,113 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   listContainer: {
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: 16,
+    paddingTop: 4,
   },
-  notificationItem: {
+  // Filter tabs
+  tabsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  tab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: theme.colors.background,
+  },
+  tabActive: {
+    backgroundColor: theme.colors.primary,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  tabTextActive: {
+    color: theme.colors.textInverse,
+    fontWeight: '600',
+  },
+  // Compact notification row
+  notifRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.sm,
+    borderRadius: 10,
+    marginBottom: 6,
   },
-  unreadNotification: {
-    borderLeftWidth: 4,
+  notifRowUnread: {
+    borderLeftWidth: 3,
     borderLeftColor: theme.colors.primary,
   },
-  notificationContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  iconContainer: {
-    marginRight: theme.spacing.md,
+  iconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
     position: 'relative',
   },
   unreadDot: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    top: -1,
+    right: -1,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: theme.colors.error,
   },
-  textContainer: {
+  notifContent: {
     flex: 1,
+    marginRight: 8,
   },
-  notificationTitle: {
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.semibold,
+  notifTitle: {
+    fontSize: 14,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginBottom: theme.spacing.xs,
+    marginBottom: 1,
   },
-  notificationBody: {
-    fontSize: theme.typography.fontSize.md,
+  notifBody: {
+    fontSize: 12,
     color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.sm,
-    lineHeight: 20,
+    lineHeight: 16,
   },
-  notificationTime: {
-    fontSize: theme.typography.fontSize.sm,
+  notifTime: {
+    fontSize: 11,
     color: theme.colors.textTertiary,
+    minWidth: 40,
+    textAlign: 'right',
   },
+  // Header actions
   markAllText: {
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 14,
     color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.medium,
+    fontWeight: '500',
   },
+  // Empty state
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: 40,
   },
   emptyTitle: {
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: 17,
+    fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.sm,
+    marginTop: 12,
+    marginBottom: 4,
   },
   emptySubtitle: {
-    fontSize: theme.typography.fontSize.md,
+    fontSize: 14,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
 });

@@ -46,6 +46,7 @@ export default async function DashboardPage2025() {
     properties,
     subscriptions,
     payments,
+    recommendations,
     onboardingStatus,
   } = dashboardData;
 
@@ -263,6 +264,7 @@ export default async function DashboardPage2025() {
     pendingBids,
     recentActivity,
     upcomingAppointments,
+    recommendations,
   };
 
   return (

@@ -31,7 +31,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = () => {
   // This container focuses on role-based rendering
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <ResponsiveContainer
         maxWidth={{
           mobile: undefined,
@@ -43,7 +43,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = () => {
           tablet: 16,
           desktop: 24,
         }}
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
         testID='home-screen'
       >
         {user?.role === 'homeowner' ? (

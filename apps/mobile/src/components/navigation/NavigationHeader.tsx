@@ -72,7 +72,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const showRightActions = !rightIcon && (onNotificationPress || userInitials);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }, style]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.borderLight }, style]}>
       <View style={styles.headerContent}>
         {/* Left Icon - Logo or Back */}
         {showBackIcon ? (

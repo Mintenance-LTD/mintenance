@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import { HapticService } from '../../utils/haptics';
 import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -92,9 +93,11 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             setSigning(true);
             try {
               await mobileApiClient.post(`/api/contracts/${contract.id}/accept`, {});
+              HapticService.success();
               Alert.alert('Signed', 'Contract signed successfully.');
               await fetchContract();
             } catch (err) {
+              HapticService.error();
               Alert.alert('Error', 'Failed to sign contract. Please try again.');
             } finally {
               setSigning(false);
@@ -105,10 +108,12 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }, [contract, fetchContract]);
 
+  const nonSignableStatuses = ['accepted', 'draft', 'rejected', 'cancelled'];
   const canSign =
     contract &&
-    ((userRole === 'contractor' && !contract.contractor_signed_at && contract.status !== 'accepted') ||
-      (userRole === 'homeowner' && !contract.homeowner_signed_at && contract.status !== 'accepted'));
+    !nonSignableStatuses.includes(contract.status) &&
+    ((userRole === 'contractor' && !contract.contractor_signed_at) ||
+      (userRole === 'homeowner' && !contract.homeowner_signed_at));
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('en-GB', {

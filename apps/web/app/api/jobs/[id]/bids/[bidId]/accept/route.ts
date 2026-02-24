@@ -4,6 +4,7 @@ import { createServerSupabaseClient } from '@/lib/api/supabaseServer';
 import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingService';
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { requireCSRF } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, ConflictError, InternalServerError } from '@/lib/errors/api-error';
@@ -239,24 +240,16 @@ export async function POST(
         bidAmount: Number(bid.amount || 0),
       });
 
-      const notificationData = {
-        user_id: bid.contractor_id,
+      const notificationId = await NotificationService.createNotification({
+        userId: bid.contractor_id,
         title: 'Bid Accepted! 🎉',
         message: `Congratulations! Your bid of £${Number(bid.amount || 0).toLocaleString()} for "${jobDetails?.title || 'the job'}" has been accepted. You can now contact the homeowner and create a contract.`,
         type: 'bid_accepted',
-        read: false,
-        action_url: `/contractor/jobs/${jobId}`,
-        created_at: new Date().toISOString(),
-      };
+        actionUrl: `/contractor/jobs/${jobId}`,
+      });
 
-      const { data: insertedNotification, error: notificationError } = await serverSupabase
-        .from('notifications')
-        .insert(notificationData)
-        .select()
-        .single();
-
-      if (notificationError) {
-        logger.error('Failed to create bid acceptance notification', notificationError, {
+      if (!notificationId) {
+        logger.error('Failed to create bid acceptance notification', {
           service: 'jobs',
           contractorId: bid.contractor_id,
           bidId,
@@ -268,7 +261,7 @@ export async function POST(
           contractorId: bid.contractor_id,
           bidId,
           jobId,
-          notificationId: insertedNotification?.id,
+          notificationId,
         });
       }
     } catch (notificationError) {
@@ -283,14 +276,12 @@ export async function POST(
 
     // Notify homeowner that bid was accepted (confirmation)
     try {
-      await serverSupabase.from('notifications').insert({
-        user_id: user.id,
+      await NotificationService.createNotification({
+        userId: user.id,
         title: 'Bid Accepted',
         message: `You accepted a bid of £${Number(bid.amount || 0).toLocaleString()} for "${jobDetails?.title || 'your job'}". A contract has been created - review and sign it to proceed.`,
         type: 'bid_accepted',
-        read: false,
-        action_url: `/jobs/${jobId}`,
-        created_at: new Date().toISOString(),
+        actionUrl: `/jobs/${jobId}`,
       });
     } catch (err) {
       logger.error('Failed to create homeowner bid acceptance notification', err, { service: 'jobs', jobId });
@@ -349,14 +340,12 @@ export async function POST(
         });
 
         // Notify contractor about the new message
-        await serverSupabase.from('notifications').insert({
-          user_id: bid.contractor_id,
+        await NotificationService.createNotification({
+          userId: bid.contractor_id,
           title: 'New Message',
           message: `You have a new message from the homeowner about "${jobDetails?.title || 'your job'}"`,
           type: 'message',
-          read: false,
-          action_url: `/contractor/messages`,
-          created_at: new Date().toISOString(),
+          actionUrl: `/contractor/messages`,
         });
       }
     } catch (messageError) {
@@ -405,25 +394,21 @@ export async function POST(
         });
 
         // Notify both parties about the contract
-        await serverSupabase.from('notifications').insert([
-          {
-            user_id: bid.contractor_id,
+        await Promise.all([
+          NotificationService.createNotification({
+            userId: bid.contractor_id,
             title: 'Contract Ready for Review',
             message: `A contract for "${jobDetails?.title || 'the job'}" has been created. Review the terms and sign to proceed.`,
             type: 'contract_created',
-            read: false,
-            action_url: `/contractor/jobs/${jobId}`,
-            created_at: new Date().toISOString(),
-          },
-          {
-            user_id: user.id,
+            actionUrl: `/contractor/jobs/${jobId}`,
+          }),
+          NotificationService.createNotification({
+            userId: user.id,
             title: 'Contract Created',
             message: `A contract for "${jobDetails?.title || 'your job'}" has been created. It will be ready for your signature once the contractor reviews it.`,
             type: 'contract_created',
-            read: false,
-            action_url: `/jobs/${jobId}`,
-            created_at: new Date().toISOString(),
-          },
+            actionUrl: `/jobs/${jobId}`,
+          }),
         ]);
       }
     } catch (contractError) {
@@ -443,25 +428,17 @@ export async function POST(
         .eq('status', 'rejected');
 
       if (rejectedBids && rejectedBids.length > 0) {
-        const rejectedNotifications = rejectedBids.map((rejectedBid) => ({
-          user_id: rejectedBid.contractor_id,
-          title: 'Bid Not Selected',
-          message: `Your bid for "${jobDetails?.title || 'the job'}" was not selected. Keep bidding on other opportunities!`,
-          type: 'bid_rejected',
-          read: false,
-          action_url: `/contractor/jobs-near-you`,
-          created_at: new Date().toISOString(),
-        }));
-
-        const { error: rejectedNotificationError } = await serverSupabase
-          .from('notifications')
-          .insert(rejectedNotifications);
-
-        if (rejectedNotificationError) {
-          logger.error('Failed to create rejected bid notifications', rejectedNotificationError, {
-            service: 'jobs',
-          });
-        }
+        await Promise.all(
+          rejectedBids.map((rejectedBid) =>
+            NotificationService.createNotification({
+              userId: rejectedBid.contractor_id,
+              title: 'Bid Not Selected',
+              message: `Your bid for "${jobDetails?.title || 'the job'}" was not selected. Keep bidding on other opportunities!`,
+              type: 'bid_rejected',
+              actionUrl: `/contractor/jobs-near-you`,
+            })
+          )
+        );
 
         // Learn from rejected bids for pricing agent
         rejectedBids.forEach((rejectedBid) => {

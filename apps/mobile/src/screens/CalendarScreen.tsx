@@ -140,6 +140,8 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           icon="calendar-outline"
           title="No Upcoming Schedule"
           subtitle="Your jobs and meetings will appear here once scheduled."
+          ctaLabel="Browse Jobs"
+          onCtaPress={() => navigation.navigate('JobsList')}
         />
       ) : (
         <FlatList

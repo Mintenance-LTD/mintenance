@@ -282,23 +282,30 @@ export class LocalYOLOInferenceService {
 
           modelBuffer = Buffer.from(await storageData.arrayBuffer());
 
-          // Validate checksum if available
+          // P0 Security: Validate checksum — reject tampered models
           if (data.checksum) {
             const calculatedChecksum = createHash('sha256').update(modelBuffer).digest('hex');
             if (calculatedChecksum !== data.checksum) {
-              logger.warn('Checksum mismatch, but continuing', {
+              logger.error('YOLO model checksum mismatch — refusing to load potentially tampered model', {
                 service: 'LocalYOLOInferenceService',
                 modelName,
                 expected: data.checksum,
                 actual: calculatedChecksum,
               });
-            } else {
-              logger.info('Model checksum verified', {
-                service: 'LocalYOLOInferenceService',
-                modelName,
-                checksum: data.checksum,
-              });
+              throw new Error(
+                `Model integrity check failed: checksum mismatch for ${modelName} (expected ${data.checksum.slice(0, 8)}..., got ${calculatedChecksum.slice(0, 8)}...)`
+              );
             }
+            logger.info('Model checksum verified', {
+              service: 'LocalYOLOInferenceService',
+              modelName,
+              checksum: data.checksum,
+            });
+          } else {
+            logger.warn('No checksum stored for model — integrity cannot be verified', {
+              service: 'LocalYOLOInferenceService',
+              modelName,
+            });
           }
         } catch (storageError: unknown) {
           logger.warn('Failed to load from Storage, trying BYTEA fallback', {

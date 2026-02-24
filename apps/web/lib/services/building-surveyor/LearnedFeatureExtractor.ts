@@ -204,19 +204,39 @@ export class LearnedFeatureExtractor {
 
   /**
    * Forward pass through learned MLP
-   * 
+   *
    * Implements: y = MLP(x) with ReLU activations
    */
   private forward(input: number[]): number[] {
+    return this.forwardWithActivations(input).output;
+  }
+
+  /**
+   * Forward pass that stores per-layer activations for backpropagation.
+   * P3: Required for correct gradient computation.
+   *
+   * Returns:
+   *  - activations[i] = output of layer i (after activation)
+   *  - preActivations[i] = output of layer i (before activation, for ReLU derivative)
+   *  - output = final layer output
+   */
+  private forwardWithActivations(input: number[]): {
+    activations: number[][];
+    preActivations: number[][];
+    output: number[];
+  } {
     if (input.length !== this.config.inputDim) {
       throw new Error(
         `Input dimension mismatch: expected ${this.config.inputDim}, got ${input.length}`
       );
     }
 
+    const activations: number[][] = [input]; // activations[0] = input
+    const preActivations: number[][] = [];
     let current = input;
 
     for (let layer = 0; layer < this.state.weights.length; layer++) {
+      const layerPreAct: number[] = [];
       const layerOutput: number[] = [];
       const weights = this.state.weights[layer];
       const biases = this.state.biases[layer];
@@ -226,14 +246,17 @@ export class LearnedFeatureExtractor {
         for (let j = 0; j < weights[i].length; j++) {
           sum += weights[i][j] * current[j];
         }
+        layerPreAct.push(sum);
         // ReLU activation (except last layer - linear)
         layerOutput.push(
-          layer < this.state.weights.length - 1 
+          layer < this.state.weights.length - 1
             ? Math.max(0, sum)  // ReLU
             : sum               // Linear for output
         );
       }
 
+      preActivations.push(layerPreAct);
+      activations.push(layerOutput);
       current = layerOutput;
     }
 
@@ -244,14 +267,14 @@ export class LearnedFeatureExtractor {
         expected: this.config.outputDim,
         actual: current.length,
       });
-      
+
       while (current.length < this.config.outputDim) {
         current.push(0);
       }
-      return current.slice(0, this.config.outputDim);
+      current = current.slice(0, this.config.outputDim);
     }
 
-    return current;
+    return { activations, preActivations, output: current };
   }
 
   /**
@@ -276,26 +299,27 @@ export class LearnedFeatureExtractor {
     }
 
     const lr = learningRate || this.config.learningRate;
-    
-    // Forward pass to get current features
-    const currentFeatures = this.forward(rawInput);
-    
+
+    // P3: Forward pass with activations for correct backprop
+    const { activations, preActivations, output: currentFeatures } =
+      this.forwardWithActivations(rawInput);
+
     // Ensure dimensions match
     const targetDim = Math.min(currentFeatures.length, surpriseSignal.length);
     const truncatedOutput = currentFeatures.slice(0, targetDim);
     const truncatedSurprise = surpriseSignal.slice(0, targetDim);
-    
+
     // Compute error (surprise signal)
-    const error = truncatedSurprise.map((target, i) => 
+    const error = truncatedSurprise.map((target, i) =>
       target - truncatedOutput[i]
     );
-    
+
     // Compute mean squared error for monitoring
     const mse = error.reduce((sum, e) => sum + e * e, 0) / error.length;
     this.state.totalError += mse;
-    
-    // Backward pass to compute gradients
-    const gradients = this.backward(rawInput, error, truncatedOutput);
+
+    // P3: Backward pass with proper activations and ReLU derivatives
+    const gradients = this.backward(activations, preActivations, error);
     
     // Update weights using gradient descent with L2 regularization
     this.updateWeights(gradients, lr);
@@ -318,63 +342,75 @@ export class LearnedFeatureExtractor {
   }
 
   /**
-   * Backward pass to compute gradients
-   * Simplified backpropagation (full implementation would use analytical gradients)
+   * Backward pass to compute gradients using proper backpropagation.
+   *
+   * P3: Fixed gradient computation — previous version had two bugs:
+   *   1. Used raw input instead of per-layer activations for weight gradients
+   *   2. Did not apply ReLU derivative when propagating error backward
+   *
+   * @param activations - Per-layer activations [input, hidden1, ..., output]
+   * @param preActivations - Pre-activation values (before ReLU) per layer
+   * @param outputError - Error at output layer (target - prediction)
    */
   private backward(
-    input: number[],
-    error: number[],
-    output: number[]
+    activations: number[][],
+    preActivations: number[][],
+    outputError: number[]
   ): {
     weightGradients: number[][][];
     biasGradients: number[][];
   } {
-    const weightGradients: number[][][] = [];
-    const biasGradients: number[][] = [];
-    
-    // Simplified gradient computation
-    // Full implementation would use proper backpropagation through all layers
-    
-    let currentError = error;
-    let currentInput = input;
-    
+    const numLayers = this.state.weights.length;
+    const weightGradients: number[][][] = new Array(numLayers);
+    const biasGradients: number[][] = new Array(numLayers);
+
+    // delta at output layer (linear activation → derivative = 1)
+    let delta = outputError;
+
     // Backward through layers (reverse order)
-    for (let layer = this.state.weights.length - 1; layer >= 0; layer--) {
+    for (let layer = numLayers - 1; layer >= 0; layer--) {
+      const weights = this.state.weights[layer];
+      // activations[layer] is the input to this layer
+      const layerInput = activations[layer];
+
+      // Apply ReLU derivative for hidden layers (not output layer)
+      if (layer < numLayers - 1) {
+        delta = delta.map((d, i) =>
+          preActivations[layer][i] > 0 ? d : 0
+        );
+      }
+
+      // Compute weight gradients: ∂L/∂W[l] = delta * a[l-1]^T
       const layerWGrad: number[][] = [];
       const layerBGrad: number[] = [];
-      const weights = this.state.weights[layer];
-      
+
       for (let i = 0; i < weights.length; i++) {
         const neuronWGrad: number[] = [];
-        const errorSignal = currentError[i] || 0;
-        
-        // Weight gradients: ∂L/∂W = error * input
+        const d = delta[i] || 0;
+
         for (let j = 0; j < weights[i].length; j++) {
-          neuronWGrad.push(errorSignal * currentInput[j]);
+          neuronWGrad.push(d * (layerInput[j] || 0));
         }
         layerWGrad.push(neuronWGrad);
-        
-        // Bias gradients: ∂L/∂b = error
-        layerBGrad.push(errorSignal);
+        layerBGrad.push(d);
       }
-      
-      weightGradients.unshift(layerWGrad);
-      biasGradients.unshift(layerBGrad);
-      
-      // Propagate error backward (simplified)
-      // Full implementation would compute proper gradients
+
+      weightGradients[layer] = layerWGrad;
+      biasGradients[layer] = layerBGrad;
+
+      // Propagate error backward: delta_prev = W^T * delta
       if (layer > 0) {
-        currentInput = new Array(this.state.weights[layer - 1].length).fill(0);
-        // Simplified: distribute error proportionally
-        for (let i = 0; i < currentError.length; i++) {
-          for (let j = 0; j < currentInput.length; j++) {
-            currentInput[j] += currentError[i] * weights[i][j] / currentInput.length;
+        const prevSize = this.state.weights[layer - 1].length;
+        const nextDelta = new Array(prevSize).fill(0);
+        for (let i = 0; i < delta.length; i++) {
+          for (let j = 0; j < weights[i].length && j < prevSize; j++) {
+            nextDelta[j] += (delta[i] || 0) * weights[i][j];
           }
         }
-        currentError = currentInput;
+        delta = nextDelta;
       }
     }
-    
+
     return { weightGradients, biasGradients };
   }
 

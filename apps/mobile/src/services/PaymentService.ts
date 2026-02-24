@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { config } from '../config/environment';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import {
   confirmPayment as stripeConfirmPayment,
   createPaymentMethod as stripeCreatePaymentMethod,
@@ -48,38 +49,16 @@ interface CreateSetupIntentResponse {
 
 export class PaymentService {
   /**
-   * Get authenticated session token for API requests
-   */
-  private static async getAuthToken(): Promise<string> {
-    const { data: session } = await supabase.auth.getSession();
-    if (!session?.session?.access_token) {
-      throw new Error('Not authenticated');
-    }
-    return session.session.access_token;
-  }
-
-  /**
-   * Make an authenticated API request
+   * Make an authenticated API request via mobileApiClient
    */
   private static async apiRequest<T>(
     path: string,
     options: { method: string; body?: Record<string, unknown> }
   ): Promise<T> {
-    const token = await PaymentService.getAuthToken();
-    const response = await fetch(`${config.apiBaseUrl}${path}`, {
-      method: options.method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || `API request failed: ${path}`);
+    if (options.method === 'GET') {
+      return mobileApiClient.get<T>(path);
     }
-    return data as T;
+    return mobileApiClient.post<T>(path, options.body);
   }
 
   /**
@@ -547,29 +526,7 @@ export class PaymentService {
     setAsDefault: boolean = false
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/add-method`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`,
-        },
-        body: JSON.stringify({
-          paymentMethodId,
-          setAsDefault,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to save payment method');
-      }
-
+      await mobileApiClient.post('/api/payments/add-method', { paymentMethodId, setAsDefault });
       logger.info('Payment method saved successfully', { paymentMethodId });
       return { success: true };
     } catch (error) {
@@ -589,25 +546,12 @@ export class PaymentService {
     error?: string;
   }> {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
+      const data = await mobileApiClient.get<{
+        paymentMethods?: Array<Record<string, unknown>>;
+        methods?: Array<Record<string, unknown>>;
+      }>('/api/payments/methods');
 
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/methods`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session.session.access_token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch payment methods');
-      }
-
-      const methods = (data.paymentMethods || data.methods || []).map((method: {
+      const methods = ((data.paymentMethods || data.methods || []) as Array<{
         id: string;
         type: string;
         isDefault?: boolean;
@@ -618,7 +562,7 @@ export class PaymentService {
           expMonth: number;
           expYear: number;
         } | null;
-      }) => ({
+      }>).map((method) => ({
         id: method.id,
         type: method.type,
         isDefault: !!method.isDefault,
@@ -649,25 +593,9 @@ export class PaymentService {
     paymentMethodId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/remove-method`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`,
-        },
+      await mobileApiClient.delete('/api/payments/remove-method', {
         body: JSON.stringify({ paymentMethodId }),
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete payment method');
-      }
-
       logger.info('Payment method deleted successfully', { paymentMethodId });
       return { success: true };
     } catch (error) {
@@ -686,25 +614,7 @@ export class PaymentService {
     paymentMethodId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/set-default`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`,
-        },
-        body: JSON.stringify({ paymentMethodId }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to set default payment method');
-      }
-
+      await mobileApiClient.post('/api/payments/set-default', { paymentMethodId });
       logger.info('Default payment method updated', { paymentMethodId });
       return { success: true };
     } catch (error) {
@@ -732,30 +642,16 @@ export class PaymentService {
     error?: string;
   }> {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/process-job-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`,
-        },
-        body: JSON.stringify({
-          jobId,
-          amount,
-          paymentMethodId,
-          saveForFuture,
-        }),
+      const data = await mobileApiClient.post<{
+        requiresAction?: boolean;
+        clientSecret?: string;
+        paymentIntentId?: string;
+      }>('/api/payments/process-job-payment', {
+        jobId,
+        amount,
+        paymentMethodId,
+        saveForFuture,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process payment');
-      }
 
       // Check if 3D Secure is required
       if (data.requiresAction || data.clientSecret) {
@@ -819,31 +715,10 @@ export class PaymentService {
     const resolvedOffset = typeof statusOrOffset === 'number' ? statusOrOffset : offset || 0;
 
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const response = await fetch(
-        `${config.apiBaseUrl}/api/payments/history?limit=${limit}&offset=${resolvedOffset}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${session.session.access_token}`,
-          },
-        }
+      const data = await mobileApiClient.get<{ payments?: unknown[]; total?: number }>(
+        `/api/payments/history?limit=${limit}&offset=${resolvedOffset}`
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch payment history');
-      }
-
-      return {
-        payments: data.payments,
-        total: data.total,
-      };
+      return { payments: data.payments, total: data.total };
     } catch (error) {
       logger.error('Failed to fetch payment history', { error });
       return { error: error instanceof Error ? error.message : 'Failed to fetch payment history' };
@@ -858,11 +733,6 @@ export class PaymentService {
     reason: string
   ): Promise<{ success: boolean; refundId?: string; error?: string }> {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
       const history = await PaymentService.getPaymentHistory(50, 0) as {
         payments?: Array<{ id: string; jobId: string }>;
       };
@@ -872,24 +742,11 @@ export class PaymentService {
         throw new Error('Payment record not found');
       }
 
-      const response = await fetch(`${config.apiBaseUrl}/api/payments/refund`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.session.access_token}`,
-        },
-        body: JSON.stringify({
-          jobId: payment.jobId,
-          escrowTransactionId: paymentId,
-          reason,
-        }),
+      const data = await mobileApiClient.post<{ refundId?: string; id?: string }>('/api/payments/refund', {
+        jobId: payment.jobId,
+        escrowTransactionId: paymentId,
+        reason,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to request refund');
-      }
 
       logger.info('Refund requested successfully', { paymentId, refundId: data.refundId || data.id });
       return {

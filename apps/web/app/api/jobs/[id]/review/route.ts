@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 
 export const POST = withApiHandler(
@@ -88,15 +89,53 @@ export const POST = withApiHandler(
       throw new Error('Failed to submit review');
     }
 
-    // Notify the reviewee
-    await serverSupabase.from('notifications').insert({
-      user_id: revieweeId,
-      title: 'New Review',
-      message: `You received a ${rating}-star review for "${job.title}"`,
-      type: 'review',
-      read: false,
-      action_url: isHomeowner ? `/contractor/reviews` : `/jobs/${jobId}`,
-    });
+    // Notify the reviewee — wrapped in try/catch so a notification failure
+    // never causes a 500 after the review has already been successfully stored.
+    try {
+      await NotificationService.createNotification({
+        userId: revieweeId,
+        title: 'New Review',
+        message: `You received a ${rating}-star review for "${job.title}"`,
+        type: 'review',
+        actionUrl: isHomeowner ? `/contractor/reviews` : `/jobs/${jobId}`,
+      });
+
+      // Check for 5-star review milestones (contractors only)
+      if (isHomeowner && rating === 5) {
+        const { count: fiveStarCount, error: countError } = await serverSupabase
+          .from('reviews')
+          .select('id', { count: 'exact', head: true })
+          .eq('reviewee_id', revieweeId)
+          .eq('rating', 5);
+
+        if (countError) {
+          logger.error('Failed to count 5-star reviews for milestone check', {
+            service: 'reviews',
+            jobId,
+            revieweeId,
+            error: countError.message,
+          });
+        } else {
+          const milestones = [10, 25, 50, 100];
+          if (fiveStarCount !== null && milestones.includes(fiveStarCount)) {
+            await NotificationService.createNotification({
+              userId: revieweeId,
+              title: `🌟 ${fiveStarCount} Five-Star Reviews!`,
+              message: `Congratulations! You've just received your ${fiveStarCount}th 5-star review. Your outstanding work is getting noticed.`,
+              type: 'review_milestone',
+              actionUrl: '/contractor/reviews',
+              metadata: { milestone: fiveStarCount },
+            });
+          }
+        }
+      }
+    } catch (notificationError) {
+      logger.error('Failed to send review notifications', notificationError, {
+        service: 'reviews',
+        jobId,
+        revieweeId,
+      });
+    }
 
     logger.info('Review submitted', {
       service: 'reviews',

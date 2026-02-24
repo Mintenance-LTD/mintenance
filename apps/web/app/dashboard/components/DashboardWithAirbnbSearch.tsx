@@ -22,6 +22,8 @@ import {
   Heart
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { PredictiveRecommendations } from './PredictiveRecommendations';
+import type { MaintenanceRecommendation } from '@/lib/services/RecommendationsService';
 
 // Category-based fallback images
 const categoryImages: Record<string, string> = {
@@ -99,6 +101,7 @@ interface DashboardWithAirbnbSearchProps {
       status: string;
       contractor?: { name: string };
     }>;
+    recommendations?: MaintenanceRecommendation[];
   };
 }
 
@@ -111,7 +114,7 @@ interface PortfolioAccessState {
 }
 
 export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchProps) {
-  const { homeowner, metrics, activeJobs, pendingBids = [], recentActivity, upcomingAppointments = [] } = data;
+  const { homeowner, metrics, activeJobs, pendingBids = [], recentActivity, upcomingAppointments = [], recommendations = [] } = data;
   const [properties, setProperties] = useState<Property[]>([]);
   const [loadingProperties, setLoadingProperties] = useState(true);
   const [portfolioAccess, setPortfolioAccess] = useState<PortfolioAccessState | null>(null);
@@ -496,8 +499,11 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
               </div>
             </div>
 
-            {/* Right Column - Quick Links & Activity */}
+            {/* Right Column - Recommendations, Quick Links & Activity */}
             <div className="space-y-6">
+              {/* Property Health Recommendations */}
+              <PredictiveRecommendations recommendations={recommendations} />
+
               {/* Quick Links */}
               <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl border border-teal-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h2>

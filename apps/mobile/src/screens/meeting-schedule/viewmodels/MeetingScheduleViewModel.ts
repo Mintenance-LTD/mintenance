@@ -147,20 +147,20 @@ export const useMeetingScheduleViewModel = (
 
     setLoading(true);
     try {
-      const meetingData: Omit<ContractorMeeting, 'id' | 'created_at' | 'updated_at'> = {
-        contractorId,
-        clientId: user.id,
-        job_id: jobId,
-        meeting_type: meetingType,
-        scheduled_date: selectedDate.toISOString(),
-        scheduled_time: selectedTime.toISOString(),
-        duration_minutes: duration,
-        location: location,
-        notes: notes,
-        status: 'scheduled',
-      };
+      // Combine date + time into a single ISO datetime
+      const combined = new Date(selectedDate);
+      combined.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
 
-      await MeetingService.createMeeting(meetingData);
+      await MeetingService.createMeeting({
+        jobId,
+        homeownerId: user.id,
+        contractorId,
+        scheduledDateTime: combined.toISOString(),
+        meetingType,
+        location,
+        duration,
+        notes,
+      });
       Alert.alert('Success', 'Meeting scheduled successfully!');
       logger.info('Meeting scheduled', { contractorId, jobId, meetingType });
     } catch (error) {

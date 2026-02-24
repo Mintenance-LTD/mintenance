@@ -1,6 +1,7 @@
 import { Stripe } from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 export class CheckoutHandler {
   async handleSessionCompleted(event: Stripe.Event): Promise<void> {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -73,16 +74,15 @@ export class CheckoutHandler {
       .eq('id', jobId)
       .single();
     if (job) {
-      await supabase.from('notifications').insert({
-        user_id: job.homeowner_id,
+      await NotificationService.createNotification({
+        userId: job.homeowner_id,
         type: 'checkout_completed',
         title: 'Checkout Completed',
         message: `Your checkout for "${job.title}" has been completed. Payment is being processed.`,
-        data: {
+        metadata: {
           job_id: jobId,
           session_id: session.id,
         },
-        created_at: new Date().toISOString(),
       });
     }
   }
@@ -105,16 +105,15 @@ export class CheckoutHandler {
       created_at: new Date().toISOString(),
     });
     // Notify contractor
-    await supabase.from('notifications').insert({
-      user_id: contractorId,
+    await NotificationService.createNotification({
+      userId: contractorId,
       type: 'subscription_checkout_completed',
       title: 'Subscription Setup Complete',
       message: 'Your subscription checkout has been completed successfully.',
-      data: {
+      metadata: {
         session_id: session.id,
         subscription_id: session.subscription,
       },
-      created_at: new Date().toISOString(),
     });
   }
   private async handleSetupSession(session: Stripe.Checkout.Session): Promise<void> {
@@ -133,12 +132,11 @@ export class CheckoutHandler {
       })
       .eq('id', userId);
     // Notify user
-    await supabase.from('notifications').insert({
-      user_id: userId,
+    await NotificationService.createNotification({
+      userId,
       type: 'payment_method_added',
       title: 'Payment Method Added',
       message: 'Your payment method has been successfully added to your account.',
-      created_at: new Date().toISOString(),
     });
   }
 }

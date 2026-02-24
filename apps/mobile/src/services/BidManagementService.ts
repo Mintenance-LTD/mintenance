@@ -20,7 +20,7 @@ interface DatabaseBidsRow {
   job_id: string;
   contractor_id: string;
   amount: number;
-  description: string;
+  message: string;
   status: 'pending' | 'accepted' | 'rejected';
   created_at: string;
   contractor?: {
@@ -42,6 +42,7 @@ export class BidManagementService {
     contractorId: string;
     amount: number;
     description: string;
+    estimatedDurationDays?: number;
   }): Promise<Bid> {
     const { data, error } = await supabase
       .from('bids')
@@ -50,9 +51,10 @@ export class BidManagementService {
           job_id: bidData.jobId,
           contractor_id: bidData.contractorId,
           amount: bidData.amount,
-          description: bidData.description,
+          message: bidData.description,
           status: 'pending',
           created_at: new Date().toISOString(),
+          ...(bidData.estimatedDurationDays && { estimated_duration_days: bidData.estimatedDurationDays }),
         },
       ])
       .select()
@@ -124,7 +126,7 @@ export class BidManagementService {
       jobId: data.job_id,
       contractorId: data.contractor_id,
       amount: data.amount,
-      description: data.description,
+      description: data.message,
       createdAt: data.created_at,
       status: data.status,
       ...(data.contractor && data.contractor.first_name && data.contractor.last_name && {

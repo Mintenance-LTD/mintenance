@@ -16,6 +16,7 @@ import {
   componentSizes,
 } from './tokens';
 import { logger } from '../utils/logger';
+import { setDarkModeEnabled } from '../theme/darkModeState';
 
 // ============================================================================
 // THEME TYPES
@@ -311,6 +312,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Calculate actual color scheme based on mode
   const colorScheme: ColorScheme = themeMode === 'system' ? systemColorScheme : themeMode;
   const theme = colorScheme === 'dark' ? darkTheme : lightTheme;
+
+  // Sync the static theme module so that `import { theme } from '../theme'`
+  // returns correct dark/light colors at render time (via getters).
+  setDarkModeEnabled(colorScheme === 'dark');
 
   // Load saved theme preference
   useEffect(() => {

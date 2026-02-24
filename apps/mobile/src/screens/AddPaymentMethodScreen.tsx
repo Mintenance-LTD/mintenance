@@ -62,8 +62,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         });
 
         // Save payment method to backend
-        await PaymentService.addPaymentMethod(
-          user.id,
+        await PaymentService.savePaymentMethod(
           paymentMethod.id,
           true // Set as default for first card
         );
@@ -82,7 +81,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         logger.error('Failed to add payment method', error);
         Alert.alert(
           'Error',
-          error.message || 'Failed to add payment method. Please try again.',
+          error instanceof Error ? error.message : 'Failed to add payment method. Please try again.',
           [{ text: 'OK' }]
         );
       } finally {

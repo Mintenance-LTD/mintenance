@@ -8,6 +8,7 @@ import {
   FlatList,
   StyleSheet,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -85,9 +86,12 @@ const ReviewCard: React.FC<{ review: Review }> = ({ review }) => (
   </View>
 );
 
+type ReviewFilter = 'all' | 'positive' | 'negative';
+
 export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<ReviewFilter>('all');
 
   const { data: reviews, isLoading, error, refetch } = useQuery({
     queryKey: ['contractor-reviews', user?.id],
@@ -128,11 +132,46 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
       <ScreenHeader title="Reviews" showBack onBack={() => navigation.goBack()} />
 
       {reviews && reviews.length > 0 && (
-        <View style={styles.summaryCard}>
-          <Text style={styles.avgRating}>{averageRating}</Text>
-          <StarRating rating={parseFloat(averageRating)} size={20} />
-          <Text style={styles.reviewCount}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</Text>
-        </View>
+        <>
+          <View style={styles.summaryCard}>
+            <Text style={styles.avgRating}>{averageRating}</Text>
+            <StarRating rating={parseFloat(averageRating)} size={20} />
+            <Text style={styles.reviewCount}>{reviews.length} review{reviews.length !== 1 ? 's' : ''}</Text>
+          </View>
+
+          {/* Rating Distribution */}
+          <View style={styles.distributionCard}>
+            {[5, 4, 3, 2, 1].map((star) => {
+              const count = reviews.filter(r => r.rating === star).length;
+              const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+              return (
+                <View key={star} style={styles.distRow}>
+                  <Text style={styles.distLabel}>{star}</Text>
+                  <Ionicons name="star" size={12} color={theme.colors.warning} />
+                  <View style={styles.distBarBg}>
+                    <View style={[styles.distBarFill, { width: `${pct}%` }]} />
+                  </View>
+                  <Text style={styles.distCount}>{count}</Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Filter Chips */}
+          <View style={styles.filterRow}>
+            {(['all', 'positive', 'negative'] as ReviewFilter[]).map((f) => (
+              <TouchableOpacity
+                key={f}
+                style={[styles.filterChip, filter === f && styles.filterChipActive]}
+                onPress={() => setFilter(f)}
+              >
+                <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
+                  {f === 'all' ? 'All' : f === 'positive' ? '4-5 Stars' : '1-3 Stars'}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
       )}
 
       {!reviews || reviews.length === 0 ? (
@@ -140,10 +179,16 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
           icon="star-outline"
           title="No Reviews Yet"
           subtitle="Reviews from homeowners will appear here after you complete jobs."
+          ctaLabel="View My Jobs"
+          onCtaPress={() => navigation.navigate('JobsList')}
         />
       ) : (
         <FlatList
-          data={reviews}
+          data={reviews.filter(r => {
+            if (filter === 'positive') return r.rating >= 4;
+            if (filter === 'negative') return r.rating <= 3;
+            return true;
+          })}
           keyExtractor={item => item.id}
           renderItem={({ item }) => <ReviewCard review={item} />}
           refreshControl={
@@ -238,6 +283,69 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.base,
     color: theme.colors.textSecondary,
     lineHeight: 22,
+  },
+  distributionCard: {
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: theme.spacing[4],
+    marginBottom: theme.spacing[2],
+    padding: theme.spacing[4],
+    borderRadius: theme.borderRadius.lg,
+    ...theme.shadows.sm,
+  },
+  distRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 6,
+  },
+  distLabel: {
+    width: 16,
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  distBarBg: {
+    flex: 1,
+    height: 8,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 4,
+  },
+  distBarFill: {
+    height: 8,
+    backgroundColor: theme.colors.warning,
+    borderRadius: 4,
+  },
+  distCount: {
+    width: 24,
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    textAlign: 'right',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    paddingHorizontal: theme.spacing[4],
+    marginBottom: theme.spacing[2],
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+  },
+  filterChipActive: {
+    backgroundColor: theme.colors.textPrimary,
+    borderColor: theme.colors.textPrimary,
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
   },
 });
 

@@ -1,52 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
-const supabase = serverSupabase;
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-    const { id } = await params;
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to mark notifications as read');
-    }
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 60 } },
+  async (_request, { user, params }) => {
+    const { id } = params;
 
     // Verify notification belongs to user
-    const { data: notification, error: fetchError } = await supabase
+    const { data: notification, error: fetchError } = await serverSupabase
       .from('notifications')
       .select('id, user_id')
       .eq('id', id)
@@ -61,7 +25,7 @@ export async function POST(
     }
 
     // Mark as read
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serverSupabase
       .from('notifications')
       .update({ read: true })
       .eq('id', id);
@@ -76,7 +40,5 @@ export async function POST(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);

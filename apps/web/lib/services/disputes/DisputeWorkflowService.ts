@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { DisputeResolutionAgent } from '../agents/DisputeResolutionAgent';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 export type DisputePriority = 'low' | 'medium' | 'high' | 'critical';
 
@@ -159,14 +160,12 @@ export class DisputeWorkflowService {
       }
 
       // Notify admin
-      await serverSupabase.from('notifications').insert({
-        user_id: 'admin', // Would need actual admin user IDs
+      await NotificationService.createNotification({
+        userId: 'admin', // Would need actual admin user IDs
         title: 'Dispute Escalation',
         message: `Dispute ${escrowId} has been escalated to level ${currentLevel + 1}`,
         type: 'dispute_escalation',
-        read: false,
-        action_url: `/admin/disputes/${escrowId}`,
-        created_at: new Date().toISOString(),
+        actionUrl: `/admin/disputes/${escrowId}`,
       });
 
       logger.info('Dispute escalated', {

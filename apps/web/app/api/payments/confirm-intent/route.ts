@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -177,31 +178,31 @@ export async function POST(request: NextRequest) {
     try {
       const amount = escrowTransaction.amount;
       const jobTitle = job.title || 'your job';
-      const notifications = [];
+      const notificationPromises = [];
 
       if (job.contractor_id) {
-        notifications.push({
-          user_id: job.contractor_id,
-          title: 'Payment Secured in Escrow',
-          message: `Payment of £${Number(amount).toLocaleString()} for "${jobTitle}" has been secured in escrow. You can now start work.`,
-          type: 'payment',
-          read: false,
-          action_url: `/contractor/jobs/${jobId}`,
-          created_at: new Date().toISOString(),
-        });
+        notificationPromises.push(
+          NotificationService.createNotification({
+            userId: job.contractor_id,
+            title: 'Payment Secured in Escrow',
+            message: `Payment of £${Number(amount).toLocaleString()} for "${jobTitle}" has been secured in escrow. You can now start work.`,
+            type: 'payment',
+            actionUrl: `/contractor/jobs/${jobId}`,
+          })
+        );
       }
 
-      notifications.push({
-        user_id: user.id,
-        title: 'Payment Confirmed',
-        message: `Your payment of £${Number(amount).toLocaleString()} for "${jobTitle}" is now held securely in escrow until the job is completed.`,
-        type: 'payment',
-        read: false,
-        action_url: `/jobs/${jobId}`,
-        created_at: new Date().toISOString(),
-      });
+      notificationPromises.push(
+        NotificationService.createNotification({
+          userId: user.id,
+          title: 'Payment Confirmed',
+          message: `Your payment of £${Number(amount).toLocaleString()} for "${jobTitle}" is now held securely in escrow until the job is completed.`,
+          type: 'payment',
+          actionUrl: `/jobs/${jobId}`,
+        })
+      );
 
-      await serverSupabase.from('notifications').insert(notifications);
+      await Promise.all(notificationPromises);
     } catch (notifError) {
       logger.error('Failed to create payment confirmation notifications', notifError, { service: 'payments', jobId });
     }

@@ -71,14 +71,11 @@ export class UnifiedAIServiceMobile {
 
   /**
    * Setup authentication for API calls
+   * Auth is handled by mobileApiClient interceptor (see S2.1),
+   * so this is intentionally a no-op.
    */
-  private async setupAuthInterceptor() {
-    // Get auth token from AsyncStorage
-    const token = await AsyncStorage.getItem('authToken');
-    if (token) {
-      // Add to axios headers in UnifiedAIService
-      // This would need to be exposed in the UnifiedAIService
-    }
+  private setupAuthInterceptor() {
+    // Auth tokens are managed by mobileApiClient's 401 interceptor
   }
 
   /**

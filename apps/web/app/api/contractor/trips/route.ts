@@ -5,6 +5,7 @@ import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 const startTripSchema = z.object({
   jobId: z.string().uuid().optional(),
@@ -173,14 +174,12 @@ export async function POST(request: NextRequest) {
 
     // Notify homeowner
     if (homeownerId) {
-      await serverSupabase.from('notifications').insert({
-        user_id: homeownerId,
+      await NotificationService.createNotification({
+        userId: homeownerId,
         type: 'contractor_en_route',
         title: 'Contractor On The Way',
         message: `${contractorName} is heading to your property${jobTitle ? ` for "${jobTitle}"` : ''}. You'll be able to track their location.`,
-        data: { tripId: trip.id, jobId, contractorId: user.id },
-        read: false,
-        created_at: new Date().toISOString(),
+        metadata: { tripId: trip.id, jobId, contractorId: user.id },
       });
     }
 
@@ -193,16 +192,15 @@ export async function POST(request: NextRequest) {
         .is('deleted_at', null);
 
       if (admins && admins.length > 0) {
-        const adminNotifications = admins.map(admin => ({
-          user_id: admin.id,
-          type: 'contractor_en_route',
-          title: 'Contractor En Route',
-          message: `${contractorName} is heading to ${jobTitle || 'an appointment'}${homeownerId ? '' : ' (no linked homeowner)'}`,
-          data: { tripId: trip.id, jobId, contractorId: user.id, homeownerId },
-          read: false,
-          created_at: new Date().toISOString(),
-        }));
-        await serverSupabase.from('notifications').insert(adminNotifications);
+        await Promise.all(admins.map(admin =>
+          NotificationService.createNotification({
+            userId: admin.id,
+            type: 'contractor_en_route',
+            title: 'Contractor En Route',
+            message: `${contractorName} is heading to ${jobTitle || 'an appointment'}${homeownerId ? '' : ' (no linked homeowner)'}`,
+            metadata: { tripId: trip.id, jobId, contractorId: user.id, homeownerId },
+          })
+        ));
       }
     } catch (adminErr) {
       logger.error('Failed to notify admins of trip', adminErr, { service: 'trips' });

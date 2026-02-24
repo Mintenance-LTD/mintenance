@@ -2,6 +2,8 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationAgent } from '../agents/NotificationAgent';
 
+const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+
 interface CreateNotificationParams {
   userId: string;
   type: string;
@@ -17,6 +19,60 @@ interface CreateNotificationParams {
  */
 export class NotificationService {
   /**
+   * Send a push notification to a user's device via Expo Push API.
+   * Looks up push tokens from user_push_tokens table.
+   * Never throws — failures are logged and swallowed.
+   */
+  private static async sendPushToDevice(params: {
+    userId: string;
+    title: string;
+    body: string;
+    data?: Record<string, unknown>;
+  }): Promise<void> {
+    try {
+      const { data: tokens } = await serverSupabase
+        .from('user_push_tokens')
+        .select('push_token')
+        .eq('user_id', params.userId);
+
+      if (!tokens || tokens.length === 0) return;
+
+      const messages = tokens.map((t: { push_token: string }) => ({
+        to: t.push_token,
+        title: params.title,
+        body: params.body,
+        sound: 'default',
+        data: params.data || {},
+        channelId: 'default',
+      }));
+
+      const response = await fetch(EXPO_PUSH_URL, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(messages),
+      });
+
+      if (!response.ok) {
+        logger.warn('Expo push API returned non-OK status', {
+          service: 'NotificationService',
+          status: response.status,
+          userId: params.userId,
+        });
+      }
+    } catch (error) {
+      logger.warn('Failed to send push notification', {
+        service: 'NotificationService',
+        userId: params.userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
    * Create a notification (intelligent routing)
    * This should be used instead of direct database inserts
    */
@@ -30,6 +86,11 @@ export class NotificationService {
       );
 
       if (sendDecision.immediate) {
+        // Build the JSONB data field (merges actionUrl + metadata)
+        const notifData: Record<string, unknown> = {};
+        if (params.actionUrl) notifData.action_url = params.actionUrl;
+        if (params.metadata) Object.assign(notifData, params.metadata);
+
         // Send immediately
         const { data, error } = await serverSupabase
           .from('notifications')
@@ -38,7 +99,7 @@ export class NotificationService {
             type: params.type,
             title: params.title,
             message: params.message,
-            action_url: params.actionUrl,
+            ...(Object.keys(notifData).length > 0 && { data: notifData }),
             read: false,
             created_at: new Date().toISOString(),
           })
@@ -54,8 +115,18 @@ export class NotificationService {
           return null;
         }
 
-        // Track engagement opportunity (notification sent)
-        // Engagement will be tracked when user opens/clicks
+        // Send push notification to user's device (fire-and-forget)
+        void this.sendPushToDevice({
+          userId: params.userId,
+          title: params.title,
+          body: params.message,
+          data: {
+            notificationId: data.id,
+            type: params.type,
+            actionUrl: params.actionUrl,
+          },
+        });
+
         return data.id;
       } else {
         // Queue for later

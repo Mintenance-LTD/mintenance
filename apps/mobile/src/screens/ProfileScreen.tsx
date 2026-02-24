@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
 import Button from '../components/ui/Button';
+import { ThemeModeSelector } from '../components/ui/ThemeToggle/ThemeToggle';
 import { TERMS_URL, PRIVACY_URL } from '../config/legal';
 import { ResponsiveContainer } from '../components/responsive';
 import { ProfileHeader } from './profile/components/ProfileHeader';
@@ -41,6 +42,8 @@ const ProfileScreen: React.FC = () => {
     if (user?.role === 'homeowner') {
       items.push(
         { label: 'My Properties', icon: 'home-outline', onPress: () => navigation.navigate('Properties') },
+        { label: 'Subscription', icon: 'ribbon-outline', onPress: () => navigation.navigate('Subscription') },
+        { label: 'Financials', icon: 'wallet-outline', onPress: () => navigation.navigate('Financials') },
       );
     }
 
@@ -57,6 +60,12 @@ const ProfileScreen: React.FC = () => {
         { label: 'Quote Builder', icon: 'document-text-outline', onPress: () => navigation.navigate('QuoteBuilder') },
         { label: 'Service Areas', icon: 'map-outline', onPress: () => navigation.navigate('ServiceAreas') },
         { label: 'Edit Discovery Card', icon: 'card', onPress: () => navigation.navigate('ContractorCardEditor') },
+        { label: 'Expenses', icon: 'receipt-outline', onPress: () => navigation.navigate('Expenses') },
+        { label: 'Documents', icon: 'document-outline', onPress: () => navigation.navigate('Documents') },
+        { label: 'Certifications', icon: 'ribbon-outline', onPress: () => navigation.navigate('Certifications') },
+        { label: 'Time Tracking', icon: 'time-outline', onPress: () => navigation.navigate('TimeTracking') },
+        { label: 'Reports & Analytics', icon: 'bar-chart-outline', onPress: () => navigation.navigate('Reporting') },
+        { label: 'Payouts', icon: 'cash-outline', onPress: () => navigation.navigate('Payouts') },
       );
     }
 
@@ -64,6 +73,7 @@ const ProfileScreen: React.FC = () => {
   }, [user?.role, navigation]);
 
   const supportMenuItems = useMemo(() => [
+    { label: 'Settings', icon: 'settings-outline', onPress: () => navigation.navigate('SettingsHub') },
     { label: 'Help Center', icon: 'help-circle-outline', onPress: () => navigation.navigate('HelpCenter') },
     {
       label: 'Contact Us',
@@ -104,10 +114,10 @@ const ProfileScreen: React.FC = () => {
     <ResponsiveContainer
       maxWidth={{ mobile: undefined, tablet: 768, desktop: 1200 }}
       padding={{ mobile: 0, tablet: 16, desktop: 24 }}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <View style={styles.header}>
-        <Text style={styles.headerTitle} accessibilityRole='header'>Profile</Text>
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]} accessibilityRole='header'>Profile</Text>
       </View>
 
       <ScrollView style={styles.content}>
@@ -130,6 +140,8 @@ const ProfileScreen: React.FC = () => {
 
         <ProfileMenuSection title='Account' items={accountMenuItems} />
         <ProfileMenuSection title='Support' items={supportMenuItems} />
+
+        <ThemeModeSelector style={styles.themeSelector} />
 
         <View style={styles.signOutContainer}>
           <Button
@@ -165,6 +177,13 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  themeSelector: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    ...theme.shadows.sm,
   },
   signOutContainer: {
     paddingHorizontal: 16,

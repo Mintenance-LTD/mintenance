@@ -22,11 +22,11 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
 }) => {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle} accessibilityRole='header'>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]} accessibilityRole='header'>{title}</Text>
       {items.map((item) => (
         <TouchableOpacity
           key={item.label}
-          style={styles.menuItem}
+          style={[styles.menuItem, { borderBottomColor: theme.colors.borderLight }]}
           onPress={item.onPress}
           accessibilityRole={item.accessibilityRole || 'button'}
           accessibilityLabel={item.accessibilityLabel || item.label}
@@ -39,7 +39,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
                 color={theme.colors.textPrimary}
               />
             </View>
-            <Text style={styles.menuText}>{item.label}</Text>
+            <Text style={[styles.menuText, { color: theme.colors.textPrimary }]}>{item.label}</Text>
           </View>
           <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
         </TouchableOpacity>

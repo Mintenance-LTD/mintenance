@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
@@ -87,14 +88,12 @@ export const POST = withApiHandler(
           .eq('id', jobId)
           .single();
 
-        await serverSupabase.from('notifications').insert({
-          user_id: bidWithContractor.contractor_id,
+        await NotificationService.createNotification({
+          userId: bidWithContractor.contractor_id,
           title: 'Bid Not Selected',
           message: `Your bid for "${jobData?.title || 'a job'}" was not selected. Keep bidding on other jobs to find your next project.`,
           type: 'bid_rejected',
-          read: false,
-          action_url: `/contractor/discover`,
-          created_at: new Date().toISOString(),
+          actionUrl: `/contractor/discover`,
         });
       }
     } catch (notificationError) {

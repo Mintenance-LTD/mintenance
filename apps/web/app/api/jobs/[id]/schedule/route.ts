@@ -5,6 +5,7 @@ import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { z } from 'zod';
 import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
@@ -130,29 +131,23 @@ export async function POST(  request: NextRequest,
       minute: '2-digit',
     });
 
-    const notifications = [
-      {
-        user_id: user.id,
-        title: 'Job Scheduled ✅',
-        message: `You've scheduled "${job.title || 'the job'}" to start on ${formattedDate}.`,
-        type: 'job_scheduled',
-        read: false,
-        action_url: user.role === 'contractor' ? `/contractor/jobs/${jobId}` : `/jobs/${jobId}`,
-        created_at: new Date().toISOString(),
-      },
-      {
-        user_id: otherPartyId,
-        title: 'Job Scheduled 📅',
-        message: `${user.role === 'contractor' ? 'Contractor' : 'Homeowner'} has scheduled "${job.title || 'the job'}" to start on ${formattedDate}.`,
-        type: 'job_scheduled',
-        read: false,
-        action_url: user.role === 'contractor' ? `/jobs/${jobId}` : `/contractor/jobs/${jobId}`,
-        created_at: new Date().toISOString(),
-      },
-    ];
-
     try {
-      await serverSupabase.from('notifications').insert(notifications);
+      await Promise.all([
+        NotificationService.createNotification({
+          userId: user.id,
+          title: 'Job Scheduled ✅',
+          message: `You've scheduled "${job.title || 'the job'}" to start on ${formattedDate}.`,
+          type: 'job_scheduled',
+          actionUrl: user.role === 'contractor' ? `/contractor/jobs/${jobId}` : `/jobs/${jobId}`,
+        }),
+        NotificationService.createNotification({
+          userId: otherPartyId,
+          title: 'Job Scheduled 📅',
+          message: `${user.role === 'contractor' ? 'Contractor' : 'Homeowner'} has scheduled "${job.title || 'the job'}" to start on ${formattedDate}.`,
+          type: 'job_scheduled',
+          actionUrl: user.role === 'contractor' ? `/jobs/${jobId}` : `/contractor/jobs/${jobId}`,
+        }),
+      ]);
     } catch (notificationError) {
       logger.error('Failed to create schedule notifications', notificationError, {
         service: 'jobs',

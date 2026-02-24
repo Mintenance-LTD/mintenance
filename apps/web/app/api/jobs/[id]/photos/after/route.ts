@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getUserFromRequest } from '@/lib/auth';
 import { PhotoVerificationService } from '@/lib/services/escrow/PhotoVerificationService';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { requireCSRF } from '@/lib/csrf';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
@@ -228,23 +229,21 @@ export async function POST(
             jobCompleted = true;
 
             // Notify homeowner to review and contractor of completion
-            await serverSupabase.from('notifications').insert([
-              {
-                user_id: job.homeowner_id,
+            await Promise.all([
+              NotificationService.createNotification({
+                userId: job.homeowner_id,
                 title: 'Job Completed - Review Required',
                 message: `Work on "${job.title || 'your job'}" is complete. Review the before/after photos and approve.`,
                 type: 'job_completed',
-                read: false,
-                action_url: `/jobs/${jobId}`,
-              },
-              {
-                user_id: user.id,
+                actionUrl: `/jobs/${jobId}`,
+              }),
+              NotificationService.createNotification({
+                userId: user.id,
                 title: 'Job Marked as Completed',
                 message: `Your after photos for "${job.title || 'the job'}" have been submitted. The job is now marked as completed and awaiting homeowner review.`,
                 type: 'job_completed',
-                read: false,
-                action_url: `/contractor/jobs/${jobId}`,
-              },
+                actionUrl: `/contractor/jobs/${jobId}`,
+              }),
             ]);
 
             logger.info('Job auto-completed after photo upload', { service: 'jobs', jobId });

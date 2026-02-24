@@ -22,6 +22,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { Badge } from '../../components/ui/Badge';
 
 interface Props {
   navigation: StackNavigationProp<ProfileStackParamList, 'PropertyDetail'>;
@@ -53,6 +54,22 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
     queryFn: () => apiClient.get<Property>(`/api/properties/${propertyId}`),
     enabled: !!user && !!propertyId,
   });
+
+  const { data: jobsData } = useQuery({
+    queryKey: ['property-jobs', propertyId],
+    queryFn: async () => {
+      const res = await apiClient.get<{ jobs: Array<{ id: string; title: string; status: string; budget?: number; created_at: string }> }>(
+        `/api/jobs?propertyId=${propertyId}`
+      );
+      return res.jobs || [];
+    },
+    enabled: !!user && !!propertyId,
+  });
+
+  const propertyJobs = jobsData || [];
+  const totalSpent = propertyJobs
+    .filter((j) => j.status === 'completed')
+    .reduce((sum, j) => sum + (j.budget || 0), 0);
 
   const deleteMutation = useMutation({
     mutationFn: () => apiClient.delete(`/api/properties/${propertyId}`),
@@ -165,6 +182,49 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
             <Text style={styles.notesText}>{property.notes}</Text>
           </View>
         )}
+
+        {/* Job History */}
+        <View style={styles.section}>
+          <View style={styles.jobHistoryHeader}>
+            <Text style={styles.sectionTitle}>Job History</Text>
+            {totalSpent > 0 && (
+              <Text style={styles.totalSpent}>
+                {'\u00A3'}{totalSpent.toLocaleString('en-GB')} spent
+              </Text>
+            )}
+          </View>
+          {propertyJobs.length === 0 ? (
+            <Text style={styles.emptyJobsText}>No jobs for this property yet.</Text>
+          ) : (
+            propertyJobs.map((job) => (
+              <TouchableOpacity
+                key={job.id}
+                style={styles.jobRow}
+                onPress={() => (navigation as any).navigate('JobsTab', { screen: 'JobDetails', params: { jobId: job.id } })}
+                accessibilityRole="button"
+                accessibilityLabel={`View ${job.title}`}
+              >
+                <View style={styles.jobRowInfo}>
+                  <Text style={styles.jobRowTitle} numberOfLines={1}>{job.title}</Text>
+                  <Text style={styles.jobRowDate}>
+                    {new Date(job.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </Text>
+                </View>
+                <View style={styles.jobRowRight}>
+                  {job.budget ? (
+                    <Text style={styles.jobRowBudget}>{'\u00A3'}{job.budget.toLocaleString()}</Text>
+                  ) : null}
+                  <Badge
+                    variant={job.status === 'completed' ? 'success' : job.status === 'in_progress' ? 'primary' : 'warning'}
+                    size="sm"
+                  >
+                    {job.status === 'in_progress' ? 'In Progress' : job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                  </Badge>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -244,6 +304,54 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.base,
     color: theme.colors.textSecondary,
     lineHeight: 22,
+  },
+  jobHistoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing[3],
+  },
+  totalSpent: {
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.primary,
+  },
+  emptyJobsText: {
+    fontSize: theme.typography.fontSize.base,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    paddingVertical: theme.spacing[4],
+  },
+  jobRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing[3],
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  jobRowInfo: {
+    flex: 1,
+    marginRight: theme.spacing[3],
+  },
+  jobRowTitle: {
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.medium,
+    color: theme.colors.textPrimary,
+  },
+  jobRowDate: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.textTertiary,
+    marginTop: 2,
+  },
+  jobRowRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  jobRowBudget: {
+    fontSize: theme.typography.fontSize.base,
+    fontWeight: theme.typography.fontWeight.semibold,
+    color: theme.colors.textPrimary,
   },
 });
 

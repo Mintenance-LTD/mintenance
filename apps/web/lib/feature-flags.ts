@@ -76,8 +76,8 @@ const FEATURE_FLAGS: Record<FeatureFlagName, FeatureFlagConfig> = {
   },
   'ai-recommendations': {
     name: 'ai-recommendations',
-    description: 'AI-powered contractor recommendations (disabled: ML backend not production-ready)',
-    defaultEnabled: false,
+    description: 'Rule-based predictive maintenance recommendations surfaced on homeowner dashboard',
+    defaultEnabled: true,
   },
   'ml-image-analysis': {
     name: 'ml-image-analysis',

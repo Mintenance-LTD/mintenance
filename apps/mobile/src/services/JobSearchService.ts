@@ -54,6 +54,58 @@ interface ErrorWithMessage {
 }
 
 export class JobSearchService {
+  /**
+   * Enrich jobs with photos from job_attachments and job_photos_metadata tables.
+   * The jobs.photos column is always empty — real photos live in these related tables.
+   */
+  private static async enrichJobsWithPhotos(jobs: Job[]): Promise<Job[]> {
+    if (jobs.length === 0) return jobs;
+
+    const jobIds = jobs.map((j) => j.id);
+
+    // Fetch from both photo tables in parallel
+    const [attachRes, metaRes] = await Promise.all([
+      supabase
+        .from('job_attachments')
+        .select('job_id, file_url')
+        .in('job_id', jobIds)
+        .eq('file_type', 'image'),
+      supabase
+        .from('job_photos_metadata')
+        .select('job_id, photo_url')
+        .in('job_id', jobIds),
+    ]);
+
+    // Build a map of job_id → photo URLs
+    const photoMap = new Map<string, string[]>();
+
+    if (attachRes.data) {
+      for (const row of attachRes.data) {
+        const arr = photoMap.get(row.job_id) || [];
+        arr.push(row.file_url);
+        photoMap.set(row.job_id, arr);
+      }
+    }
+    if (metaRes.data) {
+      for (const row of metaRes.data) {
+        const arr = photoMap.get(row.job_id) || [];
+        if (!arr.includes(row.photo_url)) {
+          arr.push(row.photo_url);
+        }
+        photoMap.set(row.job_id, arr);
+      }
+    }
+
+    // Merge photos into each job
+    return jobs.map((job) => {
+      const photos = photoMap.get(job.id);
+      if (photos && photos.length > 0) {
+        return { ...job, photos };
+      }
+      return job;
+    });
+  }
+
   static async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
     const { data, error } = await supabase
       .from('jobs')
@@ -63,7 +115,8 @@ export class JobSearchService {
 
     if (error) throw error;
     if (!data) return [];
-    return data.map(JobCRUDService['formatJob']);
+    const jobs = data.map(JobCRUDService['formatJob']);
+    return this.enrichJobsWithPhotos(jobs);
   }
 
   static async getUserJobs(userId: string): Promise<Job[]> {
@@ -78,7 +131,8 @@ export class JobSearchService {
       throw new Error(err.message || String(error));
     }
     if (!data) return [];
-    return data.map(JobCRUDService['formatJob']);
+    const jobs = data.map(JobCRUDService['formatJob']);
+    return this.enrichJobsWithPhotos(jobs);
   }
 
   static async getAvailableJobs(): Promise<Job[]> {
@@ -93,13 +147,15 @@ export class JobSearchService {
       const { data, error } = await q.limit(20);
       if (error) throw error;
       if (!data) return [];
-      return data.map(JobCRUDService['formatJob']);
+      const jobs = data.map(JobCRUDService['formatJob']);
+      return this.enrichJobsWithPhotos(jobs);
     }
 
     const { data, error } = await q;
     if (error) throw error;
     if (!data) return [];
-    return data.map(JobCRUDService['formatJob']);
+    const jobs = data.map(JobCRUDService['formatJob']);
+    return this.enrichJobsWithPhotos(jobs);
   }
 
   static async getJobsByStatus(
@@ -118,7 +174,8 @@ export class JobSearchService {
 
     if (error) throw error;
     if (!data) return [];
-    return data.map(JobCRUDService['formatJob']);
+    const jobs = data.map(JobCRUDService['formatJob']);
+    return this.enrichJobsWithPhotos(jobs);
   }
 
   static async getJobsByUser(userId: string, role: 'homeowner' | 'contractor'): Promise<Job[]> {
@@ -128,7 +185,8 @@ export class JobSearchService {
     const { data, error } = await q.order('created_at', { ascending: false });
     if (error) throw error;
     if (!data) return [];
-    return data.map(JobCRUDService['formatJob']);
+    const jobs = data.map(JobCRUDService['formatJob']);
+    return this.enrichJobsWithPhotos(jobs);
   }
 
   // Generic job retrieval with pagination
@@ -161,14 +219,16 @@ export class JobSearchService {
       const { data, error } = await query.range(offset, offset + limit - 1);
       if (error) throw error;
       if (!data) return [];
-      return data.map(JobCRUDService['formatJob']);
+      const jobs = data.map(JobCRUDService['formatJob']);
+      return this.enrichJobsWithPhotos(jobs);
     }
 
     if (typeof limit === 'number' && typeof query.limit === 'function') {
       const { data, error } = await query.limit(limit);
       if (error) throw error;
       if (!data) return [];
-      return data.map(JobCRUDService['formatJob']);
+      const jobs = data.map(JobCRUDService['formatJob']);
+      return this.enrichJobsWithPhotos(jobs);
     }
 
     // Default to limited page when supported (tests finalize via limit())
@@ -176,13 +236,15 @@ export class JobSearchService {
       const { data, error } = await query.limit(20);
       if (error) throw error;
       if (!data) return [];
-      return data.map(JobCRUDService['formatJob']);
+      const jobs = data.map(JobCRUDService['formatJob']);
+      return this.enrichJobsWithPhotos(jobs);
     }
 
     const { data, error } = await query;
     if (error) throw error;
     if (!data) return [];
-    return data.map(JobCRUDService['formatJob']);
+    const jobs = data.map(JobCRUDService['formatJob']);
+    return this.enrichJobsWithPhotos(jobs);
   }
 
   // Search jobs by title, description, location, or category
@@ -222,13 +284,15 @@ export class JobSearchService {
       const { data, error } = await q.limit(limit);
       if (error) throw error;
       if (!data) return [];
-      return data.map(JobCRUDService['formatJob']);
+      const jobs = data.map(JobCRUDService['formatJob']);
+      return this.enrichJobsWithPhotos(jobs);
     }
 
     const { data, error } = await q;
     if (error) throw error;
     if (!data) return [];
-    return data.map(JobCRUDService['formatJob']);
+    const jobs = data.map(JobCRUDService['formatJob']);
+    return this.enrichJobsWithPhotos(jobs);
   }
 
   // Get single job (alias for getJobById for consistency)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { logger } from '../utils/logger';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
@@ -16,38 +18,59 @@ import { ContractorProfile, LocationData } from '@mintenance/types';
 import ContractorMapView from '../components/ContractorMapView';
 import ContractorDiscoverView from '../components/ContractorDiscoverView';
 import { theme } from '../theme';
+import type { RootStackParamList } from '../navigation/types';
 
-// Removed unused screen height calculation
+// Default fallback location (London) when permission denied
+const DEFAULT_LOCATION: LocationData = { latitude: 51.5074, longitude: -0.1278 };
 
 type ViewMode = 'map' | 'discover';
 
 const ContractorDiscoveryScreen: React.FC = () => {
   const { user } = useAuth();
+  const rootNavigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<LocationData | null>(null);
   const [contractors, setContractors] = useState<ContractorProfile[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>('discover');
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
+  const isMounted = useRef(true);
 
   useEffect(() => {
+    isMounted.current = true;
     initializeLocation();
+    return () => { isMounted.current = false; };
   }, []);
 
-  const initializeLocation = async () => {
+  const initializeLocation = useCallback(async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      // Check existing permission first (non-prompting)
+      const { status: existing } = await Location.getForegroundPermissionsAsync();
+      let finalStatus = existing;
 
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Location permission is needed to find contractors near you.',
-          [{ text: 'OK' }]
-        );
-        setLoading(false);
+      // Only prompt if not yet determined
+      if (existing !== 'granted') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (!isMounted.current) return;
+
+      if (finalStatus !== 'granted') {
+        setLocationDenied(true);
+        // Fall back to default location so the screen still works
+        setUserLocation(DEFAULT_LOCATION);
+        await loadNearbyContractors(DEFAULT_LOCATION);
         return;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: 10000,
+      });
+
+      if (!isMounted.current) return;
+
       const userLocationData: LocationData = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -57,11 +80,14 @@ const ContractorDiscoveryScreen: React.FC = () => {
       await loadNearbyContractors(userLocationData);
     } catch (error) {
       logger.error('Error getting location:', error);
-      Alert.alert('Error', 'Failed to get your location. Please try again.');
+      if (!isMounted.current) return;
+      // Fall back to default location instead of crashing
+      setUserLocation(DEFAULT_LOCATION);
+      await loadNearbyContractors(DEFAULT_LOCATION);
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
-  };
+  }, []);
 
   const loadNearbyContractors = async (location: LocationData) => {
     if (!user) return;
@@ -71,10 +97,10 @@ const ContractorDiscoveryScreen: React.FC = () => {
         location,
         25 // 25km radius
       );
-      setContractors(nearbyContractors);
+      if (isMounted.current) setContractors(nearbyContractors);
     } catch (error) {
       logger.error('Error loading contractors:', error);
-      Alert.alert('Error', 'Failed to load contractors. Please try again.');
+      if (isMounted.current) setContractors([]);
     }
   };
 
@@ -129,7 +155,11 @@ const ContractorDiscoveryScreen: React.FC = () => {
   if (!userLocation) {
     return (
       <View style={styles.errorContainer}>
+        <Ionicons name='location-outline' size={48} color={theme.colors.textTertiary} />
         <Text style={styles.errorText}>Unable to access your location</Text>
+        <Text style={styles.errorSubtext}>
+          Enable location in your device settings to find contractors near you.
+        </Text>
         <TouchableOpacity
           style={styles.retryButton}
           onPress={initializeLocation}
@@ -154,6 +184,15 @@ const ContractorDiscoveryScreen: React.FC = () => {
           {filteredContractors.length} contractors found
         </Text>
       </View>
+
+      {locationDenied && (
+        <View style={styles.locationBanner}>
+          <Ionicons name='location-outline' size={16} color={theme.colors.warning} />
+          <Text style={styles.locationBannerText}>
+            Showing results for default area. Enable location for nearby results.
+          </Text>
+        </View>
+      )}
 
       {/* View Mode Toggle */}
       <View style={styles.viewToggle}>
@@ -261,10 +300,12 @@ const ContractorDiscoveryScreen: React.FC = () => {
           <ContractorDiscoverView
             contractors={filteredContractors}
             onContractorSelect={(contractor) => {
-              // Handle contractor selection - could navigate to profile or show details
-              logger.debug('Selected contractor:', {
-                firstName: contractor.firstName,
-                lastName: contractor.lastName,
+              rootNavigation.navigate('Modal', {
+                screen: 'ContractorProfile',
+                params: {
+                  contractorId: contractor.id,
+                  contractorName: `${contractor.firstName} ${contractor.lastName}`,
+                },
               });
             }}
           />
@@ -368,7 +409,28 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: theme.colors.textSecondary,
     textAlign: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
     marginBottom: 20,
+    paddingHorizontal: 20,
+  },
+  locationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.warningLight || '#FFF8E1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  locationBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: theme.colors.textSecondary,
   },
   retryButton: {
     backgroundColor: theme.colors.primary,

@@ -13,9 +13,9 @@ const FAQ_ITEMS = [
     hasBorder: true,
   },
   {
-    title: 'How does the escrow payment system work?',
+    title: 'How does the protected payment system work?',
     content:
-      'When you accept a contractor\'s bid, your payment is held securely in escrow by Mintenance. The contractor completes the work, you approve it, and then funds are released. If there\'s any issue, our mediation team steps in to resolve it fairly. This protects both homeowners and contractors.',
+      'When you accept a contractor\'s bid, your payment is held securely by Mintenance. The contractor completes the work, you approve it, and then funds are released. If there\'s any issue, our mediation team steps in to resolve it fairly. This protects both homeowners and contractors.',
     hasBorder: true,
   },
   {
@@ -39,7 +39,7 @@ const FAQ_ITEMS = [
   {
     title: "What if I'm not satisfied with the work?",
     content:
-      'We offer free dispute resolution services. Contact our support team with details and evidence (photos, messages, contracts). Our mediation team will review the case within 5-7 business days and help reach a fair resolution. Your payment stays in escrow until the issue is resolved.',
+      'We offer free dispute resolution services. Contact our support team with details and evidence (photos, messages, contracts). Our mediation team will review the case within 5-7 business days and help reach a fair resolution. Your payment stays protected until the issue is resolved.',
     hasBorder: false,
   },
 ];

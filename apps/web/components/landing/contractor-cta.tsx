@@ -3,23 +3,23 @@ import Link from 'next/link';
 
 const BENEFITS = [
   {
-    title: 'Quality Leads',
-    description: 'Get matched with serious homeowners ready to hire',
+    title: 'Real Jobs, Not Leads',
+    description: 'See real posted jobs with budgets and details — no credits, no guessing',
   },
   {
-    title: 'Grow Your Business',
-    description: 'Build your reputation with reviews and referrals',
+    title: 'Guaranteed Payment',
+    description: 'The homeowner\'s money is held securely before you pick up a tool. You will get paid.',
   },
   {
-    title: 'Get Paid Faster',
-    description: 'Secure payments released within 24 hours of completion',
+    title: 'Your Work Speaks for Itself',
+    description: 'Photo proof protects you from bad-faith disputes. Verified badges show your credentials from day one.',
   },
 ];
 
-const CONTRACTOR_STATS = [
-  { label: 'Average Monthly Earnings', value: '£4,250', growth: '+23%' },
-  { label: 'Jobs per Month', value: '12', growth: '+15%' },
-  { label: 'Customer Satisfaction', value: '98%', growth: '+5%' },
+const CONTRACTOR_PROMISES = [
+  { label: 'No monthly fees', description: 'You only pay when you win a job' },
+  { label: 'No credit system', description: 'See full job details before you bid' },
+  { label: 'Payment protected', description: 'Funds secured before work begins' },
 ];
 
 function CheckCircleIcon() {
@@ -30,13 +30,6 @@ function CheckCircleIcon() {
   );
 }
 
-function TrendUpIcon() {
-  return (
-    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-      <path fillRule="evenodd" d="M12 7a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L9 11.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0L11 10.586 14.586 7H13a1 1 0 01-1-1z" clipRule="evenodd" />
-    </svg>
-  );
-}
 
 /**
  * Contractor call-to-action section with benefits and stats
@@ -49,7 +42,7 @@ export function ContractorCTA() {
           <div>
             <h2 className="text-5xl font-bold text-white mb-6">Are you a contractor?</h2>
             <p className="text-xl text-white/80 mb-10 leading-relaxed">
-              Join thousands of professionals growing their business with Mintenance. Get quality leads, manage projects efficiently, and get paid faster.
+              We know you&apos;ve tried the others. Here&apos;s what&apos;s actually different: real jobs from real homeowners, payment secured before you start, and photo proof that protects your reputation.
             </p>
 
             <div className="space-y-6 mb-10">
@@ -73,14 +66,10 @@ export function ContractorCTA() {
           </div>
 
           <div className="grid gap-6">
-            {CONTRACTOR_STATS.map((stat) => (
-              <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-                <p className="text-white/70 text-sm font-medium mb-2">{stat.label}</p>
-                <p className="text-5xl font-bold text-white mb-2">{stat.value}</p>
-                <div className="flex items-center text-sm text-teal-400 font-medium">
-                  <TrendUpIcon />
-                  <span>{stat.growth}</span>
-                </div>
+            {CONTRACTOR_PROMISES.map((item) => (
+              <div key={item.label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+                <p className="text-2xl font-bold text-white mb-2">{item.label}</p>
+                <p className="text-white/70 leading-relaxed">{item.description}</p>
               </div>
             ))}
           </div>

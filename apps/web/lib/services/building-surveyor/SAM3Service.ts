@@ -45,6 +45,26 @@ export class SAM3Service {
 
   private static readonly TIMEOUT_MS = Number(process.env.SAM3_TIMEOUT_MS) || 30000;
 
+  // P0 Security: Shared secret for authenticating requests to SAM3 microservice
+  private static readonly AUTH_TOKEN = process.env.SAM3_AUTH_TOKEN || '';
+
+  /**
+   * Build authenticated headers for SAM3 requests
+   */
+  private static getAuthHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (this.AUTH_TOKEN) {
+      headers['Authorization'] = `Bearer ${this.AUTH_TOKEN}`;
+    } else {
+      logger.warn('SAM3_AUTH_TOKEN not configured - requests are unauthenticated', {
+        service: 'sam3-service',
+      });
+    }
+    return headers;
+  }
+
   // Cache health check results
   private static healthCheckCache: { result: boolean; timestamp: number } | null = null;
   private static readonly HEALTH_CHECK_CACHE_TTL = 60000; // 60 seconds
@@ -119,6 +139,7 @@ export class SAM3Service {
       const response = await fetch(`${this.BASE_URL}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(5000),
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) return false;
@@ -213,9 +234,7 @@ export class SAM3Service {
 
         const response = await fetch(`${this.BASE_URL}/segment`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: this.getAuthHeaders(),
           body: JSON.stringify({
             image_base64: imageBase64,
             text_prompt: textPrompt,
@@ -256,9 +275,7 @@ export class SAM3Service {
 
       const response = await fetch(`${this.BASE_URL}/segment-damage-types`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify({
           image_base64: imageBase64,
           damage_types: damageTypes,

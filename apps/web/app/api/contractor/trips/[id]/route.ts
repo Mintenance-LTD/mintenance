@@ -5,6 +5,7 @@ import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError } fro
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 const updateTripSchema = z.object({
   status: z.enum(['arrived', 'completed', 'cancelled']),
@@ -94,14 +95,12 @@ export async function PATCH(
 
     // Notify homeowner on arrival
     if (status === 'arrived' && homeownerId) {
-      await serverSupabase.from('notifications').insert({
-        user_id: homeownerId,
+      await NotificationService.createNotification({
+        userId: homeownerId,
         type: 'contractor_arrived',
         title: 'Contractor Has Arrived',
         message: `${contractorName} has arrived${jobTitle ? ` for "${jobTitle}"` : ''}.`,
-        data: { tripId: updatedTrip.id, jobId: trip.job_id, contractorId: user.id },
-        read: false,
-        created_at: new Date().toISOString(),
+        metadata: { tripId: updatedTrip.id, jobId: trip.job_id, contractorId: user.id },
       });
     }
 
@@ -115,16 +114,15 @@ export async function PATCH(
           .is('deleted_at', null);
 
         if (admins && admins.length > 0) {
-          const adminNotifs = admins.map(admin => ({
-            user_id: admin.id,
-            type: 'contractor_arrived',
-            title: 'Contractor Arrived',
-            message: `${contractorName} arrived at ${jobTitle || 'appointment location'}`,
-            data: { tripId: updatedTrip.id, jobId: trip.job_id, contractorId: user.id },
-            read: false,
-            created_at: new Date().toISOString(),
-          }));
-          await serverSupabase.from('notifications').insert(adminNotifs);
+          await Promise.all(admins.map(admin =>
+            NotificationService.createNotification({
+              userId: admin.id,
+              type: 'contractor_arrived',
+              title: 'Contractor Arrived',
+              message: `${contractorName} arrived at ${jobTitle || 'appointment location'}`,
+              metadata: { tripId: updatedTrip.id, jobId: trip.job_id, contractorId: user.id },
+            })
+          ));
         }
       } catch (adminErr) {
         logger.error('Failed to notify admins of arrival', adminErr, { service: 'trips' });

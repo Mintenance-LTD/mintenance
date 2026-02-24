@@ -1,14 +1,15 @@
 /**
  * PaymentMethods ViewModel
- * 
+ *
  * Business logic for payment methods management.
- * Handles card validation, formatting, and payment processing.
- * 
+ * Fetches real saved cards from the API and manages selection state.
+ *
  * @filesize Target: <150 lines
  * @compliance MVVM - Business logic only
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { PaymentService } from '../../../services/PaymentService';
 import { logger } from '../../../utils/logger';
 
 export interface PaymentMethod {
@@ -17,130 +18,124 @@ export interface PaymentMethod {
   name: string;
   icon: keyof import('@expo/vector-icons/Ionicons').default['glyphMap'];
   details?: string;
+  isDefault?: boolean;
 }
 
-export interface CardDetails {
-  holderName: string;
-  number: string;
-  expiry: string;
-  cvv: string;
+export interface SavedCard {
+  id: string;
+  brand: string;
+  last4: string;
+  expiryMonth: number;
+  expiryYear: number;
+  isDefault: boolean;
 }
 
-export interface PaymentMethodsState {
+export interface PaymentMethodsViewModel {
   selectedMethod: string | null;
-  showAddCard: boolean;
-  cardDetails: CardDetails;
-  saveCard: boolean;
   paymentMethods: PaymentMethod[];
-}
-
-export interface PaymentMethodsActions {
+  savedCards: SavedCard[];
+  loading: boolean;
+  error: string | null;
   selectMethod: (methodId: string) => void;
-  toggleAddCard: (show: boolean) => void;
-  updateCardDetails: (details: Partial<CardDetails>) => void;
-  toggleSaveCard: () => void;
-  formatCardNumber: (text: string) => string;
-  formatExpiry: (text: string) => string;
-  handleAddCard: () => Promise<void>;
-  validateCard: () => boolean;
+  deleteCard: (cardId: string) => Promise<void>;
+  setDefaultCard: (cardId: string) => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
-export interface PaymentMethodsViewModel extends PaymentMethodsState, PaymentMethodsActions {}
+const STATIC_METHODS: PaymentMethod[] = [
+  { id: 'cash', type: 'cash', name: 'Cash', icon: 'cash' },
+  { id: 'paypal', type: 'paypal', name: 'PayPal', icon: 'logo-paypal' },
+  { id: 'apple_pay', type: 'apple_pay', name: 'Apple Pay', icon: 'logo-apple' },
+];
 
-/**
- * Custom hook providing Payment Methods screen logic
- */
 export const usePaymentMethodsViewModel = (): PaymentMethodsViewModel => {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
-  const [showAddCard, setShowAddCard] = useState(false);
-  const [saveCard, setSaveCard] = useState(false);
-  const [cardDetails, setCardDetails] = useState<CardDetails>({
-    holderName: '',
-    number: '',
-    expiry: '',
-    cvv: '',
-  });
+  const [savedCards, setSavedCards] = useState<SavedCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const paymentMethods: PaymentMethod[] = [
-    { id: 'cash', type: 'cash', name: 'Cash', icon: 'cash' },
-    { id: 'paypal', type: 'paypal', name: 'PayPal', icon: 'logo-paypal' },
-    { id: 'apple_pay', type: 'apple_pay', name: 'Apple Pay', icon: 'logo-apple' },
-  ];
+  const fetchPaymentMethods = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await PaymentService.getPaymentMethods();
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      const cards: SavedCard[] = (result.methods || [])
+        .filter((m) => m.type === 'card' && m.card)
+        .map((m) => ({
+          id: m.id,
+          brand: m.card!.brand,
+          last4: m.card!.last4,
+          expiryMonth: m.card!.expiryMonth,
+          expiryYear: m.card!.expiryYear,
+          isDefault: m.isDefault,
+        }));
+
+      setSavedCards(cards);
+
+      // Auto-select default card if one exists
+      const defaultCard = cards.find((c) => c.isDefault);
+      if (defaultCard && !selectedMethod) {
+        setSelectedMethod(defaultCard.id);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load payment methods';
+      setError(msg);
+      logger.error('Failed to fetch payment methods', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPaymentMethods();
+  }, [fetchPaymentMethods]);
 
   const selectMethod = useCallback((methodId: string) => {
     setSelectedMethod(methodId);
-    logger.info('Payment method selected', { methodId });
   }, []);
 
-  const toggleAddCard = useCallback((show: boolean) => {
-    setShowAddCard(show);
-  }, []);
-
-  const updateCardDetails = useCallback((details: Partial<CardDetails>) => {
-    setCardDetails((prev) => ({ ...prev, ...details }));
-  }, []);
-
-  const toggleSaveCard = useCallback(() => {
-    setSaveCard((prev) => !prev);
-  }, []);
-
-  const formatCardNumber = useCallback((text: string) => {
-    const cleaned = text.replace(/\s/g, '');
-    const formatted = cleaned.match(/.{1,4}/g)?.join(' ') || cleaned;
-    return formatted.slice(0, 19); // Max 16 digits + 3 spaces
-  }, []);
-
-  const formatExpiry = useCallback((text: string) => {
-    const cleaned = text.replace(/\D/g, '');
-    if (cleaned.length >= 2) {
-      return `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}`;
-    }
-    return cleaned;
-  }, []);
-
-  const validateCard = useCallback(() => {
-    if (!cardDetails.holderName || !cardDetails.number || !cardDetails.expiry || !cardDetails.cvv) {
-      return false;
-    }
-    return true;
-  }, [cardDetails]);
-
-  const handleAddCard = useCallback(async () => {
-    if (!validateCard()) {
-      logger.warn('Invalid card details');
-      return;
-    }
-
+  const deleteCard = useCallback(async (cardId: string) => {
     try {
-      logger.info('Adding card', { saveCard });
-      // In production: integrate with Stripe/payment processor
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      setShowAddCard(false);
-      setCardDetails({ holderName: '', number: '', expiry: '', cvv: '' });
-      logger.info('Card added successfully');
-    } catch (error) {
-      logger.error('Failed to add card', error);
-      throw error;
+      const result = await PaymentService.deletePaymentMethod(cardId);
+      if (result.error) throw new Error(result.error);
+      setSavedCards((prev) => prev.filter((c) => c.id !== cardId));
+      if (selectedMethod === cardId) setSelectedMethod(null);
+      logger.info('Card deleted', { cardId });
+    } catch (err) {
+      logger.error('Failed to delete card', err);
+      throw err;
     }
-  }, [cardDetails, saveCard, validateCard]);
+  }, [selectedMethod]);
+
+  const setDefaultCard = useCallback(async (cardId: string) => {
+    try {
+      const result = await PaymentService.setDefaultPaymentMethod(cardId);
+      if (result.error) throw new Error(result.error);
+      setSavedCards((prev) =>
+        prev.map((c) => ({ ...c, isDefault: c.id === cardId }))
+      );
+      setSelectedMethod(cardId);
+      logger.info('Default card updated', { cardId });
+    } catch (err) {
+      logger.error('Failed to set default card', err);
+      throw err;
+    }
+  }, []);
 
   return {
-    // State
     selectedMethod,
-    showAddCard,
-    cardDetails,
-    saveCard,
-    paymentMethods,
-
-    // Actions
+    paymentMethods: STATIC_METHODS,
+    savedCards,
+    loading,
+    error,
     selectMethod,
-    toggleAddCard,
-    updateCardDetails,
-    toggleSaveCard,
-    formatCardNumber,
-    formatExpiry,
-    handleAddCard,
-    validateCard,
+    deleteCard,
+    setDefaultCard,
+    refresh: fetchPaymentMethods,
   };
 };

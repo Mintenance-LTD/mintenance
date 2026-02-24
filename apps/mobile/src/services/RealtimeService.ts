@@ -1,8 +1,7 @@
-import type { Job, Bid, Message, Notification, User } from '../types/entities';
-import { z } from 'zod';
+import type { Job, Bid, Message } from '../types/entities';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
-import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // ============================================================================
 // DATABASE ROW INTERFACES (snake_case from database)
@@ -69,166 +68,11 @@ interface ChannelState {
   send?: (payload: Record<string, unknown>) => Promise<void>;
 }
 
-// ============================================================================
-// REAL-TIME EVENT SCHEMAS
-// ============================================================================
-
-const RealTimeEventSchema = z.object({
-  type: z.enum([
-    'job_created',
-    'job_updated', 
-    'bid_received',
-    'message_received',
-    'notification_sent',
-    'user_online',
-    'user_offline',
-  ]),
-  payload: z.unknown(),
-  timestamp: z.number(),
-  userId: z.string().optional(),
-});
-
-export type RealTimeEvent = z.infer<typeof RealTimeEventSchema>;
-
-export type EventListener<T = unknown> = (data: T) => void;
-
-export interface RealTimeEventHandlers {
-  onJobCreated?: EventListener<{ job: Job }>;
-  onJobUpdated?: EventListener<{ job: Job; changes: Partial<Job> }>;
-  onBidReceived?: EventListener<{ bid: Bid; job: Job }>;
-  onMessageReceived?: EventListener<{ message: Message; conversation: { id: string; participants: string[]; [key: string]: unknown } }>;
-  onNotificationSent?: EventListener<{ notification: Notification }>;
-  onUserOnline?: EventListener<{ userId: string; userInfo: User }>;
-  onUserOffline?: EventListener<{ userId: string }>;
-  onConnectionChange?: EventListener<{ connected: boolean; latency?: number }>;
-  onError?: EventListener<{ error: string; code?: string }>;
-}
+export type RealtimeCallback = (payload: unknown) => void;
 
 // ============================================================================
-// REAL-TIME SERVICE CLASS
+// REALTIME SERVICE (Supabase Postgres Changes)
 // ============================================================================
-
-export class RealTimeService {
-  private eventHandlers: RealTimeEventHandlers = {};
-  private isConnected = false;
-  private currentUserId: string | null = null;
-  private mockSocket: { connected: boolean; emit: (event: string, data: unknown) => void; on: (event: string, handler: Function) => void; disconnect: () => void } | null = null;
-
-  async initialize(userId: string, token: string): Promise<void> {
-    this.currentUserId = userId;
-    logger.info('Initializing real-time service for user', { userId });
-
-    // Mock WebSocket connection for development
-    this.mockSocket = {
-      connected: true,
-      emit: (event: string, data: unknown) => {
-        logger.debug('Emitting real-time event', { event, data });
-      },
-      on: (event: string, handler: Function) => {
-        logger.debug('Listening for real-time event', { event });
-      },
-      disconnect: () => {
-        logger.info('Disconnecting mock socket');
-        this.isConnected = false;
-      }
-    };
-
-    this.isConnected = true;
-    this.eventHandlers.onConnectionChange?.({ connected: true });
-  }
-
-  setEventHandlers(handlers: RealTimeEventHandlers): void {
-    this.eventHandlers = { ...this.eventHandlers, ...handlers };
-  }
-
-  // Simulate real-time events for development
-  simulateJobCreated(job: Job): void {
-    logger.debug('Simulating job created event', { jobId: job.id });
-    this.eventHandlers.onJobCreated?.({ job });
-  }
-
-  simulateJobUpdated(job: Job, changes: Partial<Job>): void {
-    logger.debug('Simulating job updated event', { jobId: job?.id });
-    this.eventHandlers.onJobUpdated?.({ job, changes });
-  }
-
-  simulateBidReceived(bid: Bid, job: Job): void {
-    logger.debug('Simulating bid received event', { bidId: bid?.id, jobId: job?.id });
-    this.eventHandlers.onBidReceived?.({ bid, job });
-  }
-
-  simulateMessageReceived(message: Message, conversation: { id: string; participants: string[]; [key: string]: unknown }): void {
-    logger.debug('Simulating message received event', { messageId: message?.id });
-    this.eventHandlers.onMessageReceived?.({ message, conversation });
-  }
-
-  simulateNotification(notification: Notification): void {
-    logger.debug('Simulating notification event', { notificationId: notification.id });
-    this.eventHandlers.onNotificationSent?.({ notification });
-  }
-
-  // Public methods for WebSocket operations
-  emitTypingStart(conversationId: string): void {
-    this.mockSocket?.emit('typing:start', { conversationId });
-  }
-
-  emitTypingStop(conversationId: string): void {
-    this.mockSocket?.emit('typing:stop', { conversationId });
-  }
-
-  emitUserPresence(status: 'online' | 'away' | 'busy'): void {
-    this.mockSocket?.emit('user:presence', { status });
-  }
-
-  joinJobRoom(jobId: string): void {
-    this.mockSocket?.emit('join:job', { jobId });
-  }
-
-  leaveJobRoom(jobId: string): void {
-    this.mockSocket?.emit('leave:job', { jobId });
-  }
-
-  joinConversationRoom(conversationId: string): void {
-    this.mockSocket?.emit('join:conversation', { conversationId });
-  }
-
-  leaveConversationRoom(conversationId: string): void {
-    this.mockSocket?.emit('leave:conversation', { conversationId });
-  }
-
-  async disconnect(): Promise<void> {
-    this.mockSocket?.disconnect();
-    this.isConnected = false;
-    this.currentUserId = null;
-    this.eventHandlers.onConnectionChange?.({ connected: false });
-  }
-
-  getConnectionStatus(): { connected: boolean; latency?: number } {
-    return { 
-      connected: this.isConnected,
-      latency: this.isConnected ? 50 : undefined // Mock latency
-    };
-  }
-
-  isSocketConnected(): boolean {
-    return this.isConnected;
-  }
-}
-
-// ============================================================================
-// SINGLETON INSTANCE
-// ============================================================================
-
-let realTimeServiceInstance: RealTimeService | null = null;
-
-export const getRealTimeService = (): RealTimeService => {
-  if (!realTimeServiceInstance) {
-    realTimeServiceInstance = new RealTimeService();
-  }
-  return realTimeServiceInstance;
-};
-
-// Static methods for backward compatibility with tests
 export class RealtimeService {
   // Track active subscriptions for simple tests
   private static _subscriptions: unknown[] = [];
@@ -461,6 +305,98 @@ export class RealtimeService {
     };
   }
 
+  static subscribeToContractorBids(
+    contractorId: string,
+    callback: (bid: unknown) => void
+  ): () => void {
+    const topic = this.isSimpleMode()
+      ? `bids:contractor_id=eq.${contractorId}`
+      : `bids:contractor:${contractorId}`;
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(topic) as RealtimeChannel & ChannelState;
+
+    channel.on?.(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'bids', filter: `contractor_id=eq.${contractorId}` },
+      (payload: unknown) => {
+        const realtimePayload = payload as RealtimePayload<DatabaseBidRow>;
+        const bid = this.toCamelBid(realtimePayload.new);
+        try {
+          callback(bid);
+        } catch {}
+      }
+    );
+
+    this.attachStatusHandler(channel, topic);
+    this._subscriptions.push(channel);
+    return () => {
+      try {
+        channel.unsubscribe?.();
+      } catch {}
+    };
+  }
+
+  static subscribeToHomeownerJobs(
+    homeownerId: string,
+    callback: (job: unknown) => void
+  ): () => void {
+    const topic = this.isSimpleMode()
+      ? `jobs:homeowner_id=eq.${homeownerId}`
+      : `jobs:homeowner:${homeownerId}`;
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(topic) as RealtimeChannel & ChannelState;
+
+    channel.on?.(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'jobs', filter: `homeowner_id=eq.${homeownerId}` },
+      (payload: unknown) => {
+        const realtimePayload = payload as RealtimePayload<DatabaseJobRow>;
+        const job = this.toCamelJob(realtimePayload.new);
+        try {
+          callback(job);
+        } catch {}
+      }
+    );
+
+    this.attachStatusHandler(channel, topic);
+    this._subscriptions.push(channel);
+    return () => {
+      try {
+        channel.unsubscribe?.();
+      } catch {}
+    };
+  }
+
+  static subscribeToAvailableJobs(
+    callback: (job: unknown) => void
+  ): () => void {
+    const topic = this.isSimpleMode()
+      ? 'jobs:status=eq.posted'
+      : 'jobs:available';
+    const client = supabase as unknown as SupabaseClient;
+    const channel = client.channel(topic) as RealtimeChannel & ChannelState;
+
+    channel.on?.(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'jobs', filter: 'status=eq.posted' },
+      (payload: unknown) => {
+        const realtimePayload = payload as RealtimePayload<DatabaseJobRow>;
+        const job = this.toCamelJob(realtimePayload.new);
+        try {
+          callback(job);
+        } catch {}
+      }
+    );
+
+    this.attachStatusHandler(channel, topic);
+    this._subscriptions.push(channel);
+    return () => {
+      try {
+        channel.unsubscribe?.();
+      } catch {}
+    };
+  }
+
   static async sendMessage(jobId: string, message: Message): Promise<void> {
     const client = supabase as unknown as SupabaseClient;
     const channel = client.channel(this.topic('messages', jobId)) as RealtimeChannel & ChannelState;
@@ -580,5 +516,4 @@ export class RealtimeService {
   }
 }
 
-// Export both the class and instance-based service
-export default RealTimeService;
+export default RealtimeService;

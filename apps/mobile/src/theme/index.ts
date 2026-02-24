@@ -36,56 +36,64 @@ type BorderRadiusMap = {
 // Use design tokens as base, add mobile-specific features
 const tokens = mobileTokens;
 
+// ── Dark mode reactivity ──
+// Colors defined as getter-backed properties so that ANY code reading
+// theme.colors.X at render time gets the correct light/dark value.
+// The dark mode flag lives in a separate file (darkModeState.ts) to
+// avoid circular imports between theme/index.ts ↔ design-system/theme.tsx.
+// NOTE: StyleSheet.create at module scope freezes values at import time,
+// so screens should apply theme.colors.background as an inline style override
+// on their root container.
+import { isDarkMode } from './darkModeState';
+export { setDarkModeEnabled } from './darkModeState';
+
+// Light palette (default)
+const lightColors = {
+  ...tokens.colors,
+  primary: '#0D9488',
+  primaryLight: '#CCFBF1',
+  primaryDark: '#0F766E',
+  accent: '#F59E0B',
+  accentLight: '#FEF3C7',
+  ratingGold: '#F59E0B',
+  textPrimary: '#0F172A',
+  textSecondary: '#475569',
+  textTertiary: '#64748B',
+  background: '#FFFFFF',
+  backgroundSecondary: '#F8FAFC',
+  backgroundTertiary: '#F1F5F9',
+  surface: '#FFFFFF',
+  surfaceSecondary: '#F8FAFC',
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  placeholder: '#94A3B8',
+  textInverse: '#FFFFFF',
+  textInverseMuted: 'rgba(255, 255, 255, 0.80)',
+  overlayWhite10: 'rgba(255, 255, 255, 0.10)',
+  overlayWhite15: 'rgba(255, 255, 255, 0.15)',
+  overlayWhite20: 'rgba(255, 255, 255, 0.20)',
+  overlayDark30: 'rgba(0, 0, 0, 0.3)',
+  overlayDark50: 'rgba(0, 0, 0, 0.5)',
+} as const;
+
+// Build reactive colors: each property is a getter reading the current _isDark flag.
+// At render time (inline styles, JSX), the getter fires and returns the right value.
+const reactiveColors: Record<string, string> = {};
+for (const key of Object.keys(lightColors)) {
+  Object.defineProperty(reactiveColors, key, {
+    get() {
+      // darkColors is defined further below — reference is safe because
+      // the getter is only called at runtime, not at module-init time.
+      return isDarkMode() ? _darkColorsRef[key] : (lightColors as Record<string, string>)[key];
+    },
+    enumerable: true,
+    configurable: true,
+  });
+}
+
 export const theme = {
-  // Colors from design tokens with Airbnb-inspired warm overrides
-  colors: {
-    ...tokens.colors,
-
-    // ── Airbnb-style palette (design brief V2) ──
-    // Brand: Emerald green (matching web app #10B981)
-    primary: '#10B981',
-    primaryLight: '#D1FAE5',
-    primaryDark: '#059669',
-
-    // Accent: Coral for urgency & important pricing
-    accent: '#FF6B6B',
-    accentLight: '#FFE6E6',
-
-    // Rating gold for star ratings
-    ratingGold: '#FFD700',
-
-    // Text: high-contrast neutral hierarchy
-    textPrimary: '#222222',
-    textSecondary: '#717171',
-    textTertiary: '#9A9A9A',
-
-    // Backgrounds
-    background: '#FFFFFF',
-    backgroundSecondary: '#F7F7F7',
-    backgroundTertiary: '#EFEFEF',
-
-    // Surfaces
-    surface: '#FFFFFF',
-    surfaceSecondary: '#F8F8F8',
-
-    // Borders
-    border: '#EBEBEB',
-    borderLight: '#F0F0F0',
-
-    // Placeholder
-    placeholder: '#B0B0B0',
-
-    // Text inverse (for dark backgrounds)
-    textInverse: '#FFFFFF',
-    textInverseMuted: 'rgba(255, 255, 255, 0.78)',
-
-    // Overlay helpers
-    overlayWhite10: 'rgba(255, 255, 255, 0.10)',
-    overlayWhite15: 'rgba(255, 255, 255, 0.15)',
-    overlayWhite20: 'rgba(255, 255, 255, 0.20)',
-    overlayDark30: 'rgba(0, 0, 0, 0.3)',
-    overlayDark50: 'rgba(0, 0, 0, 0.5)',
-  },
+  // Colors: getter-backed so runtime reads pick up dark/light mode
+  colors: reactiveColors as typeof lightColors,
 
   // Typography from design tokens with mobile normalization
   typography: {
@@ -202,22 +210,22 @@ export const theme = {
     },
   },
 
-  // Component Variants (Airbnb-inspired)
+  // Component Variants (web-aligned)
   components: {
     button: {
       primary: {
-        backgroundColor: '#10B981',
+        backgroundColor: '#0D9488',
         color: '#FFFFFF',
-        borderColor: '#10B981',
+        borderColor: '#0D9488',
       },
       secondary: {
         backgroundColor: 'transparent',
-        color: '#000000',
-        borderColor: '#D0D0D0',
+        color: '#0F172A',
+        borderColor: '#CBD5E1',
       },
       tertiary: {
         backgroundColor: 'transparent',
-        color: '#808080',
+        color: '#64748B',
         borderColor: 'transparent',
       },
       success: {
@@ -232,16 +240,16 @@ export const theme = {
       },
       ghost: {
         backgroundColor: 'transparent',
-        color: '#000000',
+        color: '#0F172A',
         borderColor: 'transparent',
       },
     },
     card: {
       default: {
         backgroundColor: '#FFFFFF',
-        borderColor: '#D0D0D0',
+        borderColor: '#E2E8F0',
         borderWidth: 0,
-        borderRadius: 16,
+        borderRadius: 12,
       },
       elevated: {
         backgroundColor: '#FFFFFF',
@@ -250,32 +258,32 @@ export const theme = {
       },
       outlined: {
         backgroundColor: 'transparent',
-        borderColor: '#D0D0D0',
+        borderColor: '#E2E8F0',
         borderWidth: 1,
-        borderRadius: 16,
+        borderRadius: 12,
       },
     },
     input: {
       default: {
         backgroundColor: '#FFFFFF',
-        borderColor: '#D0D0D0',
-        color: '#000000',
-        placeholderTextColor: '#D0D0D0',
+        borderColor: '#E2E8F0',
+        color: '#0F172A',
+        placeholderTextColor: '#94A3B8',
       },
       outline: {
         backgroundColor: '#FFFFFF',
-        borderColor: '#D0D0D0',
-        color: '#000000',
-        placeholderTextColor: '#D0D0D0',
+        borderColor: '#E2E8F0',
+        color: '#0F172A',
+        placeholderTextColor: '#94A3B8',
       },
       filled: {
-        backgroundColor: '#F8F8F8',
-        borderColor: '#D0D0D0',
-        color: '#000000',
-        placeholderTextColor: '#D0D0D0',
+        backgroundColor: '#F8FAFC',
+        borderColor: '#E2E8F0',
+        color: '#0F172A',
+        placeholderTextColor: '#94A3B8',
       },
       focused: {
-        borderColor: '#000000',
+        borderColor: '#0D9488',
         backgroundColor: '#FFFFFF',
         shadowColor: '#000000',
         shadowOpacity: 0.05,
@@ -425,5 +433,84 @@ export const getCategoryColor = (category: string) => {
     .replace(/\s+/g, '') as keyof typeof tokens.colors;
   return (tokens.colors as Record<string, string>)[categoryKey] || tokens.colors.textSecondary;
 };
+
+// Dark mode color overrides — consumed by the reactive getters above
+const _darkColorsRef: Record<string, string> = {
+  ...lightColors,
+  primary: '#14B8A6',
+  primaryLight: '#065F46',
+  primaryDark: '#2DD4BF',
+  accent: '#FBBF24',
+  accentLight: '#3A2A0A',
+  ratingGold: '#FBBF24',
+  textPrimary: '#F1F5F9',
+  textSecondary: '#94A3B8',
+  textTertiary: '#64748B',
+  background: '#0F172A',
+  backgroundSecondary: '#1E293B',
+  backgroundTertiary: '#334155',
+  surface: '#1E293B',
+  surfaceSecondary: '#1E293B',
+  border: '#334155',
+  borderLight: '#1E293B',
+  placeholder: '#64748B',
+  textInverse: '#0F172A',
+  textInverseMuted: 'rgba(15, 23, 42, 0.78)',
+  overlayWhite10: 'rgba(255, 255, 255, 0.10)',
+  overlayWhite15: 'rgba(255, 255, 255, 0.15)',
+  overlayWhite20: 'rgba(255, 255, 255, 0.20)',
+  overlayDark30: 'rgba(0, 0, 0, 0.5)',
+  overlayDark50: 'rgba(0, 0, 0, 0.7)',
+};
+
+// Keep backward-compat alias used by getTheme()
+const darkColors = _darkColorsRef as typeof theme.colors;
+
+const darkShadows: typeof theme.shadows = {
+  ...theme.shadows,
+  sm: { ...theme.shadows.sm, shadowOpacity: 0.2 },
+  base: { ...theme.shadows.base, shadowOpacity: 0.25 },
+  md: { ...theme.shadows.md, shadowOpacity: 0.3 },
+  large: { ...theme.shadows.large, shadowOpacity: 0.35 },
+  xl: { ...theme.shadows.xl, shadowOpacity: 0.4 },
+};
+
+const darkComponents: typeof theme.components = {
+  button: {
+    ...theme.components.button,
+    secondary: { backgroundColor: 'transparent', color: '#F1F5F9', borderColor: '#475569' },
+    ghost: { backgroundColor: 'transparent', color: '#F1F5F9', borderColor: 'transparent' },
+  },
+  card: {
+    default: { backgroundColor: '#1E293B', borderColor: '#334155', borderWidth: 0, borderRadius: 12 },
+    elevated: { backgroundColor: '#1E293B', borderColor: 'transparent', borderWidth: 0 },
+    outlined: { backgroundColor: 'transparent', borderColor: '#334155', borderWidth: 1, borderRadius: 12 },
+  },
+  input: {
+    default: { backgroundColor: '#1E293B', borderColor: '#475569', color: '#F1F5F9', placeholderTextColor: '#64748B' },
+    outline: { backgroundColor: '#1E293B', borderColor: '#475569', color: '#F1F5F9', placeholderTextColor: '#64748B' },
+    filled: { backgroundColor: '#334155', borderColor: '#475569', color: '#F1F5F9', placeholderTextColor: '#64748B' },
+    focused: { borderColor: '#2DD4BF', backgroundColor: '#1E293B', shadowColor: '#000000', shadowOpacity: 0.1 },
+    error: { borderColor: tokens.colors.errorDark, backgroundColor: '#3A1A1A', color: tokens.colors.errorDark },
+  },
+};
+
+/** Returns the full theme for the given color scheme */
+export const getTheme = (isDark: boolean): Theme => {
+  if (!isDark) return theme;
+  return {
+    ...theme,
+    colors: darkColors,
+    shadows: darkShadows,
+    components: darkComponents,
+  };
+};
+
+/**
+ * Hook that returns the app theme reactive to dark/light mode.
+ * Uses design-system ThemeProvider context when available,
+ * falls back to the static light theme.
+ */
+export { useTheme } from '../design-system/theme';
 
 export default theme;

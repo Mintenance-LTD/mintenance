@@ -396,9 +396,16 @@ const getChipTextStyles = (
 };
 
 const getIconColor = (variant: BadgeVariant): string => {
-  return variant === 'neutral'
-    ? theme.colors.textPrimary
-    : theme.colors.white;
+  const variantIconColors: Record<BadgeVariant, string> = {
+    primary: theme.colors.primaryDark,
+    secondary: theme.colors.secondaryDark,
+    success: theme.colors.successDark,
+    error: theme.colors.errorDark,
+    warning: theme.colors.warningDark,
+    info: theme.colors.infoDark,
+    neutral: theme.colors.textPrimary,
+  };
+  return variantIconColors[variant];
 };
 
 const getIconSize = (size: BadgeSize): number => {

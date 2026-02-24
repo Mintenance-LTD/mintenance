@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { TouchableOpacity, StyleSheet, Platform, View, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
   useFocusEffect,
   useNavigation,
   LinkingOptions,
 } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
@@ -31,6 +33,7 @@ import HomeScreen from '../screens/HomeScreen';
 import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../utils/haptics';
 import { theme } from '../theme';
+import { useTheme } from '../design-system/theme';
 import {
   AppErrorBoundary,
   withScreenErrorBoundary,
@@ -38,6 +41,9 @@ import {
 
 // Import navigation components
 import { CustomTabBar } from './components/CustomTabBar';
+
+// Import QuickJobModal for homeowner (+) button
+import { QuickJobModal } from '../screens/job-posting/QuickJobModal';
 
 // Export types for backward compatibility
 export type { RootStackParamList, AuthStackParamList } from './types';
@@ -62,22 +68,17 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 const AddActionScreen: React.FC = () => {
   const tabNavigation =
     useNavigation<BottomTabNavigationProp<RootTabParamList>>();
-  const rootNavigation =
-    tabNavigation.getParent<NavigationProp<RootStackParamList>>();
   const { user } = useAuth();
-  const haptics = useHaptics();
 
   useFocusEffect(
     React.useCallback(() => {
-      haptics.buttonPress();
-
+      // Redirect away - actual action handled by tab press listener
       if (user?.role === 'homeowner') {
-        rootNavigation?.navigate('Modal', { screen: 'ServiceRequest' });
         tabNavigation.navigate('HomeTab');
       } else {
         tabNavigation.navigate('JobsTab', { screen: 'JobsList' });
       }
-    }, [haptics, rootNavigation, tabNavigation, user?.role])
+    }, [tabNavigation, user?.role])
   );
 
   return null;
@@ -91,12 +92,36 @@ const TabNavigator: React.FC = () => {
   const { user } = useAuth();
   const haptics = useHaptics();
   const enableMap = process.env.EXPO_PUBLIC_ENABLE_MAP !== 'false';
+  const [showQuickJobModal, setShowQuickJobModal] = useState(false);
+
+  // Store root navigation ref for QuickJobModal search callback
+  const rootNavRef = React.useRef<NavigationProp<RootStackParamList> | null>(null);
 
   const handleTabPress = (route: keyof RootTabParamList) => {
     haptics.tabSwitch();
   };
 
+  const handleQuickJobSearch = useCallback((params: {
+    propertyId: string;
+    propertyName: string;
+    propertyAddress: string;
+    category: string;
+    urgency: string;
+  }) => {
+    setShowQuickJobModal(false);
+    rootNavRef.current?.navigate('Modal', {
+      screen: 'QuickJobPost',
+      params,
+    });
+  }, []);
+
   return (
+    <>
+    <QuickJobModal
+      visible={showQuickJobModal}
+      onClose={() => setShowQuickJobModal(false)}
+      onSearch={handleQuickJobSearch}
+    />
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
@@ -127,7 +152,7 @@ const TabNavigator: React.FC = () => {
           ),
         }}
       />
-      {enableMap && user?.role === 'contractor' && (
+      {enableMap && user?.role !== 'homeowner' && (
         <Tab.Screen
           name="DiscoverTab"
           component={DiscoverNavigator}
@@ -211,9 +236,11 @@ const TabNavigator: React.FC = () => {
               navigation as BottomTabNavigationProp<RootTabParamList>;
             const rootNavigation =
               tabNavigation.getParent<NavigationProp<RootStackParamList>>();
+            // Store root nav ref for modal search callback
+            rootNavRef.current = rootNavigation || null;
             if (user?.role === 'homeowner') {
-              rootNavigation?.navigate('Modal', { screen: 'ServiceRequest' });
-              tabNavigation.navigate('HomeTab');
+              haptics.buttonPress();
+              setShowQuickJobModal(true);
             } else {
               tabNavigation.navigate('JobsTab', { screen: 'JobsList' });
             }
@@ -271,6 +298,7 @@ const TabNavigator: React.FC = () => {
         }}
       />
     </Tab.Navigator>
+    </>
   );
 };
 
@@ -313,10 +341,37 @@ const linking: LinkingOptions<RootStackParamList> = {
 
 export const AppNavigator: React.FC = () => {
   const { user, loading } = useAuth();
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
+  // Build a React Navigation theme that matches our app theme colors
+  const navTheme = isDark
+    ? {
+        ...DarkTheme,
+        colors: {
+          ...DarkTheme.colors,
+          primary: theme.colors.primary,
+          background: theme.colors.background,
+          card: theme.colors.surface,
+          text: theme.colors.textPrimary,
+          border: theme.colors.border,
+        },
+      }
+    : {
+        ...DefaultTheme,
+        colors: {
+          ...DefaultTheme.colors,
+          primary: theme.colors.primary,
+          background: theme.colors.background,
+          card: theme.colors.surface,
+          text: theme.colors.textPrimary,
+          border: theme.colors.border,
+        },
+      };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </SafeAreaView>
     );
@@ -324,11 +379,17 @@ export const AppNavigator: React.FC = () => {
 
   return (
     <AppErrorBoundary>
-      <NavigationContainer linking={linking}>
+      <NavigationContainer linking={linking} theme={navTheme}>
         <RootStack.Navigator
           screenOptions={{
             headerShown: false,
             gestureEnabled: true,
+            cardStyle: { backgroundColor: theme.colors.background },
+            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+            transitionSpec: {
+              open: { animation: 'spring', config: { stiffness: 1000, damping: 100, mass: 3, overshootClamping: true, restDisplacementThreshold: 0.01, restSpeedThreshold: 0.01 } },
+              close: { animation: 'spring', config: { stiffness: 1000, damping: 100, mass: 3, overshootClamping: true, restDisplacementThreshold: 0.01, restSpeedThreshold: 0.01 } },
+            },
           }}
         >
           {user ? (

@@ -129,7 +129,36 @@ export class JobCRUDService {
     }
 
     if (!data) return null;
-    return this.formatJob(data as DatabaseJobRow);
+    const job = this.formatJob(data as DatabaseJobRow);
+
+    // Enrich with photos from job_attachments and job_photos_metadata
+    // since jobs.photos column is typically empty
+    if (!job.photos || job.photos.length === 0) {
+      const [attachRes, metaRes] = await Promise.all([
+        supabase
+          .from('job_attachments')
+          .select('file_url')
+          .eq('job_id', jobId)
+          .eq('file_type', 'image'),
+        supabase
+          .from('job_photos_metadata')
+          .select('photo_url')
+          .eq('job_id', jobId),
+      ]);
+
+      const photos: string[] = [];
+      if (attachRes.data) {
+        for (const row of attachRes.data) photos.push(row.file_url);
+      }
+      if (metaRes.data) {
+        for (const row of metaRes.data) {
+          if (!photos.includes(row.photo_url)) photos.push(row.photo_url);
+        }
+      }
+      if (photos.length > 0) job.photos = photos;
+    }
+
+    return job;
   }
 
   static async updateJob(

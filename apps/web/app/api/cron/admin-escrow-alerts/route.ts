@@ -5,6 +5,7 @@ import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldServ
 import { requireCronAuth } from '@/lib/cron-auth';
 import { handleAPIError, InternalServerError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 /**
  * Cron endpoint for sending admin alerts for escrows pending review
@@ -79,17 +80,16 @@ export async function GET(request: NextRequest) {
       try {
         results.processed++;
 
-        await serverSupabase.from('notifications').insert({
-          user_id: admin.id,
+        await NotificationService.createNotification({
+          userId: admin.id,
           title: `Escrow Reviews Pending (${pendingReviews.length})`,
           message: `You have ${pendingReviews.length} escrow(s) pending admin review. Please review them in the admin dashboard.`,
           type: 'admin_alert',
-          action_url: '/admin/escrow/reviews',
+          actionUrl: '/admin/escrow/reviews',
           metadata: {
             pendingCount: pendingReviews.length,
             escrowIds: pendingReviews.map((r) => r.escrowId),
           },
-          created_at: new Date().toISOString(),
         });
 
         results.alertsSent++;

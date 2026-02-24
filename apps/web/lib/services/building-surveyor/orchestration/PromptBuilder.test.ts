@@ -1,7 +1,9 @@
 /**
  * Unit Tests for PromptBuilder
- * 
- * Tests GPT-4 Vision prompt construction
+ *
+ * Tests GPT-4 Vision prompt construction.
+ * After P2 audit fix, PromptBuilder delegates to canonical prompt-builder.ts
+ * and evidence-processor.ts — tests updated to match canonical output format.
  */
 
 import { PromptBuilder } from './PromptBuilder';
@@ -67,13 +69,13 @@ describe('PromptBuilder', () => {
 
             const summary = PromptBuilder.buildEvidenceSummary(detections, null);
 
-            expect(summary).toContain('Machine Learning Detections');
+            expect(summary).toContain('Roboflow detected');
             expect(summary).toContain('water_damage');
-            expect(summary).toContain('2 detection(s)');
-            expect(summary).toContain('87.5%'); // Average confidence
+            expect(summary).toContain('2 ×');
+            expect(summary).toContain('90%'); // max confidence (rounded)
             expect(summary).toContain('crack');
-            expect(summary).toContain('1 detection(s)');
-            expect(summary).toContain('75.0%');
+            expect(summary).toContain('1 ×');
+            expect(summary).toContain('75%');
         });
 
         it('should build summary with vision analysis', () => {
@@ -91,7 +93,7 @@ describe('PromptBuilder', () => {
 
             const summary = PromptBuilder.buildEvidenceSummary([], visionAnalysis);
 
-            expect(summary).toContain('Vision Analysis');
+            expect(summary).toContain('Vision confidence');
             expect(summary).toContain('80%');
             expect(summary).toContain('water stain');
             expect(summary).toContain('ceiling');
@@ -121,9 +123,9 @@ describe('PromptBuilder', () => {
 
             const summary = PromptBuilder.buildEvidenceSummary(detections, visionAnalysis);
 
-            expect(summary).toContain('Machine Learning Detections');
+            expect(summary).toContain('Roboflow detected');
             expect(summary).toContain('mold');
-            expect(summary).toContain('Vision Analysis');
+            expect(summary).toContain('Vision confidence');
             expect(summary).toContain('85%');
         });
     });
@@ -132,9 +134,9 @@ describe('PromptBuilder', () => {
         it('should build basic user prompt without context', () => {
             const prompt = PromptBuilder.buildUserPrompt(undefined, 'No evidence', false);
 
-            expect(prompt).toContain('analyze');
+            expect(prompt).toContain('Analyze');
             expect(prompt).toContain('building damage photos');
-            expect(prompt).toContain('Machine learning detection services are unavailable');
+            expect(prompt).toContain('Machine detectors could not identify clear defects');
             expect(prompt).toContain('JSON');
         });
 
@@ -148,9 +150,8 @@ describe('PromptBuilder', () => {
 
             const prompt = PromptBuilder.buildUserPrompt(context, 'No evidence', false);
 
-            expect(prompt).toContain('Property Context');
-            expect(prompt).toContain('residential');
-            expect(prompt).toContain('London');
+            expect(prompt).toContain('Property Type: residential');
+            expect(prompt).toContain('Location: London');
             expect(prompt).toContain('50 years');
             expect(prompt).toContain('Victorian terraced house');
         });
@@ -161,8 +162,8 @@ describe('PromptBuilder', () => {
             const prompt = PromptBuilder.buildUserPrompt(undefined, evidenceSummary, true);
 
             expect(prompt).toContain(evidenceSummary);
-            expect(prompt).toContain('Use this machine learning evidence');
-            expect(prompt).not.toContain('unavailable');
+            expect(prompt).toContain('Cross-check these detections');
+            expect(prompt).not.toContain('could not identify clear defects');
         });
 
         it('should handle partial context', () => {
@@ -174,7 +175,7 @@ describe('PromptBuilder', () => {
 
             expect(prompt).toContain('commercial');
             expect(prompt).not.toContain('Location:');
-            expect(prompt).not.toContain('Age:');
+            expect(prompt).not.toContain('Property Age:');
         });
     });
 
@@ -254,7 +255,7 @@ describe('PromptBuilder', () => {
             const userMessage = messages[1];
             const textContent = userMessage.content[0].text;
             expect(textContent).toContain('water_damage');
-            expect(textContent).toContain('90.0%');
+            expect(textContent).toContain('90%');
         });
 
         it('should set high detail for all images', () => {

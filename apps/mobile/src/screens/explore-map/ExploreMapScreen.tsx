@@ -139,7 +139,7 @@ export const ExploreMapScreen: React.FC = () => {
         region={viewModel.region}
         onRegionChangeComplete={viewModel.handleRegionChange}
         onPress={() => viewModel.handleJobSelect(null)}
-        showsUserLocation
+        showsUserLocation={viewModel.locationGranted}
         showsMyLocationButton={false}
       >
         {viewModel.jobs.map((job) => {

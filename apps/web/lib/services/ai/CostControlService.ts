@@ -133,13 +133,14 @@ export class CostControlService {
       };
 
     } catch (error) {
-      logger.error('Failed to check AI budget', error);
-      // Fail open in case of error (allow request but log)
+      logger.error('Failed to check AI budget — blocking request (fail-closed)', error);
+      // P0 Security: Fail CLOSED when budget check fails (e.g. Supabase down)
+      // to prevent unbounded spend when we can't verify budget state
       return {
-        allowed: true,
-        reason: 'Budget check failed, allowing request',
+        allowed: false,
+        reason: 'Budget check failed (service unavailable) — request blocked for safety',
         currentDailySpend: this.currentDaySpend,
-        dailyBudgetRemaining: this.DAILY_BUDGET
+        dailyBudgetRemaining: 0
       };
     }
   }
@@ -355,12 +356,22 @@ export class CostControlService {
   }
 
   /**
-   * Emergency stop - disable all AI services
+   * Emergency stop - disable all AI services.
+   * P2: Persists to database so it survives process restarts and deploys.
    */
-  static emergencyStop(): void {
+  static async emergencyStop(): Promise<void> {
     logger.error('AI EMERGENCY STOP ACTIVATED - All AI services disabled');
-    // This would be checked by all AI services before making calls
     process.env.AI_EMERGENCY_STOP = 'true';
+
+    // Persist to database for cross-instance and cross-deploy durability
+    try {
+      await serverSupabase.from('system_config').upsert(
+        { key: 'ai_emergency_stop', value: 'true', updated_at: new Date().toISOString() },
+        { onConflict: 'key' },
+      );
+    } catch (error) {
+      logger.error('Failed to persist emergency stop to database', error);
+    }
   }
 
   /**
@@ -368,5 +379,45 @@ export class CostControlService {
    */
   static isEmergencyStopped(): boolean {
     return process.env.AI_EMERGENCY_STOP === 'true';
+  }
+
+  /**
+   * P2: Hydrate emergency stop state from database on startup.
+   * Call this during app initialization.
+   */
+  static async hydrateEmergencyStop(): Promise<void> {
+    try {
+      const { data, error } = await serverSupabase
+        .from('system_config')
+        .select('value')
+        .eq('key', 'ai_emergency_stop')
+        .single();
+
+      if (!error && data?.value === 'true') {
+        process.env.AI_EMERGENCY_STOP = 'true';
+        logger.warn('Emergency stop hydrated from database — AI services remain disabled', {
+          service: 'CostControlService',
+        });
+      }
+    } catch (error) {
+      logger.warn('Failed to hydrate emergency stop from database', { error });
+    }
+  }
+
+  /**
+   * P2: Clear emergency stop (re-enable AI services).
+   */
+  static async clearEmergencyStop(): Promise<void> {
+    logger.info('AI EMERGENCY STOP CLEARED - AI services re-enabled');
+    delete process.env.AI_EMERGENCY_STOP;
+
+    try {
+      await serverSupabase.from('system_config').upsert(
+        { key: 'ai_emergency_stop', value: 'false', updated_at: new Date().toISOString() },
+        { onConflict: 'key' },
+      );
+    } catch (error) {
+      logger.error('Failed to clear emergency stop in database', error);
+    }
   }
 }

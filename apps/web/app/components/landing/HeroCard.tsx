@@ -147,7 +147,7 @@ export function HeroCard({
                 <span className="text-teal-400">60 Seconds</span>
               </h3>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Upload photos, get AI-powered matches, swipe to hire verified professionals.
+                Upload photos, get an instant AI assessment, and find verified professionals.
                 Background-checked, insured, and ready to transform your property.
               </p>
             </div>
@@ -306,8 +306,8 @@ export function HeroCard({
                 <div className="text-xs text-slate-400">Smart Matching</div>
               </div>
               <div className="text-center">
-                <div className="text-sm font-bold text-white">Escrow</div>
-                <div className="text-xs text-slate-400">Payment Protection</div>
+                <div className="text-sm font-bold text-white">Protected</div>
+                <div className="text-xs text-slate-400">Secure Payments</div>
               </div>
             </div>
           </div>

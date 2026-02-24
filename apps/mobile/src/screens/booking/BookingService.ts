@@ -5,11 +5,18 @@
  * cancelling, and managing booking data.
  */
 
-import type { User } from '@mintenance/types';
+import type { User, Job } from '@mintenance/types';
 import { JobService } from '../../services/JobService';
-import { UserService } from '../../services/UserService';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import { Booking } from './BookingStatusScreen';
+
+interface UserProfile {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  profile_image_url?: string;
+}
 
 export class BookingService {
   /**
@@ -17,41 +24,33 @@ export class BookingService {
    */
   async loadUserBookings(user: User): Promise<Booking[]> {
     try {
-      let allJobs: unknown[] = [];
-
-      if (user.role === 'homeowner') {
-        const homeownerJobs = await JobService.getUserJobs(user.id);
-        allJobs = [...(homeownerJobs || [])];
-      } else if (user.role === 'contractor') {
-        const contractorJobs = await JobService.getContractorJobs(user.id);
-        allJobs = [...(contractorJobs || [])];
-      }
+      // getUserJobs returns jobs for any role (queries both homeowner_id and contractor_id)
+      const allJobs = await JobService.getUserJobs(user.id);
 
       // Transform jobs into booking format
       const bookings: Booking[] = await Promise.all(
-        allJobs.map(async (job) => {
-          const contractor = await this.getContractorInfo(job.contractor_id || job.homeowner_id);
-          
+        (allJobs || []).map(async (job: Job) => {
+          const otherUserId = user.role === 'homeowner' ? job.contractor_id : job.homeowner_id;
+          const otherUser = otherUserId ? await this.getUserInfo(otherUserId) : null;
+
           return {
             id: job.id,
-            contractorName: contractor?.firstName 
-              ? `${contractor.firstName} ${contractor.lastName}`.trim()
-              : 'Unknown Contractor',
-            contractorImage: contractor?.profileImageUrl,
+            contractorName: otherUser?.first_name
+              ? `${otherUser.first_name} ${otherUser.last_name || ''}`.trim()
+              : 'Unknown',
+            contractorImage: otherUser?.profile_image_url,
             serviceName: job.title || 'Service Request',
             address: job.location || 'Address not provided',
             serviceId: job.id,
             date: this.formatDate(job.scheduled_start_date || job.created_at),
             time: this.formatTime(job.scheduled_start_date || job.created_at),
             status: this.mapJobStatusToBookingStatus(job.status),
-            amount: job.budget || job.total_cost || 0,
-            rating: job.homeowner_rating || job.contractor_rating,
+            amount: job.budget || 0,
+            rating: undefined,
             canCancel: this.canCancelBooking(job),
             canReschedule: this.canRescheduleBooking(job),
-            estimatedDuration: job.estimated_duration_hours 
-              ? `${job.estimated_duration_hours} hours`
-              : 'Not specified',
-            specialInstructions: job.special_instructions,
+            estimatedDuration: 'Not specified',
+            specialInstructions: undefined,
           };
         })
       );
@@ -68,14 +67,8 @@ export class BookingService {
    */
   async cancelBooking(bookingId: string, reason: string): Promise<void> {
     try {
-      // Update job status to cancelled
       await JobService.updateJobStatus(bookingId, 'cancelled');
-      
-      // Log cancellation reason (could be stored in a separate table)
       logger.info(`Booking ${bookingId} cancelled. Reason: ${reason}`);
-      
-      // Could also send notification to contractor/homeowner
-      // await NotificationService.sendCancellationNotification(bookingId, reason);
     } catch (error) {
       logger.error('Error cancelling booking:', error);
       throw new Error('Failed to cancel booking');
@@ -83,21 +76,19 @@ export class BookingService {
   }
 
   /**
-   * Get contractor information by ID
+   * Get user information by ID via API
    */
-  private async getContractorInfo(contractorId: string): Promise<unknown> {
+  private async getUserInfo(userId: string): Promise<UserProfile | null> {
     try {
-      if (!contractorId) return null;
-      return await UserService.getUserById(contractorId);
+      if (!userId) return null;
+      const res = await mobileApiClient.get<{ user: UserProfile }>(`/api/users/${userId}`);
+      return res.user || null;
     } catch (error) {
-      logger.error('Error getting contractor info:', error);
+      logger.error('Error getting user info:', error);
       return null;
     }
   }
 
-  /**
-   * Format date for display
-   */
   private formatDate(dateString: string): string {
     try {
       const date = new Date(dateString);
@@ -107,14 +98,11 @@ export class BookingService {
         month: 'long',
         day: 'numeric',
       });
-    } catch (error) {
+    } catch {
       return 'Date not available';
     }
   }
 
-  /**
-   * Format time for display
-   */
   private formatTime(dateString: string): string {
     try {
       const date = new Date(dateString);
@@ -123,14 +111,11 @@ export class BookingService {
         minute: '2-digit',
         hour12: true,
       });
-    } catch (error) {
+    } catch {
       return 'Time not available';
     }
   }
 
-  /**
-   * Map job status to booking status
-   */
   private mapJobStatusToBookingStatus(jobStatus: string): 'upcoming' | 'completed' | 'cancelled' {
     switch (jobStatus?.toLowerCase()) {
       case 'posted':
@@ -146,18 +131,12 @@ export class BookingService {
     }
   }
 
-  /**
-   * Check if booking can be cancelled
-   */
-  private canCancelBooking(job: unknown): boolean {
+  private canCancelBooking(job: Job): boolean {
     const status = job.status?.toLowerCase();
     return status === 'posted' || status === 'assigned';
   }
 
-  /**
-   * Check if booking can be rescheduled
-   */
-  private canRescheduleBooking(job: unknown): boolean {
+  private canRescheduleBooking(job: Job): boolean {
     const status = job.status?.toLowerCase();
     return status === 'posted' || status === 'assigned';
   }

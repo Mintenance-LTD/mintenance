@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
-import { contractorBusinessSuite, type FinancialSummary } from '../services/contractor-business';
+import { ContractorBusinessSuite, type FinancialSummary } from '../services/contractor-business';
 
 type Period = '3m' | '6m' | '12m';
 
@@ -21,7 +21,7 @@ export const useFinanceDashboard = () => {
     if (!user) return;
 
     try {
-      const data = await contractorBusinessSuite.getFinancialSummary(user.id);
+      const data = await ContractorBusinessSuite.finance.getFinancialSummary(user.id);
       setFinancialData(data);
     } catch (error) {
       logger.error('Error loading financial data', error);

@@ -93,6 +93,23 @@ export async function postProcessAssessment(
   );
   const oodScore = computeOODScore(roboflowDetections, bayesianFusionResult);
 
+  // P2: Escalate when evidence sources significantly conflict
+  const DISAGREEMENT_ESCALATION_THRESHOLD = 0.6;
+  const HIGH_VARIANCE_THRESHOLD = 0.15;
+  const evidenceConflict =
+    detectorDisagreement > DISAGREEMENT_ESCALATION_THRESHOLD ||
+    bayesianFusionResult.variance > HIGH_VARIANCE_THRESHOLD;
+
+  if (evidenceConflict) {
+    logger.warn('Evidence conflict detected — escalating for human review', {
+      service: 'BuildingSurveyorService',
+      detectorDisagreement,
+      fusionVariance: bayesianFusionResult.variance,
+      fusionMean: bayesianFusionResult.mean,
+      oodScore,
+    });
+  }
+
   // Context vector for Safe-LUCB Critic
   const contextVector = ContextFeatureService.constructContextVector({
     fusion_confidence: bayesianFusionResult.mean,
@@ -155,6 +172,12 @@ export async function postProcessAssessment(
       finalDecision = 'escalate';
       decisionReason = 'Shadow mode: Forced escalation for safety';
     }
+  }
+
+  // P2: Force escalation when evidence sources conflict
+  if (evidenceConflict && finalDecision !== 'escalate') {
+    finalDecision = 'escalate';
+    decisionReason = `Evidence conflict: detector disagreement ${detectorDisagreement.toFixed(2)}, fusion variance ${bayesianFusionResult.variance.toFixed(3)}`;
   }
 
   // Attach decision result

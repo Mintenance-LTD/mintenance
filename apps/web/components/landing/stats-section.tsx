@@ -24,48 +24,75 @@ export function StatsSection({ stats }: StatsSectionProps) {
     <section className="py-24 bg-gradient-to-b from-white to-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-5xl font-bold text-gray-900 mb-4">Trusted by thousands</h2>
+          <h2 className="text-5xl font-bold text-gray-900 mb-4">The problem is real</h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Join the growing community of homeowners and contractors who trust Mintenance
+            UK homeowners lose billions to cowboy builders every year. Mintenance was built to fix that.
           </p>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-sm font-semibold mt-4">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M13 7H7v6h6V7z" />
-              <path fillRule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5h10v10H5V5z" clipRule="evenodd" />
-            </svg>
-            Powered by Mint AI
-          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           <AnimatedStat
-            end={71}
-            label="Damage Types Detected by AI"
-            subtext="Multi-model fusion"
+            end={52}
+            label="of UK homeowners don't trust tradespeople"
+            suffix="%"
+            subtext="Checkatrade Focaldata Study"
           />
           <AnimatedStat
-            end={95}
-            label="AI Accuracy Rate"
-            suffix="%+"
-            subtext="Continuously improving"
+            end={14}
+            label="lost to cowboy builders in 5 years"
+            prefix="£"
+            suffix=".3bn"
+            subtext="125,000+ complaints since 2019"
           />
-          {stats?.activeContractors != null && stats.activeContractors > 0 && (
-            <AnimatedStat
-              end={stats.activeContractors}
-              label="Active Contractors"
-              suffix="+"
-              subtext={stats.activeContractorsGrowth ? `+${stats.activeContractorsGrowth}% this month` : 'And growing'}
-            />
-          )}
-          {stats?.completedJobs != null && stats.completedJobs > 0 && (
-            <AnimatedStat
-              end={stats.completedJobs}
-              label="Jobs Completed"
-              suffix="+"
-              subtext={stats.completedJobsGrowth ? `+${stats.completedJobsGrowth}% this month` : 'And counting'}
-            />
-          )}
+          <AnimatedStat
+            end={63}
+            label="who hired a tradesperson had a bad experience"
+            suffix="%"
+            subtext="Ipsos Research"
+          />
+          <AnimatedStat
+            end={81}
+            label="of the public want builders licensed by law"
+            suffix="%"
+            subtext="CIOB State of Trade Survey"
+          />
         </div>
+
+        {/* Show real platform stats only when they exist */}
+        {stats && (stats.activeContractors > 0 || stats.completedJobs > 0) && (
+          <div className="mt-16 pt-16 border-t border-gray-200">
+            <p className="text-center text-sm font-semibold text-teal-700 uppercase tracking-wider mb-8">Mintenance by the numbers</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <AnimatedStat
+                end={71}
+                label="Damage Types Detected by AI"
+                subtext="Powered by Mint AI"
+              />
+              <AnimatedStat
+                end={95}
+                label="AI Accuracy Rate"
+                suffix="%+"
+                subtext="Continuously improving"
+              />
+              {stats.activeContractors > 0 && (
+                <AnimatedStat
+                  end={stats.activeContractors}
+                  label="Active Contractors"
+                  suffix="+"
+                  subtext={stats.activeContractorsGrowth ? `+${stats.activeContractorsGrowth}% this month` : 'And growing'}
+                />
+              )}
+              {stats.completedJobs > 0 && (
+                <AnimatedStat
+                  end={stats.completedJobs}
+                  label="Jobs Completed"
+                  suffix="+"
+                  subtext={stats.completedJobsGrowth ? `+${stats.completedJobsGrowth}% this month` : 'And counting'}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

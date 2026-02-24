@@ -105,6 +105,7 @@ export class JobService {
     contractorId: string;
     amount: number;
     description: string;
+    estimatedDurationDays?: number;
   }): Promise<Bid> {
     return BidManagementService.submitBid(bidData);
   }

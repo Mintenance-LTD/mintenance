@@ -135,8 +135,14 @@ export const ContractorDashboard: React.FC = () => {
 
       <StatsSection stats={contractorStats} />
 
-      <ScheduleSection 
+      <ScheduleSection
         stats={contractorStats}
+        upcomingJobs={contractorStats?.nextAppointment ? [{
+          id: contractorStats.nextAppointment.jobId,
+          title: `${contractorStats.nextAppointment.type} — ${contractorStats.nextAppointment.client}`,
+          time: contractorStats.nextAppointment.time,
+          status: 'Upcoming',
+        }] : []}
         onViewAllPress={openMeetingSchedule}
         onJobDetailsPress={openJobDetails}
       />
@@ -144,6 +150,10 @@ export const ContractorDashboard: React.FC = () => {
       <QuickActions
         onBrowseJobsPress={openJobsList}
         onInboxPress={openInbox}
+        onQuotesPress={() => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' })}
+        onInvoicesPress={() => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' })}
+        onExpensesPress={() => navigation.navigate('ProfileTab', { screen: 'Expenses' })}
+        onCalendarPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
       />
     </ScrollView>
     </View>

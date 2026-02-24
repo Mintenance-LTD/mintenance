@@ -306,6 +306,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         homeownerId: user.id,
         category,
         priority: urgency,
+        photos: photos.length > 0 ? photos : undefined,
         buildingAssessment: buildingAssessment ? {
           damageType: buildingAssessment.damageAssessment.damageType,
           severity: buildingAssessment.damageAssessment.severity,

@@ -23,8 +23,8 @@ const EditProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   // Form state
-  const [firstName, setFirstName] = useState(user?.firstName || '');
-  const [lastName, setLastName] = useState(user?.lastName || '');
+  const [firstName, setFirstName] = useState(user?.first_name || user?.firstName || '');
+  const [lastName, setLastName] = useState(user?.last_name || user?.lastName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [bio, setBio] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -35,8 +35,8 @@ const EditProfileScreen: React.FC = () => {
       setLoading(true);
 
       const updates = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         phone: phone.trim(),
         bio: bio.trim(),
       };
@@ -103,8 +103,8 @@ const EditProfileScreen: React.FC = () => {
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarText}>
-                  {firstName?.[0] || user?.firstName?.[0]}
-                  {lastName?.[0] || user?.lastName?.[0]}
+                  {firstName?.[0] || user?.first_name?.[0]}
+                  {lastName?.[0] || user?.last_name?.[0]}
                 </Text>
               </View>
             )}

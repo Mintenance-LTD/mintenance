@@ -1,6 +1,7 @@
 import { Stripe } from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 export class ChargeHandler {
   async handleRefunded(event: Stripe.Event): Promise<void> {
     const charge = event.data.object as Stripe.Charge;
@@ -64,35 +65,32 @@ export class ChargeHandler {
         .single();
       if (job) {
         // Notify homeowner
-        await supabase.from('notifications').insert({
-          user_id: job.homeowner_id,
+        await NotificationService.createNotification({
+          userId: job.homeowner_id,
           type: 'payment_refunded',
           title: 'Refund Processed',
           message: isFullRefund
             ? `Your payment of ${originalAmount} ${charge.currency.toUpperCase()} for "${job.title}" has been fully refunded.`
             : `A partial refund of ${refundedAmount} ${charge.currency.toUpperCase()} has been processed for "${job.title}".`,
-          data: {
+          metadata: {
             job_id: jobId,
             charge_id: charge.id,
             refund_amount: refundedAmount,
             is_full_refund: isFullRefund,
           },
-          created_at: new Date().toISOString(),
         });
         // Notify contractor if job was already paid out
         if (job.contractor_id) {
-          await supabase.from('notifications').insert({
-            user_id: job.contractor_id,
+          await NotificationService.createNotification({
+            userId: job.contractor_id,
             type: 'job_refunded',
             title: 'Job Payment Refunded',
             message: `The payment for "${job.title}" has been refunded to the customer.`,
-            priority: 'high',
-            data: {
+            metadata: {
               job_id: jobId,
               refund_amount: refundedAmount,
               is_full_refund: isFullRefund,
             },
-            created_at: new Date().toISOString(),
           });
         }
       }

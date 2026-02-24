@@ -7,7 +7,7 @@
  * @compliance MVVM - Business logic only
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../../../config/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
@@ -42,6 +42,7 @@ export interface JobsMapViewModel {
   selectedCategory: string | null;
   loading: boolean;
   jobCount: number;
+  locationGranted: boolean;
   handleRegionChange: (region: MapRegion) => void;
   handleSearch: (query: string) => void;
   handleJobSelect: (job: JobMapItem | null) => void;
@@ -67,6 +68,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 export const useJobsMapViewModel = (): JobsMapViewModel => {
   const { user } = useAuth();
+  const isMounted = useRef(true);
   const [region, setRegion] = useState<MapRegion>({
     latitude: 51.5074,
     longitude: -0.1278,
@@ -79,14 +81,31 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locationGranted, setLocationGranted] = useState(false);
 
   // Get user location on mount
   useEffect(() => {
+    isMounted.current = true;
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({});
+        // Check existing permission first (non-prompting)
+        const { status: existing } = await Location.getForegroundPermissionsAsync();
+        let finalStatus = existing;
+
+        if (existing !== 'granted') {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          finalStatus = status;
+        }
+
+        if (!isMounted.current) return;
+
+        if (finalStatus === 'granted') {
+          setLocationGranted(true);
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 10000,
+          });
+          if (!isMounted.current) return;
           const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
           setUserLocation(coords);
           setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
@@ -95,6 +114,7 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
         logger.warn('Location permission denied or unavailable', err);
       }
     })();
+    return () => { isMounted.current = false; };
   }, []);
 
   // Fetch posted jobs
@@ -176,9 +196,20 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
 
   const centerOnUser = useCallback(async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
+      const { status: existing } = await Location.getForegroundPermissionsAsync();
+      let finalStatus = existing;
+
+      if (existing !== 'granted') {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus === 'granted') {
+        setLocationGranted(true);
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+          timeInterval: 10000,
+        });
         const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
         setUserLocation(coords);
         setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
@@ -208,6 +239,7 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
     selectedCategory,
     loading,
     jobCount: filteredJobs.length,
+    locationGranted,
     handleRegionChange,
     handleSearch,
     handleJobSelect,

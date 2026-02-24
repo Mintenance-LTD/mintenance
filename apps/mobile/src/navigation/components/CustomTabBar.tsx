@@ -10,9 +10,7 @@ import { TouchableOpacity, StyleSheet, Platform, View, Text } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import type { NavigationProp } from '@react-navigation/native';
 import { NAVIGATION_CONSTANTS, TAB_CONFIG, TAB_STYLES } from '../constants';
-import type { RootStackParamList } from '../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
@@ -28,7 +26,11 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
     <View style={[
       styles.tabBar,
       TAB_STYLES.tabBarStyle,
-      { paddingBottom: Math.max(insets.bottom, NAVIGATION_CONSTANTS.TAB_BAR_PADDING) }
+      {
+        paddingBottom: Math.max(insets.bottom, NAVIGATION_CONSTANTS.TAB_BAR_PADDING),
+        backgroundColor: theme.colors.surface,
+        borderTopColor: theme.colors.border,
+      }
     ]}>
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
@@ -53,31 +55,31 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
           }
         };
 
-        // Center "Post a Job" button - direct navigation
+        // Center (+) button — emits tabPress so AppNavigator listener can handle it
         if (isAddTab) {
           const handleAddPress = () => {
-            const rootNavigation = navigation.getParent<NavigationProp<RootStackParamList>>();
-            if (user?.role === 'homeowner') {
-              rootNavigation?.navigate('Modal', { screen: 'ServiceRequest' });
-            } else {
-              navigation.navigate('JobsTab', { screen: 'JobsList' });
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+            // If listener didn't prevent default, fall back to navigation
+            if (!event.defaultPrevented) {
+              navigation.navigate(route.name);
             }
           };
-
-          const isHomeowner = user?.role === 'homeowner';
 
           return (
             <TouchableOpacity
               key={route.key}
               accessibilityRole="button"
-              accessibilityLabel={isHomeowner ? 'Request a service' : 'Browse jobs'}
+              accessibilityLabel="Post a job"
               onPress={handleAddPress}
               style={styles.addTabContainer}
             >
               <View style={styles.addButton}>
                 <Ionicons name="add" size={24} color={theme.colors.textInverse} />
               </View>
-              <Text style={styles.addLabel}>{isHomeowner ? 'Request' : 'Post Job'}</Text>
             </TouchableOpacity>
           );
         }
@@ -159,11 +161,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4,
-  },
-  addLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginTop: 2,
   },
 });

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
@@ -65,14 +66,12 @@ export const POST = withApiHandler(
 
         const contractorName = contractor?.company_name || contractor?.full_name || 'A contractor';
 
-        await serverSupabase.from('notifications').insert({
-          user_id: job.homeowner_id,
+        await NotificationService.createNotification({
+          userId: job.homeowner_id,
           title: 'Bid Withdrawn',
           message: `${contractorName} has withdrawn their bid for "${job.title || 'your job'}".`,
           type: 'bid_withdrawn',
-          read: false,
-          action_url: `/jobs/${jobId}`,
-          created_at: new Date().toISOString(),
+          actionUrl: `/jobs/${jobId}`,
         });
       }
     } catch (notificationError) {

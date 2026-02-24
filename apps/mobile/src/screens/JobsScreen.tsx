@@ -101,7 +101,7 @@ const JobsScreen: React.FC = () => {
   ), [navigation]);
 
   return (
-    <View style={styles.mainContainer}>
+    <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
       <NavigationHeader
         title={user?.role === 'homeowner' ? 'My Jobs' : 'Job Marketplace'}
         subtitle={`${filteredJobs.length} ${user?.role === 'homeowner' ? 'jobs' : 'opportunities'}`}
@@ -129,10 +129,10 @@ const JobsScreen: React.FC = () => {
           tablet: 16,
           desktop: 24,
         }}
-        style={styles.container}
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
         testID="jobs-screen"
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
           {error && (
             <View style={styles.errorBanner}>
               <Ionicons name='alert-circle' size={18} color={theme.colors.error} />
@@ -143,59 +143,57 @@ const JobsScreen: React.FC = () => {
             </View>
           )}
 
-          {user?.role === 'contractor' && (
-            <View style={styles.searchSection}>
-              <View style={styles.searchContainer}>
-                <Ionicons
-                  name='search'
-                  size={20}
-                  color={theme.colors.textSecondary}
-                  style={styles.searchIcon}
-                />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder='Search jobs...'
-                  placeholderTextColor={theme.colors.textTertiary}
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  accessibilityLabel='Search jobs'
-                  accessibilityHint='Type to search by title, description, or location'
-                />
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.filterRow}>
-                  {(
-                    ['all', 'posted', 'in_progress', 'completed'] as FilterStatus[]
-                  ).map((key) => (
-                    <TouchableOpacity
-                      key={key}
-                      style={[
-                        styles.filterChip,
-                        selectedFilter === key && styles.filterChipActive,
-                      ]}
-                      onPress={() => setSelectedFilter(key)}
-                      accessibilityRole='button'
-                      accessibilityLabel={`Filter by ${key === 'all' ? 'all jobs' : key === 'in_progress' ? 'in progress' : key}`}
-                      accessibilityState={{ selected: selectedFilter === key }}
-                    >
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          selectedFilter === key && styles.filterChipTextActive,
-                        ]}
-                      >
-                        {key === 'all'
-                          ? 'All'
-                          : key === 'in_progress'
-                            ? 'In Progress'
-                            : key.charAt(0).toUpperCase() + key.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
+          <View style={styles.searchSection}>
+            <View style={styles.searchContainer}>
+              <Ionicons
+                name='search'
+                size={20}
+                color={theme.colors.textSecondary}
+                style={styles.searchIcon}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder='Search jobs...'
+                placeholderTextColor={theme.colors.textTertiary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                accessibilityLabel='Search jobs'
+                accessibilityHint='Type to search by title, description, or location'
+              />
             </View>
-          )}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.filterRow}>
+                {(
+                  ['all', 'posted', 'assigned', 'in_progress', 'completed'] as FilterStatus[]
+                ).map((key) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.filterChip,
+                      selectedFilter === key && styles.filterChipActive,
+                    ]}
+                    onPress={() => setSelectedFilter(key)}
+                    accessibilityRole='button'
+                    accessibilityLabel={`Filter by ${key === 'all' ? 'all jobs' : key === 'in_progress' ? 'in progress' : key}`}
+                    accessibilityState={{ selected: selectedFilter === key }}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selectedFilter === key && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {key === 'all'
+                        ? 'All'
+                        : key === 'in_progress'
+                          ? 'In Progress'
+                          : key.charAt(0).toUpperCase() + key.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
         </View>
 
         <FlatList

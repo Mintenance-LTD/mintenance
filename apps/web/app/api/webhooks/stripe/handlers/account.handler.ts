@@ -1,6 +1,7 @@
 import { Stripe } from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 export class AccountHandler {
   async handleUpdated(event: Stripe.Event): Promise<void> {
     const account = event.data.object as Stripe.Account;
@@ -39,27 +40,24 @@ export class AccountHandler {
       // Send notifications for important status changes
       if (account.charges_enabled && account.payouts_enabled) {
         // Account fully activated
-        await supabase.from('notifications').insert({
-          user_id: contractorId,
+        await NotificationService.createNotification({
+          userId: contractorId,
           type: 'stripe_account_activated',
           title: 'Payment Account Activated',
           message: 'Your payment account is now fully activated. You can receive payments for completed jobs.',
-          data: { account_id: account.id },
-          created_at: new Date().toISOString(),
+          metadata: { account_id: account.id },
         });
       } else if ((account.requirements?.currently_due?.length ?? 0) > 0) {
         // Additional information required
-        await supabase.from('notifications').insert({
-          user_id: contractorId,
+        await NotificationService.createNotification({
+          userId: contractorId,
           type: 'stripe_verification_required',
           title: 'Account Verification Required',
           message: `Please provide additional information to complete your payment account setup. ${account.requirements?.currently_due?.length ?? 0} item(s) required.`,
-          priority: 'high',
-          data: {
+          metadata: {
             account_id: account.id,
             requirements: account.requirements?.currently_due,
           },
-          created_at: new Date().toISOString(),
         });
       }
       logger.info('Contractor Stripe account status updated', {

@@ -1,6 +1,7 @@
 import { Stripe } from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 export class InvoiceHandler {
   async handlePaymentSucceeded(event: Stripe.Event): Promise<void> {
     const invoice = event.data.object as Stripe.Invoice;
@@ -57,17 +58,16 @@ export class InvoiceHandler {
           .eq('status', 'past_due');
       }
       // Send notification
-      await supabase.from('notifications').insert({
-        user_id: contractorId,
+      await NotificationService.createNotification({
+        userId: contractorId,
         type: 'invoice_paid',
         title: 'Payment Received',
         message: `Your subscription payment of ${invoice.amount_paid / 100} ${invoice.currency.toUpperCase()} has been received.`,
-        data: {
+        metadata: {
           invoice_id: invoice.id,
           amount: invoice.amount_paid / 100,
           invoice_url: invoice.hosted_invoice_url,
         },
-        created_at: new Date().toISOString(),
       });
     } catch (error) {
       logger.error('Failed to process invoice payment succeeded event', {
@@ -126,18 +126,16 @@ export class InvoiceHandler {
       const message = invoice.next_payment_attempt
         ? `Your subscription payment failed. We'll retry on ${new Date(invoice.next_payment_attempt * 1000).toLocaleDateString('en-GB')}.`
         : 'Your subscription payment failed. Please update your payment method to avoid service interruption.';
-      await supabase.from('notifications').insert({
-        user_id: contractorId,
+      await NotificationService.createNotification({
+        userId: contractorId,
         type: 'invoice_payment_failed',
         title: 'Payment Failed',
         message,
-        priority: 'high',
-        data: {
+        metadata: {
           invoice_id: invoice.id,
           attempt_count: invoice.attempt_count,
           next_attempt: invoice.next_payment_attempt,
         },
-        created_at: new Date().toISOString(),
       });
     } catch (error) {
       logger.error('Failed to process invoice payment failed event', {

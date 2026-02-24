@@ -24,7 +24,7 @@ const FALLBACK_TESTIMONIALS = [
         location: 'Manchester',
         role: 'Homeowner',
         rating: 5,
-        text: 'Great platform for finding reliable contractors. The escrow payment system gives me peace of mind.',
+        text: 'Great platform for finding reliable contractors. The protected payment system gives me peace of mind.',
         project: 'Electrical Work',
         savings: '£320',
         avatar: 'MC',

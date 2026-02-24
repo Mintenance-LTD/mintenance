@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 
 export const POST = withApiHandler(
@@ -60,13 +61,12 @@ export const POST = withApiHandler(
     }
 
     // 3. Notify contractor
-    await serverSupabase.from('notifications').insert({
-      user_id: job.contractor_id,
+    await NotificationService.createNotification({
+      userId: job.contractor_id,
       title: 'Changes Requested',
       message: `The homeowner has requested changes on "${job.title}": ${comments}`,
       type: 'changes_requested',
-      read: false,
-      action_url: `/contractor/jobs/${jobId}`,
+      actionUrl: `/contractor/jobs/${jobId}`,
     });
 
     logger.info('Homeowner requested changes, job rolled back to in_progress', {
