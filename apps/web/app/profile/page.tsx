@@ -153,9 +153,16 @@ export default function ProfilePage2025() {
 
     setIsSaving(true);
     try {
+      // Fetch CSRF token before making the state-changing request
+      const csrfRes = await fetch('/api/csrf');
+      const { token: csrfToken } = await csrfRes.json();
+
       const res = await fetch('/api/user/update-profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({
           firstName: userData.firstName,
           lastName: userData.lastName,
@@ -169,7 +176,7 @@ export default function ProfilePage2025() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'Failed to update profile');
+        throw new Error(body.error?.message || body.error || 'Failed to update profile');
       }
 
       setIsEditing(false);
