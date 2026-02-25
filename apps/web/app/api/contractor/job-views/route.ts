@@ -1,40 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Check authentication
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+/**
+ * POST /api/contractor/job-views
+ * Track a job view by any authenticated user
+ */
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const body = await request.json();
     const jobId = typeof body?.jobId === 'string' ? body.jobId.trim() : null;
 
@@ -54,7 +30,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Try to insert or update job view
-    // Schema: job_views columns: id, job_id, viewer_id, ip_address, user_agent, referrer, viewed_at
     const { data: existingView } = await serverSupabase
       .from('job_views')
       .select('id, job_id, viewer_id, viewed_at')
@@ -103,7 +78,6 @@ export async function POST(request: NextRequest) {
           ? `${contractor.first_name} ${contractor.last_name}`
           : contractor?.email || 'A contractor');
 
-      // Create notification in notifications table
       const { error: notificationError } = await serverSupabase
         .from('notifications')
         .insert({
@@ -126,47 +100,40 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Job view tracked successfully',
     });
-
-  } catch (error) {
-    return handleAPIError(error);
   }
+);
+
+// ── Types for GET response ────────────────────────────────────────────────────
+
+interface HomeownerProfile {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  profile_image_url?: string;
 }
 
-// GET endpoint to retrieve job views for a contractor
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+interface JobWithHomeowner {
+  id: string;
+  title: string;
+  description?: string;
+  budget: number;
+  status: string;
+  location?: string;
+  category?: string;
+  priority?: string;
+  created_at: string;
+  homeowner_id: string;
+  photos?: string[];
+  homeowner?: HomeownerProfile | HomeownerProfile[];
+}
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Check authentication and role
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    if (user.role !== 'contractor') {
-      throw new ForbiddenError('Only contractors can view job views');
-    }
-
+/**
+ * GET /api/contractor/job-views
+ * Retrieve job views for a contractor
+ */
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const jobId = searchParams.get('jobId');
 
@@ -187,7 +154,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ viewed: !!data, viewData: data });
     } else {
       // Get all viewed jobs for contractor
-      // Schema: job_views columns: id, job_id, viewer_id, viewed_at
       const { data: views, error: viewsError } = await serverSupabase
         .from('job_views')
         .select('id, job_id, viewer_id, viewed_at')
@@ -246,28 +212,7 @@ export async function GET(request: NextRequest) {
         throw new InternalServerError('Failed to fetch job details');
       }
 
-      // Combine views with flattened job data (matching my-jobs response format)
-      interface HomeownerProfile {
-        id?: string;
-        first_name?: string;
-        last_name?: string;
-        profile_image_url?: string;
-      }
-      interface JobWithHomeowner {
-        id: string;
-        title: string;
-        description?: string;
-        budget: number;
-        status: string;
-        location?: string;
-        category?: string;
-        priority?: string;
-        created_at: string;
-        homeowner_id: string;
-        photos?: string[];
-        homeowner?: HomeownerProfile | HomeownerProfile[];
-      }
-
+      // Combine views with flattened job data
       const viewsWithJobs = views.map((view: Record<string, unknown>) => {
         const job = jobs?.find((j: Record<string, unknown>) => j.id === view.job_id) as JobWithHomeowner | undefined;
         if (!job) return null;
@@ -297,8 +242,5 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({ views: viewsWithJobs });
     }
-
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

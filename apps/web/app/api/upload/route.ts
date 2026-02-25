@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { validateImageUpload, createValidationErrorResponse, generateSecureFilename } from '@/lib/security/file-validator';
-import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { BadRequestError } from '@/lib/errors/api-error';
 import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter-enhanced';
 
 /**
@@ -11,28 +11,17 @@ import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter-enhan
  * Upload an image to Supabase storage
  * SECURITY: Uses magic number validation to prevent malicious file uploads
  */
-export async function POST(request: NextRequest) {
-  try {
+export const POST = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
     // SECURITY: Enhanced rate limiting with user-tier based limits
-    // Uses configuration from rate-limits.ts: authenticated=10, premium=25, admin=50
-    const rateLimitResult = await checkRateLimit(request, {
-      path: '/api/upload'
-    });
+    const rateLimitResult = await checkRateLimit(request, { path: '/api/upload' });
 
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Upload rate limit exceeded. Please wait before uploading more files.' },
-        {
-          status: 429,
-          headers: createRateLimitHeaders(rateLimitResult)
-        }
+        { status: 429, headers: createRateLimitHeaders(rateLimitResult) }
       );
-    }
-
-    // Get authenticated user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to upload files');
     }
 
     // Get form data
@@ -44,7 +33,6 @@ export async function POST(request: NextRequest) {
     }
 
     // SECURITY: Validate file using magic number (actual file content)
-    // This prevents malicious files disguised as images by checking file signatures
     const validation = await validateImageUpload(file);
 
     if (!validation.valid) {
@@ -54,12 +42,10 @@ export async function POST(request: NextRequest) {
         errors: validation.errors,
         userId: user.id,
       });
-
       const errorResponse = createValidationErrorResponse(validation);
       return NextResponse.json(errorResponse, { status: 400 });
     }
 
-    // Log warnings if any detected (e.g., small file size, type mismatch)
     if (validation.warnings && validation.warnings.length > 0) {
       logger.warn('[SECURITY] File validation warnings', {
         fileName: file.name,
@@ -67,8 +53,6 @@ export async function POST(request: NextRequest) {
         userId: user.id,
       });
     }
-
-    const supabase = serverSupabase;
 
     // SECURITY: Generate secure filename (prevents path traversal and filename-based attacks)
     const secureFilename = generateSecureFilename(file.name);
@@ -79,7 +63,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Supabase storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await serverSupabase.storage
       .from('job-attachments')
       .upload(fileName, buffer, {
         contentType: file.type,
@@ -99,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get public URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = serverSupabase.storage
       .from('job-attachments')
       .getPublicUrl(uploadData.path);
 
@@ -116,7 +100,5 @@ export async function POST(request: NextRequest) {
       url: urlData.publicUrl,
       path: uploadData.path,
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

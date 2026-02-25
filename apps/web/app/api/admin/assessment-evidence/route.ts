@@ -1,21 +1,16 @@
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+
 /**
  * GET /api/admin/assessment-evidence
- * View what the AI stored for an assessment (Roboflow detect, SAM3 segment, vision_labels, retrieve_memory).
+ * View what the AI stored for an assessment (Roboflow detect, SAM3 segment, etc.)
  * Query: ?assessmentId=<uuid> (required)
  */
-
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
-import { serverSupabase } from '@/lib/api/supabaseServer';
-import { handleAPIError } from '@/lib/errors/api-error';
-
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    const auth = await requireAdmin(request);
-    if (isAdminError(auth)) return auth.error;
-
-    const { searchParams } = new URL(request.url);
-    const assessmentId = searchParams.get('assessmentId');
+export const GET = withApiHandler(
+  { roles: ['admin'] },
+  async (request) => {
+    const assessmentId = request.nextUrl.searchParams.get('assessmentId');
 
     if (!assessmentId) {
       return NextResponse.json(
@@ -31,8 +26,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .order('step_index', { ascending: true });
 
     if (error) {
-      // SECURITY: Use centralized error handler (sanitizes database errors)
-      return handleAPIError(new Error(`Failed to fetch evidence: ${error.message}`));
+      throw new Error(`Failed to fetch evidence: ${error.message}`);
     }
 
     return NextResponse.json({
@@ -42,7 +36,5 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         | { damageTypesDetected?: string[] }
         | undefined,
     });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);

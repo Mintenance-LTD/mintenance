@@ -67,6 +67,12 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/auth/login',
   useSearchParams: () => new URLSearchParams(),
   useParams: () => ({}),
+  redirect: vi.fn((url: string) => {
+    throw new Error(`NEXT_REDIRECT: ${url}`);
+  }),
+  notFound: vi.fn(() => {
+    throw new Error('NEXT_NOT_FOUND');
+  }),
 }));
 
 // Mock @/lib/logger to prevent side effects
@@ -78,6 +84,42 @@ vi.mock('@/lib/logger', () => ({
     debug: vi.fn(),
   },
 }));
+
+// Mock @mintenance/shared logger (used by /register and /login pages)
+vi.mock('@mintenance/shared', () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
+// Mock useCSRF hook (used by /register and /login pages)
+vi.mock('@/lib/hooks/useCSRF', () => ({
+  useCSRF: () => ({
+    csrfToken: 'test-csrf-token',
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+    getCsrfHeaders: () => ({ 'x-csrf-token': 'test-csrf-token' }),
+  }),
+}));
+
+// The /auth/signup/page and /auth/login/page are now redirect stubs that call
+// redirect('/register') and redirect('/login'). Tests that import these pages
+// must be rewritten to import from @/app/register/page and @/app/login/page
+// and updated to match the current form UI (RoleToggle vs select, etc.)
+// TODO: Rewrite auth integration tests for current register/login page UI
+vi.mock('@/app/auth/signup/page', async () => {
+  const actual = await import('@/app/register/page');
+  return actual;
+});
+
+vi.mock('@/app/auth/login/page', async () => {
+  const actual = await import('@/app/login/page');
+  return actual;
+});
 
 describe('Authentication Flow Integration Tests', () => {
   let user: ReturnType<typeof userEvent.setup>;

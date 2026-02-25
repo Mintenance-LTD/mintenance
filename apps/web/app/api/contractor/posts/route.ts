@@ -1,50 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
 import { sanitizeText, sanitizeMessage } from '@/lib/sanitizer';
 
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
-
-    const supabase = serverSupabase;
-
-    // Get query parameters
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const searchParams = request.nextUrl.searchParams;
     const postType = searchParams.get('post_type');
     const search = searchParams.get('search');
-    const location = searchParams.get('location');
     const sort = searchParams.get('sort') || 'newest';
     const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
@@ -57,8 +24,7 @@ export async function GET(request: NextRequest) {
     if (search && search.trim().length > 0) {
       const sanitizedSearch = search.substring(0, 100).trim();
 
-      // Use secure full-text search RPC function
-      const { data, error } = await supabase.rpc('search_contractor_posts', {
+      const { data, error } = await serverSupabase.rpc('search_contractor_posts', {
         search_text: sanitizedSearch,
         post_type_filter: (postType && postType !== 'all') ? postType : null,
         is_active_filter: true,
@@ -73,21 +39,16 @@ export async function GET(request: NextRequest) {
 
       // Filter by following if needed
       if (followingOnly && !postsError && posts.length > 0) {
-        const { data: following } = await supabase
+        const { data: following } = await serverSupabase
           .from('contractor_follows')
           .select('following_id')
           .eq('follower_id', user.id);
 
         const followingIds = new Set(following?.map(f => f.following_id) || []);
-        if (followingIds.size > 0) {
-          posts = posts.filter(p => followingIds.has(p.contractor_id));
-        } else {
-          posts = [];
-        }
+        posts = followingIds.size > 0 ? posts.filter(p => followingIds.has(p.contractor_id)) : [];
       }
     } else {
-      // No search - use regular query builder
-      let query = supabase
+      let query = serverSupabase
         .from('contractor_posts')
         .select(`
           *,
@@ -103,14 +64,10 @@ export async function GET(request: NextRequest) {
         .eq('is_active', true)
         .eq('is_flagged', false);
 
-      // Filter by post type
-      if (postType && postType !== 'all') {
-        query = query.eq('post_type', postType);
-      }
+      if (postType && postType !== 'all') query = query.eq('post_type', postType);
 
-      // Filter by following only
       if (followingOnly) {
-        const { data: following } = await supabase
+        const { data: following } = await serverSupabase
           .from('contractor_follows')
           .select('following_id')
           .eq('follower_id', user.id);
@@ -123,7 +80,6 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Apply sorting
       switch (sort) {
         case 'popular':
           query = query.order('likes_count', { ascending: false });
@@ -131,13 +87,10 @@ export async function GET(request: NextRequest) {
         case 'most_commented':
           query = query.order('comments_count', { ascending: false });
           break;
-        case 'newest':
         default:
           query = query.order('created_at', { ascending: false });
-          break;
       }
 
-      // Apply pagination
       query = query.range(offset, offset + limit - 1);
 
       const { data, error } = await query;
@@ -146,22 +99,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (postsError) {
-      logger.error('Error fetching posts', postsError, {
-        service: 'contractor_posts',
-        userId: user.id,
-      });
+      logger.error('Error fetching posts', postsError, { service: 'contractor_posts', userId: user.id });
       throw postsError;
     }
 
-    // Fetch user's likes
-    const { data: userLikes } = await supabase
+    const { data: userLikes } = await serverSupabase
       .from('contractor_post_likes')
       .select('post_id')
       .eq('contractor_id', user.id);
 
     const likedPostIds = new Set(userLikes?.map(like => like.post_id) || []);
 
-    // Map posts to include liked status and format images
     interface PostRecord {
       id: string;
       title?: string;
@@ -217,55 +165,15 @@ export async function GET(request: NextRequest) {
       } : null,
     }));
 
-    return NextResponse.json({ 
-      posts: formattedPosts,
-      total: formattedPosts.length,
-      limit,
-      offset
-    });
-  } catch (error) {
-    return handleAPIError(error);
+    return NextResponse.json({ posts: formattedPosts, total: formattedPosts.length, limit, offset });
   }
-}
+);
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
-
-    const supabase = serverSupabase;
-
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const body = await request.json();
 
-    // Create validation schema with sanitization
     const postSchema = z.object({
       title: z.string().min(1).max(200).transform(val => sanitizeText(val, 200)),
       content: z.string().min(1).max(5000).transform(val => sanitizeMessage(val)),
@@ -282,28 +190,15 @@ export async function POST(request: NextRequest) {
     });
 
     const parsed = postSchema.safeParse(body);
-
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid post data: ' + parsed.error.message);
-    }
+    if (!parsed.success) throw new BadRequestError('Invalid post data: ' + parsed.error.message);
 
     const {
-      title,
-      content,
-      images,
-      post_type,
-      job_id,
-      skills_used,
-      materials_used,
-      project_duration,
-      project_cost,
-      latitude,
-      longitude,
-      location_radius
+      title, content, images, post_type, job_id,
+      skills_used, materials_used, project_duration, project_cost,
+      latitude, longitude, location_radius,
     } = parsed.data;
 
-    // Create post
-    const { data: post, error: postError } = await supabase
+    const { data: post, error: postError } = await serverSupabase
       .from('contractor_posts')
       .insert({
         contractor_id: user.id,
@@ -339,10 +234,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (postError) {
-      logger.error('Error creating post', postError, {
-        service: 'contractor_posts',
-        userId: user.id,
-      });
+      logger.error('Error creating post', postError, { service: 'contractor_posts', userId: user.id });
       throw postError;
     }
 
@@ -369,8 +261,5 @@ export async function POST(request: NextRequest) {
     };
 
     return NextResponse.json({ post: formattedPost }, { status: 201 });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

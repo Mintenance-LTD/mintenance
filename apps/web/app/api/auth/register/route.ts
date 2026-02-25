@@ -1,19 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { authManager } from '@/lib/auth-manager';
-import { checkLoginRateLimit, recordSuccessfulLogin, createRateLimitHeaders } from '@/lib/rate-limiter';
+import { checkLoginRateLimit } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { registerSchema } from '@/lib/validation/schemas';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
+import { BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 import { checkPasswordBreach } from '@mintenance/auth';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function POST(request: NextRequest) {
-  try {
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Rate limiting check (use same limiter as login for consistency)
+/**
+ * POST /api/auth/register
+ * Register a new user account with password breach checking.
+ */
+export const POST = withApiHandler(
+  { auth: false, rateLimit: false },
+  async (request) => {
+    // Custom rate limiting (use same limiter as login for consistency)
     const rateLimitResult = await checkLoginRateLimit(request);
 
     if (!rateLimitResult.allowed) {
@@ -126,8 +128,5 @@ export async function POST(request: NextRequest) {
     }
 
     return response;
-
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

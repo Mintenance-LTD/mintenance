@@ -1,8 +1,8 @@
 /**
  * Safe-LUCB Critic Module
- * 
+ *
  * Implements constrained contextual bandit policy with hard safety constraints (δ=0.001)
- * 
+ *
  * Full Safe-LUCB algorithm with:
  * - Linear reward model: r(x, a) = θ^T x
  * - Linear safety model: v(x, a) = φ^T x
@@ -15,16 +15,15 @@
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContextFeatureService } from './ContextFeatureService';
-import { wilsonScoreUpper } from './ab-test/ABTestMathUtils';
-
-interface FNRResult {
-  fnr: number; // Point estimate of FNR (0-1)
-  fnrUpperBound: number; // Wilson score upper bound (95% confidence)
-  sampleSize: number; // Number of automated decisions in stratum
-  confidence: number; // Confidence level (0-1)
-  shouldEscalate: boolean; // True if FNR upper bound exceeds threshold OR sample size too small
-  reason?: string; // Human-readable explanation
-}
+import {
+  normalizeContext,
+  dotProduct,
+  matrixVectorNorm,
+  matrixVectorProduct,
+  inverseMatrix,
+} from './CriticLinearAlgebra';
+import { CriticFNRTracker } from './CriticFNRTracker';
+import type { FNRResult } from './CriticFNRTracker';
 
 interface CriticContext {
   context: number[]; // d_eff = 12 dimensional context vector
@@ -55,7 +54,7 @@ interface ModelParameters {
 
 /**
  * Safe-LUCB Critic Module
- * 
+ *
  * Maintains reward and safety models (θ, φ) and computes UCBs
  * using confidence intervals. Selects arm that maximizes reward
  * while satisfying safety constraint.
@@ -71,13 +70,9 @@ export class CriticModule {
   private static lastModelUpdate: number = 0;
   private static readonly MODEL_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-  // FNR tracking cache (stratum -> FNR stats)
-  private static fnrCache: Map<string, { fnr: number; lastUpdated: number }> = new Map();
-  private static readonly FNR_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
-
   /**
    * Select arm using Safe-LUCB policy
-   * 
+   *
    * @param params - Context and safety threshold
    * @returns Decision with UCBs and selected arm
    */
@@ -92,12 +87,12 @@ export class CriticModule {
         error: validation.error,
       });
       // Try to normalize context to correct dimension
-      const normalizedContext = this.normalizeContext(context);
-      const normalizedValidation = ContextFeatureService.validateContextVector(normalizedContext);
+      const normalizedCtx = normalizeContext(context, this.D_EFF);
+      const normalizedValidation = ContextFeatureService.validateContextVector(normalizedCtx);
       if (!normalizedValidation.valid) {
         throw new Error(`Invalid context vector: ${normalizedValidation.error}`);
       }
-      return this.selectArmWithContext(normalizedContext, delta_safety, stratum, criticalHazardDetected);
+      return this.selectArmWithContext(normalizedCtx, delta_safety, stratum, criticalHazardDetected);
     }
 
     return this.selectArmWithContext(context, delta_safety, stratum, criticalHazardDetected);
@@ -140,7 +135,7 @@ export class CriticModule {
 
     // FNR constraint: Check False Negative Rate if stratum is provided
     if (stratum) {
-      const fnrResult = await this.getFNRWithFallback(stratum);
+      const fnrResult = await CriticFNRTracker.getFNRWithFallback(stratum);
 
       // Log FNR metadata for monitoring
       logger.info('FNR check with statistical validation', {
@@ -165,15 +160,15 @@ export class CriticModule {
         };
       }
     }
-    
+
     // If safe, check if reward is high enough to automate
     // Threshold: reward_ucb > 0.5 (can be tuned based on historical data)
     const rewardThreshold = 0.5;
-    
+
     if (rewardUcb > rewardThreshold) {
       // Check if we should explore (for arms with high uncertainty)
       const exploration = this.shouldExplore(context, models);
-      
+
       return {
         arm: 'automate',
         safetyUcb,
@@ -182,7 +177,7 @@ export class CriticModule {
         exploration,
       };
     }
-    
+
     // Default: escalate (low reward)
     return {
       arm: 'escalate',
@@ -196,7 +191,7 @@ export class CriticModule {
 
   /**
    * Compute reward UCB (Upper Confidence Bound for reward)
-   * 
+   *
    * reward_ucb = θ^T x + β ||x||_A^{-1}
    * where θ is learned reward model and A is reward covariance matrix
    */
@@ -205,10 +200,10 @@ export class CriticModule {
     models: ModelParameters
   ): number {
     // Mean reward: θ^T x
-    const meanReward = this.dotProduct(models.theta, context);
+    const meanReward = dotProduct(models.theta, context);
 
     // Confidence interval: β ||x||_A^{-1}
-    const confidenceInterval = models.beta * this.matrixVectorNorm(
+    const confidenceInterval = models.beta * matrixVectorNorm(
       context,
       models.A
     );
@@ -230,10 +225,10 @@ export class CriticModule {
     models: ModelParameters
   ): number {
     // Mean safety violation: φ^T x
-    const meanSafety = this.dotProduct(models.phi, context);
+    const meanSafety = dotProduct(models.phi, context);
 
     // Confidence interval: γ ||x||_B^{-1}
-    const confidenceInterval = models.gamma * this.matrixVectorNorm(
+    const confidenceInterval = models.gamma * matrixVectorNorm(
       context,
       models.B
     );
@@ -256,10 +251,10 @@ export class CriticModule {
     models: ModelParameters
   ): number {
     // Mean safety score: φ^T x
-    const meanSafety = this.dotProduct(models.phi, context);
+    const meanSafety = dotProduct(models.phi, context);
 
     // Confidence interval: γ ||x||_B^{-1}
-    const confidenceInterval = models.gamma * this.matrixVectorNorm(
+    const confidenceInterval = models.gamma * matrixVectorNorm(
       context,
       models.B
     );
@@ -281,9 +276,9 @@ export class CriticModule {
     }
 
     // High uncertainty if confidence intervals are large
-    const rewardUncertainty = this.matrixVectorNorm(context, models.A);
-    const safetyUncertainty = this.matrixVectorNorm(context, models.B);
-    
+    const rewardUncertainty = matrixVectorNorm(context, models.A);
+    const safetyUncertainty = matrixVectorNorm(context, models.B);
+
     // Explore if uncertainty is high relative to mean
     return rewardUncertainty > 0.1 || safetyUncertainty > 0.1;
   }
@@ -381,10 +376,10 @@ export class CriticModule {
 
   /**
    * Update models from feedback using Recursive Least Squares (RLS)
-   * 
+   *
    * Called after outcome is observed to update θ and φ
    * using Recursive Least Squares (RLS) algorithm
-   * 
+   *
    * RLS Update:
    * - A_t = A_{t-1} + x_t x_t^T  (covariance update)
    * - b_t = b_{t-1} + x_t y_t    (target update)
@@ -398,13 +393,13 @@ export class CriticModule {
   }): Promise<void> {
     try {
       const models = await this.loadModels();
-      const normalizedContext = this.normalizeContext(params.context);
+      const normalizedCtx = normalizeContext(params.context, this.D_EFF);
 
       // Update reward model (θ) using RLS
       models.theta = this.updateRLS(
         models.theta,
         models.A,
-        normalizedContext,
+        normalizedCtx,
         params.reward,
         this.LAMBDA
       );
@@ -414,14 +409,14 @@ export class CriticModule {
       models.phi = this.updateRLS(
         models.phi,
         models.B,
-        normalizedContext,
+        normalizedCtx,
         safetyLabel,
         this.LAMBDA
       );
 
       // Update covariance matrices (Sherman-Morrison formula for RLS)
-      models.A = this.updateCovarianceRLS(models.A, normalizedContext, this.LAMBDA);
-      models.B = this.updateCovarianceRLS(models.B, normalizedContext, this.LAMBDA);
+      models.A = this.updateCovarianceRLS(models.A, normalizedCtx, this.LAMBDA);
+      models.B = this.updateCovarianceRLS(models.B, normalizedCtx, this.LAMBDA);
 
       // Increment observation count
       models.n += 1;
@@ -447,12 +442,12 @@ export class CriticModule {
 
   /**
    * Update weights using Recursive Least Squares (RLS)
-   * 
+   *
    * RLS algorithm:
    * 1. Update covariance: A_t = A_{t-1} + x_t x_t^T + λI (regularization)
    * 2. Update target vector: b_t = b_{t-1} + x_t y_t
    * 3. Solve for weights: θ_t = A_t^{-1} b_t
-   * 
+   *
    * Using Sherman-Morrison formula for efficient A^{-1} update:
    * A_t^{-1} = A_{t-1}^{-1} - (A_{t-1}^{-1} x x^T A_{t-1}^{-1}) / (1 + x^T A_{t-1}^{-1} x)
    */
@@ -465,16 +460,16 @@ export class CriticModule {
   ): number[] {
     // RLS update using Sherman-Morrison formula
     // θ_t = θ_{t-1} + (A_t^{-1} x_t) * (y_t - θ_{t-1}^T x_t)
-    
-    const prediction = this.dotProduct(weights, context);
+
+    const prediction = dotProduct(weights, context);
     const error = label - prediction;
-    
+
     // Compute A^{-1} x (using current covariance)
-    const invAx = this.matrixVectorProduct(this.inverseMatrix(covariance), context);
-    
+    const invAx = matrixVectorProduct(inverseMatrix(covariance), context);
+
     // Compute x^T A^{-1} x
-    const xInvAx = this.dotProduct(context, invAx);
-    
+    const xInvAx = dotProduct(context, invAx);
+
     // RLS weight update: θ_t = θ_{t-1} + (A^{-1} x) * error / (1 + x^T A^{-1} x)
     const stepSize = error / (1 + xInvAx);
     return weights.map((w, i) => w + invAx[i] * stepSize);
@@ -482,14 +477,14 @@ export class CriticModule {
 
   /**
    * Update covariance matrix using Sherman-Morrison formula for RLS
-   * 
+   *
    * RLS covariance update:
    * A_t = A_{t-1} + x_t x_t^T + λI (regularization)
-   * 
+   *
    * For efficient A^{-1} update using Sherman-Morrison:
    * If A_t = A_{t-1} + x x^T, then:
    * A_t^{-1} = A_{t-1}^{-1} - (A_{t-1}^{-1} x x^T A_{t-1}^{-1}) / (1 + x^T A_{t-1}^{-1} x)
-   * 
+   *
    * But we update A directly (not A^{-1}), so:
    * A_t = A_{t-1} + x x^T + λI (where λ is small regularization)
    */
@@ -501,7 +496,7 @@ export class CriticModule {
     // RLS covariance update: A_t = A_{t-1} + x x^T + λI
     // Note: This is the direct update (for covariance matrix)
     // The inverse is updated separately using Sherman-Morrison when needed
-    
+
     const newA: number[][] = [];
     for (let i = 0; i < A.length; i++) {
       newA[i] = [];
@@ -534,548 +529,28 @@ export class CriticModule {
   }
 
   // ============================================================================
-  // Helper Methods
+  // FNR Delegation Methods (public API preserved for callers)
+  // Implementation lives in CriticFNRTracker
   // ============================================================================
 
-  /**
-   * Normalize context to correct dimension
-   */
-  private static normalizeContext(context: number[]): number[] {
-    if (context.length === this.D_EFF) {
-      return context;
-    }
-    if (context.length > this.D_EFF) {
-      return context.slice(0, this.D_EFF);
-    }
-    // Pad with zeros
-    return [...context, ...new Array(this.D_EFF - context.length).fill(0)];
-  }
-
-  /**
-   * Dot product of two vectors
-   */
-  private static dotProduct(a: number[], b: number[]): number {
-    return a.reduce((sum, val, i) => sum + val * (b[i] || 0), 0);
-  }
-
-  /**
-   * Matrix-vector product
-   */
-  private static matrixVectorProduct(A: number[][], x: number[]): number[] {
-    return A.map(row => this.dotProduct(row, x));
-  }
-
-  /**
-   * Compute ||x||_A^{-1} = sqrt(x^T A^{-1} x)
-   */
-  private static matrixVectorNorm(x: number[], A: number[][]): number {
-    const invA = this.inverseMatrix(A);
-    const invAx = this.matrixVectorProduct(invA, x);
-    const xInvAx = this.dotProduct(x, invAx);
-    return Math.sqrt(Math.max(0, xInvAx));
-  }
-
-  /**
-   * Matrix inverse using LU decomposition with partial pivoting
-   * 
-   * Implements robust matrix inversion for positive definite covariance matrices.
-   * Uses numerical stability checks and handles near-singular matrices.
-   */
-  private static inverseMatrix(A: number[][]): number[][] {
-    const n = A.length;
-    
-    // Validate matrix dimensions
-    if (n === 0 || A[0].length !== n) {
-      throw new Error('Matrix must be square and non-empty');
-    }
-
-    // Check for numerical stability (condition number estimate)
-    const maxAbs = Math.max(...A.flat().map(Math.abs));
-    if (maxAbs < 1e-10) {
-      logger.warn('Matrix is near-zero, using identity regularization', {
-        service: 'CriticModule',
-      });
-      // Return regularized identity
-      return this.regularizedIdentity(n);
-    }
-
-    // Try Cholesky decomposition first (faster for positive definite matrices)
-    try {
-      return this.inverseCholesky(A);
-    } catch (error) {
-      // Fall back to LU decomposition if Cholesky fails
-      logger.debug('Cholesky decomposition failed, using LU decomposition', {
-        service: 'CriticModule',
-      });
-      return this.inverseLU(A);
-    }
-  }
-
-  /**
-   * Matrix inverse using Cholesky decomposition (for positive definite matrices)
-   */
-  private static inverseCholesky(A: number[][]): number[][] {
-    const n = A.length;
-    
-    // Compute Cholesky decomposition: A = L * L^T
-    const L: number[][] = [];
-    for (let i = 0; i < n; i++) {
-      L[i] = new Array(n).fill(0);
-    }
-
-    for (let i = 0; i < n; i++) {
-      for (let j = 0; j <= i; j++) {
-        let sum = 0;
-        if (j === i) {
-          for (let k = 0; k < j; k++) {
-            sum += L[j][k] * L[j][k];
-          }
-          const diag = A[j][j] - sum;
-          if (diag <= 0) {
-            throw new Error('Matrix is not positive definite');
-          }
-          L[j][j] = Math.sqrt(diag);
-        } else {
-          for (let k = 0; k < j; k++) {
-            sum += L[i][k] * L[j][k];
-          }
-          L[i][j] = (A[i][j] - sum) / L[j][j];
-        }
-      }
-    }
-
-    // Solve L * L^T * X = I to get inverse
-    // First solve L * Y = I, then L^T * X = Y
-    const inv: number[][] = [];
-    for (let i = 0; i < n; i++) {
-      inv[i] = new Array(n).fill(0);
-    }
-
-    // Forward substitution: L * Y = I
-    for (let col = 0; col < n; col++) {
-      const y: number[] = [];
-      for (let i = 0; i < n; i++) {
-        let sum = i === col ? 1 : 0;
-        for (let j = 0; j < i; j++) {
-          sum -= L[i][j] * y[j];
-        }
-        y[i] = sum / L[i][i];
-      }
-
-      // Backward substitution: L^T * X = Y
-      for (let i = n - 1; i >= 0; i--) {
-        let sum = y[i];
-        for (let j = i + 1; j < n; j++) {
-          sum -= L[j][i] * inv[j][col];
-        }
-        inv[i][col] = sum / L[i][i];
-      }
-    }
-
-    return inv;
-  }
-
-  /**
-   * Matrix inverse using LU decomposition with partial pivoting
-   */
-  private static inverseLU(A: number[][]): number[][] {
-    const n = A.length;
-    const inv: number[][] = [];
-    
-    // Create identity matrix columns
-    for (let col = 0; col < n; col++) {
-      const b = new Array(n).fill(0);
-      b[col] = 1;
-      
-      // Solve A * x = b using LU decomposition
-      const x = this.solveLU(A, b);
-      
-      for (let i = 0; i < n; i++) {
-        if (!inv[i]) inv[i] = [];
-        inv[i][col] = x[i];
-      }
-    }
-
-    return inv;
-  }
-
-  /**
-   * Solve linear system A * x = b using LU decomposition with partial pivoting
-   */
-  private static solveLU(A: number[][], b: number[]): number[] {
-    const n = A.length;
-    
-    // Create copies
-    const LU: number[][] = A.map(row => [...row]);
-    const x = [...b];
-    const P: number[] = Array.from({ length: n }, (_, i) => i);
-
-    // LU decomposition with partial pivoting
-    for (let k = 0; k < n - 1; k++) {
-      // Find pivot
-      let maxIdx = k;
-      let maxVal = Math.abs(LU[k][k]);
-      for (let i = k + 1; i < n; i++) {
-        if (Math.abs(LU[i][k]) > maxVal) {
-          maxVal = Math.abs(LU[i][k]);
-          maxIdx = i;
-        }
-      }
-
-      // Swap rows
-      if (maxIdx !== k) {
-        [LU[k], LU[maxIdx]] = [LU[maxIdx], LU[k]];
-        [x[k], x[maxIdx]] = [x[maxIdx], x[k]];
-        [P[k], P[maxIdx]] = [P[maxIdx], P[k]];
-      }
-
-      // Check for singular matrix
-      if (Math.abs(LU[k][k]) < 1e-10) {
-        logger.warn('Near-singular matrix detected, using regularization', {
-          service: 'CriticModule',
-        });
-        LU[k][k] = 1e-6; // Regularization
-      }
-
-      // Eliminate
-      for (let i = k + 1; i < n; i++) {
-        const factor = LU[i][k] / LU[k][k];
-        LU[i][k] = factor;
-        for (let j = k + 1; j < n; j++) {
-          LU[i][j] -= factor * LU[k][j];
-        }
-      }
-    }
-
-    // Forward substitution: L * y = b
-    for (let i = 1; i < n; i++) {
-      for (let j = 0; j < i; j++) {
-        x[i] -= LU[i][j] * x[j];
-      }
-    }
-
-    // Backward substitution: U * x = y
-    for (let i = n - 1; i >= 0; i--) {
-      for (let j = i + 1; j < n; j++) {
-        x[i] -= LU[i][j] * x[j];
-      }
-      if (Math.abs(LU[i][i]) < 1e-10) {
-        x[i] = 0; // Handle near-zero pivot
-      } else {
-        x[i] /= LU[i][i];
-      }
-    }
-
-    return x;
-  }
-
-  /**
-   * Return regularized identity matrix (fallback for singular matrices)
-   */
-  private static regularizedIdentity(n: number): number[][] {
-    const inv: number[][] = [];
-    const lambda = 0.1; // Regularization parameter
-    for (let i = 0; i < n; i++) {
-      inv[i] = [];
-      for (let j = 0; j < n; j++) {
-        inv[i][j] = i === j ? 1.0 / lambda : 0.0;
-      }
-    }
-    return inv;
-  }
-
-  // ============================================================================
-  // FNR Tracking Methods
-  // ============================================================================
-
-  /**
-   * Get False Negative Rate with statistical validation for a stratum
-   *
-   * Implements Wilson score confidence intervals for small samples (n < 100)
-   * and validates sample size sufficiency (escalates if n < 10).
-   *
-   * @param stratum - Mondrian stratum identifier
-   * @returns FNRResult with confidence intervals and escalation flag
-   */
+  /** @see CriticFNRTracker.getFNR */
   static async getFNR(stratum: string): Promise<FNRResult> {
-    try {
-      // Load from database
-      const { data, error } = await serverSupabase
-        .from('ab_critic_fnr_tracking')
-        .select('false_negatives, total_automated')
-        .eq('stratum', stratum)
-        .single();
-
-      // Handle "not found" error (PGRST116)
-      if (error && error.code === 'PGRST116') {
-        return {
-          fnr: 0,
-          fnrUpperBound: 1.0, // Conservative: assume 100% FNR upper bound when no data
-          sampleSize: 0,
-          confidence: 0.95,
-          shouldEscalate: true,
-          reason: 'No data available for stratum - escalating for safety',
-        };
-      }
-
-      // Handle other database errors
-      if (error) {
-        logger.error('Database error loading FNR', {
-          service: 'CriticModule',
-          stratum,
-          error,
-        });
-        return {
-          fnr: 0,
-          fnrUpperBound: 1.0,
-          sampleSize: 0,
-          confidence: 0.95,
-          shouldEscalate: true,
-          reason: 'Database error - escalating for safety',
-        };
-      }
-
-      const falseNegatives = data?.false_negatives || 0;
-      const totalAutomated = data?.total_automated || 0;
-
-      // Sample size validation
-      if (totalAutomated < 10) {
-        logger.warn('Insufficient sample size for FNR estimation', {
-          service: 'CriticModule',
-          stratum,
-          sampleSize: totalAutomated,
-        });
-        return {
-          fnr: totalAutomated > 0 ? falseNegatives / totalAutomated : 0,
-          fnrUpperBound: 1.0,
-          sampleSize: totalAutomated,
-          confidence: 0.95,
-          shouldEscalate: true,
-          reason: `Insufficient sample size (n=${totalAutomated}) - need at least 10 observations`,
-        };
-      }
-
-      // Compute point estimate
-      const fnr = falseNegatives / totalAutomated;
-
-      // Compute Wilson score upper bound for 95% confidence
-      const fnrUpperBound = wilsonScoreUpper(falseNegatives, totalAutomated, 0.95);
-
-      // Check if should escalate (5% threshold)
-      const FNR_THRESHOLD = 0.05;
-      const shouldEscalate = fnrUpperBound >= FNR_THRESHOLD;
-
-      logger.debug('FNR computed with confidence interval', {
-        service: 'CriticModule',
-        stratum,
-        fnr,
-        fnrUpperBound,
-        sampleSize: totalAutomated,
-        shouldEscalate,
-      });
-
-      return {
-        fnr,
-        fnrUpperBound,
-        sampleSize: totalAutomated,
-        confidence: 0.95,
-        shouldEscalate,
-        reason: shouldEscalate
-          ? `FNR upper bound (${(fnrUpperBound * 100).toFixed(2)}%) exceeds threshold (${FNR_THRESHOLD * 100}%)`
-          : undefined,
-      };
-    } catch (error) {
-      logger.error('Unexpected error computing FNR', {
-        service: 'CriticModule',
-        stratum,
-        error,
-      });
-      // Conservative: escalate on error
-      return {
-        fnr: 0,
-        fnrUpperBound: 1.0,
-        sampleSize: 0,
-        confidence: 0.95,
-        shouldEscalate: true,
-        reason: 'Unexpected error - escalating for safety',
-      };
-    }
+    return CriticFNRTracker.getFNR(stratum);
   }
 
-  /**
-   * Get FNR with hierarchical fallback
-   *
-   * Implements fallback hierarchy for sparse strata:
-   * 1. Specific stratum (e.g., "region:west|severity:high")
-   * 2. Parent stratum (e.g., "region:west")
-   * 3. Grandparent stratum (e.g., "global")
-   * 4. Global default (if no data exists)
-   *
-   * @param stratum - Mondrian stratum identifier (e.g., "region:west|severity:high")
-   * @returns FNRResult with metadata about which stratum was used
-   */
+  /** @see CriticFNRTracker.getFNRWithFallback */
   static async getFNRWithFallback(stratum: string): Promise<
     FNRResult & { stratumUsed: string; fallbackLevel: number }
   > {
-    // Try specific stratum first
-    const specificResult = await this.getFNR(stratum);
-    if (specificResult.sampleSize >= 10) {
-      return {
-        ...specificResult,
-        stratumUsed: stratum,
-        fallbackLevel: 0,
-      };
-    }
-
-    // Parse stratum to get parent (remove last component)
-    const stratumParts = stratum.split('|');
-    if (stratumParts.length > 1) {
-      // Try parent stratum (e.g., "region:west|severity:high" -> "region:west")
-      const parentStratum = stratumParts.slice(0, -1).join('|');
-      const parentResult = await this.getFNR(parentStratum);
-      if (parentResult.sampleSize >= 10) {
-        logger.info('Using parent stratum FNR due to insufficient specific data', {
-          service: 'CriticModule',
-          specificStratum: stratum,
-          parentStratum,
-          specificSampleSize: specificResult.sampleSize,
-          parentSampleSize: parentResult.sampleSize,
-        });
-        return {
-          ...parentResult,
-          stratumUsed: parentStratum,
-          fallbackLevel: 1,
-        };
-      }
-
-      // Try grandparent stratum if parent also insufficient
-      if (stratumParts.length > 2) {
-        const grandparentStratum = stratumParts.slice(0, -2).join('|');
-        const grandparentResult = await this.getFNR(grandparentStratum);
-        if (grandparentResult.sampleSize >= 10) {
-          logger.info('Using grandparent stratum FNR due to insufficient parent data', {
-            service: 'CriticModule',
-            specificStratum: stratum,
-            grandparentStratum,
-            specificSampleSize: specificResult.sampleSize,
-            grandparentSampleSize: grandparentResult.sampleSize,
-          });
-          return {
-            ...grandparentResult,
-            stratumUsed: grandparentStratum,
-            fallbackLevel: 2,
-          };
-        }
-      }
-    }
-
-    // Try global stratum as final fallback
-    const globalResult = await this.getFNR('global');
-    if (globalResult.sampleSize >= 10) {
-      logger.warn('Using global stratum FNR due to insufficient hierarchical data', {
-        service: 'CriticModule',
-        specificStratum: stratum,
-        specificSampleSize: specificResult.sampleSize,
-        globalSampleSize: globalResult.sampleSize,
-      });
-      return {
-        ...globalResult,
-        stratumUsed: 'global',
-        fallbackLevel: 3,
-      };
-    }
-
-    // No sufficient data at any level - return specific result with escalation flag
-    logger.error('Insufficient data at all stratum levels', {
-      service: 'CriticModule',
-      stratum,
-      specificSampleSize: specificResult.sampleSize,
-      globalSampleSize: globalResult.sampleSize,
-    });
-    return {
-      ...specificResult,
-      shouldEscalate: true,
-      reason: 'Insufficient data at all stratum levels - escalating for safety',
-      stratumUsed: stratum,
-      fallbackLevel: 0,
-    };
+    return CriticFNRTracker.getFNRWithFallback(stratum);
   }
 
-  /**
-   * Record outcome of an automated decision
-   * 
-   * @param stratum - Mondrian stratum identifier
-   * @param decision - The decision that was made ('automate' or 'escalate')
-   * @param actualCriticalHazard - Whether a critical hazard was actually present
-   */
+  /** @see CriticFNRTracker.recordOutcome */
   static async recordOutcome(
     stratum: string,
     decision: 'automate' | 'escalate',
     actualCriticalHazard: boolean
   ): Promise<void> {
-    // Only track outcomes for automated decisions
-    if (decision !== 'automate') {
-      return;
-    }
-
-    try {
-      // Get current stats
-      const { data: existing } = await serverSupabase
-        .from('ab_critic_fnr_tracking')
-        .select('total_automated, false_negatives')
-        .eq('stratum', stratum)
-        .single();
-
-      const totalAutomated = (existing?.total_automated || 0) + 1;
-      const falseNegatives = (existing?.false_negatives || 0) + (actualCriticalHazard ? 1 : 0);
-
-      // Upsert FNR tracking
-      await serverSupabase
-        .from('ab_critic_fnr_tracking')
-        .upsert({
-          stratum,
-          total_automated: totalAutomated,
-          false_negatives: falseNegatives,
-          last_updated: new Date().toISOString(),
-        }, {
-          onConflict: 'stratum',
-        });
-
-      // Invalidate cache for this stratum
-      this.fnrCache.delete(stratum);
-
-      logger.debug('Recorded FNR outcome', {
-        service: 'CriticModule',
-        stratum,
-        decision,
-        actualCriticalHazard,
-        totalAutomated,
-        falseNegatives,
-        fnr: falseNegatives / totalAutomated,
-      });
-    } catch (error) {
-      logger.error('Failed to record FNR outcome', {
-        service: 'CriticModule',
-        stratum,
-        decision,
-        actualCriticalHazard,
-        error,
-      });
-    }
-  }
-
-  /**
-   * Persist FNR statistics to database (explicit save)
-   */
-  private static async persistFNR(stratum: string): Promise<void> {
-    // This is handled by recordOutcome, but kept for explicit saves if needed
-    await this.getFNR(stratum); // This will load and cache
-  }
-
-  /**
-   * Load FNR statistics from database
-   */
-  private static async loadFNR(stratum: string): Promise<FNRResult> {
-    return this.getFNR(stratum);
+    return CriticFNRTracker.recordOutcome(stratum, decision, actualCriticalHazard);
   }
 }

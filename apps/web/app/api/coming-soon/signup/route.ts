@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { z } from 'zod';
 
 const signupSchema = z.object({
@@ -9,21 +9,9 @@ const signupSchema = z.object({
   name: z.string().max(200).optional(),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || 'anonymous'}:coming-soon-signup`,
-      windowMs: 60000,
-      maxRequests: 5,
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
-    }
-
+export const POST = withApiHandler(
+  { auth: false, rateLimit: { maxRequests: 5 } },
+  async (request) => {
     const body = await request.json();
     const parsed = signupSchema.safeParse(body);
 
@@ -52,11 +40,5 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, message: "You're on the list!" });
-  } catch (error) {
-    logger.error('Coming soon signup error', error, { service: 'coming-soon' });
-    return NextResponse.json(
-      { error: 'Something went wrong. Please try again.' },
-      { status: 500 }
-    );
   }
-}
+);

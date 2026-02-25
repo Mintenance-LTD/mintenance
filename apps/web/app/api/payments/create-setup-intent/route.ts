@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getUserFromRequest } from '@/lib/auth';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRFFromCookieAuth } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, NotFoundError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { NotFoundError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
 
@@ -12,36 +10,8 @@ import { stripe } from '@/lib/stripe';
  * POST /api/payments/create-setup-intent
  * Creates a SetupIntent so mobile/web clients can save cards for future payments.
  */
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler({ rateLimit: { maxRequests: 20 } }, async (_request, { user }) => {
   try {
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 20,
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(20),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
-          },
-        }
-      );
-    }
-
-    await requireCSRFFromCookieAuth(request);
-
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
     const { data: profile, error: profileError } = await serverSupabase
       .from('profiles')
       .select('id, email, stripe_customer_id')
@@ -88,7 +58,6 @@ export async function POST(request: NextRequest) {
       logger.error('Stripe setup intent error', error, { service: 'payments' });
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-
-    return handleAPIError(error);
+    throw error;
   }
-}
+});

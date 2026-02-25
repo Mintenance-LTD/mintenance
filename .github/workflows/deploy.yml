@@ -44,6 +44,44 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
+      - name: Run Supabase Migrations (Production)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: npx supabase db push --db-url "${{ secrets.SUPABASE_DB_URL }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Verify Schema (Production)
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "Verifying database schema is in sync..."
+          npx supabase db diff --db-url "${{ secrets.SUPABASE_DB_URL }}" --schema public 2>&1 | tee /tmp/schema-diff.txt
+          if [ -s /tmp/schema-diff.txt ] && grep -q "CREATE\|ALTER\|DROP" /tmp/schema-diff.txt; then
+            echo "::warning::Schema drift detected after migration push. Review /tmp/schema-diff.txt"
+          else
+            echo "Schema is in sync."
+          fi
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Post-Deploy Health Check
+        if: success() && github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "Waiting for deployment to stabilise..."
+          sleep 30
+          HEALTH_URL="${{ secrets.NEXT_PUBLIC_APP_URL }}/api/health"
+          echo "Checking $HEALTH_URL..."
+          STATUS=$(curl -s -o /tmp/health.json -w "%{http_code}" "$HEALTH_URL" || echo "000")
+          if [ "$STATUS" = "200" ]; then
+            echo "Health check passed (HTTP $STATUS)"
+            cat /tmp/health.json | python3 -m json.tool 2>/dev/null || cat /tmp/health.json
+          elif [ "$STATUS" = "503" ]; then
+            echo "::error::Health check returned 503 — service unhealthy after deploy"
+            cat /tmp/health.json
+            exit 1
+          else
+            echo "::warning::Health check returned HTTP $STATUS — could not verify deployment"
+          fi
+
       # ENABLE THESE STEPS AFTER CONFIGURING VERCEL SECRETS
       - name: Deploy to Vercel (Preview)
         if: github.event_name == 'pull_request'

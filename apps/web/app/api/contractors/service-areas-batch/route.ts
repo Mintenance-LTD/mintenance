@@ -1,50 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const serviceAreasBatchSchema = z.object({
   contractorIds: z.array(z.string().uuid()).min(1).max(100),
 });
 
 /**
+ * POST /api/contractors/service-areas-batch
  * Batch fetch service areas for multiple contractors
  * Used by browse map to show coverage circles
- * 
- * POST /api/contractors/service-areas-batch
- * Body: { contractorIds: string[] }
- * Returns: Map<contractorId, ServiceArea[]>
+ * Note: Requires CSRF but not auth (public map view)
  */
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
+export const POST = withApiHandler(
+  { auth: false, rateLimit: { maxRequests: 30 } },
+  async (request) => {
+    // Manual CSRF for public POST (withApiHandler only does CSRF for authenticated routes)
     await requireCSRF(request);
+
     const body = await request.json();
     const parsed = serviceAreasBatchSchema.safeParse(body);
     if (!parsed.success) {
@@ -62,12 +39,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       .from('service_areas')
       .select('*')
       .in('contractor_id', contractorIds)
-      .eq('is_active', true); // Only fetch active areas
+      .eq('is_active', true);
 
     if (error) {
       logger.error('Failed to fetch service areas', {
         error: error.message,
-        contractorIds: contractorIds.slice(0, 5), // Log first 5 for debugging
+        contractorIds: contractorIds.slice(0, 5),
       });
       throw error;
     }
@@ -77,7 +54,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       if (!acc[area.contractor_id]) {
         acc[area.contractor_id] = [];
       }
-      
+
       acc[area.contractor_id].push({
         id: area.id,
         contractorId: area.contractor_id,
@@ -91,11 +68,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         is_active: area.is_active,
         priority: area.priority,
       });
-      
+
       return acc;
     }, {} as Record<string, ({ id: string; contractorId: string; city: string; state: string; zipCode: string; country: string; latitude: number; longitude: number; radius_km: number; is_active: boolean; priority: number })[]>);
 
-    // Convert to array format for response
     const result = Object.entries(groupedByContractor);
 
     logger.info('Service areas fetched successfully', {
@@ -106,46 +82,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json(result, {
       status: 200,
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600', // Cache for 5 min
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       },
     });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);
 
 /**
- * GET endpoint - returns empty array (use POST for actual data)
+ * GET /api/contractors/service-areas-batch
+ * Returns usage info (use POST for actual data)
  */
-export async function GET(request: Request): Promise<NextResponse> {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
+export const GET = withApiHandler(
+  { auth: false, rateLimit: { maxRequests: 30 } },
+  async () => {
     return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
       {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
+        message: 'Use POST method with contractorIds in body',
+        example: { contractorIds: ['uuid1', 'uuid2'] },
+      },
+      { status: 200 },
     );
-  }
-
-  return NextResponse.json(
-    {
-      message: 'Use POST method with contractorIds in body',
-      example: { contractorIds: ['uuid1', 'uuid2'] },
-    },
-    { status: 200 }
-  );
-}
-
+  },
+);

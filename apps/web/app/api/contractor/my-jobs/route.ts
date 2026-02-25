@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
-import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const statusSchema = z.enum(['active', 'bid', 'completed', 'all']).optional();
 
@@ -43,46 +42,62 @@ function getJobPhotos(job: JobApiResponse): string[] {
   return [];
 }
 
+function transformJob(job: JobApiResponse) {
+  return {
+    id: job.id,
+    title: job.title,
+    description: job.description,
+    location: job.location,
+    category: job.category,
+    priority: job.priority || job.urgency || 'medium',
+    budget: job.budget || job.budget_max || job.budget_min || 0,
+    status: job.status,
+    photos: getJobPhotos(job),
+    created_at: job.created_at,
+    homeowner_id: job.homeowner_id,
+    homeowner_name: job.homeowner
+      ? Array.isArray(job.homeowner)
+        ? `${job.homeowner[0]?.first_name || ''} ${job.homeowner[0]?.last_name || ''}`.trim() || 'Unknown'
+        : `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || 'Unknown'
+      : 'Unknown',
+    homeowner_avatar: Array.isArray(job.homeowner) ? job.homeowner[0]?.profile_image_url : job.homeowner?.profile_image_url,
+  };
+}
+
+const JOB_SELECT_FIELDS = `
+  id,
+  title,
+  description,
+  budget,
+  budget_min,
+  budget_max,
+  location,
+  category,
+  priority,
+  urgency,
+  status,
+  photos,
+  created_at,
+  homeowner_id,
+  homeowner:profiles!homeowner_id (
+    id,
+    first_name,
+    last_name,
+    profile_image_url
+  ),
+  job_attachments (
+    file_url
+  )
+`;
+
 /**
  * GET /api/contractor/my-jobs
  * Get jobs for the authenticated contractor
- * Query params:
- * - status: 'active' | 'bid' | 'completed' | 'all' (optional)
+ * Query params: status: 'active' | 'bid' | 'completed' | 'all' (optional)
  */
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view jobs');
-    }
-
-    if (user.role !== 'contractor') {
-      throw new ForbiddenError('Only contractors can view their jobs');
-    }
-
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const statusParam = searchParams.get('status');
 
@@ -91,7 +106,7 @@ export async function GET(request: NextRequest) {
     if (statusParam) {
       try {
         status = statusSchema.parse(statusParam);
-      } catch (error) {
+      } catch {
         throw new BadRequestError('Invalid status parameter. Must be: active, bid, completed, or all');
       }
     }
@@ -118,34 +133,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ jobs: [] });
       }
 
-      // Fetch jobs for which contractor has placed bids
       const { data: jobs, error: jobsError } = await serverSupabase
         .from('jobs')
-        .select(`
-          id,
-          title,
-          description,
-          budget,
-          budget_min,
-          budget_max,
-          location,
-          category,
-          priority,
-          urgency,
-          status,
-          photos,
-          created_at,
-          homeowner_id,
-          homeowner:profiles!homeowner_id (
-            id,
-            first_name,
-            last_name,
-            profile_image_url
-          ),
-          job_attachments (
-            file_url
-          )
-        `)
+        .select(JOB_SELECT_FIELDS)
         .in('id', jobIds)
         .order('created_at', { ascending: false });
 
@@ -157,66 +147,21 @@ export async function GET(request: NextRequest) {
         throw jobsError;
       }
 
-      // Transform DB columns to match frontend expected format
-      const transformedJobs = (jobs || []).map((job: JobApiResponse) => ({
-        id: job.id,
-        title: job.title,
-        description: job.description,
-        location: job.location,
-        category: job.category,
-        priority: job.priority || job.urgency || 'medium',
-        budget: job.budget || job.budget_max || job.budget_min || 0,
-        status: job.status,
-        photos: getJobPhotos(job),
-        created_at: job.created_at,
-        homeowner_id: job.homeowner_id,
-        homeowner_name: job.homeowner
-          ? Array.isArray(job.homeowner)
-            ? `${job.homeowner[0]?.first_name || ''} ${job.homeowner[0]?.last_name || ''}`.trim() || 'Unknown'
-            : `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || 'Unknown'
-          : 'Unknown',
-        homeowner_avatar: Array.isArray(job.homeowner) ? job.homeowner[0]?.profile_image_url : job.homeowner?.profile_image_url,
-      }));
-
-      return NextResponse.json({ jobs: transformedJobs });
+      return NextResponse.json({
+        jobs: (jobs || []).map((job: JobApiResponse) => transformJob(job)),
+      });
     } else {
       // Get jobs assigned to contractor or filter by status
       let query = serverSupabase
         .from('jobs')
-        .select(`
-          id,
-          title,
-          description,
-          budget,
-          budget_min,
-          budget_max,
-          location,
-          category,
-          priority,
-          urgency,
-          status,
-          photos,
-          created_at,
-          homeowner_id,
-          homeowner:profiles!homeowner_id (
-            id,
-            first_name,
-            last_name,
-            profile_image_url
-          ),
-          job_attachments (
-            file_url
-          )
-        `)
+        .select(JOB_SELECT_FIELDS)
         .eq('contractor_id', user.id);
 
-      // Apply status filter
       if (status === 'active') {
         query = query.in('status', ['in_progress', 'assigned', 'pending']);
       } else if (status === 'completed') {
         query = query.eq('status', 'completed');
       }
-      // If status is 'all' or undefined, return all jobs for contractor
 
       query = query.order('created_at', { ascending: false });
 
@@ -231,30 +176,9 @@ export async function GET(request: NextRequest) {
         throw jobsError;
       }
 
-      // Transform DB columns to match frontend expected format
-      const transformedJobs = (jobs || []).map((job: JobApiResponse) => ({
-        id: job.id,
-        title: job.title,
-        description: job.description,
-        location: job.location,
-        category: job.category,
-        priority: job.priority || job.urgency || 'medium',
-        budget: job.budget || job.budget_max || job.budget_min || 0,
-        status: job.status,
-        photos: getJobPhotos(job),
-        created_at: job.created_at,
-        homeowner_id: job.homeowner_id,
-        homeowner_name: job.homeowner
-          ? Array.isArray(job.homeowner)
-            ? `${job.homeowner[0]?.first_name || ''} ${job.homeowner[0]?.last_name || ''}`.trim() || 'Unknown'
-            : `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || 'Unknown'
-          : 'Unknown',
-        homeowner_avatar: Array.isArray(job.homeowner) ? job.homeowner[0]?.profile_image_url : job.homeowner?.profile_image_url,
-      }));
-
-      return NextResponse.json({ jobs: transformedJobs });
+      return NextResponse.json({
+        jobs: (jobs || []).map((job: JobApiResponse) => transformJob(job)),
+      });
     }
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);

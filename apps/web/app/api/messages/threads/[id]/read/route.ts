@@ -1,44 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 
-interface Params {
-  params: Promise<{ id: string }>;
-}
-
-export async function POST(request: NextRequest, context: Params) {
-  try {
-    // Rate limiting check
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 30
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(30),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-          }
-        }
-      );
-    }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to mark messages as read');
-    }
-
-    const { id: jobId } = await context.params;
+/**
+ * POST /api/messages/threads/:id/read
+ * Mark messages as read for the current user
+ */
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user, params }) => {
+    const { id: jobId } = params as { id: string };
     if (!jobId) {
       throw new BadRequestError('Job id is required');
     }
@@ -104,7 +77,5 @@ export async function POST(request: NextRequest, context: Params) {
     }
 
     return NextResponse.json({ updated });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);

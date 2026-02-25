@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
  * Secure Server-Side Geocoding Proxy
@@ -11,10 +11,6 @@ import { rateLimiter } from '@/lib/rate-limiter';
  * - User authentication required
  * - Rate limiting (10 requests per minute per user)
  * - Input validation and sanitization
- * - CSRF protection via auth token validation
- *
- * This endpoint replaces direct client-side Google Maps API calls
- * to prevent API key exposure in JavaScript bundles.
  */
 
 interface GeocodeRequest {
@@ -38,20 +34,10 @@ interface GeocodeResponse {
  * - Forward geocoding: { address: "123 Main St, London, UK" }
  * - Reverse geocoding: { lat: 51.5074, lng: -0.1278 }
  */
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-    const user = await getCurrentUserFromCookies();
-    if (!user?.id) {
-      logger.warn('Unauthorized geocoding attempt', {
-        service: 'geocode-proxy',
-        ip: request.headers.get('x-forwarded-for') || 'unknown',
-      });
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
+export const POST = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
+    // Custom per-user rate limiting (10/min)
     const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `geocode:${user.id}`,
       windowMs: 60000,
@@ -80,7 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 3. Parse and Validate Request Body
+    // Parse and Validate Request Body
     let body: GeocodeRequest;
     try {
       body = await request.json();
@@ -91,7 +77,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 4. Input Validation
+    // Input Validation
     const hasAddress = body.address && typeof body.address === 'string';
     const hasCoordinates =
       typeof body.lat === 'number' &&
@@ -120,7 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 5. Check API Key Configuration
+    // Check API Key Configuration
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       logger.error('GOOGLE_MAPS_API_KEY not configured', new Error('Missing API key'), {
@@ -132,7 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 6. Build Google Maps API Request
+    // Build Google Maps API Request
     let googleMapsUrl: string;
     if (hasAddress) {
       // Forward geocoding
@@ -143,7 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       googleMapsUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${body.lat},${body.lng}&key=${apiKey}`;
     }
 
-    // 7. Call Google Maps API
+    // Call Google Maps API
     const startTime = Date.now();
     const response = await fetch(googleMapsUrl, {
       headers: {
@@ -154,7 +140,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const data = await response.json();
     const duration = Date.now() - startTime;
 
-    // 8. Handle API Response
+    // Handle API Response
     if (data.status === 'OK' && data.results && data.results.length > 0) {
       const result = data.results[0];
       const location = result.geometry.location;
@@ -165,7 +151,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         formatted_address: result.formatted_address,
       };
 
-      // Log successful geocoding
       logger.info('Geocoding successful', {
         service: 'geocode-proxy',
         userId: user.id,
@@ -214,16 +199,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: statusCode }
       );
     }
-  } catch (error) {
-    logger.error('Unexpected error in geocode proxy', error, {
-      service: 'geocode-proxy',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
   }
-}
+);
 
 /**
  * GET /api/geocode-proxy?address=...
@@ -231,44 +208,47 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  * Legacy support for GET requests (less secure, use POST instead)
  * Maintained for backward compatibility
  */
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+export const GET = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
+    // Legacy GET uses IP-based rate limiting (30/min)
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+      windowMs: 60000,
+      maxRequests: 30
+    });
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+    if (!rateLimitResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': String(30),
+            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+          }
         }
-      }
-    );
+      );
+    }
+
+    const address = request.nextUrl.searchParams.get('address');
+
+    if (!address) {
+      return NextResponse.json(
+        { error: 'Address parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    // Convert GET to POST internally
+    const mockPostRequest = new Request(request.url, {
+      method: 'POST',
+      headers: request.headers,
+      body: JSON.stringify({ address }),
+    });
+
+    return POST(mockPostRequest as NextRequest, { params: Promise.resolve({}) });
   }
-
-  const address = request.nextUrl.searchParams.get('address');
-
-  if (!address) {
-    return NextResponse.json(
-      { error: 'Address parameter is required' },
-      { status: 400 }
-    );
-  }
-
-  // Convert GET to POST internally
-  const mockPostRequest = new Request(request.url, {
-    method: 'POST',
-    headers: request.headers,
-    body: JSON.stringify({ address }),
-  });
-
-  return POST(mockPostRequest as NextRequest);
-}
+);

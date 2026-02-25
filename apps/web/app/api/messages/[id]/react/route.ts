@@ -1,291 +1,193 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, NotFoundError, ForbiddenError, ConflictError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { messageReactionSchema } from '@/lib/validation/schemas';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // ==========================================================
 // POST /api/messages/:id/react
 // Toggle reaction on a message (add if not exists, remove if exists)
 // ==========================================================
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  // Validate and sanitize input using Zod schema
+  const validation = await validateRequest(request, messageReactionSchema);
+  if (validation instanceof NextResponse) return validation;
+  const { data: validatedReaction } = validation;
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
+  const { emoji } = validatedReaction;
+  const messageId = params.id as string;
+
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(messageId)) {
+    throw new BadRequestError('Invalid message ID format');
   }
 
-    // Step 1: Authentication check
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to react to messages');
-    }
+  // Verify message exists and user has access
+  const { data: message, error: messageError } = await serverSupabase
+    .from('messages')
+    .select('id, sender_id, receiver_id')
+    .eq('id', messageId)
+    .single();
 
-    // Step 2: Validate and sanitize input using Zod schema
-    const validation = await validateRequest(request, messageReactionSchema);
-    if (validation instanceof NextResponse) return validation;
-    const { data: validatedReaction } = validation;
+  if (messageError || !message) {
+    throw new NotFoundError('Message not found');
+  }
 
-    const { emoji } = validatedReaction;
-    const { id: messageId } = await params;
+  // Verify user has access (must be sender or receiver)
+  const hasAccess = message.sender_id === user.id || message.receiver_id === user.id;
 
-    // Validate UUID format
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(messageId)) {
-      throw new BadRequestError('Invalid message ID format');
-    }
+  if (!hasAccess) {
+    throw new ForbiddenError('You do not have permission to react to this message');
+  }
 
-    const supabase = serverSupabase;
+  // Check if reaction already exists (toggle behavior)
+  const { data: existingReaction, error: fetchError } = await serverSupabase
+    .from('message_reactions')
+    .select('id')
+    .eq('message_id', messageId)
+    .eq('user_id', user.id)
+    .eq('emoji', emoji)
+    .maybeSingle();
 
-    // Step 3: Verify message exists and user has access
-    const { data: message, error: messageError } = await supabase
-      .from('messages')
-      .select('id, sender_id, receiver_id')
-      .eq('id', messageId)
-      .single();
+  if (fetchError) {
+    logger.error('Error checking existing reaction', fetchError, {
+      service: 'messages',
+      messageId,
+      userId: user.id,
+    });
+    throw fetchError;
+  }
 
-    if (messageError || !message) {
-      throw new NotFoundError('Message not found');
-    }
-
-    // Step 4: Verify user has access (must be sender or receiver)
-    const hasAccess =
-      message.sender_id === user.id || message.receiver_id === user.id;
-
-    if (!hasAccess) {
-      throw new ForbiddenError('You do not have permission to react to this message');
-    }
-
-    // Step 5: Check if reaction already exists (toggle behavior)
-    const { data: existingReaction, error: fetchError } = await supabase
+  if (existingReaction) {
+    // Remove reaction (toggle off)
+    const { error: deleteError } = await serverSupabase
       .from('message_reactions')
-      .select('id')
-      .eq('message_id', messageId)
-      .eq('user_id', user.id)
-      .eq('emoji', emoji)
-      .maybeSingle();
+      .delete()
+      .eq('id', existingReaction.id);
 
-    if (fetchError) {
-      logger.error('Error checking existing reaction', fetchError, {
+    if (deleteError) {
+      logger.error('Error deleting reaction', deleteError, {
         service: 'messages',
         messageId,
         userId: user.id,
       });
-      throw fetchError;
+      throw deleteError;
     }
 
-    if (existingReaction) {
-      // Step 6a: Remove reaction (toggle off)
-      const { error: deleteError } = await supabase
-        .from('message_reactions')
-        .delete()
-        .eq('id', existingReaction.id);
+    return NextResponse.json({ success: true, action: 'removed', emoji, messageId });
+  } else {
+    // Add reaction (toggle on)
+    const { error: insertError } = await serverSupabase
+      .from('message_reactions')
+      .insert({
+        message_id: messageId,
+        user_id: user.id,
+        emoji,
+      });
 
-      if (deleteError) {
-        logger.error('Error deleting reaction', deleteError, {
-          service: 'messages',
-          messageId,
-          userId: user.id,
-        });
-        throw deleteError;
+    if (insertError) {
+      logger.error('Error adding reaction', insertError, {
+        service: 'messages',
+        messageId,
+        userId: user.id,
+        emoji,
+      });
+
+      // Handle unique constraint violation gracefully
+      if (insertError.code === '23505') {
+        throw new ConflictError('Reaction already exists');
       }
 
-      return NextResponse.json({
-        success: true,
-        action: 'removed',
-        emoji,
-        messageId,
-      });
-    } else {
-      // Step 6b: Add reaction (toggle on)
-      const { error: insertError } = await supabase
-        .from('message_reactions')
-        .insert({
-          message_id: messageId,
-          user_id: user.id,
-          emoji,
-        });
-
-      if (insertError) {
-        logger.error('Error adding reaction', insertError, {
-          service: 'messages',
-          messageId,
-          userId: user.id,
-          emoji,
-        });
-
-        // Handle unique constraint violation gracefully
-        if (insertError.code === '23505') {
-          throw new ConflictError('Reaction already exists');
-        }
-
-        throw insertError;
-      }
-
-      return NextResponse.json({
-        success: true,
-        action: 'added',
-        emoji,
-        messageId,
-      });
+      throw insertError;
     }
-  } catch (error) {
-    return handleAPIError(error);
+
+    return NextResponse.json({ success: true, action: 'added', emoji, messageId });
   }
-}
+});
 
 // ==========================================================
 // GET /api/messages/:id/react
 // Fetch all reactions for a message (grouped by emoji)
 // ==========================================================
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  const messageId = params.id as string;
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
+  // Validate UUID format
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(messageId)) {
+    throw new BadRequestError('Invalid message ID format');
   }
 
-    // Step 1: Authentication check
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view reactions');
-    }
+  // Verify message exists and user has access
+  const { data: message, error: messageError } = await serverSupabase
+    .from('messages')
+    .select('id, sender_id, receiver_id')
+    .eq('id', messageId)
+    .single();
 
-    const { id: messageId } = await params;
+  if (messageError || !message) {
+    throw new NotFoundError('Message not found');
+  }
 
-    // Validate UUID format
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(messageId)) {
-      throw new BadRequestError('Invalid message ID format');
-    }
+  // Verify access
+  const hasAccess = message.sender_id === user.id || message.receiver_id === user.id;
 
-    const supabase = serverSupabase;
+  if (!hasAccess) {
+    throw new ForbiddenError('You do not have permission to view reactions for this message');
+  }
 
-    // Step 2: Verify message exists and user has access
-    const { data: message, error: messageError } = await supabase
-      .from('messages')
-      .select('id, sender_id, receiver_id')
-      .eq('id', messageId)
-      .single();
+  // Fetch all reactions for this message
+  const { data: reactions, error: reactionsError } = await serverSupabase
+    .from('message_reactions')
+    .select('id, emoji, user_id, created_at')
+    .eq('message_id', messageId)
+    .order('created_at', { ascending: true });
 
-    if (messageError || !message) {
-      throw new NotFoundError('Message not found');
-    }
-
-    // Step 3: Verify access
-    const hasAccess =
-      message.sender_id === user.id || message.receiver_id === user.id;
-
-    if (!hasAccess) {
-      throw new ForbiddenError('You do not have permission to view reactions for this message');
-    }
-
-    // Step 4: Fetch all reactions for this message
-    const { data: reactions, error: reactionsError } = await supabase
-      .from('message_reactions')
-      .select('id, emoji, user_id, created_at')
-      .eq('message_id', messageId)
-      .order('created_at', { ascending: true });
-
-    if (reactionsError) {
-      logger.error('Error fetching reactions', reactionsError, {
-        service: 'messages',
-        messageId,
-        userId: user.id,
-      });
-      throw reactionsError;
-    }
-
-    // Step 5: Group reactions by emoji
-    const grouped = (reactions || []).reduce(
-      (acc, reaction) => {
-        if (!acc[reaction.emoji]) {
-          acc[reaction.emoji] = {
-            emoji: reaction.emoji,
-            count: 0,
-            users: [],
-            userReacted: false,
-          };
-        }
-
-        acc[reaction.emoji].count++;
-        acc[reaction.emoji].users.push(reaction.user_id);
-
-        if (reaction.user_id === user.id) {
-          acc[reaction.emoji].userReacted = true;
-        }
-
-        return acc;
-      },
-      {} as Record<
-        string,
-        {
-          emoji: string;
-          count: number;
-          users: string[];
-          userReacted: boolean;
-        }
-      >
-    );
-
-    // Step 6: Return grouped reactions
-    return NextResponse.json({
-      success: true,
+  if (reactionsError) {
+    logger.error('Error fetching reactions', reactionsError, {
+      service: 'messages',
       messageId,
-      reactions: Object.values(grouped),
-      totalReactions: reactions?.length || 0,
+      userId: user.id,
     });
-  } catch (error) {
-    return handleAPIError(error);
+    throw reactionsError;
   }
-}
+
+  // Group reactions by emoji
+  const grouped = (reactions || []).reduce(
+    (acc, reaction) => {
+      if (!acc[reaction.emoji]) {
+        acc[reaction.emoji] = {
+          emoji: reaction.emoji,
+          count: 0,
+          users: [],
+          userReacted: false,
+        };
+      }
+
+      acc[reaction.emoji].count++;
+      acc[reaction.emoji].users.push(reaction.user_id);
+
+      if (reaction.user_id === user.id) {
+        acc[reaction.emoji].userReacted = true;
+      }
+
+      return acc;
+    },
+    {} as Record<string, { emoji: string; count: number; users: string[]; userReacted: boolean }>
+  );
+
+  return NextResponse.json({
+    success: true,
+    messageId,
+    reactions: Object.values(grouped),
+    totalReactions: reactions?.length || 0,
+  });
+});
 
 // ==========================================================
 // OPTIONS - CORS Preflight (if needed)

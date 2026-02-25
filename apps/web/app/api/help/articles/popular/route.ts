@@ -1,84 +1,43 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
- * Get popular help articles with view counts
+ * GET /api/help/articles/popular - get popular help articles with view counts.
  */
-export async function GET(request: Request) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+export const GET = withApiHandler({ auth: false }, async () => {
+  const articles = [
+    { title: 'How to create an account', category: 'Getting Started' },
+    { title: 'How to post a job', category: 'Posting Jobs' },
+    { title: 'How payments work', category: 'Payments & Billing' },
+    { title: 'Receiving and comparing quotes', category: 'Bids & Quotes' },
+    { title: 'Finding jobs near you', category: 'For Tradespeople' },
+    { title: 'Our verification process', category: 'Safety & Trust' },
+  ];
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
+  const articlesWithViews = await Promise.all(
+    articles.map(async (article) => {
+      const { count } = await serverSupabase
+        .from('help_article_views')
+        .select('id', { count: 'exact', head: true })
+        .eq('article_title', article.title);
+
+      const views = count || 0;
+      const formatViews = (num: number): string => {
+        if (num >= 1000) {
+          const k = num / 1000;
+          return k >= 10 ? `${Math.round(k)}k` : `${k.toFixed(1)}k`;
         }
-      }
-    );
-  }
+        return num.toString();
+      };
 
-    // Define the articles we want to show
-    const articles = [
-      { title: 'How to create an account', category: 'Getting Started' },
-      { title: 'How to post a job', category: 'Posting Jobs' },
-      { title: 'How payments work', category: 'Payments & Billing' },
-      { title: 'Receiving and comparing quotes', category: 'Bids & Quotes' },
-      { title: 'Finding jobs near you', category: 'For Tradespeople' },
-      { title: 'Our verification process', category: 'Safety & Trust' },
-    ];
+      return { ...article, views: formatViews(views), viewCount: views };
+    }),
+  );
 
-    // Fetch view counts for each article
-    const articlesWithViews = await Promise.all(
-      articles.map(async (article) => {
-        const { count } = await serverSupabase
-          .from('help_article_views')
-          .select('id', { count: 'exact', head: true })
-          .eq('article_title', article.title);
+  const popularArticles = articlesWithViews
+    .sort((a, b) => b.viewCount - a.viewCount)
+    .slice(0, 6);
 
-        const views = count || 0;
-
-        // Format views: 12500 -> "12.5k", 1000 -> "1k", 500 -> "500"
-        const formatViews = (num: number): string => {
-          if (num >= 1000) {
-            const k = num / 1000;
-            return k >= 10 ? `${Math.round(k)}k` : `${k.toFixed(1)}k`;
-          }
-          return num.toString();
-        };
-
-        return {
-          ...article,
-          views: formatViews(views),
-          viewCount: views,
-        };
-      })
-    );
-
-    // Sort by view count (descending) and take top 6
-    const popularArticles = articlesWithViews
-      .sort((a, b) => b.viewCount - a.viewCount)
-      .slice(0, 6);
-
-    return NextResponse.json({ articles: popularArticles });
-  } catch (error) {
-    logger.error('Error fetching popular articles', error, {
-      service: 'help_articles',
-    });
-    // Return empty array on error
-    return NextResponse.json({ articles: [] });
-  }
-}
-
+  return NextResponse.json({ articles: popularArticles });
+});

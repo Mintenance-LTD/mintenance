@@ -1,14 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
 import { z } from 'zod';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Type definition for schedule update data
 interface ScheduleUpdateData {
@@ -24,288 +22,170 @@ const scheduleSchema = z.object({
   scheduled_duration_hours: z.number().int().positive().optional(),
 });
 
-export async function POST(  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  const jobId = params.id as string;
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
+  // Validate and sanitize input using Zod schema
+  const validation = await validateRequest(request, scheduleSchema);
+  if ('headers' in validation) return validation;
+
+  const { scheduled_start_date, scheduled_end_date, scheduled_duration_hours } = validation.data;
+
+  // Verify job exists and user has permission
+  const { data: job, error: jobError } = await serverSupabase
+    .from('jobs')
+    .select('id, homeowner_id, contractor_id, status, title')
+    .eq('id', jobId)
+    .single();
+
+  if (jobError || !job) {
+    throw new NotFoundError('Job not found');
   }
 
-    // CSRF protection
-    await requireCSRF(request);
-    const { id: jobId } = await params;
-    const user = await getCurrentUserFromCookies();
+  // Verify user is contractor or homeowner for this job
+  const isAuthorized = (user.role === 'contractor' && job.contractor_id === user.id) ||
+                       (user.role === 'homeowner' && job.homeowner_id === user.id);
 
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to schedule jobs');
-    }
+  if (!isAuthorized) {
+    throw new ForbiddenError('Not authorized to schedule this job');
+  }
 
-    // Validate and sanitize input using Zod schema
-    const validation = await validateRequest(request, scheduleSchema);
-    if ('headers' in validation) {
-      return validation;
-    }
+  // Verify date is in the future
+  const startDate = new Date(scheduled_start_date);
+  const now = new Date();
+  if (startDate <= now) {
+    throw new BadRequestError('Scheduled start date must be in the future');
+  }
 
-    const { scheduled_start_date, scheduled_end_date, scheduled_duration_hours } = validation.data;
+  // Update job with scheduled dates
+  const updateData: ScheduleUpdateData = {
+    scheduled_start_date: scheduled_start_date,
+    updated_at: new Date().toISOString(),
+  };
 
-    // Verify job exists and user has permission
-    const { data: job, error: jobError } = await serverSupabase
-      .from('jobs')
-      .select('id, homeowner_id, contractor_id, status, title')
-      .eq('id', jobId)
-      .single();
+  if (scheduled_end_date) {
+    updateData.scheduled_end_date = scheduled_end_date;
+  }
+  if (scheduled_duration_hours) {
+    updateData.scheduled_duration_hours = scheduled_duration_hours;
+  }
 
-    if (jobError || !job) {
-      throw new NotFoundError('Job not found');
-    }
+  const { error: updateError } = await serverSupabase
+    .from('jobs')
+    .update(updateData)
+    .eq('id', jobId);
 
-    // Verify user is contractor or homeowner for this job
-    const isAuthorized = (user.role === 'contractor' && job.contractor_id === user.id) ||
-                         (user.role === 'homeowner' && job.homeowner_id === user.id);
-
-    if (!isAuthorized) {
-      throw new ForbiddenError('Not authorized to schedule this job');
-    }
-
-    // Verify date is in the future
-    const startDate = new Date(scheduled_start_date);
-    const now = new Date();
-    if (startDate <= now) {
-      throw new BadRequestError('Scheduled start date must be in the future');
-    }
-
-    // Update job with scheduled dates
-    const updateData: ScheduleUpdateData = {
-      scheduled_start_date: scheduled_start_date,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (scheduled_end_date) {
-      updateData.scheduled_end_date = scheduled_end_date;
-    }
-    if (scheduled_duration_hours) {
-      updateData.scheduled_duration_hours = scheduled_duration_hours;
-    }
-
-    const { error: updateError } = await serverSupabase
-      .from('jobs')
-      .update(updateData)
-      .eq('id', jobId);
-
-    if (updateError) {
-      logger.error('Error updating job schedule', updateError, {
-        service: 'jobs',
-        jobId,
-        userId: user.id,
-      });
-      throw updateError;
-    }
-
-    // Create notifications for both parties
-    const otherPartyId = user.role === 'contractor' ? job.homeowner_id : job.contractor_id;
-    const formattedDate = new Date(scheduled_start_date).toLocaleDateString('en-GB', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    try {
-      await Promise.all([
-        NotificationService.createNotification({
-          userId: user.id,
-          title: 'Job Scheduled ✅',
-          message: `You've scheduled "${job.title || 'the job'}" to start on ${formattedDate}.`,
-          type: 'job_scheduled',
-          actionUrl: user.role === 'contractor' ? `/contractor/jobs/${jobId}` : `/jobs/${jobId}`,
-        }),
-        NotificationService.createNotification({
-          userId: otherPartyId,
-          title: 'Job Scheduled 📅',
-          message: `${user.role === 'contractor' ? 'Contractor' : 'Homeowner'} has scheduled "${job.title || 'the job'}" to start on ${formattedDate}.`,
-          type: 'job_scheduled',
-          actionUrl: user.role === 'contractor' ? `/jobs/${jobId}` : `/contractor/jobs/${jobId}`,
-        }),
-      ]);
-    } catch (notificationError) {
-      logger.error('Failed to create schedule notifications', notificationError, {
-        service: 'jobs',
-        jobId,
-      });
-      // Don't fail the request
-    }
-
-    // Schedule reminder notifications (24 hours and 1 hour before)
-    const startDateObj = new Date(scheduled_start_date);
-    const reminder24h = new Date(startDateObj.getTime() - 24 * 60 * 60 * 1000);
-    const reminder1h = new Date(startDateObj.getTime() - 60 * 60 * 1000);
-
-    // Create scheduled reminder notifications
-    // Note: In production, you'd use a cron job or Supabase Edge Function to check and send these
-    // The NoShowReminderService will handle these via the cron endpoint
-    // For now, we'll create them with future timestamps and handle them via a scheduled task
-    const reminderNotifications = [
-      {
-        user_id: user.id,
-        title: 'Job Starting Tomorrow',
-        message: `Reminder: "${job.title || 'Your job'}" is scheduled to start tomorrow.`,
-        type: 'start_day_reminder_24h',
-        read: false,
-        action_url: user.role === 'contractor' ? `/contractor/jobs/${jobId}` : `/jobs/${jobId}`,
-        created_at: reminder24h.toISOString(),
-        // We'll use a scheduled job to send these at the right time
-      },
-      {
-        user_id: otherPartyId,
-        title: 'Job Starting Tomorrow',
-        message: `Reminder: "${job.title || 'Your job'}" is scheduled to start tomorrow.`,
-        type: 'start_day_reminder_24h',
-        read: false,
-        action_url: user.role === 'contractor' ? `/jobs/${jobId}` : `/contractor/jobs/${jobId}`,
-        created_at: reminder24h.toISOString(),
-      },
-      {
-        user_id: user.id,
-        title: 'Job Starting Soon',
-        message: `Reminder: "${job.title || 'Your job'}" is scheduled to start in 1 hour.`,
-        type: 'start_day_reminder_1h',
-        read: false,
-        action_url: user.role === 'contractor' ? `/contractor/jobs/${jobId}` : `/jobs/${jobId}`,
-        created_at: reminder1h.toISOString(),
-      },
-      {
-        user_id: otherPartyId,
-        title: 'Job Starting Soon',
-        message: `Reminder: "${job.title || 'Your job'}" is scheduled to start in 1 hour.`,
-        type: 'start_day_reminder_1h',
-        read: false,
-        action_url: user.role === 'contractor' ? `/jobs/${jobId}` : `/contractor/jobs/${jobId}`,
-        created_at: reminder1h.toISOString(),
-      },
-    ];
-
-    // Get schedule suggestions from SchedulingAgent
-    // Run asynchronously to avoid blocking the response
-    SchedulingAgent.suggestOptimalSchedule(jobId, {
+  if (updateError) {
+    logger.error('Error updating job schedule', updateError, {
+      service: 'jobs',
       jobId,
       userId: user.id,
-    }).catch((error) => {
-      logger.error('Error getting schedule suggestions', error, {
-        service: 'schedule',
-        jobId,
-      });
     });
-
-    // Store reminder schedule (you'd typically use a separate scheduled_notifications table)
-    // For now, we'll create them but they'll need a background job to send at the right time
-    try {
-      // Note: These should be handled by a cron job that checks for notifications with future created_at dates
-      // and sends them at the appropriate time. For MVP, we'll create them but note they need a scheduler.
-      logger.info('Reminder notifications scheduled', {
-        service: 'jobs',
-        jobId,
-        reminder24h: reminder24h.toISOString(),
-        reminder1h: reminder1h.toISOString(),
-      });
-    } catch (reminderError) {
-      logger.error('Failed to schedule reminders', reminderError, {
-        service: 'jobs',
-        jobId,
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Job scheduled successfully',
-      scheduled_start_date,
-      scheduled_end_date,
-    });
-  } catch (error) {
-    return handleAPIError(error);
+    throw updateError;
   }
-}
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
+  // Create notifications for both parties
+  const otherPartyId = user.role === 'contractor' ? job.homeowner_id : job.contractor_id;
+  const formattedDate = new Date(scheduled_start_date).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const { id: jobId } = await params;
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view job schedule');
-    }
-
-    // Verify job exists and user has permission
-    const { data: job, error: jobError } = await serverSupabase
-      .from('jobs')
-      .select('id, homeowner_id, contractor_id, scheduled_start_date, scheduled_end_date, scheduled_duration_hours')
-      .eq('id', jobId)
-      .single();
-
-    if (jobError || !job) {
-      throw new NotFoundError('Job not found');
-    }
-
-    // Verify user is contractor or homeowner for this job
-    const isAuthorized = (user.role === 'contractor' && job.contractor_id === user.id) ||
-                         (user.role === 'homeowner' && job.homeowner_id === user.id);
-
-    if (!isAuthorized) {
-      throw new ForbiddenError('Not authorized to view this job schedule');
-    }
-
-    return NextResponse.json({
-      scheduled_start_date: job.scheduled_start_date,
-      scheduled_end_date: job.scheduled_end_date,
-      scheduled_duration_hours: job.scheduled_duration_hours,
+  try {
+    await Promise.all([
+      NotificationService.createNotification({
+        userId: user.id,
+        title: 'Job Scheduled ✅',
+        message: `You've scheduled "${job.title || 'the job'}" to start on ${formattedDate}.`,
+        type: 'job_scheduled',
+        actionUrl: user.role === 'contractor' ? `/contractor/jobs/${jobId}` : `/jobs/${jobId}`,
+      }),
+      NotificationService.createNotification({
+        userId: otherPartyId,
+        title: 'Job Scheduled 📅',
+        message: `${user.role === 'contractor' ? 'Contractor' : 'Homeowner'} has scheduled "${job.title || 'the job'}" to start on ${formattedDate}.`,
+        type: 'job_scheduled',
+        actionUrl: user.role === 'contractor' ? `/jobs/${jobId}` : `/contractor/jobs/${jobId}`,
+      }),
+    ]);
+  } catch (notificationError) {
+    logger.error('Failed to create schedule notifications', notificationError, {
+      service: 'jobs',
+      jobId,
     });
-  } catch (error) {
-    return handleAPIError(error);
+    // Don't fail the request
   }
-}
 
+  // Schedule reminder notifications (24 hours and 1 hour before)
+  const startDateObj = new Date(scheduled_start_date);
+  const reminder24h = new Date(startDateObj.getTime() - 24 * 60 * 60 * 1000);
+  const reminder1h = new Date(startDateObj.getTime() - 60 * 60 * 1000);
+
+  // Get schedule suggestions from SchedulingAgent
+  // Run asynchronously to avoid blocking the response
+  SchedulingAgent.suggestOptimalSchedule(jobId, {
+    jobId,
+    userId: user.id,
+  }).catch((error) => {
+    logger.error('Error getting schedule suggestions', error, {
+      service: 'schedule',
+      jobId,
+    });
+  });
+
+  // Note: These should be handled by a cron job that checks for notifications with future created_at dates
+  // and sends them at the appropriate time. For MVP, we'll log them but note they need a scheduler.
+  try {
+    logger.info('Reminder notifications scheduled', {
+      service: 'jobs',
+      jobId,
+      reminder24h: reminder24h.toISOString(),
+      reminder1h: reminder1h.toISOString(),
+    });
+  } catch (reminderError) {
+    logger.error('Failed to schedule reminders', reminderError, {
+      service: 'jobs',
+      jobId,
+    });
+  }
+
+  return NextResponse.json({
+    success: true,
+    message: 'Job scheduled successfully',
+    scheduled_start_date,
+    scheduled_end_date,
+  });
+});
+
+export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  const jobId = params.id as string;
+
+  // Verify job exists and user has permission
+  const { data: job, error: jobError } = await serverSupabase
+    .from('jobs')
+    .select('id, homeowner_id, contractor_id, scheduled_start_date, scheduled_end_date, scheduled_duration_hours')
+    .eq('id', jobId)
+    .single();
+
+  if (jobError || !job) {
+    throw new NotFoundError('Job not found');
+  }
+
+  // Verify user is contractor or homeowner for this job
+  const isAuthorized = (user.role === 'contractor' && job.contractor_id === user.id) ||
+                       (user.role === 'homeowner' && job.homeowner_id === user.id);
+
+  if (!isAuthorized) {
+    throw new ForbiddenError('Not authorized to view this job schedule');
+  }
+
+  return NextResponse.json({
+    scheduled_start_date: job.scheduled_start_date,
+    scheduled_end_date: job.scheduled_end_date,
+    scheduled_duration_hours: job.scheduled_duration_hours,
+  });
+});

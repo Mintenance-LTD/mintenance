@@ -87,9 +87,9 @@ describe('RedisRateLimiter', () => {
         identifier: 'test-user'
       });
 
-      // Fallback uses reduced limits: min(HARD_CAP=10, ceil(100 * 0.05)) = min(10, 5) = 5
+      // Dev/test fallback: min(HARD_CAP=50, ceil(100 * 0.75)) = 50
       expect(result.allowed).toBe(true);
-      expect(result.remaining).toBe(4); // effectiveMax=5, count=1, remaining=5-1=4
+      expect(result.remaining).toBe(49); // effectiveMax=50, count=1, remaining=50-1=49
     });
   });
 
@@ -168,12 +168,12 @@ describe('RedisRateLimiter', () => {
         identifier: 'test-user'
       });
 
-      // Fallback uses reduced limits: min(10, ceil(100 * 0.05)) = min(10, 5) = 5
+      // Dev/test fallback: min(HARD_CAP=50, ceil(100 * 0.75)) = 50
       expect(result.allowed).toBe(true);
-      expect(result.remaining).toBe(4); // effectiveMax=5, count=1, remaining=5-1=4
+      expect(result.remaining).toBe(49); // effectiveMax=50, count=1, remaining=50-1=49
     });
 
-    it('should fail closed in production without Redis', async () => {
+    it('should use strict limits in production without Redis', async () => {
       process.env.NODE_ENV = 'production';
       clearRedis(rateLimiter);
 
@@ -183,8 +183,10 @@ describe('RedisRateLimiter', () => {
         identifier: 'test-user'
       });
 
-      expect(result.allowed).toBe(false);
-      expect(result.remaining).toBe(0);
+      // Production fallback: min(HARD_CAP=10, ceil(100 * 0.25)) = 10
+      // First request still allowed but with heavily reduced limits
+      expect(result.allowed).toBe(true);
+      expect(result.remaining).toBe(9); // effectiveMax=10, count=1, remaining=10-1=9
     });
 
     it('should handle Redis errors gracefully', async () => {

@@ -3,12 +3,13 @@
  * Analyzes maintenance issues from uploaded images
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { MaintenanceAssessmentService, type MaintenanceAssessment } from '@/lib/services/maintenance/MaintenanceAssessmentService';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getUser } from '@/lib/auth';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
+import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Request validation schema
 const assessmentRequestSchema = z.object({
@@ -17,188 +18,110 @@ const assessmentRequestSchema = z.object({
   jobId: z.string().uuid().optional(),
   useSAM3: z.boolean().default(true),
   useGPTFallback: z.boolean().default(true),
-  saveAssessment: z.boolean().default(true)
+  saveAssessment: z.boolean().default(true),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-    // Check authentication
-    const user = await getUser();
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // Rate limiting check
-    const rateLimitOk = await checkRateLimit(user.id);
-    if (!rateLimitOk) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded. Please try again later.' },
-        { status: 429 }
-      );
-    }
-
-    // Parse and validate request
-    const body = await request.json();
-    const validationResult = assessmentRequestSchema.safeParse(body);
-
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: validationResult.error.errors },
-        { status: 400 }
-      );
-    }
-
-    const { images, description, jobId, useSAM3, useGPTFallback, saveAssessment } = validationResult.data;
-
-    // Log assessment request
-    // logger.info('Assessment request from user %s:, {
-    //   imageCount: images.length,
-    //   hasDescription: !!description,
-    //   jobId,
-    //   useSAM3,
-    //   useGPTFallback
-    // }, { service: 'api' });
-
-    // Run assessment
-    const assessment = await MaintenanceAssessmentService.assessMaintenanceIssue(
-      images,
-      {
-        userDescription: description,
-        useSAM3,
-        useGPTFallback,
-        saveAssessment,
-        jobId,
-        userId: user.id
-      }
-    );
-
-    // Track usage metrics
-    await trackUsageMetrics(user.id, assessment);
-
-    // Return assessment result
-    return NextResponse.json({
-      success: true,
-      assessment,
-      message: generateUserMessage(assessment)
-    });
-
-  } catch (error) {
-    logger.error('Assessment error:', error, { service: 'api' });
-
-    // Handle specific error types
-    if (error instanceof Error) {
-      if (error.message.includes('SAM3')) {
-        return NextResponse.json(
-          { error: 'Image segmentation service temporarily unavailable. Please try again.' },
-          { status: 503 }
-        );
-      }
-
-      if (error.message.includes('GPT-4')) {
-        return NextResponse.json(
-          { error: 'Advanced analysis service temporarily unavailable. Please try again.' },
-          { status: 503 }
-        );
-      }
-    }
-
+export const POST = withApiHandler({ rateLimit: false }, async (request, { user }) => {
+  // Custom per-user rate limiting (20 assessments per hour via DB count)
+  const rateLimitOk = await checkRateLimit(user.id);
+  if (!rateLimitOk) {
     return NextResponse.json(
-      { error: 'Failed to assess maintenance issue. Please try again.' },
-      { status: 500 }
+      { error: 'Rate limit exceeded. Please try again later.' },
+      { status: 429 }
     );
   }
-}
+
+  // Parse and validate request
+  const body = await request.json();
+  const validationResult = assessmentRequestSchema.safeParse(body);
+
+  if (!validationResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid request', details: validationResult.error.errors },
+      { status: 400 }
+    );
+  }
+
+  const { images, description, jobId, useSAM3, useGPTFallback, saveAssessment } = validationResult.data;
+
+  // Run assessment
+  const assessment = await MaintenanceAssessmentService.assessMaintenanceIssue(
+    images,
+    {
+      userDescription: description,
+      useSAM3,
+      useGPTFallback,
+      saveAssessment,
+      jobId,
+      userId: user.id,
+    }
+  );
+
+  // Track usage metrics
+  await trackUsageMetrics(user.id, assessment);
+
+  // Return assessment result
+  return NextResponse.json({
+    success: true,
+    assessment,
+    message: generateUserMessage(assessment),
+  });
+});
 
 /**
  * Get assessment by ID
  */
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const assessmentId = searchParams.get('id');
+export const GET = withApiHandler({}, async (request, { user }) => {
+  const { searchParams } = new URL(request.url);
+  const assessmentId = searchParams.get('id');
 
-    if (!assessmentId) {
-      return NextResponse.json(
-        { error: 'Assessment ID required' },
-        { status: 400 }
-      );
-    }
-
-    const user = await getUser();
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const supabase = serverSupabase;
-
-    // Get assessment
-    const { data: assessment, error } = await supabase
-      .from('maintenance_assessments')
-      .select('*')
-      .eq('id', assessmentId)
-      .single();
-
-    if (error || !assessment) {
-      return NextResponse.json(
-        { error: 'Assessment not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check authorization
-    if (assessment.user_id !== user.id) {
-      // Check if user is contractor for this job
-      if (assessment.job_id) {
-        const { data: job } = await supabase
-          .from('jobs')
-          .select('contractor_id')
-          .eq('id', assessment.job_id)
-          .single();
-
-        if (!job || job.contractor_id !== user.id) {
-          return NextResponse.json(
-            { error: 'Unauthorized' },
-            { status: 403 }
-          );
-        }
-      } else {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 403 }
-        );
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      assessment: assessment.assessment_data
-    });
-
-  } catch (error) {
-    logger.error('Get assessment error:', error, { service: 'api' });
-    return NextResponse.json(
-      { error: 'Failed to retrieve assessment' },
-      { status: 500 }
-    );
+  if (!assessmentId) {
+    throw new BadRequestError('Assessment ID required');
   }
-}
+
+  // Get assessment
+  const { data: assessment, error } = await serverSupabase
+    .from('maintenance_assessments')
+    .select('*')
+    .eq('id', assessmentId)
+    .single();
+
+  if (error || !assessment) {
+    throw new NotFoundError('Assessment not found');
+  }
+
+  // Check authorization
+  if (assessment.user_id !== user.id) {
+    // Check if user is contractor for this job
+    if (assessment.job_id) {
+      const { data: job } = await serverSupabase
+        .from('jobs')
+        .select('contractor_id')
+        .eq('id', assessment.job_id)
+        .single();
+
+      if (!job || job.contractor_id !== user.id) {
+        throw new ForbiddenError('Unauthorized');
+      }
+    } else {
+      throw new ForbiddenError('Unauthorized');
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    assessment: assessment.assessment_data,
+  });
+});
 
 /**
  * Rate limiting check
  */
 async function checkRateLimit(userId: string): Promise<boolean> {
-  const supabase = serverSupabase;
-
   // Check recent assessments count
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
-  const { count } = await supabase
+  const { count } = await serverSupabase
     .from('maintenance_assessments')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
@@ -212,22 +135,19 @@ async function checkRateLimit(userId: string): Promise<boolean> {
  * Track usage metrics
  */
 async function trackUsageMetrics(userId: string, assessment: MaintenanceAssessment): Promise<void> {
-  const supabase = serverSupabase;
-
   try {
     // Update daily metrics
-    await supabase.rpc('calculate_maintenance_metrics');
+    await serverSupabase.rpc('calculate_maintenance_metrics');
 
     // Log inference
-    await supabase.from('model_inference_logs').insert({
+    await serverSupabase.from('model_inference_logs').insert({
       session_id: assessment.id,
       model_variant: assessment.model_type === 'maintenance_yolo' ? 'treatment' : 'control',
       latency_ms: assessment.processing_time_ms,
       success: assessment.status === 'identified',
       detections_count: assessment.multiple_issues ? assessment.multiple_issues.length + 1 : 1,
-      avg_confidence: assessment.confidence / 100
+      avg_confidence: assessment.confidence / 100,
     });
-
   } catch (error) {
     logger.error('Failed to track metrics:', error, { service: 'api' });
     // Don't throw - metrics are not critical

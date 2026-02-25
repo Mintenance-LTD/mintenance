@@ -1,72 +1,43 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@mintenance/shared';
-import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { NextResponse } from 'next/server';
+import { BadRequestError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
- * API route to proxy reverse geocoding requests to Nominatim
- * Converts GPS coordinates to readable addresses
+ * GET /api/geocoding/reverse - proxy reverse geocoding to Nominatim.
  */
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
+export const GET = withApiHandler({ auth: false }, async (request) => {
+  const searchParams = request.nextUrl.searchParams;
+  const lat = searchParams.get('lat');
+  const lon = searchParams.get('lon');
+
+  if (!lat || !lon) {
+    throw new BadRequestError('Latitude and longitude are required');
+  }
+
+  const nominatimUrl = new URL('https://nominatim.openstreetmap.org/reverse');
+  nominatimUrl.searchParams.set('format', 'json');
+  nominatimUrl.searchParams.set('lat', lat);
+  nominatimUrl.searchParams.set('lon', lon);
+  nominatimUrl.searchParams.set('zoom', '18');
+  nominatimUrl.searchParams.set('addressdetails', '1');
+
+  const response = await fetch(nominatimUrl.toString(), {
+    headers: {
+      'User-Agent': 'Mintenance App (https://mintenance.app)',
+      Accept: 'application/json',
+    },
+    next: { revalidate: 0 },
   });
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
+  if (!response.ok) {
+    throw new Error(`Nominatim API error: ${response.status}`);
   }
 
-    const searchParams = request.nextUrl.searchParams;
-    const lat = searchParams.get('lat');
-    const lon = searchParams.get('lon');
+  const data = await response.json();
 
-    if (!lat || !lon) {
-      throw new BadRequestError('Latitude and longitude are required');
-    }
-    // Proxy request to Nominatim for reverse geocoding
-    const nominatimUrl = new URL('https://nominatim.openstreetmap.org/reverse');
-    nominatimUrl.searchParams.set('format', 'json');
-    nominatimUrl.searchParams.set('lat', lat);
-    nominatimUrl.searchParams.set('lon', lon);
-    nominatimUrl.searchParams.set('zoom', '18');
-    nominatimUrl.searchParams.set('addressdetails', '1');
-
-    const response = await fetch(nominatimUrl.toString(), {
-      headers: {
-        'User-Agent': 'Mintenance App (https://mintenance.app)',
-        'Accept': 'application/json',
-      },
-      next: { revalidate: 0 },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Nominatim API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-      },
-    });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
-
+  return NextResponse.json(data, {
+    headers: {
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    },
+  });
+});

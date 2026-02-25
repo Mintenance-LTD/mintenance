@@ -1,74 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { sanitizeEmail } from '@/lib/sanitizer';
 import { validateRequest } from '@/lib/validation/validator';
 import { gdprAnonymizeSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
-    await requireCSRF(request);
-// Authenticate user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    // Validate request body
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const validation = await validateRequest(request, gdprAnonymizeSchema);
-    if ('headers' in validation) {
-      return validation; // Return NextResponse error
-    }
+    if ('headers' in validation) return validation;
 
-    const { email, confirmation } = validation.data;
+    const { email } = validation.data;
 
-    // Verify email matches user's email
     let sanitizedEmail: string;
     try {
       sanitizedEmail = sanitizeEmail(email);
-    } catch (error) {
-      logger.warn('Invalid email format in anonymize request', { 
-        service: 'gdpr',
-        userId: user.id,
-        email: email.substring(0, 3) + '***'
-      });
+    } catch {
+      logger.warn('Invalid email format in anonymize request', { service: 'gdpr', userId: user.id, email: email.substring(0, 3) + '***' });
       throw new BadRequestError('Invalid email format');
     }
 
     if (sanitizedEmail !== user.email) {
-      logger.warn('Email mismatch in anonymize request', { 
-        service: 'gdpr',
-        userId: user.id,
-        providedEmail: email.substring(0, 3) + '***'
-      });
+      logger.warn('Email mismatch in anonymize request', { service: 'gdpr', userId: user.id, providedEmail: email.substring(0, 3) + '***' });
       throw new BadRequestError('Email does not match your account');
     }
 
@@ -82,85 +38,32 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingRequest) {
-      return NextResponse.json({ 
-        error: 'You already have a pending data anonymization request' 
-      }, { status: 400 });
+      return NextResponse.json({ error: 'You already have a pending data anonymization request' }, { status: 400 });
     }
 
-    // Create DSR request
     const { data: dsrRequest, error: dsrError } = await serverSupabase
       .from('dsr_requests')
-      .insert({
-        user_id: user.id,
-        request_type: 'rectification',
-        status: 'pending',
-        requested_by: user.id,
-        notes: 'User requested data anonymization'
-      })
+      .insert({ user_id: user.id, request_type: 'rectification', status: 'pending', requested_by: user.id, notes: 'User requested data anonymization' })
       .select()
       .single();
 
     if (dsrError) {
-      logger.error('Error creating DSR request', dsrError, {
-        service: 'gdpr',
-        userId: user.id,
-        requestType: 'rectification'
-      });
-      return NextResponse.json({ 
-        error: 'Failed to create data anonymization request' 
-      }, { status: 500 });
+      logger.error('Error creating DSR request', dsrError, { service: 'gdpr', userId: user.id, requestType: 'rectification' });
+      return NextResponse.json({ error: 'Failed to create data anonymization request' }, { status: 500 });
     }
 
-    // Execute data anonymization
-    const { error: anonymizeError } = await serverSupabase
-      .rpc('anonymize_user_data', { p_user_id: user.id });
+    const { error: anonymizeError } = await serverSupabase.rpc('anonymize_user_data', { p_user_id: user.id });
 
     if (anonymizeError) {
-      logger.error('Error anonymizing user data', anonymizeError, {
-        service: 'gdpr',
-        userId: user.id,
-        requestId: dsrRequest.id
-      });
-      
-      // Update DSR request status to failed
-      await serverSupabase
-        .from('dsr_requests')
-        .update({ 
-          status: 'rejected',
-          notes: 'Anonymization failed: ' + anonymizeError.message
-        })
-        .eq('id', dsrRequest.id);
-
-      return NextResponse.json({ 
-        error: 'Failed to anonymize user data' 
-      }, { status: 500 });
+      logger.error('Error anonymizing user data', anonymizeError, { service: 'gdpr', userId: user.id, requestId: dsrRequest.id });
+      await serverSupabase.from('dsr_requests').update({ status: 'rejected', notes: 'Anonymization failed: ' + anonymizeError.message }).eq('id', dsrRequest.id);
+      return NextResponse.json({ error: 'Failed to anonymize user data' }, { status: 500 });
     }
 
-    // Update DSR request status
-    await serverSupabase
-      .from('dsr_requests')
-      .update({ 
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', dsrRequest.id);
+    await serverSupabase.from('dsr_requests').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', dsrRequest.id);
 
-    logger.info('Data anonymization completed successfully', {
-      service: 'gdpr',
-      userId: user.id,
-      requestId: dsrRequest.id
-    });
+    logger.info('Data anonymization completed successfully', { service: 'gdpr', userId: user.id, requestId: dsrRequest.id });
 
-    return NextResponse.json({
-      message: 'Your data has been successfully anonymized',
-      request_id: dsrRequest.id
-    });
-
-  } catch (error) {
-    logger.error('GDPR anonymization error', error, { service: 'gdpr' });
-    return NextResponse.json(
-      { error: 'Failed to anonymize user data' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'Your data has been successfully anonymized', request_id: dsrRequest.id });
   }
-}
+);

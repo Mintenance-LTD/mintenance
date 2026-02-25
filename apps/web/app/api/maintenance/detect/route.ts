@@ -3,11 +3,11 @@
  * Processes uploaded images through YOLO model for damage detection
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import { maintenanceDetectSchema } from '@/lib/validation/schemas';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Maintenance issue to contractor mapping
 const ISSUE_TO_CONTRACTOR: Record<string, string> = {
@@ -25,193 +25,145 @@ const ISSUE_TO_CONTRACTOR: Record<string, string> = {
   'foundation_crack': 'foundation_specialist',
   'hvac_issue': 'hvac_technician',
   'gutter_blocked': 'gutter_specialist',
-  'general_damage': 'general_contractor'
+  'general_damage': 'general_contractor',
 };
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
+export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
+  // Get image from form data
+  const formData = await request.formData();
+  const imageFile = formData.get('image') as File;
+
+  if (!imageFile) {
+    return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+  }
+
+  // Validate and sanitize form text fields using Zod schema
+  const fieldValidation = maintenanceDetectSchema.safeParse({
+    description: (formData.get('description') as string) || '',
+    urgency: (formData.get('urgency') as string) || 'normal',
   });
 
-  if (!rateLimitResult.allowed) {
+  if (!fieldValidation.success) {
     return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
+      { error: 'Invalid input data', details: fieldValidation.error.flatten().fieldErrors },
+      { status: 400 }
     );
   }
 
-    const supabase = serverSupabase;
+  const { description, urgency } = fieldValidation.data;
 
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  // Upload image to Supabase Storage
+  const fileName = `${user.id}/${Date.now()}_${imageFile.name}`;
+  const { error: uploadError } = await serverSupabase.storage
+    .from('job-attachments')
+    .upload(fileName, imageFile);
 
-    // Get image from form data
-    const formData = await request.formData();
-    const imageFile = formData.get('image') as File;
+  if (uploadError) {
+    return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
+  }
 
-    if (!imageFile) {
-      return NextResponse.json(
-        { error: 'No image provided' },
-        { status: 400 }
-      );
-    }
+  // Get public URL
+  const { data: { publicUrl } } = serverSupabase.storage
+    .from('job-attachments')
+    .getPublicUrl(fileName);
 
-    // Validate and sanitize form text fields using Zod schema
-    const fieldValidation = maintenanceDetectSchema.safeParse({
-      description: (formData.get('description') as string) || '',
-      urgency: (formData.get('urgency') as string) || 'normal',
-    });
+  // For server-side, we'll use a mock detection or delegate to client-side
+  // Real YOLO detection with onnxruntime-web must be done client-side
+  const detections = await mockServerSideDetection(publicUrl);
 
-    if (!fieldValidation.success) {
-      return NextResponse.json(
-        { error: 'Invalid input data', details: fieldValidation.error.flatten().fieldErrors },
-        { status: 400 }
-      );
-    }
+  // Process detections
+  let primaryIssue = 'general_damage';
+  let confidence = 0;
+  let severity = 'moderate';
 
-    const { description, urgency } = fieldValidation.data;
+  if (detections && detections.length > 0) {
+    // Get highest confidence detection
+    const topDetection = detections.reduce((prev, current) =>
+      (current.confidence > prev.confidence) ? current : prev
+    );
 
-    // Upload image to Supabase Storage
-    const fileName = `${user.id}/${Date.now()}_${imageFile.name}`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('job-attachments')
-      .upload(fileName, imageFile);
+    primaryIssue = topDetection.class;
+    confidence = topDetection.confidence;
 
-    if (uploadError) {
-      return NextResponse.json(
-        { error: 'Failed to upload image' },
-        { status: 500 }
-      );
-    }
+    // Determine severity based on confidence and size
+    if (confidence > 0.9) severity = 'critical';
+    else if (confidence > 0.7) severity = 'major';
+    else if (confidence > 0.5) severity = 'moderate';
+    else severity = 'minor';
+  }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('job-attachments')
-      .getPublicUrl(fileName);
+  // Get contractor type
+  const contractorType = ISSUE_TO_CONTRACTOR[primaryIssue] || 'general_contractor';
 
-    // For server-side, we'll use a mock detection or delegate to client-side
-    // Real YOLO detection with onnxruntime-web must be done client-side
-    const detections = await mockServerSideDetection(publicUrl);
+  // Generate assessment
+  const assessment = {
+    id: crypto.randomUUID(),
+    issue_type: primaryIssue,
+    confidence: Math.round(confidence * 100),
+    severity,
+    contractor_type: contractorType,
+    detections: detections || [],
+    image_url: publicUrl,
 
-    // Process detections
-    let primaryIssue = 'general_damage';
-    let confidence = 0;
-    let severity = 'moderate';
+    // Estimates based on issue type and severity
+    estimated_cost: estimateCost(primaryIssue, severity),
+    estimated_hours: estimateHours(primaryIssue, severity),
 
-    if (detections && detections.length > 0) {
-      // Get highest confidence detection
-      const topDetection = detections.reduce((prev, current) =>
-        (current.confidence > prev.confidence) ? current : prev
-      );
+    // Materials and tools
+    materials_needed: getMaterials(primaryIssue),
+    tools_required: getTools(primaryIssue),
 
-      primaryIssue = topDetection.class;
-      confidence = topDetection.confidence;
+    // Safety and urgency
+    safety_notes: getSafetyNotes(primaryIssue),
+    urgency_level: determineUrgency(primaryIssue, severity, urgency),
 
-      // Determine severity based on confidence and size
-      if (confidence > 0.9) severity = 'critical';
-      else if (confidence > 0.7) severity = 'major';
-      else if (confidence > 0.5) severity = 'moderate';
-      else severity = 'minor';
-    }
+    // AI insights
+    ai_insights: {
+      detection_count: detections?.length || 0,
+      primary_issue: primaryIssue,
+      secondary_issues: detections?.slice(1).map(d => d.class) || [],
+      confidence_level: confidence > 0.8 ? 'high' : confidence > 0.5 ? 'medium' : 'low',
+      recommended_action: getRecommendedAction(primaryIssue, severity),
+    },
 
-    // Get contractor type
-    const contractorType = ISSUE_TO_CONTRACTOR[primaryIssue] || 'general_contractor';
+    processed_at: new Date().toISOString(),
+  };
 
-    // Generate assessment
-    const assessment = {
-      id: crypto.randomUUID(),
+  // Save assessment to database
+  await serverSupabase
+    .from('ai_assessments')
+    .insert({
+      user_id: user.id,
+      image_url: publicUrl,
       issue_type: primaryIssue,
-      confidence: Math.round(confidence * 100),
+      confidence,
       severity,
       contractor_type: contractorType,
-      detections: detections || [],
-      image_url: publicUrl,
+      assessment_data: assessment,
+      description,
+    })
+    .select()
+    .single();
 
-      // Estimates based on issue type and severity
-      estimated_cost: estimateCost(primaryIssue, severity),
-      estimated_hours: estimateHours(primaryIssue, severity),
-
-      // Materials and tools
-      materials_needed: getMaterials(primaryIssue),
-      tools_required: getTools(primaryIssue),
-
-      // Safety and urgency
-      safety_notes: getSafetyNotes(primaryIssue),
-      urgency_level: determineUrgency(primaryIssue, severity, urgency),
-
-      // AI insights
-      ai_insights: {
-        detection_count: detections?.length || 0,
-        primary_issue: primaryIssue,
-        secondary_issues: detections?.slice(1).map(d => d.class) || [],
-        confidence_level: confidence > 0.8 ? 'high' : confidence > 0.5 ? 'medium' : 'low',
-        recommended_action: getRecommendedAction(primaryIssue, severity)
-      },
-
-      processed_at: new Date().toISOString()
-    };
-
-    // Save assessment to database
-    const { data: savedAssessment, error: saveError } = await supabase
-      .from('ai_assessments')
-      .insert({
-        user_id: user.id,
-        image_url: publicUrl,
-        issue_type: primaryIssue,
-        confidence,
-        severity,
-        contractor_type: contractorType,
-        assessment_data: assessment,
-        description
-      })
-      .select()
-      .single();
-
-    // Return assessment result
-    return NextResponse.json({
-      success: true,
-      assessment,
-      message: `Detected ${primaryIssue.replace('_', ' ')} with ${Math.round(confidence * 100)}% confidence`,
-      next_steps: [
-        `We recommend hiring a ${contractorType.replace('_', ' ')}`,
-        `Estimated cost: £${assessment.estimated_cost.min}-${assessment.estimated_cost.max}`,
-        `Estimated time: ${assessment.estimated_hours} hours`,
-        assessment.urgency_level === 'high' ? '⚠️ This issue requires urgent attention' : null
-      ].filter(Boolean)
-    });
-
-  } catch (error) {
-    logger.error('Detection error:', error, { service: 'api' });
-    return NextResponse.json(
-      { error: 'Failed to process image' },
-      { status: 500 }
-    );
-  }
-}
+  // Return assessment result
+  return NextResponse.json({
+    success: true,
+    assessment,
+    message: `Detected ${primaryIssue.replace('_', ' ')} with ${Math.round(confidence * 100)}% confidence`,
+    next_steps: [
+      `We recommend hiring a ${contractorType.replace('_', ' ')}`,
+      `Estimated cost: £${assessment.estimated_cost.min}-${assessment.estimated_cost.max}`,
+      `Estimated time: ${assessment.estimated_hours} hours`,
+      assessment.urgency_level === 'high' ? '⚠️ This issue requires urgent attention' : null,
+    ].filter(Boolean),
+  });
+});
 
 // Mock detection function for server-side
-async function mockServerSideDetection(imageUrl: string) {
+async function mockServerSideDetection(_imageUrl: string) {
   // In production, this would call an external AI service or
   // return a response telling the client to perform detection
-  // logger.info('Mock detection for:', imageUrl', { service: 'api' });
+  // Real YOLO detection with onnxruntime-web must be done client-side
 
   // Return mock detections for development
   return [
@@ -219,8 +171,8 @@ async function mockServerSideDetection(imageUrl: string) {
       class: 'water_damage',
       confidence: 0.75,
       bbox: [0.3, 0.4, 0.2, 0.3],
-      area: 0.06
-    }
+      area: 0.06,
+    },
   ];
 }
 
@@ -241,14 +193,14 @@ function estimateCost(issueType: string, severity: string) {
     'foundation_crack': 1500,
     'hvac_issue': 350,
     'gutter_blocked': 100,
-    'general_damage': 200
+    'general_damage': 200,
   };
 
   const severityMultiplier: Record<string, number> = {
     'minor': 0.5,
     'moderate': 1,
     'major': 2,
-    'critical': 3
+    'critical': 3,
   };
 
   const base = baseCosts[issueType] || 200;
@@ -258,7 +210,7 @@ function estimateCost(issueType: string, severity: string) {
   return {
     min: Math.round(estimate * 0.8),
     max: Math.round(estimate * 1.5),
-    average: Math.round(estimate)
+    average: Math.round(estimate),
   };
 }
 
@@ -278,14 +230,14 @@ function estimateHours(issueType: string, severity: string) {
     'foundation_crack': 24,
     'hvac_issue': 4,
     'gutter_blocked': 1,
-    'general_damage': 4
+    'general_damage': 4,
   };
 
   const severityMultiplier: Record<string, number> = {
     'minor': 0.5,
     'moderate': 1,
     'major': 1.5,
-    'critical': 2
+    'critical': 2,
   };
 
   const base = baseHours[issueType] || 4;
@@ -310,7 +262,7 @@ function getMaterials(issueType: string): string[] {
     'foundation_crack': ['Concrete', 'Waterproofing', 'Reinforcement'],
     'hvac_issue': ['Filters', 'Refrigerant', 'Replacement parts'],
     'gutter_blocked': ['Gutter guards', 'Sealant', 'Brackets'],
-    'general_damage': ['Various materials as needed']
+    'general_damage': ['Various materials as needed'],
   };
 
   return materials[issueType] || materials['general_damage'];
@@ -332,7 +284,7 @@ function getTools(issueType: string): string[] {
     'foundation_crack': ['Concrete mixer', 'Trowel', 'Injection gun'],
     'hvac_issue': ['Gauges', 'Vacuum pump', 'Thermometer'],
     'gutter_blocked': ['Ladder', 'Scoop', 'Hose'],
-    'general_damage': ['Basic hand tools']
+    'general_damage': ['Basic hand tools'],
   };
 
   return tools[issueType] || tools['general_damage'];
@@ -344,7 +296,7 @@ function getSafetyNotes(issueType: string): string[] {
     'mold_damp': ['⚠️ Wear respirator', 'Use protective clothing', 'Ensure ventilation'],
     'roof_damage': ['⚠️ Use safety harness', 'Check weather conditions', 'Secure ladder'],
     'fire_damage': ['⚠️ Check structural integrity', 'Wear protective gear', 'Test air quality'],
-    'foundation_crack': ['⚠️ Monitor for movement', 'Shore if necessary', 'Check for gas leaks']
+    'foundation_crack': ['⚠️ Monitor for movement', 'Shore if necessary', 'Check for gas leaks'],
   };
 
   return safety[issueType] || ['Follow standard safety procedures'];

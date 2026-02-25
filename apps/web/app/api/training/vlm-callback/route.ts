@@ -13,12 +13,15 @@
  * On failure: marks job as failed with error message
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
-import { handleAPIError, BadRequestError, UnauthorizedError } from '@/lib/errors/api-error';
+import { BadRequestError, UnauthorizedError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+
+export const runtime = 'nodejs';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,7 +72,7 @@ function verifySignature(rawBody: string, signature: string): boolean {
 // Route handler
 // ---------------------------------------------------------------------------
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+export const POST = withApiHandler({ auth: false, rateLimit: false }, async (request) => {
   // Rate limit: 60/min — high limit because this is machine-to-machine
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? '127.0.0.1';
   const limitResult = await rateLimiter.checkRateLimit({ identifier: `${ip}:vlm-callback`, maxRequests: 60, windowMs: 60000 });
@@ -77,88 +80,84 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
-  try {
-    const rawBody = await request.text();
-    const signature = request.headers.get('x-mint-signature') ?? '';
+  const rawBody = await request.text();
+  const signature = request.headers.get('x-mint-signature') ?? '';
 
-    if (!verifySignature(rawBody, signature)) {
-      throw new UnauthorizedError('Invalid callback signature');
-    }
-
-    let payload: VLMCallbackPayload;
-    try {
-      payload = JSON.parse(rawBody) as VLMCallbackPayload;
-    } catch {
-      throw new BadRequestError('Invalid JSON payload');
-    }
-
-    const { jobId, success, adapterStoragePath, metrics, errorMessage } = payload;
-
-    if (!jobId || typeof success !== 'boolean') {
-      throw new BadRequestError('Missing required fields: jobId, success');
-    }
-
-    logger.info('VLM training callback received', {
-      route: 'vlm-callback',
-      jobId,
-      success,
-      adapterStoragePath,
-    });
-
-    if (success) {
-      // Mark job completed with adapter path and metrics
-      const { error: updateError } = await serverSupabase
-        .from('knowledge_distillation_jobs')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString(),
-          output_model_path: adapterStoragePath,
-          metrics_jsonb: metrics,
-        })
-        .eq('id', jobId);
-
-      if (updateError) {
-        logger.error('Failed to update job completion in DB', updateError, {
-          route: 'vlm-callback',
-          jobId,
-        });
-        // Don't fail the response — the callback was delivered successfully
-      } else {
-        logger.info('Job marked completed in DB', {
-          route: 'vlm-callback',
-          jobId,
-          adapterStoragePath,
-          metrics,
-        });
-      }
-    } else {
-      // Mark job as failed
-      const { error: updateError } = await serverSupabase
-        .from('knowledge_distillation_jobs')
-        .update({
-          status: 'failed',
-          completed_at: new Date().toISOString(),
-          error_message: errorMessage ?? 'Unknown error from training worker',
-          metrics_jsonb: metrics,
-        })
-        .eq('id', jobId);
-
-      if (updateError) {
-        logger.error('Failed to update job failure in DB', updateError, {
-          route: 'vlm-callback',
-          jobId,
-        });
-      } else {
-        logger.warn('Job marked failed in DB', {
-          route: 'vlm-callback',
-          jobId,
-          errorMessage,
-        });
-      }
-    }
-
-    return NextResponse.json({ received: true, jobId });
-  } catch (error) {
-    return handleAPIError(error);
+  if (!verifySignature(rawBody, signature)) {
+    throw new UnauthorizedError('Invalid callback signature');
   }
-}
+
+  let payload: VLMCallbackPayload;
+  try {
+    payload = JSON.parse(rawBody) as VLMCallbackPayload;
+  } catch {
+    throw new BadRequestError('Invalid JSON payload');
+  }
+
+  const { jobId, success, adapterStoragePath, metrics, errorMessage } = payload;
+
+  if (!jobId || typeof success !== 'boolean') {
+    throw new BadRequestError('Missing required fields: jobId, success');
+  }
+
+  logger.info('VLM training callback received', {
+    route: 'vlm-callback',
+    jobId,
+    success,
+    adapterStoragePath,
+  });
+
+  if (success) {
+    // Mark job completed with adapter path and metrics
+    const { error: updateError } = await serverSupabase
+      .from('knowledge_distillation_jobs')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        output_model_path: adapterStoragePath,
+        metrics_jsonb: metrics,
+      })
+      .eq('id', jobId);
+
+    if (updateError) {
+      logger.error('Failed to update job completion in DB', updateError, {
+        route: 'vlm-callback',
+        jobId,
+      });
+      // Don't fail the response — the callback was delivered successfully
+    } else {
+      logger.info('Job marked completed in DB', {
+        route: 'vlm-callback',
+        jobId,
+        adapterStoragePath,
+        metrics,
+      });
+    }
+  } else {
+    // Mark job as failed
+    const { error: updateError } = await serverSupabase
+      .from('knowledge_distillation_jobs')
+      .update({
+        status: 'failed',
+        completed_at: new Date().toISOString(),
+        error_message: errorMessage ?? 'Unknown error from training worker',
+        metrics_jsonb: metrics,
+      })
+      .eq('id', jobId);
+
+    if (updateError) {
+      logger.error('Failed to update job failure in DB', updateError, {
+        route: 'vlm-callback',
+        jobId,
+      });
+    } else {
+      logger.warn('Job marked failed in DB', {
+        route: 'vlm-callback',
+        jobId,
+        errorMessage,
+      });
+    }
+  }
+
+  return NextResponse.json({ received: true, jobId });
+});

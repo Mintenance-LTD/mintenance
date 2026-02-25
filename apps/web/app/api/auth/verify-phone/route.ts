@@ -1,11 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { PhoneVerificationService } from '@/lib/services/verification/PhoneVerificationService';
-import { requireCSRF } from '@/lib/csrf';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Type for verification response
 interface VerificationResponse {
@@ -21,20 +19,14 @@ const sendCodeSchema = z.object({
     .min(1, 'Phone number is required')
     .refine(
       (val) => {
-        // Remove any spaces, dashes, or parentheses for validation
         const cleaned = val.replace(/[\s\-\(\)]/g, '');
-        // Must start with + and have 5-15 digits total (country code + number)
-        // Format: +[country code][number] where country code is 1-3 digits starting with 1-9
         return /^\+[1-9]\d{4,14}$/.test(cleaned);
       },
       {
         message: 'Phone number must be in international format (e.g., +44 7984 596545 or +1 555 123 4567)',
       }
     )
-    .transform((val) => {
-      // Normalize the phone number by removing spaces, dashes, and parentheses
-      return val.replace(/[\s\-\(\)]/g, '');
-    }),
+    .transform((val) => val.replace(/[\s\-\(\)]/g, '')),
 });
 
 const verifyCodeSchema = z.object({
@@ -46,54 +38,22 @@ const resendCodeSchema = z.object({
   action: z.literal('resend'),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 5
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(5),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required for phone verification');
-    }
-
-    // Read body once
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 5 } },
+  async (request, { user }) => {
     const body = await request.json();
-    
+
     // Handle send code action
     if (body.action === 'send') {
       const result = sendCodeSchema.safeParse(body);
-      
+
       if (!result.success) {
         const errors = result.error.issues.map((err) => ({
           field: err.path.join('.'),
           message: err.message,
         }));
         return NextResponse.json(
-          {
-            error: 'Validation failed',
-            errors,
-          },
+          { error: 'Validation failed', errors },
           { status: 400 }
         );
       }
@@ -113,10 +73,9 @@ export async function POST(request: NextRequest) {
         throw new BadRequestError(verificationResult.error || 'Failed to send verification code');
       }
 
-      // In development mode, return the code so it can be displayed to the user
-      const response: VerificationResponse = { 
+      const response: VerificationResponse = {
         message: 'Verification code sent successfully',
-        expiresIn: 5, // minutes
+        expiresIn: 5,
       };
 
       if (verificationResult.devCode) {
@@ -130,30 +89,26 @@ export async function POST(request: NextRequest) {
     // Handle verify code action
     if (body.action === 'verify') {
       const result = verifyCodeSchema.safeParse(body);
-      
+
       if (!result.success) {
         const errors = result.error.issues.map((err) => ({
           field: err.path.join('.'),
           message: err.message,
         }));
         return NextResponse.json(
-          {
-            error: 'Validation failed',
-            errors,
-          },
+          { error: 'Validation failed', errors },
           { status: 400 }
         );
       }
 
       const { code } = result.data;
-
       const verificationResult = await PhoneVerificationService.verifyCode(user.id, code);
 
       if (!verificationResult.success) {
         throw new BadRequestError(verificationResult.error || 'Verification failed');
       }
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: 'Phone number verified successfully',
         verified: true,
       });
@@ -162,17 +117,14 @@ export async function POST(request: NextRequest) {
     // Handle resend code action
     if (body.action === 'resend') {
       const result = resendCodeSchema.safeParse(body);
-      
+
       if (!result.success) {
         const errors = result.error.issues.map((err) => ({
           field: err.path.join('.'),
           message: err.message,
         }));
         return NextResponse.json(
-          {
-            error: 'Validation failed',
-            errors,
-          },
+          { error: 'Validation failed', errors },
           { status: 400 }
         );
       }
@@ -185,13 +137,10 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         message: 'Verification code resent successfully',
-        expiresIn: 5, // minutes
+        expiresIn: 5,
       });
     }
 
     throw new BadRequestError('Invalid action');
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

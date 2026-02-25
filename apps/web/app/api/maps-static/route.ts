@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
  * Secure Static Maps Proxy
@@ -10,7 +10,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
  * without exposing the API key to the client.
  *
  * Uses Google Maps Static API to generate map images.
- * Rate limited to prevent abuse.
+ * Rate limited per-user to prevent abuse.
  */
 
 interface StaticMapParams {
@@ -31,16 +31,10 @@ interface StaticMapParams {
  * - markers: "51.5074,-0.1278" (optional)
  * - maptype: "roadmap" (default)
  */
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-    const user = await getCurrentUserFromCookies();
-    if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
+export const GET = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
+    // Custom per-user rate limiting (20/min)
     const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `maps-static:${user.id}`,
       windowMs: 60000,
@@ -59,7 +53,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 3. Parse Query Parameters
+    // Parse Query Parameters
     const searchParams = request.nextUrl.searchParams;
     const center = searchParams.get('center');
     const zoom = parseInt(searchParams.get('zoom') || '10', 10);
@@ -83,7 +77,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 4. Check API Key
+    // Check API Key
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       logger.error('GOOGLE_MAPS_API_KEY not configured', new Error('Missing API key'), {
@@ -95,7 +89,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 5. Build Static Maps URL
+    // Build Static Maps URL
     const params = new URLSearchParams({
       center,
       zoom: zoom.toString(),
@@ -110,7 +104,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const staticMapUrl = `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
 
-    // 6. Fetch Static Map Image
+    // Fetch Static Map Image
     const response = await fetch(staticMapUrl);
 
     if (!response.ok) {
@@ -124,7 +118,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 7. Return Image
+    // Return Image
     const imageBuffer = await response.arrayBuffer();
 
     return new NextResponse(imageBuffer, {
@@ -135,13 +129,5 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         'X-RateLimit-Remaining': String(rateLimitResult.remaining),
       },
     });
-  } catch (error) {
-    logger.error('Error in static maps proxy', error, {
-      service: 'maps-static',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
   }
-}
+);

@@ -1,61 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { stripe } from '@/lib/stripe';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const verifyPaymentMethodSchema = z.object({
   paymentMethodId: z.string().min(1, 'Payment method ID is required'),
   customerId: z.string().min(1, 'Customer ID is required'),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
-    await requireCSRF(request);
-// Authenticate user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      logger.warn('Unauthorized payment method verification attempt', {
-        service: 'payments',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
-      throw new UnauthorizedError('Authentication required');
-    }
-
+/**
+ * POST /api/payments/verify-payment-method
+ * Verify a payment method belongs to the authenticated user's Stripe customer
+ */
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user }) => {
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, verifyPaymentMethodSchema);
     if ('headers' in validation) {
-      // Validation failed - return error response
       return validation;
     }
 
@@ -81,7 +48,7 @@ export async function POST(request: NextRequest) {
     // Verify payment method belongs to the customer
     try {
       const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
-      
+
       if (paymentMethod.customer !== customerId) {
         logger.warn('Payment method does not belong to customer', {
           service: 'payments',
@@ -92,9 +59,6 @@ export async function POST(request: NextRequest) {
         });
         throw new ForbiddenError('Payment method does not belong to customer');
       }
-
-      // Note: Stripe API doesn't return deleted payment methods in retrieve() calls
-      // If the payment method was deleted, Stripe would return a 404 error above
 
       logger.info('Payment method verified successfully', {
         service: 'payments',
@@ -123,19 +87,15 @@ export async function POST(request: NextRequest) {
           paymentMethodId,
           error: stripeError.message
         });
-        
+
         if (stripeError.code === 'resource_missing') {
           throw new NotFoundError('Payment method not found');
         }
-        
+
         throw new BadRequestError(stripeError.message);
       }
-      
+
       throw stripeError;
     }
-
-  } catch (error) {
-    logger.error('Error verifying payment method', error, { service: 'payments' });
-    throw new InternalServerError('Failed to verify payment method');
   }
-}
+);

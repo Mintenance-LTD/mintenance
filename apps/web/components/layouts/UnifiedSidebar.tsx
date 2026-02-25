@@ -109,6 +109,8 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const [expandedItems, setExpandedItems] = useState<string[]>(['Jobs']); // Jobs expanded by default
+    // Secondary sections collapsed by default to reduce visual noise
+    const [collapsedSections, setCollapsedSections] = useState<string[]>(['BUSINESS', 'LANDLORD']);
     const [mounted, setMounted] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [internalMobileOpen, setInternalMobileOpen] = useState(false);
@@ -366,6 +368,17 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
     }, []);
 
     /**
+     * Toggle collapse of entire nav sections (e.g. BUSINESS, LANDLORD)
+     */
+    const toggleSection = useCallback((name: string) => {
+        setCollapsedSections(prev =>
+            prev.includes(name)
+                ? prev.filter(s => s !== name)
+                : [...prev, name]
+        );
+    }, []);
+
+    /**
      * Check if a route is currently active
      */
     const isActive = useCallback((href: string) => {
@@ -553,19 +566,36 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
 
                 {/* Navigation Sections */}
                 <nav className="flex-1 overflow-y-auto py-2 custom-scrollbar">
-                    {navSections.map((section) => (
-                        <div key={section.name} className="mb-4">
-                            {/* Section Header */}
+                    {navSections.map((section) => {
+                        const isSectionCollapsed = collapsedSections.includes(section.name);
+                        // Auto-expand section when user is on one of its pages
+                        const sectionHasActivePage = section.items.some(item =>
+                            isActive(item.href) || item.children?.some(c => isActive(c.href))
+                        );
+                        const showItems = !isSectionCollapsed || sectionHasActivePage;
+
+                        return (
+                        <div key={section.name} className="mb-1">
+                            {/* Section Header — clickable to collapse/expand */}
                             {!isCollapsed && (
-                                <div className="px-6 pt-4 pb-2">
-                                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                <button
+                                    onClick={() => toggleSection(section.name)}
+                                    className="w-full flex items-center justify-between px-6 pt-4 pb-1.5 group"
+                                    aria-expanded={showItems}
+                                >
+                                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider group-hover:text-slate-400 transition-colors">
                                         {section.name}
                                     </h3>
-                                </div>
+                                    <ChevronDown
+                                        className={`w-3 h-3 text-slate-600 transition-transform duration-200 ${
+                                            isSectionCollapsed ? '-rotate-90' : ''
+                                        }`}
+                                    />
+                                </button>
                             )}
 
                             {/* Section Items */}
-                            {section.items.map((item) => {
+                            {showItems && section.items.map((item) => {
                                 const badgeCount = getBadgeCount(item.badge);
                                 const isItemActive = isActive(item.href);
                                 const isExpanded = expandedItems.includes(item.label);
@@ -668,7 +698,8 @@ export function UnifiedSidebar(props: UnifiedSidebarProps) {
                                 );
                             })}
                         </div>
-                    ))}
+                        );
+                    })}
                 </nav>
 
                 {/* User Profile Section */}

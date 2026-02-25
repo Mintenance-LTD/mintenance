@@ -102,6 +102,14 @@ export default function MarketingToolsPage() {
 
   const { stats, monthlyTrend, categoryBreakdown, ratingDistribution, recentReviews, contractorId } = data;
 
+  // Remap camelCase keys to human-readable labels for chart legend
+  const trendChartData = monthlyTrend.map(m => ({
+    month: m.month,
+    'Bids Submitted': m.bidsSubmitted,
+    'Bids Won': m.bidsWon,
+    'Jobs Completed': m.jobsCompleted,
+  }));
+
   const profileUrl = `${typeof window !== 'undefined' ? window.location.origin : 'https://mintenance.com'}/contractors/${contractorId}`;
 
   const handleCopyProfileLink = () => {
@@ -178,11 +186,11 @@ export default function MarketingToolsPage() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Activity Trend (Last 6 Months)
             </h3>
-            {monthlyTrend.some(m => m.bidsSubmitted > 0 || m.jobsCompleted > 0) ? (
+            {trendChartData.some(m => m['Bids Submitted'] > 0 || m['Jobs Completed'] > 0) ? (
               <AreaChart
-                data={monthlyTrend}
+                data={trendChartData}
                 index="month"
-                categories={['bidsSubmitted', 'bidsWon', 'jobsCompleted']}
+                categories={['Bids Submitted', 'Bids Won', 'Jobs Completed']}
                 colors={['blue', 'emerald', 'amber']}
                 valueFormatter={(v) => String(v)}
                 className="h-72"
@@ -232,9 +240,9 @@ export default function MarketingToolsPage() {
             </h3>
             {ratingDistribution.some(r => r.count > 0) ? (
               <BarChart
-                data={ratingDistribution.map(r => ({ rating: `${r.stars} star`, count: r.count }))}
+                data={ratingDistribution.map(r => ({ rating: `${r.stars} star`, 'Reviews': r.count }))}
                 index="rating"
-                categories={['count']}
+                categories={['Reviews']}
                 colors={['amber']}
                 valueFormatter={(v) => `${v} review${v !== 1 ? 's' : ''}`}
                 className="h-56"

@@ -1,13 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth';
-import { requireCSRFFromCookieAuth } from '@/lib/csrf';
+import { NextResponse } from 'next/server';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { DisputeWorkflowService, type DisputePriority } from '@/lib/services/disputes/DisputeWorkflowService';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 
 const createDisputeSchema = z.object({
   escrowId: z.string().uuid(),
@@ -17,37 +15,13 @@ const createDisputeSchema = z.object({
   priority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    await requireCSRFFromCookieAuth(request);
-
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to create dispute');
-    }
-
+/**
+ * POST /api/disputes/create
+ * Create a new dispute for an escrow transaction
+ */
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const validation = await validateRequest(request, createDisputeSchema);
     if ('headers' in validation) {
       return validation;
@@ -104,8 +78,5 @@ export async function POST(request: NextRequest) {
       message: 'Dispute created successfully',
       disputeId: escrowId,
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

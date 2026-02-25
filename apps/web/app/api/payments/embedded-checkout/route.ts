@@ -1,15 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { env } from '@/lib/env';
 import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
@@ -22,41 +19,12 @@ const bodySchema = z.object({
 });
 
 /**
- * Create an embedded Stripe Checkout Session
  * POST /api/payments/embedded-checkout
+ * Create an embedded Stripe Checkout Session
  */
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user }) => {
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, bodySchema);
     if ('headers' in validation) {
@@ -71,7 +39,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     try {
       const price = await stripe.prices.retrieve(priceId);
-      paymentAmount = (price.unit_amount || 0) / 100; // Convert cents to dollars
+      paymentAmount = (price.unit_amount || 0) / 100;
       currency = price.currency;
     } catch (error) {
       logger.error('Failed to retrieve price', error, {
@@ -170,19 +138,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Build payment intent data for marketplace payments
-    // NOTE: For escrow payments, we charge the full amount to the platform account first.
-    // The contractor payout (minus platform fee) happens later when escrow is released.
-    // This is different from direct marketplace payments where funds go directly to contractor.
     const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData = {};
 
     // Store contractor account ID in metadata for later escrow release
-    // We don't transfer funds immediately - escrow holds the funds until job completion
     if (contractorStripeAccountId) {
       metadata.isMarketplacePayment = 'true';
       metadata.contractorStripeAccountId = contractorStripeAccountId;
       metadata.platformFeeAmount = applicationFeeAmount ? (applicationFeeAmount / 100).toString() : '0';
-      
-      // Calculate total amount for metadata
+
       const totalAmount = paymentAmount * (quantity ?? 1);
       metadata.totalAmount = totalAmount.toString();
     }
@@ -200,7 +163,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return_url: returnUrl,
       metadata,
       customer_email: user.email || undefined,
-      // Add payment intent data for marketplace payments
       ...(Object.keys(paymentIntentData).length > 0 && {
         payment_intent_data: paymentIntentData,
       }),
@@ -210,19 +172,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (jobId && contractorStripeAccountId) {
       const totalAmount = paymentAmount * (quantity ?? 1);
 
-      // Get job to find contractor_id
       const { data: job } = await serverSupabase
         .from('jobs')
         .select('homeowner_id, contractor_id')
         .eq('id', jobId)
         .single();
-      
+
       const { error: escrowError } = await serverSupabase
         .from('escrow_transactions')
         .insert({
           job_id: jobId,
-          payer_id: job?.homeowner_id || user.id, // Homeowner who pays
-          payee_id: job?.contractor_id || contractorStripeAccountId, // Contractor who receives
+          payer_id: job?.homeowner_id || user.id,
+          payee_id: job?.contractor_id || contractorStripeAccountId,
           amount: totalAmount,
           status: 'pending',
           payment_type: paymentType,
@@ -255,14 +216,5 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       sessionId: session.id,
       isMarketplacePayment: !!contractorStripeAccountId,
     });
-  } catch (err) {
-    logger.error('Failed to create embedded checkout session', err, {
-      service: 'payments',
-    });
-    return NextResponse.json(
-      { error: 'Failed to create checkout session' },
-      { status: 500 }
-    );
   }
-}
-
+);

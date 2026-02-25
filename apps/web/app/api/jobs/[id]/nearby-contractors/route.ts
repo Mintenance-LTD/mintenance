@@ -1,192 +1,154 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
  * Get contractors near a job location
  * GET /api/jobs/[id]/nearby-contractors?lat=...&lng=...
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
+export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  const jobId = params.id as string;
+  const searchParams = request.nextUrl.searchParams;
+  const lat = parseFloat(searchParams.get('lat') || '0');
+  const lng = parseFloat(searchParams.get('lng') || '0');
+
+  // Verify user owns the job
+  const { data: job, error: jobError } = await serverSupabase
+    .from('jobs')
+    .select('id, homeowner_id')
+    .eq('id', jobId)
+    .single();
+
+  if (jobError || !job) {
+    throw new NotFoundError('Job not found');
+  }
+
+  if (job.homeowner_id !== user.id) {
+    throw new ForbiddenError('Not authorized to view contractors for this job');
+  }
+
+  // Fetch contractors who viewed this job
+  const { data: views, error: viewsError } = await serverSupabase
+    .from('job_views')
+    .select(`
+      contractor:profiles!job_views_contractor_id_fkey (
+        id,
+        first_name,
+        last_name,
+        email,
+        location,
+        profile_image_url
+      )
+    `)
+    .eq('job_id', jobId);
+
+  if (viewsError) {
+    logger.error('Error fetching contractors', viewsError, {
+      service: 'jobs',
+      jobId,
+      userId: user.id,
+    });
+    throw viewsError;
+  }
+
+  // Extract unique contractors and geocode their locations
+  interface ContractorData {
+    id: string;
+    location?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    profile_image_url?: string;
+    [key: string]: unknown;
+  }
+
+  interface ViewRecord {
+    contractor?: ContractorData | ContractorData[] | null;
+  }
+
+  interface ContractorRecord {
+    id: string;
+    location?: string;
+    first_name?: string;
+    last_name?: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    name?: string;
+    distance?: number;
+    [key: string]: unknown;
+  }
+
+  const contractorMap = new Map<string, ContractorRecord>();
+  (views || []).forEach((view: ViewRecord) => {
+    const contractor = Array.isArray(view.contractor) ? view.contractor[0] : view.contractor;
+    if (contractor && contractor.id && !contractorMap.has(contractor.id)) {
+      contractorMap.set(contractor.id, contractor as ContractorRecord);
+    }
   });
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
+  const contractors = Array.from(contractorMap.values());
+
+  // Geocode contractor locations
+  const contractorsWithCoords = await Promise.all(
+    contractors.map(async (contractor: ContractorRecord) => {
+      const location = typeof contractor.location === 'string' ? contractor.location : undefined;
+      if (!location) {
+        return { ...contractor, latitude: null, longitude: null };
       }
-    );
-  }
 
-    const resolvedParams = await params;
-    const jobId = resolvedParams.id;
-    const searchParams = request.nextUrl.searchParams;
-    const lat = parseFloat(searchParams.get('lat') || '0');
-    const lng = parseFloat(searchParams.get('lng') || '0');
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view nearby contractors');
-    }
-
-    // Verify user owns the job
-    const { data: job, error: jobError } = await serverSupabase
-      .from('jobs')
-      .select('id, homeowner_id')
-      .eq('id', jobId)
-      .single();
-
-    if (jobError || !job) {
-      throw new NotFoundError('Job not found');
-    }
-
-    if (job.homeowner_id !== user.id) {
-      throw new ForbiddenError('Not authorized to view contractors for this job');
-    }
-
-    // Fetch contractors who viewed this job
-    const { data: views, error: viewsError } = await serverSupabase
-      .from('job_views')
-      .select(`
-        contractor:profiles!job_views_contractor_id_fkey (
-          id,
-          first_name,
-          last_name,
-          email,
-          location,
-          profile_image_url
-        )
-      `)
-      .eq('job_id', jobId);
-
-    if (viewsError) {
-      logger.error('Error fetching contractors', viewsError, {
-        service: 'jobs',
-        jobId,
-        userId: user.id,
-      });
-      throw viewsError;
-    }
-
-    // Extract unique contractors and geocode their locations
-    interface ContractorData {
-      id: string;
-      location?: string;
-      first_name?: string;
-      last_name?: string;
-      email?: string;
-      profile_image_url?: string;
-      [key: string]: unknown;
-    }
-
-    interface ViewRecord {
-      contractor?: ContractorData | ContractorData[] | null;
-    }
-
-    interface ContractorRecord {
-      id: string;
-      location?: string;
-      first_name?: string;
-      last_name?: string;
-      latitude?: number | null;
-      longitude?: number | null;
-      name?: string;
-      distance?: number;
-      [key: string]: unknown;
-    }
-
-    const contractorMap = new Map<string, ContractorRecord>();
-    (views || []).forEach((view: ViewRecord) => {
-      const contractor = Array.isArray(view.contractor) ? view.contractor[0] : view.contractor;
-      if (contractor && contractor.id && !contractorMap.has(contractor.id)) {
-        contractorMap.set(contractor.id, contractor as ContractorRecord);
-      }
-    });
-
-    const contractors = Array.from(contractorMap.values());
-
-    // Geocode contractor locations
-    const contractorsWithCoords = await Promise.all(
-      contractors.map(async (contractor: ContractorRecord) => {
-        const location = typeof contractor.location === 'string' ? contractor.location : undefined;
-        if (!location) {
-          return { ...contractor, latitude: null, longitude: null };
-        }
-
-        try {
-          const geocodeResponse = await fetch(
-            `${request.nextUrl.origin}/api/geocode?address=${encodeURIComponent(location)}`
-          );
-          if (geocodeResponse.ok) {
-            const geocodeData = await geocodeResponse.json() as { latitude?: number; longitude?: number };
-            const firstName = typeof contractor.first_name === 'string' ? contractor.first_name : '';
-            const lastName = typeof contractor.last_name === 'string' ? contractor.last_name : '';
-            return {
-              ...contractor,
-              latitude: geocodeData.latitude ?? null,
-              longitude: geocodeData.longitude ?? null,
-              name: `${firstName} ${lastName}`.trim(),
-            };
-          }
-        } catch (err) {
-          logger.error('Error geocoding contractor location', err, {
-            service: 'jobs',
-            jobId,
-            contractorId: contractor.id,
-            location,
-          });
-        }
-
-        const firstName = typeof contractor.first_name === 'string' ? contractor.first_name : '';
-        const lastName = typeof contractor.last_name === 'string' ? contractor.last_name : '';
-        return { ...contractor, latitude: null, longitude: null, name: `${firstName} ${lastName}`.trim() };
-      })
-    );
-
-    // Filter contractors with valid coordinates and calculate distances
-    const contractorsWithDistance = contractorsWithCoords
-      .filter((c: ContractorRecord) => typeof c.latitude === 'number' && typeof c.longitude === 'number')
-      .map((contractor: ContractorRecord) => {
-        const distance = calculateDistance(
-          lat,
-          lng,
-          contractor.latitude as number,
-          contractor.longitude as number
+      try {
+        const geocodeResponse = await fetch(
+          `${request.nextUrl.origin}/api/geocode?address=${encodeURIComponent(location)}`
         );
-        return { ...contractor, distance };
-      })
-      .sort((a: ContractorRecord, b: ContractorRecord) => {
-        const distA = typeof a.distance === 'number' ? a.distance : Infinity;
-        const distB = typeof b.distance === 'number' ? b.distance : Infinity;
-        return distA - distB;
-      })
-      .slice(0, 20); // Limit to 20 nearest contractors
+        if (geocodeResponse.ok) {
+          const geocodeData = await geocodeResponse.json() as { latitude?: number; longitude?: number };
+          const firstName = typeof contractor.first_name === 'string' ? contractor.first_name : '';
+          const lastName = typeof contractor.last_name === 'string' ? contractor.last_name : '';
+          return {
+            ...contractor,
+            latitude: geocodeData.latitude ?? null,
+            longitude: geocodeData.longitude ?? null,
+            name: `${firstName} ${lastName}`.trim(),
+          };
+        }
+      } catch (err) {
+        logger.error('Error geocoding contractor location', err, {
+          service: 'jobs',
+          jobId,
+          contractorId: contractor.id,
+          location,
+        });
+      }
 
-    return NextResponse.json({
-      contractors: contractorsWithDistance,
-    });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+      const firstName = typeof contractor.first_name === 'string' ? contractor.first_name : '';
+      const lastName = typeof contractor.last_name === 'string' ? contractor.last_name : '';
+      return { ...contractor, latitude: null, longitude: null, name: `${firstName} ${lastName}`.trim() };
+    })
+  );
+
+  // Filter contractors with valid coordinates and calculate distances
+  const contractorsWithDistance = contractorsWithCoords
+    .filter((c: ContractorRecord) => typeof c.latitude === 'number' && typeof c.longitude === 'number')
+    .map((contractor: ContractorRecord) => {
+      const distance = calculateDistance(
+        lat,
+        lng,
+        contractor.latitude as number,
+        contractor.longitude as number
+      );
+      return { ...contractor, distance };
+    })
+    .sort((a: ContractorRecord, b: ContractorRecord) => {
+      const distA = typeof a.distance === 'number' ? a.distance : Infinity;
+      const distB = typeof b.distance === 'number' ? b.distance : Infinity;
+      return distA - distB;
+    })
+    .slice(0, 20); // Limit to 20 nearest contractors
+
+  return NextResponse.json({ contractors: contractorsWithDistance });
+});
 
 /**
  * Calculate distance between two coordinates using Haversine formula
@@ -202,4 +164,3 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c; // Distance in kilometers
 }
-

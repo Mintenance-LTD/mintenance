@@ -1,12 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, BadRequestError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 
 const applyMigrationSchema = z.object({
   migrationFile: z.string()
@@ -16,51 +14,21 @@ const applyMigrationSchema = z.object({
 });
 
 /**
- * Apply SQL migrations to Supabase
- * This endpoint executes SQL migrations using the Supabase service role
+ * POST /api/admin/migrations/apply
+ * Prepare SQL migration for execution
  */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 10
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(10),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const auth = await requireAdmin(request);
-    if (isAdminError(auth)) return auth.error;
-    const user = auth.user;
-
+export const POST = withApiHandler(
+  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  async (request) => {
     const body = await request.json();
     const parsed = applyMigrationSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestError('migrationFile must be a valid .sql filename (no path separators)');
     }
-    const { migrationFile } = parsed.data;
 
-    // Read the migration file
-    const migrationsDir = join(process.cwd(), 'supabase', 'migrations');
-    const filePath = join(migrationsDir, migrationFile);
-    
+    const { migrationFile } = parsed.data;
+    const filePath = join(process.cwd(), 'supabase', 'migrations', migrationFile);
+
     let sql: string;
     try {
       sql = readFileSync(filePath, 'utf-8');
@@ -73,7 +41,6 @@ export async function POST(request: NextRequest) {
       throw new NotFoundError('Migration file not found');
     }
 
-    // Execute SQL using Supabase REST API with service role
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -81,16 +48,7 @@ export async function POST(request: NextRequest) {
       throw new InternalServerError('Supabase configuration missing');
     }
 
-    // Use Supabase REST API to execute SQL via rpc
-    // Note: This requires a database function to execute raw SQL
-    // For now, we'll return the SQL to be executed manually
-    // In production, you'd use Supabase CLI or dashboard
-
-    logger.info('Migration SQL prepared', {
-      service: 'migrations',
-      file: migrationFile,
-      sqlLength: sql.length,
-    });
+    logger.info('Migration SQL prepared', { service: 'migrations', file: migrationFile, sqlLength: sql.length });
 
     return NextResponse.json({
       message: 'Migration SQL prepared',
@@ -98,8 +56,5 @@ export async function POST(request: NextRequest) {
       sql,
       instructions: 'Execute this SQL in Supabase Dashboard SQL Editor or use Supabase CLI: supabase db push',
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

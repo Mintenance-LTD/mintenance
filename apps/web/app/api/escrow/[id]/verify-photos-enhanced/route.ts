@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PhotoVerificationService } from '@/lib/services/escrow/PhotoVerificationService';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
@@ -7,11 +6,9 @@ import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import { validateURLs } from '@/lib/security/url-validation';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-// Type definition for photo metadata
 interface PhotoRecord {
   photo_url: string;
   geolocation?: { lat: number; lng: number };
@@ -27,80 +24,33 @@ const verifyPhotosEnhancedSchema = z.object({
  * POST /api/escrow/:id/verify-photos-enhanced
  * Enhanced photo verification with before/after comparison
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-    const { id } = await params;
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const escrowId = id;
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user, params }) => {
+    const escrowId = params.id as string;
 
     const validation = await validateRequest(request, verifyPhotosEnhancedSchema);
-    if ('headers' in validation) {
-      return validation;
-    }
+    if ('headers' in validation) return validation;
 
     const { jobId, afterPhotoUrls } = validation.data;
 
     // SECURITY: Validate photo URLs to prevent SSRF attacks
     const urlValidation = await validateURLs(afterPhotoUrls, true);
     if (urlValidation.invalid.length > 0) {
-      logger.warn('Invalid photo URLs rejected in photo verification', {
-        service: 'escrow-verify-photos-enhanced',
-        userId: user.id,
-        escrowId,
-        invalidUrls: urlValidation.invalid,
-      });
-      return NextResponse.json(
-        { error: `Invalid photo URLs: ${urlValidation.invalid.map(i => i.error).join(', ')}` },
-        { status: 400 }
-      );
+      logger.warn('Invalid photo URLs rejected in photo verification', { service: 'escrow-verify-photos-enhanced', userId: user.id, escrowId, invalidUrls: urlValidation.invalid });
+      return NextResponse.json({ error: `Invalid photo URLs: ${urlValidation.invalid.map((i: { error: string }) => i.error).join(', ')}` }, { status: 400 });
     }
 
-    // Use only validated URLs
     const validatedAfterPhotoUrls = urlValidation.valid;
 
-    // Get job location
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
       .select('id, title, description, category, location')
       .eq('id', jobId)
       .single();
 
-    if (jobError || !job) {
-      throw new NotFoundError('Job not found');
-    }
+    if (jobError || !job) throw new NotFoundError('Job not found');
 
-    // Get before photos
     const { data: beforePhotos } = await serverSupabase
       .from('job_photos_metadata')
       .select('photo_url, geolocation')
@@ -108,62 +58,36 @@ export async function POST(
       .eq('photo_type', 'before');
 
     const beforeUrls = (beforePhotos || []).map((p: PhotoRecord) => p.photo_url);
-
-    // Get job location (if available)
     const jobLocation = job.location as { lat?: number; lng?: number } | null;
-    const location = jobLocation?.lat && jobLocation?.lng
-      ? { lat: jobLocation.lat, lng: jobLocation.lng }
-      : { lat: 0, lng: 0 }; // Default if no location
+    const location = jobLocation?.lat && jobLocation?.lng ? { lat: jobLocation.lat, lng: jobLocation.lng } : { lat: 0, lng: 0 };
 
-    // Validate photo quality for all after photos
-    const qualityResults = await Promise.all(
-      validatedAfterPhotoUrls.map(url => PhotoVerificationService.validatePhotoQuality(url))
-    );
-
+    const qualityResults = await Promise.all(validatedAfterPhotoUrls.map(url => PhotoVerificationService.validatePhotoQuality(url)));
     const allQualityPassed = qualityResults.every(r => r.passed);
     const averageQualityScore = qualityResults.reduce((sum, r) => sum + r.qualityScore, 0) / qualityResults.length;
 
-    // Compare before/after if before photos exist
     let comparisonResult = null;
     if (beforeUrls.length > 0) {
-      comparisonResult = await PhotoVerificationService.compareBeforeAfter(
-        beforeUrls,
-        validatedAfterPhotoUrls,
-        location
-      );
+      comparisonResult = await PhotoVerificationService.compareBeforeAfter(beforeUrls, validatedAfterPhotoUrls, location);
     }
 
-    // Verify geolocation for after photos
-    const geolocationResults = await Promise.all(
-      validatedAfterPhotoUrls.map(url => PhotoVerificationService.verifyGeolocation(url, location))
-    );
-
+    const geolocationResults = await Promise.all(validatedAfterPhotoUrls.map(url => PhotoVerificationService.verifyGeolocation(url, location)));
     const allGeolocationVerified = geolocationResults.every(r => r.verified);
 
-    // Verify timestamps
-    const timestampResults = await Promise.all(
-      validatedAfterPhotoUrls.map(url => PhotoVerificationService.verifyTimestamp(url))
-    );
-
+    const timestampResults = await Promise.all(validatedAfterPhotoUrls.map(url => PhotoVerificationService.verifyTimestamp(url)));
     const allTimestampVerified = timestampResults.every(r => r.verified);
 
-    // Update escrow with verification results
-    await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        photo_quality_passed: allQualityPassed,
-        geolocation_verified: allGeolocationVerified,
-        timestamp_verified: allTimestampVerified,
-        before_after_comparison_score: comparisonResult?.comparisonScore || null,
-        photo_verification_status: allQualityPassed && allGeolocationVerified && allTimestampVerified && (comparisonResult?.matches ?? true)
-          ? 'verified'
-          : 'manual_review',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', escrowId);
+    const verified = allQualityPassed && allGeolocationVerified && allTimestampVerified && (comparisonResult?.matches ?? true);
 
-    // Request homeowner approval if verification passed
-    if (allQualityPassed && allGeolocationVerified && allTimestampVerified && (comparisonResult?.matches ?? true)) {
+    await serverSupabase.from('escrow_transactions').update({
+      photo_quality_passed: allQualityPassed,
+      geolocation_verified: allGeolocationVerified,
+      timestamp_verified: allTimestampVerified,
+      before_after_comparison_score: comparisonResult?.comparisonScore || null,
+      photo_verification_status: verified ? 'verified' : 'manual_review',
+      updated_at: new Date().toISOString(),
+    }).eq('id', escrowId);
+
+    if (verified) {
       await HomeownerApprovalService.requestHomeownerApproval(escrowId, validatedAfterPhotoUrls);
     }
 
@@ -175,14 +99,8 @@ export async function POST(
         geolocationVerified: allGeolocationVerified,
         timestampVerified: allTimestampVerified,
         beforeAfterComparison: comparisonResult,
-        status: allQualityPassed && allGeolocationVerified && allTimestampVerified && (comparisonResult?.matches ?? true)
-          ? 'verified'
-          : 'manual_review',
+        status: verified ? 'verified' : 'manual_review',
       },
     });
-  } catch (error) {
-    logger.error('Error verifying photos', error, { service: 'escrow-verify-photos-enhanced' });
-    throw new InternalServerError('Failed to verify photos');
   }
-}
-
+);

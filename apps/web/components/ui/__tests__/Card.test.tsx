@@ -24,7 +24,10 @@ describe('Card', () => {
 
   it('should render with default variant', () => {
     render(<Card>Content</Card>);
-    expect(screen.getByTestId('shared-card')).toBeInTheDocument();
+    const cardEl = screen.getByText('Content');
+    expect(cardEl).toBeInTheDocument();
+    // Verify the Card renders with the 'card' class from SharedCard
+    expect(cardEl.className).toContain('card');
   });
 
   it('should expose sub-components', () => {

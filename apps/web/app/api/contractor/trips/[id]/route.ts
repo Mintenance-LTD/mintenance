@@ -1,26 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const updateTripSchema = z.object({
   status: z.enum(['arrived', 'completed', 'cancelled']),
 });
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const resolvedParams = await params;
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
+/**
+ * PATCH /api/contractor/trips/[id]
+ * Update trip status (contractor only)
+ */
+export const PATCH = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user, params }) => {
+    const resolvedParams = params;
 
     const validation = await validateRequest(request, updateTripSchema);
     if (validation instanceof NextResponse) return validation;
@@ -121,7 +119,7 @@ export async function PATCH(
               title: 'Contractor Arrived',
               message: `${contractorName} arrived at ${jobTitle || 'appointment location'}`,
               metadata: { tripId: updatedTrip.id, jobId: trip.job_id, contractorId: user.id },
-            })
+            }),
           ));
         }
       } catch (adminErr) {
@@ -130,19 +128,17 @@ export async function PATCH(
     }
 
     return NextResponse.json({ trip: updatedTrip });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const resolvedParams = await params;
-    const user = await getCurrentUserFromCookies();
-    if (!user) throw new UnauthorizedError('Authentication required');
+/**
+ * GET /api/contractor/trips/[id]
+ * View a specific trip (contractor, homeowner of job, or admin)
+ */
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (_request, { user, params }) => {
+    const resolvedParams = params;
 
     const { data: trip, error } = await serverSupabase
       .from('contractor_trips')
@@ -158,11 +154,9 @@ export async function GET(
     const isAdmin = user.role === 'admin';
 
     if (!isContractor && !isHomeowner && !isAdmin) {
-      throw new UnauthorizedError('Not authorized to view this trip');
+      throw new ForbiddenError('Not authorized to view this trip');
     }
 
     return NextResponse.json({ trip });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);

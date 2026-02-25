@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 
@@ -15,7 +13,6 @@ const updatePostSchema = z.object({
   is_featured: z.boolean().optional(),
 });
 
-// Type definitions for post operations
 interface PostUpdateData {
   updated_at: string;
   title?: string;
@@ -24,48 +21,12 @@ interface PostUpdateData {
   is_featured?: boolean;
 }
 
-const supabase = serverSupabase;
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (_request, { user, params }) => {
+    const postId = params.id as string;
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-    const { id } = await params;
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const postId = id;
-
-    // Fetch post with contractor info
-    const { data: post, error: postError } = await supabase
+    const { data: post, error: postError } = await serverSupabase
       .from('contractor_posts')
       .select(`
         *,
@@ -82,18 +43,16 @@ export async function GET(
       .eq('is_active', true)
       .single();
 
-    if (postError || !post) {
-      throw new NotFoundError('Post not found');
-    }
+    if (postError || !post) throw new NotFoundError('Post not found');
 
-    // Increment views_count (track unique views)
-    await supabase
+    // Increment views_count
+    await serverSupabase
       .from('contractor_posts')
       .update({ views_count: (post.views_count || 0) + 1 })
       .eq('id', postId);
 
     // Fetch user's like status
-    const { data: userLike } = await supabase
+    const { data: userLike } = await serverSupabase
       .from('contractor_post_likes')
       .select('id')
       .eq('post_id', postId)
@@ -111,7 +70,7 @@ export async function GET(
       likes_count: post.likes_count || 0,
       comments_count: post.comments_count || 0,
       shares_count: post.shares_count || 0,
-      views_count: (post.views_count || 0) + 1, // Already incremented
+      views_count: (post.views_count || 0) + 1,
       liked: !!userLike,
       contractor: post.contractor ? {
         id: post.contractor.id,
@@ -124,91 +83,34 @@ export async function GET(
     };
 
     return NextResponse.json({ post: formattedPost });
-  } catch (error) {
-    logger.error('Error in GET /api/contractor/posts/[id]', error, {
-      service: 'contractor',
-    });
-    throw new InternalServerError('Internal server error');
   }
-}
+);
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const { id } = await params;
-    const postId = id;
+export const PATCH = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user, params }) => {
+    const postId = params.id as string;
     const validation = await validateRequest(request, updatePostSchema);
     if (validation instanceof NextResponse) return validation;
     const { title, content, images, is_featured } = validation.data;
 
     // Verify post exists and belongs to user
-    const { data: existingPost, error: fetchError } = await supabase
+    const { data: existingPost, error: fetchError } = await serverSupabase
       .from('contractor_posts')
       .select('contractor_id')
       .eq('id', postId)
       .single();
 
-    if (fetchError || !existingPost) {
-      throw new NotFoundError('Post not found');
-    }
+    if (fetchError || !existingPost) throw new NotFoundError('Post not found');
+    if (existingPost.contractor_id !== user.id) throw new ForbiddenError('You can only edit your own posts');
 
-    if (existingPost.contractor_id !== user.id) {
-      throw new ForbiddenError('You can only edit your own posts');
-    }
+    const updateData: PostUpdateData = { updated_at: new Date().toISOString() };
+    if (title !== undefined) updateData.title = title.trim();
+    if (content !== undefined) updateData.content = content.trim();
+    if (images !== undefined) updateData.images = images;
+    if (is_featured !== undefined) updateData.is_featured = is_featured;
 
-    // Build update payload
-    const updateData: PostUpdateData = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (title !== undefined) {
-      updateData.title = title.trim();
-    }
-
-    if (content !== undefined) {
-      updateData.content = content.trim();
-    }
-
-    if (images !== undefined) {
-      updateData.images = images;
-    }
-
-    if (is_featured !== undefined) {
-      updateData.is_featured = is_featured;
-    }
-
-    // Update post
-    const { data: updatedPost, error: updateError } = await supabase
+    const { data: updatedPost, error: updateError } = await serverSupabase
       .from('contractor_posts')
       .update(updateData)
       .eq('id', postId)
@@ -226,16 +128,11 @@ export async function PATCH(
       .single();
 
     if (updateError) {
-      logger.error('Error updating post', updateError, {
-        service: 'contractor',
-        postId,
-        userId: user.id,
-      });
+      logger.error('Error updating post', updateError, { service: 'contractor', postId, userId: user.id });
       throw new InternalServerError('Failed to update post');
     }
 
-    // Fetch user's like status
-    const { data: userLike } = await supabase
+    const { data: userLike } = await serverSupabase
       .from('contractor_post_likes')
       .select('id')
       .eq('post_id', postId)
@@ -266,86 +163,34 @@ export async function PATCH(
     };
 
     return NextResponse.json({ post: formattedPost });
-  } catch (error) {
-    logger.error('Error in PATCH /api/contractor/posts/[id]', error, {
-      service: 'contractor',
-    });
-    throw new InternalServerError('Internal server error');
   }
-}
+);
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+export const DELETE = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (_request, { user, params }) => {
+    const postId = params.id as string;
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const { id } = await params;
-    const postId = id;
-
-    // Verify post exists and belongs to user
-    const { data: existingPost, error: fetchError } = await supabase
+    const { data: existingPost, error: fetchError } = await serverSupabase
       .from('contractor_posts')
       .select('contractor_id')
       .eq('id', postId)
       .single();
 
-    if (fetchError || !existingPost) {
-      throw new NotFoundError('Post not found');
-    }
+    if (fetchError || !existingPost) throw new NotFoundError('Post not found');
+    if (existingPost.contractor_id !== user.id) throw new ForbiddenError('You can only delete your own posts');
 
-    if (existingPost.contractor_id !== user.id) {
-      throw new ForbiddenError('You can only delete your own posts');
-    }
-
-    // Soft delete: set is_active = false
-    // Comments and likes will be cascade deleted via database constraints
-    const { error: deleteError } = await supabase
+    // Soft delete
+    const { error: deleteError } = await serverSupabase
       .from('contractor_posts')
       .update({ is_active: false })
       .eq('id', postId);
 
     if (deleteError) {
-      logger.error('Error deleting post', deleteError, {
-        service: 'contractor',
-        postId,
-        userId: user.id,
-      });
+      logger.error('Error deleting post', deleteError, { service: 'contractor', postId, userId: user.id });
       throw new InternalServerError('Failed to delete post');
     }
 
     return NextResponse.json({ message: 'Post deleted successfully' });
-  } catch (error) {
-    logger.error('Error in DELETE /api/contractor/posts/[id]', error, {
-      service: 'contractor',
-    });
-    throw new InternalServerError('Internal server error');
   }
-}
+);

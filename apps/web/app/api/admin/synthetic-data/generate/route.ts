@@ -1,11 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { SyntheticDataService } from '@/lib/services/building-surveyor/SyntheticDataService';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError } from '@/lib/errors/api-error';
 
 const generateSyntheticDataSchema = z.object({
   imageUrls: z.array(z.string().url()).min(1).max(50),
@@ -19,65 +17,30 @@ const generateSyntheticDataSchema = z.object({
  * Generate synthetic training data using GPT-4
  * Requires admin authentication
  */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 10
+export const POST = withApiHandler({ roles: ['admin'], rateLimit: { maxRequests: 10 } }, async (request, { user }) => {
+  const body = await request.json();
+  const parsed = generateSyntheticDataSchema.safeParse(body);
+  if (!parsed.success) {
+    throw new BadRequestError('imageUrls (array of valid URLs, 1-50) is required');
+  }
+  const { imageUrls, variationsPerImage, includeEdgeCases } = parsed.data;
+
+  const syntheticAssessments = await SyntheticDataService.generateTrainingBatch(
+    imageUrls,
+    variationsPerImage,
+    includeEdgeCases
+  );
+
+  logger.info('Synthetic data generated', {
+    service: 'synthetic-data-api',
+    userId: user.id,
+    imageCount: imageUrls.length,
+    generatedCount: syntheticAssessments.length,
   });
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(10),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const auth = await requireAdmin(request);
-    if (isAdminError(auth)) return auth.error;
-    const user = auth.user;
-
-    const body = await request.json();
-    const parsed = generateSyntheticDataSchema.safeParse(body);
-    if (!parsed.success) {
-      throw new BadRequestError('imageUrls (array of valid URLs, 1-50) is required');
-    }
-    const { imageUrls, variationsPerImage, includeEdgeCases } = parsed.data;
-
-    // Generate synthetic data
-    const syntheticAssessments = await SyntheticDataService.generateTrainingBatch(
-      imageUrls,
-      variationsPerImage,
-      includeEdgeCases
-    );
-
-    logger.info('Synthetic data generated', {
-      service: 'synthetic-data-api',
-      userId: user.id,
-      imageCount: imageUrls.length,
-      generatedCount: syntheticAssessments.length,
-    });
-
-    return NextResponse.json({
-      success: true,
-      count: syntheticAssessments.length,
-      assessments: syntheticAssessments,
-    });
-  } catch (error: unknown) {
-    return handleAPIError(error);
-  }
-}
-
+  return NextResponse.json({
+    success: true,
+    count: syntheticAssessments.length,
+    assessments: syntheticAssessments,
+  });
+});

@@ -5,20 +5,13 @@
  *
  * Security: Authentication, CSRF (mutations), Zod validation, rate limiting
  */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { requireCSRF } from '@/lib/csrf';
 import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
-import { rateLimiter } from '@/lib/rate-limiter';
-import {
-  handleAPIError,
-  UnauthorizedError,
-  BadRequestError,
-} from '@/lib/errors/api-error';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
  * Zod schema for profile update validation.
@@ -63,181 +56,110 @@ const profileUpdateSchema = z.object({
  * GET /api/users/profile
  * Returns the authenticated user's profile data.
  */
-export async function GET(request: NextRequest) {
-  try {
-    // Rate limiting
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 30,
+export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
+  // Fetch user profile from database
+  const { data: profile, error } = await serverSupabase
+    .from('profiles')
+    .select(
+      'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, verified, phone_verified'
+    )
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    logger.error('Failed to fetch user profile', error, {
+      service: 'users',
+      userId: user.id,
     });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(30),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(
-              rateLimitResult.resetTime
-            ).toISOString(),
-          },
-        }
-      );
-    }
-
-    // Authentication
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view profile');
-    }
-
-    // Fetch user profile from database
-    const { data: profile, error } = await serverSupabase
-      .from('profiles')
-      .select(
-        'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, verified, phone_verified'
-      )
-      .eq('id', user.id)
-      .single();
-
-    if (error) {
-      logger.error('Failed to fetch user profile', error, {
-        service: 'users',
-        userId: user.id,
-      });
-      throw error;
-    }
-
-    return NextResponse.json({ profile });
-  } catch (err) {
-    return handleAPIError(err);
+    throw error;
   }
-}
+
+  return NextResponse.json({ profile });
+});
 
 /**
  * PUT /api/users/profile
  * Updates the authenticated user's profile.
  * Requires CSRF token for cross-site forgery protection.
  */
-export async function PUT(request: NextRequest) {
-  try {
-    // Rate limiting
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 30,
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(30),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(
-              rateLimitResult.resetTime
-            ).toISOString(),
-          },
-        }
-      );
-    }
-
-    // CSRF protection for mutation
-    await requireCSRF(request);
-
-    // Authentication
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to update profile');
-    }
-
-    // Validate and sanitize input using Zod schema
-    const validation = await validateRequest(request, profileUpdateSchema);
-    if ('headers' in validation) {
-      logger.warn('Profile update validation failed', {
-        service: 'users',
-        userId: user.id,
-      });
-      return validation;
-    }
-
-    const validatedData = validation.data;
-
-    // Build update payload with sanitized values
-    const updateData: Record<string, string | null> = {};
-
-    if (validatedData.first_name !== undefined) {
-      updateData.first_name = sanitizeText(validatedData.first_name, 50);
-    }
-    if (validatedData.last_name !== undefined) {
-      updateData.last_name = sanitizeText(validatedData.last_name, 50);
-    }
-    if (validatedData.bio !== undefined) {
-      updateData.bio = sanitizeText(validatedData.bio, 1000);
-    }
-    if (validatedData.city !== undefined) {
-      updateData.city = sanitizeText(validatedData.city, 100);
-    }
-    if (validatedData.country !== undefined) {
-      updateData.country = sanitizeText(validatedData.country, 100);
-    }
-    if (validatedData.phone !== undefined) {
-      updateData.phone = validatedData.phone
-        ? sanitizeText(validatedData.phone, 20)
-        : null;
-    }
-    if (validatedData.location !== undefined) {
-      updateData.location = validatedData.location
-        ? sanitizeText(validatedData.location, 256)
-        : null;
-    }
-
-    // Nothing to update
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: 'No changes to update',
-      });
-    }
-
-    // Set updated_at timestamp
-    updateData.updated_at = new Date().toISOString();
-
-    // Update profile -- scoped to authenticated user's own row
-    const { data: updatedProfile, error } = await serverSupabase
-      .from('profiles')
-      .update(updateData)
-      .eq('id', user.id)
-      .select()
-      .single();
-
-    if (error) {
-      logger.error('Failed to update user profile', error, {
-        service: 'users',
-        userId: user.id,
-        updateFields: Object.keys(updateData),
-      });
-      throw error;
-    }
-
-    logger.info('User profile updated successfully', {
+export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
+  // Validate and sanitize input using Zod schema
+  const validation = await validateRequest(request, profileUpdateSchema);
+  if ('headers' in validation) {
+    logger.warn('Profile update validation failed', {
       service: 'users',
       userId: user.id,
-      updatedFields: Object.keys(updateData),
     });
+    return validation;
+  }
 
+  const validatedData = validation.data;
+
+  // Build update payload with sanitized values
+  const updateData: Record<string, string | null> = {};
+
+  if (validatedData.first_name !== undefined) {
+    updateData.first_name = sanitizeText(validatedData.first_name, 50);
+  }
+  if (validatedData.last_name !== undefined) {
+    updateData.last_name = sanitizeText(validatedData.last_name, 50);
+  }
+  if (validatedData.bio !== undefined) {
+    updateData.bio = sanitizeText(validatedData.bio, 1000);
+  }
+  if (validatedData.city !== undefined) {
+    updateData.city = sanitizeText(validatedData.city, 100);
+  }
+  if (validatedData.country !== undefined) {
+    updateData.country = sanitizeText(validatedData.country, 100);
+  }
+  if (validatedData.phone !== undefined) {
+    updateData.phone = validatedData.phone
+      ? sanitizeText(validatedData.phone, 20)
+      : null;
+  }
+  if (validatedData.location !== undefined) {
+    updateData.location = validatedData.location
+      ? sanitizeText(validatedData.location, 256)
+      : null;
+  }
+
+  // Nothing to update
+  if (Object.keys(updateData).length === 0) {
     return NextResponse.json({
       success: true,
-      profile: updatedProfile,
+      message: 'No changes to update',
     });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+
+  // Set updated_at timestamp
+  updateData.updated_at = new Date().toISOString();
+
+  // Update profile -- scoped to authenticated user's own row
+  const { data: updatedProfile, error } = await serverSupabase
+    .from('profiles')
+    .update(updateData)
+    .eq('id', user.id)
+    .select()
+    .single();
+
+  if (error) {
+    logger.error('Failed to update user profile', error, {
+      service: 'users',
+      userId: user.id,
+      updateFields: Object.keys(updateData),
+    });
+    throw error;
+  }
+
+  logger.info('User profile updated successfully', {
+    service: 'users',
+    userId: user.id,
+    updatedFields: Object.keys(updateData),
+  });
+
+  return NextResponse.json({
+    success: true,
+    profile: updatedProfile,
+  });
+});

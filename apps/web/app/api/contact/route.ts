@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { EmailService } from '@/lib/email-service';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, RateLimitError, ValidationError, InternalServerError } from '@/lib/errors/api-error';
+import { RateLimitError, InternalServerError } from '@/lib/errors/api-error';
 import { sanitizeText, sanitizeMessage, sanitizeEmail } from '@/lib/sanitizer';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const contactFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').transform(val => sanitizeText(val, 100)),
@@ -23,12 +23,10 @@ const contactFormSchema = z.object({
  * POST /api/contact
  * Handle contact form submissions
  */
-export async function POST(request: NextRequest) {
-  try {
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Rate limiting
+export const POST = withApiHandler(
+  { auth: false, rateLimit: false },
+  async (request) => {
+    // Custom rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                request.headers.get('x-real-ip') ||
                'unknown';
@@ -44,10 +42,7 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { 
-          error: 'Invalid form data', 
-          details: parsed.error.flatten().fieldErrors 
-        },
+        { error: 'Invalid form data', details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
@@ -61,11 +56,10 @@ export async function POST(request: NextRequest) {
       .eq('setting_key', 'admin_email')
       .single();
 
-    const adminEmail = setting?.setting_value || 
-                      process.env.ADMIN_EMAIL || 
+    const adminEmail = setting?.setting_value ||
+                      process.env.ADMIN_EMAIL ||
                       'admin@mintenance.co.uk';
 
-    // Category labels for display
     const categoryLabels: Record<string, string> = {
       general: 'General Enquiry',
       technical: 'Technical Support',
@@ -75,7 +69,6 @@ export async function POST(request: NextRequest) {
       feedback: 'Feedback & Suggestions',
     };
 
-    // Create email content
     const categoryLabel = categoryLabels[formData.category] || formData.category;
     const subject = `Contact Form: ${categoryLabel} - ${formData.subject}`;
 
@@ -98,45 +91,19 @@ export async function POST(request: NextRequest) {
         </head>
         <body>
           <div class="container">
-            <div class="header">
-              <h1>New Contact Form Submission</h1>
-            </div>
+            <div class="header"><h1>New Contact Form Submission</h1></div>
             <div class="content">
-              <div class="field">
-                <div class="field-label">Category:</div>
-                <div class="field-value">${categoryLabel}</div>
-              </div>
-              
-              <div class="field">
-                <div class="field-label">Name:</div>
-                <div class="field-value">${formData.name}</div>
-              </div>
-              
-              <div class="field">
-                <div class="field-label">Email:</div>
-                <div class="field-value">
-                  <a href="mailto:${formData.email}">${formData.email}</a>
-                </div>
-              </div>
-              
-              <div class="field">
-                <div class="field-label">Subject:</div>
-                <div class="field-value">${formData.subject}</div>
-              </div>
-              
-              <div class="field">
-                <div class="field-label">Message:</div>
-                <div class="message-box">${formData.message}</div>
-              </div>
-              
+              <div class="field"><div class="field-label">Category:</div><div class="field-value">${categoryLabel}</div></div>
+              <div class="field"><div class="field-label">Name:</div><div class="field-value">${formData.name}</div></div>
+              <div class="field"><div class="field-label">Email:</div><div class="field-value"><a href="mailto:${formData.email}">${formData.email}</a></div></div>
+              <div class="field"><div class="field-label">Subject:</div><div class="field-value">${formData.subject}</div></div>
+              <div class="field"><div class="field-label">Message:</div><div class="message-box">${formData.message}</div></div>
               <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280;">
                 <p>This message was submitted through the Mintenance contact form.</p>
                 <p>You can reply directly to: <a href="mailto:${formData.email}">${formData.email}</a></p>
               </div>
             </div>
-            <div class="footer">
-              <p>© ${new Date().getFullYear()} Mintenance. All rights reserved.</p>
-            </div>
+            <div class="footer"><p>&copy; ${new Date().getFullYear()} Mintenance. All rights reserved.</p></div>
           </div>
         </body>
       </html>
@@ -156,29 +123,16 @@ ${formData.message}
 ---
 This message was submitted through the Mintenance contact form.
 You can reply directly to: ${formData.email}
-
-© ${new Date().getFullYear()} Mintenance. All rights reserved.
     `;
 
-    // Send email to admin
-    const emailSent = await EmailService.sendEmail({
-      to: adminEmail,
-      subject,
-      html,
-      text,
-    });
+    const emailSent = await EmailService.sendEmail({ to: adminEmail, subject, html, text });
 
     if (!emailSent) {
       logger.error('Failed to send contact form email', {
         service: 'contact',
         adminEmail,
-        formData: {
-          name: formData.name,
-          email: formData.email,
-          category: formData.category,
-        },
+        formData: { name: formData.name, email: formData.email, category: formData.category },
       });
-
       throw new InternalServerError('Failed to send message. Please try again later.');
     }
 
@@ -189,15 +143,8 @@ You can reply directly to: ${formData.email}
     });
 
     return NextResponse.json(
-      { 
-        success: true, 
-        message: 'Your message has been sent successfully. We\'ll get back to you within 24 hours.' 
-      },
+      { success: true, message: 'Your message has been sent successfully. We\'ll get back to you within 24 hours.' },
       { status: 200 }
     );
-
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

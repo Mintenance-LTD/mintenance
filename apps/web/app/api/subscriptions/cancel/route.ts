@@ -1,51 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
 import { HomeownerSubscriptionService } from '@/lib/services/subscription/HomeownerSubscriptionService';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf-validator';
 import { z } from 'zod';
-import { UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 
 const cancelSubscriptionSchema = z.object({
   cancelAtPeriodEnd: z.boolean().optional().default(true),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Validate CSRF
-    if (!(await requireCSRF(request))) {
-      throw new ForbiddenError('CSRF token validation failed');
-    }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user || (user.role !== 'contractor' && user.role !== 'homeowner')) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+/**
+ * POST /api/subscriptions/cancel
+ * Cancel a subscription for homeowner or contractor
+ */
+export const POST = withApiHandler(
+  { roles: ['contractor', 'homeowner'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const body = await request.json();
     const validation = cancelSubscriptionSchema.safeParse(body);
 
@@ -104,16 +75,5 @@ export async function POST(request: NextRequest) {
         ? 'Subscription will be canceled at the end of the billing period'
         : 'Subscription canceled immediately',
     });
-  } catch (err) {
-    logger.error('Error canceling subscription', {
-      service: 'subscriptions',
-      error: err instanceof Error ? err.message : String(err),
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to cancel subscription', details: err instanceof Error ? err.message : 'Unknown error' },
-      { status: 500 }
-    );
   }
-}
-
+);

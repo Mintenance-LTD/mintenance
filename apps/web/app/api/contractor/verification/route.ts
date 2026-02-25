@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
-
-const supabase = serverSupabase;
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 class GeocodingService {
   private apiKey = process.env.GOOGLE_MAPS_API_KEY;
@@ -43,9 +39,7 @@ class GeocodingService {
       });
       return null;
     } catch (error) {
-      logger.error('Geocoding API error', error, {
-        service: 'geocoding',
-      });
+      logger.error('Geocoding API error', error, { service: 'geocoding' });
       return null;
     }
   }
@@ -71,45 +65,29 @@ class LicenseValidator {
   }
 }
 
-export async function GET(request: Request) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+interface VerificationStatusResponse {
+  hasBusinessAddress: boolean;
+  hasLicenseNumber: boolean;
+  hasGeolocation: boolean;
+  hasCompanyName: boolean;
+  isFullyVerified: boolean;
+  data: Record<string, unknown> | null;
+}
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
-
-    const { data: userData, error } = await supabase
+/**
+ * GET /api/contractor/verification
+ * Fetch contractor verification status
+ */
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (_request, { user }) => {
+    const { data: userData, error } = await serverSupabase
       .from('profiles')
       .select('business_address, license_number, latitude, longitude, company_name')
       .eq('id', user.id)
       .single();
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     const verificationStatus: VerificationStatusResponse = {
       hasBusinessAddress: Boolean(userData?.business_address),
@@ -127,44 +105,16 @@ export async function GET(request: Request) {
     };
 
     return NextResponse.json(verificationStatus, { status: 200 });
-  } catch (error: unknown) {
-    return handleAPIError(error);
   }
-}
+);
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
-    await requireCSRF(request);
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
-
+/**
+ * POST /api/contractor/verification
+ * Submit contractor verification information
+ */
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const verificationSchema = z.object({
       companyName: z.string().min(1, 'Company name is required').max(300),
       businessAddress: z.string().min(1, 'Business address is required').max(500),
@@ -176,7 +126,7 @@ export async function POST(request: NextRequest) {
       insuranceExpiryDate: z.string().max(30).optional(),
     });
 
-    const validation = await validateRequest(request, verificationSchema);
+    const validation = await validateRequest(request as never, verificationSchema);
     if (validation instanceof NextResponse) return validation;
     const { data } = validation;
     const {
@@ -216,17 +166,11 @@ export async function POST(request: NextRequest) {
       updateData.address = coordinates.formattedAddress;
     }
 
-    if (insuranceProvider) {
-      updateData.insurance_provider = insuranceProvider;
-    }
-    if (insurancePolicyNumber) {
-      updateData.insurance_policy_number = insurancePolicyNumber;
-    }
-    if (insuranceExpiryDate) {
-      updateData.insurance_expiry_date = insuranceExpiryDate;
-    }
+    if (insuranceProvider) updateData.insurance_provider = insuranceProvider;
+    if (insurancePolicyNumber) updateData.insurance_policy_number = insurancePolicyNumber;
+    if (insuranceExpiryDate) updateData.insurance_expiry_date = insuranceExpiryDate;
 
-    const { data: updatedUser, error: updateError } = await supabase
+    const { data: updatedUser, error: updateError } = await serverSupabase
       .from('profiles')
       .update(updateData)
       .eq('id', user.id)
@@ -247,25 +191,11 @@ export async function POST(request: NextRequest) {
         verified: true,
         geocoded: Boolean(coordinates),
         coordinates: coordinates
-          ? {
-              latitude: coordinates.lat,
-              longitude: coordinates.lng,
-            }
+          ? { latitude: coordinates.lat, longitude: coordinates.lng }
           : null,
         data: updatedUser,
       },
       { status: 200 },
     );
-  } catch (error: unknown) {
-    return handleAPIError(error);
   }
-}
-
-interface VerificationStatusResponse {
-  hasBusinessAddress: boolean;
-  hasLicenseNumber: boolean;
-  hasGeolocation: boolean;
-  hasCompanyName: boolean;
-  isFullyVerified: boolean;
-  data: Record<string, unknown> | null;
-}
+);

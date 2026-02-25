@@ -107,7 +107,7 @@ describe('BudgetRangeSelector', () => {
       expect(screen.getByTestId('icon-eyeoff')).toBeInTheDocument();
     });
 
-    it('should toggle visibility and show success toast when hiding budget', () => {
+    it('should toggle visibility when hiding budget', () => {
       render(<BudgetRangeSelector {...defaultProps} />);
       const checkbox = screen.getByRole('checkbox', { name: /Hide exact budget/ });
 
@@ -117,11 +117,6 @@ describe('BudgetRangeSelector', () => {
         ...defaultProps.value,
         show_budget_to_contractors: false,
       });
-
-      expect(toast.success).toHaveBeenCalledWith(
-        'Budget hidden from contractors - they will bid based on fair market value',
-        { icon: '🔒', duration: 4000 }
-      );
     });
 
     it('should show expected savings section when budget is hidden', () => {

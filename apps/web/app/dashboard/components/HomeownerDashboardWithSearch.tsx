@@ -395,41 +395,6 @@ export function HomeownerDashboardWithSearch({ data }: HomeownerDashboardWithSea
                 </Link>
               </div>
 
-              {/* Quick Links */}
-              <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl border border-teal-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  <Link
-                    href="/properties"
-                    className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <Home className="w-6 h-6 text-teal-600" />
-                    <span className="text-xs font-medium text-gray-700">Properties</span>
-                  </Link>
-                  <Link
-                    href="/messages"
-                    className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <MessageSquare className="w-6 h-6 text-teal-600" />
-                    <span className="text-xs font-medium text-gray-700">Messages</span>
-                  </Link>
-                  <Link
-                    href="/payments"
-                    className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <PoundSterling className="w-6 h-6 text-teal-600" />
-                    <span className="text-xs font-medium text-gray-700">Payments</span>
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <Wrench className="w-6 h-6 text-teal-600" />
-                    <span className="text-xs font-medium text-gray-700">Settings</span>
-                  </Link>
-                </div>
-              </div>
-
               {/* Recent Activity */}
               <div className="bg-white rounded-2xl border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>

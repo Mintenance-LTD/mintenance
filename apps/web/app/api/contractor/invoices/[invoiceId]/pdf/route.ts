@@ -1,23 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
-import { handleAPIError, NotFoundError, UnauthorizedError, ForbiddenError } from '@/lib/errors/api-error';
+import { NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
+ * GET /api/contractor/invoices/[invoiceId]/pdf
  * Invoice PDF generation endpoint (Issue 20)
- * Generates a plain-text PDF representation of an invoice.
- * Uses server-side HTML generation for consistent output.
+ * Generates a print-friendly HTML representation of an invoice.
+ * Accessible by the contractor who created it or the client.
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ invoiceId: string }> },
-) {
-  try {
-    const user = await getCurrentUserFromCookies();
-    if (!user) throw new UnauthorizedError();
-
-    const { invoiceId } = await params;
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (_request, { user, params }) => {
+    const { invoiceId } = params;
 
     // Fetch the invoice
     const { data: invoice, error } = await serverSupabase
@@ -71,17 +66,16 @@ export async function GET(
     });
 
     // Return HTML with print-optimised headers
-    // Clients can use browser print-to-PDF or we can expand to jsPDF server-side
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Disposition': `inline; filename="${invoice.invoice_number}.html"`,
       },
     });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);
+
+// ── HTML Builder ─────────────────────────────────────────────────────────────
 
 interface InvoiceHTMLParams {
   invoiceNumber: string;

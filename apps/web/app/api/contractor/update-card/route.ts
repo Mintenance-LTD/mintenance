@@ -1,12 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { InternalServerError } from '@/lib/errors/api-error';
 import { sanitizeText, sanitizeContractorBio, sanitizeUrl, sanitizeEmail } from '@/lib/sanitizer';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Validation schema for business card with sanitization
 const updateCardSchema = z.object({
@@ -26,56 +24,21 @@ const updateCardSchema = z.object({
   }).optional(),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Authenticate user
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      logger.warn('Unauthorized card update attempt', { service: 'contractor' });
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    // Verify user is a contractor
-    if (user.role !== 'contractor') {
-      logger.warn('Non-contractor attempted to update business card', {
-        service: 'contractor',
-        userId: user.id,
-        role: user.role
-      });
-      throw new ForbiddenError('Only contractors can update business cards');
-    }
-
+/**
+ * POST /api/contractor/update-card
+ * Update contractor business card
+ */
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     // Parse and validate request body
     const body = await request.json();
     const validation = updateCardSchema.safeParse(body);
     if (!validation.success) {
-      throw new BadRequestError('Invalid card data');
+      return NextResponse.json(
+        { error: 'Invalid card data', details: validation.error.flatten().fieldErrors },
+        { status: 400 },
+      );
     }
     const validatedData = validation.data;
 
@@ -97,33 +60,15 @@ export async function POST(request: NextRequest) {
       };
     } = {};
 
-    if (validatedData.businessName !== undefined) {
-      updateData.business_name = validatedData.businessName;
-    }
-    if (validatedData.tagline !== undefined) {
-      updateData.tagline = validatedData.tagline;
-    }
-    if (validatedData.phone !== undefined) {
-      updateData.phone = validatedData.phone;
-    }
-    if (validatedData.email !== undefined) {
-      updateData.email = validatedData.email;
-    }
-    if (validatedData.website !== undefined) {
-      updateData.website = validatedData.website;
-    }
-    if (validatedData.address !== undefined) {
-      updateData.address = validatedData.address;
-    }
-    if (validatedData.bio !== undefined) {
-      updateData.bio = validatedData.bio;
-    }
-    if (validatedData.specialties !== undefined) {
-      updateData.specialties = validatedData.specialties;
-    }
-    if (validatedData.socialMedia !== undefined) {
-      updateData.social_media = validatedData.socialMedia;
-    }
+    if (validatedData.businessName !== undefined) updateData.business_name = validatedData.businessName;
+    if (validatedData.tagline !== undefined) updateData.tagline = validatedData.tagline;
+    if (validatedData.phone !== undefined) updateData.phone = validatedData.phone;
+    if (validatedData.email !== undefined) updateData.email = validatedData.email;
+    if (validatedData.website !== undefined) updateData.website = validatedData.website;
+    if (validatedData.address !== undefined) updateData.address = validatedData.address;
+    if (validatedData.bio !== undefined) updateData.bio = validatedData.bio;
+    if (validatedData.specialties !== undefined) updateData.specialties = validatedData.specialties;
+    if (validatedData.socialMedia !== undefined) updateData.social_media = validatedData.socialMedia;
 
     // Update user profile
     const { data: updatedUser, error: updateError } = await serverSupabase
@@ -136,7 +81,7 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       logger.error('Failed to update business card', updateError, {
         service: 'contractor',
-        userId: user.id
+        userId: user.id,
       });
       throw new InternalServerError('Failed to update business card');
     }
@@ -144,7 +89,7 @@ export async function POST(request: NextRequest) {
     logger.info('Business card updated successfully', {
       service: 'contractor',
       userId: user.id,
-      fieldsUpdated: Object.keys(updateData)
+      fieldsUpdated: Object.keys(updateData),
     });
 
     return NextResponse.json({
@@ -161,10 +106,7 @@ export async function POST(request: NextRequest) {
         bio: updatedUser.bio,
         specialties: updatedUser.specialties,
         socialMedia: updatedUser.social_media,
-      }
+      },
     });
-
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);

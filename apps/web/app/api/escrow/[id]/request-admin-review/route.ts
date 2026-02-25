@@ -1,11 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldService';
-import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 /** Type for escrow with job relation (Supabase !inner join returns jobs as array) */
 interface EscrowContractorJob {
@@ -24,48 +21,15 @@ interface EscrowWithContractorJob {
  * POST /api/escrow/:id/request-admin-review
  * Contractor requests admin review after 7 days
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-    const { id } = await params;
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const escrowId = id;
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user, params }) => {
+    const { id: escrowId } = params as { id: string };
 
     // Verify user is contractor for this escrow
     const { data: escrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
-      .select(
-        `
+      .select(`
         id,
         auto_approval_date,
         homeowner_approval,
@@ -73,8 +37,7 @@ export async function POST(
           id,
           contractor_id
         )
-      `
-      )
+      `)
       .eq('id', escrowId)
       .single();
 
@@ -109,14 +72,10 @@ export async function POST(
     // Set escrow to pending admin review
     await AdminEscrowHoldService.holdEscrowForReview(
       escrowId,
-      'system', // System-initiated hold
+      'system',
       'Contractor requested admin review after 7 days without homeowner response'
     );
 
     return NextResponse.json({ success: true, escrowId });
-  } catch (error) {
-    logger.error('Error requesting admin review', error, { service: 'escrow-request-admin-review' });
-    throw new InternalServerError('Failed to request admin review');
   }
-}
-
+);

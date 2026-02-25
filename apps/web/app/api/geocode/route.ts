@@ -1,19 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { checkPublicRateLimit } from '@/lib/middleware/public-rate-limiter-redis';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
- * Geocode an address to get latitude/longitude
  * GET /api/geocode?address=...
+ * Geocode an address to get latitude/longitude
  *
  * Security:
- * - Rate limited: 10 requests/min per IP
+ * - Rate limited: 10 requests/min per IP (via Redis)
  * - Server-side API key (never exposed to client)
  * - Input validation and sanitization
  * - All requests logged for abuse detection
  */
-export async function GET(request: NextRequest) {
-  try {
+export const GET = withApiHandler(
+  { auth: false, rateLimit: false },
+  async (request) => {
     const rateLimitResult = await checkPublicRateLimit(request, 'search');
 
     if (!rateLimitResult.allowed) {
@@ -24,10 +26,7 @@ export async function GET(request: NextRequest) {
       });
       const retryAfterSec = rateLimitResult.retryAfter ?? Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
       return NextResponse.json(
-        {
-          error: 'Rate limit exceeded. Please try again later.',
-          retryAfter: retryAfterSec,
-        },
+        { error: 'Rate limit exceeded. Please try again later.', retryAfter: retryAfterSec },
         {
           status: 429,
           headers: {
@@ -49,7 +48,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Input validation - prevent excessively long addresses
     if (address.length > 500) {
       return NextResponse.json(
         { error: 'Address too long (max 500 characters)' },
@@ -77,12 +75,11 @@ export async function GET(request: NextRequest) {
     if (data.status === 'OK' && data.results && data.results.length > 0) {
       const location = data.results[0].geometry.location;
 
-      // Log successful geocoding for abuse detection
       logger.info('Geocode request successful', {
         service: 'geocoding',
         ip: request.headers.get('x-forwarded-for') || 'unknown',
         userAgent: request.headers.get('user-agent') || 'unknown',
-        address: address.substring(0, 100), // Log first 100 chars only
+        address: address.substring(0, 100),
         status: data.status,
       });
 
@@ -104,15 +101,5 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
-  } catch (error) {
-    logger.error('Error in geocode route', error, {
-      service: 'geocoding',
-      ip: request.headers.get('x-forwarded-for') || 'unknown',
-    });
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
   }
-}
-
+);

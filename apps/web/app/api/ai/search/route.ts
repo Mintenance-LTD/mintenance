@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { rateLimiter, checkAIUserRateLimit } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
 import type { SearchFilters } from '@mintenance/ai-core';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 interface SearchResult {
   id: string;
@@ -26,17 +26,18 @@ interface SearchResult {
  * AI-powered semantic search endpoint
  * OWASP Security: Rate limited to 10 requests per minute per IP
  */
-export async function POST(request: NextRequest) {
-  try {
-    // Rate limiting - OWASP best practice: limit expensive AI operations
+export const POST = withApiHandler(
+  { auth: false, rateLimit: false },
+  async (request) => {
+    // Custom IP-based rate limiting - OWASP: limit expensive AI operations
     const identifier = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
                        request.headers.get('x-real-ip') ||
                        'anonymous';
 
     const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `ai-search:${identifier}`,
-      windowMs: 60000, // 1 minute
-      maxRequests: 10, // 10 requests per minute (expensive AI calls)
+      windowMs: 60000,
+      maxRequests: 10,
     });
 
     if (!rateLimitResult.allowed) {
@@ -61,10 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Per-user rate limit if authenticated
+    // Per-user rate limit if authenticated (best-effort)
     try {
       const { data: { user } } = await serverSupabase.auth.getUser();
       if (user) {
@@ -108,18 +106,14 @@ export async function POST(request: NextRequest) {
 
     try {
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-      // Add timeout protection to embedding generation
       const controller = new AbortController();
-      const timeoutMs = 5000; // 5 seconds
+      const timeoutMs = 5000;
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         const embeddingResponse = await fetch(`${apiBaseUrl}/api/ai/generate-embedding`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text: query.trim(),
             model: 'text-embedding-3-small',
@@ -135,7 +129,6 @@ export async function POST(request: NextRequest) {
 
         const { embedding } = await embeddingResponse.json();
 
-        // Search jobs and contractors in parallel using semantic search
         [jobResults, contractorResults] = await Promise.all([
           searchJobs(embedding, filters, limit),
           searchContractors(embedding, filters, limit),
@@ -146,27 +139,20 @@ export async function POST(request: NextRequest) {
           query: query.substring(0, 100),
           resultsCount: jobResults.length + contractorResults.length,
         });
-
       } catch (embeddingError) {
         clearTimeout(timeout);
         const error = embeddingError as Error;
 
-        // Handle timeout or embedding generation failure
         if (error.name === 'AbortError') {
           logger.warn('Embedding generation timeout, falling back to full-text search', {
-            service: 'ai_search',
-            query: query.substring(0, 100),
-            timeoutMs,
+            service: 'ai_search', query: query.substring(0, 100), timeoutMs,
           });
         } else {
           logger.warn('Embedding generation failed, falling back to full-text search', {
-            service: 'ai_search',
-            query: query.substring(0, 100),
-            error: error.message,
+            service: 'ai_search', query: query.substring(0, 100), error: error.message,
           });
         }
 
-        // Fallback to full-text search
         usedFallback = true;
         [jobResults, contractorResults] = await Promise.all([
           fullTextSearchJobs(query, filters, limit),
@@ -174,23 +160,17 @@ export async function POST(request: NextRequest) {
         ]);
       }
     } catch (searchError) {
-      // If even fallback fails, use empty results
       logger.error('Search failed completely', searchError, {
-        service: 'ai_search',
-        query: query.substring(0, 100),
+        service: 'ai_search', query: query.substring(0, 100),
       });
       jobResults = [];
       contractorResults = [];
     }
 
-    // Combine and rank results
     const allResults = [...jobResults, ...contractorResults];
     const rankedResults = rankResults(allResults, query);
-
-    // Apply additional filters
     const filteredResults = applyFilters(rankedResults, filters);
 
-    // Log search analytics with fallback information
     await logSearchAnalytics({
       query,
       resultsCount: filteredResults.length,
@@ -208,20 +188,11 @@ export async function POST(request: NextRequest) {
       usedFallback,
       searchMethod: usedFallback ? 'full-text' : 'semantic',
     });
-  } catch (error) {
-    logger.error('Search API error', error, {
-      service: 'ai_search',
-    });
-    return NextResponse.json(
-      { error: 'Search failed' },
-      { status: 500 }
-    );
   }
-}
+);
 
 /**
  * Full-text search fallback for jobs when semantic search fails
- * Uses PostgreSQL built-in text search capabilities
  */
 async function fullTextSearchJobs(
   query: string,
@@ -229,7 +200,6 @@ async function fullTextSearchJobs(
   limit: number
 ): Promise<SearchResult[]> {
   try {
-    // SECURITY: Sanitize search query to prevent PostgREST filter injection
     const sanitizedQuery = query
       .replace(/[^a-zA-Z0-9\s\-']/g, '')
       .substring(0, 200)
@@ -237,26 +207,16 @@ async function fullTextSearchJobs(
 
     if (!sanitizedQuery) return [];
 
-    // Build the query
     let queryBuilder = serverSupabase
       .from('jobs')
       .select('*')
       .or(`title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`)
       .limit(limit);
 
-    // Apply filters
-    if (filters.category) {
-      queryBuilder = queryBuilder.eq('category', filters.category);
-    }
-    if (filters.location) {
-      queryBuilder = queryBuilder.ilike('location', `%${filters.location}%`);
-    }
-    if (filters.priceRange?.min !== undefined) {
-      queryBuilder = queryBuilder.gte('budget', filters.priceRange.min);
-    }
-    if (filters.priceRange?.max !== undefined) {
-      queryBuilder = queryBuilder.lte('budget', filters.priceRange.max);
-    }
+    if (filters.category) queryBuilder = queryBuilder.eq('category', filters.category);
+    if (filters.location) queryBuilder = queryBuilder.ilike('location', `%${filters.location}%`);
+    if (filters.priceRange?.min !== undefined) queryBuilder = queryBuilder.gte('budget', filters.priceRange.min);
+    if (filters.priceRange?.max !== undefined) queryBuilder = queryBuilder.lte('budget', filters.priceRange.max);
 
     const { data, error } = await queryBuilder;
 
@@ -282,9 +242,7 @@ async function fullTextSearchJobs(
       },
     }));
   } catch (error) {
-    logger.error('Failed to perform full-text job search', error, {
-      service: 'ai_search',
-    });
+    logger.error('Failed to perform full-text job search', error, { service: 'ai_search' });
     return [];
   }
 }
@@ -298,7 +256,6 @@ async function fullTextSearchContractors(
   limit: number
 ): Promise<SearchResult[]> {
   try {
-    // SECURITY: Sanitize search query to prevent PostgREST filter injection
     const sanitizedQuery = query
       .replace(/[^a-zA-Z0-9\s\-']/g, '')
       .substring(0, 200)
@@ -306,7 +263,6 @@ async function fullTextSearchContractors(
 
     if (!sanitizedQuery) return [];
 
-    // Build the query
     let queryBuilder = serverSupabase
       .from('profiles')
       .select('*')
@@ -314,13 +270,8 @@ async function fullTextSearchContractors(
       .or(`first_name.ilike.%${sanitizedQuery}%,last_name.ilike.%${sanitizedQuery}%,bio.ilike.%${sanitizedQuery}%`)
       .limit(limit);
 
-    // Apply filters
-    if (filters.location) {
-      queryBuilder = queryBuilder.ilike('location', `%${filters.location}%`);
-    }
-    if (filters.rating !== undefined) {
-      queryBuilder = queryBuilder.gte('rating', filters.rating);
-    }
+    if (filters.location) queryBuilder = queryBuilder.ilike('location', `%${filters.location}%`);
+    if (filters.rating !== undefined) queryBuilder = queryBuilder.gte('rating', filters.rating);
 
     const { data, error } = await queryBuilder;
 
@@ -346,39 +297,24 @@ async function fullTextSearchContractors(
         title: `${firstName} ${lastName}`.trim() || 'Unknown Contractor',
         description: bio || '',
         relevanceScore: calculateTextMatchScore(query, contractor),
-        metadata: {
-          location,
-          rating,
-          availability,
-        },
+        metadata: { location, rating, availability },
       };
     });
   } catch (error) {
-    logger.error('Failed to perform full-text contractor search', error, {
-      service: 'ai_search',
-    });
+    logger.error('Failed to perform full-text contractor search', error, { service: 'ai_search' });
     return [];
   }
 }
 
-/**
- * Calculate relevance score for full-text search based on keyword matching
- */
 function calculateTextMatchScore(query: string, record: Record<string, unknown>): number {
   const queryLower = query.toLowerCase();
-  let score = 0.5; // Base score for any match
+  let score = 0.5;
 
-  // Check title/name match
   const title = String(record.title || record.first_name || '').toLowerCase();
-  if (title.includes(queryLower)) {
-    score += 0.3;
-  }
+  if (title.includes(queryLower)) score += 0.3;
 
-  // Check description/bio match
   const description = String(record.description || record.bio || '').toLowerCase();
-  if (description.includes(queryLower)) {
-    score += 0.2;
-  }
+  if (description.includes(queryLower)) score += 0.2;
 
   return Math.min(score, 1.0);
 }
@@ -421,9 +357,7 @@ async function searchJobs(
       },
     }));
   } catch (error) {
-    logger.error('Failed to search jobs', error, {
-      service: 'ai_search',
-    });
+    logger.error('Failed to search jobs', error, { service: 'ai_search' });
     return [];
   }
 }
@@ -459,7 +393,7 @@ async function searchContractors(
       const location = typeof contractor.location === 'string' ? contractor.location : undefined;
       const rating = typeof contractor.rating === 'number' ? contractor.rating : undefined;
       const availability = typeof contractor.availability === 'string' ? contractor.availability : undefined;
-      
+
       return {
         id: String(contractor.id || ''),
         type: 'contractor' as const,
@@ -475,9 +409,7 @@ async function searchContractors(
       };
     });
   } catch (error) {
-    logger.error('Failed to search contractors', error, {
-      service: 'ai_search',
-    });
+    logger.error('Failed to search contractors', error, { service: 'ai_search' });
     return [];
   }
 }
@@ -497,22 +429,14 @@ function calculateRelevanceScore(result: SearchResult, query: string): number {
   const titleLower = result.title.toLowerCase();
   const descriptionLower = result.description.toLowerCase();
 
-  let score = result.relevanceScore; // Base semantic similarity
+  let score = result.relevanceScore;
 
-  // Boost score for exact matches
-  if (titleLower.includes(queryLower)) {
-    score += 0.2;
-  }
-  if (descriptionLower.includes(queryLower)) {
-    score += 0.1;
-  }
+  if (titleLower.includes(queryLower)) score += 0.2;
+  if (descriptionLower.includes(queryLower)) score += 0.1;
 
-  // Boost score for high-rated contractors
   if (result.type === 'contractor' && typeof result.metadata.rating === 'number') {
     score += (result.metadata.rating - 3) * 0.05;
   }
-
-  // Boost score for available contractors
   if (result.type === 'contractor' && result.metadata.availability === 'available') {
     score += 0.1;
   }
@@ -523,33 +447,19 @@ function calculateRelevanceScore(result: SearchResult, query: string): number {
 function applyFilters(results: SearchResult[], filters: SearchFilters): SearchResult[] {
   return results.filter(result => {
     if (filters.location && typeof result.metadata.location === 'string') {
-      if (!result.metadata.location.toLowerCase().includes(filters.location.toLowerCase())) {
-        return false;
-      }
+      if (!result.metadata.location.toLowerCase().includes(filters.location.toLowerCase())) return false;
     }
-
     if (filters.category && typeof result.metadata.category === 'string') {
-      if (result.metadata.category.toLowerCase() !== filters.category.toLowerCase()) {
-        return false;
-      }
+      if (result.metadata.category.toLowerCase() !== filters.category.toLowerCase()) return false;
     }
-
     if (filters.priceRange && typeof result.metadata.price === 'number') {
       const price = result.metadata.price;
-      if (filters.priceRange.min !== undefined && price < filters.priceRange.min) {
-        return false;
-      }
-      if (filters.priceRange.max !== undefined && price > filters.priceRange.max) {
-        return false;
-      }
+      if (filters.priceRange.min !== undefined && price < filters.priceRange.min) return false;
+      if (filters.priceRange.max !== undefined && price > filters.priceRange.max) return false;
     }
-
     if (filters.rating !== undefined && typeof result.metadata.rating === 'number') {
-      if (result.metadata.rating < filters.rating) {
-        return false;
-      }
+      if (result.metadata.rating < filters.rating) return false;
     }
-
     return true;
   });
 }
@@ -562,12 +472,9 @@ function calculateAverageRelevance(results: SearchResult[]): number {
 
 /**
  * Sanitize filter object for safe storage
- * OWASP Security: Prevents NoSQL injection and XSS in stored data
  */
 function sanitizeFilters(filters: unknown): Record<string, unknown> {
-  if (!filters || typeof filters !== 'object') {
-    return {};
-  }
+  if (!filters || typeof filters !== 'object') return {};
 
   const safe: Record<string, unknown> = {};
   const allowedKeys = ['location', 'category', 'priceRange', 'rating'];
@@ -575,15 +482,11 @@ function sanitizeFilters(filters: unknown): Record<string, unknown> {
   for (const key of allowedKeys) {
     if (key in filters) {
       const value = (filters as Record<string, unknown>)[key];
-
       if (typeof value === 'string') {
-        // Sanitize string values to prevent XSS
         safe[key] = sanitizeText(value, 200);
       } else if (typeof value === 'number' && !isNaN(value)) {
-        // Validate and sanitize numeric values
         safe[key] = value;
       } else if (key === 'priceRange' && value && typeof value === 'object') {
-        // Special handling for priceRange object
         const priceRange = value as Record<string, unknown>;
         safe[key] = {
           min: typeof priceRange.min === 'number' && !isNaN(priceRange.min) ? priceRange.min : undefined,
@@ -598,18 +501,15 @@ function sanitizeFilters(filters: unknown): Record<string, unknown> {
 
 /**
  * Log search analytics with input sanitization
- * OWASP Security: All user inputs are sanitized before database insertion
  */
 async function logSearchAnalytics(analytics: Record<string, unknown>) {
   try {
-    // Sanitize all inputs to prevent SQL injection and XSS
     const safeQuery = typeof analytics.query === 'string'
       ? sanitizeText(analytics.query, 500)
       : '';
 
     const safeFilters = sanitizeFilters(analytics.filters);
 
-    // Validate and sanitize numeric fields
     const resultsCount = typeof analytics.resultsCount === 'number' && !isNaN(analytics.resultsCount)
       ? Math.max(0, Math.floor(analytics.resultsCount))
       : 0;
@@ -643,8 +543,6 @@ async function logSearchAnalytics(analytics: Record<string, unknown>) {
         created_at: new Date().toISOString(),
       });
   } catch (error) {
-    logger.error('Failed to log search analytics', error, {
-      service: 'ai_search',
-    });
+    logger.error('Failed to log search analytics', error, { service: 'ai_search' });
   }
 }
