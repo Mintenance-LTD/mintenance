@@ -1,7 +1,7 @@
 /**
  * KnowledgeDistillationQueryService
  *
- * Read-only statistics and job retrieval methods extracted from KnowledgeDistillationService.
+ * Read-only statistics and job retrieval extracted from KnowledgeDistillationService.
  */
 
 import { logger } from '@mintenance/shared';
@@ -13,9 +13,6 @@ import type {
   DistillationStats,
 } from './training-data-types';
 
-/**
- * Get job by ID.
- */
 export async function getJob(jobId: string): Promise<KnowledgeDistillationJob> {
   const { data, error } = await serverSupabase
     .from('knowledge_distillation_jobs')
@@ -23,22 +20,19 @@ export async function getJob(jobId: string): Promise<KnowledgeDistillationJob> {
     .eq('id', jobId)
     .single();
 
-  if (error || \!data) {
-    throw new Error(\);
+  if (error || !data) {
+    throw new Error('Failed to get distillation job');
   }
 
   return mapRowToJob(data);
 }
 
-/**
- * Get comprehensive training statistics.
- */
 export async function getTrainingStats(): Promise<DistillationStats> {
   try {
     const { data, error } = await serverSupabase.rpc('get_training_data_stats');
 
     if (error) {
-      throw new Error(\);
+      throw new Error('Failed to get training stats');
     }
 
     const dbStats = data[0] || {};
@@ -51,7 +45,7 @@ export async function getTrainingStats(): Promise<DistillationStats> {
       getJobsByType(),
     ]);
 
-    const stats: DistillationStats = {
+    return {
       gpt4Labels: {
         total: dbStats.gpt4_labels_total || 0,
         unused: dbStats.gpt4_labels_unused || 0,
@@ -93,8 +87,6 @@ export async function getTrainingStats(): Promise<DistillationStats> {
           (dbStats.pseudo_labels_quality || 0),
       },
     };
-
-    return stats;
   } catch (error) {
     logger.error('Failed to get training stats', error, {
       service: 'KnowledgeDistillationService',
@@ -134,7 +126,9 @@ async function getSAM3MasksByType(): Promise<Record<string, number>> {
 }
 
 async function getSAM3MasksByQuality(): Promise<Record<string, number>> {
-  const { data } = await serverSupabase.from('sam3_training_masks').select('segmentation_quality');
+  const { data } = await serverSupabase
+    .from('sam3_training_masks')
+    .select('segmentation_quality');
   const counts: Record<string, number> = {};
   for (const row of data || []) {
     const quality = row.segmentation_quality || 'unknown';
@@ -144,7 +138,9 @@ async function getSAM3MasksByQuality(): Promise<Record<string, number>> {
 }
 
 async function getJobsByType(): Promise<Record<KnowledgeDistillationJobType, number>> {
-  const { data } = await serverSupabase.from('knowledge_distillation_jobs').select('job_type');
+  const { data } = await serverSupabase
+    .from('knowledge_distillation_jobs')
+    .select('job_type');
   const counts: Record<string, number> = {};
   for (const row of data || []) {
     const type = row.job_type || 'unknown';
@@ -174,7 +170,11 @@ function mapRowToJob(row: Record<string, unknown>): KnowledgeDistillationJob {
     errorMessage: row.error_message as string | undefined,
     errorStack: row.error_stack as string | undefined,
     retryCount: row.retry_count as number,
-    triggeredBy: row.triggered_by as 'scheduled' | 'manual' | 'accuracy_drop' | 'threshold_reached',
+    triggeredBy: row.triggered_by as
+      | 'scheduled'
+      | 'manual'
+      | 'accuracy_drop'
+      | 'threshold_reached',
     notes: row.notes as string | undefined,
     createdAt: row.created_at ? new Date(row.created_at as string) : undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at as string) : undefined,
