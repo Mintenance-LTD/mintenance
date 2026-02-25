@@ -16,7 +16,9 @@ import { getTrainingStats } from './KnowledgeDistillationQueryService';
 const MIN_SAMPLES_FOR_TRAINING = 100;
 const MIN_VERIFIED_SAMPLES = 50;
 
-function getDefaultTrainingConfig(jobType: KnowledgeDistillationJobType): Record<string, unknown> {
+function getDefaultTrainingConfig(
+  jobType: KnowledgeDistillationJobType
+): Record<string, unknown> {
   const commonConfig = {
     validationSplit: 0.2,
     earlyStopping: { patience: 10, minDelta: 0.001 },
@@ -44,10 +46,9 @@ function getDefaultTrainingConfig(jobType: KnowledgeDistillationJobType): Record
   return { ...commonConfig, learningRate: 0.0005, batchSize: 24, epochs: 75 };
 }
 
-/**
- * Create a new training job.
- */
-export async function createTrainingJob(input: KnowledgeDistillationJobInput): Promise<string> {
+export async function createTrainingJob(
+  input: KnowledgeDistillationJobInput
+): Promise<string> {
   try {
     const jobId = `kd-${Date.now()}-${input.jobType}`;
 
@@ -88,9 +89,6 @@ export async function createTrainingJob(input: KnowledgeDistillationJobInput): P
   }
 }
 
-/**
- * Update training job status.
- */
 export async function updateJobStatus(
   jobId: string,
   status: KnowledgeDistillationJobStatus,
@@ -142,9 +140,6 @@ export async function updateJobStatus(
   }
 }
 
-/**
- * Mark training data as used in a specific job.
- */
 export async function markDataAsUsed(
   jobId: string,
   jobType: KnowledgeDistillationJobType,
@@ -162,12 +157,20 @@ export async function markDataAsUsed(
     if (jobType === 'damage_classifier') {
       await serverSupabase
         .from('gpt4_training_labels')
-        .update({ used_in_training: true, training_version: modelVersion, training_job_id: jobId })
+        .update({
+          used_in_training: true,
+          training_version: modelVersion,
+          training_job_id: jobId,
+        })
         .in('id', dataIds);
     } else if (jobType === 'segmentation_model') {
       await serverSupabase
         .from('sam3_training_masks')
-        .update({ used_in_training: true, training_version: modelVersion, training_job_id: jobId })
+        .update({
+          used_in_training: true,
+          training_version: modelVersion,
+          training_job_id: jobId,
+        })
         .in('id', dataIds);
     } else if (jobType === 'yolo_enhancement') {
       await serverSupabase
@@ -191,10 +194,9 @@ export async function markDataAsUsed(
   }
 }
 
-/**
- * Check if training should be triggered based on accumulated data.
- */
-export async function checkAndTriggerTraining(jobType: KnowledgeDistillationJobType): Promise<void> {
+export async function checkAndTriggerTraining(
+  jobType: KnowledgeDistillationJobType
+): Promise<void> {
   try {
     const stats = await getTrainingStats();
 
@@ -205,13 +207,13 @@ export async function checkAndTriggerTraining(jobType: KnowledgeDistillationJobT
       const { unused, verified } = stats.gpt4Labels;
       if (unused >= MIN_SAMPLES_FOR_TRAINING && verified >= MIN_VERIFIED_SAMPLES) {
         shouldTrigger = true;
-        reason = `Sufficient GPT-4 labels accumulated: ${unused} unused, ${verified} verified`;
+        reason = `Sufficient GPT-4 labels: ${unused} unused, ${verified} verified`;
       }
     } else if (jobType === 'segmentation_model') {
       const { unused, verified } = stats.sam3Masks;
       if (unused >= MIN_SAMPLES_FOR_TRAINING && verified >= MIN_VERIFIED_SAMPLES) {
         shouldTrigger = true;
-        reason = `Sufficient SAM3 masks accumulated: ${unused} unused, ${verified} verified`;
+        reason = `Sufficient SAM3 masks: ${unused} unused, ${verified} verified`;
       }
     }
 

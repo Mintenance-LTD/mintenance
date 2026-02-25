@@ -10,7 +10,6 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 /**
  * Compute teacher agreement for an assessment.
  * Compares GPT-4 and SAM3 outputs to score how much teachers agree.
- * High-agreement labels are more reliable for training.
  */
 export async function computeTeacherAgreement(assessmentId: string): Promise<{
   agreementScore: number;
@@ -53,7 +52,7 @@ export async function computeTeacherAgreement(assessmentId: string): Promise<{
         gpt4Label.damage_type.toLowerCase().includes(t.toLowerCase())
     );
 
-    const confidenceDelta = Math.abs((gpt4Label.confidence / 100) - sam3AvgConfidence);
+    const confidenceDelta = Math.abs(gpt4Label.confidence / 100 - sam3AvgConfidence);
 
     let agreementScore = 0.2;
     if (damageTypeMatch) agreementScore += 0.5;
@@ -98,9 +97,6 @@ export async function computeTeacherAgreement(assessmentId: string): Promise<{
 
 /**
  * Generate soft label (probability distribution) for an assessment.
- * Instead of a hard one-hot label, produces weighted probabilities across
- * all damage classes using Bayesian fusion weights.
- *
  * Weights: SAM3=0.40, GPT4=0.35, SceneGraph=0.25
  */
 export async function generateSoftLabel(assessmentId: string): Promise<{
