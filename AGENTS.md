@@ -36,5 +36,13 @@ Refer to the root `package.json` scripts section and `README.md` for the full li
 ### Mobile app
 The Expo mobile app (`apps/mobile`) requires physical device or emulator to run. It is not runnable in the Cloud VM without additional simulator setup. For mobile tests: `npm run test:mobile`.
 
+### Dev server gotchas
+- **Port 3000 cleanup**: When restarting the dev server, the `next-server` child process may outlive the parent npm process. Use `netstat -tlnp | grep 3000` to find the actual PID, then `kill <PID>` before restarting. Using `lsof -ti:3000` can sometimes miss the process.
+- **Env var injection**: The update script writes `apps/web/.env.local` only if missing. When real secrets are provided via VM environment variables, rewrite this file with the real values before starting the dev server. The Zod validator in `apps/web/lib/env.ts` will reject malformed values at startup.
+- **Next.js middleware deprecation**: Next.js 16.1 shows a warning about `middleware` being deprecated in favor of `proxy`. This is cosmetic and does not affect functionality.
+
+### Mobile app
+The Expo mobile app (`apps/mobile`) requires physical device or emulator to run. It is not runnable in the Cloud VM without additional simulator setup. For mobile tests: `npm run test:mobile`.
+
 ### SAM3/SAM2 AI services
 These Python microservices are optional and require Docker + GPU. Not needed for web development.
