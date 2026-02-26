@@ -1,8 +1,8 @@
 /**
  * HomeownerDashboard Component
  *
- * Airbnb-style homeowner dashboard with profile header,
- * stats overview, quick services, and recent jobs.
+ * Homeowner dashboard with profile header,
+ * stats overview, bids, appointments, and recent jobs.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -14,17 +14,19 @@ import {
   ScrollView,
   RefreshControl,
   Image,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { JobService } from '../../services/JobService';
 import { BidService, Bid as ServiceBid } from '../../services/BidService';
+import { useQuery } from '@tanstack/react-query';
+import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import { theme } from '../../theme';
 import { logger } from '../../utils/logger';
-import { QuickServices } from './QuickServices';
 import { RecentJobs } from './RecentJobs';
-import { WelcomeBanner } from './WelcomeBanner';
 import { StatsCards } from './StatsCards';
 import { BidsReceived } from './BidsReceived';
 
@@ -34,11 +36,22 @@ export const HomeownerDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<unknown>();
 
-  const [homeownerJobs, setHomeownerJobs] = useState<unknown[]>([]);
+  const [homeownerJobs, setHomeownerJobs] = useState<{ id?: string; status?: string; title?: string; [key: string]: unknown }[]>([]);
   const [recentBids, setRecentBids] = useState<{ id: string; contractorName: string; jobTitle: string; amount: number; status: string; jobId: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  // Fetch upcoming appointments
+  const { data: appointments } = useQuery({
+    queryKey: ['appointments', user?.id],
+    queryFn: async () => {
+      const res = await apiClient.get<{ appointments: Array<{ id: string; title: string; date: string; time: string; contractor?: { name: string } }> }>('/api/appointments');
+      return res.appointments || [];
+    },
+    enabled: !!user,
+  });
 
   useEffect(() => {
     loadDashboardData();
@@ -57,8 +70,8 @@ export const HomeownerDashboard: React.FC = () => {
 
       // Fetch recent bids for homeowner's active jobs
       const activeJobIds = (jobs || [])
-        .filter((j: { status?: string }) => j?.status === 'posted' || j?.status === 'assigned')
-        .map((j: { id?: string }) => j?.id)
+        .filter((j) => j?.status === 'posted' || j?.status === 'assigned')
+        .map((j) => j?.id)
         .filter(Boolean) as string[];
 
       if (activeJobIds.length > 0) {
@@ -67,8 +80,8 @@ export const HomeownerDashboard: React.FC = () => {
           try {
             const bids = await BidService.getBidsByJob(jobId, 'pending');
             allBids.push(...bids);
-          } catch {
-            // Skip individual job bid fetch errors
+          } catch (bidErr) {
+            logger.warn('Failed to fetch bids for job', { jobId, error: bidErr });
           }
         }
         setRecentBids(
@@ -98,20 +111,11 @@ export const HomeownerDashboard: React.FC = () => {
       try {
         const jobs = await JobService.getUserJobs(user.id);
         setHomeownerJobs(jobs || []);
-      } catch {}
+      } catch (err) {
+        logger.error('Failed to refresh dashboard', err);
+      }
     }
     setRefreshing(false);
-  };
-
-  const openJobPosting = () => {
-    navigation.navigate('JobsTab', { screen: 'JobPosting' });
-  };
-
-  const openServiceRequest = (params?: Record<string, unknown>) => {
-    navigation.getParent?.()?.navigate('Modal', {
-      screen: 'ServiceRequest',
-      params,
-    });
   };
 
   const openJobsList = () => {
@@ -137,9 +141,9 @@ export const HomeownerDashboard: React.FC = () => {
   const userInitial = userName[0].toUpperCase();
 
   return (
-    <View style={styles.container}>
-      {/* Clean white top bar - Airbnb style */}
-      <View style={styles.topBar}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      {/* Clean top bar - Web dashboard style */}
+      <View style={[styles.topBar, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity
           style={styles.brandButton}
           onPress={() => navigation.navigate('HomeTab' as never)}
@@ -147,27 +151,26 @@ export const HomeownerDashboard: React.FC = () => {
           accessibilityLabel="Mintenance home"
         >
           <Image source={appIcon} style={styles.brandIcon} />
-          <View>
-            <Text style={styles.brandText}>Mintenance</Text>
-            <Text style={styles.brandSubtext}>Welcome back, {userName.toLowerCase()}!</Text>
-          </View>
+          <Text style={styles.brandText}>Mintenance</Text>
         </TouchableOpacity>
 
         <View style={styles.rightActions}>
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={() => navigation.getParent?.()?.navigate('Modal', { screen: 'Notifications' })}
+            onPress={() => (navigation as any).navigate('Modal', { screen: 'Notifications' })}
             accessibilityRole="button"
             accessibilityLabel="Notifications"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="notifications-outline" size={22} color={theme.colors.textSecondary} />
+            <View style={styles.notificationCircle}>
+              <Ionicons name="notifications-outline" size={20} color={theme.colors.textPrimary} />
+            </View>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.profileButton}
-            onPress={() => navigation.navigate('ProfileTab' as never)}
+            onPress={() => setShowProfileMenu(true)}
             accessibilityRole="button"
-            accessibilityLabel="Open profile"
+            accessibilityLabel="Open quick menu"
           >
             <View style={styles.profileAvatar}>
               <Text style={styles.profileAvatarText}>{userInitial}</Text>
@@ -176,6 +179,52 @@ export const HomeownerDashboard: React.FC = () => {
         </View>
       </View>
 
+      {/* Profile dropdown menu */}
+      <Modal
+        visible={showProfileMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowProfileMenu(false)}
+      >
+        <Pressable style={styles.dropdownOverlay} onPress={() => setShowProfileMenu(false)}>
+          <Pressable style={styles.dropdownMenu}>
+            {([
+              { label: 'Properties', icon: 'home-outline' as const, color: theme.colors.primary, onPress: () => navigation.navigate('ProfileTab', { screen: 'Properties' }) },
+              { label: 'Messages', icon: 'chatbubble-outline' as const, color: '#3B82F6', onPress: () => navigation.navigate('MessagingTab' as never) },
+              { label: 'Payments', icon: 'card-outline' as const, color: '#F59E0B', onPress: () => navigation.navigate('ProfileTab', { screen: 'PaymentMethods' }) },
+              { label: 'Settings', icon: 'settings-outline' as const, color: '#8B5CF6', onPress: () => navigation.navigate('ProfileTab' as never) },
+            ]).map((item) => (
+              <TouchableOpacity
+                key={item.label}
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setShowProfileMenu(false);
+                  item.onPress();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+              >
+                <Ionicons name={item.icon} size={20} color={item.color} />
+                <Text style={styles.dropdownItemText}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setShowProfileMenu(false);
+                navigation.navigate('ProfileTab' as never);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="View profile"
+            >
+              <Ionicons name="person-outline" size={20} color={theme.colors.textSecondary} />
+              <Text style={styles.dropdownItemText}>View Profile</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         testID='home-scroll-view'
@@ -183,12 +232,17 @@ export const HomeownerDashboard: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
       >
-        <WelcomeBanner user={user} onSearchPress={openServiceRequest} />
+        {/* Welcome greeting */}
+        <View style={styles.welcomeRow}>
+          <Text style={[styles.welcomeGreeting, { color: theme.colors.textSecondary }]}>
+            Welcome back, {userName}
+          </Text>
+        </View>
 
         <View style={styles.homeownerContent}>
           <StatsCards
-            activeJobs={homeownerJobs.filter((j: any) => j?.status === 'in_progress' || j?.status === 'assigned').length}
-            completedJobs={homeownerJobs.filter((j: any) => j?.status === 'completed').length}
+            activeJobs={homeownerJobs.filter((j) => j?.status === 'in_progress' || j?.status === 'assigned').length}
+            completedJobs={homeownerJobs.filter((j) => j?.status === 'completed').length}
           />
 
           <BidsReceived
@@ -202,10 +256,31 @@ export const HomeownerDashboard: React.FC = () => {
             }}
           />
 
-          <QuickServices
-            onServicePress={openServiceRequest}
-            onBrowseAllPress={openJobPosting}
-          />
+          {/* Upcoming Appointments */}
+          {(appointments && appointments.length > 0) && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+              </View>
+              {appointments.slice(0, 3).map((apt) => (
+                <View key={apt.id} style={styles.appointmentCard}>
+                  <View style={styles.appointmentIcon}>
+                    <Ionicons name="calendar" size={18} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.appointmentInfo}>
+                    <Text style={styles.appointmentTitle} numberOfLines={1}>{apt.title}</Text>
+                    <Text style={styles.appointmentMeta}>
+                      {new Date(apt.date + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      {apt.time ? ` at ${apt.time.slice(0, 5)}` : ''}
+                    </Text>
+                    {apt.contractor && (
+                      <Text style={styles.appointmentContractor}>with {apt.contractor.name}</Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
 
           <RecentJobs
             jobs={homeownerJobs}
@@ -229,7 +304,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 8,
+    paddingBottom: 10,
     backgroundColor: theme.colors.background,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderLight,
@@ -240,24 +315,20 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   brandIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
   },
   brandText: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-    lineHeight: 34,
-  },
-  brandSubtext: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E3A5F',
+    letterSpacing: -0.3,
   },
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
   profileButton: {
     minHeight: 44,
@@ -266,15 +337,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profileAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: theme.colors.textPrimary,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   profileAvatarText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textInverse,
   },
@@ -284,10 +355,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  notificationCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  welcomeRow: {
+    paddingHorizontal: 24,
+    paddingTop: 16,
+  },
+  welcomeGreeting: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+  },
   homeownerContent: {
     paddingHorizontal: 24,
     backgroundColor: theme.colors.background,
-    paddingTop: 24,
+    paddingTop: 20,
+  },
+  dropdownOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 70,
+    paddingRight: 16,
+  },
+  dropdownMenu: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 14,
+    paddingVertical: 8,
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+  },
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: theme.colors.borderLight,
+    marginVertical: 4,
   },
   errorContainer: {
     flex: 1,
@@ -314,5 +438,57 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Sections
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  // Appointments
+  appointmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    ...theme.shadows.sm,
+  },
+  appointmentIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  appointmentInfo: {
+    flex: 1,
+  },
+  appointmentTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  appointmentMeta: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+  },
+  appointmentContractor: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    marginTop: 2,
   },
 });

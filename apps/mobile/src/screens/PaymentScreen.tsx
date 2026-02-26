@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { theme } from '../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
 import { useAuth } from '../contexts/AuthContext';
@@ -40,6 +41,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   navigation,
 }) => {
   const { user } = useAuth();
+  const rootNavigation = useNavigation();
   const { jobId, amount, contractorId, jobTitle, useEscrow = true } = route.params;
 
   const payment = usePayment({
@@ -79,7 +81,13 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           <Text style={styles.sectionTitle}>Payment Method</Text>
 
           {payment.paymentMethods.length === 0 ? (
-            <TouchableOpacity style={styles.addMethodButton}>
+            <TouchableOpacity
+              style={styles.addMethodButton}
+              onPress={() => {
+                (rootNavigation as unknown as { navigate: (screen: string, params?: Record<string, unknown>) => void })
+                  .navigate('Main', { screen: 'ProfileTab', params: { screen: 'AddPaymentMethod' } });
+              }}
+            >
               <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
               <Text style={styles.addMethodText}>Add Payment Method</Text>
             </TouchableOpacity>
@@ -110,7 +118,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             <>
               <Ionicons name="card-outline" size={20} color={theme.colors.textInverse} />
               <Text style={styles.paymentButtonText}>
-                Pay ${payment.totalAmount.toFixed(2)}
+                Pay {'\u00A3'}{payment.totalAmount.toFixed(2)}
               </Text>
             </>
           )}

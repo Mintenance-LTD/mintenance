@@ -36,10 +36,9 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
         <View style={styles.header}>
           <Text style={styles.title}>Bids Received</Text>
         </View>
-        <View style={styles.emptyCard}>
-          <Ionicons name='mail-open-outline' size={20} color={theme.colors.textSecondary} />
-          <Text style={styles.emptyText}>No bids yet</Text>
-          <Text style={styles.emptySubtext}>When contractors bid on your job, they will appear here.</Text>
+        <View style={styles.emptyInline}>
+          <Ionicons name='mail-open-outline' size={16} color={theme.colors.textTertiary} />
+          <Text style={styles.emptyInlineText}>No bids yet</Text>
           {onViewAllPress ? (
             <TouchableOpacity onPress={onViewAllPress} accessibilityRole='button' accessibilityLabel='View your posted jobs'>
               <Text style={styles.emptyLink}>View jobs</Text>
@@ -118,20 +117,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     ...theme.shadows.sm,
   },
-  emptyCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    ...theme.shadows.sm,
-    gap: 6,
+  emptyInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 10,
   },
-  emptyText: {
+  emptyInlineText: {
+    flex: 1,
     fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  emptySubtext: {
-    fontSize: 13,
     color: theme.colors.textSecondary,
   },
   emptyLink: {

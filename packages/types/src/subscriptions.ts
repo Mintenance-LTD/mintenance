@@ -1,11 +1,22 @@
-// Subscription types for scheduling/maintenance
+// Subscription matching DB: public.subscriptions
+export type SubscriptionStatus = 'active' | 'past_due' | 'cancelled' | 'trialing' | 'incomplete';
+
 export interface Subscription {
   id: string;
-  name?: string;
-  next_billing_date: string | null;
-  status: string;
+  user_id: string;
+  plan_type: 'free' | 'basic' | 'professional' | 'enterprise';
+  stripe_subscription_id?: string;
+  stripe_customer_id?: string;
+  status: SubscriptionStatus;
+  current_period_start?: string;
+  current_period_end?: string;
+  cancel_at_period_end?: boolean;
+  cancelled_at?: string;
   created_at: string;
-  user_id?: string;
+  updated_at: string;
+  // Legacy fields for backward compat
+  name?: string;
+  next_billing_date?: string | null;
 }
 
 /**

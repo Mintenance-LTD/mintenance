@@ -14,7 +14,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
   currentUserId,
   onClick,
 }) => {
-  const otherParticipant = conversation.participants.find(
+  const otherParticipant = (conversation.participants || []).find(
     (p: { id: string }) => p.id !== currentUserId
   ) as { id: string; name: string; role: string; profile_image_url?: string } | undefined;
 
@@ -49,28 +49,10 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
             <Paperclip size={14} /> File
           </span>
         );
-      case 'video_call_invitation':
+      case 'system':
         return (
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Phone size={14} /> Video call invitation
-          </span>
-        );
-      case 'video_call_started':
-        return (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Video size={14} /> Video call started
-          </span>
-        );
-      case 'video_call_ended':
-        return (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Phone size={14} /> Call ended
-          </span>
-        );
-      case 'video_call_missed':
-        return (
-          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Phone size={14} /> Missed call
+            <Phone size={14} /> System message
           </span>
         );
       default:
@@ -183,7 +165,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
             {formatTimeAgo(conversation.lastMessage.createdAt)}
           </span>
         )}
-        {conversation.unreadCount > 0 && (
+        {(conversation.unreadCount ?? 0) > 0 && (
           <div
             style={{
               backgroundColor: '#14b8a6',
@@ -199,7 +181,7 @@ export const ConversationCard: React.FC<ConversationCardProps> = ({
               padding: '0 8px',
             }}
           >
-            {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+            {(conversation.unreadCount ?? 0) > 99 ? '99+' : conversation.unreadCount}
           </div>
         )}
       </div>

@@ -3,14 +3,13 @@
  * Handles payment initiation for contractor invoices
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
-import { requireCSRF } from '@/lib/csrf';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Payment initiation schema
 const initiatePaymentSchema = z.object({
@@ -20,9 +19,11 @@ const initiatePaymentSchema = z.object({
 });
 
 // Create Stripe payment intent for invoice
-async function createPaymentIntent(invoice: { id: string; contractor_id: string; total_amount: number; invoice_number: string; title: string; client_email: string; job_id?: string; status: string }, payerId: string) {
+async function createPaymentIntent(
+  invoice: { id: string; contractor_id: string; total_amount: number; invoice_number: string; title: string; client_email: string; job_id?: string; status: string },
+  payerId: string
+) {
   try {
-    // Get contractor's Stripe Connect account
     const { data: contractor } = await serverSupabase
       .from('profiles')
       .select('stripe_connect_account_id, email, company_name')
@@ -33,12 +34,10 @@ async function createPaymentIntent(invoice: { id: string; contractor_id: string;
       throw new Error('Contractor has not set up payment processing');
     }
 
-    // Calculate platform fee (e.g., 5%)
     const platformFeePercent = 5;
     const amountCents = Math.round(invoice.total_amount * 100);
     const platformFeeCents = Math.round(amountCents * (platformFeePercent / 100));
 
-    // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
       currency: 'gbp',
@@ -59,7 +58,6 @@ async function createPaymentIntent(invoice: { id: string; contractor_id: string;
     });
 
     return paymentIntent;
-
   } catch (error) {
     logger.error('Error creating payment intent', error);
     throw error;
@@ -67,7 +65,11 @@ async function createPaymentIntent(invoice: { id: string; contractor_id: string;
 }
 
 // Create escrow transaction for invoice payment
-async function createEscrowTransaction(invoice: { id: string; contractor_id: string; total_amount: number; invoice_number: string; title: string; client_email: string; job_id?: string; status: string }, payerId: string, paymentIntentId: string) {
+async function createEscrowTransaction(
+  invoice: { id: string; contractor_id: string; total_amount: number; invoice_number: string; title: string; client_email: string; job_id?: string; status: string },
+  payerId: string,
+  paymentIntentId: string
+) {
   const escrowData = {
     job_id: invoice.job_id,
     payer_id: payerId,
@@ -99,45 +101,27 @@ async function createEscrowTransaction(invoice: { id: string; contractor_id: str
   return escrow;
 }
 
-// POST: Initiate payment for invoice
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
+/**
+ * POST /api/contractor/invoices/pay
+ * Initiate payment for invoice
+ */
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     // Parse and validate request
-    const body = await request.json();
-    const validatedData = initiatePaymentSchema.parse(body);
+    let validatedData;
+    try {
+      const body = await request.json();
+      validatedData = initiatePaymentSchema.parse(body);
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: 'Invalid request data', details: e.errors },
+          { status: 400 }
+        );
+      }
+      throw e;
+    }
 
     // Fetch invoice details
     const { data: invoice, error: invoiceError } = await serverSupabase
@@ -155,64 +139,40 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (invoiceError || !invoice) {
-      return NextResponse.json(
-        { error: 'Invoice not found' },
-        { status: 404 }
-      );
+      throw new NotFoundError('Invoice');
     }
 
-    // Check invoice status
     if (invoice.status === 'paid') {
-      return NextResponse.json(
-        { error: 'Invoice has already been paid' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invoice has already been paid');
     }
-
     if (invoice.status === 'cancelled') {
-      return NextResponse.json(
-        { error: 'Invoice has been cancelled' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invoice has been cancelled');
     }
 
-    // Verify user is authorized to pay (either the client or a homeowner for the job)
+    // Verify user is authorized to pay
     let authorized = false;
-
-    // Check if user email matches client email
     if (user.email === invoice.client_email) {
       authorized = true;
     }
-
-    // Check if user is the homeowner for the linked job
     if (invoice.job_id) {
       const { data: job } = await serverSupabase
         .from('jobs')
         .select('homeowner_id')
         .eq('id', invoice.job_id)
         .single();
-
       if (job && job.homeowner_id === user.id) {
         authorized = true;
       }
     }
-
     if (!authorized) {
-      return NextResponse.json(
-        { error: 'You are not authorized to pay this invoice' },
-        { status: 403 }
-      );
+      throw new ForbiddenError('You are not authorized to pay this invoice');
     }
 
     // Create Stripe payment intent
     const paymentIntent = await createPaymentIntent(invoice, user.id);
 
     // Create escrow transaction
-    const escrow = await createEscrowTransaction(
-      invoice,
-      user.id,
-      paymentIntent.id
-    );
+    const escrow = await createEscrowTransaction(invoice, user.id, paymentIntent.id);
 
     // Create payment record
     const { data: payment, error: paymentError } = await serverSupabase
@@ -228,19 +188,18 @@ export async function POST(request: NextRequest) {
         stripe_payment_intent_id: paymentIntent.id,
         status: 'pending',
         description: `Payment for invoice ${invoice.invoice_number}`,
-        platform_fee: invoice.total_amount * 0.05, // 5% platform fee
-        processing_fee: invoice.total_amount * 0.029 + 0.30, // Stripe fee estimate
-        net_amount: invoice.total_amount * 0.921 - 0.30, // After fees
+        platform_fee: invoice.total_amount * 0.05,
+        processing_fee: invoice.total_amount * 0.029 + 0.30,
+        net_amount: invoice.total_amount * 0.921 - 0.30,
       })
       .select()
       .single();
 
     if (paymentError) {
       logger.error('Error creating payment record', paymentError);
-      // Continue anyway - payment intent exists
     }
 
-    // Update invoice status to indicate payment initiated
+    // Update invoice status
     await serverSupabase
       .from('contractor_invoices')
       .update({
@@ -271,7 +230,6 @@ export async function POST(request: NextRequest) {
       payerId: user.id,
     });
 
-    // Return payment details for client to complete
     return NextResponse.json({
       success: true,
       paymentIntent: {
@@ -280,14 +238,8 @@ export async function POST(request: NextRequest) {
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
       },
-      escrow: {
-        id: escrow.id,
-        status: escrow.status,
-      },
-      payment: payment ? {
-        id: payment.id,
-        status: payment.status,
-      } : null,
+      escrow: { id: escrow.id, status: escrow.status },
+      payment: payment ? { id: payment.id, status: payment.status } : null,
       invoice: {
         id: invoice.id,
         number: invoice.invoice_number,
@@ -295,65 +247,21 @@ export async function POST(request: NextRequest) {
       },
       redirectUrl: validatedData.returnUrl || `/payments/${payment?.id || paymentIntent.id}/confirm`,
     });
-
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      );
-    }
-
-    logger.error('Unexpected error initiating payment', error);
-    return NextResponse.json(
-      { error: 'Failed to initiate payment' },
-      { status: 500 }
-    );
   }
-}
+);
 
-// GET: Check payment status
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
+/**
+ * GET /api/contractor/invoices/pay
+ * Check payment status
+ */
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const paymentIntentId = searchParams.get('payment_intent');
 
     if (!paymentIntentId) {
-      return NextResponse.json(
-        { error: 'Payment intent ID required' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Payment intent ID required');
     }
 
     // Fetch payment intent from Stripe
@@ -383,7 +291,6 @@ export async function GET(request: NextRequest) {
         })
         .eq('id', payment.id);
 
-      // If payment succeeded, update invoice
       if (paymentIntent.status === 'succeeded') {
         await serverSupabase
           .from('contractor_invoices')
@@ -394,7 +301,6 @@ export async function GET(request: NextRequest) {
           })
           .eq('id', payment.invoice_id);
 
-        // Update escrow status
         await serverSupabase
           .from('escrow_transactions')
           .update({
@@ -418,12 +324,5 @@ export async function GET(request: NextRequest) {
         invoice: payment.invoice,
       } : null,
     });
-
-  } catch (error) {
-    logger.error('Error checking payment status', error);
-    return NextResponse.json(
-      { error: 'Failed to check payment status' },
-      { status: 500 }
-    );
   }
-}
+);

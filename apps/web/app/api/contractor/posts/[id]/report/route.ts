@@ -1,62 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const reportPostSchema = z.object({
   reason: z.string().min(1).max(500),
 });
 
-const supabase = serverSupabase;
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-    const { id } = await params;
-    const user = await getCurrentUserFromCookies();
-    
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const postId = id;
+/**
+ * POST /api/contractor/posts/[id]/report - report a post for moderation.
+ */
+export const POST = withApiHandler(
+  { roles: ['contractor'] },
+  async (request, { user, params }) => {
+    const postId = params.id;
     const validation = await validateRequest(request, reportPostSchema);
     if (validation instanceof NextResponse) return validation;
     const { reason } = validation.data;
 
     // Verify post exists
-    const { data: post, error: postError } = await supabase
+    const { data: post, error: postError } = await serverSupabase
       .from('contractor_posts')
       .select('id, contractor_id')
       .eq('id', postId)
@@ -66,18 +32,13 @@ export async function POST(
       throw new NotFoundError('Post not found');
     }
 
-    // Don't allow users to report their own posts
     if (post.contractor_id === user.id) {
       throw new BadRequestError('You cannot report your own post');
     }
 
-    // Flag the post
-    const { error: flagError } = await supabase
+    const { error: flagError } = await serverSupabase
       .from('contractor_posts')
-      .update({
-        is_flagged: true,
-        flagged_reason: reason || 'Reported by user',
-      })
+      .update({ is_flagged: true, flagged_reason: reason || 'Reported by user' })
       .eq('id', postId);
 
     if (flagError) {
@@ -89,14 +50,8 @@ export async function POST(
       throw new InternalServerError('Failed to report post');
     }
 
-    return NextResponse.json({ 
-      message: 'Post reported successfully. It will be reviewed by moderators.' 
+    return NextResponse.json({
+      message: 'Post reported successfully. It will be reviewed by moderators.',
     });
-  } catch (error) {
-    logger.error('Error in POST /api/contractor/posts/[id]/report', error, {
-      service: 'contractor_posts',
-    });
-    throw new InternalServerError('Internal server error');
-  }
-}
-
+  },
+);

@@ -1,68 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
-import { HomeownerSubscriptionService } from '@/lib/services/subscription/HomeownerSubscriptionService';
+import { HomeownerSubscriptionService, type HomeownerPlanType } from '@/lib/services/subscription/HomeownerSubscriptionService';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf-validator';
-import { handleAPIError, UnauthorizedError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { createSubscriptionSchema } from '@/lib/validation/schemas';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Validate CSRF
-    if (!(await requireCSRF(request))) {
-      throw new ForbiddenError('CSRF token validation failed');
-    }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user || (user.role !== 'contractor' && user.role !== 'homeowner')) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+export const POST = withApiHandler(
+  { roles: ['contractor', 'homeowner'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     // Validate and sanitize input using Zod schema
-    const validationResult = await validateRequest(request, createSubscriptionSchema);
+    const validationResult = await validateRequest(request as never, createSubscriptionSchema);
     if (validationResult instanceof NextResponse) return validationResult;
     const { data: validatedData } = validationResult;
 
     const { planType, billingCycle } = validatedData;
 
-    // Homeowner premium flow
+    // Homeowner subscription flow (landlord / agency tiers)
     if (user.role === 'homeowner') {
-      if (planType !== 'premium') {
-        throw new BadRequestError('Homeowners can only subscribe to the premium plan');
+      if (planType !== 'landlord' && planType !== 'agency') {
+        throw new BadRequestError('Homeowners can subscribe to the landlord or agency plan');
       }
 
       const existing = await HomeownerSubscriptionService.getCurrentSubscription(user.id);
-      if (existing?.status === 'active' && existing.plan_type === 'premium') {
+      if (existing?.status === 'active' && existing.plan_type === planType) {
         return NextResponse.json({
           success: true,
-          message: 'You are already subscribed to homeowner premium',
+          message: `You are already subscribed to the ${planType} plan`,
           subscriptionId: existing.id,
           requiresPayment: false,
         });
@@ -73,9 +40,10 @@ export async function POST(request: NextRequest) {
         user.email
       );
 
-      const created = await HomeownerSubscriptionService.createPremiumSubscription(
+      const created = await HomeownerSubscriptionService.createSubscription(
         user.id,
         customerId,
+        planType as HomeownerPlanType,
         billingCycle || 'monthly'
       );
 
@@ -87,9 +55,10 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', user.id);
 
-      logger.info('Homeowner premium subscription created', {
+      logger.info('Homeowner subscription created', {
         service: 'subscriptions',
         homeownerId: user.id,
+        planType,
         stripeSubscriptionId: created.stripeSubscriptionId,
       });
 
@@ -104,16 +73,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Contractor flow
-    if (planType === 'premium') {
+    if (planType === 'landlord' || planType === 'agency') {
       throw new BadRequestError('Invalid contractor plan type');
     }
 
     // Check if user already has a subscription
     const existingSubscription = await SubscriptionService.getContractorSubscription(user.id);
-    
+
     // Handle free tier separately - no Stripe needed
     if (planType === 'free') {
-      // If already on free tier, return success
       if (existingSubscription?.planType === 'free' && existingSubscription.status === 'free') {
         return NextResponse.json({
           success: true,
@@ -173,7 +141,7 @@ export async function POST(request: NextRequest) {
         requiresPayment: false,
       });
     }
-    
+
     if (existingSubscription && existingSubscription.stripeSubscriptionId) {
       // Check the actual Stripe subscription status (more reliable than database status)
       let stripeSubscriptionStatus: string | null = null;
@@ -185,7 +153,7 @@ export async function POST(request: NextRequest) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
           apiVersion: '2024-04-10',
         });
-        
+
         const stripeSub = await stripe.subscriptions.retrieve(existingSubscription.stripeSubscriptionId);
         stripeSubscriptionStatus = stripeSub.status;
       } catch (stripeError) {
@@ -196,7 +164,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Use Stripe status if available, otherwise fall back to database status
       const effectiveStatus = stripeSubscriptionStatus || existingSubscription.status;
 
       // If user is trying to subscribe to the same plan and it's active, return error
@@ -213,11 +180,10 @@ export async function POST(request: NextRequest) {
           oldSubscriptionId: existingSubscription.stripeSubscriptionId,
           databaseStatus: existingSubscription.status,
           stripeStatus: stripeSubscriptionStatus,
-          effectiveStatus: effectiveStatus,
+          effectiveStatus,
         });
 
         try {
-          // Cancel the incomplete subscription in Stripe
           if (existingSubscription.stripeSubscriptionId) {
             const Stripe = (await import('stripe')).default;
             if (!process.env.STRIPE_SECRET_KEY) {
@@ -226,11 +192,10 @@ export async function POST(request: NextRequest) {
             const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
               apiVersion: '2024-04-10',
             });
-            
+
             try {
               await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
             } catch (cancelError) {
-              // Subscription might already be canceled, that's okay
               logger.warn('Subscription may already be canceled in Stripe', {
                 service: 'subscriptions',
                 subscriptionId: existingSubscription.stripeSubscriptionId,
@@ -238,8 +203,7 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          // IMPORTANT: Update database status to 'canceled' to release the unique constraint
-          // The unique constraint only applies to 'trial' and 'active' statuses
+          // Update database status to 'canceled' to release the unique constraint
           const { error: updateError } = await serverSupabase
             .from('contractor_subscriptions')
             .update({
@@ -255,7 +219,6 @@ export async function POST(request: NextRequest) {
               subscriptionId: existingSubscription.id,
               error: updateError.message,
             });
-            // Continue anyway - we'll try to handle it with upsert
           } else {
             logger.info('Marked old subscription as canceled in database', {
               service: 'subscriptions',
@@ -273,7 +236,7 @@ export async function POST(request: NextRequest) {
       } else if (existingSubscription.status === 'active' && existingSubscription.stripeSubscriptionId) {
         // Subscription is active and different plan - try to update it
         try {
-          const { subscriptionId, clientSecret, requiresPayment } = 
+          const { subscriptionId, clientSecret, requiresPayment } =
             await SubscriptionService.updateSubscriptionPlan(
               user.id,
               planType,
@@ -309,12 +272,10 @@ export async function POST(request: NextRequest) {
             stack: err instanceof Error ? err.stack : undefined,
           });
 
-          // Return more specific error message
           return NextResponse.json(
-            { 
+            {
               error: 'Failed to update subscription plan',
               details: errorMessage,
-              // Include helpful context for debugging
               debug: process.env.NODE_ENV === 'development' ? {
                 oldPlan: existingSubscription.planType,
                 newPlan: planType,
@@ -338,7 +299,6 @@ export async function POST(request: NextRequest) {
     let stripeCustomerId = userData?.stripe_customer_id;
 
     if (!stripeCustomerId) {
-      // Create Stripe customer
       const Stripe = (await import('stripe')).default;
       if (!process.env.STRIPE_SECRET_KEY) {
         throw new Error('STRIPE_SECRET_KEY not configured');
@@ -357,7 +317,6 @@ export async function POST(request: NextRequest) {
 
       stripeCustomerId = customer.id;
 
-      // Save customer ID
       await serverSupabase
         .from('profiles')
         .update({ stripe_customer_id: stripeCustomerId })
@@ -376,7 +335,6 @@ export async function POST(request: NextRequest) {
     );
 
     // Get Stripe price ID (only for paid plans)
-    // Note: planType is guaranteed to be a paid plan at this point (free tier handled above)
     let priceId = 'free-tier';
     const Stripe = (await import('stripe')).default;
     if (!process.env.STRIPE_SECRET_KEY) {
@@ -413,7 +371,5 @@ export async function POST(request: NextRequest) {
       clientSecret,
       requiresPayment: !!clientSecret,
     });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);

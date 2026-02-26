@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
@@ -51,7 +51,8 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <QuoteHeader
           projectTitle={viewModel.projectTitle}
           setProjectTitle={viewModel.setProjectTitle}
@@ -89,6 +90,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
           totalAmount={viewModel.totalAmount}
         />
       </ScrollView>
+      </KeyboardAvoidingView>
 
       <QuoteActions
         loading={viewModel.loading}

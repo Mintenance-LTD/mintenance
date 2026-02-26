@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
@@ -71,6 +72,38 @@ export const POST = withApiHandler(
       jobId,
       homeownerId: user.id,
     });
+
+    // Send notification to the contractor whose bid was rejected
+    try {
+      const { data: bidWithContractor } = await serverSupabase
+        .from('bids')
+        .select('contractor_id')
+        .eq('id', bidId)
+        .single();
+
+      if (bidWithContractor?.contractor_id) {
+        const { data: jobData } = await serverSupabase
+          .from('jobs')
+          .select('title')
+          .eq('id', jobId)
+          .single();
+
+        await NotificationService.createNotification({
+          userId: bidWithContractor.contractor_id,
+          title: 'Bid Not Selected',
+          message: `Your bid for "${jobData?.title || 'a job'}" was not selected. Keep bidding on other jobs to find your next project.`,
+          type: 'bid_rejected',
+          actionUrl: `/contractor/discover`,
+        });
+      }
+    } catch (notificationError) {
+      logger.error('Failed to send bid rejection notification', notificationError, {
+        service: 'jobs',
+        bidId,
+        jobId,
+      });
+      // Don't fail the request if notification fails
+    }
 
     return NextResponse.json({
       success: true,

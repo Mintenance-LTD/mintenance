@@ -15,7 +15,7 @@ import { BayesianFusionService } from './BayesianFusionService';
 import { SafetyAnalysisService } from './SafetyAnalysisService';
 import { ContextFeatureService } from './ContextFeatureService';
 import { ImageQualityService } from './ImageQualityService';
-import { ImageAnalysisService, type ImageAnalysisResult } from '@/lib/services/ImageAnalysisService';
+// Google Cloud Vision removed — GPT-4o handles visual analysis directly.
 import type { AssessmentContext, RoboflowDetection } from './types';
 import type { AITestResult, SafeLUCBResult } from './ab-test/ABTestTypes';
 import { DELTA_SAFETY } from './ab-test/ABTestConfig';
@@ -148,33 +148,9 @@ export class ABTestIntegration {
     const roboflowDetections = assessment.evidence?.roboflowDetections || [];
 
     // 3. Extract image quality metrics
-    // Get vision analysis from assessment evidence or re-analyze if needed
-    let visionAnalysis: ImageAnalysisResult | null = null;
-    const visionSummary = assessment.evidence?.visionAnalysis;
-    
-    if (visionSummary) {
-      // Convert VisionAnalysisSummary to ImageAnalysisResult format for ImageQualityService
-      visionAnalysis = {
-        labels: visionSummary.labels || [],
-        objects: visionSummary.objects || [],
-        text: [], // Not available in summary
-        detectedFeatures: visionSummary.detectedFeatures || [],
-        propertyType: visionSummary.propertyType,
-        condition: visionSummary.condition,
-        complexity: visionSummary.complexity,
-        suggestedCategories: visionSummary.suggestedCategories || [],
-        estimatedCostFactors: {
-          sizeMultiplier: 1.0,
-          complexityMultiplier: visionSummary.complexity === 'complex' ? 1.5 : visionSummary.complexity === 'moderate' ? 1.2 : 1.0,
-          conditionMultiplier: visionSummary.condition === 'poor' ? 1.5 : visionSummary.condition === 'fair' ? 1.2 : 1.0,
-        },
-        confidence: visionSummary.confidence,
-      };
-    } else {
-      // Try to get from ImageAnalysisService cache
-      visionAnalysis = await ImageAnalysisService.analyzePropertyImages(params.imageUrls, 1);
-    }
-    
+    // Google Vision removed — use VisionAnalysisSummary from evidence if available
+    const visionAnalysis = assessment.evidence?.visionAnalysis ?? null;
+
     const imageQuality = await ImageQualityService.getAverageQualityMetrics(
       params.imageUrls,
       visionAnalysis

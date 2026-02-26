@@ -429,7 +429,20 @@ export default function QuotesPage() {
 
       {/* Quotes Grid/List */}
       <AnimatePresence mode="wait">
-        {filteredQuotes.length === 0 ? (
+        {loading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center"
+          >
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-slate-600">Loading quotes...</span>
+            </div>
+          </motion.div>
+        ) : filteredQuotes.length === 0 ? (
           // Empty State
           <motion.div
             key="empty"

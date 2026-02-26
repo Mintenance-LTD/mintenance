@@ -12,6 +12,8 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import QueryProvider from './src/providers/QueryProvider';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
+import { ThemeProvider } from './src/design-system/theme';
+import { HapticService } from './src/utils/haptics';
 
 // ============================================================================
 // SPLASH SCREEN - prevent auto-hide so we control when it dismisses
@@ -70,7 +72,7 @@ export default function App(): React.JSX.Element {
     const initialize = async (): Promise<void> => {
       try {
         logger.info('Mintenance app initializing', { service: 'app' });
-        // Add real async init work here (fonts, feature flags, etc.)
+        await HapticService.initialize();
       } catch (error) {
         logger.error('Initialization error', error, { service: 'app' });
       } finally {
@@ -116,12 +118,14 @@ export default function App(): React.JSX.Element {
             merchantIdentifier="merchant.com.mintenance.app"
             urlScheme="mintenance"
           >
-            <QueryProvider>
-              <AuthProvider>
-                <AppNavigator />
-                <StatusBar style="auto" />
-              </AuthProvider>
-            </QueryProvider>
+            <ThemeProvider>
+              <QueryProvider>
+                <AuthProvider>
+                  <AppNavigator />
+                  <StatusBar style="auto" />
+                </AuthProvider>
+              </QueryProvider>
+            </ThemeProvider>
           </StripeProvider>
         </ErrorBoundary>
 

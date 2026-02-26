@@ -31,12 +31,12 @@ const COMPARISON_ROWS = [
   {
     feature: 'Contractor Matching',
     traditional: 'Manual search, cold calling',
-    mintenance: 'Swipe right to hire',
+    mintenance: 'Matched to verified local pros',
   },
   {
     feature: 'Payment Protection',
     traditional: 'Upfront payment (risky)',
-    mintenance: 'Escrow until completion',
+    mintenance: 'Protected until you approve',
   },
 ];
 

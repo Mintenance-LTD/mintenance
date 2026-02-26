@@ -1,7 +1,24 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Job } from '@mintenance/types';
-import { theme, getStatusColor, getPriorityColor } from '../theme';
+import { theme, getPriorityColor } from '../theme';
+
+// Soft-tint status badge colors (matching web UnifiedBadge)
+const STATUS_BADGE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  posted: { bg: '#EFF6FF', text: '#2563EB', border: '#BFDBFE' },
+  assigned: { bg: '#FEF3C7', text: '#B45309', border: '#FDE68A' },
+  in_progress: { bg: '#F0FDFA', text: '#0D9488', border: '#99F6E4' },
+  completed: { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' },
+  cancelled: { bg: '#F3F4F6', text: '#6B7280', border: '#E5E7EB' },
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  posted: 'Posted',
+  assigned: 'Assigned',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
 
 interface JobCardProps {
   job: Job;
@@ -17,10 +34,11 @@ export const JobCard: React.FC<JobCardProps> = ({
   showBidButton = false,
 }) => {
   const formatBudget = (amount: number) => {
-    return `$${Math.round(amount).toLocaleString()}`;
+    return `\u00A3${Math.round(amount).toLocaleString()}`;
   };
 
-  const statusColor = getStatusColor(job.status);
+  const badgeColors = STATUS_BADGE_COLORS[job.status] || STATUS_BADGE_COLORS.cancelled;
+  const statusLabel = STATUS_LABELS[job.status] || job.status;
   const priorityColor = job.priority
     ? getPriorityColor(job.priority)
     : theme.colors.textSecondary;
@@ -53,8 +71,13 @@ export const JobCard: React.FC<JobCardProps> = ({
           </Text>
         )}
 
-        <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-          <Text style={styles.statusText}>{job.status.toUpperCase()}</Text>
+        <View style={[
+          styles.statusBadge,
+          { backgroundColor: badgeColors.bg, borderColor: badgeColors.border },
+        ]}>
+          <Text style={[styles.statusText, { color: badgeColors.text }]}>
+            {statusLabel}
+          </Text>
         </View>
       </View>
 
@@ -132,12 +155,12 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: theme.spacing[2],
     paddingVertical: theme.spacing[1],
-    borderRadius: theme.borderRadius.sm,
+    borderRadius: theme.borderRadius.base,
+    borderWidth: 1,
   },
   statusText: {
-    color: theme.colors.textInverse,
     fontSize: theme.typography.fontSize.xs,
-    fontWeight: theme.typography.fontWeight.semibold,
+    fontWeight: theme.typography.fontWeight.medium,
   },
   photoIndicator: {
     marginTop: theme.spacing[2],

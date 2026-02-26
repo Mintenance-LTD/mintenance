@@ -71,18 +71,18 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   // Travel tracking hook (for contractors)
   const travelTracking = useJobTravelTracking({
     meetingId,
-    jobId: meeting?.jobId,
-    destination: meeting?.location
+    jobId: meeting?.job_id,
+    destination: meeting?.latitude && meeting?.longitude
       ? {
-          latitude: meeting.location.latitude,
-          longitude: meeting.location.longitude,
+          latitude: meeting.latitude,
+          longitude: meeting.longitude,
         }
       : { latitude: 0, longitude: 0 },
     onLocationUpdate: (location) => {
       // Update contractor location state when tracking
       setContractorLocation({
         id: 'tracking',
-        contractorId: meeting?.contractorId || '',
+        contractorId: meeting?.contractor_id || '',
         latitude: location.latitude,
         longitude: location.longitude,
         accuracy: 10,
@@ -190,12 +190,12 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleMessageContractor = () => {
-    if (meeting?.jobId) {
+    if (meeting?.job_id) {
       navigation.navigate('MessagingTab' as never, {
         screen: 'Messaging',
         params: {
-          conversationId: meeting.jobId,
-          recipientId: meeting.contractorId,
+          conversationId: meeting.job_id,
+          recipientId: meeting.contractor_id,
         },
       } as never);
     }
@@ -210,8 +210,8 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         {
           text: 'Reschedule',
           onPress: () => navigation.navigate('MeetingSchedule', {
-            contractorId: meeting?.contractorId,
-            jobId: meeting?.jobId,
+            contractorId: meeting?.contractor_id,
+            jobId: meeting?.job_id,
             rescheduleMeetingId: meetingId,
           }),
         },

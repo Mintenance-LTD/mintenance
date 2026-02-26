@@ -1,13 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
-import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
 
 /** Type for escrow with job relation from Supabase (!inner join returns jobs as array) */
 interface EscrowJob {
@@ -33,40 +30,9 @@ const verifyPhotosSchema = z.object({
  * POST /api/escrow/verify-photos
  * Verify completion photos for escrow release
  */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
-    await requireCSRF(request);
-// Authenticate user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    // Validate request
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user }) => {
     const validation = await validateRequest(request, verifyPhotosSchema);
     if ('headers' in validation) {
       return validation;
@@ -112,11 +78,5 @@ export async function POST(request: NextRequest) {
       success: true,
       verification: verificationResult,
     });
-  } catch (error) {
-    logger.error('Error verifying escrow photos', error, {
-      service: 'escrow-verify-photos',
-    });
-    throw new InternalServerError('Internal server error');
   }
-}
-
+);

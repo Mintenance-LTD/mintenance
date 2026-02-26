@@ -1,14 +1,16 @@
 /**
  * ContractorProfile ViewModel
- * 
+ *
  * Business logic for contractor profile management.
- * Handles profile data, tabs, and user interactions.
- * 
+ * Fetches real contractor data from the API.
+ *
  * @filesize Target: <150 lines
  * @compliance MVVM - Business logic only
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { Share, Linking, Alert } from 'react-native';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { logger } from '../../../utils/logger';
 
 export interface Review {
@@ -29,9 +31,17 @@ export interface ContractorProfileState {
     jobsCompleted: number;
     rating: number;
     reviews: number;
+    bio?: string;
+    skills?: string[];
+    hourlyRate?: number;
+    verified?: boolean;
+    companyName?: string;
+    phone?: string;
   };
   photos: string[];
   reviews: Review[];
+  loading: boolean;
+  error: string | null;
 }
 
 export interface ContractorProfileActions {
@@ -41,85 +51,165 @@ export interface ContractorProfileActions {
   handleVideo: () => void;
   handleShare: () => void;
   handleAddPhoto: () => void;
+  refresh: () => Promise<void>;
 }
 
 export interface ContractorProfileViewModel extends ContractorProfileState, ContractorProfileActions {}
 
-/**
- * Custom hook providing Contractor Profile screen logic
- */
+interface ApiContractor {
+  id: string;
+  name: string;
+  company_name?: string;
+  city?: string;
+  bio?: string;
+  rating: number;
+  reviewCount: number;
+  total_jobs_completed: number;
+  skills?: string[];
+  hourly_rate?: number;
+  verified?: boolean;
+  phone?: string;
+  portfolio_images?: string[];
+}
+
+interface ApiReview {
+  id: string;
+  reviewer_name?: string;
+  rating: number;
+  comment?: string;
+  created_at: string;
+}
+
+const DEFAULT_CONTRACTOR: ContractorProfileState['contractor'] = {
+  id: '',
+  name: 'Loading...',
+  location: '',
+  jobsCompleted: 0,
+  rating: 0,
+  reviews: 0,
+};
+
 export const useContractorProfileViewModel = (contractorId?: string): ContractorProfileViewModel => {
   const [activeTab, setActiveTab] = useState<'photos' | 'reviews'>('photos');
+  const [contractor, setContractor] = useState<ContractorProfileState['contractor']>(DEFAULT_CONTRACTOR);
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data (in production, fetch from API using contractorId)
-  const contractor = {
-    id: contractorId || '1',
-    name: 'Elite Plumbing Co.',
-    location: 'New York, NY',
-    jobsCompleted: 234,
-    rating: 4.8,
-    reviews: 189,
-  };
+  const fetchProfile = useCallback(async () => {
+    if (!contractorId) {
+      setError('No contractor ID provided');
+      setLoading(false);
+      return;
+    }
 
-  const photos: string[] = Array(6).fill('');
+    setLoading(true);
+    setError(null);
+    try {
+      const { contractor: data } = await mobileApiClient.get<{ contractor: ApiContractor }>(
+        `/api/contractors/${contractorId}`
+      );
 
-  const reviews: Review[] = [
-    {
-      id: '1',
-      reviewerName: 'John Smith',
-      rating: 5,
-      date: '2 days ago',
-      comment: 'Excellent work! Very professional and completed the job on time.',
-      photos: [],
-    },
-    {
-      id: '2',
-      reviewerName: 'Sarah Johnson',
-      rating: 4,
-      date: '1 week ago',
-      comment: 'Great service, would recommend to others.',
-      photos: [],
-    },
-  ];
+      setContractor({
+        id: data.id,
+        name: data.company_name || data.name,
+        location: data.city || '',
+        jobsCompleted: data.total_jobs_completed || 0,
+        rating: data.rating || 0,
+        reviews: data.reviewCount || 0,
+        bio: data.bio,
+        skills: data.skills,
+        hourlyRate: data.hourly_rate,
+        verified: data.verified,
+        companyName: data.company_name,
+        phone: data.phone,
+      });
+
+      setPhotos(data.portfolio_images || []);
+
+      // Fetch reviews
+      try {
+        const reviewsData = await mobileApiClient.get<{ reviews: ApiReview[] }>(
+          `/api/contractors/${contractorId}/reviews`
+        );
+        setReviews(
+          (reviewsData.reviews || []).map((r) => ({
+            id: r.id,
+            reviewerName: r.reviewer_name || 'Anonymous',
+            rating: r.rating,
+            date: new Date(r.created_at).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            }),
+            comment: r.comment || '',
+            photos: [],
+          }))
+        );
+      } catch (reviewErr) {
+        logger.warn('Failed to fetch reviews', reviewErr);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load profile';
+      setError(msg);
+      logger.error('Failed to fetch contractor profile', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [contractorId]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleMessage = useCallback(() => {
     logger.info('Message contractor', { contractorId: contractor.id });
-    // Navigate to messaging screen
+    // Navigation handled by screen container
   }, [contractor.id]);
 
   const handleCall = useCallback(() => {
-    logger.info('Call contractor', { contractorId: contractor.id });
-    // Initiate phone call
-  }, [contractor.id]);
+    if (contractor.phone) {
+      Linking.openURL(`tel:${contractor.phone}`).catch(() => {
+        Alert.alert('Error', 'Unable to make a phone call');
+      });
+    } else {
+      Alert.alert('No Phone Number', 'This contractor has not provided a phone number.');
+    }
+  }, [contractor.phone]);
 
   const handleVideo = useCallback(() => {
-    logger.info('Video call contractor', { contractorId: contractor.id });
-    // Start video call
-  }, [contractor.id]);
+    Alert.alert('Coming Soon', 'Video calls will be available in a future update.');
+  }, []);
 
-  const handleShare = useCallback(() => {
-    logger.info('Share contractor profile', { contractorId: contractor.id });
-    // Share profile
-  }, [contractor.id]);
+  const handleShare = useCallback(async () => {
+    try {
+      await Share.share({
+        message: `Check out ${contractor.name} on Mintenance!`,
+        title: contractor.name,
+      });
+    } catch (err) {
+      logger.error('Failed to share profile', err);
+    }
+  }, [contractor.name]);
 
   const handleAddPhoto = useCallback(() => {
     logger.info('Add photo to gallery', { contractorId: contractor.id });
-    // Open image picker
   }, [contractor.id]);
 
   return {
-    // State
     activeTab,
     contractor,
     photos,
     reviews,
-
-    // Actions
+    loading,
+    error,
     setActiveTab,
     handleMessage,
     handleCall,
     handleVideo,
     handleShare,
     handleAddPhoto,
+    refresh: fetchProfile,
   };
 };

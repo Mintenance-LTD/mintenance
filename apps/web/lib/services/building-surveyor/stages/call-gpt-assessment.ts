@@ -2,6 +2,7 @@ import { logger } from '@mintenance/shared';
 import { CostControlService } from '../../ai/CostControlService';
 import { getGeneratorContent } from '../generator/AssessmentGenerator';
 import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
+import { CircuitBreaker } from '../utils/CircuitBreaker';
 import { AI_ASSESSMENT_SCHEMA, type AiAssessmentPayload } from '../validation-schemas';
 import { buildSystemPrompt, buildUserPrompt } from '../prompt-builder';
 import { buildEvidenceSummary } from '../evidence-processor';
@@ -12,6 +13,16 @@ import type {
 } from '../types';
 
 const AGENT_NAME = 'building-surveyor';
+
+/** Use the same configurable model as the generator */
+const OPENAI_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-4o';
+
+// P1: Circuit breaker for GPT-4o API
+const gptCircuitBreaker = new CircuitBreaker({
+  name: 'GPT4o-Assessment',
+  failureThreshold: 3,
+  resetTimeoutMs: 300_000, // 5 minutes
+});
 
 /** Maximum time (ms) for the entire GPT assessment call including retries (Issue 38) */
 const GPT_ASSESSMENT_TIMEOUT_MS = 90_000;
@@ -71,9 +82,14 @@ export async function callGptAssessment(
     throw new Error('AI services are currently disabled due to emergency stop');
   }
 
+  // P1: Circuit breaker check
+  if (gptCircuitBreaker.isOpen()) {
+    throw new Error('GPT-4o circuit breaker is open — too many recent failures');
+  }
+
   // Budget check
   const estimatedTokens = 1500 + imagesToAnalyze.length * 500;
-  const estimatedCost = CostControlService.estimateCost('gpt-4o', {
+  const estimatedCost = CostControlService.estimateCost(OPENAI_MODEL, {
     inputTokens: estimatedTokens,
     outputTokens: 2000,
     images: imagesToAnalyze.length,
@@ -81,7 +97,7 @@ export async function callGptAssessment(
 
   const budgetCheck = await CostControlService.checkBudget({
     service: 'building-surveyor',
-    model: 'gpt-4o',
+    model: OPENAI_MODEL,
     estimatedCost,
   });
 
@@ -100,13 +116,20 @@ export async function callGptAssessment(
 
   // Call generator with timeout to prevent indefinite blocking (Issue 38)
   const gptStart = Date.now();
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error('AI assessment timed out after 90 seconds')), GPT_ASSESSMENT_TIMEOUT_MS),
-  );
-  const genResult = await Promise.race([
-    getGeneratorContent(messages, openaiApiKey),
-    timeoutPromise,
-  ]);
+  let genResult;
+  try {
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('AI assessment timed out after 90 seconds')), GPT_ASSESSMENT_TIMEOUT_MS),
+    );
+    genResult = await Promise.race([
+      getGeneratorContent(messages, openaiApiKey),
+      timeoutPromise,
+    ]);
+    gptCircuitBreaker.recordSuccess();
+  } catch (error) {
+    gptCircuitBreaker.recordFailure();
+    throw error;
+  }
   const gptDuration = Date.now() - gptStart;
 
   // Record usage

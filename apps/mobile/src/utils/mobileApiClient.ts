@@ -5,8 +5,9 @@
  * authentication token handling.
  */
 
-import { ApiClient, RequestOptions } from '@mintenance/api-client';
+import { ApiClient, RequestOptions, IApiError } from '@mintenance/api-client';
 import { supabase } from '../config/supabase';
+import { logger } from './logger';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -22,6 +23,8 @@ async function getAuthToken(): Promise<string | null> {
  * Mobile API Client instance with automatic auth token handling
  */
 class MobileApiClient extends ApiClient {
+  private isRefreshing = false;
+
   constructor() {
     super({
       baseURL: API_BASE_URL,
@@ -32,22 +35,68 @@ class MobileApiClient extends ApiClient {
   }
 
   /**
-   * Override request to automatically add auth token
+   * Override request to automatically add auth token and handle 401 with refresh
    */
   protected async request<T>(url: string, options: RequestOptions = {}): Promise<T> {
-    // Get auth token
     const token = await getAuthToken();
-    
-    // Add auth header if token exists
+
     const headers = {
       ...options.headers,
       ...(token && { Authorization: `Bearer ${token}` }),
     };
 
-    return super.request<T>(url, {
-      ...options,
-      headers,
+    try {
+      return await super.request<T>(url, { ...options, headers });
+    } catch (error) {
+      const apiError = error as IApiError;
+      if (apiError.statusCode === 401 && !this.isRefreshing) {
+        return this.handleTokenRefresh<T>(url, options);
+      }
+      throw error;
+    }
+  }
+
+  private async handleTokenRefresh<T>(url: string, options: RequestOptions): Promise<T> {
+    this.isRefreshing = true;
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error || !data.session) {
+        logger.warn('Session refresh failed, signing out');
+        await supabase.auth.signOut();
+        throw error || new Error('Session expired');
+      }
+
+      const newToken = data.session.access_token;
+      const headers = {
+        ...options.headers,
+        Authorization: `Bearer ${newToken}`,
+      };
+      return await super.request<T>(url, { ...options, headers });
+    } catch (refreshError) {
+      logger.error('Token refresh failed', refreshError);
+      throw refreshError;
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
+  /**
+   * POST with FormData (for file uploads)
+   */
+  async postFormData<T>(url: string, formData: FormData): Promise<T> {
+    const token = await getAuthToken();
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+    const response = await fetch(fullUrl, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
     });
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+    return response.json();
   }
 
   /**

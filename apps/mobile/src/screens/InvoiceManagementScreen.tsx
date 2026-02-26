@@ -74,7 +74,8 @@ export const InvoiceManagementScreen: React.FC<
       // Mark invoice as 'sent' to trigger reminder flow
       await FinancialManagementService.updateInvoiceStatus(
         selectedInvoice.id,
-        'sent'
+        'sent',
+        user.id
       );
       Alert.alert('Success', 'Reminder sent successfully');
       await loadInvoices();
@@ -98,7 +99,8 @@ export const InvoiceManagementScreen: React.FC<
             try {
               await FinancialManagementService.updateInvoiceStatus(
                 invoice.id,
-                'paid'
+                'paid',
+                user!.id
               );
               Alert.alert('Success', 'Invoice marked as paid');
               await loadInvoices();

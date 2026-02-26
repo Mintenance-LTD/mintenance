@@ -1,25 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { authManager } from '@/lib/auth-manager';
 import { checkLoginRateLimit, recordSuccessfulLogin, createRateLimitHeaders } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { loginSchema } from '@/lib/validation/schemas';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { MFAService } from '@/lib/mfa/mfa-service';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
+import { UnauthorizedError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Route segment config to ensure proper error handling
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Export route handler with comprehensive error handling
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-    // CSRF protection (throws ForbiddenError automatically)
-    await requireCSRF(request);
-    
-    // Rate limiting check
+/**
+ * POST /api/auth/login
+ * Authenticate user with email/password, handle MFA and trusted devices.
+ */
+export const POST = withApiHandler(
+  { auth: false, rateLimit: false },
+  async (request) => {
+    // Custom rate limiting (login-specific with fail-closed behavior)
     let rateLimitResult;
     try {
       rateLimitResult = await checkLoginRateLimit(request);
@@ -176,8 +177,5 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
 
     return response;
-
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

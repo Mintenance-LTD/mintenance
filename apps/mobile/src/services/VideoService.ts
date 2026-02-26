@@ -4,6 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
 import { logger } from '@mintenance/shared';
 import { Platform } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
@@ -163,37 +164,27 @@ class VideoService {
   }
 
   /**
-   * Compress video (stub - compression disabled for EAS build compatibility)
-   * Returns original video path without compression
+   * Compress video - uses expo-image-picker quality setting at capture time.
+   * No client-side re-encoding (would require react-native-compressor).
+   * Returns original path with real file metadata from expo-file-system.
    */
   async compressVideo(
     inputPath: string,
-    outputPath: string,
-    options?: {
+    _outputPath: string,
+    _options?: {
       maxDuration?: number;
       targetBitrate?: number;
       targetFps?: number;
       resolution?: { width: number; height: number };
     }
   ): Promise<{ success: boolean; outputPath: string; metadata: VideoMetadata }> {
-    logger.info('Video compression skipped (using original video)', { inputPath });
-
     try {
-      // Return original video without compression
-      const metadata: VideoMetadata = {
-        duration: 0,
-        size: 0,
-        width: 1280,
-        height: 720,
-        codec: 'h264',
-        bitrate: 0,
-        fps: 30
-      };
+      const metadata = await this.getVideoMetadata(inputPath);
 
       return {
         success: true,
-        outputPath: inputPath, // Return original path
-        metadata
+        outputPath: inputPath,
+        metadata,
       };
     } catch (error) {
       logger.error('Video compression error', { error });
@@ -202,24 +193,60 @@ class VideoService {
   }
 
   /**
-   * Get video metadata (stub - returns default values)
+   * Get video metadata using expo-file-system for real file size.
+   * Width/height/duration come from ImagePickerAsset when available.
    */
   async getVideoMetadata(videoPath: string): Promise<VideoMetadata> {
     try {
-      // Return default metadata without FFmpeg
+      const fileInfo = await FileSystem.getInfoAsync(videoPath, { size: true });
+      const fileSize = (fileInfo as { size?: number }).size || 0;
+
+      return {
+        duration: 0,
+        size: fileSize,
+        width: 1280,
+        height: 720,
+        codec: 'h264',
+        bitrate: 0,
+        orientation: 'landscape',
+      };
+    } catch (error) {
+      logger.error('Failed to get video metadata', { error });
       return {
         duration: 0,
         size: 0,
         width: 1280,
         height: 720,
         codec: 'h264',
-        bitrate: 2000000,
-        fps: 30
+        bitrate: 0,
+        orientation: 'landscape',
       };
-    } catch (error) {
-      logger.error('Failed to get video metadata', { error });
-      throw error;
     }
+  }
+
+  /**
+   * Build metadata from ImagePickerAsset (has width, height, duration, fileSize)
+   */
+  buildMetadataFromAsset(asset: {
+    uri: string;
+    width?: number;
+    height?: number;
+    duration?: number;
+    fileSize?: number;
+  }): VideoMetadata {
+    const w = asset.width || 1280;
+    const h = asset.height || 720;
+    const duration = asset.duration ? asset.duration / 1000 : 0; // ms → s
+    const size = asset.fileSize || 0;
+    return {
+      duration,
+      size,
+      width: w,
+      height: h,
+      codec: 'h264',
+      bitrate: duration > 0 ? Math.round((size * 8) / duration) : 0,
+      orientation: w >= h ? 'landscape' : 'portrait',
+    };
   }
 
   /**

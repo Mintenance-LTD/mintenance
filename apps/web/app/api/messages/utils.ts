@@ -73,24 +73,22 @@ export const mapActualMessageRow = (
   };
 };
 
-export const MESSAGE_TYPES = [
-  'text',
-  'image',
-  'file',
-  'video_call_invitation',
-  'video_call_started',
-  'video_call_ended',
-  'video_call_missed',
-  'contract_submitted',
-] as const;
+// Core message types matching DB constraint (used as Zod enum)
+export const MESSAGE_TYPES = ['text', 'image', 'file', 'system'] as const;
 
-type MessageType = (typeof MESSAGE_TYPES)[number];
+// Extended types that map to 'system' in the normalized output
+const SYSTEM_MESSAGE_TYPES = new Set([
+  'video_call_invitation', 'video_call_started', 'video_call_ended',
+  'video_call_missed', 'contract_submitted',
+]);
 
-const MESSAGE_TYPE_SET = new Set<string>(MESSAGE_TYPES);
+const CORE_SET = new Set<string>(MESSAGE_TYPES);
 
-export const normalizeMessageType = (value?: string | null): MessageType => {
+export const normalizeMessageType = (value?: string | null): 'text' | 'image' | 'file' | 'system' => {
   if (!value) return 'text';
-  return MESSAGE_TYPE_SET.has(value) ? (value as MessageType) : 'text';
+  if (CORE_SET.has(value)) return value as 'text' | 'image' | 'file' | 'system';
+  if (SYSTEM_MESSAGE_TYPES.has(value)) return 'system';
+  return 'text';
 };
 
 export const formatDisplayName = (person?: SupabasePerson | null, fallback?: { email?: string; company_name?: string }): string => {

@@ -219,7 +219,7 @@ export const useCreateQuoteViewModel = (
         template_id: selectedTemplate || null,
       };
 
-      await QuoteBuilderService.createQuote(quoteData);
+      await QuoteBuilderService.createQuote(user.id, quoteData);
       Alert.alert('Success', 'Quote saved successfully!');
       logger.info('Quote saved successfully', { quoteId: quoteData.job_id });
     } catch (error) {

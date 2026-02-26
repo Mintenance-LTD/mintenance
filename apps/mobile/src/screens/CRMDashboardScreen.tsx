@@ -16,7 +16,7 @@ import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  contractorBusinessSuite,
+  ContractorBusinessSuite,
   type ClientAnalytics,
 } from '../services/contractor-business';
 import { ClientCard, ClientData } from '../components/ClientCard';
@@ -52,10 +52,11 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     if (!user) return;
 
     try {
-      const analyticsData = await contractorBusinessSuite.getClientAnalytics(
-        user.id
-      );
-      setClients([]);
+      const [analyticsData, clientsData] = await Promise.all([
+        ContractorBusinessSuite.clients.getClientAnalytics(user.id),
+        ContractorBusinessSuite.clients.getClients(user.id),
+      ]);
+      setClients(clientsData?.clients || []);
       setAnalytics(analyticsData);
     } catch (error) {
       logger.error('Error loading CRM data', error);

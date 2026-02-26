@@ -1,99 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
- * Get contractors who viewed a job
- * GET /api/jobs/[id]/viewers
+ * GET /api/jobs/[id]/viewers - get contractors who viewed a job.
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+export const GET = withApiHandler({}, async (_request, { user, params }) => {
+  const jobId = params.id;
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
+  // Verify user owns the job
+  const { data: job, error: jobError } = await serverSupabase
+    .from('jobs')
+    .select('id, homeowner_id, contractor_id')
+    .eq('id', jobId)
+    .single();
+
+  if (jobError || !job) {
+    throw new NotFoundError('Job not found');
   }
 
-    const resolvedParams = await params;
-    const jobId = resolvedParams.id;
-    const user = await getCurrentUserFromCookies();
+  if (job.homeowner_id !== user.id) {
+    throw new ForbiddenError('Only the job owner can view job viewers');
+  }
 
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view job viewers');
-    }
-
-    // Verify user owns the job or is the contractor
-    const { data: job, error: jobError } = await serverSupabase
-      .from('jobs')
-      .select('id, homeowner_id, contractor_id')
-      .eq('id', jobId)
-      .single();
-
-    if (jobError || !job) {
-      throw new NotFoundError('Job not found');
-    }
-
-    // Only homeowner can see who viewed their job
-    if (job.homeowner_id !== user.id) {
-      throw new ForbiddenError('Only the job owner can view job viewers');
-    }
-
-    // Fetch viewers with contractor info
-    const { data: views, error: viewsError } = await serverSupabase
-      .from('job_views')
-      .select(`
+  const { data: views, error: viewsError } = await serverSupabase
+    .from('job_views')
+    .select(`
+      id,
+      contractor_id,
+      viewed_at,
+      contractor:profiles!job_views_contractor_id_fkey (
         id,
-        contractor_id,
-        viewed_at,
-        contractor:profiles!job_views_contractor_id_fkey (
-          id,
-          first_name,
-          last_name,
-          email,
-          phone,
-          profile_image_url,
-          location
-        )
-      `)
-      .eq('job_id', jobId)
-      .order('viewed_at', { ascending: false });
+        first_name,
+        last_name,
+        email,
+        phone,
+        profile_image_url,
+        location
+      )
+    `)
+    .eq('job_id', jobId)
+    .order('viewed_at', { ascending: false });
 
-    if (viewsError) {
-      logger.error('Error fetching viewers', viewsError, {
-        service: 'jobs',
-        jobId,
-        userId: user.id,
-      });
-      throw viewsError;
-    }
-
-    return NextResponse.json({
-      viewers: views || [],
+  if (viewsError) {
+    logger.error('Error fetching viewers', viewsError, {
+      service: 'jobs',
+      jobId,
+      userId: user.id,
     });
-  } catch (error) {
-    return handleAPIError(error);
+    throw viewsError;
   }
-}
 
+  return NextResponse.json({ viewers: views || [] });
+});

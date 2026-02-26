@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getUserFromRequest } from '@/lib/auth';
-import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
+import { ConflictError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Transform empty strings to undefined so optional validators work correctly
 const emptyToUndefined = z.literal('').transform(() => undefined);
@@ -24,36 +24,13 @@ const createAppointmentSchema = z.object({
   notes: z.string().max(5000).optional().or(emptyToUndefined),
 });
 
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getUserFromRequest(request);
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
-
+/**
+ * GET /api/contractor/appointments
+ * List contractor's upcoming appointments
+ */
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const daysAhead = parseInt(searchParams.get('daysAhead') || '30');
     const status = searchParams.get('status');
@@ -118,41 +95,16 @@ export async function GET(request: NextRequest) {
     })) || [];
 
     return NextResponse.json({ appointments: transformedAppointments });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getUserFromRequest(request);
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
-
+/**
+ * POST /api/contractor/appointments
+ * Create a new appointment
+ */
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const validation = await validateRequest(request, createAppointmentSchema);
     if (validation instanceof NextResponse) return validation;
     const {
@@ -177,7 +129,7 @@ export async function POST(request: NextRequest) {
         appt_date: appointmentDate,
         appt_start_time: startTime,
         appt_end_time: endTime,
-      }
+      },
     );
 
     if (conflictCheck) {
@@ -213,7 +165,6 @@ export async function POST(request: NextRequest) {
     // Notify homeowner if this appointment is linked to a job
     try {
       let homeownerId: string | null = null;
-      let jobTitle: string | null = null;
 
       if (jobId) {
         const { data: job } = await serverSupabase
@@ -222,7 +173,6 @@ export async function POST(request: NextRequest) {
           .eq('id', jobId)
           .single();
         homeownerId = job?.homeowner_id || null;
-        jobTitle = job?.title || null;
       }
 
       // Get contractor name for the notification
@@ -241,14 +191,12 @@ export async function POST(request: NextRequest) {
       const typeLabel = locationType === 'remote' ? 'video call' : locationType === 'phone' ? 'phone call' : 'on-site visit';
 
       if (homeownerId) {
-        await serverSupabase.from('notifications').insert({
-          user_id: homeownerId,
+        await NotificationService.createNotification({
+          userId: homeownerId,
           type: 'appointment_scheduled',
           title: 'Appointment Scheduled',
           message: `${contractorName} scheduled a ${typeLabel}: "${title}" on ${dateStr} at ${startTime}`,
-          data: { appointmentId: newAppointment.id, jobId, contractorId: user.id },
-          read: false,
-          created_at: new Date().toISOString(),
+          metadata: { appointmentId: newAppointment.id, jobId, contractorId: user.id },
         });
       }
     } catch (notifErr) {
@@ -257,7 +205,5 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ appointment: newAppointment }, { status: 201 });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);

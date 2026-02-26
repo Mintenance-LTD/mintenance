@@ -1,102 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { NoShowReminderService } from '@/lib/services/notifications/NoShowReminderService';
-import { PredictiveAgent } from '@/lib/services/agents/PredictiveAgent';
-import { SchedulingAgent } from '@/lib/services/agents/SchedulingAgent';
-import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger } from '@mintenance/shared';
-import { requireCronAuth } from '@/lib/cron-auth';
-import { handleAPIError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withCronHandler } from '@/lib/cron-handler';
+import { NoShowReminderCronService } from '@/lib/services/notifications/NoShowReminderCronService';
 
-// This endpoint should be called by a cron job (e.g., Vercel Cron, Supabase Cron)
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 1
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(1),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Verify cron secret
-    const authError = requireCronAuth(request);
-    if (authError) {
-      return authError;
-    }
-
-    // Check for no-shows
-    await NoShowReminderService.checkAndSendReminders();
-
-    // Send pre-start reminders
-    await NoShowReminderService.sendPreStartReminders();
-
-    // Run predictive risk analysis on assigned jobs
-    const { data: assignedJobs } = await serverSupabase
-      .from('jobs')
-      .select('id')
-      .eq('status', 'assigned');
-
-    if (assignedJobs && assignedJobs.length > 0) {
-      // Analyze up to 50 jobs per run to avoid timeout
-      const jobsToAnalyze = assignedJobs.slice(0, 50);
-      await Promise.allSettled(
-        jobsToAnalyze.map((job) =>
-          PredictiveAgent.analyzeJob(job.id).catch((error) => {
-            logger.error('Error analyzing job risk', error, {
-              service: 'cron',
-              jobId: job.id,
-            });
-          })
-        )
-      );
-    }
-
-    // Check for weather-based auto-rescheduling on outdoor jobs
-    const { data: outdoorJobs } = await serverSupabase
-      .from('jobs')
-      .select('id, category, location')
-      .eq('status', 'assigned')
-      .not('scheduled_start_date', 'is', null)
-      .not('location', 'is', null);
-
-    if (outdoorJobs && outdoorJobs.length > 0) {
-      // Filter to outdoor job categories
-      const outdoorCategories = ['roofing', 'gardening', 'landscaping', 'outdoor', 'exterior', 'painting', 'fencing'];
-      const actualOutdoorJobs = outdoorJobs.filter(job => 
-        job.category && outdoorCategories.some(cat => job.category?.toLowerCase().includes(cat.toLowerCase()))
-      );
-
-      // Check weather for up to 20 outdoor jobs per run
-      await Promise.allSettled(
-        actualOutdoorJobs.slice(0, 20).map((job) =>
-          SchedulingAgent.evaluateWeatherReschedule(job.id).catch((error) => {
-            logger.error('Error evaluating weather reschedule', error, {
-              service: 'cron',
-              jobId: job.id,
-            });
-          })
-        )
-      );
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
-
+/**
+ * Cron endpoint for no-show detection, pre-start reminders,
+ * predictive risk analysis, and weather-based rescheduling.
+ * Should be called every hour.
+ */
+export const GET = withCronHandler('no-show-reminders', async () => {
+  return await NoShowReminderCronService.runScheduledChecks();
+});

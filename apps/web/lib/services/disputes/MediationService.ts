@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 export type MediationStatus = 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 
@@ -16,7 +17,7 @@ export class MediationService {
   ): Promise<boolean> {
     try {
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           mediation_requested: true,
           mediation_requested_by: requestedBy,
@@ -36,14 +37,12 @@ export class MediationService {
       }
 
       // Notify admin
-      await serverSupabase.from('notifications').insert({
-        user_id: 'admin', // Would need actual admin user IDs
+      await NotificationService.createNotification({
+        userId: 'admin', // Would need actual admin user IDs
         title: 'Mediation Requested',
         message: `Mediation has been requested for dispute ${escrowId}`,
         type: 'mediation_request',
-        read: false,
-        action_url: `/admin/disputes/${escrowId}/mediation`,
-        created_at: new Date().toISOString(),
+        actionUrl: `/admin/disputes/${escrowId}/mediation`,
       });
 
       return true;
@@ -66,7 +65,7 @@ export class MediationService {
   ): Promise<boolean> {
     try {
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           mediation_scheduled_at: scheduledAt.toISOString(),
           mediation_mediator_id: mediatorId,
@@ -103,7 +102,7 @@ export class MediationService {
   ): Promise<boolean> {
     try {
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           mediation_status: 'completed',
           mediation_outcome: outcome,

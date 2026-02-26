@@ -43,7 +43,7 @@ const TESTIMONIALS: Testimonial[] = [
     role: 'Homeowner',
     location: 'Birmingham',
     quote:
-      'The escrow payment system gave me peace of mind. I knew my money was safe until the work was completed to my satisfaction. Brilliant platform!',
+      'The protected payment system gave me peace of mind. I knew my money was safe until the work was completed to my satisfaction. Brilliant!',
     badgeText: 'Verified',
     badgeColors: 'bg-teal-100 text-teal-700',
     delay: 0.3,

@@ -31,7 +31,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   subtitle,
 }) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
       <View style={styles.leftSection}>
         {showBackButton && onBackPress && (
           <TouchableOpacity
@@ -51,11 +51,11 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
       </View>
 
       <View style={styles.centerSection}>
-        <Text style={styles.title} numberOfLines={1} accessibilityRole='header'>
+        <Text style={[styles.title, { color: theme.colors.textPrimary }]} numberOfLines={1} accessibilityRole='header'>
           {title}
         </Text>
         {subtitle && (
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]} numberOfLines={1}>
             {subtitle}
           </Text>
         )}

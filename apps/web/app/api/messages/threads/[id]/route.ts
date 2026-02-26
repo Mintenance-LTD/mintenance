@@ -1,187 +1,152 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { MessageThread } from '@mintenance/types';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { isValidUUID } from '@/lib/validation/uuid';
-import { rateLimiter } from '@/lib/rate-limiter';
 import {
   buildThreadParticipants,
   mapActualMessageRow,
   ActualMessageRow,
   SupabaseJobRow,
 } from '@/app/api/messages/utils';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(100).default(50),
   cursor: z.string().optional(),
 });
 
-interface Params {
-  params: Promise<{ id: string }>;
-}
+export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  const jobId = params.id as string;
 
-export async function GET(request: NextRequest, context: Params) {
-  try {
-    // Rate limiting check
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 30
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(30),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-          }
-        }
-      );
-    }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view message thread');
-    }
-
-    const { id: jobId } = await context.params;
-    if (!jobId) {
-      throw new BadRequestError('Thread id is required');
-    }
-
-    if (!isValidUUID(jobId)) {
-      throw new BadRequestError('Invalid thread ID format');
-    }
-
-    const url = new URL(request.url);
-    const parsed = querySchema.safeParse({
-      limit: url.searchParams.get('limit') ?? undefined,
-      cursor: url.searchParams.get('cursor') ?? undefined,
-    });
-
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid query parameters');
-    }
-
-    const { limit, cursor } = parsed.data;
-
-    let cursorIso: string | undefined;
-    if (cursor) {
-      const ts = Date.parse(cursor);
-      if (Number.isNaN(ts)) {
-        throw new BadRequestError('Invalid cursor value');
-      }
-      cursorIso = new Date(ts).toISOString();
-    }
-
-    // Verify user is participant via jobs table
-    const { data: jobData, error: jobError } = await serverSupabase
-      .from('jobs')
-      .select(`
-        id,
-        title,
-        homeowner_id,
-        contractor_id,
-        created_at,
-        updated_at,
-        homeowner:profiles!homeowner_id(id, first_name, last_name, role, email, company_name),
-        contractor:profiles!contractor_id(id, first_name, last_name, role, email, company_name)
-      `)
-      .eq('id', jobId)
-      .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
-      .single();
-
-    if (jobError || !jobData) {
-      throw new NotFoundError('Thread not found or access denied');
-    }
-
-    const job = jobData as SupabaseJobRow;
-
-    // Find message_thread for this job
-    const { data: threadData } = await serverSupabase
-      .from('message_threads')
-      .select('id')
-      .eq('job_id', jobId)
-      .single();
-
-    let messages: ReturnType<typeof mapActualMessageRow>[] = [];
-    let hasMore = false;
-    let nextCursorValue: string | undefined;
-
-    if (threadData) {
-      // Fetch messages using actual schema columns
-      let messageQuery = serverSupabase
-        .from('messages')
-        .select('id, thread_id, sender_id, content, message_type, metadata, read_by, created_at')
-        .eq('thread_id', threadData.id)
-        .order('created_at', { ascending: false })
-        .limit(limit + 1);
-
-      if (cursorIso) {
-        messageQuery = messageQuery.lt('created_at', cursorIso);
-      }
-
-      const { data: messageData, error: messagesError } = await messageQuery;
-
-      if (messagesError) {
-        logger.error('Failed to load messages', messagesError, {
-          service: 'messages',
-          jobId,
-          userId: user.id,
-        });
-        throw messagesError;
-      }
-
-      const rows = (messageData ?? []) as unknown as ActualMessageRow[];
-      hasMore = rows.length > limit;
-      const limitedRows = rows.slice(0, limit);
-      const mappedLimited = limitedRows.map(row => mapActualMessageRow(row, jobId, user.id));
-      nextCursorValue = hasMore ? limitedRows[limitedRows.length - 1]?.created_at : undefined;
-      messages = mappedLimited.slice().reverse();
-    }
-
-    const latestMessage = messages.length > 0 ? messages[messages.length - 1] : undefined;
-
-    // Calculate unread count (messages not sent by user, user not in read_by)
-    let unreadCount = 0;
-    if (threadData) {
-      const { data: unreadData } = await serverSupabase
-        .from('messages')
-        .select('id, read_by')
-        .eq('thread_id', threadData.id)
-        .neq('sender_id', user.id);
-
-      if (unreadData) {
-        unreadCount = unreadData.filter((row: { id: string; read_by: string[] | null }) => {
-          const readBy = Array.isArray(row.read_by) ? row.read_by : [];
-          return !readBy.includes(user.id);
-        }).length;
-      }
-    }
-
-    const thread: MessageThread = {
-      jobId: job.id,
-      jobTitle: job.title ?? 'Untitled Job',
-      participants: buildThreadParticipants(job),
-      unreadCount,
-      lastMessage: latestMessage ?? undefined,
-    };
-
-    return NextResponse.json({
-      thread,
-      messages,
-      nextCursor: nextCursorValue,
-      limit,
-    });
-  } catch (err) {
-    return handleAPIError(err);
+  if (!jobId) {
+    throw new BadRequestError('Thread id is required');
   }
-}
+
+  if (!isValidUUID(jobId)) {
+    throw new BadRequestError('Invalid thread ID format');
+  }
+
+  const url = new URL(request.url);
+  const parsed = querySchema.safeParse({
+    limit: url.searchParams.get('limit') ?? undefined,
+    cursor: url.searchParams.get('cursor') ?? undefined,
+  });
+
+  if (!parsed.success) {
+    throw new BadRequestError('Invalid query parameters');
+  }
+
+  const { limit, cursor } = parsed.data;
+
+  let cursorIso: string | undefined;
+  if (cursor) {
+    const ts = Date.parse(cursor);
+    if (Number.isNaN(ts)) {
+      throw new BadRequestError('Invalid cursor value');
+    }
+    cursorIso = new Date(ts).toISOString();
+  }
+
+  // Verify user is participant via jobs table
+  const { data: jobData, error: jobError } = await serverSupabase
+    .from('jobs')
+    .select(`
+      id,
+      title,
+      homeowner_id,
+      contractor_id,
+      created_at,
+      updated_at,
+      homeowner:profiles!homeowner_id(id, first_name, last_name, role, email, company_name),
+      contractor:profiles!contractor_id(id, first_name, last_name, role, email, company_name)
+    `)
+    .eq('id', jobId)
+    .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
+    .single();
+
+  if (jobError || !jobData) {
+    throw new NotFoundError('Thread not found or access denied');
+  }
+
+  const job = jobData as SupabaseJobRow;
+
+  // Find message_thread for this job
+  const { data: threadData } = await serverSupabase
+    .from('message_threads')
+    .select('id')
+    .eq('job_id', jobId)
+    .single();
+
+  let messages: ReturnType<typeof mapActualMessageRow>[] = [];
+  let hasMore = false;
+  let nextCursorValue: string | undefined;
+
+  if (threadData) {
+    // Fetch messages using actual schema columns
+    let messageQuery = serverSupabase
+      .from('messages')
+      .select('id, thread_id, sender_id, content, message_type, metadata, read_by, created_at')
+      .eq('thread_id', threadData.id)
+      .order('created_at', { ascending: false })
+      .limit(limit + 1);
+
+    if (cursorIso) {
+      messageQuery = messageQuery.lt('created_at', cursorIso);
+    }
+
+    const { data: messageData, error: messagesError } = await messageQuery;
+
+    if (messagesError) {
+      logger.error('Failed to load messages', messagesError, {
+        service: 'messages',
+        jobId,
+        userId: user.id,
+      });
+      throw messagesError;
+    }
+
+    const rows = (messageData ?? []) as unknown as ActualMessageRow[];
+    hasMore = rows.length > limit;
+    const limitedRows = rows.slice(0, limit);
+    const mappedLimited = limitedRows.map(row => mapActualMessageRow(row, jobId, user.id));
+    nextCursorValue = hasMore ? limitedRows[limitedRows.length - 1]?.created_at : undefined;
+    messages = mappedLimited.slice().reverse();
+  }
+
+  const latestMessage = messages.length > 0 ? messages[messages.length - 1] : undefined;
+
+  // Calculate unread count (messages not sent by user, user not in read_by)
+  let unreadCount = 0;
+  if (threadData) {
+    const { data: unreadData } = await serverSupabase
+      .from('messages')
+      .select('id, read_by')
+      .eq('thread_id', threadData.id)
+      .neq('sender_id', user.id);
+
+    if (unreadData) {
+      unreadCount = unreadData.filter((row: { id: string; read_by: string[] | null }) => {
+        const readBy = Array.isArray(row.read_by) ? row.read_by : [];
+        return !readBy.includes(user.id);
+      }).length;
+    }
+  }
+
+  const thread: MessageThread = {
+    jobId: job.id,
+    jobTitle: job.title ?? 'Untitled Job',
+    participants: buildThreadParticipants(job),
+    unreadCount,
+    lastMessage: latestMessage ?? undefined,
+  };
+
+  return NextResponse.json({
+    thread,
+    messages,
+    nextCursor: nextCursorValue,
+    limit,
+  });
+});

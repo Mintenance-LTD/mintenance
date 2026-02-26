@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { materialsService } from '@/lib/services/MaterialsService';
-import { logger } from '@mintenance/shared';
 import type { MaterialCategory } from '@mintenance/shared';
 
 /**
@@ -12,54 +12,36 @@ import type { MaterialCategory } from '@mintenance/shared';
  * - in_stock: boolean (optional - filter by availability, default true)
  * - limit: number (optional - max results, default 20)
  * - min_similarity: number (optional - minimum similarity score 0-1, default 0.3)
- *
- * Returns materials with similarity scores for better matching
  */
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = request.nextUrl;
+export const GET = withApiHandler({ auth: false }, async (request) => {
+  const { searchParams } = request.nextUrl;
 
-    const query = searchParams.get('q');
-    if (!query) {
-      return NextResponse.json(
-        { error: 'Missing required parameter: q (search query)' },
-        { status: 400 }
-      );
-    }
-
-    const category = searchParams.get('category') as MaterialCategory | undefined;
-    const in_stock = searchParams.get('in_stock') !== 'false'; // Default true
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
-    const min_similarity = searchParams.get('min_similarity')
-      ? parseFloat(searchParams.get('min_similarity')!)
-      : 0.3;
-
-    // Use findSimilarMaterials for better fuzzy matching
-    const results = await materialsService.findSimilarMaterials(query, {
-      category,
-      limit,
-    });
-
-    // Filter by in_stock if requested
-    const filteredResults = in_stock
-      ? results.filter(m => m.in_stock)
-      : results;
-
-    // Filter by minimum similarity
-    const similarResults = filteredResults.filter(
-      m => (m.similarity || 0) >= min_similarity
-    );
-
-    return NextResponse.json({
-      query,
-      matches: similarResults,
-      total: similarResults.length,
-    });
-  } catch (error: unknown) {
-    logger.error('GET /api/materials/search exception', error);
+  const query = searchParams.get('q');
+  if (!query) {
     return NextResponse.json(
-      { error: 'Search failed', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      { error: 'Missing required parameter: q (search query)' },
+      { status: 400 }
     );
   }
-}
+
+  const category = searchParams.get('category') as MaterialCategory | undefined;
+  const in_stock = searchParams.get('in_stock') !== 'false';
+  const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
+  const min_similarity = searchParams.get('min_similarity')
+    ? parseFloat(searchParams.get('min_similarity')!)
+    : 0.3;
+
+  const results = await materialsService.findSimilarMaterials(query, {
+    category,
+    limit,
+  });
+
+  const filteredResults = in_stock ? results.filter((m) => m.in_stock) : results;
+  const similarResults = filteredResults.filter((m) => (m.similarity || 0) >= min_similarity);
+
+  return NextResponse.json({
+    query,
+    matches: similarResults,
+    total: similarResults.length,
+  });
+});

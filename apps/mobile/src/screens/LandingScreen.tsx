@@ -113,7 +113,7 @@ export default function LandingScreen() {
         <SectionHeader
           title="Home Services"
           action="See All"
-          onActionPress={() => navigation.navigate('Modal', { screen: 'ServiceRequest' })}
+          onActionPress={() => navigation.navigate('Register')}
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
           {CATEGORIES.map(c => (

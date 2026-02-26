@@ -39,6 +39,8 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [job, setJob] = useState<Job | null>(null);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
+  const [estimatedDuration, setEstimatedDuration] = useState('');
+  const [proposedStartDate, setProposedStartDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -82,6 +84,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         contractorId: user.id,
         amount: bidAmount,
         description,
+        estimatedDurationDays: estimatedDuration ? parseInt(estimatedDuration, 10) : undefined,
       });
 
       Alert.alert('Success', 'Your bid has been submitted!', [
@@ -130,7 +133,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.jobTitle}>{job.title}</Text>
           <Text style={styles.jobDescription}>{job.description}</Text>
           <Text style={styles.jobLocation}>📍 {job.location}</Text>
-          <Text style={styles.jobBudget}>Budget: ${job.budget}</Text>
+          <Text style={styles.jobBudget}>Budget: {'\u00A3'}{job.budget}</Text>
         </View>
 
         <View style={styles.form}>
@@ -155,6 +158,29 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             numberOfLines={6}
             maxLength={1000}
             leftIcon='document-text-outline'
+            variant='outline'
+            size='lg'
+            fullWidth
+          />
+
+          <Input
+            label='Estimated Duration (days)'
+            placeholder='e.g. 3'
+            value={estimatedDuration}
+            onChangeText={setEstimatedDuration}
+            keyboardType='numeric'
+            leftIcon='time-outline'
+            variant='outline'
+            size='lg'
+            fullWidth
+          />
+
+          <Input
+            label='Proposed Start Date'
+            placeholder='DD/MM/YYYY'
+            value={proposedStartDate}
+            onChangeText={setProposedStartDate}
+            leftIcon='calendar-outline'
             variant='outline'
             size='lg'
             fullWidth

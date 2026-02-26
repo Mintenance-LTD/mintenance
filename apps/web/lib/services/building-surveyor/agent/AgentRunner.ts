@@ -15,7 +15,6 @@ import {
   getDamageTypesForDomain,
 } from '../tools';
 import { buildEvidenceSummary } from '../evidence-processor';
-import { toVisionSummary } from '../evidence-processor';
 import { verifyAlignment } from './AssessmentVerifier';
 import type { AssessmentContext } from '../types';
 import type { RoboflowDetection, VisionAnalysisSummary } from '../types';

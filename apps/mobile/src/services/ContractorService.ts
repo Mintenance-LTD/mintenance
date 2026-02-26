@@ -724,17 +724,28 @@ export class ContractorService {
     type: 'logo' | 'portfolio'
   ): Promise<string> {
     try {
-      // For now, return the imageUri as-is
-      // In production, this would upload to Supabase storage and return the public URL
       logger.info(`Uploading ${type} image for contractor ${userId}`);
 
-      // TODO: Implement actual file upload to Supabase storage
-      // const fileName = `contractors/${userId}/${type}_${Date.now()}.jpg`;
-      // const { data, error } = await supabase.storage
-      //   .from('contractor-images')
-      //   .upload(fileName, imageFile);
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
 
-      return imageUri;
+      const ext = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `contractors/${userId}/${type}_${Date.now()}.${ext}`;
+
+      const { data, error } = await supabase.storage
+        .from('contractor-images')
+        .upload(fileName, blob, {
+          contentType: `image/${ext === 'png' ? 'png' : 'jpeg'}`,
+          upsert: type === 'logo', // overwrite previous logo
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabase.storage
+        .from('contractor-images')
+        .getPublicUrl(data.path);
+
+      return urlData.publicUrl;
     } catch (error) {
       logger.error('Error uploading contractor image:', error);
       throw error;

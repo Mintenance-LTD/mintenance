@@ -33,10 +33,10 @@ const PropertyCard: React.FC<{
       <Ionicons name="home-outline" size={24} color={theme.colors.primary} />
       <View style={styles.cardHeaderText}>
         <Text style={styles.propertyAddress} numberOfLines={1}>
-          {property.address_line1}
+          {property.property_name}
         </Text>
-        <Text style={styles.propertyLocation}>
-          {property.city}, {property.postcode}
+        <Text style={styles.propertyLocation} numberOfLines={2}>
+          {property.address}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={20} color={theme.colors.textTertiary} />
@@ -71,7 +71,10 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
 
   const { data: properties, isLoading, error, refetch } = useQuery({
     queryKey: ['properties', user?.id],
-    queryFn: () => apiClient.get<Property[]>('/api/properties'),
+    queryFn: async () => {
+      const res = await apiClient.get<{ properties: Property[] }>('/api/properties');
+      return res.properties || [];
+    },
     enabled: !!user,
   });
 
@@ -105,7 +108,9 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
 
       {!properties || properties.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="home-outline" size={64} color={theme.colors.textTertiary} />
+          <View style={styles.emptyIconCircle}>
+            <Ionicons name="home-outline" size={48} color={theme.colors.primary} />
+          </View>
           <Text style={styles.emptyTitle}>No Properties</Text>
           <Text style={styles.emptySubtitle}>
             Add your first property to start managing maintenance.
@@ -194,6 +199,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: theme.spacing[6],
+  },
+  emptyIconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F0FDF4',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyTitle: {
     fontSize: theme.typography.fontSize.xl,

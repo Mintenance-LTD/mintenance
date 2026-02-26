@@ -22,6 +22,17 @@ import { PropertyDetailScreen } from '../../screens/properties/PropertyDetailScr
 import { AddPropertyScreen } from '../../screens/properties/AddPropertyScreen';
 import { CalendarScreen } from '../../screens/CalendarScreen';
 import { ReviewsScreen } from '../../screens/ReviewsScreen';
+import { PaymentHistoryScreen } from '../../screens/payment/PaymentHistoryScreen';
+import { SubscriptionScreen } from '../../screens/subscription/SubscriptionScreen';
+import { FinancialsScreen } from '../../screens/financials/FinancialsScreen';
+import { SettingsHubScreen } from '../../screens/settings/SettingsHubScreen';
+import { ExpensesScreen } from '../../screens/contractor/ExpensesScreen';
+import { DocumentsScreen } from '../../screens/contractor/DocumentsScreen';
+import { CertificationsScreen } from '../../screens/contractor/CertificationsScreen';
+import { TimeTrackingScreen } from '../../screens/contractor/TimeTrackingScreen';
+import { ReportingScreen } from '../../screens/contractor/ReportingScreen';
+import { PayoutsScreen } from '../../screens/contractor/PayoutsScreen';
+import { BookingStatusScreen } from '../../screens/booking/BookingStatusScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -141,6 +152,72 @@ const SafeCalendarScreen = withScreenErrorBoundary(
 const SafeReviewsScreen = withScreenErrorBoundary(
   ReviewsScreen,
   'Reviews',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafePaymentHistoryScreen = withScreenErrorBoundary(
+  PaymentHistoryScreen,
+  'Payment History',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeSubscriptionScreen = withScreenErrorBoundary(
+  SubscriptionScreen,
+  'Subscription',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeFinancialsScreen = withScreenErrorBoundary(
+  FinancialsScreen,
+  'Financials',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeSettingsHubScreen = withScreenErrorBoundary(
+  SettingsHubScreen,
+  'Settings',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeExpensesScreen = withScreenErrorBoundary(
+  ExpensesScreen,
+  'Expenses',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeDocumentsScreen = withScreenErrorBoundary(
+  DocumentsScreen,
+  'Documents',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeCertificationsScreen = withScreenErrorBoundary(
+  CertificationsScreen,
+  'Certifications',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeTimeTrackingScreen = withScreenErrorBoundary(
+  TimeTrackingScreen,
+  'Time Tracking',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeReportingScreen = withScreenErrorBoundary(
+  ReportingScreen,
+  'Reporting',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafePayoutsScreen = withScreenErrorBoundary(
+  PayoutsScreen,
+  'Payouts',
+  { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeBookingStatusScreen = withScreenErrorBoundary(
+  BookingStatusScreen,
+  'Booking Status',
   { fallbackRoute: 'ProfileMain' }
 );
 
@@ -371,6 +448,116 @@ export const ProfileNavigator: React.FC = () => {
         component={SafeReviewsScreen}
         options={{
           title: 'Reviews',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="PaymentHistory"
+        component={SafePaymentHistoryScreen}
+        options={{
+          title: 'Payment History',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Subscription"
+        component={SafeSubscriptionScreen}
+        options={{
+          title: 'Subscription',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Financials"
+        component={SafeFinancialsScreen}
+        options={{
+          title: 'Financials',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="SettingsHub"
+        component={SafeSettingsHubScreen}
+        options={{
+          title: 'Settings',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Expenses"
+        component={SafeExpensesScreen}
+        options={{
+          title: 'Expenses',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Documents"
+        component={SafeDocumentsScreen}
+        options={{
+          title: 'Documents',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Certifications"
+        component={SafeCertificationsScreen}
+        options={{
+          title: 'Certifications',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="TimeTracking"
+        component={SafeTimeTrackingScreen}
+        options={{
+          title: 'Time Tracking',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Reporting"
+        component={SafeReportingScreen}
+        options={{
+          title: 'Reports & Analytics',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="Payouts"
+        component={SafePayoutsScreen}
+        options={{
+          title: 'Payouts',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="BookingStatus"
+        component={SafeBookingStatusScreen}
+        options={{
+          title: 'Bookings',
           headerShown: false,
           gestureEnabled: true,
         }}

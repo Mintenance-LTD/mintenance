@@ -12,6 +12,10 @@ import { JobTimelineScreen } from '../../screens/job-details/JobTimelineScreen';
 import { DisputeScreen } from '../../screens/DisputeScreen';
 import { BidReviewScreen } from '../../screens/BidReviewScreen';
 import { HomeownerPhotoReviewScreen } from '../../screens/job-details/HomeownerPhotoReviewScreen';
+import { JobPhotoUploadScreen } from '../../screens/job-details/JobPhotoUploadScreen';
+import { ContractViewScreen } from '../../screens/job-details/ContractViewScreen';
+import { ReviewSubmissionScreen } from '../../screens/job-details/ReviewSubmissionScreen';
+import { JobSignOffScreen } from '../../screens/job-details/JobSignOffScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -71,6 +75,30 @@ const SafeBidReviewScreen = withScreenErrorBoundary(
 const SafePhotoReviewScreen = withScreenErrorBoundary(
   HomeownerPhotoReviewScreen,
   'Photo Review',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafePhotoUploadScreen = withScreenErrorBoundary(
+  JobPhotoUploadScreen,
+  'Photo Upload',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafeContractViewScreen = withScreenErrorBoundary(
+  ContractViewScreen,
+  'Contract View',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafeReviewSubmissionScreen = withScreenErrorBoundary(
+  ReviewSubmissionScreen,
+  'Review Submission',
+  { fallbackRoute: 'JobDetails' }
+);
+
+const SafeJobSignOffScreen = withScreenErrorBoundary(
+  JobSignOffScreen,
+  'Job Sign Off',
   { fallbackRoute: 'JobDetails' }
 );
 
@@ -244,6 +272,54 @@ export const JobsNavigator: React.FC = () => {
       <JobsStack.Screen
         name="PhotoReview"
         component={SafePhotoReviewScreen}
+        options={{
+          title: 'Review Work',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+      <JobsStack.Screen
+        name="PhotoUpload"
+        component={SafePhotoUploadScreen}
+        options={{
+          title: 'Upload Photos',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+      <JobsStack.Screen
+        name="ContractView"
+        component={SafeContractViewScreen}
+        options={{
+          title: 'Contract',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+      <JobsStack.Screen
+        name="ReviewSubmission"
+        component={SafeReviewSubmissionScreen}
+        options={{
+          title: 'Leave Review',
+          presentation: 'modal',
+          gestureEnabled: true,
+          cardStyleInterpolator: ({ current, layouts }) => ({
+            cardStyle: {
+              transform: [
+                {
+                  translateY: current.progress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [layouts.screen.height, 0],
+                  }),
+                },
+              ],
+            },
+          }),
+        }}
+      />
+      <JobsStack.Screen
+        name="JobSignOff"
+        component={SafeJobSignOffScreen}
         options={{
           title: 'Review Work',
           headerShown: false,

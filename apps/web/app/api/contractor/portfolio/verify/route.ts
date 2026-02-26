@@ -1,57 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { requireCSRF } from '@/lib/csrf';
 import { PortfolioVerificationService } from '@/lib/services/verification/PortfolioVerificationService';
-import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const verifyPortfolioSchema = z.object({
   portfolioId: z.string().uuid(),
   action: z.enum(['verify', 'unverify']),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{}> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'admin') {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+export const POST = withApiHandler(
+  { roles: ['admin'] },
+  async (request, { user }) => {
     const body = await request.json();
     const parsed = verifyPortfolioSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestError('Portfolio ID (UUID) and action (verify/unverify) are required');
     }
+
     const { portfolioId, action } = parsed.data;
 
     if (action === 'verify') {
@@ -71,8 +37,5 @@ export async function POST(
     }
 
     throw new BadRequestError('Invalid action');
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

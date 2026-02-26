@@ -234,7 +234,8 @@ export default async function ContractorDashboard2025() {
       pendingEscrowCount,
     },
     progressTrendData,
-    recentJobs: availableJobsData.length > 0 ? availableJobsData : recentJobs,
+    recentJobs,
+    availableJobs: availableJobsData,
     notifications: notifications.map(n => ({
       id: n.id,
       type: n.type,

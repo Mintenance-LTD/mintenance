@@ -125,8 +125,8 @@ export const VideoCallHistory: React.FC<VideoCallHistoryProps> = ({
   const getTypeIcon = (type: VideoCall['type']) => {
     switch (type) {
       case 'consultation': return <MessageSquare size={24} />;
-      case 'assessment': return <Search size={24} />;
-      case 'project_review': return <ClipboardList size={24} />;
+      case 'site_visit': return <Search size={24} />;
+      case 'inspection': return <ClipboardList size={24} />;
       case 'emergency': return <AlertOctagon size={24} />;
       case 'follow_up': return <Phone size={24} />;
       default: return <Video size={24} />;

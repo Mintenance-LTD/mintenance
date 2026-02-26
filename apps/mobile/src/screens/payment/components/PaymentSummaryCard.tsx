@@ -32,18 +32,18 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({
       <View style={styles.amountBreakdown}>
         <View style={styles.amountRow}>
           <Text style={styles.amountLabel}>Job Amount</Text>
-          <Text style={styles.amountValue}>${amount.toFixed(2)}</Text>
+          <Text style={styles.amountValue}>{'\u00A3'}{amount.toFixed(2)}</Text>
         </View>
 
         {useEscrow && (
           <>
             <View style={styles.amountRow}>
               <Text style={styles.amountLabel}>Platform Fee</Text>
-              <Text style={styles.amountValue}>${platformFee.toFixed(2)}</Text>
+              <Text style={styles.amountValue}>{'\u00A3'}{platformFee.toFixed(2)}</Text>
             </View>
             <View style={styles.amountRow}>
               <Text style={styles.amountLabel}>Contractor Payout</Text>
-              <Text style={styles.amountValue}>${contractorPayout.toFixed(2)}</Text>
+              <Text style={styles.amountValue}>{'\u00A3'}{contractorPayout.toFixed(2)}</Text>
             </View>
           </>
         )}
@@ -52,7 +52,7 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({
           <Text style={styles.totalLabel}>
             {useEscrow ? 'Total (Escrow)' : 'Total'}
           </Text>
-          <Text style={styles.totalValue}>${totalAmount.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>{'\u00A3'}{totalAmount.toFixed(2)}</Text>
         </View>
       </View>
     </View>

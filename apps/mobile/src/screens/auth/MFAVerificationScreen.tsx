@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { logger } from '@mintenance/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { theme } from '../../theme';
@@ -129,7 +129,7 @@ export default function MFAVerificationScreen() {
       // Store trusted device token if provided
       if (rememberDevice) {
         // Note: In production, extract and store the trusted device token from cookies
-        await AsyncStorage.setItem('mfa_device_trusted', 'true');
+        await SecureStore.setItemAsync('mfa_device_trusted', 'true');
       }
 
       // Show warning if backup codes are low

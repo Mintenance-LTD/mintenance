@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { MessagingService } from '@/lib/services/MessagingService';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 interface MatchExplanation {
   skillMatch: number;
@@ -42,14 +43,12 @@ export class MatchCommunicationService {
       );
 
       // Also create notification
-      await serverSupabase.from('notifications').insert({
-        user_id: contractorId,
+      await NotificationService.createNotification({
+        userId: contractorId,
         title: 'New Job Match',
         message: `You've been matched with a job that fits your skills!`,
         type: 'job_match',
-        read: false,
-        action_url: `/contractor/jobs/${jobId}`,
-        created_at: new Date().toISOString(),
+        actionUrl: `/contractor/jobs/${jobId}`,
       });
 
       logger.info('Match notification sent to contractor', {

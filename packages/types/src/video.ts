@@ -6,7 +6,7 @@ export interface VideoCall {
   participantId: string;
   title: string;
   description?: string;
-  status: 'scheduled' | 'pending' | 'active' | 'ended' | 'missed' | 'cancelled';
+  status: 'pending' | 'scheduled' | 'active' | 'ended' | 'cancelled' | 'missed';
   scheduledAt?: string;
   startedAt?: string;
   endedAt?: string;
@@ -14,10 +14,23 @@ export interface VideoCall {
   recordingUrl?: string;
   roomId?: string;
   accessToken?: string;
-  type: 'consultation' | 'assessment' | 'project_review' | 'emergency' | 'follow_up';
+  type: 'consultation' | 'site_visit' | 'emergency' | 'follow_up' | 'inspection';
   priority: 'low' | 'medium' | 'high' | 'urgent';
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+  // DB field aliases (snake_case)
+  job_id?: string;
+  initiator_id?: string;
+  participant_id?: string;
+  scheduled_at?: string;
+  started_at?: string;
+  ended_at?: string;
+  recording_url?: string;
+  room_id?: string;
+  access_token?: string;
+  created_at?: string;
+  updated_at?: string;
   // Populated fields
   initiator?: {
     first_name: string;
@@ -74,6 +87,14 @@ export interface CallQualityMetrics {
   packetsLost: number;
   bandwidth: number; // in kbps
   timestamp: string;
+  // DB field aliases (snake_case)
+  call_id?: string;
+  user_id?: string;
+  audio_quality?: string;
+  video_quality?: string;
+  connection_stability?: string;
+  latency_ms?: number;
+  packets_lost?: number;
 }
 
 export interface VideoCallInvitation {
@@ -86,4 +107,11 @@ export interface VideoCallInvitation {
   expiresAt: string;
   respondedAt?: string;
   createdAt: string;
+  // DB field aliases (snake_case)
+  call_id?: string;
+  from_user_id?: string;
+  to_user_id?: string;
+  expires_at?: string;
+  responded_at?: string;
+  created_at?: string;
 }

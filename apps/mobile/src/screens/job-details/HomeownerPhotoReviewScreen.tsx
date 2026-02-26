@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import type { JobsStackParamList } from '../../navigation/types';
 import { logger } from '../../utils/logger';
@@ -112,25 +113,16 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const { config } = require('../../config/environment');
-      const response = await fetch(`${config.apiBaseUrl}/api/jobs/${jobId}/confirm-completion`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to approve work');
-      }
+      await mobileApiClient.post(`/api/jobs/${jobId}/confirm-completion`, {});
 
       Alert.alert(
         'Work Approved',
         'Payment will be released to the contractor. Thank you!',
         [{ text: 'Done', onPress: () => navigation.goBack() }]
       );
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to approve. Please try again.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to approve. Please try again.';
+      Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
     }
@@ -141,26 +133,18 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const { config } = require('../../config/environment');
-      const response = await fetch(`${config.apiBaseUrl}/api/jobs/${jobId}/request-changes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ comments: changesComment.trim() }),
+      await mobileApiClient.post(`/api/jobs/${jobId}/request-changes`, {
+        comments: changesComment.trim(),
       });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to request changes');
-      }
 
       Alert.alert(
         'Changes Requested',
         'The contractor has been notified and will review your feedback.',
         [{ text: 'Done', onPress: () => navigation.goBack() }]
       );
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to submit. Please try again.');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to submit. Please try again.';
+      Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);
     }

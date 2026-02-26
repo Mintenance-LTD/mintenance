@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { validateURL } from '@/lib/security/url-validation';
+import sharp from 'sharp';
 
 export interface PhotoQualityResult {
   passed: boolean;
@@ -386,7 +387,7 @@ export class PhotoVerificationService {
   // ============================================================================
 
   /**
-   * Gets image information (brightness, sharpness, resolution)
+   * Gets image information (brightness, sharpness, resolution) using sharp
    */
   private static async getImageInfo(photoUrl: string): Promise<{
     brightness: number;
@@ -407,58 +408,75 @@ export class PhotoVerificationService {
 
     const validatedUrl = urlValidation.normalizedUrl || photoUrl;
 
-    // In a real implementation, this would use image processing libraries
-    // For now, return default values (would be replaced with actual image analysis)
     try {
-      // Try to fetch image and analyze
       // SECURITY: Use validated URL and set timeout to prevent slowloris attacks
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s for full download
 
       const response = await fetch(validatedUrl, {
-        method: 'HEAD',
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
 
       const contentType = response.headers.get('content-type') || '';
-      const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
-
-      // Verify content type is an image
       if (!contentType.startsWith('image/')) {
-        logger.warn('URL does not point to an image', {
-          service: 'PhotoVerificationService',
-          photoUrl: validatedUrl,
-          contentType,
-        });
         throw new Error('URL does not point to a valid image');
       }
 
-      // Default values (would be replaced with actual image analysis)
-      return {
-        brightness: 0.7,
-        sharpness: 0.8,
-        resolution: { width: 1920, height: 1080 },
-        fileSize: contentLength,
-      };
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const fileSize = buffer.byteLength;
+
+      // Get metadata (resolution)
+      const image = sharp(buffer);
+      const metadata = await image.metadata();
+      const width = metadata.width || 0;
+      const height = metadata.height || 0;
+
+      // Calculate brightness: mean of grayscale pixel values, normalised to 0-1
+      const { channels } = await image
+        .greyscale()
+        .stats();
+      const meanBrightness = channels[0]?.mean ?? 128;
+      const brightness = meanBrightness / 255;
+
+      // Calculate sharpness via Laplacian variance:
+      // Apply a Laplacian-like edge detection kernel, then measure the variance
+      // of the output. Higher variance = sharper image.
+      const laplacianStats = await sharp(buffer)
+        .greyscale()
+        .convolve({
+          width: 3,
+          height: 3,
+          kernel: [0, 1, 0, 1, -4, 1, 0, 1, 0],
+        })
+        .stats();
+
+      // Standard deviation of edge response; normalise to 0-1 range.
+      // Empirically, stdev > 30 is sharp, < 10 is blurry.
+      const edgeStdev = laplacianStats.channels[0]?.stdev ?? 0;
+      const sharpness = Math.min(1, edgeStdev / 50);
+
+      return { brightness, sharpness, resolution: { width, height }, fileSize };
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         logger.warn('Image fetch timeout', {
           service: 'PhotoVerificationService',
           photoUrl: validatedUrl,
         });
-        throw new Error('Image fetch timeout');
+      } else {
+        logger.warn('Image analysis failed, using conservative defaults', {
+          service: 'PhotoVerificationService',
+          photoUrl: validatedUrl,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
-      logger.warn('Could not fetch image info, using defaults', {
-        service: 'PhotoVerificationService',
-        photoUrl: validatedUrl,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      // Conservative fallback: assume low quality so it gets flagged
       return {
-        brightness: 0.7,
-        sharpness: 0.8,
-        resolution: { width: 1920, height: 1080 },
+        brightness: 0.4,
+        sharpness: 0.4,
+        resolution: { width: 0, height: 0 },
       };
     }
   }
@@ -573,16 +591,48 @@ export class PhotoVerificationService {
 
   /**
    * Checks geolocation consistency between before and after photos
+   * Verifies all photos with stored geolocation are within threshold of job location
    */
   private static async checkGeolocationConsistency(
     beforeUrls: string[],
     afterUrls: string[],
     jobLocation: Location
   ): Promise<boolean> {
-    // Check if all photos are from similar locations
-    // This would compare geolocation metadata from photos
-    // For now, return true as a placeholder
-    return true;
+    try {
+      const allUrls = [...beforeUrls, ...afterUrls];
+      let verifiedCount = 0;
+      let failedCount = 0;
+
+      for (const url of allUrls) {
+        const metadata = await this.getPhotoMetadata(url);
+        if (metadata.geolocation) {
+          const distance = this.calculateDistance(
+            jobLocation.lat,
+            jobLocation.lng,
+            metadata.geolocation.lat,
+            metadata.geolocation.lng
+          );
+          if (distance <= this.MAX_DISTANCE_METERS) {
+            verifiedCount++;
+          } else {
+            failedCount++;
+          }
+        }
+      }
+
+      // If no photos have geolocation, we can't verify consistency
+      if (verifiedCount === 0 && failedCount === 0) {
+        return false;
+      }
+
+      // Pass if majority of geolocated photos are within threshold
+      return failedCount === 0 || verifiedCount > failedCount;
+    } catch (error) {
+      logger.error('Error checking geolocation consistency', error, {
+        service: 'PhotoVerificationService',
+      });
+      return false;
+    }
   }
 
   /**

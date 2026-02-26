@@ -21,44 +21,44 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
       <Text style={styles.sectionSubtitle}>Track your performance</Text>
 
       <View style={styles.statsGrid}>
-        <View style={styles.statCard} accessibilityLabel={`Total earnings: £${stats?.totalEarnings?.toFixed(0) || '0'}`}>
+        <View style={styles.statCard} accessibilityLabel={`Earnings: £${stats?.monthlyEarnings?.toFixed(0) || '0'}`}>
           <View style={styles.statIcon}>
             <Ionicons name="cash" size={20} color={theme.colors.successDark} accessible={false} />
           </View>
           <Text style={styles.statValue}>
-            £{stats?.totalEarnings?.toFixed(0) || '0'}
+            £{stats?.monthlyEarnings?.toFixed(0) || '0'}
           </Text>
-          <Text style={styles.statLabel}>Total Earnings</Text>
+          <Text style={styles.statLabel}>Earnings</Text>
         </View>
 
-        <View style={styles.statCard} accessibilityLabel={`${stats?.jobsCompleted || 0} jobs completed`}>
+        <View style={styles.statCard} accessibilityLabel={`${stats?.completedJobs || 0} jobs completed`}>
           <View style={styles.statIcon}>
             <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} accessible={false} />
           </View>
           <Text style={styles.statValue}>
-            {stats?.jobsCompleted || 0}
+            {stats?.completedJobs || 0}
           </Text>
           <Text style={styles.statLabel}>Jobs Completed</Text>
         </View>
 
-        <View style={styles.statCard} accessibilityLabel={`Average rating: ${stats?.averageRating?.toFixed(1) || 'New'}`}>
+        <View style={styles.statCard} accessibilityLabel={`Average rating: ${stats?.rating?.toFixed(1) || 'New'}`}>
           <View style={styles.statIcon}>
             <Ionicons name="star" size={20} color={theme.colors.ratingGold} accessible={false} />
           </View>
           <Text style={styles.statValue}>
-            {stats?.averageRating?.toFixed(1) || 'New'}
+            {stats?.rating?.toFixed(1) || 'New'}
           </Text>
           <Text style={styles.statLabel}>Average Rating</Text>
         </View>
 
-        <View style={styles.statCard} accessibilityLabel={`Average response time: ${stats?.responseTimeMinutes || 'N/A'} minutes`}>
+        <View style={styles.statCard} accessibilityLabel={`Response time: ${stats?.responseTime || 'N/A'}`}>
           <View style={styles.statIcon}>
             <Ionicons name="time" size={20} color={theme.colors.infoDark} accessible={false} />
           </View>
           <Text style={styles.statValue}>
-            {stats?.responseTimeMinutes != null ? `${stats.responseTimeMinutes}m` : 'N/A'}
+            {stats?.responseTime || 'N/A'}
           </Text>
-          <Text style={styles.statLabel}>Avg Response Time</Text>
+          <Text style={styles.statLabel}>Response Time</Text>
         </View>
       </View>
     </View>

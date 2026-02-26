@@ -1,6 +1,7 @@
 import { Stripe } from 'stripe';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 export class SubscriptionHandler {
   async handleCreated(event: Stripe.Event): Promise<void> {
     const subscription = event.data.object as Stripe.Subscription;
@@ -50,13 +51,12 @@ export class SubscriptionHandler {
         })
         .eq('id', contractorId);
       // Create notification
-      await supabase.from('notifications').insert({
-        user_id: contractorId,
+      await NotificationService.createNotification({
+        userId: contractorId,
         type: 'subscription_created',
         title: 'Subscription Activated',
         message: 'Your subscription has been successfully activated.',
-        data: { subscription_id: subscription.id },
-        created_at: new Date().toISOString(),
+        metadata: { subscription_id: subscription.id },
       });
     } catch (error) {
       logger.error('Failed to process subscription created event', {
@@ -118,17 +118,16 @@ export class SubscriptionHandler {
         } else if (subscription.status === 'canceled') {
           message = 'Your subscription has been canceled.';
         }
-        await supabase.from('notifications').insert({
-          user_id: contractorId,
+        await NotificationService.createNotification({
+          userId: contractorId,
           type: 'subscription_updated',
           title: 'Subscription Status Changed',
           message,
-          data: {
+          metadata: {
             subscription_id: subscription.id,
             old_status: previousAttributes.status,
             new_status: subscription.status,
           },
-          created_at: new Date().toISOString(),
         });
       }
     } catch (error) {
@@ -172,13 +171,12 @@ export class SubscriptionHandler {
         })
         .eq('id', contractorId);
       // Create notification
-      await supabase.from('notifications').insert({
-        user_id: contractorId,
+      await NotificationService.createNotification({
+        userId: contractorId,
         type: 'subscription_canceled',
         title: 'Subscription Canceled',
         message: 'Your subscription has been canceled. You can still access basic features.',
-        data: { subscription_id: subscription.id },
-        created_at: new Date().toISOString(),
+        metadata: { subscription_id: subscription.id },
       });
     } catch (error) {
       logger.error('Failed to process subscription deleted event', {

@@ -257,7 +257,7 @@ const getButtonStyles = (
 ): ViewStyle => {
   const baseStyle: ViewStyle = {
     ...BUTTON_SIZES[size],
-    borderRadius: theme.borderRadius.lg,
+    borderRadius: theme.borderRadius.base,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',

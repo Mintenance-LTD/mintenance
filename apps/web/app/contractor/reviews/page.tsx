@@ -1,22 +1,18 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import Image from 'next/image';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Star,
-  MessageSquare,
-  ThumbsUp,
   Search,
-  Calendar,
-  User,
   Briefcase,
   Reply,
-  Camera,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import { getCsrfHeaders } from '@/lib/csrf-client';
+import { logger } from '@mintenance/shared';
 
-// Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
@@ -24,10 +20,7 @@ const fadeIn = {
 
 const staggerContainer = {
   hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
 };
 
 const staggerItem = {
@@ -39,122 +32,58 @@ interface Review {
   id: string;
   jobId: string;
   jobTitle: string;
+  jobCategory: string;
   client: string;
-  clientAvatar?: string;
+  clientAvatar: string | null;
   rating: number;
   comment: string;
-  date: string;
-  relativeDate: string;
-  helpful: number;
+  response: string | null;
   responded: boolean;
-  response?: string;
-  responseDate?: string;
-  photos?: string[];
-  categories?: {
-    quality: number;
-    communication: number;
-    timeliness: number;
-    professionalism: number;
-  };
+  createdAt: string;
+  updatedAt: string;
 }
 
-export default function ContractorReviewsPage2025() {
+interface ReviewStats {
+  totalReviews: number;
+  averageRating: number;
+  responseRate: number;
+}
+
+export default function ContractorReviewsPage() {
   const [selectedRating, setSelectedRating] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showResponseForm, setShowResponseForm] = useState<string | null>(null);
   const [responseText, setResponseText] = useState('');
+  const [submittingResponse, setSubmittingResponse] = useState(false);
 
-  // TODO: Replace with real API data
-  const reviews: Review[] = [
-    {
-      id: 'REV-001',
-      jobId: 'JOB-128',
-      jobTitle: 'Kitchen sink replacement',
-      client: 'Sarah Johnson',
-      clientAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
-      rating: 5,
-      comment: 'Excellent work! Very professional and completed the job ahead of schedule. The quality exceeded my expectations and the workspace was left spotless. Would definitely recommend and use again for future projects.',
-      date: '2025-01-25',
-      relativeDate: '2 weeks ago',
-      helpful: 12,
-      responded: true,
-      response: 'Thank you so much for the kind words! It was a pleasure working on your kitchen.',
-      responseDate: '2025-01-26',
-      photos: ['/uploads/kitchen-1.jpg', '/uploads/kitchen-2.jpg'],
-    },
-    {
-      id: 'REV-002',
-      jobId: 'JOB-129',
-      jobTitle: 'Boiler servicing',
-      client: 'Michael Brown',
-      clientAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=michael',
-      rating: 5,
-      comment: 'Thorough and knowledgeable. Explained everything clearly and provided useful maintenance tips. Very satisfied with the service.',
-      date: '2025-01-20',
-      relativeDate: '3 weeks ago',
-      helpful: 8,
-      responded: false,
-    },
-    {
-      id: 'REV-003',
-      jobId: 'JOB-130',
-      jobTitle: 'Bathroom renovation',
-      client: 'Emma Wilson',
-      clientAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=emma',
-      rating: 4,
-      comment: 'Great quality work overall. Only minor issue was a slight delay in completion, but the end result was worth the wait. The attention to detail was impressive.',
-      date: '2025-01-15',
-      relativeDate: '1 month ago',
-      helpful: 5,
-      responded: true,
-      response: 'Thank you for your feedback. I apologize for the delay - we encountered an unexpected issue with the pipework. Glad you\'re happy with the final result!',
-      responseDate: '2025-01-16',
-      photos: ['/uploads/bathroom-1.jpg'],
-    },
-    {
-      id: 'REV-004',
-      jobId: 'JOB-131',
-      jobTitle: 'Emergency leak repair',
-      client: 'David Lee',
-      clientAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=david',
-      rating: 5,
-      comment: 'Responded quickly to our emergency. Fixed the leak efficiently and cleaned up thoroughly. Highly recommend for emergency services.',
-      date: '2025-01-10',
-      relativeDate: '1 month ago',
-      helpful: 15,
-      responded: true,
-      response: 'Happy to help! Emergency repairs are our priority.',
-      responseDate: '2025-01-11',
-    },
-    {
-      id: 'REV-005',
-      jobId: 'JOB-132',
-      jobTitle: 'Heating system inspection',
-      client: 'Lisa Anderson',
-      clientAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=lisa',
-      rating: 3,
-      comment: 'Job was completed but felt rushed. Would have appreciated more detailed explanation of findings and recommendations.',
-      date: '2025-01-05',
-      relativeDate: '2 months ago',
-      helpful: 3,
-      responded: false,
-    },
-  ];
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [stats, setStats] = useState<ReviewStats>({ totalReviews: 0, averageRating: 0, responseRate: 0 });
+  const [loading, setLoading] = useState(true);
 
-  const reviewStats = {
-    averageRating: 4.4,
-    totalReviews: reviews.length,
-    responseRate: (reviews.filter((r) => r.responded).length / reviews.length) * 100,
-    helpfulVotes: reviews.reduce((sum, r) => sum + r.helpful, 0),
-  };
+  const fetchReviews = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/contractor/reviews', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch reviews');
+      const data = await res.json();
+      setReviews(data.reviews || []);
+      setStats(data.stats || { totalReviews: 0, averageRating: 0, responseRate: 0 });
+    } catch (error) {
+      logger.error('Error fetching reviews:', error, { service: 'app' });
+      toast.error('Failed to load reviews');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const ratingDistribution = [
-    { stars: 5, count: reviews.filter((r) => r.rating === 5).length },
-    { stars: 4, count: reviews.filter((r) => r.rating === 4).length },
-    { stars: 3, count: reviews.filter((r) => r.rating === 3).length },
-    { stars: 2, count: reviews.filter((r) => r.rating === 2).length },
-    { stars: 1, count: reviews.filter((r) => r.rating === 1).length },
-  ];
+  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+
+  const ratingDistribution = useMemo(() => {
+    return [5, 4, 3, 2, 1].map((stars) => ({
+      stars,
+      count: reviews.filter((r) => r.rating === stars).length,
+    }));
+  }, [reviews]);
 
   const filteredReviews = useMemo(() => {
     return reviews.filter((review) => {
@@ -168,39 +97,79 @@ export default function ContractorReviewsPage2025() {
     });
   }, [reviews, selectedRating, searchQuery]);
 
-  const handleSubmitResponse = (reviewId: string) => {
+  const handleSubmitResponse = async (reviewId: string) => {
     if (!responseText.trim()) {
       toast.error('Please enter a response');
       return;
     }
-    toast.success('Response submitted successfully!');
-    setShowResponseForm(null);
-    setResponseText('');
+    setSubmittingResponse(true);
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const res = await fetch('/api/contractor/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        credentials: 'include',
+        body: JSON.stringify({ reviewId, response: responseText.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to submit response');
+      }
+      // Update local state
+      setReviews((prev) =>
+        prev.map((r) =>
+          r.id === reviewId ? { ...r, response: responseText.trim(), responded: true } : r
+        )
+      );
+      setStats((prev) => ({
+        ...prev,
+        responseRate: Math.round(
+          ((reviews.filter((r) => r.responded).length + 1) / reviews.length) * 100
+        ),
+      }));
+      toast.success('Response posted');
+      setShowResponseForm(null);
+      setResponseText('');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to submit response');
+    } finally {
+      setSubmittingResponse(false);
+    }
   };
 
-  const handleReport = (reviewId: string) => {
-    toast.success('Review reported for moderation');
+  const formatRelativeDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 1) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
+    return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? 's' : ''} ago`;
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-0 bg-gray-50 flex items-center justify-center py-24">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-0 bg-gray-50">
       {/* Hero Header */}
-      <MotionDiv
-        initial="hidden"
-        animate="visible"
-        variants={fadeIn}
-        className="bg-white border-b border-gray-200"
-      >
+      <MotionDiv initial="hidden" animate="visible" variants={fadeIn} className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">Reviews & Ratings</h1>
 
-          {/* Overall Rating Summary - Airbnb Style */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left: Big Rating */}
             <div className="flex flex-col justify-center">
               <div className="flex items-baseline gap-2 mb-4">
                 <span className="text-6xl font-bold text-gray-900">
-                  {reviewStats.averageRating.toFixed(1)}
+                  {stats.averageRating.toFixed(1)}
                 </span>
                 <Star className="w-10 h-10 fill-amber-400 text-amber-400" />
               </div>
@@ -209,24 +178,19 @@ export default function ContractorReviewsPage2025() {
                   <Star
                     key={star}
                     className={`w-6 h-6 ${
-                      star <= Math.round(reviewStats.averageRating)
+                      star <= Math.round(stats.averageRating)
                         ? 'fill-amber-400 text-amber-400'
                         : 'text-gray-300'
                     }`}
                   />
                 ))}
               </div>
-              <p className="text-gray-600 text-lg">
-                {reviewStats.totalReviews} reviews
-              </p>
+              <p className="text-gray-600 text-lg">{stats.totalReviews} review{stats.totalReviews !== 1 ? 's' : ''}</p>
             </div>
 
-            {/* Right: Rating Bars */}
             <div className="space-y-3">
               {ratingDistribution.map((item) => {
-                const percentage = reviewStats.totalReviews > 0
-                  ? (item.count / reviewStats.totalReviews) * 100
-                  : 0;
+                const percentage = stats.totalReviews > 0 ? (item.count / stats.totalReviews) * 100 : 0;
                 return (
                   <div key={item.stars} className="flex items-center gap-3">
                     <span className="text-sm text-gray-700 w-12">{item.stars} star</span>
@@ -249,8 +213,7 @@ export default function ContractorReviewsPage2025() {
 
       {/* Main Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Filter Tabs - Airbnb Style */}
+        {/* Filter Tabs */}
         <MotionDiv
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -296,33 +259,18 @@ export default function ContractorReviewsPage2025() {
           </div>
         </MotionDiv>
 
-        {/* Reviews List - Airbnb Style */}
-        <MotionDiv
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="space-y-8"
-        >
+        {/* Reviews List */}
+        <MotionDiv variants={staggerContainer} initial="hidden" animate="visible" className="space-y-8">
           {filteredReviews.map((review) => (
-            <MotionDiv
-              key={review.id}
-              variants={staggerItem}
-              className="pb-8 border-b border-gray-200 last:border-0"
-            >
+            <MotionDiv key={review.id} variants={staggerItem} className="pb-8 border-b border-gray-200 last:border-0">
               {/* Review Header */}
               <div className="flex items-start gap-4 mb-4">
-                <img
-                  src={review.clientAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${review.client}`}
-                  alt={review.client}
-                  className="w-12 h-12 rounded-full"
-                />
+                <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-lg flex-shrink-0">
+                  {review.client.charAt(0).toUpperCase()}
+                </div>
                 <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{review.client}</h3>
-                      <p className="text-sm text-gray-500">{review.relativeDate}</p>
-                    </div>
-                  </div>
+                  <h3 className="font-semibold text-gray-900">{review.client}</h3>
+                  <p className="text-sm text-gray-500">{formatRelativeDate(review.createdAt)}</p>
                 </div>
               </div>
 
@@ -340,49 +288,23 @@ export default function ContractorReviewsPage2025() {
                   <Star
                     key={star}
                     className={`w-5 h-5 ${
-                      star <= review.rating
-                        ? 'fill-amber-400 text-amber-400'
-                        : 'text-gray-300'
+                      star <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'
                     }`}
                   />
                 ))}
               </div>
 
-              {/* Review Comment */}
+              {/* Comment */}
               <p className="text-gray-700 leading-relaxed mb-4">{review.comment}</p>
 
-              {/* Photos if available */}
-              {review.photos && review.photos.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
-                  {review.photos.map((photo, idx) => (
-                    <div key={idx} className="aspect-square bg-gray-200 rounded-lg overflow-hidden relative">
-                      {photo ? (
-                        <Image
-                          src={photo}
-                          alt={`Review photo ${idx + 1}`}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Camera className="w-8 h-8 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Contractor Response - Indented */}
+              {/* Contractor Response */}
               {review.responded && review.response && (
                 <div className="ml-16 mt-4 p-4 bg-gray-50 rounded-lg border-l-2 border-teal-600">
                   <div className="flex items-start gap-3">
                     <Reply className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900 mb-1">Response from contractor</p>
-                      <p className="text-gray-700 mb-2">{review.response}</p>
-                      <p className="text-xs text-gray-500">{review.responseDate}</p>
+                      <p className="text-gray-700">{review.response}</p>
                     </div>
                   </div>
                 </div>
@@ -403,14 +325,16 @@ export default function ContractorReviewsPage2025() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleSubmitResponse(review.id)}
-                      className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium"
+                      disabled={submittingResponse}
+                      className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
                     >
+                      {submittingResponse && <Loader2 className="w-4 h-4 animate-spin" />}
                       Post reply
                     </MotionButton>
                     <MotionButton
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setShowResponseForm(null)}
+                      onClick={() => { setShowResponseForm(null); setResponseText(''); }}
                       className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                     >
                       Cancel
@@ -419,13 +343,13 @@ export default function ContractorReviewsPage2025() {
                 </div>
               )}
 
-              {/* Actions */}
-              {!review.responded && !showResponseForm && (
+              {/* Reply button for unresponded reviews */}
+              {!review.responded && showResponseForm !== review.id && (
                 <div className="mt-4">
                   <MotionButton
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowResponseForm(review.id)}
+                    onClick={() => { setShowResponseForm(review.id); setResponseText(''); }}
                     className="text-teal-600 font-semibold hover:underline flex items-center gap-2"
                   >
                     <Reply className="w-4 h-4" />
@@ -437,36 +361,16 @@ export default function ContractorReviewsPage2025() {
           ))}
         </MotionDiv>
 
-        {filteredReviews.length === 0 && (
-          <MotionDiv
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
-          >
+        {filteredReviews.length === 0 && !loading && (
+          <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
             <Star className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No reviews found</h3>
-            <p className="text-gray-500">Try adjusting your filters or search query</p>
+            <p className="text-gray-500">
+              {reviews.length === 0
+                ? 'Complete jobs to receive reviews from homeowners'
+                : 'Try adjusting your filters or search query'}
+            </p>
           </MotionDiv>
-        )}
-
-        {/* Pagination */}
-        {filteredReviews.length > 0 && (
-          <div className="mt-8 flex justify-center">
-            <div className="flex items-center gap-2">
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                Previous
-              </button>
-              <button className="px-4 py-2 bg-gray-900 text-white rounded-lg font-medium">
-                1
-              </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                2
-              </button>
-              <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium">
-                Next
-              </button>
-            </div>
-          </div>
         )}
       </div>
     </div>

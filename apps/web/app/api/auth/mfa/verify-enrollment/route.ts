@@ -1,15 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUserFromHeaders } from '@/lib/auth';
 import { MFAService } from '@/lib/mfa/mfa-service';
 import { rateLimiter } from '@/lib/rate-limiter';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { RateLimitError } from '@/lib/errors/api-error';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Validation schema
 const verifyEnrollmentSchema = z.object({
   token: z.string().length(6).regex(/^\d{6}$/, 'Token must be 6 digits'),
 });
@@ -18,34 +17,12 @@ const verifyEnrollmentSchema = z.object({
  * POST /api/auth/mfa/verify-enrollment
  * Complete MFA enrollment by verifying TOTP token
  */
-export async function POST(request: NextRequest): Promise<NextResponse> {
-  try {
-    // CSRF protection
-    try {
-      await requireCSRF(request);
-    } catch (csrfError) {
-      logger.warn('CSRF validation failed for MFA enrollment verification', {
-        service: 'mfa',
-      });
-      return NextResponse.json(
-        { error: 'CSRF validation failed' },
-        { status: 403 }
-      );
-    }
-
-    // Get current user
-    const user = getCurrentUserFromHeaders(request.headers);
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Rate limiting - 5 attempts per 15 minutes
+export const POST = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
+    // Custom rate limiting - 5 attempts per 15 minutes (user-based)
     const rateLimitResult = await rateLimiter.checkRateLimit({
-      windowMs: 900000, // 15 minutes
+      windowMs: 900000,
       maxRequests: 5,
       identifier: `mfa-verify-enrollment:${user.id}`,
     });
@@ -55,14 +32,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         service: 'mfa',
         userId: user.id,
       });
-
-      return NextResponse.json(
-        {
-          error: 'Too many verification attempts. Please try again later.',
-          retryAfter: rateLimitResult.retryAfter,
-        },
-        { status: 429 }
-      );
+      throw new RateLimitError(rateLimitResult.retryAfter ?? 900);
     }
 
     // Parse and validate request body
@@ -71,10 +41,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!validation.success) {
       return NextResponse.json(
-        {
-          error: 'Invalid request',
-          details: validation.error.errors,
-        },
+        { error: 'Invalid request', details: validation.error.errors },
         { status: 400 }
       );
     }
@@ -100,14 +67,5 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       success: true,
       message: 'MFA enabled successfully. Your account is now protected with two-factor authentication.',
     });
-  } catch (error) {
-    logger.error('MFA enrollment verification failed', error, {
-      service: 'mfa',
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to verify enrollment' },
-      { status: 500 }
-    );
   }
-}
+);

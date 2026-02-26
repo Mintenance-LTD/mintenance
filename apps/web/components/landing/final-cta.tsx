@@ -10,7 +10,7 @@ export function FinalCTA() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 className="text-5xl font-bold text-gray-900 mb-6">Ready to get started?</h2>
         <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-          Join thousands of homeowners and contractors who trust Mintenance for their home maintenance projects.
+          Upload a photo for a free AI assessment, or post your first job and get verified bids. Your money, your control.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-5">

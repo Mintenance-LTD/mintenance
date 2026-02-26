@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const supabase = serverSupabase;
 
@@ -15,212 +14,160 @@ const MAX_FILES = 10; // Maximum 10 photos per property
 
 /**
  * POST /api/properties/upload-photos
- * 
+ *
  * Uploads photos for a property.
  * Returns URLs that can be used when creating the property.
  */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
+  // Only homeowners can upload property photos
+  if (user.role !== 'homeowner') {
+    throw new ForbiddenError('Only homeowners can upload property photos.');
+  }
 
-  if (!rateLimitResult.allowed) {
+  // Validate environment variables
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    logger.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable', new Error('Missing env var'), {
+      service: 'property_photos',
+    });
     return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
+      { error: 'Server configuration error. Please contact support.' },
+      { status: 500 }
     );
   }
 
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Validate environment variables
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      logger.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable', new Error('Missing env var'), {
-        service: 'property_photos',
-      });
-      return NextResponse.json(
-        { error: 'Server configuration error. Please contact support.' },
-        { status: 500 }
-      );
-    }
-
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      logger.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable', new Error('Missing env var'), {
-        service: 'property_photos',
-      });
-      return NextResponse.json(
-        { error: 'Server configuration error. Please contact support.' },
-        { status: 500 }
-      );
-    }
-
-    // Get current user
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Must be logged in.' },
-        { status: 401 }
-      );
-    }
-
-    // Only homeowners can upload property photos
-    if (user.role !== 'homeowner') {
-      return NextResponse.json(
-        { error: 'Only homeowners can upload property photos.' },
-        { status: 403 }
-      );
-    }
-
-    // Parse form data
-    const formData = await request.formData();
-    const photoFiles = formData.getAll('photos') as File[];
-    const categories = formData.getAll('categories') as string[];
-
-    if (!photoFiles || photoFiles.length === 0) {
-      return NextResponse.json(
-        { error: 'No photos provided' },
-        { status: 400 }
-      );
-    }
-
-    if (photoFiles.length > MAX_FILES) {
-      return NextResponse.json(
-        { error: `Maximum ${MAX_FILES} photos allowed` },
-        { status: 400 }
-      );
-    }
-
-    // Validate and upload each file
-    const uploadedPhotos: Array<{ url: string; category: string }> = [];
-    const uploadErrors: string[] = [];
-
-    for (let i = 0; i < photoFiles.length; i++) {
-      const file = photoFiles[i];
-      const category = categories[i] || 'other';
-      // Validate file type
-      if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-        uploadErrors.push(`${file.name}: Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.`);
-        continue;
-      }
-
-      // Validate file size
-      if (file.size > MAX_FILE_SIZE) {
-        uploadErrors.push(`${file.name}: File too large. Maximum size is 5MB.`);
-        continue;
-      }
-
-      // Get file extension
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
-      if (!ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-        uploadErrors.push(`${file.name}: Invalid file extension.`);
-        continue;
-      }
-
-      // SECURITY: Sanitize filename to prevent path traversal attacks
-      // Remove any path separators, special characters, and ensure safe filename
-      const sanitizedBaseName = file.name
-        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
-        .replace(/\.\./g, '') // Remove path traversal attempts
-        .replace(/^\.+|\.+$/g, '') // Remove leading/trailing dots
-        .substring(0, 100); // Limit filename length
-      
-      // Generate safe filename with user ID and timestamp to prevent collisions
-      const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const fileName = `property-photos/${safeFileName}`;
-
-      // Upload to Supabase Storage (using Job-storage bucket that exists)
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('Job-storage')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        logger.error('Upload error for file', uploadError, {
-          service: 'property_photos',
-          userId: user.id,
-          fileName: file.name,
-        });
-        uploadErrors.push(`${file.name}: ${uploadError.message}`);
-        continue;
-      }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('Job-storage')
-        .getPublicUrl(fileName);
-
-      if (urlData?.publicUrl) {
-        uploadedPhotos.push({ url: urlData.publicUrl, category });
-      } else {
-        uploadErrors.push(`${file.name}: Failed to get public URL`);
-      }
-    }
-
-    if (uploadedPhotos.length === 0) {
-      // All uploads failed - provide more context
-      logger.error('All property photo uploads failed', new Error('All uploads failed'), {
-        service: 'property_photos',
-        userId: user.id,
-        attemptedFiles: photoFiles.length,
-        uploadErrors: uploadErrors.length,
-      });
-      return NextResponse.json(
-        { 
-          error: 'Failed to upload photos. Please check that the storage bucket exists and you have proper permissions.',
-          details: 'Ensure the Supabase storage bucket "Job-storage" is created and accessible.',
-          uploadErrors: uploadErrors.length > 0 ? uploadErrors : undefined
-        },
-        { status: 500 }
-      );
-    }
-    
-    // If some files failed but at least one succeeded, log a warning
-    if (uploadedPhotos.length < photoFiles.length) {
-      logger.warn('Partial property photo upload success', {
-        service: 'property_photos',
-        userId: user.id,
-        successful: uploadedPhotos.length,
-        total: photoFiles.length,
-        errors: uploadErrors.length,
-      });
-    }
-
-    return NextResponse.json({ 
-      urls: uploadedPhotos.map(p => p.url), // Keep for backward compatibility
-      photos: uploadedPhotos, // New format with categories
-      uploaded: uploadedPhotos.length,
-      total: photoFiles.length,
-      ...(uploadErrors.length > 0 && { warnings: uploadErrors })
-    });
-
-  } catch (error) {
-    logger.error('Error uploading property photos', error, {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    logger.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable', new Error('Missing env var'), {
       service: 'property_photos',
     });
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { 
-        error: 'Failed to upload photos. Please try again.',
-        details: errorMessage
+      { error: 'Server configuration error. Please contact support.' },
+      { status: 500 }
+    );
+  }
+
+  // Parse form data
+  const formData = await request.formData();
+  const photoFiles = formData.getAll('photos') as File[];
+  const categories = formData.getAll('categories') as string[];
+
+  if (!photoFiles || photoFiles.length === 0) {
+    return NextResponse.json(
+      { error: 'No photos provided' },
+      { status: 400 }
+    );
+  }
+
+  if (photoFiles.length > MAX_FILES) {
+    return NextResponse.json(
+      { error: `Maximum ${MAX_FILES} photos allowed` },
+      { status: 400 }
+    );
+  }
+
+  // Validate and upload each file
+  const uploadedPhotos: Array<{ url: string; category: string }> = [];
+  const uploadErrors: string[] = [];
+
+  for (let i = 0; i < photoFiles.length; i++) {
+    const file = photoFiles[i];
+    const category = categories[i] || 'other';
+    // Validate file type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      uploadErrors.push(`${file.name}: Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.`);
+      continue;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      uploadErrors.push(`${file.name}: File too large. Maximum size is 5MB.`);
+      continue;
+    }
+
+    // Get file extension
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+    if (!ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
+      uploadErrors.push(`${file.name}: Invalid file extension.`);
+      continue;
+    }
+
+    // SECURITY: Sanitize filename to prevent path traversal attacks
+    // Remove any path separators, special characters, and ensure safe filename
+    const sanitizedBaseName = file.name
+      .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+      .replace(/\.\./g, '') // Remove path traversal attempts
+      .replace(/^\.+|\.+$/g, '') // Remove leading/trailing dots
+      .substring(0, 100); // Limit filename length
+
+    // Generate safe filename with user ID and timestamp to prevent collisions
+    const safeFileName = `${sanitizedBaseName}-${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const fileName = `property-photos/${safeFileName}`;
+
+    // Upload to Supabase Storage (using Job-storage bucket that exists)
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('Job-storage')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      logger.error('Upload error for file', uploadError, {
+        service: 'property_photos',
+        userId: user.id,
+        fileName: file.name,
+      });
+      uploadErrors.push(`${file.name}: ${uploadError.message}`);
+      continue;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('Job-storage')
+      .getPublicUrl(fileName);
+
+    if (urlData?.publicUrl) {
+      uploadedPhotos.push({ url: urlData.publicUrl, category });
+    } else {
+      uploadErrors.push(`${file.name}: Failed to get public URL`);
+    }
+
+    void uploadData; // suppress unused variable warning
+  }
+
+  if (uploadedPhotos.length === 0) {
+    // All uploads failed - provide more context
+    logger.error('All property photo uploads failed', new Error('All uploads failed'), {
+      service: 'property_photos',
+      userId: user.id,
+      attemptedFiles: photoFiles.length,
+      uploadErrors: uploadErrors.length,
+    });
+    return NextResponse.json(
+      {
+        error: 'Failed to upload photos. Please check that the storage bucket exists and you have proper permissions.',
+        details: 'Ensure the Supabase storage bucket "Job-storage" is created and accessible.',
+        uploadErrors: uploadErrors.length > 0 ? uploadErrors : undefined,
       },
       { status: 500 }
     );
   }
-}
 
+  // If some files failed but at least one succeeded, log a warning
+  if (uploadedPhotos.length < photoFiles.length) {
+    logger.warn('Partial property photo upload success', {
+      service: 'property_photos',
+      userId: user.id,
+      successful: uploadedPhotos.length,
+      total: photoFiles.length,
+      errors: uploadErrors.length,
+    });
+  }
+
+  return NextResponse.json({
+    urls: uploadedPhotos.map(p => p.url), // Keep for backward compatibility
+    photos: uploadedPhotos, // New format with categories
+    uploaded: uploadedPhotos.length,
+    total: photoFiles.length,
+    ...(uploadErrors.length > 0 && { warnings: uploadErrors }),
+  });
+});

@@ -1,7 +1,5 @@
 import { logger } from '@mintenance/shared';
 import { RoboflowDetectionService } from '../RoboflowDetectionService';
-import { ImageAnalysisService } from '@/lib/services/ImageAnalysisService';
-import { toVisionSummary } from '../evidence-processor';
 import { runWithTimeout } from '../utils/timeout-utils';
 import { MonitoringService } from '@/lib/services/monitoring/MonitoringService';
 import type {
@@ -30,13 +28,14 @@ export interface PreRunEvidence {
 }
 
 /**
- * Collects evidence from external detectors (Roboflow, Vision, SAM3).
+ * Collects evidence from external detectors (Roboflow, SAM3).
+ * Google Cloud Vision removed — GPT-4o handles visual analysis directly.
  * If preRunEvidence is provided, skips detector calls.
  */
 export async function collectEvidence(
   validatedImageUrls: string[],
   detectorTimeoutMs: number,
-  visionTimeoutMs: number,
+  _visionTimeoutMs: number,
   preRunEvidence?: PreRunEvidence,
 ): Promise<EvidenceResult> {
   if (preRunEvidence) {
@@ -49,27 +48,17 @@ export async function collectEvidence(
     };
   }
 
-  // Run external detectors in parallel with timeouts
-  const [roboflowResult, visionResult] = await Promise.all([
-    runWithTimeout(
-      () => RoboflowDetectionService.detect(validatedImageUrls),
-      detectorTimeoutMs,
-      'roboflow-detect',
-    ),
-    runWithTimeout(
-      () => ImageAnalysisService.analyzePropertyImages(validatedImageUrls),
-      visionTimeoutMs,
-      'vision-analyze',
-    ),
-  ]);
+  // Run Roboflow detection with timeout
+  const roboflowResult = await runWithTimeout(
+    () => RoboflowDetectionService.detect(validatedImageUrls),
+    detectorTimeoutMs,
+    'roboflow-detect',
+  );
 
   const roboflowDetections: RoboflowDetection[] =
     roboflowResult.success && Array.isArray(roboflowResult.data)
       ? roboflowResult.data
       : [];
-  const visionAnalysis: VisionAnalysisSummary | null = visionResult.success
-    ? toVisionSummary(visionResult.data ?? null)
-    : null;
 
   if (!roboflowResult.success) {
     logger.warn('Roboflow detection unavailable', {
@@ -81,16 +70,6 @@ export async function collectEvidence(
     });
   }
 
-  if (!visionResult.success) {
-    logger.warn('Google Vision analysis unavailable', {
-      service: 'BuildingSurveyorService',
-      timedOut: visionResult.timedOut,
-      error: visionResult.error instanceof Error
-        ? visionResult.error.message
-        : visionResult.error,
-    });
-  }
-
   recordMetric('detector.roboflow', {
     success: roboflowResult.success,
     durationMs: roboflowResult.durationMs,
@@ -98,27 +77,17 @@ export async function collectEvidence(
     detectionCount: roboflowDetections.length,
   });
 
-  recordMetric('detector.vision', {
-    success: visionResult.success,
-    durationMs: visionResult.durationMs,
-    timedOut: visionResult.timedOut,
-    detectedLabels: visionAnalysis?.labels.length ?? 0,
-  });
-
   const hasMachineEvidence =
-    (roboflowResult.success && roboflowDetections.length > 0) ||
-    (visionResult.success && !!visionAnalysis);
+    roboflowResult.success && roboflowDetections.length > 0;
 
   if (!hasMachineEvidence) {
-    logger.warn('Proceeding with GPT-only assessment (no machine evidence)', {
+    logger.warn('Proceeding with GPT-only assessment (no Roboflow evidence)', {
       service: 'BuildingSurveyorService',
       roboflowSuccess: roboflowResult.success,
-      visionSuccess: visionResult.success,
     });
     recordMetric('detector.fallback', {
       reason: 'no_machine_evidence',
       roboflowSuccess: roboflowResult.success,
-      visionSuccess: visionResult.success,
     });
   }
 
@@ -143,7 +112,7 @@ export async function collectEvidence(
 
   return {
     roboflowDetections,
-    visionAnalysis,
+    visionAnalysis: null,
     sam3Segmentation,
     hasMachineEvidence,
   };

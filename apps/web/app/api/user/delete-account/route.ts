@@ -1,42 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
 import { checkDeleteAccountRateLimit } from '@/lib/rate-limiting/admin-gdpr';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
-import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
+
+const deleteAccountSchema = z.object({
+  confirmation: z.literal('DELETE'),
+  reason: z.string().max(500).optional(),
+});
 
 /**
  * POST /api/user/delete-account
  * Delete user account and all associated data (GDPR Right to Erasure)
  */
-export async function POST(request: NextRequest) {
-  try {
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Rate limiting - max 1 deletion per day
+export const POST = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
+    // Custom GDPR rate limiting — max 1 deletion per day
     const rateLimitResponse = await checkDeleteAccountRateLimit(request);
-    if (rateLimitResponse) {
-      return rateLimitResponse;
-    }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const deleteAccountSchema = z.object({
-      confirmation: z.literal('DELETE'),
-      reason: z.string().max(500).optional(),
-    });
+    if (rateLimitResponse) return rateLimitResponse;
 
     const validation = await validateRequest(request, deleteAccountSchema);
     if (validation instanceof NextResponse) return validation;
-    const { data } = validation;
 
     // Log the deletion request for GDPR compliance
     await serverSupabase.from('gdpr_audit_log').insert({
@@ -48,7 +36,6 @@ export async function POST(request: NextRequest) {
     });
 
     // Delete user data using the GDPR function (if available)
-    // Otherwise, delete manually respecting foreign key constraints
     const { error: deleteError } = await serverSupabase.rpc('delete_user_data', {
       p_user_id: user.id,
     });
@@ -61,7 +48,7 @@ export async function POST(request: NextRequest) {
         code: deleteError.code,
         details: deleteError.details,
       });
-      
+
       // Delete in order respecting foreign key constraints
       await serverSupabase.from('messages').delete().or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
       await serverSupabase.from('bids').delete().eq('contractor_id', user.id);
@@ -76,7 +63,6 @@ export async function POST(request: NextRequest) {
       logger.info('User tokens blacklisted after account deletion', { userId: user.id });
     } catch (error) {
       logger.error('Failed to blacklist user tokens after deletion', error, { userId: user.id });
-      // Continue even if blacklisting fails
     }
 
     logger.info('User account deleted', { userId: user.id });
@@ -85,8 +71,5 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Account deleted successfully',
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

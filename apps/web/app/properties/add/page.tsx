@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Home, MapPin, Upload, X, Image as ImageIcon, Building2, Building } from 'lucide-react';
+import { ArrowLeft, Crown, Home, Lock, Upload, X, Building2, Building } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import Link from 'next/link';
 
 interface PropertyFormData {
   name: string;
@@ -19,6 +21,7 @@ interface PropertyFormData {
 
 export default function AddPropertyPage2025() {
   const router = useRouter();
+  const { hasAccess: checkAccess, loading: featureLoading, tier } = useFeatureAccess();
 
   const [formData, setFormData] = useState<PropertyFormData>({
     name: '',
@@ -80,15 +83,111 @@ export default function AddPropertyPage2025() {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      let photoUrls: string[] = [];
+
+      // Step 1: Upload images if any
+      if (formData.images.length > 0) {
+        const uploadFormData = new FormData();
+        formData.images.forEach((file) => {
+          uploadFormData.append('photos', file);
+        });
+
+        const uploadRes = await fetch('/api/properties/upload-photos', {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '' },
+          body: uploadFormData,
+        });
+
+        if (!uploadRes.ok) {
+          const uploadErr = await uploadRes.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(uploadErr.error || 'Failed to upload photos');
+        }
+
+        const uploadData = await uploadRes.json();
+        photoUrls = uploadData.urls || [];
+      }
+
+      // Step 2: Create the property
+      const createRes = await fetch('/api/properties', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+        },
+        body: JSON.stringify({
+          property_name: formData.name.trim(),
+          address: formData.address.trim(),
+          city: formData.city.trim() || undefined,
+          postcode: formData.postcode.trim() || undefined,
+          property_type: formData.propertyType,
+          bedrooms: formData.bedrooms ? parseInt(formData.bedrooms, 10) : undefined,
+          bathrooms: formData.bathrooms ? parseInt(formData.bathrooms, 10) : undefined,
+          photos: photoUrls.length > 0 ? photoUrls : undefined,
+        }),
+      });
+
+      if (!createRes.ok) {
+        const createErr = await createRes.json().catch(() => ({ error: 'Creation failed' }));
+        throw new Error(createErr.error || 'Failed to create property');
+      }
+
       toast.success('Property added successfully!');
       router.push('/properties');
     } catch (error) {
-      toast.error('Failed to add property');
+      const message = error instanceof Error ? error.message : 'Failed to add property';
+      toast.error(message);
       setIsSubmitting(false);
     }
   };
+
+  // Check property limit
+  const propertyAccess = checkAccess('HOMEOWNER_PROPERTY_LIMIT');
+
+  if (featureLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
+      </div>
+    );
+  }
+
+  if (!propertyAccess.hasAccess && propertyAccess.requiresUpgrade) {
+    const limitNum = typeof propertyAccess.limit === 'number' ? propertyAccess.limit : 1;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="border-b border-gray-200 bg-white">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+            <button
+              onClick={() => router.push('/properties')}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="font-medium">Back to Properties</span>
+            </button>
+          </div>
+        </div>
+        <div className="max-w-lg mx-auto px-4 sm:px-6 py-16 text-center">
+          <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10 text-amber-600" />
+          </div>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-3">Property limit reached</h1>
+          <p className="text-gray-600 mb-8">
+            Your {tier === 'free' ? 'Free' : tier === 'landlord' ? 'Landlord' : 'current'} plan allows {limitNum} {limitNum === 1 ? 'property' : 'properties'}.
+            {tier === 'free'
+              ? ' Upgrade to Landlord for up to 25 properties.'
+              : ' Upgrade to Agency for unlimited properties.'}
+          </p>
+          <Link
+            href="/subscription-plans"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors"
+          >
+            <Crown className="w-5 h-5" />
+            Upgrade Plan
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

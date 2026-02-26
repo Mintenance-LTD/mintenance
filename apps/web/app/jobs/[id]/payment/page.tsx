@@ -97,6 +97,20 @@ function JobPaymentPageContent() {
 
       setJob(normalized);
 
+      // Verify contract is accepted before allowing payment
+      const contractRes = await fetch(`/api/contracts?job_id=${jobId}`);
+      if (contractRes.ok) {
+        const contractData = await contractRes.json();
+        const contract = contractData.contracts?.[0];
+        if (!contract || contract.status !== 'accepted') {
+          setError('Contract must be signed by both parties before making payment');
+          return;
+        }
+      } else {
+        setError('Unable to verify contract status. Please try again.');
+        return;
+      }
+
       // SECURITY: Fetch payment details from server (fees calculated server-side)
       const paymentDetailsResponse = await fetch(`/api/jobs/${jobId}/payment-details`);
       if (paymentDetailsResponse.ok) {

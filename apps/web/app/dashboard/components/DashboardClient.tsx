@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { DashboardWithAirbnbSearch } from './DashboardWithAirbnbSearch';
+import type { MaintenanceRecommendation } from '@/lib/services/RecommendationsService';
 
 interface DashboardClientProps {
   data: {
@@ -47,6 +48,17 @@ interface DashboardClientProps {
       message: string;
       timestamp: string;
     }>;
+    upcomingAppointments?: Array<{
+      id: string;
+      title: string;
+      date: string;
+      time: string;
+      endTime?: string;
+      locationType?: string;
+      status: string;
+      contractor?: { name: string };
+    }>;
+    recommendations?: MaintenanceRecommendation[];
   };
 }
 

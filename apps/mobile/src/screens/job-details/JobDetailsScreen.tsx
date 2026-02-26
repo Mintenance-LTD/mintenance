@@ -269,7 +269,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         )}
       </ScrollView>
 
-      {/* Sticky Bottom CTA */}
+      {/* Sticky Bottom CTA - State-Aware */}
+      {/* Contractor: Submit bid on posted jobs */}
       {isContractor && job.status === 'posted' && (
         <StickyBottomCTA
           price={budget > 0 ? budget : undefined}
@@ -279,11 +280,63 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       )}
 
-      {isOwner && job.bids && job.bids.length > 0 && (
+      {/* Homeowner: View bids on posted jobs */}
+      {isOwner && job.status === 'posted' && job.bids && job.bids.length > 0 && (
         <StickyBottomCTA
           buttonText={`View ${job.bids.length} Bid${job.bids.length !== 1 ? 's' : ''}`}
           onPress={() => navigation.navigate('BidReview', { jobId: job.id })}
           secondaryText="Review contractor bids"
+        />
+      )}
+
+      {/* Both: View/sign contract on assigned jobs */}
+      {job.status === 'assigned' && (isOwner || (isContractor && job.contractor_id === user?.id)) && (
+        <StickyBottomCTA
+          buttonText="View Contract"
+          onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+          secondaryText="Review and sign the contract"
+        />
+      )}
+
+      {/* Contractor: Upload before photos on assigned jobs (after contract signed) */}
+      {isContractor && job.contractor_id === user?.id && job.status === 'assigned' && (
+        <StickyBottomCTA
+          buttonText="Upload Before Photos"
+          onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'before' })}
+          secondaryText="Required before starting work"
+        />
+      )}
+
+      {/* Homeowner: Pay into escrow on assigned jobs */}
+      {isOwner && job.status === 'assigned' && budget > 0 && (
+        <StickyBottomCTA
+          price={budget}
+          priceLabel="Contract amount"
+          buttonText="Pay Now"
+          onPress={() => navigation.navigate('JobPayment', {
+            jobId: job.id,
+            amount: budget,
+            contractorId: job.contractor_id || '',
+          })}
+          secondaryText="Secure payment in escrow"
+        />
+      )}
+
+      {/* Contractor: Upload after photos on in-progress jobs */}
+      {isContractor && job.contractor_id === user?.id && job.status === 'in_progress' && (
+        <StickyBottomCTA
+          buttonText="Upload After Photos"
+          onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'after' })}
+          secondaryText="Document completed work"
+        />
+      )}
+
+      {/* Homeowner: Review photos on completed jobs */}
+      {isOwner && job.status === 'completed' && (
+        <StickyBottomCTA
+          buttonText="Review Work"
+          onPress={() => navigation.navigate('PhotoReview', { jobId: job.id })}
+          secondaryText="Compare before & after photos"
         />
       )}
     </View>

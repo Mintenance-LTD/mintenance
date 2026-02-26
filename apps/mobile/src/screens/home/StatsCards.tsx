@@ -23,18 +23,18 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
   savedPros = 0,
 }) => {
   const stats = [
-    { label: 'Active', value: activeJobs, icon: 'briefcase-outline' as const, color: theme.colors.textSecondary },
-    { label: 'Done', value: completedJobs, icon: 'checkmark-circle-outline' as const, color: theme.colors.textSecondary },
-    { label: 'Spent', value: totalSpent > 0 ? `£${totalSpent.toLocaleString()}` : '£0', icon: 'card-outline' as const, color: theme.colors.textSecondary },
-    { label: 'Saved', value: savedPros, icon: 'heart-outline' as const, color: theme.colors.textSecondary },
+    { label: 'Active', value: activeJobs, icon: 'briefcase-outline' as const, color: theme.colors.primary },
+    { label: 'Done', value: completedJobs, icon: 'checkmark-circle-outline' as const, color: '#34C759' },
+    { label: 'Spent', value: totalSpent > 0 ? `£${totalSpent.toLocaleString()}` : '£0', icon: 'card-outline' as const, color: '#FF9500' },
+    { label: 'Saved', value: savedPros, icon: 'heart-outline' as const, color: '#FF6B6B' },
   ];
 
   return (
     <View style={styles.container}>
       <View style={styles.row}>
-        {stats.map((stat, i) => (
-          <View key={stat.label} style={[styles.statItem, i < stats.length - 1 && styles.statBorder]}>
-            <Ionicons name={stat.icon} size={16} color={stat.color} />
+        {stats.map((stat) => (
+          <View key={stat.label} style={styles.statItem}>
+            <Ionicons name={stat.icon} size={18} color={stat.color} />
             <Text style={styles.value}>{stat.value}</Text>
             <Text style={styles.label}>{stat.label}</Text>
           </View>
@@ -50,19 +50,15 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    paddingVertical: 16,
-    ...theme.shadows.sm,
+    gap: 8,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
     gap: 4,
-  },
-  statBorder: {
-    borderRightWidth: 1,
-    borderRightColor: theme.colors.borderLight,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    paddingVertical: 14,
   },
   value: {
     fontSize: 20,

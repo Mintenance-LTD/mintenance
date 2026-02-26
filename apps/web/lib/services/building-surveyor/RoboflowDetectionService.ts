@@ -1,6 +1,7 @@
 import { logger } from '@mintenance/shared';
 import { getRoboflowConfig, validateRoboflowConfig } from '@/lib/config/roboflow.config';
 import { validateURLs } from '@/lib/security/url-validation';
+import { CircuitBreaker } from './utils/CircuitBreaker';
 import type { RoboflowDetection } from './types';
 
 interface DetectionResponse {
@@ -28,6 +29,13 @@ interface DetectionResponse {
 export class RoboflowDetectionService {
   private static readonly MAX_IMAGES = 8;
   private static localModelInitialized = false;
+
+  // P1: Circuit breaker — stop calling Roboflow API after repeated failures
+  private static readonly circuitBreaker = new CircuitBreaker({
+    name: 'RoboflowDetectionService',
+    failureThreshold: 3,
+    resetTimeoutMs: 300_000, // 5 minutes
+  });
 
   /**
    * Initialize local YOLO model if configured
@@ -110,6 +118,14 @@ export class RoboflowDetectionService {
       return [];
     }
 
+    // P1: Check circuit breaker before making API calls
+    if (this.circuitBreaker.isOpen()) {
+      logger.warn('Roboflow circuit breaker open, skipping API detections', {
+        service: 'RoboflowDetectionService',
+      });
+      return [];
+    }
+
     const normalizedUrls = imageUrls.slice(0, this.MAX_IMAGES);
     const urlValidation = await validateURLs(normalizedUrls, true);
     if (urlValidation.invalid.length > 0) {
@@ -121,9 +137,13 @@ export class RoboflowDetectionService {
     }
 
     const detections: RoboflowDetection[] = [];
+    let consecutiveFailures = 0;
     for (const url of urlValidation.valid) {
       try {
-        const response = await this.fetchDetections(url, config);
+        const response = await this.circuitBreaker.execute(
+          () => this.fetchDetections(url, config),
+        );
+        consecutiveFailures = 0;
         const imageDetections = response.predictions.map((prediction) => ({
           id: prediction.detection_id || `${prediction.class}-${prediction.x}-${prediction.y}`,
           className: prediction.class,
@@ -138,11 +158,14 @@ export class RoboflowDetectionService {
         }));
         detections.push(...imageDetections);
       } catch (error) {
+        consecutiveFailures++;
         logger.warn('Roboflow detection failed for image', {
           service: 'RoboflowDetectionService',
           imageUrl: url,
           error,
         });
+        // Stop trying remaining images if circuit breaker tripped
+        if (this.circuitBreaker.isOpen()) break;
       }
     }
 
@@ -153,22 +176,24 @@ export class RoboflowDetectionService {
     imageUrl: string,
     config: ReturnType<typeof getRoboflowConfig>,
   ): Promise<DetectionResponse> {
-    const searchParams = new URLSearchParams({
-      api_key: config.apiKey,
-      image: imageUrl,
-    });
-
     const endpoint = `${config.baseUrl}/${config.modelId}/${config.modelVersion}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
 
     try {
-      const response = await fetch(`${endpoint}?${searchParams.toString()}`, {
-        method: 'GET',
+      // P0 Security: Send API key via POST body instead of URL query parameter
+      // to prevent key leakage in server logs, CDN logs, and referrer headers
+      const response = await fetch(endpoint, {
+        method: 'POST',
         signal: controller.signal,
         headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
           Accept: 'application/json',
         },
+        body: new URLSearchParams({
+          api_key: config.apiKey,
+          image: imageUrl,
+        }).toString(),
       });
 
       if (!response.ok) {

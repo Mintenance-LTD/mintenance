@@ -17,12 +17,16 @@ export interface EvidenceRow {
   confidence_aggregate?: number | null;
 }
 
+/** P1: Timeout for evidence persistence DB calls */
+const EVIDENCE_WRITE_TIMEOUT_MS = 10_000; // 10 seconds
+
 /**
  * Insert one evidence row after a tool run.
+ * P1: Includes timeout to prevent indefinite blocking on DB issues.
  */
 export async function writeEvidence(row: EvidenceRow): Promise<void> {
   try {
-    const { error } = await serverSupabase.from('assessment_evidence').insert({
+    const insertPromise = serverSupabase.from('assessment_evidence').insert({
       assessment_id: row.assessment_id,
       tool_name: row.tool_name,
       step_index: row.step_index,
@@ -31,6 +35,12 @@ export async function writeEvidence(row: EvidenceRow): Promise<void> {
       output_raw_ref: row.output_raw_ref ?? null,
       confidence_aggregate: row.confidence_aggregate ?? null,
     });
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Evidence write timed out')), EVIDENCE_WRITE_TIMEOUT_MS),
+    );
+
+    const { error } = await Promise.race([insertPromise, timeoutPromise]);
 
     if (error) {
       logger.error('EvidenceWriter: failed to insert assessment_evidence', {

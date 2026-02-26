@@ -1,10 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
 import { checkGDPRRateLimit } from '@/lib/rate-limiting/admin-gdpr';
-import { handleAPIError, UnauthorizedError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { InternalServerError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
 
@@ -12,18 +11,11 @@ import { z } from 'zod';
  * GET /api/user/gdpr-preferences
  * Get user's GDPR preferences
  */
-export async function GET(request: NextRequest) {
-  try {
-    // Rate limiting for GDPR endpoints
+export const GET = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
     const rateLimitResponse = await checkGDPRRateLimit(request);
-    if (rateLimitResponse) {
-      return rateLimitResponse;
-    }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
+    if (rateLimitResponse) return rateLimitResponse;
 
     const { data, error } = await serverSupabase
       .from('user_preferences')
@@ -44,34 +36,22 @@ export async function GET(request: NextRequest) {
         dataSharing: false,
       },
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);
+
+const gdprPreferencesSchema = z.object({
+  preferences: z.record(z.string(), z.boolean()),
+});
 
 /**
  * POST /api/user/gdpr-preferences
  * Update user's GDPR preferences
  */
-export async function POST(request: NextRequest) {
-  try {
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Rate limiting for GDPR endpoints
+export const POST = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
     const rateLimitResponse = await checkGDPRRateLimit(request);
-    if (rateLimitResponse) {
-      return rateLimitResponse;
-    }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const gdprPreferencesSchema = z.object({
-      preferences: z.record(z.string(), z.boolean()),
-    });
+    if (rateLimitResponse) return rateLimitResponse;
 
     const validation = await validateRequest(request, gdprPreferencesSchema);
     if (validation instanceof NextResponse) return validation;
@@ -105,8 +85,5 @@ export async function POST(request: NextRequest) {
       success: true,
       preferences: validPreferences,
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

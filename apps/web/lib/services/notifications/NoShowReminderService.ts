@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 /**
  * Service for automated no-show detection and reminders
@@ -59,28 +60,22 @@ export class NoShowReminderService {
     homeowner_id: string;
   }): Promise<void> {
     try {
-      const notifications = [
-        {
-          user_id: job.contractor_id,
+      await Promise.all([
+        NotificationService.createNotification({
+          userId: job.contractor_id,
           title: 'Job Start Reminder',
           message: `You have a scheduled job "${job.title}" that was supposed to start. Please mark it as started or contact the homeowner.`,
           type: 'no_show_reminder',
-          read: false,
-          action_url: `/contractor/jobs/${job.id}`,
-          created_at: new Date().toISOString(),
-        },
-        {
-          user_id: job.homeowner_id,
+          actionUrl: `/contractor/jobs/${job.id}`,
+        }),
+        NotificationService.createNotification({
+          userId: job.homeowner_id,
           title: 'Contractor No-Show',
           message: `The contractor hasn't started the scheduled job "${job.title}". You may want to contact them.`,
           type: 'no_show_alert',
-          read: false,
-          action_url: `/jobs/${job.id}`,
-          created_at: new Date().toISOString(),
-        },
-      ];
-
-      await serverSupabase.from('notifications').insert(notifications);
+          actionUrl: `/jobs/${job.id}`,
+        }),
+      ]);
 
       logger.info('No-show notifications sent', {
         service: 'NoShowReminderService',
@@ -150,19 +145,13 @@ export class NoShowReminderService {
     scheduled_start_date: string | null;
   }, timeUntil: string): Promise<void> {
     try {
-      const notifications = [
-        {
-          user_id: job.contractor_id,
-          title: 'Upcoming Job',
-          message: `Your job "${job.title}" is scheduled to start in ${timeUntil}.`,
-          type: 'job_reminder',
-          read: false,
-          action_url: `/contractor/jobs/${job.id}`,
-          created_at: new Date().toISOString(),
-        },
-      ];
-
-      await serverSupabase.from('notifications').insert(notifications);
+      await NotificationService.createNotification({
+        userId: job.contractor_id,
+        title: 'Upcoming Job',
+        message: `Your job "${job.title}" is scheduled to start in ${timeUntil}.`,
+        type: 'job_reminder',
+        actionUrl: `/contractor/jobs/${job.id}`,
+      });
     } catch (error) {
       logger.error('Error sending reminder', error, {
         service: 'NoShowReminderService',

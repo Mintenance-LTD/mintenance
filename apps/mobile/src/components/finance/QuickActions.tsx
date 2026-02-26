@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../../theme';
@@ -14,23 +14,23 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
   const actions = [
     {
       icon: 'receipt-outline',
-      label: 'Create Invoice',
-      onPress: () => Alert.alert('Coming Soon', 'Invoice creation coming soon.'),
+      label: 'Invoices',
+      onPress: () => navigation.navigate('InvoiceManagement' as never),
     },
     {
       icon: 'card-outline',
-      label: 'Add Expense',
-      onPress: () => Alert.alert('Coming Soon', 'Expense tracking coming soon.'),
+      label: 'Expenses',
+      onPress: () => navigation.navigate('Expenses' as never),
     },
     {
-      icon: 'checkmark-circle-outline',
-      label: 'Record Payment',
-      onPress: () => Alert.alert('Coming Soon', 'Payment recording coming soon.'),
+      icon: 'cash-outline',
+      label: 'Payouts',
+      onPress: () => navigation.navigate('Payouts' as never),
     },
     {
       icon: 'analytics-outline',
-      label: 'View Reports',
-      onPress: () => Alert.alert('Coming Soon', 'Finance reports coming soon.'),
+      label: 'Reports',
+      onPress: () => navigation.navigate('Reporting' as never),
     },
   ];
 

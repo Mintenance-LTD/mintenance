@@ -1,96 +1,34 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
+import { BadRequestError, NotFoundError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+
+const locationSchema = z.object({
+  contractorId: z.string().uuid().optional(),
+  latitude: z.number().min(-90, 'Invalid latitude value').max(90, 'Invalid latitude value'),
+  longitude: z.number().min(-180, 'Invalid longitude value').max(180, 'Invalid longitude value'),
+  address: z.string().max(500).optional(),
+  city: z.string().max(200).optional(),
+  postcode: z.string().max(20).optional(),
+});
 
 /**
  * PATCH /api/contractor/profile/location
  * Updates contractor location (latitude, longitude, address, city, postcode)
  */
-export async function PATCH(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const supabase = serverSupabase;
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Validate request body
-    const locationSchema = z.object({
-      contractorId: z.string().uuid().optional(),
-      latitude: z.number().min(-90, 'Invalid latitude value').max(90, 'Invalid latitude value'),
-      longitude: z.number().min(-180, 'Invalid longitude value').max(180, 'Invalid longitude value'),
-      address: z.string().max(500).optional(),
-      city: z.string().max(200).optional(),
-      postcode: z.string().max(20).optional(),
-    });
-
+export const PATCH = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const validation = await validateRequest(request, locationSchema);
     if (validation instanceof NextResponse) return validation;
     const { data: validatedBody } = validation;
-    const { contractorId, latitude, longitude, address, city, postcode } = validatedBody;
+    const { latitude, longitude, address, city, postcode } = validatedBody;
 
-    // Verify user owns this contractor profile
-    const { data: contractorData, error: contractorError } = await supabase
-      .from('profiles')
-      .select('id, role')
-      .eq('id', user.id)
-      .single();
-
-    if (contractorError || !contractorData) {
-      logger.error('Failed to fetch contractor data', {
-        userId: user.id,
-        error: contractorError,
-      });
-      return NextResponse.json(
-        { error: 'Contractor not found' },
-        { status: 404 }
-      );
-    }
-
-    // Verify user is a contractor
-    if (contractorData.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Only contractors can update location' },
-        { status: 403 }
-      );
-    }
-
-    // Update contractor location in users table
-    const { data: updatedData, error: updateError } = await supabase
+    // Update contractor location in profiles table
+    const { data: updatedData, error: updateError } = await serverSupabase
       .from('profiles')
       .update({
         latitude,
@@ -101,9 +39,7 @@ export async function PATCH(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
-      .select(
-        'id, latitude, longitude, address, city, postcode, updated_at'
-      )
+      .select('id, latitude, longitude, address, city, postcode, updated_at')
       .single();
 
     if (updateError) {
@@ -111,10 +47,7 @@ export async function PATCH(request: NextRequest) {
         userId: user.id,
         error: updateError,
       });
-      return NextResponse.json(
-        { error: 'Failed to update location' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to update location');
     }
 
     logger.info('Contractor location updated successfully', {
@@ -129,64 +62,17 @@ export async function PATCH(request: NextRequest) {
       data: updatedData,
       message: 'Location updated successfully',
     });
-  } catch (error) {
-    logger.error('Error in PATCH /api/contractor/profile/location', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-    });
-
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+  },
+);
 
 /**
  * GET /api/contractor/profile/location
  * Retrieves contractor's current location
  */
-export async function GET(request: Request) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const supabase = serverSupabase;
-
-    // Get authenticated user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Fetch contractor location
-    const { data: locationData, error: locationError } = await supabase
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (_request, { user }) => {
+    const { data: locationData, error: locationError } = await serverSupabase
       .from('profiles')
       .select('id, latitude, longitude, address, city, postcode')
       .eq('id', user.id)
@@ -198,32 +84,16 @@ export async function GET(request: Request) {
         userId: user.id,
         error: locationError,
       });
-      return NextResponse.json(
-        { error: 'Failed to fetch location' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to fetch location');
     }
 
     if (!locationData) {
-      return NextResponse.json(
-        { error: 'Contractor not found' },
-        { status: 404 }
-      );
+      throw new NotFoundError('Contractor not found');
     }
 
     return NextResponse.json({
       success: true,
       data: locationData,
     });
-  } catch (error) {
-    logger.error('Error in GET /api/contractor/profile/location', {
-      error,
-      message: error instanceof Error ? error.message : 'Unknown error',
-    });
-
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+  },
+);

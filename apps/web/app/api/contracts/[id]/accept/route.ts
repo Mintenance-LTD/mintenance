@@ -4,6 +4,7 @@ import { logger } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
 import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 export const POST = withApiHandler(
   {},
@@ -107,18 +108,14 @@ export const POST = withApiHandler(
         : (user.role === 'contractor' ? 'The contractor' : 'The homeowner');
       
       try {
-        await serverSupabase
-          .from('notifications')
-          .insert({
-            user_id: otherPartyId,
-            title: 'Contract Pending Your Signature 📝',
-            message: `${signerName} has signed the contract for "${updatedContract.title || 'your job'}". Your signature is required to proceed.`,
-            type: 'contract_pending_signature',
-            read: false,
-            action_url: otherPartyRole === 'contractor' ? `/contractor/jobs/${contract.job_id}` : `/jobs/${contract.job_id}`,
-            created_at: new Date().toISOString(),
-          });
-        
+        await NotificationService.createNotification({
+          userId: otherPartyId,
+          title: 'Contract Pending Your Signature',
+          message: `${signerName} has signed the contract for "${updatedContract.title || 'your job'}". Your signature is required to proceed.`,
+          type: 'contract_pending_signature',
+          actionUrl: otherPartyRole === 'contractor' ? `/contractor/jobs/${contract.job_id}` : `/jobs/${contract.job_id}`,
+        });
+
         logger.info('Contract signature notification sent', {
           service: 'contracts',
           contractId,
@@ -138,29 +135,23 @@ export const POST = withApiHandler(
     // If contract is now accepted, create notifications and schedule job
     if (updatedContract.status === 'accepted') {
       // Notify both parties
-      const notifications = [
-        {
-          user_id: contract.contractor_id,
-          title: 'Contract Accepted! ✅',
-          message: `The contract for job "${updatedContract.title || 'your job'}" has been accepted by both parties.`,
-          type: 'contract_signed',
-          read: false,
-          action_url: `/contractor/jobs/${contract.job_id}`,
-          created_at: new Date().toISOString(),
-        },
-        {
-          user_id: contract.homeowner_id,
-          title: 'Contract Accepted! ✅',
-          message: `The contract for "${updatedContract.title || 'your job'}" has been accepted by both parties.`,
-          type: 'contract_signed',
-          read: false,
-          action_url: `/jobs/${contract.job_id}`,
-          created_at: new Date().toISOString(),
-        },
-      ];
-
       try {
-        await serverSupabase.from('notifications').insert(notifications);
+        await Promise.all([
+          NotificationService.createNotification({
+            userId: contract.contractor_id,
+            title: 'Contract Accepted!',
+            message: `The contract for job "${updatedContract.title || 'your job'}" has been accepted by both parties.`,
+            type: 'contract_signed',
+            actionUrl: `/contractor/jobs/${contract.job_id}`,
+          }),
+          NotificationService.createNotification({
+            userId: contract.homeowner_id,
+            title: 'Contract Accepted!',
+            message: `The contract for "${updatedContract.title || 'your job'}" has been accepted by both parties.`,
+            type: 'contract_signed',
+            actionUrl: `/jobs/${contract.job_id}`,
+          }),
+        ]);
       } catch (notificationError) {
         logger.error('Failed to create acceptance notifications', notificationError, {
           service: 'contracts',

@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EscrowStatusService } from './EscrowStatusService';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 const AUTO_APPROVAL_DAYS = 7;
 const REMINDER_DAYS = 3;
@@ -486,8 +487,8 @@ export class HomeownerApprovalService {
     photoUrls: string[]
   ): Promise<void> {
     try {
-      await serverSupabase.from('notifications').insert({
-        user_id: homeownerId,
+      await NotificationService.createNotification({
+        userId: homeownerId,
         title: 'Review Completion Photos',
         message: `Please review the completion photos for your job. You have 7 days to approve or the payment will be automatically released.`,
         type: 'escrow_approval_request',
@@ -496,7 +497,6 @@ export class HomeownerApprovalService {
           photoUrls,
           autoApprovalDays: AUTO_APPROVAL_DAYS,
         },
-        created_at: new Date().toISOString(),
       });
     } catch (error) {
       logger.error('Error sending approval request notification', error, {
@@ -515,15 +515,14 @@ export class HomeownerApprovalService {
     contractorId: string
   ): Promise<void> {
     try {
-      await serverSupabase.from('notifications').insert({
-        user_id: contractorId,
+      await NotificationService.createNotification({
+        userId: contractorId,
         title: 'Homeowner Approved Completion',
         message: 'The homeowner has approved your completion photos. Funds will be released after a 48-hour cooling-off period.',
         type: 'escrow_approved',
         metadata: {
           escrowId,
         },
-        created_at: new Date().toISOString(),
       });
     } catch (error) {
       logger.error('Error sending approval notification', error, {
@@ -543,8 +542,8 @@ export class HomeownerApprovalService {
     reason: string
   ): Promise<void> {
     try {
-      await serverSupabase.from('notifications').insert({
-        user_id: contractorId,
+      await NotificationService.createNotification({
+        userId: contractorId,
         title: 'Homeowner Rejected Completion',
         message: `The homeowner has rejected your completion photos. Reason: ${reason}. An admin will review.`,
         type: 'escrow_rejected',
@@ -552,7 +551,6 @@ export class HomeownerApprovalService {
           escrowId,
           reason,
         },
-        created_at: new Date().toISOString(),
       });
     } catch (error) {
       logger.error('Error sending rejection notification', error, {
@@ -572,8 +570,8 @@ export class HomeownerApprovalService {
     daysRemaining: number
   ): Promise<void> {
     try {
-      await serverSupabase.from('notifications').insert({
-        user_id: homeownerId,
+      await NotificationService.createNotification({
+        userId: homeownerId,
         title: `Reminder: Review Completion Photos (${daysRemaining} days remaining)`,
         message: `You have ${daysRemaining} days to review and approve the completion photos. After ${daysRemaining} days, the payment will be automatically released.`,
         type: 'escrow_reminder',
@@ -581,7 +579,6 @@ export class HomeownerApprovalService {
           escrowId,
           daysRemaining,
         },
-        created_at: new Date().toISOString(),
       });
     } catch (error) {
       logger.error('Error sending reminder notification', error, {
@@ -600,15 +597,14 @@ export class HomeownerApprovalService {
     homeownerId: string
   ): Promise<void> {
     try {
-      await serverSupabase.from('notifications').insert({
-        user_id: homeownerId,
+      await NotificationService.createNotification({
+        userId: homeownerId,
         title: 'Final Warning: Auto-Approval Tomorrow',
         message: 'If you do not review the completion photos by tomorrow, the payment will be automatically released.',
         type: 'escrow_final_warning',
         metadata: {
           escrowId,
         },
-        created_at: new Date().toISOString(),
       });
     } catch (error) {
       logger.error('Error sending final warning notification', error, {

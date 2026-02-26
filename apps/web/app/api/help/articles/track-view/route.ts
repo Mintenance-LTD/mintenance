@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { requireCSRF } from '@/lib/csrf';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 const trackViewSchema = z.object({
   articleTitle: z.string().min(1).max(500),
@@ -14,52 +13,27 @@ const trackViewSchema = z.object({
 
 /**
  * Track a view for a help article
+ * Auth is optional — anonymous views are allowed
  */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
-    await requireCSRF(request);
-const body = await request.json();
+export const POST = withApiHandler(
+  { auth: false, rateLimit: { maxRequests: 30 } },
+  async (request) => {
+    const body = await request.json();
     const parsed = trackViewSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestError('Article title and category are required');
     }
     const { articleTitle, category } = parsed.data;
 
-    // Get current user (optional - can be null for anonymous views)
+    // Optional auth — null for anonymous views
     const user = await getCurrentUserFromCookies();
     const userId = user?.id || null;
 
-    // Get IP address and user agent
-    const ipAddress = request.headers.get('x-forwarded-for') || 
-                      request.headers.get('x-real-ip') || 
+    const ipAddress = request.headers.get('x-forwarded-for') ||
+                      request.headers.get('x-real-ip') ||
                       'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
-    // Insert view record
     const { error } = await serverSupabase
       .from('help_article_views')
       .insert({
@@ -81,8 +55,5 @@ const body = await request.json();
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

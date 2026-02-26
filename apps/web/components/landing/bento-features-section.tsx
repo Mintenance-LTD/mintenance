@@ -48,7 +48,7 @@ export function BentoFeaturesSection() {
             </span>
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Revolutionary property maintenance platform with cutting-edge AI capabilities
+            Upload a photo of any property problem. Get an instant assessment with repair costs &mdash; no account needed.
           </p>
         </motion.div>
 
@@ -127,7 +127,7 @@ export function BentoFeaturesSection() {
             </div>
           </motion.div>
 
-          {/* Medium Feature - Swipe to Hire */}
+          {/* Medium Feature - Smart Matching */}
           <motion.div
             variants={itemVariants}
             className="md:col-span-2 group relative overflow-hidden"
@@ -142,13 +142,13 @@ export function BentoFeaturesSection() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Swipe to Hire</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Smart Matching</h3>
                 <p className="text-gray-600 leading-relaxed mb-4">
-                  Tinder-style matching for contractors. Swipe right to connect.
+                  Browse verified contractors matched to your job. Compare bids, reviews, and portfolios.
                 </p>
               </div>
               <Link href="/discover" className="inline-flex items-center text-pink-600 font-semibold hover:text-pink-700 group/link">
-                Start swiping
+                Find contractors
                 <svg className="w-4 h-4 ml-2 transition-transform group-hover/link:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
@@ -156,7 +156,7 @@ export function BentoFeaturesSection() {
             </div>
           </motion.div>
 
-          {/* Medium Feature - Zero-Risk Escrow */}
+          {/* Medium Feature - Protected Payments */}
           <motion.div
             variants={itemVariants}
             className="md:col-span-2 group relative overflow-hidden"
@@ -171,9 +171,9 @@ export function BentoFeaturesSection() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">Zero-Risk Escrow</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">Protected Payments</h3>
                 <p className="text-gray-600 leading-relaxed mb-4">
-                  Payment protection until job completion. 100% satisfaction guaranteed.
+                  Your money stays with us until you approve the work. You are always in control.
                 </p>
               </div>
               <Link href="/payments" className="inline-flex items-center text-amber-600 font-semibold hover:text-amber-700 group/link">

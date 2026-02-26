@@ -1,84 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
- * Secure Maps Configuration Endpoint
- *
- * SECURITY: This endpoint provides a display-only API key for Google Maps
- * that should have HTTP referrer restrictions in Google Cloud Console.
- *
- * IMPORTANT: The key returned here should be DIFFERENT from GOOGLE_MAPS_API_KEY
- * and should ONLY have permissions for:
- * - Maps JavaScript API (for displaying maps)
- * - NO geocoding permissions (use /api/geocode-proxy instead)
- *
- * Requires authentication to prevent abuse.
+ * GET /api/maps-config - secure maps configuration endpoint.
+ * Currently disabled: returns 403 directing to server-side geocoding.
  */
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Require authentication
-    const user = await getCurrentUserFromCookies();
-    if (!user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    // For now, we'll disable client-side map loading entirely
-    // Maps should only be displayed via server-side rendering or iframe embeds
-    return NextResponse.json(
-      {
-        error: 'Client-side map loading is disabled for security',
-        message: 'Use server-side geocoding via /api/geocode-proxy',
-      },
-      { status: 403 }
-    );
-
-    // FUTURE: If you need client-side maps, create a separate restricted key:
-    // const displayKey = process.env.GOOGLE_MAPS_DISPLAY_KEY;
-    // if (!displayKey) {
-    //   return NextResponse.json(
-    //     { error: 'Maps display not configured' },
-    //     { status: 500 }
-    //   );
-    // }
-    //
-    // return NextResponse.json(
-    //   { apiKey: displayKey },
-    //   {
-    //     headers: {
-    //       'Cache-Control': 'private, max-age=3600', // Cache for 1 hour
-    //     },
-    //   }
-    // );
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+export const GET = withApiHandler({}, async () => {
+  return NextResponse.json(
+    {
+      error: 'Client-side map loading is disabled for security',
+      message: 'Use server-side geocoding via /api/geocode-proxy',
+    },
+    { status: 403 },
+  );
+});

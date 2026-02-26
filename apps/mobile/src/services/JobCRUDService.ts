@@ -10,6 +10,7 @@
 
 import { supabase } from '../config/supabase';
 import type { Job } from '@mintenance/types';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { checkRateLimit } from '../middleware/RateLimiter';
@@ -128,7 +129,36 @@ export class JobCRUDService {
     }
 
     if (!data) return null;
-    return this.formatJob(data as DatabaseJobRow);
+    const job = this.formatJob(data as DatabaseJobRow);
+
+    // Enrich with photos from job_attachments and job_photos_metadata
+    // since jobs.photos column is typically empty
+    if (!job.photos || job.photos.length === 0) {
+      const [attachRes, metaRes] = await Promise.all([
+        supabase
+          .from('job_attachments')
+          .select('file_url')
+          .eq('job_id', jobId)
+          .eq('file_type', 'image'),
+        supabase
+          .from('job_photos_metadata')
+          .select('photo_url')
+          .eq('job_id', jobId),
+      ]);
+
+      const photos: string[] = [];
+      if (attachRes.data) {
+        for (const row of attachRes.data) photos.push(row.file_url);
+      }
+      if (metaRes.data) {
+        for (const row of metaRes.data) {
+          if (!photos.includes(row.photo_url)) photos.push(row.photo_url);
+        }
+      }
+      if (photos.length > 0) job.photos = photos;
+    }
+
+    return job;
   }
 
   static async updateJob(
@@ -183,27 +213,13 @@ export class JobCRUDService {
   }
 
   static async startJob(jobId: string): Promise<void> {
-    const { error } = await supabase
-      .from('jobs')
-      .update({
-        status: 'in_progress',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-
-    if (error) throw error;
+    // Route through web API to enforce before-photo gate and send notifications
+    await mobileApiClient.post(`/api/jobs/${jobId}/start`);
   }
 
   static async completeJob(jobId: string): Promise<void> {
-    const { error } = await supabase
-      .from('jobs')
-      .update({
-        status: 'completed',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-
-    if (error) throw error;
+    // Route through web API to enforce payment checks and send notifications
+    await mobileApiClient.post(`/api/jobs/${jobId}/complete`);
   }
 
   // Helper method

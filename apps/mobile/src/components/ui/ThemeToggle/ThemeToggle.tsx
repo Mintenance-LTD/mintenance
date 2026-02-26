@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
+import { useTheme } from '../../../design-system/theme';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -32,8 +33,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   style,
   testID,
 }) => {
-  const colorScheme = 'light'; // Static - dark mode not currently active
-  const toggleTheme = () => {}; // No-op for now
+  const { colorScheme, toggleTheme } = useTheme();
 
   const iconSize = getIconSize(size);
   const buttonStyles = getButtonStyles(variant, size);
@@ -125,8 +125,7 @@ export const ThemeModeSelector: React.FC<ThemeModeSelectorProps> = ({
   style,
   testID,
 }) => {
-  const themeMode = 'light'; // Static
-  const setThemeMode = (_mode: 'light' | 'dark' | 'system') => {}; // No-op
+  const { themeMode, setThemeMode } = useTheme();
 
   const modes: { key: 'light' | 'dark' | 'system'; label: string; icon: string }[] = [
     { key: 'light', label: 'Light', icon: 'sunny' },

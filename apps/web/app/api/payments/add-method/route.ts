@@ -1,14 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
-import { getUserFromRequest } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { requireCSRFFromCookieAuth } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, BadRequestError, NotFoundError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const addMethodSchema = z.object({
   paymentMethodId: z.string().regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
@@ -19,39 +17,9 @@ const addMethodSchema = z.object({
  * POST /api/payments/add-method
  * Attach a payment method to the user's Stripe customer
  */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRFFromCookieAuth(request);
-
-    // Authenticate user
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user }) => {
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, addMethodSchema);
     if ('headers' in validation) {
@@ -60,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const { paymentMethodId, setAsDefault } = validation.data;
 
-    // Get user profile (stripe_customer_id column may not exist yet)
+    // Get user profile
     const { data: userData, error: userError } = await serverSupabase
       .from('profiles')
       .select('id, email')
@@ -104,9 +72,18 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id);
 
     // Attach payment method to customer
-    const paymentMethod = await stripe.paymentMethods.attach(paymentMethodId, {
-      customer: stripeCustomerId,
-    });
+    let paymentMethod: Stripe.PaymentMethod;
+    try {
+      paymentMethod = await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: stripeCustomerId,
+      });
+    } catch (error) {
+      if (error instanceof Stripe.errors.StripeError) {
+        logger.error('Stripe error adding payment method', error, { service: 'payments' });
+        throw new BadRequestError(error.message);
+      }
+      throw error;
+    }
 
     // Set as default payment method if requested
     if (setAsDefault) {
@@ -141,11 +118,5 @@ export async function POST(request: NextRequest) {
       },
       isDefault: setAsDefault,
     });
-  } catch (error) {
-    if (error instanceof Stripe.errors.StripeError) {
-      logger.error('Stripe error adding payment method', error, { service: 'payments' });
-      throw new BadRequestError(error.message);
-    }
-    return handleAPIError(error);
   }
-}
+);

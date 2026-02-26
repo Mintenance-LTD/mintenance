@@ -438,18 +438,32 @@ export default function ContractorJobsPage2025() {
 
                         {/* Actions */}
                         <div className="flex gap-3">
-                          <Link
-                            href={`/contractor/bid/${job.id}/details`}
-                            className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium text-center hover:bg-gray-200 transition-colors"
-                          >
-                            View Details
-                          </Link>
-                          <Link
-                            href={`/contractor/bid/${job.id}`}
-                            className="flex-1 px-4 py-2.5 bg-teal-600 text-white rounded-xl font-medium text-center hover:bg-teal-700 transition-colors"
-                          >
-                            Submit Bid
-                          </Link>
+                          {['assigned', 'in_progress', 'completed'].includes(job.status) ? (
+                            <>
+                              <Link
+                                href={`/contractor/jobs/${job.id}`}
+                                className="flex-1 px-4 py-2.5 bg-teal-600 text-white rounded-xl font-medium text-center hover:bg-teal-700 transition-colors flex items-center justify-center gap-2"
+                              >
+                                <Briefcase size={16} />
+                                {job.status === 'completed' ? 'View Job' : 'Manage Job'}
+                              </Link>
+                            </>
+                          ) : (
+                            <>
+                              <Link
+                                href={`/contractor/bid/${job.id}/details`}
+                                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium text-center hover:bg-gray-200 transition-colors"
+                              >
+                                View Details
+                              </Link>
+                              <Link
+                                href={`/contractor/bid/${job.id}`}
+                                className="flex-1 px-4 py-2.5 bg-teal-600 text-white rounded-xl font-medium text-center hover:bg-teal-700 transition-colors"
+                              >
+                                Submit Bid
+                              </Link>
+                            </>
+                          )}
                         </div>
                       </div>
                     </MotionArticle>

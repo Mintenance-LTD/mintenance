@@ -92,15 +92,35 @@ export class BuildingSurveyorService {
       );
 
       // 5. Call GPT-4o for assessment
-      const aiResponse = await callGptAssessment(
-        validatedImageUrls,
-        openaiApiKey,
-        evidence.roboflowDetections,
-        evidence.visionAnalysis,
-        evidence.hasMachineEvidence,
-        context,
-        options?.damageTypesForPrompt,
-      );
+      // P2: Wrap GPT call so that partial evidence is logged if it fails
+      let aiResponse;
+      try {
+        aiResponse = await callGptAssessment(
+          validatedImageUrls,
+          openaiApiKey,
+          evidence.roboflowDetections,
+          evidence.visionAnalysis,
+          evidence.hasMachineEvidence,
+          context,
+          options?.damageTypesForPrompt,
+        );
+      } catch (gptError) {
+        // P2: Persist partial evidence even when GPT fails
+        logger.error('GPT assessment failed — persisting partial evidence', {
+          service: 'BuildingSurveyorService',
+          roboflowDetectionCount: evidence.roboflowDetections.length,
+          hasVisionAnalysis: !!evidence.visionAnalysis,
+          hasSam3: !!evidence.sam3Segmentation,
+          error: gptError instanceof Error ? gptError.message : String(gptError),
+        });
+        this.recordMetric('assessment.partial_evidence', {
+          roboflowDetections: evidence.roboflowDetections.length,
+          hasVisionAnalysis: !!evidence.visionAnalysis,
+          hasSam3: !!evidence.sam3Segmentation,
+          failureStage: 'gpt_call',
+        });
+        throw gptError;
+      }
 
       // 6. Post-process: structure, fusion, critic decision
       const assessment = await postProcessAssessment({

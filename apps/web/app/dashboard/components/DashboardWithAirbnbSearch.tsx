@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { HomeownerPageWrapper } from './HomeownerPageWrapper';
 import { formatMoney } from '@/lib/utils/currency';
-import Logo from '@/app/components/Logo';
-import { HomeownerProfileDropdown } from '@/components/profile/HomeownerProfileDropdown';
 import { AirbnbSearchBar } from './AirbnbSearchBar';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -25,6 +22,8 @@ import {
   Heart
 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { PredictiveRecommendations } from './PredictiveRecommendations';
+import type { MaintenanceRecommendation } from '@/lib/services/RecommendationsService';
 
 // Category-based fallback images
 const categoryImages: Record<string, string> = {
@@ -92,6 +91,17 @@ interface DashboardWithAirbnbSearchProps {
       message: string;
       timestamp: string;
     }>;
+    upcomingAppointments?: Array<{
+      id: string;
+      title: string;
+      date: string;
+      time: string;
+      endTime?: string;
+      locationType?: string;
+      status: string;
+      contractor?: { name: string };
+    }>;
+    recommendations?: MaintenanceRecommendation[];
   };
 }
 
@@ -104,7 +114,7 @@ interface PortfolioAccessState {
 }
 
 export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchProps) {
-  const { homeowner, metrics, activeJobs, pendingBids = [], recentActivity } = data;
+  const { homeowner, metrics, activeJobs, pendingBids = [], recentActivity, upcomingAppointments = [], recommendations = [] } = data;
   const [properties, setProperties] = useState<Property[]>([]);
   const [loadingProperties, setLoadingProperties] = useState(true);
   const [portfolioAccess, setPortfolioAccess] = useState<PortfolioAccessState | null>(null);
@@ -135,7 +145,7 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
             requiresSubscription: Boolean(result.requiresSubscription),
             subscriptionStatus: String(result.subscriptionStatus || 'none'),
             message: result.message ?? null,
-            upgradeUrl: result.upgradeUrl || '/pricing?feature=portfolio_mode',
+            upgradeUrl: result.upgradeUrl || '/homeowner/subscription',
           });
         }
       })
@@ -145,11 +155,7 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
       .finally(() => setLoadingPortfolioAccess(false));
   }, []);
 
-  // Get upcoming appointments from scheduled jobs
-  const upcomingAppointments = activeJobs
-    .filter(job => job.scheduledDate && new Date(job.scheduledDate) > new Date())
-    .sort((a, b) => new Date(a.scheduledDate!).getTime() - new Date(b.scheduledDate!).getTime())
-    .slice(0, 3);
+  // upcomingAppointments now provided via props from real appointments table
 
   // Helper function for relative time
   const toRelativeTimeString = (timestamp: string | Date): string => {
@@ -168,30 +174,7 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
   };
 
   return (
-    <HomeownerPageWrapper>
-      <div className="space-y-6 pb-12">
-        {/* Logo Header */}
-        <div className="bg-white border-b border-gray-100">
-          <div className="px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Logo width={40} height={40} />
-                <span className="text-xl font-semibold text-gray-900">Mintenance</span>
-              </div>
-              <HomeownerProfileDropdown
-                userName={homeowner.name}
-                profileImageUrl={homeowner.avatar}
-                initials={(() => {
-                  if (!homeowner.name || typeof homeowner.name !== 'string') {
-                    return '';
-                  }
-                  return homeowner.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                })()}
-              />
-            </div>
-          </div>
-        </div>
-
+    <div className="space-y-6 pb-12">
         {/* Airbnb-Style Search Section */}
         <section className="bg-gradient-to-b from-white to-gray-50 px-4 sm:px-6 lg:px-8 py-8">
           <div className="max-w-6xl mx-auto">
@@ -235,7 +218,7 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
                     </div>
                   </div>
                   <Link
-                    href={portfolioAccess.allowed ? '/properties' : (portfolioAccess.upgradeUrl || '/pricing?feature=portfolio_mode')}
+                    href={portfolioAccess.allowed ? '/properties' : (portfolioAccess.upgradeUrl || '/homeowner/subscription')}
                     className={`inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium ${
                       portfolioAccess.allowed
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'
@@ -491,13 +474,12 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{appointment.title}</p>
                           <p className="text-sm text-gray-600">
-                            {new Date(appointment.scheduledDate!).toLocaleDateString('en-GB', {
+                            {new Date(appointment.date + 'T00:00:00').toLocaleDateString('en-GB', {
                               weekday: 'short',
                               day: 'numeric',
                               month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
                             })}
+                            {appointment.time ? ` at ${appointment.time.slice(0, 5)}` : ''}
                           </p>
                           {appointment.contractor && (
                             <p className="text-xs text-gray-500 mt-1">
@@ -517,42 +499,10 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
               </div>
             </div>
 
-            {/* Right Column - Quick Links & Activity */}
+            {/* Right Column - Recommendations & Activity */}
             <div className="space-y-6">
-              {/* Quick Links */}
-              <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-2xl border border-teal-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Links</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  <Link
-                    href="/properties"
-                    className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <Home className="w-6 h-6 text-teal-600" />
-                    <span className="text-xs font-medium text-gray-700">Properties</span>
-                  </Link>
-                  <Link
-                    href="/messages"
-                    className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <MessageSquare className="w-6 h-6 text-teal-600" />
-                    <span className="text-xs font-medium text-gray-700">Messages</span>
-                  </Link>
-                  <Link
-                    href="/payments"
-                    className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <PoundSterling className="w-6 h-6 text-teal-600" />
-                    <span className="text-xs font-medium text-gray-700">Payments</span>
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="flex flex-col items-center gap-2 p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
-                  >
-                    <Wrench className="w-6 h-6 text-teal-600" />
-                    <span className="text-xs font-medium text-gray-700">Settings</span>
-                  </Link>
-                </div>
-              </div>
+              {/* Property Health Recommendations */}
+              <PredictiveRecommendations recommendations={recommendations} />
 
               {/* Recent Activity */}
               <div className="bg-white rounded-2xl border border-gray-200 p-6">
@@ -588,6 +538,5 @@ export function DashboardWithAirbnbSearch({ data }: DashboardWithAirbnbSearchPro
           </div>
         </div>
       </div>
-    </HomeownerPageWrapper>
   );
 }

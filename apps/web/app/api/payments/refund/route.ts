@@ -1,35 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
-import { requireCSRFFromCookieAuth } from '@/lib/csrf';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { ForbiddenError, NotFoundError, RateLimitError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { refundRequestSchema } from '@/lib/validation/schemas';
 import { stripe } from '@/lib/stripe';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function POST(request: NextRequest) {
-  try {
-    // CSRF protection
-    await requireCSRFFromCookieAuth(request);
-
-    // Rate limiting
+/**
+ * POST /api/payments/refund
+ * Process a refund for an escrow transaction with MFA and anomaly detection
+ */
+export const POST = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
+    // Custom rate limiting
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const rateLimitResult = await checkApiRateLimit(`refund:${ip}`);
 
     if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        { status: 429 }
-      );
-    }
-
-    // Authenticate user
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
+      throw new RateLimitError();
     }
 
     // Validate and sanitize input using Zod schema
@@ -107,10 +99,6 @@ export async function POST(request: NextRequest) {
     }
 
     // SECURITY: Only allow refunds in specific scenarios
-    // 1. Only homeowner can request refunds (they paid for the service)
-    // 2. Job must not be completed (prevent refunds after work is done)
-    // 3. Payment must be held (not released to contractor)
-
     if (!isHomeowner) {
       logger.warn('Non-homeowner attempted refund', {
         service: 'payments',
@@ -166,7 +154,6 @@ export async function POST(request: NextRequest) {
     );
 
     if (mfaCheck.required) {
-      // Validate MFA token if provided
       if (!mfaToken) {
         logger.warn('MFA required for refund but no token provided', {
           service: 'payments',
@@ -187,7 +174,6 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Validate the MFA token
       const { validateMFAForPayment } = await import('@/lib/payments/high-risk-checks');
       const mfaValidation = await validateMFAForPayment(
         user.id,
@@ -307,7 +293,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (updateError) {
-      // All retries failed - insert a reconciliation record so a cron job can fix it
       logger.error('CRITICAL: Stripe refund succeeded but escrow DB update failed after 3 retries', updateError, {
         service: 'payments',
         userId: user.id,
@@ -359,32 +344,5 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json(responseData);
-  } catch (error) {
-    // Use sanitized error handling
-    const { createPaymentErrorResponse } = await import('@/lib/errors/payment-errors');
-
-    // Safely access user from getCurrentUserFromCookies if not in scope
-    let userId: string | undefined;
-    try {
-      const userFromCookies = await getCurrentUserFromCookies();
-      userId = userFromCookies?.id;
-    } catch {
-      userId = undefined;
-    }
-
-    const errorResponse = createPaymentErrorResponse(error, {
-      operation: 'refund_payment',
-      userId,
-      ip: request.headers.get('x-forwarded-for') || undefined,
-    });
-
-    return NextResponse.json(
-      {
-        error: errorResponse.error,
-        code: errorResponse.code,
-        retryable: errorResponse.retryable
-      },
-      { status: errorResponse.status }
-    );
   }
-}
+);

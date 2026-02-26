@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import {
   View,
+  Text,
   TextInput,
   StyleSheet,
   TextInputProps,
@@ -40,27 +41,34 @@ export const Input = forwardRef<TextInput, InputProps>(
     errorText,
     ...props
   }, ref) => {
-    const v = theme.components.input[variant] as Record<string, unknown>;
+    const hasError = !!errorText;
+    const v = hasError
+      ? (theme.components.input.error as Record<string, unknown>)
+      : (theme.components.input[variant] as Record<string, unknown>);
     return (
-      <View
-        style={[
-          styles.container,
-          { borderColor: v?.borderColor, backgroundColor: v?.backgroundColor },
-          containerStyle,
-        ]}
-      >
-        <TextInput
-          ref={ref}
+      <View style={containerStyle}>
+        <View
           style={[
-            styles.input,
-            { color: v?.color ?? theme.colors.textPrimary },
-            style,
+            styles.container,
+            { borderColor: v?.borderColor, backgroundColor: v?.backgroundColor },
           ]}
-          placeholderTextColor={
-            v?.placeholderTextColor ?? theme.colors.placeholder
-          }
-          {...props}
-        />
+        >
+          <TextInput
+            ref={ref}
+            style={[
+              styles.input,
+              { color: v?.color ?? theme.colors.textPrimary },
+              style,
+            ]}
+            placeholderTextColor={
+              v?.placeholderTextColor ?? theme.colors.placeholder
+            }
+            {...props}
+          />
+        </View>
+        {hasError && (
+          <Text style={styles.errorText}>{errorText}</Text>
+        )}
       </View>
     );
   }
@@ -79,6 +87,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: theme.typography.fontSize.base,
     paddingVertical: theme.spacing[3],
+  },
+  errorText: {
+    fontSize: theme.typography.fontSize.xs,
+    color: theme.colors.accent || '#EF4444',
+    marginTop: 4,
+    marginLeft: 4,
   },
 });
 

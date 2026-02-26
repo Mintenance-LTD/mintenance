@@ -94,7 +94,7 @@ module.exports = {
   expo: {
     name: "Mintenance",
     slug: "mintenance",
-    owner: "mintenance-ltd",
+    owner: "mintanance-ltd",
     version: "1.2.4",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -227,7 +227,7 @@ module.exports = {
     extra: {
       eas: {
         projectId: "671d1323-6979-465f-91db-e61471746ab3",
-        owner: "mintenance-ltd"
+        owner: "mintanance-ltd"
       },
       // Supabase runtime config (read by src/config/supabase.ts)
       // Both URL and key MUST be provided via environment variables. No defaults to avoid leaks.

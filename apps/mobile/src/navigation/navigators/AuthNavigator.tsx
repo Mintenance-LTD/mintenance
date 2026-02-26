@@ -1,12 +1,13 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import type { AuthStackParamList } from '@mintenance/types';
+import type { AuthStackParamList } from '../types';
 
 // Import existing screens
 import LandingScreen from '../../screens/LandingScreen';
 import LoginScreen from '../../screens/LoginScreen';
 import RegisterScreen from '../../screens/RegisterScreen';
 import ForgotPasswordScreen from '../../screens/ForgotPasswordScreen';
+import MFAVerificationScreen from '../../screens/auth/MFAVerificationScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -36,6 +37,12 @@ const SafeRegisterScreen = withScreenErrorBoundary(
 const SafeForgotPasswordScreen = withScreenErrorBoundary(
   ForgotPasswordScreen,
   'Forgot Password',
+  { fallbackRoute: 'Login' }
+);
+
+const SafeMFAVerificationScreen = withScreenErrorBoundary(
+  MFAVerificationScreen,
+  'MFA Verification',
   { fallbackRoute: 'Login' }
 );
 
@@ -103,6 +110,15 @@ export const AuthNavigator: React.FC = () => {
         options={{
           title: 'Reset Password',
           gestureEnabled: true,
+        }}
+      />
+
+      <AuthStack.Screen
+        name="MFAVerification"
+        component={SafeMFAVerificationScreen}
+        options={{
+          title: 'Verify Identity',
+          gestureEnabled: false,
         }}
       />
     </AuthStack.Navigator>

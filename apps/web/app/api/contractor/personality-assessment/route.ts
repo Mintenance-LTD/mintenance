@@ -1,188 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { PersonalityAssessmentService } from '@/lib/services/verification/PersonalityAssessmentService';
-import { requireCSRF } from '@/lib/csrf';
-import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
-import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const submitAssessmentSchema = z.object({
-  answers: z.array(
-    z.object({
-      questionId: z.string().uuid(),
-      answer: z.number().int().min(1).max(5),
-    })
-  ).min(50).max(50),
+  answers: z.array(z.object({ questionId: z.string().uuid(), answer: z.number().int().min(1).max(5) })).min(50).max(50),
   timeTakenMinutes: z.number().int().min(1).max(120),
 });
 
-/**
- * GET /api/contractor/personality-assessment
- * Get personality assessment questions or existing results
- */
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
+export const GET = withApiHandler({ roles: ['contractor'], rateLimit: { maxRequests: 30 } }, async (_req, { user }) => {
+  const existingResult = await PersonalityAssessmentService.getAssessmentResult(user.id);
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    if (user.role !== 'contractor') {
-      throw new ForbiddenError('Only contractors can access personality assessments');
-    }
-
-    // Check if contractor already has results
-    const existingResult = await PersonalityAssessmentService.getAssessmentResult(user.id);
-
-    if (existingResult) {
-      return NextResponse.json({
-        hasCompleted: true,
-        result: {
-          id: existingResult.id,
-          opennessScore: existingResult.opennessScore,
-          conscientiousnessScore: existingResult.conscientiousnessScore,
-          extraversionScore: existingResult.extraversionScore,
-          agreeablenessScore: existingResult.agreeablenessScore,
-          neuroticismScore: existingResult.neuroticismScore,
-          reliabilityScore: existingResult.reliabilityScore,
-          communicationScore: existingResult.communicationScore,
-          problemSolvingScore: existingResult.problemSolvingScore,
-          stressToleranceScore: existingResult.stressToleranceScore,
-          overallScore: existingResult.overallScore,
-          recommendedJobTypes: existingResult.recommendedJobTypes,
-          cautionedJobTypes: existingResult.cautionedJobTypes,
-          boostPercentage: existingResult.boostPercentage,
-          completedAt: existingResult.completedAt,
-          timeTakenMinutes: existingResult.timeTakenMinutes,
-        },
-      });
-    }
-
-    // Get questions for contractor to complete
-    const questions = await PersonalityAssessmentService.getAssessmentQuestions();
-
-    if (questions.length === 0) {
-      throw new BadRequestError('Assessment questions not available');
-    }
-
+  if (existingResult) {
     return NextResponse.json({
-      hasCompleted: false,
-      questions: questions.map(q => ({
-        id: q.id,
-        questionNumber: q.questionNumber,
-        questionText: q.questionText,
-        category: q.questionCategory,
-      })),
-      totalQuestions: questions.length,
-      estimatedMinutes: 10,
+      hasCompleted: true,
+      result: { id: existingResult.id, opennessScore: existingResult.opennessScore, conscientiousnessScore: existingResult.conscientiousnessScore, extraversionScore: existingResult.extraversionScore, agreeablenessScore: existingResult.agreeablenessScore, neuroticismScore: existingResult.neuroticismScore, reliabilityScore: existingResult.reliabilityScore, communicationScore: existingResult.communicationScore, problemSolvingScore: existingResult.problemSolvingScore, stressToleranceScore: existingResult.stressToleranceScore, overallScore: existingResult.overallScore, recommendedJobTypes: existingResult.recommendedJobTypes, cautionedJobTypes: existingResult.cautionedJobTypes, boostPercentage: existingResult.boostPercentage, completedAt: existingResult.completedAt, timeTakenMinutes: existingResult.timeTakenMinutes },
     });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
-
-/**
- * POST /api/contractor/personality-assessment
- * Submit personality assessment answers
- */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
   }
 
-    await requireCSRF(request);
+  const questions = await PersonalityAssessmentService.getAssessmentQuestions();
+  if (questions.length === 0) throw new BadRequestError('Assessment questions not available');
 
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
+  return NextResponse.json({ hasCompleted: false, questions: questions.map(q => ({ id: q.id, questionNumber: q.questionNumber, questionText: q.questionText, category: q.questionCategory })), totalQuestions: questions.length, estimatedMinutes: 10 });
+});
 
-    if (user.role !== 'contractor') {
-      throw new ForbiddenError('Only contractors can submit personality assessments');
-    }
+export const POST = withApiHandler({ roles: ['contractor'], rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
+  const body = await request.json();
+  const validation = submitAssessmentSchema.safeParse(body);
+  if (!validation.success) throw new BadRequestError('Invalid request data');
+  const { answers, timeTakenMinutes } = validation.data;
 
-    const validation = await validateRequest(request, submitAssessmentSchema);
-    if ('headers' in validation) {
-      return validation;
-    }
+  const result = await PersonalityAssessmentService.submitAssessment(user.id, answers.map(a => ({ questionId: a.questionId, answer: a.answer as 1 | 2 | 3 | 4 | 5 })), timeTakenMinutes);
 
-    const { answers, timeTakenMinutes } = validation.data;
+  if (!result.success) throw new BadRequestError(result.error || 'Failed to submit assessment');
 
-    const result = await PersonalityAssessmentService.submitAssessment(
-      user.id,
-      answers.map(a => ({ questionId: a.questionId, answer: a.answer as 1 | 2 | 3 | 4 | 5 })),
-      timeTakenMinutes
-    );
-
-    if (!result.success) {
-      throw new BadRequestError(result.error || 'Failed to submit assessment');
-    }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Assessment completed successfully',
-      result: {
-        id: result.result!.id,
-        opennessScore: result.result!.opennessScore,
-        conscientiousnessScore: result.result!.conscientiousnessScore,
-        extraversionScore: result.result!.extraversionScore,
-        agreeablenessScore: result.result!.agreeablenessScore,
-        neuroticismScore: result.result!.neuroticismScore,
-        reliabilityScore: result.result!.reliabilityScore,
-        communicationScore: result.result!.communicationScore,
-        problemSolvingScore: result.result!.problemSolvingScore,
-        stressToleranceScore: result.result!.stressToleranceScore,
-        overallScore: result.result!.overallScore,
-        recommendedJobTypes: result.result!.recommendedJobTypes,
-        cautionedJobTypes: result.result!.cautionedJobTypes,
-        boostPercentage: result.result!.boostPercentage,
-        completedAt: result.result!.completedAt,
-      },
-    }, { status: 201 });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  return NextResponse.json({
+    success: true, message: 'Assessment completed successfully',
+    result: { id: result.result!.id, opennessScore: result.result!.opennessScore, conscientiousnessScore: result.result!.conscientiousnessScore, extraversionScore: result.result!.extraversionScore, agreeablenessScore: result.result!.agreeablenessScore, neuroticismScore: result.result!.neuroticismScore, reliabilityScore: result.result!.reliabilityScore, communicationScore: result.result!.communicationScore, problemSolvingScore: result.result!.problemSolvingScore, stressToleranceScore: result.result!.stressToleranceScore, overallScore: result.result!.overallScore, recommendedJobTypes: result.result!.recommendedJobTypes, cautionedJobTypes: result.result!.cautionedJobTypes, boostPercentage: result.result!.boostPercentage, completedAt: result.result!.completedAt },
+  }, { status: 201 });
+});

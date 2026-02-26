@@ -1,60 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
-import { requireCSRF } from '@/lib/csrf';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const approveCompletionSchema = z.object({
   comments: z.string().optional(),
 });
 
 /**
- * POST /api/escrow/:id/homeowner/approve
- * Homeowner approves completion
+ * POST /api/escrow/:id/homeowner/approve - homeowner approves completion.
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user, params }) => {
+    const escrowId = params.id;
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-    const { id } = await params;
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to approve escrow');
-    }
-
-    const escrowId = id;
-
-    // SECURITY FIX: Verify ownership BEFORE approval
+    // Verify ownership BEFORE approval
     const { data: escrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
       .select('jobs!inner(homeowner_id)')
@@ -71,8 +36,6 @@ export async function POST(
       throw new NotFoundError('Escrow not found');
     }
 
-    // Verify the requesting user is the homeowner
-    // Supabase !inner join returns jobs as array even with .single()
     const jobs = escrow.jobs as unknown as { homeowner_id: string } | { homeowner_id: string }[];
     const job = Array.isArray(jobs) ? jobs[0] : jobs;
     if (job.homeowner_id !== user.id) {
@@ -95,8 +58,5 @@ export async function POST(
     await HomeownerApprovalService.approveCompletion(escrowId, user.id, comments);
 
     return NextResponse.json({ success: true, escrowId });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
-
+  },
+);

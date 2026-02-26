@@ -1,26 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { validateRequest } from '@/lib/validation/validator';
-import { passwordUpdateSchema } from '@/lib/validation/schemas';
-import { checkPasswordResetRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
+import { checkPasswordResetRateLimit } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { env } from '@/lib/env';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
+import { BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
 import { PasswordValidator, checkPasswordBreach } from '@mintenance/auth';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function POST(request: NextRequest) {
-  try {
-    // CSRF protection
-    await requireCSRF(request);
+/**
+ * POST /api/auth/reset-password
+ * Reset user password using access token from email link.
+ * Creates its own Supabase client for token-based session.
+ */
+export const POST = withApiHandler(
+  { auth: false, rateLimit: false },
+  async (request) => {
     // Check Supabase configuration early
     if (!isSupabaseConfigured) {
       logger.error('Missing Supabase configuration', undefined, { service: 'auth' });
       throw new InternalServerError('Service configuration error. Please contact support.');
     }
 
-    // Rate limiting to prevent abuse
+    // Custom rate limiting to prevent abuse
     const rateLimitResult = await checkPasswordResetRateLimit(request);
 
     if (!rateLimitResult.allowed) {
@@ -92,9 +94,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize Supabase client using validated environment variables
+    // NOTE: Uses its own client (not serverSupabase) for token-based session
     const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
+
     if (!supabaseKey) {
       logger.error('Missing NEXT_PUBLIC_SUPABASE_ANON_KEY', undefined, { service: 'auth' });
       throw new InternalServerError('Service configuration error. Please contact support.');
@@ -141,8 +144,5 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     );
-
-  } catch (error: unknown) {
-    return handleAPIError(error);
   }
-}
+);

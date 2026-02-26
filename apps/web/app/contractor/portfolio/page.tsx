@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { AnimatePresence } from 'framer-motion';;
 import {
@@ -22,6 +22,7 @@ import {
   Filter,
   Grid3x3,
   List,
+  Loader2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
@@ -62,12 +63,28 @@ interface PortfolioItem {
   tags: string[];
 }
 
+interface NewProjectForm {
+  title: string;
+  description: string;
+  category: string;
+  cost: string;
+}
+
 export default function ContractorPortfolioPage2025() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+
+  const [newProject, setNewProject] = useState<NewProjectForm>({
+    title: '',
+    description: '',
+    category: 'Kitchen',
+    cost: '',
+  });
 
   const categories = ['all', 'Kitchen', 'Bathroom', 'Heating', 'Repair', 'Installation'];
 
@@ -83,27 +100,153 @@ export default function ContractorPortfolioPage2025() {
     totalValue: portfolioItems.reduce((sum, item) => sum + item.cost, 0),
   };
 
+  const fetchPortfolio = useCallback(async () => {
+    try {
+      const res = await fetch('/api/contractor/posts?post_type=work_showcase&limit=50&sort=newest');
+      if (!res.ok) throw new Error('Failed to load portfolio');
+      const data = await res.json();
+      const items: PortfolioItem[] = (data.posts || []).map((post: Record<string, unknown>) => ({
+        id: String(post.id || ''),
+        title: String(post.title || ''),
+        description: String(post.content || ''),
+        category: String(post.project_category || 'Repair'),
+        location: (post.contractor as Record<string, unknown>)?.city
+          ? String((post.contractor as Record<string, unknown>).city)
+          : '',
+        completedDate: String(post.created_at || new Date().toISOString()),
+        cost: Number(post.project_cost) || 0,
+        duration: String(post.project_duration || ''),
+        images: Array.isArray(post.images) ? (post.images as string[]) : [],
+        featured: Boolean(post.is_featured),
+        verified: Boolean(post.is_verified),
+        tags: Array.isArray(post.skills_used) ? (post.skills_used as string[]) : [],
+      }));
+      setPortfolioItems(items);
+    } catch {
+      toast.error('Failed to load portfolio');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPortfolio();
+  }, [fetchPortfolio]);
+
   const handleAddProject = () => {
     setShowAddForm(true);
   };
 
-  const handleToggleFeatured = (id: string) => {
-    setPortfolioItems(
-      portfolioItems.map((item) =>
-        item.id === id ? { ...item, featured: !item.featured } : item
-      )
-    );
-    toast.success('Featured status updated');
+  const handleSubmitProject = async () => {
+    if (!newProject.title.trim() || !newProject.description.trim()) {
+      toast.error('Title and description are required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/contractor/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+        },
+        body: JSON.stringify({
+          title: newProject.title.trim(),
+          content: newProject.description.trim(),
+          post_type: 'work_showcase',
+          project_cost: newProject.cost ? parseFloat(newProject.cost) : undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Failed' }));
+        throw new Error(err.error || 'Failed to create project');
+      }
+
+      toast.success('Project added to portfolio');
+      setShowAddForm(false);
+      setNewProject({ title: '', description: '', category: 'Kitchen', cost: '' });
+      fetchPortfolio();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to add project');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setPortfolioItems(portfolioItems.filter((item) => item.id !== id));
-    toast.success('Project deleted from portfolio');
+  const handleToggleFeatured = async (id: string) => {
+    const item = portfolioItems.find((i) => i.id === id);
+    if (!item) return;
+
+    // Optimistic update
+    setPortfolioItems(
+      portfolioItems.map((i) =>
+        i.id === id ? { ...i, featured: !i.featured } : i
+      )
+    );
+
+    try {
+      const res = await fetch(`/api/contractor/posts/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+        },
+        body: JSON.stringify({ is_featured: !item.featured }),
+      });
+
+      if (!res.ok) throw new Error('Failed to update');
+      toast.success(item.featured ? 'Removed from featured' : 'Added to featured');
+    } catch {
+      // Revert optimistic update
+      setPortfolioItems(
+        portfolioItems.map((i) =>
+          i.id === id ? { ...i, featured: item.featured } : i
+        )
+      );
+      toast.error('Failed to update featured status');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const item = portfolioItems.find((i) => i.id === id);
+    if (!item) return;
+
+    // Optimistic removal
+    setPortfolioItems(portfolioItems.filter((i) => i.id !== id));
+
+    try {
+      const res = await fetch(`/api/contractor/posts/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+        },
+      });
+
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Project deleted from portfolio');
+    } catch {
+      // Revert optimistic removal
+      setPortfolioItems((prev) => [...prev, item]);
+      toast.error('Failed to delete project');
+    }
   };
 
   const handleRequestVerification = (id: string) => {
     toast.success('Verification request submitted');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-teal-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading your portfolio...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-12">
@@ -185,7 +328,7 @@ export default function ContractorPortfolioPage2025() {
                   onClick={() => setShowAddForm(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  ✕
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -196,6 +339,8 @@ export default function ContractorPortfolioPage2025() {
                   </label>
                   <input
                     type="text"
+                    value={newProject.title}
+                    onChange={(e) => setNewProject((prev) => ({ ...prev, title: e.target.value }))}
                     placeholder="e.g., Modern Kitchen Renovation"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
@@ -207,6 +352,8 @@ export default function ContractorPortfolioPage2025() {
                   </label>
                   <textarea
                     rows={4}
+                    value={newProject.description}
+                    onChange={(e) => setNewProject((prev) => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe the project, challenges overcome, and results achieved..."
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
@@ -214,7 +361,11 @@ export default function ContractorPortfolioPage2025() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
+                  <select
+                    value={newProject.category}
+                    onChange={(e) => setNewProject((prev) => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  >
                     {categories.filter((c) => c !== 'all').map((cat) => (
                       <option key={cat} value={cat}>
                         {cat}
@@ -224,44 +375,16 @@ export default function ContractorPortfolioPage2025() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., London, SW1A"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Completed Date
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Project Cost
                   </label>
                   <input
                     type="number"
+                    value={newProject.cost}
+                    onChange={(e) => setNewProject((prev) => ({ ...prev, cost: e.target.value }))}
                     placeholder="£"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Project Images
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors cursor-pointer">
-                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-2">Click to upload or drag and drop</p>
-                    <p className="text-sm text-gray-500">PNG, JPG up to 10MB</p>
-                  </div>
                 </div>
               </div>
 
@@ -269,13 +392,11 @@ export default function ContractorPortfolioPage2025() {
                 <MotionButton
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    toast.success('Project added to portfolio');
-                    setShowAddForm(false);
-                  }}
-                  className="flex-1 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors"
+                  disabled={isSubmitting}
+                  onClick={handleSubmitProject}
+                  className="flex-1 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50"
                 >
-                  Add to Portfolio
+                  {isSubmitting ? 'Saving...' : 'Add to Portfolio'}
                 </MotionButton>
                 <MotionButton
                   whileHover={{ scale: 1.02 }}
@@ -346,7 +467,7 @@ export default function ContractorPortfolioPage2025() {
           variants={staggerContainer}
           className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-6'}
         >
-          {filteredItems.map((item, index) => (
+          {filteredItems.map((item) => (
             <MotionDiv
               key={item.id}
               variants={staggerItem}
@@ -395,7 +516,7 @@ export default function ContractorPortfolioPage2025() {
                       }}
                       className="p-2 bg-white/95 backdrop-blur-sm rounded-full hover:bg-white shadow-lg transition-all"
                     >
-                      <Edit className="w-4 h-4 text-gray-900" />
+                      <Star className={`w-4 h-4 ${item.featured ? 'text-yellow-500 fill-current' : 'text-gray-900'}`} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -431,10 +552,12 @@ export default function ContractorPortfolioPage2025() {
                 </div>
 
                 {/* Location */}
-                <div className="flex items-center gap-1.5 text-gray-600 mb-2">
-                  <MapPin className="w-4 h-4" />
-                  <span className="text-sm">{item.location}</span>
-                </div>
+                {item.location && (
+                  <div className="flex items-center gap-1.5 text-gray-600 mb-2">
+                    <MapPin className="w-4 h-4" />
+                    <span className="text-sm">{item.location}</span>
+                  </div>
+                )}
 
                 {/* Description */}
                 <p className="text-sm text-gray-600 mb-3 line-clamp-2">{item.description}</p>
@@ -448,22 +571,26 @@ export default function ContractorPortfolioPage2025() {
                     <Calendar className="w-4 h-4" />
                     <span>{new Date(item.completedDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-lg font-bold text-gray-900">£{(item.cost / 1000).toFixed(1)}k</span>
-                  </div>
+                  {item.cost > 0 && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-lg font-bold text-gray-900">£{item.cost >= 1000 ? `${(item.cost / 1000).toFixed(1)}k` : item.cost}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tags */}
-                <div className="flex flex-wrap gap-1.5 mt-3">
-                  {item.tags.slice(0, 3).map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-2 py-1 bg-gray-50 text-gray-600 rounded-lg text-xs border border-gray-200"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                {item.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {item.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-2 py-1 bg-gray-50 text-gray-600 rounded-lg text-xs border border-gray-200"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </MotionDiv>
           ))}

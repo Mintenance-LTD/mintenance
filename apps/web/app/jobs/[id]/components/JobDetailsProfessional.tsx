@@ -372,21 +372,6 @@ export function JobDetailsProfessional({
                 <p className="text-sm text-gray-600">Total budget for this job</p>
               </div>
 
-              {/* Job Stats Card */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-                <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">
-                  Job Details
-                </h3>
-                <div className="space-y-4">
-                  <StatItem label="Status" value={currentStatus.label} />
-                  <StatItem label="Category" value={formatCategory(job.category)} />
-                  <StatItem label="Posted" value={formatRelativeDate(job.created_at)} />
-                  {isOwner && (
-                    <StatItem label="Bids" value={bids.length.toString()} />
-                  )}
-                </div>
-              </div>
-
               {/* Action Buttons */}
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-3">
                 {canEdit && (
@@ -435,24 +420,6 @@ export function JobDetailsProfessional({
                 )}
               </div>
 
-              {/* Help Card */}
-              <div className="bg-teal-50 rounded-xl border border-teal-200 p-6">
-                <div className="flex items-start gap-3 mb-3">
-                  <AlertCircle className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold text-teal-900 mb-1">Need Help?</h4>
-                    <p className="text-sm text-teal-700">
-                      Our support team is here to assist you with any questions.
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  href="/contact"
-                  className="text-sm text-teal-600 font-semibold hover:text-teal-700 transition-colors"
-                >
-                  Contact Support →
-                </Link>
-              </div>
             </div>
           </div>
         </div>

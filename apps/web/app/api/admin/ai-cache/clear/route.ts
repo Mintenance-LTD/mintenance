@@ -1,17 +1,9 @@
-/**
- * AI Cache Management API
- * POST /api/admin/ai-cache/clear
- *
- * Clear AI response cache (all services or specific service)
- */
-
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin, isAdminError } from '@/lib/middleware/requireAdmin';
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { AIResponseCache, type AICacheServiceType } from '@/lib/services/cache/AIResponseCache';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
-import { handleAPIError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError } from '@/lib/errors/api-error';
 
 const clearRequestSchema = z.object({
   service: z.enum([
@@ -26,36 +18,12 @@ const clearRequestSchema = z.object({
   confirm: z.boolean().optional().default(false),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 10
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(10),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Secure admin authentication with database verification
-    const auth = await requireAdmin(request);
-    if (isAdminError(auth)) return auth.error;
-    const user = auth.user;
-
-    // Parse and validate request
+/**
+ * POST /api/admin/ai-cache/clear — Clear AI response cache
+ */
+export const POST = withApiHandler(
+  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  async (request, { user }) => {
     const body = await request.json();
     const validationResult = clearRequestSchema.safeParse(body);
 
@@ -65,83 +33,38 @@ export async function POST(request: NextRequest) {
 
     const { service, confirm } = validationResult.data;
 
-    // Require confirmation for safety
     if (!confirm) {
       throw new BadRequestError('Confirmation required. Set "confirm": true in request body to clear cache');
     }
 
-    // Clear cache
     if (service === 'all') {
       await AIResponseCache.clearAll();
-      logger.warn('All AI caches cleared', {
-        service: 'ai_cache_clear',
-        userId: user.id,
-      });
+      logger.warn('All AI caches cleared', { service: 'ai_cache_clear', userId: user.id });
 
       return NextResponse.json({
         success: true,
         message: 'All AI caches cleared successfully',
-        clearedServices: [
-          'gpt4-vision',
-          'gpt4-chat',
-          'embeddings',
-          'google-vision',
-          'building-surveyor',
-          'maintenance-assessment',
-        ],
-      });
-    } else {
-      await AIResponseCache.clearService(service as AICacheServiceType);
-      logger.warn('AI cache cleared', {
-        service: 'ai_cache_clear',
-        userId: user.id,
-        cacheService: service,
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: `Cache cleared for ${service}`,
-        clearedService: service,
+        clearedServices: ['gpt4-vision', 'gpt4-chat', 'embeddings', 'google-vision', 'building-surveyor', 'maintenance-assessment'],
       });
     }
-  } catch (error) {
-    return handleAPIError(error);
+
+    await AIResponseCache.clearService(service as AICacheServiceType);
+    logger.warn('AI cache cleared', { service: 'ai_cache_clear', userId: user.id, cacheService: service });
+
+    return NextResponse.json({
+      success: true,
+      message: `Cache cleared for ${service}`,
+      clearedService: service,
+    });
   }
-}
+);
 
 /**
- * GET endpoint to preview what would be cleared
+ * GET /api/admin/ai-cache/clear — Preview what would be cleared
  */
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 10
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(10),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // Secure admin authentication with database verification
-    const auth = await requireAdmin(request);
-    if (isAdminError(auth)) return auth.error;
-    const user = auth.user;
-
-    // Get current cache stats before clearing
+export const GET = withApiHandler(
+  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  async () => {
     const metrics = AIResponseCache.exportMetrics() as { aggregated: { totalCacheSize: number; totalSavedCost: number }; perService: unknown };
 
     return NextResponse.json({
@@ -154,7 +77,5 @@ export async function GET(request: NextRequest) {
       },
       warning: 'Clearing cache will temporarily increase API costs until cache is rebuilt',
     });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);

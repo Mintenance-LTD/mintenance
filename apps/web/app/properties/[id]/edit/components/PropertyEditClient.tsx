@@ -29,7 +29,9 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
   const router = useRouter();
   const [formData, setFormData] = useState<PropertyData>(property);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedPhotos, setSelectedPhotos] = useState<string[]>(property.photos);
+  const [existingPhotos, setExistingPhotos] = useState<string[]>(property.photos);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [newFilePreviews, setNewFilePreviews] = useState<string[]>([]);
 
   const propertyTypes = [
     { value: 'residential', label: 'Residential', icon: Home },
@@ -50,15 +52,21 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      // In a real app, you would upload these files to a storage service
-      // For now, we'll just create placeholder URLs
-      const newPhotos = Array.from(files).map(file => URL.createObjectURL(file));
-      setSelectedPhotos(prev => [...prev, ...newPhotos]);
+      const filesArr = Array.from(files);
+      const previews = filesArr.map(file => URL.createObjectURL(file));
+      setNewFiles(prev => [...prev, ...filesArr]);
+      setNewFilePreviews(prev => [...prev, ...previews]);
     }
   };
 
-  const removePhoto = (index: number) => {
-    setSelectedPhotos(prev => prev.filter((_, i) => i !== index));
+  const removeExistingPhoto = (index: number) => {
+    setExistingPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewPhoto = (index: number) => {
+    URL.revokeObjectURL(newFilePreviews[index]);
+    setNewFiles(prev => prev.filter((_, i) => i !== index));
+    setNewFilePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,15 +74,42 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
     setIsSubmitting(true);
 
     try {
+      let uploadedUrls: string[] = [];
+
+      // Upload new files first
+      if (newFiles.length > 0) {
+        const uploadFormData = new FormData();
+        newFiles.forEach((file) => {
+          uploadFormData.append('photos', file);
+        });
+
+        const uploadRes = await fetch('/api/properties/upload-photos', {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '' },
+          body: uploadFormData,
+        });
+
+        if (!uploadRes.ok) {
+          const uploadErr = await uploadRes.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(uploadErr.error || 'Failed to upload photos');
+        }
+
+        const uploadData = await uploadRes.json();
+        uploadedUrls = uploadData.urls || [];
+      }
+
+      // Combine existing photos with newly uploaded ones
+      const allPhotos = [...existingPhotos, ...uploadedUrls];
+
       const response = await fetch(`/api/properties/${property.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': window.csrfToken || '',
+          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
         },
         body: JSON.stringify({
           ...formData,
-          photos: selectedPhotos,
+          photos: allPhotos,
         }),
       });
 
@@ -86,8 +121,9 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
         toast.error(error.message || 'Failed to update property');
       }
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update property';
       logger.error('Error updating property:', error, { service: 'ui' });
-      toast.error('Failed to update property');
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -283,8 +319,8 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-6">Property Photos</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {selectedPhotos.map((photo, index) => (
-                  <div key={index} className="relative group">
+                {existingPhotos.map((photo, index) => (
+                  <div key={`existing-${index}`} className="relative group">
                     <div className="aspect-square relative rounded-lg overflow-hidden bg-gray-100">
                       <Image
                         src={photo}
@@ -294,11 +330,31 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
                       />
                       <button
                         type="button"
-                        onClick={() => removePhoto(index)}
+                        onClick={() => removeExistingPhoto(index)}
                         className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-4 h-4" />
                       </button>
+                    </div>
+                  </div>
+                ))}
+                {newFilePreviews.map((preview, index) => (
+                  <div key={`new-${index}`} className="relative group">
+                    <div className="aspect-square relative rounded-lg overflow-hidden bg-gray-100 ring-2 ring-teal-400">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={preview}
+                        alt={`New photo ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeNewPhoto(index)}
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <span className="absolute bottom-2 left-2 text-xs bg-teal-600 text-white px-2 py-0.5 rounded">New</span>
                     </div>
                   </div>
                 ))}

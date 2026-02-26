@@ -1,11 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const updateLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -17,40 +15,14 @@ const updateLocationSchema = z.object({
   job_id: z.string().uuid().optional(),
 });
 
-export async function POST(  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-    const { id: contractorId } = await params;
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
+/**
+ * POST /api/contractors/[id]/location
+ * Update contractor location (contractor self or admin)
+ */
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user, params }) => {
+    const { id: contractorId } = params;
 
     // Verify user is the contractor or has permission
     if (user.id !== contractorId && user.role !== 'admin') {
@@ -67,7 +39,7 @@ export async function POST(  request: NextRequest,
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'Invalid request data', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -129,57 +101,26 @@ export async function POST(  request: NextRequest,
         timestamp: location.location_timestamp,
       },
     });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const { id: contractorId } = await params;
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+/**
+ * GET /api/contractors/[id]/location
+ * Get contractor's latest location (contractor self, homeowner with job, or admin)
+ */
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user, params }) => {
+    const { id: contractorId } = params;
     const searchParams = request.nextUrl.searchParams;
     const jobId = searchParams.get('job_id');
 
     // Verify user has permission to view this location
-    // Homeowner can view if they have a job with this contractor
-    // Contractor can view their own location
     let hasPermission = false;
 
     if (user.id === contractorId) {
       hasPermission = true;
     } else if (user.role === 'homeowner' && jobId) {
-      // Verify homeowner has a job with this contractor
       const { data: job } = await serverSupabase
         .from('jobs')
         .select('id, homeowner_id, contractor_id')
@@ -228,8 +169,5 @@ export async function GET(
     return NextResponse.json({
       location: locations[0],
     });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
-
+  },
+);

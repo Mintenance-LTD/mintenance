@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { UnifiedSidebar } from '@/components/layouts/UnifiedSidebar';
-import { Briefcase, MapPin, Bell, Menu, X } from 'lucide-react';
+import { Briefcase, MapPin, Bell, Menu, X, Home, FileText, MessageSquare } from 'lucide-react';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { ProfileDropdown } from '@/components/profile/ProfileDropdown';
 import { Input } from '@/components/ui/Input';
@@ -115,6 +115,7 @@ export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
       '/contractor/support': 'Support',
       '/contractor/verification': 'Verification',
       '/contractor/card-editor': 'Card Editor',
+      '/contractor/documents': 'Documents',
       '/contractor/company': 'Company',
       '/scheduling': 'Scheduling',
     };
@@ -403,7 +404,7 @@ export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
                   suppressHydrationWarning
                   style={{
                     flex: '1 1 0%',
-                    padding: '32px',
+                    padding: mounted && isMobile ? '16px 16px 80px' : '32px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '24px',
@@ -417,6 +418,53 @@ export function ContractorLayoutShell(props: ContractorLayoutShellProps) {
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Tab Bar — only visible below lg breakpoint */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-50 flex items-stretch justify-around safe-area-bottom">
+        <Link
+          href="/contractor/dashboard-enhanced"
+          className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
+            pathname === '/contractor/dashboard-enhanced' ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <Home className="w-5 h-5" />
+          <span>Home</span>
+        </Link>
+        <Link
+          href="/contractor/jobs"
+          className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
+            pathname?.startsWith('/contractor/jobs') && !pathname.includes('near-you') ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <Briefcase className="w-5 h-5" />
+          <span>Jobs</span>
+        </Link>
+        <Link
+          href="/contractor/jobs-near-you"
+          className="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-semibold text-white"
+        >
+          <div className="w-10 h-10 bg-teal-600 rounded-2xl flex items-center justify-center -mt-4 shadow-lg shadow-teal-500/30">
+            <MapPin className="w-5 h-5" />
+          </div>
+          <span className="text-gray-400 mt-0.5 text-[10px]">Find</span>
+        </Link>
+        <Link
+          href="/contractor/quotes"
+          className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium transition-colors ${
+            pathname?.startsWith('/contractor/quotes') ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <FileText className="w-5 h-5" />
+          <span>Quotes</span>
+        </Link>
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          className="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-xs font-medium text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+          <span>More</span>
+        </button>
+      </nav>
     </div>
   );
 }

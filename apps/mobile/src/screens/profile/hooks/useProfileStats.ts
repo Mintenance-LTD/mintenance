@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { JobService } from '../../../services/JobService';
+import { UserService } from '../../../services/UserService';
 import { Job } from '@mintenance/types';
 import { logger } from '../../../utils/logger';
 
@@ -22,8 +23,8 @@ const DEFAULT_STATS: UserStats = {
   totalJobs: 0,
   completedJobs: 0,
   activeJobs: 0,
-  rating: 4.8,
-  responseTime: '< 2h',
+  rating: 0,
+  responseTime: 'N/A',
   joinDate: '',
 };
 
@@ -37,27 +38,34 @@ export function useProfileStats(user: AuthUser | null) {
 
       try {
         setLoading(true);
-        let jobs: Job[] = [];
+        const joinDate = new Date(user.createdAt || Date.now()).toLocaleDateString(
+          'en-US',
+          { year: 'numeric', month: 'long' }
+        );
 
-        if (user.role === 'homeowner') {
-          jobs = await JobService.getJobsByHomeowner(user.id);
+        if (user.role === 'contractor') {
+          const stats = await UserService.getContractorStats(user.id);
+          setUserStats({
+            totalJobs: stats.totalJobs || stats.totalJobsCompleted || 0,
+            completedJobs: stats.completedJobs || 0,
+            activeJobs: stats.activeJobs || 0,
+            rating: stats.rating || 0,
+            responseTime: stats.responseTime || 'N/A',
+            joinDate,
+          });
         } else {
-          jobs = [];
+          const jobs: Job[] = await JobService.getJobsByHomeowner(user.id);
+          setUserStats({
+            totalJobs: jobs.length,
+            completedJobs: jobs.filter((job) => job.status === 'completed').length,
+            activeJobs: jobs.filter(
+              (job) => job.status === 'in_progress' || job.status === 'assigned'
+            ).length,
+            rating: 0,
+            responseTime: 'N/A',
+            joinDate,
+          });
         }
-
-        setUserStats({
-          totalJobs: jobs.length,
-          completedJobs: jobs.filter((job) => job.status === 'completed').length,
-          activeJobs: jobs.filter(
-            (job) => job.status === 'in_progress' || job.status === 'assigned'
-          ).length,
-          rating: 4.8,
-          responseTime: '< 2h',
-          joinDate: new Date(user.createdAt || Date.now()).toLocaleDateString(
-            'en-US',
-            { year: 'numeric', month: 'long' }
-          ),
-        });
       } catch (error) {
         logger.error('Failed to load user stats:', error);
       } finally {

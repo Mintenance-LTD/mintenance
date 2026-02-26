@@ -1,9 +1,9 @@
 /**
  * Evidence Processor for Building Surveyor Service
- * Processes and summarizes evidence from multiple detection sources
+ * Processes and summarizes evidence from Roboflow detections.
+ * Google Cloud Vision removed — GPT-4o handles visual analysis directly.
  */
 
-import type { ImageAnalysisResult } from '@/lib/services/ImageAnalysisService';
 import type { RoboflowDetection, VisionAnalysisSummary } from './types';
 
 /**
@@ -27,29 +27,6 @@ export function sanitiseMLLabel(label: string, maxLength = 100): string {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, maxLength);
-}
-
-/**
- * Map detailed Google Vision result into compact summary structure
- */
-export function toVisionSummary(
-  result: ImageAnalysisResult | null,
-): VisionAnalysisSummary | null {
-  if (!result) {
-    return null;
-  }
-
-  return {
-    provider: 'google-vision',
-    confidence: result.confidence,
-    labels: result.labels,
-    objects: result.objects,
-    detectedFeatures: result.detectedFeatures,
-    suggestedCategories: result.suggestedCategories,
-    propertyType: result.propertyType,
-    condition: result.condition,
-    complexity: result.complexity,
-  };
 }
 
 /**
@@ -83,6 +60,7 @@ export function buildEvidenceSummary(
     summaryParts.push(`Roboflow detected: ${classSummary.join('; ')}`);
   }
 
+  // VisionAnalysisSummary kept for backward compat (preRunEvidence may still supply it)
   if (visionAnalysis) {
     const topLabels = visionAnalysis.labels.slice(0, 5).map(
       (label) => `${sanitiseMLLabel(label.description)} (${Math.round(label.score * 100)}%)`,
@@ -92,7 +70,7 @@ export function buildEvidenceSummary(
     );
     const features = visionAnalysis.detectedFeatures.slice(0, 6).map(f => sanitiseMLLabel(f)).join(', ');
 
-    summaryParts.push(`Google Vision confidence ${Math.round(visionAnalysis.confidence)}%`);
+    summaryParts.push(`Vision confidence ${Math.round(visionAnalysis.confidence)}%`);
     if (topLabels.length > 0) {
       summaryParts.push(`Top labels: ${topLabels.join(', ')}`);
     }
@@ -110,4 +88,3 @@ export function buildEvidenceSummary(
 
   return summaryParts.join('\n');
 }
-

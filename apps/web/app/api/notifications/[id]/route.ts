@@ -1,60 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 
 /**
  * DELETE /api/notifications/[id]
- * 
+ *
  * Deletes a notification by ID.
- * Following Single Responsibility Principle - only handles notification deletion.
- * 
- * Security:
- * - Requires authentication
- * - Verifies notification belongs to authenticated user
- * - CSRF protection
+ * Security: auth + ownership check via withApiHandler.
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    // Get authenticated user
-    const user = await getCurrentUserFromCookies();
-
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to delete notifications');
-    }
-
-    const { id } = await params;
+export const DELETE = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (_request, { user, params }) => {
+    const { id } = params;
 
     if (!id) {
       throw new BadRequestError('Notification ID is required');
@@ -92,7 +51,5 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);

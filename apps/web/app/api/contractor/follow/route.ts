@@ -1,52 +1,22 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
-import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
-import { validateRequest } from '@/lib/validation/validator';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import { logger } from '@mintenance/shared';
+import { BadRequestError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import { validateRequest } from '@/lib/validation/validator';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const supabase = serverSupabase;
+const followSchema = z.object({
+  contractor_id: z.string().uuid('contractor_id must be a valid UUID'),
+});
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
-    await requireCSRF(request);
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required to follow other contractors');
-    }
-
-    const followSchema = z.object({
-      contractor_id: z.string().uuid('contractor_id must be a valid UUID'),
-    });
-
+/**
+ * POST /api/contractor/follow
+ * Toggle follow/unfollow another contractor
+ */
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const validation = await validateRequest(request, followSchema);
     if (validation instanceof NextResponse) return validation;
     const { data } = validation;
@@ -57,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify contractor exists
-    const { data: contractor, error: contractorError } = await supabase
+    const { data: contractor, error: contractorError } = await serverSupabase
       .from('profiles')
       .select('id, role')
       .eq('id', contractor_id)
@@ -69,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if already following
-    const { data: existingFollow, error: followCheckError } = await supabase
+    const { data: existingFollow, error: followCheckError } = await serverSupabase
       .from('contractor_follows')
       .select('id')
       .eq('follower_id', user.id)
@@ -77,7 +47,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (followCheckError && followCheckError.code !== 'PGRST116') {
-      // PGRST116 means no rows found, which is expected
       logger.error('Error checking existing follow', followCheckError, {
         service: 'contractor_follow',
         userId: user.id,
@@ -88,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (existingFollow) {
       // Unfollow: delete the follow relationship
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await serverSupabase
         .from('contractor_follows')
         .delete()
         .eq('id', existingFollow.id);
@@ -102,13 +71,13 @@ export async function POST(request: NextRequest) {
         throw new InternalServerError('Failed to unfollow contractor');
       }
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         following: false,
-        message: 'Unfollowed successfully' 
+        message: 'Unfollowed successfully'
       });
     } else {
       // Follow: create the follow relationship
-      const { data: newFollow, error: insertError } = await supabase
+      const { data: newFollow, error: insertError } = await serverSupabase
         .from('contractor_follows')
         .insert({
           follower_id: user.id,
@@ -132,8 +101,5 @@ export async function POST(request: NextRequest) {
         follow: newFollow
       }, { status: 201 });
     }
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

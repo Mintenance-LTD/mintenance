@@ -3,14 +3,13 @@
  * Handles invoice creation, updates, and submission for contractors
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
-import { rateLimiter } from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { createInvoiceSchema, updateInvoiceSchema } from '@/lib/validation/schemas';
+import { BadRequestError, NotFoundError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Generate invoice number
 async function generateInvoiceNumber(contractorId: string): Promise<string> {
@@ -42,40 +41,22 @@ function calculateTotals(lineItems: { quantity: number; unit_price: number }[], 
   };
 }
 
-// GET: Fetch contractor's invoices
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
+// Helper function to send invoice email (implement with your email service)
+async function sendInvoiceEmail(invoice: Record<string, unknown>, contractor: Record<string, unknown>): Promise<void> {
+  // TODO: Implement email sending logic
+  logger.info('Invoice email sent', {
+    invoiceId: invoice.id,
+    clientEmail: invoice.client_email,
   });
+}
 
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
+/**
+ * GET /api/contractor/invoices
+ * Fetch contractor's invoices with pagination and filters
+ */
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const jobId = searchParams.get('jobId');
@@ -101,10 +82,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       logger.error('Error fetching invoices', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch invoices' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to fetch invoices');
     }
 
     return NextResponse.json({
@@ -113,53 +91,16 @@ export async function GET(request: NextRequest) {
       limit,
       offset,
     });
+  },
+);
 
-  } catch (error) {
-    logger.error('Unexpected error in GET /api/contractor/invoices', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-// POST: Create new invoice
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
+/**
+ * POST /api/contractor/invoices
+ * Create a new invoice
+ */
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     // Validate and sanitize input using Zod schema
     const invoiceValidation = await validateRequest(request, createInvoiceSchema);
     if (invoiceValidation instanceof NextResponse) return invoiceValidation;
@@ -168,7 +109,7 @@ export async function POST(request: NextRequest) {
     // Calculate totals (taxRate defaults to 20 via schema validation)
     const { subtotal, taxAmount, totalAmount } = calculateTotals(
       validatedData.lineItems,
-      validatedData.taxRate ?? 20
+      validatedData.taxRate ?? 20,
     );
 
     // Generate invoice number
@@ -213,19 +154,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error('Error creating invoice', error);
-      return NextResponse.json(
-        { error: 'Failed to create invoice' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to create invoice');
     }
 
     // If status is 'sent', send email notification
     if (validatedData.status === 'sent' && invoice) {
       try {
-        // Send invoice email (integrate with your email service)
         await sendInvoiceEmail(invoice, user);
 
-        // Create notification for homeowner if job is linked
         if (validatedData.jobId) {
           const { data: job } = await serverSupabase
             .from('jobs')
@@ -269,60 +205,21 @@ export async function POST(request: NextRequest) {
         ? 'Invoice sent successfully'
         : 'Invoice saved as draft',
     }, { status: 201 });
+  },
+);
 
-  } catch (error) {
-    logger.error('Unexpected error in POST /api/contractor/invoices', error);
-    return NextResponse.json(
-      { error: 'Failed to create invoice' },
-      { status: 500 }
-    );
-  }
-}
-
-// PATCH: Update invoice
-export async function PATCH(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    await requireCSRF(request);
-
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
+/**
+ * PATCH /api/contractor/invoices?id=xxx
+ * Update an existing invoice
+ */
+export const PATCH = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const invoiceId = searchParams.get('id');
 
     if (!invoiceId) {
-      return NextResponse.json(
-        { error: 'Invoice ID is required' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invoice ID is required');
     }
 
     // Validate and sanitize input using Zod schema
@@ -338,18 +235,12 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (!existingInvoice || existingInvoice.contractor_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Invoice not found' },
-        { status: 404 }
-      );
+      throw new NotFoundError('Invoice not found');
     }
 
-    // Don't allow editing sent or paid invoices
+    // Don't allow editing paid invoices
     if (existingInvoice.status === 'paid') {
-      return NextResponse.json(
-        { error: 'Cannot edit paid invoices' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Cannot edit paid invoices');
     }
 
     // Recalculate totals if line items changed
@@ -357,7 +248,7 @@ export async function PATCH(request: NextRequest) {
     if (validatedPatchData.lineItems && validatedPatchData.taxRate !== undefined) {
       const { subtotal, taxAmount, totalAmount } = calculateTotals(
         validatedPatchData.lineItems,
-        validatedPatchData.taxRate
+        validatedPatchData.taxRate,
       );
       updateData = {
         ...updateData,
@@ -377,10 +268,7 @@ export async function PATCH(request: NextRequest) {
 
     if (error) {
       logger.error('Error updating invoice', error);
-      return NextResponse.json(
-        { error: 'Failed to update invoice' },
-        { status: 500 }
-      );
+      throw new InternalServerError('Failed to update invoice');
     }
 
     return NextResponse.json({
@@ -388,39 +276,49 @@ export async function PATCH(request: NextRequest) {
       invoice,
       message: 'Invoice updated successfully',
     });
+  },
+);
 
-  } catch (error) {
-    logger.error('Unexpected error in PATCH /api/contractor/invoices', error);
-    return NextResponse.json(
-      { error: 'Failed to update invoice' },
-      { status: 500 }
-    );
-  }
-}
+/**
+ * DELETE /api/contractor/invoices?id=xxx
+ * Remove an invoice (draft/sent only)
+ */
+export const DELETE = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
+    const { searchParams } = new URL(request.url);
+    const invoiceId = searchParams.get('id');
+    if (!invoiceId) {
+      throw new BadRequestError('Invoice ID is required');
+    }
 
-// Helper function to send invoice email (implement with your email service)
-async function sendInvoiceEmail(invoice: Record<string, unknown>, contractor: Record<string, unknown>): Promise<void> {
-  // TODO: Implement email sending logic
-  // This could use SendGrid, AWS SES, or any other email service
+    const { data: existing } = await serverSupabase
+      .from('contractor_invoices')
+      .select('id, contractor_id, status')
+      .eq('id', invoiceId)
+      .eq('contractor_id', user.id)
+      .single();
 
-  // Example structure:
-  // const emailData = {
-  //   to: invoice.client_email,
-  //   from: 'invoices@mintenance.com',
-  //   subject: `Invoice ${invoice.invoice_number} from ${contractor.company_name || contractor.email}`,
-  //   template: 'invoice',
-  //   data: {
-  //     invoice,
-  //     contractor,
-  //     viewLink: `${process.env.NEXT_PUBLIC_APP_URL}/invoices/${invoice.id}`,
-  //     payLink: `${process.env.NEXT_PUBLIC_APP_URL}/pay/${invoice.id}`,
-  //   },
-  // };
+    if (!existing) {
+      throw new NotFoundError('Invoice not found');
+    }
 
-  // await emailService.send(emailData);
+    if (existing.status === 'paid') {
+      throw new BadRequestError('Cannot delete paid invoices');
+    }
 
-  logger.info('Invoice email sent', {
-    invoiceId: invoice.id,
-    clientEmail: invoice.client_email,
-  });
-}
+    const { error } = await serverSupabase
+      .from('contractor_invoices')
+      .delete()
+      .eq('id', invoiceId)
+      .eq('contractor_id', user.id);
+
+    if (error) {
+      logger.error('Error deleting invoice', error);
+      throw new InternalServerError('Failed to delete invoice');
+    }
+
+    logger.info('Invoice deleted', { invoiceId, contractorId: user.id });
+    return NextResponse.json({ success: true });
+  },
+);

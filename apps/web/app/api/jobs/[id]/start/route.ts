@@ -36,7 +36,37 @@ export const POST = withApiHandler(
     // 3. Validate state transition (assigned → in_progress)
     validateStatusTransition(job.status as JobStatus, 'in_progress');
 
-    // 4. Check at least 1 before photo exists
+    // 4. Verify contract is signed by both parties
+    const { data: contract } = await serverSupabase
+      .from('contracts')
+      .select('id, status')
+      .eq('job_id', jobId)
+      .eq('status', 'accepted')
+      .limit(1)
+      .single();
+
+    if (!contract) {
+      throw new BadRequestError(
+        'Contract must be signed by both parties before starting the job'
+      );
+    }
+
+    // 5. Verify escrow payment is funded
+    const { data: escrow } = await serverSupabase
+      .from('escrow_transactions')
+      .select('id, status')
+      .eq('job_id', jobId)
+      .eq('status', 'held')
+      .limit(1)
+      .single();
+
+    if (!escrow) {
+      throw new BadRequestError(
+        'Payment must be secured in escrow before starting the job'
+      );
+    }
+
+    // 6. Check at least 1 before photo exists
     const { count } = await serverSupabase
       .from('job_photos_metadata')
       .select('id', { count: 'exact', head: true })
@@ -49,7 +79,7 @@ export const POST = withApiHandler(
       );
     }
 
-    // 5. Update job status
+    // 7. Update job status
     const { error: updateError } = await serverSupabase
       .from('jobs')
       .update({ status: 'in_progress', updated_at: new Date().toISOString() })

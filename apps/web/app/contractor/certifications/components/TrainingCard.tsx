@@ -1,7 +1,6 @@
 'use client';
 
 import { BookOpen, Calendar, Download, Edit, Trash2 } from 'lucide-react';
-import toast from 'react-hot-toast';
 
 interface Training {
   id: string;
@@ -17,9 +16,10 @@ interface Training {
 interface TrainingCardProps {
   train: Training;
   onDelete: (id: string, name: string) => void;
+  onEdit: (id: string) => void;
 }
 
-export function TrainingCard({ train, onDelete }: TrainingCardProps) {
+export function TrainingCard({ train, onDelete, onEdit }: TrainingCardProps) {
   return (
     <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow">
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -52,11 +52,11 @@ export function TrainingCard({ train, onDelete }: TrainingCardProps) {
         </div>
         <div className="flex flex-wrap gap-2">
           {train.certificateUrl && (
-            <button onClick={() => toast.success('Downloading certificate...')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+            <button onClick={() => window.open(train.certificateUrl, '_blank')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
               <Download className="w-4 h-4" />Certificate
             </button>
           )}
-          <button onClick={() => toast.success('Edit functionality coming soon')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+          <button onClick={() => onEdit(train.id)} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm">
             <Edit className="w-4 h-4" />Edit
           </button>
           <button onClick={() => onDelete(train.id, train.courseName)} className="flex items-center gap-2 px-4 py-2 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm">

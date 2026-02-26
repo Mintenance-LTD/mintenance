@@ -5,27 +5,19 @@
  * DELETE /api/users/avatar - Delete user avatar
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
+import { BadRequestError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
  * GET /api/users/avatar
- * Get user avatar URL
  */
-export async function GET(request: NextRequest) {
-  try {
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const supabase = serverSupabase;
-
-    // Get user profile with avatar
-    const { data: profile, error } = await supabase
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (_request, { user }) => {
+    const { data: profile, error } = await serverSupabase
       .from('profiles')
       .select('profile_image_url')
       .eq('id', user.id)
@@ -37,94 +29,65 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      profile_image_url: profile?.profile_image_url || null
+      profile_image_url: profile?.profile_image_url || null,
     });
-
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);
 
 /**
  * POST /api/users/avatar
- * Upload user avatar
  */
-export async function POST(request: NextRequest) {
-  try {
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const formData = await request.formData();
     const file = formData.get('avatar') as File;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file uploaded' },
-        { status: 400 }
-      );
+      throw new BadRequestError('No file uploaded');
     }
 
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, and WebP are allowed.' },
-        { status: 400 }
-      );
+      throw new BadRequestError('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 5MB.' },
-        { status: 400 }
-      );
+      throw new BadRequestError('File too large. Maximum size is 5MB.');
     }
 
-    const supabase = serverSupabase;
-
-    // Generate unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
-    // Upload to Supabase Storage
-    const { data: _uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await serverSupabase.storage
       .from('avatars')
-      .upload(fileName, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
+      .upload(fileName, file, { cacheControl: '3600', upsert: false });
 
     if (uploadError) {
       logger.error('Failed to upload avatar:', uploadError);
       throw uploadError;
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = serverSupabase.storage
       .from('avatars')
       .getPublicUrl(fileName);
 
-    // Update user profile
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serverSupabase
       .from('profiles')
       .update({
         profile_image_url: publicUrl,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
 
     if (updateError) {
-      // Try to delete uploaded file
-      await supabase.storage.from('avatars').remove([fileName]);
+      await serverSupabase.storage.from('avatars').remove([fileName]);
       logger.error('Failed to update user profile:', updateError);
       throw updateError;
     }
 
     // Delete old avatar if exists
-    const { data: oldProfile } = await supabase
+    const { data: oldProfile } = await serverSupabase
       .from('profiles')
       .select('profile_image_url')
       .eq('id', user.id)
@@ -133,35 +96,21 @@ export async function POST(request: NextRequest) {
     if (oldProfile?.profile_image_url && oldProfile.profile_image_url !== publicUrl) {
       const oldFileName = oldProfile.profile_image_url.split('/').pop();
       if (oldFileName) {
-        await supabase.storage.from('avatars').remove([oldFileName]);
+        await serverSupabase.storage.from('avatars').remove([oldFileName]);
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      profile_image_url: publicUrl
-    });
-
-  } catch (error) {
-    return handleAPIError(error);
+    return NextResponse.json({ success: true, profile_image_url: publicUrl });
   }
-}
+);
 
 /**
  * DELETE /api/users/avatar
- * Delete user avatar
  */
-export async function DELETE(request: NextRequest) {
-  try {
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const supabase = serverSupabase;
-
-    // Get current avatar URL
-    const { data: profile, error: fetchError } = await supabase
+export const DELETE = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (_request, { user }) => {
+    const { data: profile, error: fetchError } = await serverSupabase
       .from('profiles')
       .select('profile_image_url')
       .eq('id', user.id)
@@ -173,12 +122,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (profile?.profile_image_url) {
-      // Extract filename from URL
       const fileName = profile.profile_image_url.split('/').pop();
-
       if (fileName) {
-        // Delete from storage
-        const { error: deleteError } = await supabase.storage
+        const { error: deleteError } = await serverSupabase.storage
           .from('avatars')
           .remove([fileName]);
 
@@ -188,12 +134,11 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Update user profile to remove avatar URL
-    const { error: updateError } = await supabase
+    const { error: updateError } = await serverSupabase
       .from('profiles')
       .update({
         profile_image_url: null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
 
@@ -202,12 +147,6 @@ export async function DELETE(request: NextRequest) {
       throw updateError;
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Avatar deleted successfully'
-    });
-
-  } catch (error) {
-    return handleAPIError(error);
+    return NextResponse.json({ success: true, message: 'Avatar deleted successfully' });
   }
-}
+);

@@ -31,6 +31,7 @@ const RegisterScreen: React.FC<Props> = () => {
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const {
     form,
+    fieldErrors,
     loading,
     submissionError,
     submissionSuccess,
@@ -39,6 +40,7 @@ const RegisterScreen: React.FC<Props> = () => {
     setShowTermsModal,
     setShowPrivacyModal,
     updateField,
+    validateOnBlur,
     toggleTerms,
     togglePasswordVisibility,
     handleRegister,
@@ -97,6 +99,8 @@ const RegisterScreen: React.FC<Props> = () => {
                 placeholder='First Name'
                 value={form.firstName}
                 onChangeText={(v) => updateField('firstName', v)}
+                onBlur={() => validateOnBlur('firstName')}
+                errorText={fieldErrors.firstName}
                 leftIcon='person-outline'
                 autoCapitalize='words'
                 accessibilityHint='Enter your first name'
@@ -114,6 +118,8 @@ const RegisterScreen: React.FC<Props> = () => {
                 placeholder='Last Name'
                 value={form.lastName}
                 onChangeText={(v) => updateField('lastName', v)}
+                onBlur={() => validateOnBlur('lastName')}
+                errorText={fieldErrors.lastName}
                 leftIcon='person-outline'
                 autoCapitalize='words'
                 accessibilityHint='Enter your last name'
@@ -134,6 +140,8 @@ const RegisterScreen: React.FC<Props> = () => {
                 placeholder='Email'
                 value={form.email}
                 onChangeText={(v) => updateField('email', v)}
+                onBlur={() => validateOnBlur('email')}
+                errorText={fieldErrors.email}
                 leftIcon='mail-outline'
                 keyboardType='email-address'
                 autoCapitalize='none'
@@ -171,6 +179,8 @@ const RegisterScreen: React.FC<Props> = () => {
                 placeholder='Password'
                 value={form.password}
                 onChangeText={(v) => updateField('password', v)}
+                onBlur={() => validateOnBlur('password')}
+                errorText={fieldErrors.password}
                 leftIcon='lock-closed-outline'
                 rightIcon={form.passwordVisible ? 'eye-off-outline' : 'eye-outline'}
                 onRightIconPress={togglePasswordVisibility}
@@ -190,6 +200,8 @@ const RegisterScreen: React.FC<Props> = () => {
                 placeholder='Confirm Password'
                 value={form.confirmPassword}
                 onChangeText={(v) => updateField('confirmPassword', v)}
+                onBlur={() => validateOnBlur('confirmPassword')}
+                errorText={fieldErrors.confirmPassword}
                 leftIcon='lock-closed-outline'
                 secureTextEntry
                 accessibilityHint='Re-enter your password to confirm it matches'

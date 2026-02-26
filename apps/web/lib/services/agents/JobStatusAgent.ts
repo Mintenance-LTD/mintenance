@@ -3,6 +3,7 @@ import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { AutomationPreferencesService } from './AutomationPreferencesService';
 import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import type { AgentResult, AgentContext } from './types';
 
 /**
@@ -176,14 +177,12 @@ export class JobStatusAgent {
       // Auto-cancel if no bids
       if (!bids || bids.length === 0) {
         // Notify homeowner before canceling
-        await serverSupabase.from('notifications').insert({
-          user_id: job.homeowner_id,
+        await NotificationService.createNotification({
+          userId: job.homeowner_id,
           title: 'Job Auto-Canceled',
           message: `Your job has been automatically canceled as no bids were received within 7 days.`,
           type: 'job_cancelled',
-          read: false,
-          action_url: `/jobs/${jobId}`,
-          created_at: new Date().toISOString(),
+          actionUrl: `/jobs/${jobId}`,
         });
 
         return await this.transitionJobStatus(

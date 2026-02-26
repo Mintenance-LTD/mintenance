@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { EscrowTransaction } from '@mintenance/types';
-import { getUserFromRequest } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const querySchema = z.object({
   limit: z.coerce.number().min(1).max(50).default(20),
@@ -81,35 +80,13 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
     : undefined,
 });
 
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to view payment history');
-    }
-
+/**
+ * GET /api/payments/history
+ * Get paginated payment/escrow transaction history for the current user
+ */
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user }) => {
     const url = new URL(request.url);
     const parsed = querySchema.safeParse({
       limit: url.searchParams.get('limit') ?? undefined,
@@ -172,7 +149,5 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ payments, nextCursor: nextCursorValue, limit });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
+);

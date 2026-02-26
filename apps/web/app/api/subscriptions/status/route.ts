@@ -1,41 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
 import { HomeownerSubscriptionService } from '@/lib/services/subscription/HomeownerSubscriptionService';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { getEarlyAccessEntitlement } from '@/lib/subscription/early-access';
-import { handleAPIError, UnauthorizedError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
 
-export async function GET(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const user = await getCurrentUserFromCookies();
-    if (!user || (user.role !== 'contractor' && user.role !== 'homeowner')) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+/**
+ * GET /api/subscriptions/status
+ * Get subscription status for current user (homeowner or contractor)
+ */
+export const GET = withApiHandler(
+  { roles: ['homeowner', 'contractor'] },
+  async (_request, { user }) => {
     const earlyAccess = await getEarlyAccessEntitlement(user.id);
 
     if (user.role === 'homeowner') {
@@ -100,8 +76,5 @@ export async function GET(request: NextRequest) {
         cohortLimit: earlyAccessEligible ? earlyAccess.cohortLimit : null,
       },
     });
-  } catch (err) {
-    return handleAPIError(err);
   }
-}
-
+);

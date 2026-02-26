@@ -39,11 +39,22 @@ import type { JWTPayload } from '@mintenance/types';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Coming Soon mode: redirect all traffic to /coming-soon in production
+  if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'coming-soon') {
+    const allowed = ['/coming-soon', '/_next', '/favicon.ico', '/api/coming-soon'];
+    const isAllowed = allowed.some(p => pathname.startsWith(p)) || /\.(png|jpg|jpeg|svg|ico|css|js|woff2?)$/.test(pathname);
+    if (!isAllowed) {
+      return NextResponse.redirect(new URL('/coming-soon', request.url));
+    }
+    // Allow the coming-soon page and its assets through without auth
+    return NextResponse.next();
+  }
+
   // Define public routes that don't require authentication
   // IMPORTANT: Public route check MUST happen before ConfigManager to ensure
   // login, CSRF, session-status, and diag routes work even if config fails
   const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search', '/try-mint-ai'];
-  const publicApiRoutes = ['/api/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform', '/api/diag'];
+  const publicApiRoutes = ['/api/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform', '/api/diag', '/api/building-surveyor/demo', '/api/building-surveyor/demo-feedback'];
   const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
   // SECURITY: Only allow UUID-formatted contractor profile paths as public
   // This prevents /contractor/dashboard-enhanced, /contractor/settings, etc. from bypassing auth
@@ -194,7 +205,9 @@ export async function middleware(request: NextRequest) {
                                        pathname.startsWith('/api/ai/') ||
                                        pathname.startsWith('/api/building-surveyor') ||
                                        pathname.startsWith('/api/admin') ||
-                                       pathname.startsWith('/api/escrow');
+                                       pathname.startsWith('/api/escrow') ||
+                                       pathname.startsWith('/api/properties') ||
+                                       pathname.startsWith('/api/subscriptions');
 
       // Perform rate limit check (unless explicitly skipped)
       const rateLimitResult = skipMiddlewareRateLimit
@@ -256,6 +269,21 @@ export async function middleware(request: NextRequest) {
         return new NextResponse('Service Unavailable', { status: 503 });
       }
     }
+  }
+
+  // Mobile clients send Bearer token in Authorization header instead of cookies.
+  // Let these API requests through — actual token verification happens in route
+  // handlers via getUserFromRequest() → getCurrentUserFromBearerToken().
+  if (pathname.startsWith('/api/') && request.headers.get('authorization')?.startsWith('Bearer ')) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-pathname', pathname);
+    const requestId = crypto.randomUUID();
+    requestHeaders.set('x-request-id', requestId);
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    if (!shouldSkipCors(pathname)) {
+      return addCorsHeaders(response, request);
+    }
+    return response;
   }
 
   try {

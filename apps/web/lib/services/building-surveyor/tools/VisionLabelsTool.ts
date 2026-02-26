@@ -1,8 +1,9 @@
 /**
- * Vision labels tool: wraps ImageAnalysisService.analyzePropertyImages.
+ * Vision labels tool: previously wrapped Google Cloud Vision.
+ * Google Vision dependency removed — GPT-4o handles visual analysis directly.
+ * Returns empty result to maintain interface compatibility.
  */
 
-import { ImageAnalysisService } from '@/lib/services/ImageAnalysisService';
 import type { VisionLabelsToolResult, ToolRun, ToolRunSummary } from './types';
 
 export interface VisionLabelsToolParams {
@@ -10,7 +11,8 @@ export interface VisionLabelsToolParams {
 }
 
 /**
- * Run vision_labels tool: Google Vision (or future OpenCLIP) on image URLs; return result and summary.
+ * Run vision_labels tool: returns empty result (Google Vision removed).
+ * GPT-4o now handles all visual analysis directly via image URLs in prompts.
  */
 export async function runVisionLabelsTool(params: VisionLabelsToolParams): Promise<
   ToolRun<VisionLabelsToolResult>
@@ -18,35 +20,15 @@ export async function runVisionLabelsTool(params: VisionLabelsToolParams): Promi
   const { imageUrls } = params;
   const normalizedUrls = imageUrls.slice(0, 5);
 
-  const analysis = await ImageAnalysisService.analyzePropertyImages(normalizedUrls, 5);
-
-  if (!analysis) {
-    return {
-      toolName: 'vision_labels',
-      params: { imageUrls: normalizedUrls },
-      result: { labels: [], detectedFeatures: [], confidence: 0 },
-      summary: { success: false, message: 'Image analysis not available' },
-    };
-  }
-
-  const labels = (analysis.labels ?? []).map((l) => ({
-    description: l.description ?? '',
-    score: l.score ?? 0,
-  }));
-  const detectedFeatures = analysis.detectedFeatures ?? [];
-  const confidence = (analysis.confidence ?? 0) * 100;
-
   const result: VisionLabelsToolResult = {
-    labels,
-    detectedFeatures,
-    confidence,
+    labels: [],
+    detectedFeatures: [],
+    confidence: 0,
   };
 
   const summary: ToolRunSummary = {
-    success: true,
-    confidence,
-    count: labels.length,
-    detectedFeatures,
+    success: false,
+    message: 'Google Vision removed — GPT-4o handles visual analysis directly',
   };
 
   return {

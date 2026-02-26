@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 export class PaymentSetupNotificationService {
   /**
@@ -24,18 +25,17 @@ export class PaymentSetupNotificationService {
       }
 
       // Create notification
-      await serverSupabase.from('notifications').insert({
-        user_id: contractorId,
+      await NotificationService.createNotification({
+        userId: contractorId,
         title: 'Payment Setup Required',
         message: `You have £${amount.toFixed(2)} waiting in escrow for "${jobTitle}". Complete your payment setup to receive funds.`,
         type: 'payment_setup_required',
-        action_url: '/contractor/payouts',
+        actionUrl: '/contractor/payouts',
         metadata: {
           escrowId,
           amount,
           jobTitle,
         },
-        created_at: new Date().toISOString(),
       });
 
       logger.info('Payment setup notification sent', {
@@ -154,17 +154,16 @@ export class PaymentSetupNotificationService {
 
     for (const contractor of contractors) {
       try {
-        await serverSupabase.from('notifications').insert({
-          user_id: contractor.contractorId,
+        await NotificationService.createNotification({
+          userId: contractor.contractorId,
           title: 'Complete Payment Setup to Receive Funds',
           message: `You have ${contractor.pendingEscrows} payment(s) totaling £${contractor.totalPendingAmount.toFixed(2)} waiting. Set up your payment account now.`,
           type: 'payment_setup_required',
-          action_url: '/contractor/payouts',
+          actionUrl: '/contractor/payouts',
           metadata: {
             pendingEscrows: contractor.pendingEscrows,
             totalPendingAmount: contractor.totalPendingAmount,
           },
-          created_at: new Date().toISOString(),
         });
         sent++;
       } catch (error) {

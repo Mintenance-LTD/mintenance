@@ -128,18 +128,18 @@ export function FeaturesGrid() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 divide-y sm:divide-y-0 sm:divide-x divide-gray-200">
               <div className="pt-8 sm:pt-0">
                 <div className="text-4xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2">
-                  10,000+
+                  3-Model
                 </div>
                 <div className="text-gray-600 font-medium">
-                  Assessments Completed
+                  AI Fusion Pipeline
                 </div>
               </div>
               <div className="pt-8 sm:pt-0">
                 <div className="text-4xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent mb-2">
-                  95%
+                  Beta
                 </div>
                 <div className="text-gray-600 font-medium">
-                  Accuracy Rate
+                  Accuracy Improving Daily
                 </div>
               </div>
               <div className="pt-8 sm:pt-0">

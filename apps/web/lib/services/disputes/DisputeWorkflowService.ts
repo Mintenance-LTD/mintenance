@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { DisputeResolutionAgent } from '../agents/DisputeResolutionAgent';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 export type DisputePriority = 'low' | 'medium' | 'high' | 'critical';
 
@@ -32,7 +33,7 @@ export class DisputeWorkflowService {
       const deadline = new Date(Date.now() + sla.hours * 60 * 60 * 1000);
 
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           dispute_priority: priority,
           sla_deadline: deadline.toISOString(),
@@ -67,7 +68,7 @@ export class DisputeWorkflowService {
     try {
       // Get escrow details
       const { data: escrowDetails } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .select('homeowner_id, contractor_id')
         .eq('id', escrowId)
         .single();
@@ -105,7 +106,7 @@ export class DisputeWorkflowService {
 
       // Find disputes approaching SLA deadline
       const { data: disputes, error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .select('id, dispute_priority, sla_deadline, escalation_level')
         .eq('status', 'disputed')
         .not('sla_deadline', 'is', null)
@@ -143,7 +144,7 @@ export class DisputeWorkflowService {
   ): Promise<void> {
     try {
       const { error } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .update({
           escalation_level: currentLevel + 1,
         })
@@ -159,14 +160,12 @@ export class DisputeWorkflowService {
       }
 
       // Notify admin
-      await serverSupabase.from('notifications').insert({
-        user_id: 'admin', // Would need actual admin user IDs
+      await NotificationService.createNotification({
+        userId: 'admin', // Would need actual admin user IDs
         title: 'Dispute Escalation',
         message: `Dispute ${escrowId} has been escalated to level ${currentLevel + 1}`,
         type: 'dispute_escalation',
-        read: false,
-        action_url: `/admin/disputes/${escrowId}`,
-        created_at: new Date().toISOString(),
+        actionUrl: `/admin/disputes/${escrowId}`,
       });
 
       logger.info('Dispute escalated', {

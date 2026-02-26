@@ -3,6 +3,7 @@ import { logger } from '@mintenance/shared';
 import { AgentLogger } from './AgentLogger';
 import { AutomationPreferencesService } from './AutomationPreferencesService';
 import { WeatherService, WeatherForecast } from '../weather/WeatherService';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import type { AgentResult, AgentContext } from './types';
 
 interface WeatherData {
@@ -191,25 +192,21 @@ export class SchedulingAgent {
           }
 
           // Notify both parties
-          await serverSupabase.from('notifications').insert([
-            {
-              user_id: job.homeowner_id,
+          await Promise.all([
+            NotificationService.createNotification({
+              userId: job.homeowner_id,
               title: 'Job Rescheduled Due to Weather',
               message: `Your job has been automatically rescheduled due to poor weather conditions.`,
               type: 'job_rescheduled',
-              read: false,
-              action_url: `/jobs/${jobId}`,
-              created_at: new Date().toISOString(),
-            },
-            {
-              user_id: job.contractor_id,
+              actionUrl: `/jobs/${jobId}`,
+            }),
+            NotificationService.createNotification({
+              userId: job.contractor_id,
               title: 'Job Rescheduled Due to Weather',
               message: `A job has been automatically rescheduled due to poor weather conditions.`,
               type: 'job_rescheduled',
-              read: false,
-              action_url: `/contractor/jobs/${jobId}`,
-              created_at: new Date().toISOString(),
-            },
+              actionUrl: `/contractor/jobs/${jobId}`,
+            }),
           ]);
 
           // Log the decision

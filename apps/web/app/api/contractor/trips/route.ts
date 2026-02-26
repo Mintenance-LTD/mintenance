@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { getCurrentUserFromCookies } from '@/lib/auth';
-import { handleAPIError, UnauthorizedError, BadRequestError } from '@/lib/errors/api-error';
+import { BadRequestError, UnauthorizedError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const startTripSchema = z.object({
   jobId: z.string().uuid().optional(),
@@ -15,13 +16,13 @@ const startTripSchema = z.object({
   message: 'Either jobId or appointmentId is required',
 });
 
-export async function GET(request: NextRequest) {
-  try {
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
-
+/**
+ * GET /api/contractor/trips
+ * List contractor's trips filtered by status
+ */
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'en_route';
 
@@ -43,18 +44,16 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ trips: trips || [] });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);
 
-export async function POST(request: NextRequest) {
-  try {
-    const user = await getCurrentUserFromCookies();
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
-
+/**
+ * POST /api/contractor/trips
+ * Start a new trip to a job or appointment
+ */
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const validation = await validateRequest(request, startTripSchema);
     if (validation instanceof NextResponse) return validation;
     const { jobId, appointmentId, tripType, notes } = validation.data;
@@ -98,7 +97,6 @@ export async function POST(request: NextRequest) {
 
       destinationAddress = appt.location_address;
 
-      // If appointment is linked to a job, get homeowner from job
       if (appt.job_id && !jobId) {
         const { data: job } = await serverSupabase
           .from('jobs')
@@ -173,14 +171,12 @@ export async function POST(request: NextRequest) {
 
     // Notify homeowner
     if (homeownerId) {
-      await serverSupabase.from('notifications').insert({
-        user_id: homeownerId,
+      await NotificationService.createNotification({
+        userId: homeownerId,
         type: 'contractor_en_route',
         title: 'Contractor On The Way',
         message: `${contractorName} is heading to your property${jobTitle ? ` for "${jobTitle}"` : ''}. You'll be able to track their location.`,
-        data: { tripId: trip.id, jobId, contractorId: user.id },
-        read: false,
-        created_at: new Date().toISOString(),
+        metadata: { tripId: trip.id, jobId, contractorId: user.id },
       });
     }
 
@@ -193,23 +189,20 @@ export async function POST(request: NextRequest) {
         .is('deleted_at', null);
 
       if (admins && admins.length > 0) {
-        const adminNotifications = admins.map(admin => ({
-          user_id: admin.id,
-          type: 'contractor_en_route',
-          title: 'Contractor En Route',
-          message: `${contractorName} is heading to ${jobTitle || 'an appointment'}${homeownerId ? '' : ' (no linked homeowner)'}`,
-          data: { tripId: trip.id, jobId, contractorId: user.id, homeownerId },
-          read: false,
-          created_at: new Date().toISOString(),
-        }));
-        await serverSupabase.from('notifications').insert(adminNotifications);
+        await Promise.all(admins.map(admin =>
+          NotificationService.createNotification({
+            userId: admin.id,
+            type: 'contractor_en_route',
+            title: 'Contractor En Route',
+            message: `${contractorName} is heading to ${jobTitle || 'an appointment'}${homeownerId ? '' : ' (no linked homeowner)'}`,
+            metadata: { tripId: trip.id, jobId, contractorId: user.id, homeownerId },
+          }),
+        ));
       }
     } catch (adminErr) {
       logger.error('Failed to notify admins of trip', adminErr, { service: 'trips' });
     }
 
     return NextResponse.json({ trip }, { status: 201 });
-  } catch (error) {
-    return handleAPIError(error);
-  }
-}
+  },
+);

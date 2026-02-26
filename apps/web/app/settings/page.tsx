@@ -39,16 +39,6 @@ export default function SettingsPage2025({
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{__html: `
-        .settings-page input[type='text'],
-        .settings-page input[type='email'],
-        .settings-page input[type='password'],
-        .settings-page input[type='tel'],
-        .settings-page input[type='number'],
-        .settings-page textarea {
-          color: white !important;
-        }
-      `}} />
       <div className="min-h-screen bg-gray-50 settings-page">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Back to Dashboard Button */}

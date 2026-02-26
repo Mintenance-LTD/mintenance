@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError, ConflictError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { BadRequestError, ConflictError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { z } from 'zod';
-
-const supabase = serverSupabase;
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 /**
  * Geocode Manager
@@ -26,23 +22,19 @@ class GeocodeManager {
       logger.warn('GOOGLE_MAPS_API_KEY not configured, using fallback coordinates', {
         service: 'geocoding',
       });
-      // Return approximate coordinates for UK cities as fallback
       return this.getFallbackCoordinates(address);
     }
 
     try {
       const encodedAddress = encodeURIComponent(address);
       const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${this.apiKey}`;
-      
+
       const response = await fetch(url);
       const data = await response.json();
 
       if (data.status === 'OK' && data.results && data.results.length > 0) {
         const location = data.results[0].geometry.location;
-        return {
-          lat: location.lat,
-          lng: location.lng
-        };
+        return { lat: location.lat, lng: location.lng };
       }
 
       logger.error('Geocoding failed', new Error(`Geocoding status: ${data.status}`), {
@@ -52,16 +44,14 @@ class GeocodeManager {
       });
       return this.getFallbackCoordinates(address);
     } catch (error) {
-      logger.error('Geocoding API error', error, {
-        service: 'geocoding',
-      });
+      logger.error('Geocoding API error', error, { service: 'geocoding' });
       return this.getFallbackCoordinates(address);
     }
   }
 
   private getFallbackCoordinates(location: string): { lat: number; lng: number } {
     const locationLower = location.toLowerCase();
-    
+
     // Common UK cities - approximate coordinates
     const ukCities: Record<string, { lat: number; lng: number }> = {
       'london': { lat: 51.5074, lng: -0.1278 },
@@ -84,10 +74,8 @@ class GeocodeManager {
       }
     }
 
-    // Default to London if no match found
     logger.warn('No coordinates found for location, defaulting to London', {
-      service: 'geocoding',
-      location,
+      service: 'geocoding', location,
     });
     return { lat: 51.5074, lng: -0.1278 };
   }
@@ -97,39 +85,9 @@ class GeocodeManager {
  * POST /api/contractor/add-service-area
  * Adds a new service area for a contractor with geocoding
  */
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
-    await requireCSRF(request);
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Contractor access required');
-    }
-
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
     const addServiceAreaSchema = z.object({
       city: z.string().min(1, 'City is required').max(200),
       state: z.string().min(1, 'State is required').max(200),
@@ -138,7 +96,7 @@ export async function POST(request: NextRequest) {
       country: z.string().max(100).default('USA'),
     });
 
-    const validation = await validateRequest(request, addServiceAreaSchema);
+    const validation = await validateRequest(request as never, addServiceAreaSchema);
     if (validation instanceof NextResponse) return validation;
     const { data } = validation;
     const { city, state, zipCode, serviceRadius, country } = data;
@@ -146,7 +104,6 @@ export async function POST(request: NextRequest) {
     // Build location string for geocoding
     const locationString = `${city}, ${state}, ${country}`;
 
-    // Geocode the location
     const geocoder = new GeocodeManager();
     const coordinates = await geocoder.geocodeAddress(locationString);
 
@@ -155,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if area already exists
-    const { data: existing } = await supabase
+    const { data: existing } = await serverSupabase
       .from('service_areas')
       .select('id')
       .eq('contractor_id', user.id)
@@ -168,15 +125,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert new service area
-    const { data: newArea, error: insertError } = await supabase
+    const { data: newArea, error: insertError } = await serverSupabase
       .from('service_areas')
       .insert({
         contractor_id: user.id,
-        city: city,
-        state: state,
+        city,
+        state,
         zip_code: zipCode,
-        country: country,
-        service_radius: serviceRadius || 25, // Default 25 miles
+        country,
+        service_radius: serviceRadius || 25,
         latitude: coordinates.lat,
         longitude: coordinates.lng,
         is_active: true,
@@ -186,7 +143,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     // Ensure contractor remains visible on homeowner radar
-    await supabase
+    await serverSupabase
       .from('profiles')
       .update({
         is_visible_on_map: true,
@@ -196,15 +153,11 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       logger.error('Error inserting service area', insertError, {
-        service: 'service_areas',
-        userId: user.id,
-        city,
-        state,
+        service: 'service_areas', userId: user.id, city, state,
       });
       throw insertError;
     }
 
-    // Return formatted response matching component interface
     return NextResponse.json({
       id: newArea.id,
       city: newArea.city,
@@ -215,9 +168,5 @@ export async function POST(request: NextRequest) {
       latitude: newArea.latitude,
       longitude: newArea.longitude,
     }, { status: 201 });
-
-  } catch (error: unknown) {
-    return handleAPIError(error);
   }
-}
-
+);

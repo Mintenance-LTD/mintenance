@@ -1,71 +1,47 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const confirmIntentSchema = z.object({
   paymentIntentId: z.string().regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
   jobId: z.string().uuid('Invalid job ID'),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 20
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(20),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    
-    // CSRF protection
-    await requireCSRF(request);
-// Authenticate user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      logger.warn('Unauthorized payment confirmation attempt', {
-        service: 'payments',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
-      throw new UnauthorizedError('Authentication required');
-    }
-
+/**
+ * POST /api/payments/confirm-intent
+ * Confirm a Stripe payment intent and update escrow status
+ */
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user }) => {
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, confirmIntentSchema);
     if ('headers' in validation) {
-      logger.warn('Invalid payment confirmation request', {
-        service: 'payments',
-        userId: user.id,
-      });
       return validation;
     }
 
     const { paymentIntentId, jobId } = validation.data;
 
     // Retrieve the payment intent from Stripe
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    let paymentIntent: Stripe.PaymentIntent;
+    try {
+      paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    } catch (error) {
+      if (error instanceof Stripe.errors.StripeError) {
+        return NextResponse.json(
+          { error: error.message, type: error.type },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
 
     // Verify payment was successful
     if (paymentIntent.status !== 'succeeded') {
@@ -177,31 +153,31 @@ export async function POST(request: NextRequest) {
     try {
       const amount = escrowTransaction.amount;
       const jobTitle = job.title || 'your job';
-      const notifications = [];
+      const notificationPromises = [];
 
       if (job.contractor_id) {
-        notifications.push({
-          user_id: job.contractor_id,
-          title: 'Payment Secured in Escrow',
-          message: `Payment of £${Number(amount).toLocaleString()} for "${jobTitle}" has been secured in escrow. You can now start work.`,
-          type: 'payment',
-          read: false,
-          action_url: `/contractor/jobs/${jobId}`,
-          created_at: new Date().toISOString(),
-        });
+        notificationPromises.push(
+          NotificationService.createNotification({
+            userId: job.contractor_id,
+            title: 'Payment Secured in Escrow',
+            message: `Payment of £${Number(amount).toLocaleString()} for "${jobTitle}" has been secured in escrow. You can now start work.`,
+            type: 'payment',
+            actionUrl: `/contractor/jobs/${jobId}`,
+          })
+        );
       }
 
-      notifications.push({
-        user_id: user.id,
-        title: 'Payment Confirmed',
-        message: `Your payment of £${Number(amount).toLocaleString()} for "${jobTitle}" is now held securely in escrow until the job is completed.`,
-        type: 'payment',
-        read: false,
-        action_url: `/jobs/${jobId}`,
-        created_at: new Date().toISOString(),
-      });
+      notificationPromises.push(
+        NotificationService.createNotification({
+          userId: user.id,
+          title: 'Payment Confirmed',
+          message: `Your payment of £${Number(amount).toLocaleString()} for "${jobTitle}" is now held securely in escrow until the job is completed.`,
+          type: 'payment',
+          actionUrl: `/jobs/${jobId}`,
+        })
+      );
 
-      await serverSupabase.from('notifications').insert(notifications);
+      await Promise.all(notificationPromises);
     } catch (notifError) {
       logger.error('Failed to create payment confirmation notifications', notifError, { service: 'payments', jobId });
     }
@@ -218,19 +194,5 @@ export async function POST(request: NextRequest) {
       status: escrowTransaction.status,
       amount: escrowTransaction.amount,
     });
-  } catch (error) {
-    logger.error('Error confirming payment intent', error, { service: 'payments' });
-
-    if (error instanceof Stripe.errors.StripeError) {
-      return NextResponse.json(
-        { error: error.message, type: error.type },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to confirm payment' },
-      { status: 500 }
-    );
   }
-}
+);

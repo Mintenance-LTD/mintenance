@@ -1,10 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRF } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { z } from 'zod';
 import { sanitizeMessage } from '@/lib/sanitizer';
 
@@ -42,49 +40,15 @@ interface FormattedComment {
   contractor: CommentContractor | null;
 }
 
-const supabase = serverSupabase;
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    const { id } = await params;
-    const user = await getCurrentUserFromCookies();
-    
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const postId = id;
+export const GET = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user, params }) => {
+    const postId = params.id as string;
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '50', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // Fetch comments with contractor info
-    const { data: comments, error: commentsError } = await supabase
+    const { data: comments, error: commentsError } = await serverSupabase
       .from('contractor_post_comments')
       .select(`
         *,
@@ -101,16 +65,10 @@ export async function GET(
       .range(offset, offset + limit - 1);
 
     if (commentsError) {
-      logger.error('Error fetching comments', commentsError, {
-        service: 'contractor',
-        postId,
-        userId: user.id,
-      });
+      logger.error('Error fetching comments', commentsError, { service: 'contractor', postId, userId: user.id });
       throw new InternalServerError('Failed to fetch comments');
     }
 
-    // Fetch user's comment likes (if there's a likes table for comments)
-    // For now, we'll structure comments with nested replies
     const formattedComments: FormattedComment[] = (comments || []).map((comment: CommentRecord) => ({
       id: comment.id,
       post_id: comment.post_id,
@@ -132,13 +90,11 @@ export async function GET(
     // Organize comments into tree structure (parent comments with nested replies)
     const parentComments = formattedComments.filter(c => !c.parent_comment_id);
     const replyMap = new Map<string, typeof formattedComments>();
-    
+
     formattedComments.forEach(comment => {
       if (comment.parent_comment_id) {
         const parentId = comment.parent_comment_id;
-        if (!replyMap.has(parentId)) {
-          replyMap.set(parentId, []);
-        }
+        if (!replyMap.has(parentId)) replyMap.set(parentId, []);
         replyMap.get(parentId)!.push(comment);
       }
     });
@@ -148,101 +104,49 @@ export async function GET(
       replies: replyMap.get(comment.id) || [],
     }));
 
-    return NextResponse.json({ 
-      comments: commentsWithReplies,
-      total: formattedComments.length,
-      limit,
-      offset 
-    });
-  } catch (error) {
-    logger.error('Error in GET /api/contractor/posts/[id]/comments', error, {
-      service: 'contractor',
-    });
-    throw new InternalServerError('Internal server error');
+    return NextResponse.json({ comments: commentsWithReplies, total: formattedComments.length, limit, offset });
   }
-}
+);
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-  // Rate limiting check
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-    windowMs: 60000,
-    maxRequests: 30
-  });
-
-  if (!rateLimitResult.allowed) {
-    return NextResponse.json(
-      { error: 'Too many requests. Please try again later.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(rateLimitResult.retryAfter || 60),
-          'X-RateLimit-Limit': String(30),
-          'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString()
-        }
-      }
-    );
-  }
-
-    // CSRF protection
-    await requireCSRF(request);
-    const { id } = await params;
-    const user = await getCurrentUserFromCookies();
-    
-    if (!user || user.role !== 'contractor') {
-      throw new UnauthorizedError('Authentication required');
-    }
-
-    const postId = id;
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (request, { user, params }) => {
+    const postId = params.id as string;
     const body = await request.json();
 
-    // Create validation schema with sanitization
     const commentSchema = z.object({
       comment_text: z.string().min(1).max(2000).transform(val => sanitizeMessage(val)),
       parent_comment_id: z.string().uuid().optional(),
     });
 
     const parsed = commentSchema.safeParse(body);
-
-    if (!parsed.success) {
-      throw new BadRequestError('Invalid comment data: ' + parsed.error.message);
-    }
+    if (!parsed.success) throw new BadRequestError('Invalid comment data: ' + parsed.error.message);
 
     const { comment_text, parent_comment_id } = parsed.data;
 
     // Verify post exists and is active
-    const { data: post, error: postError } = await supabase
+    const { data: post, error: postError } = await serverSupabase
       .from('contractor_posts')
       .select('id')
       .eq('id', postId)
       .eq('is_active', true)
       .single();
 
-    if (postError || !post) {
-      throw new NotFoundError('Post not found or inactive');
-    }
+    if (postError || !post) throw new NotFoundError('Post not found or inactive');
 
     // If parent_comment_id is provided, verify it exists
     if (parent_comment_id) {
-      const { data: parentComment, error: parentError } = await supabase
+      const { data: parentComment, error: parentError } = await serverSupabase
         .from('contractor_post_comments')
         .select('id, post_id')
         .eq('id', parent_comment_id)
         .eq('post_id', postId)
         .single();
 
-      if (parentError || !parentComment) {
-        throw new NotFoundError('Parent comment not found');
-      }
+      if (parentError || !parentComment) throw new NotFoundError('Parent comment not found');
     }
 
-    // Create comment
-    const { data: comment, error: commentError } = await supabase
+    const { data: comment, error: commentError } = await serverSupabase
       .from('contractor_post_comments')
       .insert({
         post_id: postId,
@@ -264,16 +168,10 @@ export async function POST(
       .single();
 
     if (commentError) {
-      logger.error('Error creating comment', commentError, {
-        service: 'contractor',
-        postId,
-        userId: user.id,
-      });
+      logger.error('Error creating comment', commentError, { service: 'contractor', postId, userId: user.id });
       throw new InternalServerError('Failed to create comment');
     }
 
-    // The trigger should automatically update comments_count on contractor_posts
-    // But we'll verify the post was updated
     const formattedComment = {
       id: comment.id,
       post_id: comment.post_id,
@@ -294,11 +192,5 @@ export async function POST(
     };
 
     return NextResponse.json({ comment: formattedComment }, { status: 201 });
-  } catch (error) {
-    logger.error('Error in POST /api/contractor/posts/[id]/comments', error, {
-      service: 'contractor',
-    });
-    throw new InternalServerError('Internal server error');
   }
-}
-
+);

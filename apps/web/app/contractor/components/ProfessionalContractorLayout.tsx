@@ -23,7 +23,6 @@ import {
   Compass,
   Users,
   Star,
-  Package,
   TrendingUp,
   Megaphone,
   CreditCard,
@@ -34,6 +33,9 @@ import {
   HelpCircle,
   PoundSterling,
   Leaf,
+  FolderOpen,
+  Video,
+  Pencil,
 } from 'lucide-react';
 
 type ContractorSummary = {
@@ -151,20 +153,38 @@ export function ProfessionalContractorLayout({
               { label: 'Completed', href: '/contractor/jobs?status=completed', icon: Briefcase },
             ],
           },
+          { label: 'Quotes', href: '/contractor/quotes', icon: FileText },
           { label: 'Messages', href: '/contractor/messages', icon: MessageSquare, badge: 0 },
           { label: 'Calendar', href: '/contractor/scheduling', icon: Calendar },
-          { label: 'Quotes', href: '/contractor/quotes', icon: FileText },
-          { label: 'Invoices', href: '/contractor/invoices', icon: Receipt },
+          { label: 'Documents', href: '/contractor/documents', icon: FolderOpen },
+          { label: 'Video Calls', href: '/video-calls', icon: Video },
         ],
       },
       {
         name: 'BUSINESS',
         items: [
-          { label: 'Reports', href: '/contractor/reporting', icon: BarChart3 },
-          { label: 'Finance', href: '/contractor/finance', icon: PoundSterling },
-          { label: 'Portfolio', href: '/contractor/portfolio', icon: Star },
+{ label: 'Portfolio', href: '/contractor/portfolio', icon: Pencil },
+          { label: 'Reviews', href: '/contractor/reviews', icon: Star },
           { label: 'Customers', href: '/contractor/customers', icon: Users },
+          { label: 'Reports', href: '/contractor/reporting', icon: TrendingUp },
           { label: 'Marketing', href: '/contractor/marketing', icon: Megaphone },
+        ],
+      },
+      {
+        name: 'FINANCIAL',
+        items: [
+          { label: 'Finance', href: '/contractor/finance', icon: PoundSterling },
+          { label: 'Invoices', href: '/contractor/invoices', icon: Receipt },
+          { label: 'Expenses', href: '/contractor/expenses', icon: CreditCard },
+          { label: 'Subscription', href: '/contractor/subscription', icon: BarChart3 },
+        ],
+      },
+      {
+        name: 'ACCOUNT',
+        items: [
+          { label: 'Company Profile', href: '/contractor/profile', icon: Building2 },
+          { label: 'Verification', href: '/contractor/verification', icon: Shield },
+          { label: 'Settings', href: '/settings', icon: Settings },
         ],
       },
     ],

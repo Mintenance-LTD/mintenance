@@ -135,7 +135,7 @@ export class AuthService {
       ServiceErrorHandler.validateEmail(email, context);
       ServiceErrorHandler.validateRequired(password, 'Password', context);
 
-      logger.info('🔐 Attempting login with Supabase...', { email, timestamp: new Date().toISOString() });
+      logger.info('Attempting login with Supabase...', { email: email.replace(/(.{2}).+(@.+)/, '$1***$2'), timestamp: new Date().toISOString() });
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,

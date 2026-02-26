@@ -6,7 +6,6 @@
 
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { parseError, getUserFriendlyMessage } from '@mintenance/api-client';
@@ -78,25 +77,14 @@ export class PhotoUploadService {
         } as unknown);
         formData.append('metadata', JSON.stringify(metadata));
 
-        // Get auth token for FormData upload
-        const { data: { session } } = await supabase.auth.getSession();
-        const headers: Record<string, string> = {};
-        if (session?.access_token) {
-          headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/photos/before`, {
-          method: 'POST',
-          body: formData,
-          headers,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to upload photo' }));
-          const apiError = parseError({
-            message: errorData.error || 'Failed to upload photo',
-            statusCode: response.status,
-          });
+        let response: { photoId?: string; url?: string };
+        try {
+          response = await mobileApiClient.postFormData<{ photoId?: string; url?: string }>(
+            `/api/jobs/${jobId}/photos/before`,
+            formData
+          );
+        } catch (uploadError) {
+          const apiError = parseError(uploadError);
           results.push({
             success: false,
             error: getUserFriendlyMessage(apiError),
@@ -104,11 +92,10 @@ export class PhotoUploadService {
           continue;
         }
 
-        const data = await response.json();
         results.push({
           success: true,
-          photoId: data.photoId,
-          url: data.url,
+          photoId: response.photoId,
+          url: response.url,
           metadata,
         });
       } catch (error) {
@@ -154,25 +141,14 @@ export class PhotoUploadService {
         } as unknown);
         formData.append('metadata', JSON.stringify(metadata));
 
-        // Get auth token for FormData upload
-        const { data: { session } } = await supabase.auth.getSession();
-        const headers: Record<string, string> = {};
-        if (session?.access_token) {
-          headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/photos/after`, {
-          method: 'POST',
-          body: formData,
-          headers,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to upload photo' }));
-          const apiError = parseError({
-            message: errorData.error || 'Failed to upload photo',
-            statusCode: response.status,
-          });
+        let data: { photoId?: string; url?: string };
+        try {
+          data = await mobileApiClient.postFormData<{ photoId?: string; url?: string }>(
+            `/api/jobs/${jobId}/photos/after`,
+            formData
+          );
+        } catch (uploadError) {
+          const apiError = parseError(uploadError);
           results.push({
             success: false,
             error: getUserFriendlyMessage(apiError),
@@ -180,7 +156,6 @@ export class PhotoUploadService {
           continue;
         }
 
-        const data = await response.json();
         results.push({
           success: true,
           photoId: data.photoId,
@@ -227,32 +202,11 @@ export class PhotoUploadService {
       } as unknown);
       formData.append('metadata', JSON.stringify(metadata));
 
-      // Get auth token for FormData upload
-      const { data: { session } } = await supabase.auth.getSession();
-      const headers: Record<string, string> = {};
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
+      const data = await mobileApiClient.postFormData<{ photoId?: string; url?: string }>(
+        `/api/jobs/${jobId}/photos/video`,
+        formData
+      );
 
-      const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}/photos/video`, {
-        method: 'POST',
-        body: formData,
-        headers,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to upload video' }));
-        const apiError = parseError({
-          message: errorData.error || 'Failed to upload video',
-          statusCode: response.status,
-        });
-        return {
-          success: false,
-          error: getUserFriendlyMessage(apiError),
-        };
-      }
-
-      const data = await response.json();
       return {
         success: true,
         photoId: data.photoId,

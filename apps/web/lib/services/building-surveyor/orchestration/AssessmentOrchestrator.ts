@@ -54,13 +54,7 @@ async function validateURLs(urls: string[], strict: boolean = false): Promise<{
     return { valid, invalid };
 }
 
-// Placeholder for ImageAnalysisService - import from actual location if available
-const ImageAnalysisService = {
-    async analyzePropertyImages(imageUrls: string[]) {
-        // Placeholder - replace with actual implementation
-        return null;
-    }
-};
+// Google Cloud Vision removed — GPT-4o handles visual analysis directly.
 
 export class AssessmentOrchestrator {
     private static readonly AGENT_NAME = 'building-surveyor';
@@ -187,23 +181,6 @@ export class AssessmentOrchestrator {
     }
 
     /**
-     * Convert vision analysis to summary format
-     */
-    private static toVisionSummary(analysis: unknown): VisionAnalysisSummary | null {
-        if (!analysis || typeof analysis !== 'object') return null;
-
-        const analysisObj = analysis as Record<string, unknown>;
-        return {
-            provider: 'google-vision',
-            confidence: (typeof analysisObj.confidence === 'number' ? analysisObj.confidence : 50),
-            labels: (Array.isArray(analysisObj.labels) ? analysisObj.labels : []) as Array<{ description: string; score: number }>,
-            objects: (Array.isArray(analysisObj.objects) ? analysisObj.objects : []) as Array<{ name: string; score: number }>,
-            detectedFeatures: (Array.isArray(analysisObj.detectedFeatures) ? analysisObj.detectedFeatures : []) as string[],
-            suggestedCategories: (Array.isArray(analysisObj.suggestedCategories) ? analysisObj.suggestedCategories : []) as Array<{ category: string; confidence: number; reason: string }>,
-        };
-    }
-
-    /**
      * Record a metric
      */
     private static recordMetric(metric: string, payload: Record<string, unknown>): void {
@@ -274,26 +251,18 @@ export class AssessmentOrchestrator {
                 service: 'AssessmentOrchestrator',
             });
 
-            const [roboflowResult, visionResult] = await Promise.all([
-                this.runWithTimeout(
-                    () => RoboflowDetectionService.detect(validatedImageUrls),
-                    config.detectorTimeoutMs,
-                    'roboflow-detect',
-                ),
-                this.runWithTimeout(
-                    () => ImageAnalysisService.analyzePropertyImages(validatedImageUrls),
-                    config.visionTimeoutMs,
-                    'vision-analyze',
-                ),
-            ]);
+            // Run Roboflow detection (Google Vision removed — GPT-4o handles visual analysis)
+            const roboflowResult = await this.runWithTimeout(
+                () => RoboflowDetectionService.detect(validatedImageUrls),
+                config.detectorTimeoutMs,
+                'roboflow-detect',
+            );
 
             const roboflowDetections =
                 roboflowResult.success && Array.isArray(roboflowResult.data)
                     ? roboflowResult.data
                     : [];
-            const visionAnalysis = visionResult.success
-                ? this.toVisionSummary(visionResult.data ?? null)
-                : null;
+            const visionAnalysis: VisionAnalysisSummary | null = null;
 
             if (!roboflowResult.success) {
                 logger.warn('Roboflow detection unavailable', {
@@ -302,25 +271,11 @@ export class AssessmentOrchestrator {
                 });
             }
 
-            if (!visionResult.success) {
-                logger.warn('Google Vision analysis unavailable', {
-                    service: 'AssessmentOrchestrator',
-                    timedOut: visionResult.timedOut,
-                });
-            }
-
             this.recordMetric('detector.roboflow', {
                 success: roboflowResult.success,
                 durationMs: roboflowResult.durationMs,
                 timedOut: roboflowResult.timedOut,
                 detectionCount: roboflowDetections.length,
-            });
-
-            this.recordMetric('detector.vision', {
-                success: visionResult.success,
-                durationMs: visionResult.durationMs,
-                timedOut: visionResult.timedOut,
-                detectedLabels: visionAnalysis?.labels.length ?? 0,
             });
 
             const features = await FeatureExtractionService.extractFeatures(

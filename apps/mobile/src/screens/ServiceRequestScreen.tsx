@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useRoute } from '@react-navigation/native';
 import { JobService } from '../services/JobService';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
@@ -141,6 +142,10 @@ const priorityLevels = [
 const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const route = useRoute<any>();
+  const initialPropertyId = route.params?.propertyId as string | undefined;
+  const initialPriority = route.params?.priority as 'low' | 'medium' | 'high' | undefined;
+
   const [selectedCategory, setSelectedCategory] =
     useState<ServiceCategory | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>('');
@@ -148,16 +153,30 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [budget, setBudget] = useState('');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(initialPriority || 'medium');
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
 
   const { data: properties } = useQuery({
     queryKey: ['properties', user?.id],
-    queryFn: () => apiClient.get<Property[]>('/api/properties'),
+    queryFn: async () => {
+      const res = await apiClient.get<{ properties: Property[] }>('/api/properties');
+      return res.properties || [];
+    },
     enabled: !!user,
   });
+
+  // Pre-fill property from navigation params
+  useEffect(() => {
+    if (initialPropertyId && properties && !selectedProperty) {
+      const prop = properties.find((p) => p.id === initialPropertyId);
+      if (prop) {
+        setSelectedProperty(prop);
+        setLocation(prop.address);
+      }
+    }
+  }, [initialPropertyId, properties]);
 
   const handleCategorySelect = (category: ServiceCategory) => {
     setSelectedCategory(category);
@@ -166,7 +185,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
     setTitle(`${category.name} Service Request`);
     // Auto-fill location from selected property
     if (selectedProperty) {
-      setLocation(`${selectedProperty.address_line1}, ${selectedProperty.city}, ${selectedProperty.postcode}`);
+      setLocation(selectedProperty.address);
     }
   };
 
@@ -354,7 +373,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
               {serviceCategories.map((category) => (
                 <TouchableOpacity
                   key={category.id}
-                  style={[styles.categoryCard, { borderColor: category.color }]}
+                  style={[styles.categoryCard, { backgroundColor: category.color + '15' }]}
                   onPress={() => handleCategorySelect(category)}
                   accessibilityRole='button'
                   accessibilityLabel={`${category.name} service category`}
@@ -451,7 +470,7 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                   ]}
                   onPress={() => setSelectedProperty(property)}
                   accessibilityRole='radio'
-                  accessibilityLabel={`${property.address_line1}, ${property.city}`}
+                  accessibilityLabel={`${property.property_name}, ${property.address}`}
                   accessibilityState={{ selected: selectedProperty?.id === property.id }}
                 >
                   <View style={styles.propertyOptionContent}>
@@ -464,8 +483,8 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
                       <Text style={[
                         styles.propertyAddress,
                         selectedProperty?.id === property.id && styles.propertyAddressSelected,
-                      ]}>{property.address_line1}</Text>
-                      <Text style={styles.propertyLocation}>{property.city}, {property.postcode}</Text>
+                      ]}>{property.property_name}</Text>
+                      <Text style={styles.propertyLocation} numberOfLines={2}>{property.address}</Text>
                     </View>
                     {selectedProperty?.id === property.id && (
                       <Ionicons name='checkmark-circle' size={22} color={theme.colors.primary} />
@@ -475,12 +494,25 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
               ))}
             </View>
           ) : (
-            <View style={styles.noPropertiesHint}>
-              <Ionicons name='information-circle-outline' size={18} color={theme.colors.textSecondary} />
-              <Text style={styles.noPropertiesText}>
-                No properties added yet. You can add one from your profile.
-              </Text>
-            </View>
+            <TouchableOpacity
+              style={styles.addPropertyInline}
+              onPress={() => {
+                navigation.goBack();
+                // Navigate to AddProperty through the Profile stack after closing modal
+                setTimeout(() => {
+                  navigation.navigate('Main', {
+                    screen: 'ProfileTab',
+                    params: { screen: 'AddProperty' },
+                  });
+                }, 300);
+              }}
+              accessibilityRole='button'
+              accessibilityLabel='Add your first property'
+            >
+              <Ionicons name='add-circle' size={22} color={theme.colors.primary} />
+              <Text style={styles.addPropertyInlineText}>Add Your First Property</Text>
+              <Ionicons name='chevron-forward' size={18} color={theme.colors.textTertiary} />
+            </TouchableOpacity>
           )}
         </View>
 
@@ -568,14 +600,10 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
             Add photos to help contractors understand the problem better
           </Text>
 
-          <ScrollView
-            horizontal
-            style={styles.photosContainer}
-            showsHorizontalScrollIndicator={false}
-          >
+          <View style={styles.photoGrid}>
             {photos.map((photo, index) => (
-              <View key={index} style={styles.photoContainer}>
-                <Image source={{ uri: photo }} style={styles.photo} />
+              <View key={index} style={styles.photoSlot}>
+                <Image source={{ uri: photo }} style={styles.photoImage} />
                 <TouchableOpacity
                   style={styles.removePhotoButton}
                   onPress={() => removePhoto(index)}
@@ -587,19 +615,20 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
               </View>
             ))}
 
-            {photos.length < 5 && (
+            {Array.from({ length: Math.min(4 - photos.length, 4) }).map((_, idx) => (
               <TouchableOpacity
-                style={styles.addPhotoButton}
+                key={`empty-${idx}`}
+                style={styles.photoSlotEmpty}
                 onPress={showImagePickerOptions}
                 accessibilityRole='button'
                 accessibilityLabel='Add photo'
                 accessibilityHint='Double tap to take or choose a photo of the problem'
               >
-                <Ionicons name='camera' size={30} color={theme.colors.textSecondary} />
+                <Ionicons name='camera-outline' size={28} color={theme.colors.textTertiary} />
                 <Text style={styles.addPhotoText}>Add Photo</Text>
               </TouchableOpacity>
-            )}
-          </ScrollView>
+            ))}
+          </View>
         </View>
       </ScrollView>
 
@@ -680,13 +709,10 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '48%',
-    backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
     padding: 20,
     alignItems: 'center',
     marginBottom: 15,
-    borderWidth: 2,
-    ...theme.shadows.base,
   },
   categoryIcon: {
     width: 60,
@@ -763,40 +789,45 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
   },
-  photosContainer: {
-    marginTop: 10,
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 12,
   },
-  photoContainer: {
+  photoSlot: {
+    width: '47%',
+    aspectRatio: 4 / 3,
+    borderRadius: 12,
+    overflow: 'hidden',
     position: 'relative',
-    marginRight: 10,
   },
-  photo: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
+  photoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  photoSlotEmpty: {
+    width: '47%',
+    aspectRatio: 4 / 3,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.borderLight,
+    borderStyle: 'dashed',
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   removePhotoButton: {
     position: 'absolute',
-    top: -5,
-    right: -5,
+    top: 4,
+    right: 4,
     backgroundColor: theme.colors.white,
     borderRadius: 12,
   },
-  addPhotoButton: {
-    width: 100,
-    height: 100,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    borderStyle: 'dashed',
-    borderRadius: theme.borderRadius.base,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-  },
   addPhotoText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 5,
+    color: theme.colors.textTertiary,
+    marginTop: 4,
   },
   footer: {
     padding: 20,
@@ -851,19 +882,22 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginTop: 2,
   },
-  noPropertiesHint: {
+  addPropertyInline: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: theme.colors.surfaceSecondary,
+    backgroundColor: '#F0FDF4',
     borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    borderStyle: 'dashed',
+    gap: 10,
   },
-  noPropertiesText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginLeft: 8,
+  addPropertyInlineText: {
     flex: 1,
-    lineHeight: 20,
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
 });
 

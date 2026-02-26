@@ -9,6 +9,9 @@ import { fetchWithOpenAIRetry } from '@/lib/utils/openai-rate-limit';
 export const USE_MINT_AI_VLM = process.env.USE_MINT_AI_VLM === 'true';
 const MINT_AI_VLM_API_KEY = process.env.MINT_AI_VLM_API_KEY?.trim() || '';
 
+/** Configurable OpenAI model — set OPENAI_MODEL env var to use a different model (e.g. gpt-4.1, gpt-4o-mini) */
+const OPENAI_MODEL = process.env.OPENAI_MODEL?.trim() || 'gpt-4o';
+
 /** Block SSRF: only allow HTTPS URLs to non-internal hosts */
 function validateVlmEndpoint(raw: string): string {
   if (!raw) return '';
@@ -44,12 +47,13 @@ export interface GeneratorMessage {
 
 export interface GeneratorResult {
   content: string;
-  model: 'gpt-4o' | 'mint-ai-vlm';
+  model: string;
   usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 }
 
 /**
- * Call GPT-4o and return raw content + usage.
+ * Call OpenAI vision model and return raw content + usage.
+ * Model configurable via OPENAI_MODEL env var (default: gpt-4o).
  */
 async function callGPT4o(messages: GeneratorMessage[], apiKey: string): Promise<GeneratorResult> {
   const response = await fetchWithOpenAIRetry(
@@ -61,7 +65,7 @@ async function callGPT4o(messages: GeneratorMessage[], apiKey: string): Promise<
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: OPENAI_MODEL,
         messages,
         max_tokens: 2000,
         temperature: 0.1,
@@ -83,7 +87,7 @@ async function callGPT4o(messages: GeneratorMessage[], apiKey: string): Promise<
   const content = data.choices?.[0]?.message?.content ?? '{}';
   return {
     content,
-    model: 'gpt-4o',
+    model: OPENAI_MODEL,
     usage: data.usage,
   };
 }

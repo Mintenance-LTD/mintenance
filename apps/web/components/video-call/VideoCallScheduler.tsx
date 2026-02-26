@@ -104,8 +104,8 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
 
   const callTypeOptions = [
     { value: 'consultation', label: 'Consultation', icon: <MessageSquare size={16} />, description: 'General discussion about the project' },
-    { value: 'assessment', label: 'Assessment', icon: <Search size={16} />, description: 'Property or work assessment' },
-    { value: 'project_review', label: 'Project Review', icon: <ClipboardList size={16} />, description: 'Review completed or ongoing work' },
+    { value: 'site_visit', label: 'Site Visit', icon: <Search size={16} />, description: 'Property or work assessment' },
+    { value: 'inspection', label: 'Inspection', icon: <ClipboardList size={16} />, description: 'Review completed or ongoing work' },
     { value: 'emergency', label: 'Emergency', icon: <AlertOctagon size={16} />, description: 'Urgent issue requiring immediate attention' },
     { value: 'follow_up', label: 'Follow-up', icon: <Phone size={16} />, description: 'Post-work follow-up or check-in' }
   ];
@@ -218,7 +218,7 @@ export const VideoCallScheduler: React.FC<VideoCallSchedulerProps> = ({
             {callTypeOptions.map(option => (
               <button
                 key={option.value}
-                onClick={() => setCallType(option.value as 'consultation' | 'assessment' | 'project_review' | 'emergency' | 'follow_up')}
+                onClick={() => setCallType(option.value as 'consultation' | 'site_visit' | 'inspection' | 'emergency' | 'follow_up')}
                 style={{
                   padding: theme.spacing.md,
                   borderRadius: theme.borderRadius.md,

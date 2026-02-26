@@ -26,9 +26,11 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Only the assigned contractor can complete this job');
     }
 
-    // Verify job is in a completable state
-    if (job.status !== 'in_progress' && job.status !== 'assigned') {
-      throw new BadRequestError(`Job cannot be completed from ${job.status} status`);
+    // Verify job is in a completable state (must be in_progress - enforces photo workflow)
+    if (job.status !== 'in_progress') {
+      throw new BadRequestError(
+        `Job cannot be completed from '${job.status}' status. Job must be in progress (requires before photos uploaded and job started).`
+      );
     }
 
     // Enforce platform payment - check if payment exists

@@ -13,6 +13,8 @@ interface RegistrationFormState {
   passwordVisible: boolean;
 }
 
+type FieldErrors = Partial<Record<keyof RegistrationFormState, string>>;
+
 const INITIAL_STATE: RegistrationFormState = {
   firstName: '',
   lastName: '',
@@ -25,8 +27,39 @@ const INITIAL_STATE: RegistrationFormState = {
   passwordVisible: false,
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateField(field: keyof RegistrationFormState, value: string, form: RegistrationFormState): string | undefined {
+  switch (field) {
+    case 'firstName':
+      if (!value.trim()) return 'First name is required';
+      return undefined;
+    case 'lastName':
+      if (!value.trim()) return 'Last name is required';
+      return undefined;
+    case 'email':
+      if (!value.trim()) return 'Email is required';
+      if (!EMAIL_REGEX.test(value)) return 'Please enter a valid email';
+      return undefined;
+    case 'password':
+      if (!value) return 'Password is required';
+      if (value.length < 8) return 'Must be at least 8 characters';
+      if (!/[A-Z]/.test(value)) return 'Must include an uppercase letter';
+      if (!/[a-z]/.test(value)) return 'Must include a lowercase letter';
+      if (!/\d/.test(value)) return 'Must include a number';
+      if (!/[@$!%*?&]/.test(value)) return 'Must include a special character';
+      return undefined;
+    case 'confirmPassword':
+      if (value !== form.password) return 'Passwords do not match';
+      return undefined;
+    default:
+      return undefined;
+  }
+}
+
 export function useRegistrationForm() {
   const [form, setForm] = useState<RegistrationFormState>(INITIAL_STATE);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState<string | null>(null);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -42,8 +75,20 @@ export function useRegistrationForm() {
     <K extends keyof RegistrationFormState>(field: K, value: RegistrationFormState[K]) => {
       resetFeedback();
       setForm(prev => ({ ...prev, [field]: value }));
+      // Clear field error when user starts typing
+      if (fieldErrors[field]) {
+        setFieldErrors(prev => ({ ...prev, [field]: undefined }));
+      }
     },
-    [resetFeedback]
+    [resetFeedback, fieldErrors]
+  );
+
+  const validateOnBlur = useCallback(
+    (field: keyof RegistrationFormState) => {
+      const error = validateField(field, String(form[field] ?? ''), form);
+      setFieldErrors(prev => ({ ...prev, [field]: error }));
+    },
+    [form]
   );
 
   const toggleTerms = useCallback(() => {
@@ -56,24 +101,15 @@ export function useRegistrationForm() {
   }, []);
 
   const validateForm = (): boolean => {
-    if (!form.firstName.trim()) {
-      setSubmissionError('First name is required');
-      return false;
+    const errors: FieldErrors = {};
+    const fields: (keyof RegistrationFormState)[] = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
+    for (const field of fields) {
+      const err = validateField(field, String(form[field] ?? ''), form);
+      if (err) errors[field] = err;
     }
-    if (!form.lastName.trim()) {
-      setSubmissionError('Last name is required');
-      return false;
-    }
-    if (!form.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      setSubmissionError('Please enter a valid email address');
-      return false;
-    }
-    if (!form.password || form.password.length < 8) {
-      setSubmissionError('Password must be at least 8 characters');
-      return false;
-    }
-    if (form.password !== form.confirmPassword) {
-      setSubmissionError('Passwords do not match');
+    setFieldErrors(errors);
+    if (Object.values(errors).some(Boolean)) {
+      setSubmissionError(Object.values(errors).find(Boolean) || 'Please fix the errors above');
       return false;
     }
     setSubmissionError(null);
@@ -107,6 +143,7 @@ export function useRegistrationForm() {
         });
       }
       setForm(INITIAL_STATE);
+      setFieldErrors({});
       setSubmissionSuccess('Account created! You can now sign in.');
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Registration failed';
@@ -117,6 +154,7 @@ export function useRegistrationForm() {
 
   return {
     form,
+    fieldErrors,
     loading,
     submissionError,
     submissionSuccess,
@@ -125,6 +163,7 @@ export function useRegistrationForm() {
     setShowTermsModal,
     setShowPrivacyModal,
     updateField,
+    validateOnBlur,
     toggleTerms,
     togglePasswordVisibility,
     handleRegister,

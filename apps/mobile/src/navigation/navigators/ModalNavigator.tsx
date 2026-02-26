@@ -11,6 +11,9 @@ import { CreateQuoteScreen } from '../../screens/create-quote';
 import { MeetingScheduleScreen } from '../../screens/meeting-schedule';
 import MeetingDetailsScreen from '../../screens/MeetingDetailsScreen';
 import { NotificationScreen } from '../../screens/NotificationScreen';
+import { AIAssessmentScreen } from '../../screens/ai/AIAssessmentScreen';
+import { AISearchScreen } from '../../screens/AISearchScreen';
+import { QuickJobPostScreen } from '../../screens/job-posting/QuickJobPostScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -58,6 +61,24 @@ const SafeEnhancedHomeScreen = withScreenErrorBoundary(
 const SafeNotificationScreen = withScreenErrorBoundary(
   NotificationScreen,
   'Notifications',
+  { fallbackRoute: 'Main' }
+);
+
+const SafeAIAssessmentScreen = withScreenErrorBoundary(
+  AIAssessmentScreen,
+  'AI Assessment',
+  { fallbackRoute: 'Main' }
+);
+
+const SafeAISearchScreen = withScreenErrorBoundary(
+  AISearchScreen,
+  'AI Search',
+  { fallbackRoute: 'Main' }
+);
+
+const SafeQuickJobPostScreen = withScreenErrorBoundary(
+  QuickJobPostScreen,
+  'Quick Job Post',
   { fallbackRoute: 'Main' }
 );
 
@@ -159,6 +180,32 @@ export const ModalNavigator: React.FC = () => {
         component={SafeNotificationScreen}
         options={{
           title: 'Notifications',
+          gestureEnabled: true,
+        }}
+      />
+      <ModalStack.Screen
+        name="AIAssessment"
+        component={SafeAIAssessmentScreen}
+        options={{
+          title: 'AI Assessment',
+          gestureEnabled: true,
+        }}
+      />
+
+      <ModalStack.Screen
+        name="AISearch"
+        component={SafeAISearchScreen}
+        options={{
+          title: 'AI Search',
+          gestureEnabled: true,
+        }}
+      />
+
+      <ModalStack.Screen
+        name="QuickJobPost"
+        component={SafeQuickJobPostScreen}
+        options={{
+          title: 'Post a Quick Job',
           gestureEnabled: true,
         }}
       />

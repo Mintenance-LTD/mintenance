@@ -1,12 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
-import { getCurrentUserFromCookies } from '@/lib/auth';
 import { checkRateLimit, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit';
-import { requireCSRF } from '@/lib/csrf-validator';
 import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
-import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
+import { BadRequestError, RateLimitError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Type definition for profile update data
 interface ProfileUpdateData {
@@ -26,8 +25,6 @@ interface ProfileUpdateData {
   postcode?: string;
   profile_image_url?: string;
 }
-
-const supabase = serverSupabase;
 
 // Geocoding service for converting city/country to coordinates
 class GeocodingService {
@@ -63,9 +60,7 @@ class GeocodingService {
       });
       return null;
     } catch (error) {
-      logger.error('Geocoding API error', error, {
-        service: 'geocoding',
-      });
+      logger.error('Geocoding API error', error, { service: 'geocoding' });
       return null;
     }
   }
@@ -81,81 +76,50 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
  * Database expects: ^(\+44|0)[0-9]{10}$
  * - Starts with +44 or 0
  * - Followed by exactly 10 digits
- * Examples:
- * - +44 1234 567890 -> +441234567890
- * - 01234 567890 -> 01234567890
- * - 44 1234 567890 -> +441234567890
- * - 1234 567890 -> 01234567890
  */
 function normalizePhoneToUKFormat(phone: string | undefined | null): string | null {
-  if (!phone || typeof phone !== 'string') {
-    return null;
-  }
-
-  // Trim whitespace
+  if (!phone || typeof phone !== 'string') return null;
   const trimmed = phone.trim();
-  if (!trimmed) {
-    return null;
-  }
+  if (!trimmed) return null;
 
   // Remove all non-digit characters except + at the start
   let cleaned = trimmed.replace(/[^\d+]/g, '');
-  
-  // If starts with +, preserve it
   const hasPlus = cleaned.startsWith('+');
-  if (hasPlus) {
-    cleaned = cleaned.substring(1); // Remove + for processing
-  }
+  if (hasPlus) cleaned = cleaned.substring(1);
 
-  // Extract only digits
   const digits = cleaned.replace(/\D/g, '');
+  if (!digits || digits.length === 0) return null;
 
-  // If empty after cleaning, return null
-  if (!digits || digits.length === 0) {
-    return null;
-  }
-
-  // Handle UK numbers
   // Case 1: Already in +44 format (12 digits starting with 44)
   if (digits.startsWith('44') && digits.length === 12) {
     return `+44${digits.substring(2)}`;
   }
-
   // Case 2: Already in 0 format (11 digits starting with 0)
   if (digits.startsWith('0') && digits.length === 11) {
     return digits;
   }
-
   // Case 3: Has 10 digits - assume UK number and add 0 prefix
   if (digits.length === 10) {
     return `0${digits}`;
   }
-
-  // Case 4: Has 11 digits but doesn't start with 0
-  // Might be 44XXXXXXXXXX format (international without +)
+  // Case 4: Has 11 digits but doesn't start with 0 (44XXXXXXXXXX without +)
   if (digits.length === 11 && digits.startsWith('44')) {
     return `+44${digits.substring(2)}`;
   }
-
   // Case 5: Has 12 digits but doesn't start with 44
-  // Might be 0XXXXXXXXXX with extra digit, try to fix
   if (digits.length === 12 && !digits.startsWith('44')) {
-    // If starts with 0, take first 11 digits
     if (digits.startsWith('0')) {
       return digits.substring(0, 11);
     }
   }
-
-  // Case 6: Has 13 digits starting with 44 (might have extra leading digit)
+  // Case 6: Has 13 digits starting with 44
   if (digits.length === 13 && digits.startsWith('44')) {
-    // Remove first digit if it's a leading 0 or 1
     if (digits[2] === '0' || digits[2] === '1') {
       return `+44${digits.substring(3)}`;
     }
-    return `+44${digits.substring(2, 12)}`; // Take 10 digits after 44
+    return `+44${digits.substring(2, 12)}`;
   }
 
-  // Return null if can't normalize (will be rejected by validation)
   return null;
 }
 
@@ -167,7 +131,6 @@ const profileUpdateSchema = z.object({
   city: z.union([z.string().max(100, 'City must be less than 100 characters'), z.literal('')]).optional(),
   country: z.union([z.string().max(100, 'Country must be less than 100 characters'), z.literal('')]).optional(),
   phone: z.union([
-    // Accept flexible input format (will be normalized before saving)
     z.string().regex(/^[\d\s\-()+]+$/, 'Invalid phone number format'),
     z.literal(''),
   ]).optional(),
@@ -179,43 +142,20 @@ const profileUpdateSchema = z.object({
 
 /**
  * POST /api/contractor/update-profile
- * 
  * Updates contractor profile information including photo upload.
- * Following Single Responsibility Principle - only handles profile updates.
- * 
- * @filesize Target: <150 lines
  */
-export async function POST(request: NextRequest) {
-  try {
-    // Rate limiting - prevent profile update abuse
+export const POST = withApiHandler(
+  { roles: ['contractor'], rateLimit: false },
+  async (request, { user }) => {
+    // Custom rate limiting - prevent profile update abuse
     const rateLimitResult = await checkRateLimit(request, RATE_LIMIT_CONFIGS.api);
     if (!rateLimitResult.success) {
-      logger.warn('Rate limit exceeded for profile update', {
-        service: 'contractor',
-        endpoint: '/api/contractor/update-profile',
-      });
       throw new RateLimitError();
-    }
-
-    // CSRF protection - prevent cross-site attacks
-    await requireCSRF(request);
-
-    // Get current user
-    const user = await getCurrentUserFromCookies();
-
-    if (!user || user.role !== 'contractor') {
-      logger.warn('Unauthorized profile update attempt', {
-        service: 'contractor',
-        endpoint: '/api/contractor/update-profile',
-        userId: user?.id,
-      });
-      throw new UnauthorizedError('Authentication required. Must be logged in as contractor');
     }
 
     // Parse form data
     const formData = await request.formData();
 
-    // Helper to convert empty strings to undefined for optional fields
     const getOptionalField = (value: FormDataEntryValue | null): string | undefined => {
       const str = (value as string) || '';
       return str.trim() === '' ? undefined : str.trim();
@@ -238,7 +178,6 @@ export async function POST(request: NextRequest) {
     const latitudeStr = formData.get('latitude') as string | null;
     const longitudeStr = formData.get('longitude') as string | null;
     const address = formData.get('address') as string | null;
-    
     const providedLatitude = latitudeStr ? parseFloat(latitudeStr) : undefined;
     const providedLongitude = longitudeStr ? parseFloat(longitudeStr) : undefined;
 
@@ -254,12 +193,7 @@ export async function POST(request: NextRequest) {
           validationErrors: validationError.issues,
           rawData,
         });
-        throw new BadRequestError('Invalid input data');
       }
-      logger.error('Unexpected validation error', validationError, {
-        service: 'contractor',
-        userId: user.id,
-      });
       throw new BadRequestError('Invalid input data');
     }
 
@@ -269,11 +203,9 @@ export async function POST(request: NextRequest) {
     const bio = validatedData.bio ? sanitizeText(validatedData.bio, 1000) : '';
     const city = validatedData.city ? sanitizeText(validatedData.city, 100) : '';
     const country = validatedData.country ? sanitizeText(validatedData.country, 100) : '';
-    
+
     // Normalize phone to UK format required by database constraint
     const normalizedPhone = normalizePhoneToUKFormat(validatedData.phone);
-
-    // Validate normalized phone format matches database constraint
     if (normalizedPhone && !/^(\+44|0)[0-9]{10}$/.test(normalizedPhone)) {
       logger.warn('Phone number does not match UK format after normalization', {
         service: 'contractor',
@@ -285,77 +217,44 @@ export async function POST(request: NextRequest) {
     }
 
     const phone = normalizedPhone ?? undefined;
-    const isAvailable = validatedData.isAvailable;
     const profileImageFile = formData.get('profileImage') as File | null;
-
     let profileImageUrl = null;
 
     // Handle profile photo upload if provided
     if (profileImageFile && profileImageFile.size > 0) {
-      // Validate file type - MIME type
       if (!ALLOWED_IMAGE_TYPES.includes(profileImageFile.type)) {
-        logger.warn('Invalid profile image type', {
-          service: 'contractor',
-          userId: user.id,
-          fileType: profileImageFile.type,
-          fileName: profileImageFile.name,
-        });
         throw new BadRequestError('Invalid image type. Only JPEG, PNG, and WebP images are allowed');
       }
-
-      // Validate file extension
       const fileExt = profileImageFile.name.split('.').pop()?.toLowerCase();
       if (!fileExt || !ALLOWED_IMAGE_EXTENSIONS.includes(fileExt)) {
-        logger.warn('Invalid profile image extension', {
-          service: 'contractor',
-          userId: user.id,
-          fileExtension: fileExt,
-          fileName: profileImageFile.name,
-        });
         throw new BadRequestError('Invalid file extension. Only jpg, jpeg, png, and webp are allowed');
       }
-
-      // Validate file size
       if (profileImageFile.size > MAX_IMAGE_SIZE) {
-        logger.warn('Profile image size exceeded', {
-          service: 'contractor',
-          userId: user.id,
-          fileSize: profileImageFile.size,
-          maxSize: MAX_IMAGE_SIZE,
-        });
         throw new BadRequestError('Profile image must be less than 5MB');
       }
 
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
-      // Upload to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await serverSupabase.storage
         .from('profile-images')
-        .upload(filePath, profileImageFile, {
-          cacheControl: '3600',
-          upsert: true,
-        });
+        .upload(filePath, profileImageFile, { cacheControl: '3600', upsert: true });
 
       if (uploadError) {
         logger.error('Upload error', uploadError, {
-          service: 'contractor',
-          userId: user.id,
-          fileName: profileImageFile.name,
-          filePath,
+          service: 'contractor', userId: user.id, filePath,
         });
         throw uploadError;
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = serverSupabase.storage
         .from('profile-images')
         .getPublicUrl(filePath);
 
       profileImageUrl = publicUrl;
     }
 
-    // Update user profile in database
+    // Build update data
     const updateData: ProfileUpdateData = {
       first_name: firstName,
       last_name: lastName,
@@ -366,32 +265,22 @@ export async function POST(request: NextRequest) {
       company_name: rawData.companyName || null,
       license_number: rawData.licenseNumber ? rawData.licenseNumber.trim().toUpperCase() : null,
       postcode: validatedData.postcode ? sanitizeText(validatedData.postcode, 20) : undefined,
-      is_available: isAvailable,
+      is_available: validatedData.isAvailable,
       updated_at: new Date().toISOString(),
     };
 
     // Geocode city/country to get coordinates for map display
-    // Use provided coordinates if available from Places Autocomplete, otherwise geocode
     if (city || country || providedLatitude !== undefined || providedLongitude !== undefined) {
-      // Use provided coordinates if available (from Places Autocomplete)
-      if (providedLatitude !== undefined && providedLongitude !== undefined && 
+      if (providedLatitude !== undefined && providedLongitude !== undefined &&
           !isNaN(providedLatitude) && !isNaN(providedLongitude)) {
         updateData.latitude = providedLatitude;
         updateData.longitude = providedLongitude;
-        if (address) {
-          updateData.address = address;
-        }
+        if (address) updateData.address = address;
         logger.info('Using provided coordinates from Places Autocomplete', {
-          service: 'contractor',
-          userId: user.id,
-          city,
-          country,
-          latitude: providedLatitude,
-          longitude: providedLongitude,
+          service: 'contractor', userId: user.id, city, country,
+          latitude: providedLatitude, longitude: providedLongitude,
         });
       } else {
-        // Fallback to geocoding if coordinates not provided
-        // Build address string for geocoding
         const addressParts = [];
         if (city) addressParts.push(city);
         if (country) addressParts.push(country);
@@ -401,46 +290,31 @@ export async function POST(request: NextRequest) {
           try {
             const geocodingService = new GeocodingService();
             const coordinates = await geocodingService.geocodeAddress(fullAddress);
-
             if (coordinates) {
               updateData.latitude = coordinates.lat;
               updateData.longitude = coordinates.lng;
-              // Also update address field with formatted address if available
-              if (coordinates.formattedAddress) {
-                updateData.address = coordinates.formattedAddress;
-              }
+              if (coordinates.formattedAddress) updateData.address = coordinates.formattedAddress;
               logger.info('Geocoded contractor location', {
-                service: 'contractor',
-                userId: user.id,
-                city,
-                country,
-                latitude: coordinates.lat,
-                longitude: coordinates.lng,
+                service: 'contractor', userId: user.id, city, country,
+                latitude: coordinates.lat, longitude: coordinates.lng,
               });
             } else {
               logger.warn('Failed to geocode contractor location', {
-                service: 'contractor',
-                userId: user.id,
-                address: fullAddress,
+                service: 'contractor', userId: user.id, address: fullAddress,
               });
             }
           } catch (geocodeError) {
             logger.error('Error geocoding contractor location', geocodeError, {
-              service: 'contractor',
-              userId: user.id,
-              address: fullAddress,
+              service: 'contractor', userId: user.id, address: fullAddress,
             });
-            // Continue without coordinates - contractor can still update profile
           }
         }
       }
     }
 
-    if (profileImageUrl) {
-      updateData.profile_image_url = profileImageUrl;
-    }
+    if (profileImageUrl) updateData.profile_image_url = profileImageUrl;
 
-    const { data, error } = await supabase
+    const { data, error } = await serverSupabase
       .from('profiles')
       .update(updateData)
       .eq('id', user.id)
@@ -449,20 +323,14 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error('Update error', {
-        service: 'contractor',
-        userId: user.id,
-        errorMessage: error.message,
-        errorCode: error.code,
-        errorDetails: error.details,
-        errorHint: error.hint,
+        service: 'contractor', userId: user.id,
+        errorMessage: error.message, errorCode: error.code,
+        errorDetails: error.details, errorHint: error.hint,
         updateData: Object.keys(updateData),
       });
       throw error;
     }
 
     return NextResponse.json({ success: true, data });
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
-
+);

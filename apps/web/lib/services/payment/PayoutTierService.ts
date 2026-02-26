@@ -56,7 +56,7 @@ export class PayoutTierService {
 
       // Get dispute count
       const { count: disputeCount } = await serverSupabase
-        .from('escrow_payments')
+        .from('escrow_transactions')
         .select('id', { count: 'exact', head: true })
         .eq('contractor_id', contractorId)
         .eq('status', 'disputed');

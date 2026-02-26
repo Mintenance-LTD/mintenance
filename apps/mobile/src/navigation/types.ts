@@ -42,6 +42,7 @@ export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
+  MFAVerification: { preMfaToken: string; redirectScreen?: string };
 };
 
 // ============================================================================
@@ -58,6 +59,10 @@ export type JobsStackParamList = {
   Dispute: { jobId: string; jobTitle: string };
   BidReview: { jobId: string };
   PhotoReview: { jobId: string };
+  PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
+  ContractView: { jobId: string };
+  ReviewSubmission: { jobId: string; contractorName?: string; jobTitle?: string };
+  JobSignOff: { jobId: string };
 };
 
 // ============================================================================
@@ -98,6 +103,17 @@ export type ProfileStackParamList = {
   AddProperty: undefined;
   Calendar: undefined;
   Reviews: undefined;
+  PaymentHistory: undefined;
+  Subscription: undefined;
+  Financials: undefined;
+  SettingsHub: undefined;
+  Expenses: undefined;
+  Documents: undefined;
+  Certifications: undefined;
+  TimeTracking: undefined;
+  Reporting: undefined;
+  Payouts: undefined;
+  BookingStatus: undefined;
 };
 
 // ============================================================================
@@ -105,7 +121,7 @@ export type ProfileStackParamList = {
 // ============================================================================
 
 export type ModalStackParamList = {
-  ServiceRequest: undefined;
+  ServiceRequest: { propertyId?: string; priority?: 'low' | 'medium' | 'high' } | undefined;
   CreateQuote: { jobId?: string };
   MeetingSchedule: {
     contractorId: string;
@@ -120,6 +136,15 @@ export type ModalStackParamList = {
   };
   EnhancedHome: undefined;
   Notifications: undefined;
+  AIAssessment: undefined;
+  AISearch: undefined;
+  QuickJobPost: {
+    propertyId: string;
+    propertyName: string;
+    propertyAddress: string;
+    category: string;
+    urgency: string;
+  };
 };
 
 // ============================================================================

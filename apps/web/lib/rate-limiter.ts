@@ -101,15 +101,12 @@ export class RedisRateLimiter {
   }
 
   private fallbackRateLimit(config: RateLimitConfig): RateLimitResult {
-    // CRITICAL FIX: Enhanced production safeguards
-    // When Redis is down, in-memory Map won't sync across Vercel Edge instances
-    // This creates a security vulnerability where rate limits can be bypassed
+    // P1 Security: When Redis is down in production, use strict limits
+    // In-memory Map won't sync across Vercel Edge instances
     const isProduction = process.env.NODE_ENV === 'production';
 
     if (isProduction) {
-      // WARNING: Redis unavailable in production - in-memory rate limiting is per-instance only
-      // TODO: Set up Upstash Redis for distributed rate limiting across Vercel Edge instances
-      logger.warn('[rate-limiter] Redis unavailable in production - using in-memory fallback (per-instance only)', {
+      logger.warn('[rate-limiter] Redis unavailable in production — applying strict per-instance limits', {
         service: 'rate_limiter',
         identifier: config.identifier,
         environment: 'production',
@@ -117,15 +114,11 @@ export class RedisRateLimiter {
       });
     }
 
-    // Development/test environments: allow in-memory fallback
-    logger.warn('[rate-limiter] Using in-memory fallback - not suitable for production', {
-      service: 'rate_limiter',
-      identifier: config.identifier,
-    });
-
-    // Use in-memory fallback with reduced limits (per-instance only)
-    const FALLBACK_PERCENTAGE = 0.75;
-    const FALLBACK_HARD_CAP = 50; // Maximum 50 requests per window per instance
+    // Use in-memory fallback with significantly reduced limits
+    // Production: 25% of normal limit (stricter to compensate for per-instance-only enforcement)
+    // Dev/test: 75% of normal limit
+    const FALLBACK_PERCENTAGE = isProduction ? 0.25 : 0.75;
+    const FALLBACK_HARD_CAP = isProduction ? 10 : 50;
     const effectiveMaxRequests = Math.min(
       FALLBACK_HARD_CAP,
       Math.ceil(config.maxRequests * FALLBACK_PERCENTAGE)

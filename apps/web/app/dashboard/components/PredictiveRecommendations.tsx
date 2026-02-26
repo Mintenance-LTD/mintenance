@@ -289,7 +289,7 @@ export function PredictiveRecommendations({ recommendations, loading }: Predicti
                   }}>
                     <Icon name="calendar" size={14} />
                     <span>
-                      {rec.suggestedDate.toLocaleDateString('en-GB', {
+                      {new Date(rec.suggestedDate).toLocaleDateString('en-GB', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',

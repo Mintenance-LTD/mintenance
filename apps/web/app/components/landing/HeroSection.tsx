@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Search, MapPin, ChevronDown, Star, Shield, Zap } from 'lucide-react';
+import { Search, MapPin, ChevronDown, Star, Shield, Zap, Camera } from 'lucide-react';
 import { HeroCard } from './HeroCard';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
@@ -146,14 +146,14 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
             {/* Headline */}
             <motion.div variants={!prefersReducedMotion ? itemVariants : undefined}>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1] mb-6">
-                Find Your Nearest{' '}
+                Your Money{' '}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-teal-200">
-                  Trusted Contractor
+                  Protected
                 </span>
-                , and Keep It Mint.
+                . Your Home Sorted.
               </h1>
               <p className="text-xl text-blue-100 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Search by trade, enter your postcode, and get matched with verified local contractors in seconds.
+                Verified contractors. Protected payments. Photo proof of every job. You stay in control from first quote to final sign-off.
               </p>
             </motion.div>
 
@@ -212,15 +212,15 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
             >
               <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
                 <Shield className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-medium text-white">Background Checked</span>
+                <span className="text-sm font-medium text-white">Payment Protected</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
                 <Star className="w-4 h-4 text-amber-400" />
-                <span className="text-sm font-medium text-white">Rated & Reviewed</span>
+                <span className="text-sm font-medium text-white">Verified &amp; Insured</span>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
                 <Zap className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-medium text-white">Insured Pros</span>
+                <span className="text-sm font-medium text-white">No Hidden Fees</span>
               </div>
             </motion.div>
 
@@ -230,10 +230,11 @@ export function HeroSection({ activeContractors = null, hasRealStats = false, st
               className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
             >
               <Link
-                href="/register?role=homeowner"
+                href="/try-mint-ai"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold text-slate-900 bg-amber-400 rounded-xl hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400 transition-all duration-300 shadow-xl hover:shadow-amber-400/20 hover:scale-105"
               >
-                Get Started
+                <Camera className="w-5 h-5" />
+                Upload a Photo &mdash; Free Assessment
                 <motion.span
                   className="inline-block"
                   animate={!prefersReducedMotion ? { x: [0, 4, 0] } : undefined}

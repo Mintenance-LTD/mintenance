@@ -10,7 +10,6 @@
  */
 
 import { logger } from '@mintenance/shared';
-import { ImageAnalysisService, type ImageAnalysisResult } from '@/lib/services/ImageAnalysisService';
 import type { VisionAnalysisSummary } from './types';
 
 export interface ImageQualityMetrics {
@@ -30,7 +29,7 @@ export class ImageQualityService {
    */
   static async extractQualityMetrics(
     imageUrls: string[],
-    visionAnalysis: ImageAnalysisResult | VisionAnalysisSummary | null
+    visionAnalysis: VisionAnalysisSummary | null
   ): Promise<ImageQualityMetrics> {
     try {
       // If we have vision analysis, use it to infer quality
@@ -79,7 +78,7 @@ export class ImageQualityService {
    * Infer quality metrics from Google Vision API analysis results
    */
   private static inferQualityFromVisionAnalysis(
-    visionAnalysis: ImageAnalysisResult | VisionAnalysisSummary
+    visionAnalysis: VisionAnalysisSummary
   ): ImageQualityMetrics {
     // Use confidence and detected features to infer quality
     const confidence = visionAnalysis.confidence || 0.5;
@@ -91,9 +90,7 @@ export class ImageQualityService {
     const featureCount = visionAnalysis.detectedFeatures?.length || 0;
     const clarityBoost = Math.min(0.2, featureCount / 20); // Up to 0.2 boost
     
-    // Text detection suggests good lighting and clarity (only available in ImageAnalysisResult)
-    const hasText = 'text' in visionAnalysis && (visionAnalysis.text?.length || 0) > 0;
-    const textBoost = hasText ? 0.1 : 0;
+    const textBoost = 0;
     
     const imageClarity = Math.min(1.0, baseQuality + clarityBoost + textBoost);
     
@@ -182,7 +179,7 @@ export class ImageQualityService {
    */
   static async getAverageQualityMetrics(
     imageUrls: string[],
-    visionAnalysis: ImageAnalysisResult | VisionAnalysisSummary | null
+    visionAnalysis: VisionAnalysisSummary | null
   ): Promise<ImageQualityMetrics> {
     const metrics = await this.extractQualityMetrics(imageUrls, visionAnalysis);
     

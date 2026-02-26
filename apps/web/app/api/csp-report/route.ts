@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
 
 /**
@@ -8,7 +9,7 @@ import { logger } from '@mintenance/shared';
  * Used with Content-Security-Policy-Report-Only header to monitor
  * what would break before enforcing stricter nonce-based CSP.
  */
-export async function POST(request: NextRequest) {
+export const POST = withApiHandler({ auth: false, csrf: false }, async (request) => {
   try {
     const body = await request.json();
     const report = body['csp-report'] || body;
@@ -21,9 +22,9 @@ export async function POST(request: NextRequest) {
       sourceFile: report['source-file'],
       lineNumber: report['line-number'],
     });
-
-    return NextResponse.json({ received: true }, { status: 204 });
   } catch {
-    return NextResponse.json({ received: true }, { status: 204 });
+    // Silently accept malformed reports
   }
-}
+
+  return NextResponse.json({ received: true }, { status: 204 });
+});

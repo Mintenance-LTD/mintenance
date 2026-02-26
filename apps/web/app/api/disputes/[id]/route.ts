@@ -16,7 +16,7 @@ export const GET = withApiHandler(
 
     // SECURITY: Fix IDOR - check ownership in query, not after fetch
     const { data: dispute, error } = await serverSupabase
-      .from('escrow_payments')
+      .from('escrow_transactions')
       .select('id, job_id, contractor_id, client_id, amount, status, reason, description, resolution, created_at, updated_at')
       .eq('id', disputeId)
       .or(`contractor_id.eq.${user.id},client_id.eq.${user.id}${user.role === 'admin' ? ',id.neq.null' : ''}`)

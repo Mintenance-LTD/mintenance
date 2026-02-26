@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import {
   FolderOpen,
   File,
@@ -13,19 +12,18 @@ import {
   Trash2,
   Share2,
   Search,
-  Filter,
   Plus,
-  Eye,
   Star,
   Clock,
   Folder,
   Grid,
   List,
+  Loader2,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 
-// Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
@@ -47,127 +45,122 @@ const staggerItem = {
 interface Document {
   id: string;
   name: string;
-  type: string;
+  file_type: string;
   category: string;
-  size: number;
-  uploadDate: string;
-  lastModified: string;
-  jobId?: string;
-  jobTitle?: string;
-  url: string;
+  size_bytes: number;
+  storage_path: string;
+  public_url: string | null;
+  job_id: string | null;
+  jobTitle: string | null;
   starred: boolean;
   tags: string[];
+  created_at: string;
+  updated_at: string;
 }
 
-export default function DocumentManagementPage2025() {
+const CATEGORIES = [
+  { value: 'all', label: 'All Documents' },
+  { value: 'contracts', label: 'Contracts' },
+  { value: 'photos', label: 'Photos' },
+  { value: 'certifications', label: 'Certifications' },
+  { value: 'insurance', label: 'Insurance' },
+  { value: 'receipts', label: 'Receipts' },
+  { value: 'templates', label: 'Templates' },
+  { value: 'other', label: 'Other' },
+];
+
+export default function DocumentManagementPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [uploadCategory, setUploadCategory] = useState('other');
+  const [uploadTags, setUploadTags] = useState('');
   const [shareRecipient, setShareRecipient] = useState({ id: '', name: '', jobId: '' });
 
-  const [documents, setDocuments] = useState<Document[]>([
-    {
-      id: '1',
-      name: 'Kitchen Renovation Contract.pdf',
-      type: 'pdf',
-      category: 'contracts',
-      size: 245000,
-      uploadDate: '2025-01-28',
-      lastModified: '2025-01-28',
-      jobId: 'job_123',
-      jobTitle: 'Kitchen Renovation - Smith Residence',
-      url: '/documents/contract-kitchen.pdf',
-      starred: true,
-      tags: ['contract', 'kitchen'],
-    },
-    {
-      id: '2',
-      name: 'Bathroom Before Photos.zip',
-      type: 'zip',
-      category: 'photos',
-      size: 15680000,
-      uploadDate: '2025-01-25',
-      lastModified: '2025-01-25',
-      jobId: 'job_456',
-      jobTitle: 'Bathroom Remodel',
-      url: '/documents/bathroom-photos.zip',
-      starred: false,
-      tags: ['photos', 'before'],
-    },
-    {
-      id: '3',
-      name: 'Gas Safe Certificate 2025.pdf',
-      type: 'pdf',
-      category: 'certifications',
-      size: 890000,
-      uploadDate: '2025-01-20',
-      lastModified: '2025-01-20',
-      url: '/documents/gas-safe-2025.pdf',
-      starred: true,
-      tags: ['certification', 'gas-safe'],
-    },
-    {
-      id: '4',
-      name: 'Invoice Template.docx',
-      type: 'docx',
-      category: 'templates',
-      size: 45000,
-      uploadDate: '2025-01-18',
-      lastModified: '2025-01-22',
-      url: '/documents/invoice-template.docx',
-      starred: false,
-      tags: ['template', 'invoice'],
-    },
-    {
-      id: '5',
-      name: 'Insurance Policy 2025.pdf',
-      type: 'pdf',
-      category: 'insurance',
-      size: 1250000,
-      uploadDate: '2025-01-15',
-      lastModified: '2025-01-15',
-      url: '/documents/insurance-2025.pdf',
-      starred: true,
-      tags: ['insurance', 'policy'],
-    },
-    {
-      id: '6',
-      name: 'Material Receipt - B&Q.jpg',
-      type: 'jpg',
-      category: 'receipts',
-      size: 320000,
-      uploadDate: '2025-01-12',
-      lastModified: '2025-01-12',
-      jobId: 'job_123',
-      jobTitle: 'Kitchen Renovation - Smith Residence',
-      url: '/documents/receipt-bq.jpg',
-      starred: false,
-      tags: ['receipt', 'materials'],
-    },
-  ]);
+  // Fetch documents from API
+  const fetchDocuments = useCallback(async () => {
+    try {
+      const res = await fetch('/api/contractor/documents');
+      if (res.ok) {
+        const data = await res.json();
+        setDocuments(data.documents || []);
+      }
+    } catch {
+      toast.error('Failed to load documents');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const categories = [
-    { value: 'all', label: 'All Documents', count: documents.length },
-    { value: 'contracts', label: 'Contracts', count: documents.filter((d) => d.category === 'contracts').length },
-    { value: 'photos', label: 'Photos', count: documents.filter((d) => d.category === 'photos').length },
-    { value: 'certifications', label: 'Certifications', count: documents.filter((d) => d.category === 'certifications').length },
-    { value: 'insurance', label: 'Insurance', count: documents.filter((d) => d.category === 'insurance').length },
-    { value: 'receipts', label: 'Receipts', count: documents.filter((d) => d.category === 'receipts').length },
-    { value: 'templates', label: 'Templates', count: documents.filter((d) => d.category === 'templates').length },
-  ];
+  useEffect(() => {
+    fetchDocuments();
+  }, [fetchDocuments]);
+
+  // Check URL params for share context from Messages
+  useEffect(() => {
+    const shareWithId = searchParams.get('shareWith');
+    const shareWithName = searchParams.get('shareWithName');
+    const jobId = searchParams.get('jobId');
+
+    if (shareWithId && shareWithName) {
+      setShareRecipient({
+        id: shareWithId,
+        name: shareWithName,
+        jobId: jobId || '',
+      });
+      toast.success(`Select a document to share with ${shareWithName}`);
+    }
+  }, [searchParams]);
+
+  const categories = useMemo(() => {
+    return CATEGORIES.map((cat) => ({
+      ...cat,
+      count: cat.value === 'all'
+        ? documents.length
+        : documents.filter((d) => d.category === cat.value).length,
+    }));
+  }, [documents]);
+
+  const filteredDocuments = useMemo(() => {
+    return documents.filter((doc) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesCategory =
+        selectedCategory === 'all' || doc.category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [documents, searchQuery, selectedCategory]);
+
+  const starredDocuments = useMemo(() => documents.filter((d) => d.starred), [documents]);
+
+  const recentDocuments = useMemo(() => {
+    return [...documents]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 3);
+  }, [documents]);
+
+  const totalSize = useMemo(() => documents.reduce((sum, doc) => sum + doc.size_bytes, 0), [documents]);
 
   const getFileIcon = (type: string) => {
     switch (type) {
       case 'pdf':
         return <FileText className="w-8 h-8 text-red-600" />;
       case 'jpg':
+      case 'jpeg':
       case 'png':
+      case 'webp':
         return <ImageIcon className="w-8 h-8 text-blue-600" />;
       case 'docx':
       case 'doc':
@@ -185,78 +178,150 @@ export default function DocumentManagementPage2025() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  const filteredDocuments = useMemo(() => {
-    return documents.filter((doc) => {
-      const matchesSearch =
-        searchQuery === '' ||
-        doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        doc.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Upload file
+  const handleUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
 
-      const matchesCategory =
-        selectedCategory === 'all' || doc.category === selectedCategory;
+    setUploading(true);
+    let successCount = 0;
 
-      return matchesSearch && matchesCategory;
-    });
-  }, [documents, searchQuery, selectedCategory]);
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', uploadCategory);
+        if (uploadTags) formData.append('tags', uploadTags);
 
-  // Check URL params for share context from Messages
-  useEffect(() => {
-    const shareWithId = searchParams.get('shareWith');
-    const shareWithName = searchParams.get('shareWithName');
-    const jobId = searchParams.get('jobId');
+        const res = await fetch('/api/contractor/documents', {
+          method: 'POST',
+          headers: {
+            'X-CSRF-Token': (window as unknown as { csrfToken?: string }).csrfToken || '',
+          },
+          body: formData,
+        });
 
-    if (shareWithId && shareWithName) {
-      setShareRecipient({
-        id: shareWithId,
-        name: shareWithName,
-        jobId: jobId || '',
+        if (res.ok) {
+          const data = await res.json();
+          setDocuments((prev) => [data.document, ...prev]);
+          successCount++;
+        } else {
+          const err = await res.json();
+          toast.error(`Failed to upload ${file.name}: ${err.error || 'Unknown error'}`);
+        }
+      } catch {
+        toast.error(`Failed to upload ${file.name}`);
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`${successCount} document${successCount > 1 ? 's' : ''} uploaded`);
+    }
+
+    setUploading(false);
+    setShowUploadModal(false);
+    setUploadCategory('other');
+    setUploadTags('');
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Toggle star
+  const handleToggleStar = async (doc: Document) => {
+    const newStarred = !doc.starred;
+    // Optimistic update
+    setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, starred: newStarred } : d));
+
+    try {
+      const res = await fetch('/api/contractor/documents', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': (window as unknown as { csrfToken?: string }).csrfToken || '',
+        },
+        body: JSON.stringify({ id: doc.id, starred: newStarred }),
       });
-      // Show a toast to indicate share mode
-      toast.success(`Select a document to share with ${shareWithName}`);
-    }
-  }, [searchParams]);
 
-  const starredDocuments = documents.filter((d) => d.starred);
-  const recentDocuments = [...documents].sort(
-    (a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
-  ).slice(0, 5);
-
-  const handleToggleStar = (id: string) => {
-    setDocuments(documents.map((doc) =>
-      doc.id === id ? { ...doc, starred: !doc.starred } : doc
-    ));
-    toast.success('Document starred status updated');
-  };
-
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Delete "${name}"?`)) {
-      setDocuments(documents.filter((doc) => doc.id !== id));
-      toast.success('Document deleted');
+      if (!res.ok) {
+        // Revert on failure
+        setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, starred: !newStarred } : d));
+        toast.error('Failed to update');
+      }
+    } catch {
+      setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, starred: !newStarred } : d));
+      toast.error('Failed to update');
     }
   };
 
-  const handleDownload = (name: string) => {
-    toast.success(`Downloading ${name}...`);
+  // Delete document
+  const handleDelete = async (doc: Document) => {
+    if (!confirm(`Delete "${doc.name}"?`)) return;
+
+    // Optimistic remove
+    setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+
+    try {
+      const res = await fetch(`/api/contractor/documents?id=${doc.id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-CSRF-Token': (window as unknown as { csrfToken?: string }).csrfToken || '',
+        },
+      });
+
+      if (!res.ok) {
+        setDocuments((prev) => [...prev, doc]);
+        toast.error('Failed to delete');
+      } else {
+        toast.success('Document deleted');
+      }
+    } catch {
+      setDocuments((prev) => [...prev, doc]);
+      toast.error('Failed to delete');
+    }
   };
 
+  // Download document
+  const handleDownload = (doc: Document) => {
+    if (!doc.public_url) {
+      toast.error('No download URL available');
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = doc.public_url;
+    link.download = doc.name;
+    link.target = '_blank';
+    link.click();
+    toast.success(`Downloading ${doc.name}...`);
+  };
+
+  // Share document
   const handleShare = (doc: Document) => {
     if (shareRecipient.id && shareRecipient.name) {
-      // If we came from Messages with a recipient
       toast.success(`Sharing "${doc.name}" with ${shareRecipient.name}`);
-
-      // Here you would make an API call to share the document
-      // For now, we'll just show success and redirect back to messages
       setTimeout(() => {
         router.push('/contractor/messages');
-      }, 2000);
+      }, 1500);
     } else {
-      // Normal share flow - show a modal to select recipient
-      setSelectedDocument(doc);
-      setShowShareModal(true);
+      if (doc.public_url) {
+        navigator.clipboard.writeText(doc.public_url);
+        toast.success('Link copied to clipboard');
+      } else {
+        toast.error('No shareable link available');
+      }
     }
   };
 
-  const totalSize = documents.reduce((sum, doc) => sum + doc.size, 0);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-3" />
+          <p className="text-gray-600">Loading documents...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-0 bg-gradient-to-br from-emerald-50 via-white to-red-50">
@@ -294,10 +359,7 @@ export default function DocumentManagementPage2025() {
           animate="visible"
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
         >
-          <MotionDiv
-            variants={staggerItem}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
+          <MotionDiv variants={staggerItem} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
             <div className="p-3 bg-emerald-100 rounded-lg mb-4 w-fit">
               <File className="w-6 h-6 text-emerald-600" />
             </div>
@@ -305,10 +367,7 @@ export default function DocumentManagementPage2025() {
             <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
           </MotionDiv>
 
-          <MotionDiv
-            variants={staggerItem}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
+          <MotionDiv variants={staggerItem} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
             <div className="p-3 bg-blue-100 rounded-lg mb-4 w-fit">
               <FolderOpen className="w-6 h-6 text-blue-600" />
             </div>
@@ -316,10 +375,7 @@ export default function DocumentManagementPage2025() {
             <p className="text-2xl font-bold text-gray-900">{formatFileSize(totalSize)}</p>
           </MotionDiv>
 
-          <MotionDiv
-            variants={staggerItem}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
+          <MotionDiv variants={staggerItem} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
             <div className="p-3 bg-yellow-100 rounded-lg mb-4 w-fit">
               <Star className="w-6 h-6 text-yellow-600" />
             </div>
@@ -327,16 +383,13 @@ export default function DocumentManagementPage2025() {
             <p className="text-2xl font-bold text-gray-900">{starredDocuments.length}</p>
           </MotionDiv>
 
-          <MotionDiv
-            variants={staggerItem}
-            className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-          >
+          <MotionDiv variants={staggerItem} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
             <div className="p-3 bg-green-100 rounded-lg mb-4 w-fit">
               <Folder className="w-6 h-6 text-green-600" />
             </div>
             <p className="text-sm text-gray-600 mb-1">Categories</p>
             <p className="text-2xl font-bold text-gray-900">
-              {categories.filter((c) => c.value !== 'all').length}
+              {categories.filter((c) => c.value !== 'all' && c.count > 0).length}
             </p>
           </MotionDiv>
         </MotionDiv>
@@ -346,31 +399,28 @@ export default function DocumentManagementPage2025() {
           {/* Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Categories */}
-            <MotionDiv
-              variants={fadeIn}
-              className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-            >
+            <MotionDiv variants={fadeIn} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
               <div className="space-y-2">
-                {categories.map((category) => (
+                {categories.map((cat) => (
                   <button
-                    key={category.value}
-                    onClick={() => setSelectedCategory(category.value)}
+                    key={cat.value}
+                    onClick={() => setSelectedCategory(cat.value)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
-                      selectedCategory === category.value
+                      selectedCategory === cat.value
                         ? 'bg-emerald-100 text-emerald-700'
                         : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
-                    <span className="text-sm font-medium">{category.label}</span>
+                    <span className="text-sm font-medium">{cat.label}</span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full ${
-                        selectedCategory === category.value
+                        selectedCategory === cat.value
                           ? 'bg-emerald-200 text-emerald-800'
                           : 'bg-gray-200 text-gray-600'
                       }`}
                     >
-                      {category.count}
+                      {cat.count}
                     </span>
                   </button>
                 ))}
@@ -378,41 +428,36 @@ export default function DocumentManagementPage2025() {
             </MotionDiv>
 
             {/* Recent */}
-            <MotionDiv
-              variants={fadeIn}
-              className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-            >
+            <MotionDiv variants={fadeIn} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4" />
                 Recent
               </h3>
-              <div className="space-y-3">
-                {recentDocuments.slice(0, 3).map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                  >
-                    <div className="flex-shrink-0">{getFileIcon(doc.type)}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {doc.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatFileSize(doc.size)}
-                      </p>
+              {recentDocuments.length === 0 ? (
+                <p className="text-sm text-gray-500">No documents yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentDocuments.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                      onClick={() => handleDownload(doc)}
+                    >
+                      <div className="flex-shrink-0">{getFileIcon(doc.file_type)}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
+                        <p className="text-xs text-gray-500">{formatFileSize(doc.size_bytes)}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </MotionDiv>
           </div>
 
           {/* Documents Grid/List */}
           <div className="lg:col-span-3">
-            <MotionDiv
-              variants={fadeIn}
-              className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
-            >
+            <MotionDiv variants={fadeIn} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
               {/* Toolbar */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div className="relative flex-1">
@@ -422,7 +467,7 @@ export default function DocumentManagementPage2025() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search documents..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
                 </div>
 
@@ -459,25 +504,10 @@ export default function DocumentManagementPage2025() {
                       className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <div className="p-3 bg-white rounded-lg border border-gray-200 overflow-hidden">
-                          {(doc.type === 'jpg' || doc.type === 'png' || doc.type === 'jpeg') && doc.url ? (
-                            <div className="relative w-8 h-8">
-                              <Image
-                                src={doc.url}
-                                alt={doc.name}
-                                fill
-                                className="object-cover rounded"
-                                sizes="32px"
-                              />
-                            </div>
-                          ) : (
-                            getFileIcon(doc.type)
-                          )}
+                        <div className="p-3 bg-white rounded-lg border border-gray-200">
+                          {getFileIcon(doc.file_type)}
                         </div>
-                        <button
-                          onClick={() => handleToggleStar(doc.id)}
-                          className="p-1"
-                        >
+                        <button onClick={() => handleToggleStar(doc)} className="p-1">
                           <Star
                             className={`w-5 h-5 ${
                               doc.starred
@@ -488,15 +518,11 @@ export default function DocumentManagementPage2025() {
                         </button>
                       </div>
 
-                      <h4 className="font-medium text-gray-900 mb-2 line-clamp-2">
-                        {doc.name}
-                      </h4>
+                      <h4 className="font-medium text-gray-900 mb-2 line-clamp-2">{doc.name}</h4>
 
                       <div className="text-xs text-gray-600 mb-3 space-y-1">
-                        <p>{formatFileSize(doc.size)}</p>
-                        <p>
-                          {new Date(doc.uploadDate).toLocaleDateString('en-GB')}
-                        </p>
+                        <p>{formatFileSize(doc.size_bytes)}</p>
+                        <p>{new Date(doc.created_at).toLocaleDateString('en-GB')}</p>
                         {doc.jobTitle && (
                           <p className="text-blue-600 truncate">{doc.jobTitle}</p>
                         )}
@@ -504,7 +530,7 @@ export default function DocumentManagementPage2025() {
 
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleDownload(doc.name)}
+                          onClick={() => handleDownload(doc)}
                           className="flex-1 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm flex items-center justify-center gap-1"
                         >
                           <Download className="w-4 h-4" />
@@ -517,7 +543,7 @@ export default function DocumentManagementPage2025() {
                           <Share2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(doc.id, doc.name)}
+                          onClick={() => handleDelete(doc)}
                           className="p-2 bg-white border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -533,19 +559,17 @@ export default function DocumentManagementPage2025() {
                       key={doc.id}
                       className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
                     >
-                      <div className="flex-shrink-0">{getFileIcon(doc.type)}</div>
+                      <div className="flex-shrink-0">{getFileIcon(doc.file_type)}</div>
 
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-gray-900 truncate">{doc.name}</h4>
                         <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
-                          <span>{formatFileSize(doc.size)}</span>
-                          <span>•</span>
-                          <span>
-                            {new Date(doc.uploadDate).toLocaleDateString('en-GB')}
-                          </span>
+                          <span>{formatFileSize(doc.size_bytes)}</span>
+                          <span>&middot;</span>
+                          <span>{new Date(doc.created_at).toLocaleDateString('en-GB')}</span>
                           {doc.jobTitle && (
                             <>
-                              <span>•</span>
+                              <span>&middot;</span>
                               <span className="text-blue-600">{doc.jobTitle}</span>
                             </>
                           )}
@@ -553,10 +577,7 @@ export default function DocumentManagementPage2025() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleToggleStar(doc.id)}
-                          className="p-2"
-                        >
+                        <button onClick={() => handleToggleStar(doc)} className="p-2">
                           <Star
                             className={`w-5 h-5 ${
                               doc.starred
@@ -566,7 +587,7 @@ export default function DocumentManagementPage2025() {
                           />
                         </button>
                         <button
-                          onClick={() => handleDownload(doc.name)}
+                          onClick={() => handleDownload(doc)}
                           className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg"
                         >
                           <Download className="w-5 h-5" />
@@ -578,7 +599,7 @@ export default function DocumentManagementPage2025() {
                           <Share2 className="w-5 h-5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(doc.id, doc.name)}
+                          onClick={() => handleDelete(doc)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                         >
                           <Trash2 className="w-5 h-5" />
@@ -595,11 +616,20 @@ export default function DocumentManagementPage2025() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     No documents found
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-gray-600 mb-4">
                     {searchQuery || selectedCategory !== 'all'
                       ? 'Try adjusting your filters'
                       : 'Upload your first document to get started'}
                   </p>
+                  {!searchQuery && selectedCategory === 'all' && (
+                    <button
+                      onClick={() => setShowUploadModal(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Upload Document
+                    </button>
+                  )}
                 </div>
               )}
             </MotionDiv>
@@ -615,9 +645,62 @@ export default function DocumentManagementPage2025() {
             animate={{ opacity: 1, scale: 1 }}
             className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
           >
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Upload Document</h3>
-            <p className="text-gray-600 mb-6">Upload form would go here...</p>
-            <div className="flex gap-3">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Upload Document</h3>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={uploadCategory}
+                  onChange={(e) => setUploadCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                >
+                  <option value="contracts">Contracts</option>
+                  <option value="photos">Photos</option>
+                  <option value="certifications">Certifications</option>
+                  <option value="insurance">Insurance</option>
+                  <option value="receipts">Receipts</option>
+                  <option value="templates">Templates</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
+                <input
+                  type="text"
+                  value={uploadTags}
+                  onChange={(e) => setUploadTags(e.target.value)}
+                  placeholder="e.g. invoice, kitchen, 2026"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                />
+              </div>
+
+              {/* File input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">File</label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.zip,.xls,.xlsx"
+                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                />
+                <p className="text-xs text-gray-500 mt-1">Max 20MB per file. PDF, DOC, JPG, PNG, ZIP, XLS accepted.</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowUploadModal(false)}
                 className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
@@ -625,13 +708,21 @@ export default function DocumentManagementPage2025() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  toast.success('Document uploaded');
-                  setShowUploadModal(false);
-                }}
-                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                onClick={() => handleUpload(fileInputRef.current?.files ?? null)}
+                disabled={uploading}
+                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Upload
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4" />
+                    Upload
+                  </>
+                )}
               </button>
             </div>
           </MotionDiv>

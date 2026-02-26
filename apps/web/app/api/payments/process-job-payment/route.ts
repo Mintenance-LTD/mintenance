@@ -1,14 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
-import { getUserFromRequest } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { requireCSRFFromCookieAuth } from '@/lib/csrf';
 import { validateRequest } from '@/lib/validation/validator';
-import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
-import { rateLimiter } from '@/lib/rate-limiter';
+import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const processPaymentSchema = z.object({
   jobId: z.string().uuid('Invalid job ID'),
@@ -26,39 +24,12 @@ type CreateIntentResponse = {
 
 /**
  * POST /api/payments/process-job-payment
- * Reuses the create-intent pipeline (validation/idempotency/escrow creation),
- * then confirms the PaymentIntent with a selected saved payment method.
+ * Reuses the create-intent pipeline, then confirms the PaymentIntent
+ * with a selected saved payment method.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 20,
-    });
-
-    if (!rateLimitResult.allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please try again later.' },
-        {
-          status: 429,
-          headers: {
-            'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(20),
-            'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
-          },
-        }
-      );
-    }
-
-    await requireCSRFFromCookieAuth(request);
-
-    const user = await getUserFromRequest(request);
-    if (!user) {
-      throw new UnauthorizedError('Authentication required');
-    }
-
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 20 } },
+  async (request, { user }) => {
     const validation = await validateRequest(request, processPaymentSchema);
     if ('headers' in validation) {
       return validation;
@@ -107,10 +78,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const confirmedIntent = await stripe.paymentIntents.confirm(createIntentData.paymentIntentId, {
-      payment_method: paymentMethodId,
-      setup_future_usage: saveForFuture ? 'off_session' : undefined,
-    });
+    let confirmedIntent: Stripe.PaymentIntent;
+    try {
+      confirmedIntent = await stripe.paymentIntents.confirm(createIntentData.paymentIntentId, {
+        payment_method: paymentMethodId,
+        setup_future_usage: saveForFuture ? 'off_session' : undefined,
+      });
+    } catch (error) {
+      if (error instanceof Stripe.errors.StripeError) {
+        logger.error('Stripe process payment error', error, { service: 'payments' });
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+      throw error;
+    }
 
     if (confirmedIntent.status === 'requires_action' || confirmedIntent.status === 'requires_confirmation') {
       return NextResponse.json({
@@ -145,12 +125,5 @@ export async function POST(request: NextRequest) {
       paymentIntentId: confirmedIntent.id,
       escrowTransactionId: createIntentData.escrowTransactionId,
     });
-  } catch (error) {
-    if (error instanceof Stripe.errors.StripeError) {
-      logger.error('Stripe process payment error', error, { service: 'payments' });
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-
-    return handleAPIError(error);
   }
-}
+);

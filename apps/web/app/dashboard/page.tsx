@@ -46,6 +46,7 @@ export default async function DashboardPage2025() {
     properties,
     subscriptions,
     payments,
+    recommendations,
     onboardingStatus,
   } = dashboardData;
 
@@ -179,23 +180,70 @@ export default async function DashboardPage2025() {
       createdAt: bid.created_at,
     }));
 
-  // Prepare timeline events
-  const recentActivity = [
-    ...jobs.slice(0, 5).map((job) => ({
-      id: `job-${job.id}`,
-      type: 'job_posted',
-      message: `Posted job: ${job.title || 'Untitled'}`,
-      timestamp: job.created_at,
-    })),
-    ...allBids.slice(0, 5).map((bid) => ({
-      id: `bid-${bid.id}`,
-      type: 'bid_received',
-      message: `Received bid for ${bid.job?.title || 'a job'}`,
-      timestamp: bid.created_at,
-    })),
-  ]
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 10);
+  // Fetch real notifications for recent activity
+  const { data: notifications } = await serverSupabase
+    .from('notifications')
+    .select('id, type, title, message, created_at')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const recentActivity = (notifications && notifications.length > 0)
+    ? notifications.map((n: { id: string; type?: string; title?: string; message?: string; created_at: string }) => ({
+        id: n.id,
+        type: n.type || 'info',
+        message: n.message || n.title || 'Notification',
+        timestamp: n.created_at,
+      }))
+    : [
+        // Fallback: derive from jobs + bids if no notifications exist yet
+        ...jobs.slice(0, 5).map((job) => ({
+          id: `job-${job.id}`,
+          type: 'job_posted',
+          message: `Posted job: ${job.title || 'Untitled'}`,
+          timestamp: job.created_at,
+        })),
+        ...allBids.slice(0, 5).map((bid) => ({
+          id: `bid-${bid.id}`,
+          type: 'bid_received',
+          message: `Received bid for ${bid.job?.title || 'a job'}`,
+          timestamp: bid.created_at,
+        })),
+      ]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 10);
+
+  // Fetch upcoming appointments from the appointments table
+  const { data: appointmentsData } = await serverSupabase
+    .from('appointments')
+    .select(`
+      id, title, appointment_date, start_time, end_time,
+      location_type, status, notes,
+      contractor:profiles!contractor_id(id, first_name, last_name)
+    `)
+    .eq('client_id', user.id)
+    .gte('appointment_date', new Date().toISOString().split('T')[0])
+    .in('status', ['scheduled', 'confirmed'])
+    .order('appointment_date', { ascending: true })
+    .order('start_time', { ascending: true })
+    .limit(5);
+
+  // Supabase FK joins return arrays; extract first element
+  const upcomingAppointments = (appointmentsData || []).map((apt: Record<string, unknown>) => {
+    const contractor = Array.isArray(apt.contractor) ? apt.contractor[0] : apt.contractor;
+    return {
+      id: apt.id as string,
+      title: apt.title as string,
+      date: apt.appointment_date as string,
+      time: apt.start_time as string,
+      endTime: apt.end_time as string | undefined,
+      locationType: apt.location_type as string | undefined,
+      status: apt.status as string,
+      contractor: contractor
+        ? { name: `${contractor.first_name} ${contractor.last_name}`.trim() }
+        : undefined,
+    };
+  });
 
   // Prepare dashboard data for professional component
   const professionalDashboardData = {
@@ -215,6 +263,8 @@ export default async function DashboardPage2025() {
     activeJobs: jobsWithContractors,
     pendingBids,
     recentActivity,
+    upcomingAppointments,
+    recommendations,
   };
 
   return (

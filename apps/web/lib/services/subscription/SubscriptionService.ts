@@ -65,9 +65,9 @@ export interface SubscriptionPlanDetails {
 export class SubscriptionService {
   private static readonly PLAN_PRICING: Record<SubscriptionPlan, { amount: number; name: string }> = {
     free: { amount: 0, name: 'Free' },
-    basic: { amount: 1999, name: 'Basic' }, // £19.99
-    professional: { amount: 4999, name: 'Professional' }, // £49.99
-    enterprise: { amount: 9999, name: 'Enterprise' }, // £99.99
+    basic: { amount: 2900, name: 'Basic' }, // £29
+    professional: { amount: 7900, name: 'Professional' }, // £79
+    enterprise: { amount: 19900, name: 'Enterprise' }, // £199
   };
 
   /**

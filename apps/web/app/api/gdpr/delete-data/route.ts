@@ -1,60 +1,30 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUserFromCookies } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { sanitizeEmail } from '@/lib/sanitizer';
 import { validateRequest } from '@/lib/validation/validator';
 import { gdprDeleteSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
-import { checkApiRateLimit } from '@/lib/rate-limiter';
-import { requireCSRF } from '@/lib/csrf';
-import { handleAPIError, UnauthorizedError, BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
+import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export async function POST(request: NextRequest) {
-  try {
-    
-    // CSRF protection
-    await requireCSRF(request);
-    // Rate limiting
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const rateLimitResult = await checkApiRateLimit(`gdpr-delete:${ip}`);
-
-    if (!rateLimitResult.allowed) {
-      throw new RateLimitError();
-    }
-
-    // Authenticate user
-    const user = await getCurrentUserFromCookies();
-    if (!user) {
-      throw new UnauthorizedError('Authentication required to delete data');
-    }
-
-    // Validate request body
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 5 } },
+  async (request, { user }) => {
     const validation = await validateRequest(request, gdprDeleteSchema);
-    if ('headers' in validation) {
-      return validation; // Return NextResponse error
-    }
+    if ('headers' in validation) return validation;
 
-    const { email, confirmation } = validation.data;
+    const { email } = validation.data;
 
-    // Verify email matches user's email
     let sanitizedEmail: string;
     try {
       sanitizedEmail = sanitizeEmail(email);
-    } catch (error) {
-      logger.warn('Invalid email format in delete request', {
-        service: 'gdpr',
-        userId: user.id,
-        email: email.substring(0, 3) + '***'
-      });
+    } catch {
+      logger.warn('Invalid email format in delete request', { service: 'gdpr', userId: user.id, email: email.substring(0, 3) + '***' });
       throw new BadRequestError('Invalid email format');
     }
 
     if (sanitizedEmail !== user.email) {
-      logger.warn('Email mismatch in delete request', {
-        service: 'gdpr',
-        userId: user.id,
-        providedEmail: email.substring(0, 3) + '***'
-      });
+      logger.warn('Email mismatch in delete request', { service: 'gdpr', userId: user.id, providedEmail: email.substring(0, 3) + '***' });
       throw new BadRequestError('Email does not match your account');
     }
 
@@ -67,82 +37,35 @@ export async function POST(request: NextRequest) {
       .in('status', ['pending', 'in_progress'])
       .single();
 
-    if (existingRequest) {
-      throw new BadRequestError('You already have a pending data deletion request');
-    }
+    if (existingRequest) throw new BadRequestError('You already have a pending data deletion request');
 
-    // Create DSR request
     const { data: dsrRequest, error: dsrError } = await serverSupabase
       .from('dsr_requests')
-      .insert({
-        user_id: user.id,
-        request_type: 'erasure',
-        status: 'pending',
-        requested_by: user.id,
-        notes: 'User requested complete data deletion'
-      })
+      .insert({ user_id: user.id, request_type: 'erasure', status: 'pending', requested_by: user.id, notes: 'User requested complete data deletion' })
       .select()
       .single();
 
     if (dsrError) {
-      logger.error('Error creating DSR request', dsrError, {
-        service: 'gdpr',
-        userId: user.id,
-        requestType: 'erasure'
-      });
+      logger.error('Error creating DSR request', dsrError, { service: 'gdpr', userId: user.id, requestType: 'erasure' });
       throw new InternalServerError('Failed to create data deletion request');
     }
 
-    // Execute data deletion
-    const { error: deleteError } = await serverSupabase
-      .rpc('delete_user_data', { p_user_id: user.id });
+    const { error: deleteError } = await serverSupabase.rpc('delete_user_data', { p_user_id: user.id });
 
     if (deleteError) {
-      logger.error('Error deleting user data', deleteError, {
-        service: 'gdpr',
-        userId: user.id,
-        requestId: dsrRequest.id
-      });
-
-      // Update DSR request status to failed
-      await serverSupabase
-        .from('dsr_requests')
-        .update({
-          status: 'rejected',
-          notes: 'Deletion failed: ' + deleteError.message
-        })
-        .eq('id', dsrRequest.id);
-
+      logger.error('Error deleting user data', deleteError, { service: 'gdpr', userId: user.id, requestId: dsrRequest.id });
+      await serverSupabase.from('dsr_requests').update({ status: 'rejected', notes: 'Deletion failed: ' + deleteError.message }).eq('id', dsrRequest.id);
       throw new InternalServerError('Failed to delete user data');
     }
 
-    // Update DSR request status
-    await serverSupabase
-      .from('dsr_requests')
-      .update({ 
-        status: 'completed',
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', dsrRequest.id);
+    await serverSupabase.from('dsr_requests').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', dsrRequest.id);
 
-    // Clear authentication cookies
-    const response = NextResponse.json({
-      message: 'Your data has been successfully deleted',
-      request_id: dsrRequest.id
-    });
+    logger.info('Data deletion completed successfully', { service: 'gdpr', userId: user.id, requestId: dsrRequest.id });
 
+    // Clear authentication cookies after successful account deletion
+    const response = NextResponse.json({ message: 'Your data has been successfully deleted', request_id: dsrRequest.id });
     response.cookies.delete('auth-token');
     response.cookies.delete('refresh-token');
-
-    logger.info('Data deletion completed successfully', {
-      service: 'gdpr',
-      userId: user.id,
-      requestId: dsrRequest.id
-    });
-
     return response;
-
-  } catch (error) {
-    return handleAPIError(error);
   }
-}
+);
