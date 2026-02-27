@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, Paperclip, MoreVertical, Phone, Video,
@@ -45,7 +46,7 @@ export function ChatPanel({
           <div className="flex items-center gap-4">
             <div className="relative">
               {conversation.otherUser.avatar ? (
-                <img src={conversation.otherUser.avatar} alt={conversation.otherUser.name} className="w-11 h-11 rounded-full object-cover" />
+                <Image src={conversation.otherUser.avatar} alt={conversation.otherUser.name} width={44} height={44} className="rounded-full object-cover" />
               ) : (
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">{getInitials(conversation.otherUser.name)}</span>
@@ -160,7 +161,7 @@ export function ChatPanel({
                       <div className="w-8 h-8 flex-shrink-0">
                         {showAvatar ? (
                           conversation.otherUser.avatar ? (
-                            <img src={conversation.otherUser.avatar} alt={conversation.otherUser.name} className="w-8 h-8 rounded-full object-cover" />
+                            <Image src={conversation.otherUser.avatar} alt={conversation.otherUser.name} width={32} height={32} className="rounded-full object-cover" />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
                               <span className="text-white font-semibold text-xs">{getInitials(conversation.otherUser.name)}</span>

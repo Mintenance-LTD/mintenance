@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
@@ -13,385 +13,279 @@ interface PredictiveRecommendationsProps {
 }
 
 export function PredictiveRecommendations({ recommendations, loading }: PredictiveRecommendationsProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const getTypeIcon = React.useCallback((type: MaintenanceRecommendation['type']): string => {
+    switch (type) {
+      case 'maintenance_schedule': return 'calendar';
+      case 'seasonal': return 'clock';
+      case 'cost_saving': return 'currencyDollar';
+      case 'preventive': return 'shield';
+      default: return 'info';
+    }
+  }, []);
+
+  const getPriorityColor = (priority: MaintenanceRecommendation['priority']) => {
+    switch (priority) {
+      case 'high': return '#EF4444';
+      case 'medium': return '#F59E0B';
+      case 'low': return '#10B981';
+      default: return theme.colors.textSecondary;
+    }
+  };
+
+  const highCount = recommendations.filter(r => r.priority === 'high').length;
+
+  // Compact collapsed header — always rendered
+  const header = (
+    <button
+      onClick={() => setIsExpanded(prev => !prev)}
+      style={{
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        textAlign: 'left',
+      }}
+      aria-expanded={isExpanded}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+        <div style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: theme.borderRadius.md,
+          backgroundColor: theme.colors.backgroundSecondary,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: theme.colors.primary,
+          flexShrink: 0,
+        }}>
+          <Icon name="lightBulb" size={18} />
+        </div>
+        <div>
+          <span style={{
+            fontSize: theme.typography.fontSize.sm,
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: theme.colors.textPrimary,
+          }}>
+            Recommendations
+          </span>
+          {!loading && recommendations.length > 0 && (
+            <span style={{
+              marginLeft: theme.spacing[2],
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '20px',
+              height: '20px',
+              padding: '0 6px',
+              borderRadius: '10px',
+              backgroundColor: highCount > 0 ? '#EF4444' : theme.colors.primary,
+              color: 'white',
+              fontSize: '11px',
+              fontWeight: theme.typography.fontWeight.bold,
+            }}>
+              {recommendations.length}
+            </span>
+          )}
+        </div>
+      </div>
+      <div style={{
+        color: theme.colors.textSecondary,
+        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+        transition: 'transform 0.2s ease',
+        flexShrink: 0,
+      }}>
+        <Icon name="chevronDown" size={16} />
+      </div>
+    </button>
+  );
+
   if (loading) {
     return (
       <div style={{
         backgroundColor: theme.colors.surface,
         borderRadius: theme.borderRadius.xl,
         border: `1px solid ${theme.colors.border}`,
-        padding: theme.spacing[6],
+        padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
       }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[3],
-          marginBottom: theme.spacing[4],
-        }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: theme.borderRadius.lg,
-            backgroundColor: theme.colors.backgroundSecondary,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: theme.colors.primary,
-          }}>
-            <Icon name="lightBulb" size={24} />
-          </div>
-          <div>
-            <h2 style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
-              Predictive Recommendations
-            </h2>
-            <p style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-            }}>
-              Loading suggestions...
-            </p>
-          </div>
-        </div>
+        {header}
       </div>
     );
   }
 
   if (!recommendations || recommendations.length === 0) {
-    return (
-      <div style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.borderRadius.xl,
-        border: `1px solid ${theme.colors.border}`,
-        padding: theme.spacing[6],
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[3],
-          marginBottom: theme.spacing[4],
-        }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: theme.borderRadius.lg,
-            backgroundColor: theme.colors.backgroundSecondary,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: theme.colors.primary,
-          }}>
-            <Icon name="lightBulb" size={24} />
-          </div>
-          <div>
-            <h2 style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
-              Predictive Recommendations
-            </h2>
-            <p style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-            }}>
-              No recommendations available yet
-            </p>
-          </div>
-        </div>
-        <p style={{
-          fontSize: theme.typography.fontSize.sm,
-          color: theme.colors.textSecondary,
-          margin: 0,
-        }}>
-          Start posting jobs to receive personalised maintenance suggestions.
-        </p>
-      </div>
-    );
+    return null; // No clutter when nothing to show
   }
-
-  // Ensure consistent icon names between server and client
-  // Use useMemo to ensure consistent icon selection between server and client
-  const getTypeIcon = React.useCallback((type: MaintenanceRecommendation['type']): string => {
-    switch (type) {
-      case 'maintenance_schedule':
-        return 'calendar';
-      case 'seasonal':
-        return 'clock';
-      case 'cost_saving':
-        return 'currencyDollar';
-      case 'preventive':
-        return 'shield';
-      default:
-        return 'info';
-    }
-  }, []);
-
-  const getPriorityColor = (priority: MaintenanceRecommendation['priority']) => {
-    switch (priority) {
-      case 'high':
-        return '#EF4444';
-      case 'medium':
-        return '#F59E0B';
-      case 'low':
-        return '#10B981';
-      default:
-        return theme.colors.textSecondary;
-    }
-  };
 
   return (
     <div style={{
       backgroundColor: theme.colors.surface,
       borderRadius: theme.borderRadius.xl,
       border: `1px solid ${theme.colors.border}`,
-      padding: theme.spacing[6],
+      overflow: 'hidden',
     }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: theme.spacing[4],
-      }}>
+      {/* Collapsed header — always visible */}
+      <div style={{ padding: `${theme.spacing[3]} ${theme.spacing[4]}` }}>
+        {header}
+      </div>
+
+      {/* Expandable body */}
+      {isExpanded && (
         <div style={{
+          borderTop: `1px solid ${theme.colors.border}`,
+          padding: theme.spacing[4],
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'column',
           gap: theme.spacing[3],
         }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: theme.borderRadius.lg,
-            backgroundColor: theme.colors.backgroundSecondary,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: theme.colors.primary,
-          }}>
-            <Icon name="lightBulb" size={24} />
-          </div>
-          <div>
-            <h2 style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.xl,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}>
-              Predictive Recommendations
-            </h2>
-            <p style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-            }}>
-              Personalised suggestions for your home
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing[3],
-      }}>
-        {recommendations.slice(0, 5).map((rec) => {
-          // Ensure icon name is determined consistently before rendering
-          const iconName = getTypeIcon(rec.type);
-          return (
-          <div
-            key={rec.id}
-            style={{
-              padding: theme.spacing[4],
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderRadius: theme.borderRadius.lg,
-              border: `1px solid ${theme.colors.border}`,
-              display: 'flex',
-              gap: theme.spacing[3],
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
-              e.currentTarget.style.borderColor = theme.colors.primary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              e.currentTarget.style.borderColor = theme.colors.border;
-            }}
-          >
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: theme.borderRadius.md,
-              backgroundColor: getPriorityColor(rec.priority) + '15',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: getPriorityColor(rec.priority),
-              flexShrink: 0,
-            }}>
-              <Icon name={iconName} size={20} />
-            </div>
-
-            <div style={{ flex: 1 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[2],
-                marginBottom: theme.spacing[1],
-              }}>
-                <h3 style={{
-                  margin: 0,
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.textPrimary,
-                }}>
-                  {rec.title}
-                </h3>
-                <span style={{
-                  display: 'inline-block',
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: getPriorityColor(rec.priority),
-                }} />
-              </div>
-
-              <p style={{
-                margin: 0,
-                marginBottom: theme.spacing[2],
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-                lineHeight: 1.5,
-              }}>
-                {rec.description}
-              </p>
-
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[4],
-                flexWrap: 'wrap',
-              }}>
-                {rec.suggestedDate && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[1],
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                  }}>
-                    <Icon name="calendar" size={14} />
-                    <span>
-                      {new Date(rec.suggestedDate).toLocaleDateString('en-GB', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                )}
-
-                {rec.potentialSavings && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[1],
-                    fontSize: theme.typography.fontSize.xs,
-                    color: '#10B981',
-                    fontWeight: theme.typography.fontWeight.semibold,
-                  }}>
-                    <Icon name="currencyDollar" size={14} />
-                    <span>Save up to {formatMoney(rec.potentialSavings)}</span>
-                  </div>
-                )}
-
-                {rec.estimatedCost && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing[1],
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                  }}>
-                    <Icon name="currencyDollar" size={14} />
-                    <span>Est. {formatMoney(rec.estimatedCost)}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {rec.actionUrl && (
-              <Link
-                href={rec.actionUrl}
+          {recommendations.slice(0, 5).map((rec) => {
+            const iconName = getTypeIcon(rec.type);
+            return (
+              <div
+                key={rec.id}
                 style={{
-                  alignSelf: 'flex-start',
-                  padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-                  backgroundColor: theme.colors.primary,
-                  color: 'white',
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  textDecoration: 'none',
-                  transition: 'all 0.2s',
+                  padding: theme.spacing[3],
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  borderRadius: theme.borderRadius.lg,
+                  border: `1px solid ${theme.colors.border}`,
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[1],
+                  gap: theme.spacing[3],
+                  transition: 'all 0.2s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#374151';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundTertiary;
+                  e.currentTarget.style.borderColor = theme.colors.primary;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.primary;
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                  e.currentTarget.style.borderColor = theme.colors.border;
                 }}
               >
-                <span>View</span>
-                <Icon name="arrowRight" size={14} />
-              </Link>
-            )}
-          </div>
-          );
-        })}
-      </div>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: theme.borderRadius.md,
+                  backgroundColor: getPriorityColor(rec.priority) + '15',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: getPriorityColor(rec.priority),
+                  flexShrink: 0,
+                }}>
+                  <Icon name={iconName} size={18} />
+                </div>
 
-      {recommendations.length > 5 && (
-        <div style={{
-          marginTop: theme.spacing[4],
-          paddingTop: theme.spacing[4],
-          borderTop: `1px solid ${theme.colors.border}`,
-          textAlign: 'center',
-        }}>
-          <span className="predictive-recommendations-link">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                    marginBottom: theme.spacing[1],
+                  }}>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: theme.typography.fontSize.sm,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      color: theme.colors.textPrimary,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {rec.title}
+                    </h3>
+                    <span style={{
+                      display: 'inline-block',
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      backgroundColor: getPriorityColor(rec.priority),
+                      flexShrink: 0,
+                    }} />
+                  </div>
+
+                  <p style={{
+                    margin: 0,
+                    marginBottom: theme.spacing[2],
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textSecondary,
+                    lineHeight: 1.5,
+                  }}>
+                    {rec.description}
+                  </p>
+
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[3],
+                    flexWrap: 'wrap',
+                  }}>
+                    {rec.potentialSavings && (
+                      <span style={{
+                        fontSize: '11px',
+                        color: '#10B981',
+                        fontWeight: theme.typography.fontWeight.semibold,
+                      }}>
+                        Save up to {formatMoney(rec.potentialSavings)}
+                      </span>
+                    )}
+                    {rec.estimatedCost && (
+                      <span style={{
+                        fontSize: '11px',
+                        color: theme.colors.textSecondary,
+                      }}>
+                        Est. {formatMoney(rec.estimatedCost)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {rec.actionUrl && (
+                  <Link
+                    href={rec.actionUrl}
+                    style={{
+                      alignSelf: 'center',
+                      padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                      backgroundColor: theme.colors.primary,
+                      color: 'white',
+                      borderRadius: theme.borderRadius.md,
+                      fontSize: theme.typography.fontSize.xs,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      textDecoration: 'none',
+                      flexShrink: 0,
+                    }}
+                  >
+                    View
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+
+          {recommendations.length > 5 && (
             <Link
               href="/recommendations"
               style={{
+                display: 'block',
+                textAlign: 'center',
                 fontSize: theme.typography.fontSize.sm,
                 color: theme.colors.primary,
                 textDecoration: 'none',
                 fontWeight: theme.typography.fontWeight.medium,
+                paddingTop: theme.spacing[2],
+                borderTop: `1px solid ${theme.colors.border}`,
               }}
             >
-              View all {recommendations.length} recommendations
+              View all {recommendations.length} recommendations →
             </Link>
-          </span>
-          <style dangerouslySetInnerHTML={{
-            __html: `
-              .predictive-recommendations-link:hover a {
-                text-decoration: underline !important;
-              }
-            `
-          }} />
+          )}
         </div>
       )}
     </div>
   );
 }
-

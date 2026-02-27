@@ -9,10 +9,10 @@ import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machin
 import { sanitizeText, sanitizeJobDescription } from '@/lib/sanitizer';
 import { rateLimiter } from '@/lib/rate-limiter';
 // Heavy AI/ML services loaded dynamically to avoid breaking GET handler if deps are missing
-import crypto from 'crypto';
 import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -21,17 +21,6 @@ interface JobAttachment {
   file_url: string;
   file_type: string;
   uploaded_at: string;
-}
-
-// Cache AI analysis results for 24 hours
-const aiAnalysisCache = new Map<string, { timestamp: number; data: unknown }>();
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
-function getCacheKey(jobId: string, imageUrls: string[]): string {
-  const hash = crypto.createHash('sha256');
-  hash.update(jobId);
-  hash.update(imageUrls.sort().join(','));
-  return hash.digest('hex');
 }
 
 const jobSelectFields = 'id,title,description,status,homeowner_id,contractor_id,category,budget,created_at,updated_at';
@@ -165,13 +154,6 @@ export const GET = withApiHandler(
       updatedAt: row.updated_at,
     } as Record<string, unknown>;
 
-    // Check if we have cached AI analysis
-    const cacheKey = getCacheKey(id, formattedJob.images as string[]);
-    const cached = aiAnalysisCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      formattedJob.aiAnalysis = cached.data;
-    }
-
     return NextResponse.json({ job: formattedJob });
   }
 );
@@ -238,65 +220,59 @@ export const PUT = withApiHandler(
     // Run AI analysis if requested
     if (payload.analyzeWithAI) {
       try {
-        // Check cache first
-        const cacheKey = getCacheKey(jobId, payload.images || []);
-        const cached = aiAnalysisCache.get(cacheKey);
+        const cacheInput = { jobId, images: payload.images || [], runBuildingSurvey: payload.runBuildingSurvey ?? false };
+        aiAnalysisResult = await AIResponseCache.get(
+          'maintenance-assessment',
+          cacheInput,
+          async () => {
+            // Run job analysis with images
+            const fullAddress = payload.location && payload.city && payload.postcode
+              ? `${payload.location}, ${payload.city}, ${payload.postcode}`
+              : existingJob.location || '';
 
-        if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-          aiAnalysisResult = cached.data;
-        } else {
-          // Run job analysis with images
-          const fullAddress = payload.location && payload.city && payload.postcode
-            ? `${payload.location}, ${payload.city}, ${payload.postcode}`
-            : existingJob.location || '';
-
-          const { JobAnalysisService } = await import('@/lib/services/JobAnalysisService');
-          const jobAnalysis = await JobAnalysisService.analyzeJobWithImages(
-            payload.title || existingJob.title,
-            payload.description || existingJob.description || '',
-            payload.images,
-            fullAddress
-          );
-
-          // Run building survey if images are provided and requested
-          if (payload.runBuildingSurvey && payload.images && payload.images.length > 0) {
-            // Map property type to AssessmentContext enum values
-            const mapPropertyType = (type: string | undefined): 'residential' | 'commercial' | 'industrial' => {
-              const t = (type || 'house').toLowerCase();
-              if (t === 'commercial' || t === 'office' || t === 'retail') return 'commercial';
-              if (t === 'industrial' || t === 'warehouse' || t === 'factory') return 'industrial';
-              return 'residential'; // default for house, apartment, flat, etc.
-            };
-
-            const surveyContext = {
-              propertyType: mapPropertyType(payload.propertyType),
-              ageOfProperty: 0, // Could be fetched from property data
-              location: payload.city || '',
-              region: payload.city || '',
-              userId: user.id,
-              assessmentId: jobId,
-            };
-
-            const { BuildingSurveyorService } = await import('@/lib/services/building-surveyor/BuildingSurveyorService');
-            buildingSurveyResult = await BuildingSurveyorService.assessDamage(
+            const { JobAnalysisService } = await import('@/lib/services/JobAnalysisService');
+            const jobAnalysis = await JobAnalysisService.analyzeJobWithImages(
+              payload.title || existingJob.title,
+              payload.description || existingJob.description || '',
               payload.images,
-              surveyContext
+              fullAddress
             );
+
+            // Run building survey if images are provided and requested
+            let surveyResult = null;
+            if (payload.runBuildingSurvey && payload.images && payload.images.length > 0) {
+              // Map property type to AssessmentContext enum values
+              const mapPropertyType = (type: string | undefined): 'residential' | 'commercial' | 'industrial' => {
+                const t = (type || 'house').toLowerCase();
+                if (t === 'commercial' || t === 'office' || t === 'retail') return 'commercial';
+                if (t === 'industrial' || t === 'warehouse' || t === 'factory') return 'industrial';
+                return 'residential'; // default for house, apartment, flat, etc.
+              };
+
+              const surveyContext = {
+                propertyType: mapPropertyType(payload.propertyType),
+                ageOfProperty: 0, // Could be fetched from property data
+                location: payload.city || '',
+                region: payload.city || '',
+                userId: user.id,
+                assessmentId: jobId,
+              };
+
+              const { BuildingSurveyorService } = await import('@/lib/services/building-surveyor/BuildingSurveyorService');
+              surveyResult = await BuildingSurveyorService.assessDamage(
+                payload.images,
+                surveyContext
+              );
+            }
+
+            return {
+              jobAnalysis,
+              buildingSurvey: surveyResult,
+              timestamp: Date.now(),
+            };
           }
-
-          // Combine results
-          aiAnalysisResult = {
-            jobAnalysis,
-            buildingSurvey: buildingSurveyResult,
-            timestamp: Date.now(),
-          };
-
-          // Cache the result
-          aiAnalysisCache.set(cacheKey, {
-            timestamp: Date.now(),
-            data: aiAnalysisResult,
-          });
-        }
+        );
+        buildingSurveyResult = (aiAnalysisResult as { buildingSurvey: unknown } | null)?.buildingSurvey ?? null;
       } catch (aiError) {
         logger.error('AI analysis failed', aiError, {
           service: 'jobs',

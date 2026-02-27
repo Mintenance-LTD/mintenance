@@ -3,6 +3,7 @@ import { z } from 'zod';
 import * as crypto from 'crypto';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NextResponse } from 'next/server';
+import { logger as fallbackLogger } from '@/lib/logger';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,7 +34,7 @@ export const POST = withApiHandler({ auth: false, rateLimit: false }, async (req
     serverSupabase = (await import('@/lib/api/supabaseServer')).serverSupabase;
     BuildingSurveyorService = (await import('@/lib/services/building-surveyor')).BuildingSurveyorService;
   } catch (importError) {
-    console.error('Demo route: failed to load dependencies', importError);
+    fallbackLogger.error('Demo route: failed to load dependencies', importError instanceof Error ? importError : new Error(String(importError)));
     return NextResponse.json({ error: 'Service temporarily unavailable', details: importError instanceof Error ? importError.message : 'Module load failure' }, { status: 503 });
   }
 

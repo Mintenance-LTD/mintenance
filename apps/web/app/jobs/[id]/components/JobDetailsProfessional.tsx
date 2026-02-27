@@ -216,11 +216,13 @@ export function JobDetailsProfessional({
               </p>
             </ContentCard>
 
-            {/* AI Building Assessment */}
-            {buildingAssessment && (
+            {/* AI Building Assessment — shows result if available, or "Run Analysis" button if photos exist */}
+            {(buildingAssessment || photos.length > 0) && (
               <div className="mb-6">
                 <BuildingAssessmentDisplay
-                  assessment={buildingAssessment as unknown as React.ComponentProps<typeof BuildingAssessmentDisplay>['assessment']}
+                  assessment={buildingAssessment as unknown as React.ComponentProps<typeof BuildingAssessmentDisplay>['assessment'] ?? null}
+                  jobId={job.id}
+                  photoUrls={photos}
                   onCorrection={(assessmentId, corrections) => {
                     logger.info('Training data corrections submitted:', {
                       assessmentId,

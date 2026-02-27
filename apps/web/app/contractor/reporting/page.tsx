@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ReportingDashboard2025Client } from './components/ReportingDashboard2025Client';
 import { redirect } from 'next/navigation';
 
@@ -9,10 +9,6 @@ export const metadata: Metadata = {
   description: 'View your business analytics, revenue trends, job statistics, and performance metrics on Mintenance.',
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-);
 
 export default async function ContractorReportingPage2025() {
   const user = await getCurrentUserFromCookies();
@@ -23,20 +19,20 @@ export default async function ContractorReportingPage2025() {
 
   // Fetch contractor analytics data in parallel
   const [jobsResult, bidsResult, paymentsResult, reviewsResult] = await Promise.all([
-    supabase
+    serverSupabase
       .from('jobs')
       .select('id, title, category, budget, status, created_at, completed_at, homeowner_id')
       .eq('contractor_id', user.id),
-    supabase
+    serverSupabase
       .from('bids')
       .select('id, bid_amount, status, created_at')
       .eq('contractor_id', user.id),
-    supabase
+    serverSupabase
       .from('payments')
       .select('id, amount, status, created_at, job_id')
       .eq('contractor_id', user.id)
       .eq('status', 'completed'),
-    supabase
+    serverSupabase
       .from('reviews')
       .select('id, rating, comment, created_at')
       .eq('reviewed_id', user.id),
@@ -109,7 +105,7 @@ export default async function ContractorReportingPage2025() {
   }));
 
   // Get unique client count and top clients
-  const clientJobsResult = await supabase
+  const clientJobsResult = await serverSupabase
     .from('jobs')
     .select('homeowner_id, budget, status, homeowner:homeowner_id(first_name, last_name)')
     .eq('contractor_id', user.id)
@@ -140,7 +136,7 @@ export default async function ContractorReportingPage2025() {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const recentPaymentsResult = await supabase
+  const recentPaymentsResult = await serverSupabase
     .from('payments')
     .select('amount, created_at')
     .eq('contractor_id', user.id)

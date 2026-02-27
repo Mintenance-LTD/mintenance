@@ -26,5 +26,5 @@ export const POST = withApiHandler({ auth: false, csrf: false }, async (request)
     // Silently accept malformed reports
   }
 
-  return NextResponse.json({ received: true }, { status: 204 });
+  return new NextResponse(null, { status: 204 });
 });

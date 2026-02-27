@@ -25,7 +25,7 @@ const gptCircuitBreaker = new CircuitBreaker({
 });
 
 /** Maximum time (ms) for the entire GPT assessment call including retries (Issue 38) */
-const GPT_ASSESSMENT_TIMEOUT_MS = 90_000;
+const GPT_ASSESSMENT_TIMEOUT_MS = 150_000; // 2.5 min — gpt-4o vision with multiple images can take >90s
 
 function recordMetric(metric: string, payload: Record<string, unknown>): void {
   MonitoringService.record(metric, { agentName: AGENT_NAME, ...payload });
@@ -71,7 +71,7 @@ export async function callGptAssessment(
         { type: 'text', text: userPrompt },
         ...imagesToAnalyze.map((url) => ({
           type: 'image_url' as const,
-          image_url: { url, detail: 'high' as const },
+          image_url: { url, detail: 'auto' as const }, // 'auto' is faster and cheaper than 'high' for property photos
         })),
       ],
     },

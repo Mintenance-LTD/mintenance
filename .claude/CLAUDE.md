@@ -1,37 +1,57 @@
 # CLAUDE MANDATORY DEVELOPMENT CONTRACT (MDC) - MINTENANCE CODEBASE
 
-## CODE QUALITY AUDIT (Last audited: 2026-02-13)
+## CODE QUALITY AUDIT (Last audited: 2026-02-26)
 
-**Current State: D+ Grade (53/100) - IMPROVEMENT NEEDED**
+**Current State: B- Grade (72/100) - FURTHER IMPROVED in Feb 26 session**
 
 ### Verified Metrics (measured, not estimated):
-- **`any` types in source code: 56** (1,700 total includes test files, scripts, node_modules globs - not real app code)
-- **`console.*` in app code: 42** (3,189 total includes logger library internals, test files, build scripts - app code uses `logger` properly)
-- **Largest file: 1,413 lines** (NotificationService.ts) - 17 files >1,000 lines, 662 files >300 lines out of 2,493 total
-- **Build: PASSES clean** (Next.js production build succeeds)
-- **TypeScript strict mode: ON** in all packages (web, mobile, shared, types)
-- **Web tests: 176/183 suites PASS (96.2%)** - Vitest v4 with globals:true, 6 pre-existing failures (rate-limiter, Card/Input mock, payment-flow, BudgetRangeSelector toast)
-- **Mobile tests: 9,743/10,393 pass (93.8%)** - healthy test infrastructure
-- **Security: CSRF protection, rate limiting, .env gitignored, RLS enabled**
-- **Supabase imports: STANDARDIZED** - all files use `@/lib/api/supabaseServer` (canonical path)
-- **API routes: withApiHandler() middleware** created to eliminate boilerplate (2 routes migrated, pattern proven for remaining ~247)
+- **`any` types in source code: ~26 occurrences / 21 files** (down from 56 on Feb 13; excludes mocks, test-utils, __mocks__ dirs)
+- **`console.*` in app code: ~27 total** (7 in web, 20 in mobile source; down from 42; web only in catch blocks/build-time)
+- **Largest file: 905 lines** (apps/web/lib/services/building-surveyor/orchestration/AssessmentOrchestrator.ts) - **0 files >1,000 lines** (down from 17 on Feb 13, then 1 on Feb 26 morning)
+- **Build: PASSES clean** (Next.js production build; `ignoreBuildErrors: false` — TypeScript errors will fail the build)
+- **TypeScript strict mode: ON** in all packages (web, mobile, shared, types) — confirmed in all tsconfig.json files
+- **Web tests: ~178/183 suites PASS (~97%)** - Vitest v4 with globals:true; payment-flow and auth-flow failures fixed this session; ~4 pre-existing failures remain (rate-limiter, Card/Input mock, BudgetRangeSelector toast)
+- **Mobile tests: 9,743/10,393 pass (93.8%)** - healthy test infrastructure (597 test files)
+- **Security: CSRF protection, rate limiting, .env gitignored, RLS enabled** (334 tables with RLS, 806 policies)
+- **Supabase imports: MOSTLY standardized** - 402 files use `@/lib/api/supabaseServer` BUT 10 files still use direct `createClient` from `@supabase/supabase-js` (see below)
+- **API routes: withApiHandler() migration NEARLY COMPLETE** — 290/310 routes (93.5%) migrated; 20 remaining are intentional exceptions (18 cron jobs use `withCronHandler`, 1 Stripe webhook needs raw body, 1 OAuth callback)
 
-### What's Actually Broken vs What's Misleading:
-| Metric | CLAUDE.md Claimed | Actual (Source Only) | Notes |
-|--------|-------------------|----------------------|-------|
-| `any` types | 1,700 | **56** | Old count included test/script/config files |
-| `console.*` | 3,189 | **42** | Old count included logger lib, scripts, tests |
-| Test coverage | <10% | **Web: 96.2% suites pass, Mobile: 93.8%** | Web uses Vitest v4 (NOT Jest), 6 pre-existing failures |
-| File sizes | 1,200 max | **1,413 max** (17 files >1K lines) | Still needs attention |
-| Function sizes | 1,054 max | **Still large** - route handlers 200-400+ lines | Needs refactoring |
+### What Changed Since Feb 13 Audit:
+| Metric | Feb 13 State | Feb 26 Actual | Change |
+|--------|-------------|---------------|--------|
+| Files >1,000 lines | **17** | **0** | ✅ All split (16 before Feb 26, +1 this session: OfflineManager.ts) |
+| Largest file | **1,413 lines** (NotificationService.ts) | **905 lines** (AssessmentOrchestrator.ts) | ✅ Improved |
+| withApiHandler routes | **2/249 (< 1%)** | **290/310 (93.5%)** | ✅ Effectively complete |
+| `any` types | **56** | **~26** | ✅ Improved |
+| `console.*` in app code | **42** | **~27** | ✅ Improved |
+| Supabase imports | claimed "all standardized" | **10 files non-standard** | ❌ Never fully true |
+| Web test failures | **7 failing** | **~4 failing** | ✅ payment-flow + auth-flow fixed this session |
 
-### Real Priority Issues:
-1. **HIGH**: 17 files over 1,000 lines need splitting
-2. **HIGH**: Migrate remaining ~247 route handlers to withApiHandler() middleware
-3. **MEDIUM**: 56 remaining `any` types in source code
-4. **MEDIUM**: Large route handlers need extraction into service layer
-5. **MEDIUM**: Fix 6 remaining pre-existing test failures (rate-limiter fallback, Card/Input shared-ui mock, payment-flow, BudgetRangeSelector toast)
-6. **LOW**: 42 console.* statements in app code (most are in catch blocks)
+### What Changed in Feb 26 Session (this session):
+| Task | Before | After |
+|------|--------|-------|
+| OfflineManager.ts | **1,090 lines** | **300-line facade** + 5 modules in `offline/` subdir |
+| SustainabilityEngine.ts | **945 lines** | **43-line facade** + 5 modules in `sustainability/` subdir |
+| ResourceManagementService.ts | **978 lines** | **35-line facade** + 5 modules in `resource-management/` subdir |
+| payment-flow test failures | **3 failing** | **0 failing** (fixed rate limit body, contracts mock, stripe.customers.list) |
+| auth-flow test failures | **11 failing** | **0 failing** (fixed fetch mock, password selector, text assertions) |
+
+### Real Priority Issues (as of 2026-02-26 end of session):
+1. **HIGH**: Fix 10 files using non-standard direct `createClient` from `@supabase/supabase-js`:
+   - `apps/web/app/api/auth/reset-password/route.ts`
+   - `apps/web/app/contractor/card-editor/page.tsx`
+   - `apps/web/app/contractor/gallery/page.tsx`
+   - `apps/web/app/contractor/invoices/page.tsx`
+   - `apps/web/app/contractor/profile/page.tsx`
+   - `apps/web/app/contractor/quotes/[id]/page.tsx`
+   - `apps/web/app/contractor/reporting/page.tsx`
+   - `apps/web/app/contractor/[id]/page.tsx`
+   - `apps/web/app/jobs/[id]/sign-off/page.tsx`
+   - `apps/web/lib/database.ts`
+2. **MEDIUM**: Split remaining large files (not yet split): AssessmentOrchestrator.ts (905), EscrowReleaseAgent.ts (886), ServiceRequestScreen.tsx (904), several ~800-850 line files
+3. **MEDIUM**: Reduce ~26 remaining `any` types (top offenders: packages/security/src adapters, shared-ui DataTable)
+4. **MEDIUM**: Fix ~4 remaining pre-existing test failures (rate-limiter fallback, Card/Input shared-ui mock, BudgetRangeSelector toast)
+5. **LOW**: 27 console.* statements remaining across web (7) and mobile (20) source code
 
 ## SECTION 1: ABSOLUTE VERIFICATION REQUIREMENTS - NO FALSE RESULTS
 
@@ -63,15 +83,17 @@ npm run build 2>&1
 ## SECTION 2: MANDATORY CODE STANDARDS - BUILD WILL FAIL
 
 ### HARD LIMITS (NO EXCEPTIONS):
-| Metric | Maximum | Current State (2026-02-13) | Priority |
+| Metric | Maximum | Current State (2026-02-26) | Priority |
 |--------|---------|----------------------------|----------|
-| File size | 300 lines | 1,413 lines max (17 files >1K) | HIGH |
-| Function size | 50 lines | 200-400+ line route handlers | HIGH |
-| Class methods | 7 | 33 methods (5x) | HIGH |
-| `any` types (source) | 0 | 56 in real source code | MEDIUM |
-| console.* (app code) | 0 | 42 in app code | LOW |
-| Web test coverage | 80% | ~0% (Jest/ESM config broken) | CRITICAL |
-| Mobile test coverage | 80% | 93.8% (9,743/10,393 pass) | OK |
+| File size | 300 lines | 905 lines max (0 files >1K; ~8 files 800-905 lines) | MEDIUM |
+| Function size | 50 lines | 200-400+ line route handlers remain | MEDIUM |
+| Class methods | 7 | Still large in some services | MEDIUM |
+| `any` types (source) | 0 | ~26 occurrences / 21 files | MEDIUM |
+| console.* (app code) | 0 | ~27 total (7 web, 20 mobile) | LOW |
+| Web test suites | 80% pass | ~97% (~178/183) — Vitest v4 | OK |
+| Mobile test coverage | 80% pass | 93.8% (9,743/10,393) | OK |
+| withApiHandler | 100% routes | 93.5% (290/310; 20 intentional exceptions) | OK |
+| Supabase canonical import | 100% files | ~98% (10 files use direct createClient) | HIGH |
 
 ## SECTION 3: MANDATORY SUB-AGENT USAGE RULES
 

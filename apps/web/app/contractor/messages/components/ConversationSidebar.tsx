@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MoreVertical, Briefcase, CheckCheck } from 'lucide-react';
 import type { Conversation } from './messagesTypes';
@@ -106,7 +107,7 @@ export function ConversationSidebar({
                 >
                   <div className="relative flex-shrink-0">
                     {conv.otherUser.avatar ? (
-                      <img src={conv.otherUser.avatar} alt={conv.otherUser.name} className="w-12 h-12 rounded-full object-cover" />
+                      <Image src={conv.otherUser.avatar} alt={conv.otherUser.name} width={48} height={48} className="rounded-full object-cover" />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
                         <span className="text-white font-semibold text-sm">{getInitials(conv.otherUser.name)}</span>

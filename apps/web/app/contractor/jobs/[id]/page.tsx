@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { JobPhotoUpload } from './components/JobPhotoUpload';
 import { OnMyWayButton } from './components/OnMyWayButton';
+import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
 
 export const metadata: Metadata = {
   title: 'Job Details | Mintenance',
@@ -106,6 +107,25 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
 
   const escrowStatus = escrowTransaction?.status || 'none';
   const escrowHeld = ['held', 'release_pending', 'released'].includes(escrowStatus);
+
+  // Fetch job photos for AI assessment display
+  const { data: jobAttachments } = await serverSupabase
+    .from('job_attachments')
+    .select('file_url')
+    .eq('job_id', resolvedParams.id)
+    .eq('file_type', 'image')
+    .order('uploaded_at', { ascending: false });
+
+  const jobPhotoUrls = (jobAttachments || []).map((a: { file_url: string }) => a.file_url);
+
+  // Fetch AI building assessment if one exists
+  const { data: buildingAssessment } = await serverSupabase
+    .from('building_assessments')
+    .select('*')
+    .eq('job_id', resolvedParams.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   const currentStage = determineStage(job.status || 'posted', contractStatus, escrowHeld);
   const stageConfig = getStageConfig(currentStage);
@@ -539,6 +559,15 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
                 Message Homeowner
               </Button>
             </Link>
+          )}
+
+          {/* AI Building Assessment — visible to contractor too */}
+          {(buildingAssessment || jobPhotoUrls.length > 0) && (
+            <BuildingAssessmentDisplay
+              assessment={buildingAssessment as Parameters<typeof BuildingAssessmentDisplay>[0]['assessment']}
+              jobId={resolvedParams.id}
+              photoUrls={jobPhotoUrls}
+            />
           )}
         </div>
       </div>

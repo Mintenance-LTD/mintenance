@@ -6,23 +6,59 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertCircle, CheckCircle, AlertTriangle, Info, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { AlertCircle, CheckCircle, AlertTriangle, Info, ChevronDown, ChevronUp, Sparkles, Loader2 } from 'lucide-react';
 import { BuildingAssessment } from '@mintenance/ai-core/types';
 import { formatMoney } from '@/lib/utils/currency';
+
+function getCsrfTokenFromCookie(): string {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie.match(/(?:__Host-csrf-token|csrf-token)=([^;]+)/);
+  return match?.[1] ? decodeURIComponent(match[1]) : '';
+}
 
 interface BuildingAssessmentDisplayProps {
   assessment: BuildingAssessment | null;
   loading?: boolean;
   onCorrection?: (assessmentId: string, corrections: unknown[]) => void;
+  jobId?: string;
+  photoUrls?: string[];
 }
 
 export function BuildingAssessmentDisplay({
   assessment,
   loading = false,
-  onCorrection
+  onCorrection,
+  jobId,
+  photoUrls,
 }: BuildingAssessmentDisplayProps) {
   const [expanded, setExpanded] = useState(true);
   const [showCorrections, setShowCorrections] = useState(false);
+  const [reRunLoading, setReRunLoading] = useState(false);
+  const [reRunError, setReRunError] = useState<string | null>(null);
+
+  const handleRunAnalysis = async () => {
+    if (!jobId || !photoUrls?.length) return;
+    setReRunLoading(true);
+    setReRunError(null);
+    try {
+      const res = await fetch('/api/building-surveyor/assess', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': getCsrfTokenFromCookie(),
+        },
+        body: JSON.stringify({ imageUrls: photoUrls.slice(0, 4), jobId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { message?: string }).message || `Analysis failed (${res.status})`);
+      }
+      window.location.reload();
+    } catch (err) {
+      setReRunError(err instanceof Error ? err.message : 'Failed to run analysis');
+      setReRunLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -41,6 +77,35 @@ export function BuildingAssessmentDisplay({
   }
 
   if (!assessment) {
+    if (jobId && photoUrls && photoUrls.length > 0) {
+      return (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">AI Building Assessment</h3>
+              <p className="text-sm text-gray-500">No analysis yet — run it now using your uploaded photos</p>
+            </div>
+          </div>
+          {reRunError && (
+            <p className="text-sm text-red-600 mb-3 flex items-center gap-1">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" /> {reRunError}
+            </p>
+          )}
+          <button
+            onClick={handleRunAnalysis}
+            disabled={reRunLoading}
+            className="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+          >
+            {reRunLoading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Analysing photos…</>
+              : <><Sparkles className="w-4 h-4" /> Run AI Analysis</>}
+          </button>
+        </div>
+      );
+    }
     return null;
   }
 
@@ -290,12 +355,17 @@ export function BuildingAssessmentDisplay({
                 Improve Assessment
               </button>
               <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700"
+                onClick={handleRunAnalysis}
+                disabled={reRunLoading || !jobId || !photoUrls?.length}
+                className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 disabled:opacity-40 flex items-center gap-1.5"
               >
+                {reRunLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                 Re-run Analysis
               </button>
             </div>
+            {reRunError && (
+              <p className="text-xs text-red-500 mt-2 text-right">{reRunError}</p>
+            )}
           </div>
         </div>
       )}

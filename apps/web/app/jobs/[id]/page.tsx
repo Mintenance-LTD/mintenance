@@ -133,11 +133,12 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
   }) : [];
 
   // Fetch job photos
+  // NOTE: job_attachments uses 'uploaded_at' not 'created_at'
   const { data: photos } = await serverSupabase
     .from('job_attachments')
     .select('*')
     .eq('job_id', resolvedParams.id)
-    .order('created_at', { ascending: false });
+    .order('uploaded_at', { ascending: false });
 
   // Fetch before/after photo evidence
   const { data: photoEvidence } = await serverSupabase

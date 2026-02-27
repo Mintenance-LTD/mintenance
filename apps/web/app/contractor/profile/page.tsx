@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContractorProfileClient2025 } from './components/ContractorProfileClient2025';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { redirect } from 'next/navigation';
@@ -10,10 +10,6 @@ export const metadata: Metadata = {
   description: 'View and edit your contractor profile, skills, reviews, and portfolio on Mintenance.',
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-);
 
 export default async function ContractorProfilePage2025() {
   const user = await getCurrentUserFromCookies();
@@ -24,16 +20,16 @@ export default async function ContractorProfilePage2025() {
 
   // Fetch all data in parallel
   const [contractorResult, skillsResult, reviewsResult, completedJobsResult, postsResult, bidsResult] = await Promise.all([
-    supabase
+    serverSupabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single(),
-    supabase
+    serverSupabase
       .from('contractor_skills')
       .select('skill_name, skill_icon')
       .eq('contractor_id', user.id),
-    supabase
+    serverSupabase
       .from('reviews')
       .select(`
         *,
@@ -49,14 +45,14 @@ export default async function ContractorProfilePage2025() {
       `)
       .eq('contractor_id', user.id)
       .order('created_at', { ascending: false }),
-    supabase
+    serverSupabase
       .from('jobs')
       .select('id, title, category, budget, completed_at, photos')
       .eq('contractor_id', user.id)
       .eq('status', 'completed')
       .order('completed_at', { ascending: false })
       .limit(20),
-    supabase
+    serverSupabase
       .from('contractor_posts')
       .select('*')
       .eq('contractor_id', user.id)
@@ -64,7 +60,7 @@ export default async function ContractorProfilePage2025() {
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(20),
-    supabase
+    serverSupabase
       .from('bids')
       .select('id, status, bid_amount')
       .eq('contractor_id', user.id),

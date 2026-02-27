@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { ContractorGalleryClient } from './components/ContractorGalleryClient';
 
@@ -9,10 +9,6 @@ export const metadata: Metadata = {
   description: 'Browse and manage your project photos and showcase your completed work to potential clients.',
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-);
 
 export default async function ContractorGalleryPage() {
   const user = await getCurrentUserFromCookies();
@@ -21,7 +17,7 @@ export default async function ContractorGalleryPage() {
     redirect('/login');
   }
 
-  const { data: posts } = await supabase
+  const { data: posts } = await serverSupabase
     .from('contractor_posts')
     .select('*')
     .eq('contractor_id', user.id)

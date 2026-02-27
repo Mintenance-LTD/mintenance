@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Comprehensive tests for AI Search Rate Limiting
  *

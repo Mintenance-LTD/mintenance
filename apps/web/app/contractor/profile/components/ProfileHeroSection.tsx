@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import {
   Camera,
@@ -87,7 +88,7 @@ export function ProfileHeroSection({
           <div className="relative">
             <div className="w-40 h-40 rounded-xl border-4 border-white shadow-lg bg-white overflow-hidden">
               {contractor.profile_image_url ? (
-                <img src={contractor.profile_image_url} alt={contractorName} className="w-full h-full object-cover" />
+                <Image src={contractor.profile_image_url} alt={contractorName} width={160} height={160} className="object-cover" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
                   <span className="text-5xl font-bold text-white">{contractorName.charAt(0).toUpperCase()}</span>

@@ -65,7 +65,9 @@ async function loadDependencies() {
 }
 
 function generateCacheKey(imageUrls: string[]): string {
-  return `building_assessment:${crypto.createHash('sha256').update(imageUrls.sort().join('|')).digest('hex')}`;
+  // SHA-256 hex is exactly 64 chars, which fits the VARCHAR(64) cache_key column.
+  // The table name (building_assessments) provides the namespace implicitly.
+  return crypto.createHash('sha256').update(imageUrls.sort().join('|')).digest('hex');
 }
 
 /**
@@ -241,7 +243,7 @@ export const POST = withApiHandler({ auth: false, rateLimit: false }, async (req
         cache_key: cacheKey,
         domain,
         damage_type: 'general_damage',
-        severity: 0,
+        severity: 'early',  // DB column stores progression ('early'|'midway'|'full'), not damageAssessment.severity
         confidence: 0,
         safety_score: 50,
         compliance_score: 50,

@@ -12,6 +12,7 @@ import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { MotionArticle, MotionDiv } from '@/components/ui/MotionDiv';
+import Image from 'next/image';
 import { logger } from '@mintenance/shared';
 import { Zap, Eye, Star, PoundSterling, MapPin, CheckCircle, Clock, Briefcase } from 'lucide-react';
 
@@ -423,7 +424,7 @@ export default function ContractorJobsPage2025() {
                         <div className="flex items-center gap-3 mb-4">
                           <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
                             {job.homeowner.avatar ? (
-                              <img src={job.homeowner.avatar} alt={job.homeowner.name} className="w-full h-full rounded-full object-cover" />
+                              <Image src={job.homeowner.avatar} alt={job.homeowner.name} width={40} height={40} className="rounded-full object-cover" />
                             ) : (
                               <span className="text-teal-600 font-semibold">
                                 {job.homeowner.name.charAt(0).toUpperCase()}

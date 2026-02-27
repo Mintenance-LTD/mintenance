@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Search, Zap, Bell, UserPlus, ChevronDown } from 'lucide-react';
 import { designSystem } from '@/lib/design-system';
 
@@ -245,15 +246,12 @@ export function Header({
               fontWeight: '600',
             }}>
               {user.avatar ? (
-                <img 
-                  src={user.avatar} 
+                <Image
+                  src={user.avatar}
                   alt={user.name}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                  }}
+                  width={32}
+                  height={32}
+                  style={{ borderRadius: '50%', objectFit: 'cover' }}
                 />
               ) : (
                 user.name.split(' ').map(n => n[0]).join('').toUpperCase()
