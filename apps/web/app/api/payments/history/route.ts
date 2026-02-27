@@ -19,7 +19,6 @@ const selectFields = `
   payee_id,
   amount,
   status,
-  payment_intent_id,
   released_at,
   refunded_at,
   created_at,
@@ -36,7 +35,6 @@ type EscrowRow = {
   payee_id: string;
   amount: number | string;
   status: string;
-  payment_intent_id?: string | null;
   released_at?: string | null;
   refunded_at?: string | null;
   created_at: string;
@@ -57,7 +55,6 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
     : 'pending'),
   createdAt: row.created_at,
   updatedAt: row.updated_at,
-  paymentIntentId: row.payment_intent_id ?? undefined,
   releasedAt: row.released_at ?? undefined,
   refundedAt: row.refunded_at ?? undefined,
   job: row.job

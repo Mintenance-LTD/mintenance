@@ -229,9 +229,10 @@ export const POST = withApiHandler(
         created_at: new Date().toISOString(),
       });
 
-      // Generate idempotency key for Stripe (separate from our internal idempotency)
-      // Using UUID for better collision resistance than timestamp
-      const stripeIdempotencyKey = `payment_intent_${jobId}_${user.id}_${crypto.randomUUID()}`;
+      // Deterministic idempotency key: same job + user always produces same key.
+      // Our internal idempotency check prevents duplicates reaching Stripe; this
+      // provides a second layer if a request races past the Redis check.
+      const stripeIdempotencyKey = `payment_intent_${jobId}_${user.id}`;
 
       // Create Stripe PaymentIntent with timeout to prevent hanging requests
       const paymentIntent = await stripeWithTimeout(

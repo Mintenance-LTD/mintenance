@@ -1744,7 +1744,8 @@ describe('GET /api/payments/methods', () => {
 
       expect(response.status).toBe(200);
       expect(body.paymentMethods).toHaveLength(2);
-      expect(body.stripeCustomerId).toBe('cus_test_123');
+      // stripeCustomerId is NOT exposed in the response (security fix FIX-5: PII removal)
+      expect(body.stripeCustomerId).toBeUndefined();
       expect(body.defaultPaymentMethodId).toBe('pm_default_123');
 
       // First method should be marked as default

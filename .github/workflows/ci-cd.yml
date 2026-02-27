@@ -298,10 +298,13 @@ jobs:
     name: Slack Notification
     runs-on: ubuntu-latest
     needs: quality-checks
-    if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && secrets.SLACK_WEBHOOK != ''
+    if: always() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    env:
+      HAS_SLACK: ${{ secrets.SLACK_WEBHOOK != '' }}
 
     steps:
       - name: Notify team
+        if: ${{ env.HAS_SLACK == 'true' }}
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}

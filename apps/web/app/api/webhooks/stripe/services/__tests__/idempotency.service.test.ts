@@ -135,8 +135,7 @@ describe('IdempotencyService', () => {
 
       await service.recordEventProcessed(
         'evt_456',
-        'payment_intent.succeeded',
-        { id: 'pi_test' }
+        'payment_intent.succeeded'
       );
 
       expect(mockFrom).toHaveBeenCalledWith('webhook_events');
@@ -145,7 +144,6 @@ describe('IdempotencyService', () => {
           event_id: 'evt_456',
           event_type: 'payment_intent.succeeded',
           provider: 'stripe',
-          data: { id: 'pi_test' },
         })
       );
       expect(mockLoggerInfo).toHaveBeenCalledWith(
@@ -162,7 +160,7 @@ describe('IdempotencyService', () => {
 
       // Should NOT throw
       await expect(
-        service.recordEventProcessed('evt_dup', 'charge.refunded', {})
+        service.recordEventProcessed('evt_dup', 'charge.refunded')
       ).resolves.not.toThrow();
 
       expect(mockLoggerError).toHaveBeenCalledWith(
@@ -177,7 +175,7 @@ describe('IdempotencyService', () => {
       });
 
       await expect(
-        service.recordEventProcessed('evt_fail', 'invoice.paid', {})
+        service.recordEventProcessed('evt_fail', 'invoice.paid')
       ).resolves.not.toThrow();
 
       expect(mockLoggerError).toHaveBeenCalledWith(

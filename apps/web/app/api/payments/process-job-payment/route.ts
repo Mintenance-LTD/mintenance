@@ -55,12 +55,13 @@ export const POST = withApiHandler(
       throw new BadRequestError('Job has no assigned contractor');
     }
 
-    const createIntentResponse = await fetch(`${request.nextUrl.origin}/api/payments/create-intent`, {
+    // Use NEXT_PUBLIC_APP_URL for internal call — never forward cookies to prevent SSRF
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const createIntentResponse = await fetch(`${appUrl}/api/payments/create-intent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(request.headers.get('authorization') ? { Authorization: request.headers.get('authorization') as string } : {}),
-        ...(request.headers.get('cookie') ? { Cookie: request.headers.get('cookie') as string } : {}),
       },
       body: JSON.stringify({
         amount,

@@ -15,6 +15,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import * as OTPAuth from 'otpauth';
+import { decryptField, type EncryptedField } from '@/lib/encryption/field-encryption';
 
 /**
  * High-risk operation types
@@ -216,7 +217,7 @@ export async function validateMFAForPayment(
     // Check if user has MFA enabled
     const { data: user, error: userError } = await serverSupabase
       .from('profiles')
-      .select('mfa_enabled, mfa_secret')
+      .select('mfa_enabled, totp_secret')
       .eq('id', userId)
       .single();
 
@@ -243,10 +244,8 @@ export async function validateMFAForPayment(
       };
     }
 
-    // Validate the MFA token
-    // This would typically use a library like speakeasy or authenticator
-    // For now, we'll implement a basic validation check
-    const isValid = await validateTOTPToken(user.mfa_secret, mfaToken);
+    // Validate the MFA token (decrypt secret first; handles both encrypted and legacy plaintext)
+    const isValid = await validateTOTPToken(tryDecryptTOTPSecret(user.totp_secret), mfaToken, userId);
 
     if (!isValid) {
       // Record failed MFA attempt
@@ -328,7 +327,7 @@ async function isFirstTimeTransaction(userId: string): Promise<boolean> {
     const { count, error } = await serverSupabase
       .from('escrow_transactions')
       .select('id', { count: 'exact', head: true })
-      .eq('job_id', userId) // This would need proper join with jobs table
+      .eq('payer_id', userId)
       .eq('status', 'completed');
 
     if (error) {
@@ -364,6 +363,7 @@ async function detectUnusualPattern(
     const { count, error } = await serverSupabase
       .from('escrow_transactions')
       .select('id', { count: 'exact', head: true })
+      .eq('payer_id', userId)
       .gte('created_at', fiveMinutesAgo);
 
     if (error) {
@@ -384,7 +384,9 @@ async function detectUnusualPattern(
       const { data: avgData, error: avgError } = await serverSupabase
         .from('escrow_transactions')
         .select('amount')
+        .eq('payer_id', userId)
         .eq('status', 'completed')
+        .order('created_at', { ascending: false })
         .limit(10);
 
       if (!avgError && avgData && avgData.length > 0) {
@@ -409,12 +411,30 @@ async function detectUnusualPattern(
 }
 
 /**
+ * Decrypt TOTP secret — handles both AES-256-GCM encrypted (JSON envelope) and
+ * legacy plaintext values for backward-compatibility during migration.
+ */
+function tryDecryptTOTPSecret(rawValue: string): string {
+  try {
+    const parsed = JSON.parse(rawValue) as Partial<EncryptedField>;
+    if (parsed.ciphertext && parsed.iv && parsed.authTag && parsed.algorithm) {
+      return decryptField(parsed as EncryptedField, 'totp_secret');
+    }
+  } catch {
+    // Not JSON — assume plaintext legacy value
+  }
+  return rawValue;
+}
+
+/**
  * Validate TOTP token using otpauth library
  * Matches MFAService configuration (SHA1, 6 digits, 30s period, window=1)
+ * Includes Redis-backed replay protection (90-second window).
  */
 async function validateTOTPToken(
   secret: string,
-  token: string
+  token: string,
+  userId: string
 ): Promise<boolean> {
   try {
     const totp = new OTPAuth.TOTP({
@@ -426,7 +446,30 @@ async function validateTOTPToken(
     });
 
     const delta = totp.validate({ token, window: 1 });
-    return delta !== null;
+    if (delta === null) return false;
+
+    // Replay protection: reject token if it was already used within the TOTP window
+    const replayKey = `totp_used:${userId}:${token}`;
+    try {
+      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        const { Redis } = await import('@upstash/redis');
+        const redis = new Redis({
+          url: process.env.UPSTASH_REDIS_REST_URL,
+          token: process.env.UPSTASH_REDIS_REST_TOKEN,
+        });
+        // SET NX EX 90 — atomically set only if the key does not exist
+        const wasSet = await redis.set(replayKey, '1', { ex: 90, nx: true });
+        if (wasSet === null) {
+          logger.warn('TOTP replay attack detected', { service: 'payments', userId });
+          return false;
+        }
+      }
+    } catch (redisError) {
+      // Redis unavailable: log but allow (fail open for Redis errors only)
+      logger.warn('Redis unavailable for TOTP replay check, proceeding', { service: 'payments', userId });
+    }
+
+    return true;
   } catch (error) {
     logger.error('TOTP validation error', error, { service: 'payments' });
     return false;

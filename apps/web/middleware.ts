@@ -358,10 +358,16 @@ export async function middleware(request: NextRequest) {
         }
 
         // Add user info to request headers from Supabase session
+        // SECURITY: Read role from profiles table (not user_metadata which is client-writable)
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set('x-user-id', user.id);
         requestHeaders.set('x-user-email', user.email || '');
-        requestHeaders.set('x-user-role', user.user_metadata?.role || 'homeowner');
+        requestHeaders.set('x-user-role', profileData?.role || 'homeowner');
         requestHeaders.set('x-pathname', pathname);
 
         const response = NextResponse.next({ request: { headers: requestHeaders } });
