@@ -564,7 +564,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
           {/* AI Building Assessment — visible to contractor too */}
           {(buildingAssessment || jobPhotoUrls.length > 0) && (
             <BuildingAssessmentDisplay
-              assessment={buildingAssessment as Parameters<typeof BuildingAssessmentDisplay>[0]['assessment']}
+              assessment={((buildingAssessment as Record<string, unknown> | null)?.assessment_data as Parameters<typeof BuildingAssessmentDisplay>[0]['assessment']) ?? null}
               jobId={resolvedParams.id}
               photoUrls={jobPhotoUrls}
             />

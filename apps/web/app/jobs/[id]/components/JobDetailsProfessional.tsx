@@ -220,7 +220,7 @@ export function JobDetailsProfessional({
             {(buildingAssessment || photos.length > 0) && (
               <div className="mb-6">
                 <BuildingAssessmentDisplay
-                  assessment={buildingAssessment as unknown as React.ComponentProps<typeof BuildingAssessmentDisplay>['assessment'] ?? null}
+                  assessment={(buildingAssessment?.assessment_data as import('@/lib/services/building-surveyor/types').Phase1BuildingAssessment) ?? null}
                   jobId={job.id}
                   photoUrls={photos}
                   onCorrection={(assessmentId, corrections) => {

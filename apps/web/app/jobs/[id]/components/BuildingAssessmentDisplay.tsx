@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { AlertCircle, CheckCircle, AlertTriangle, Info, ChevronDown, ChevronUp, Sparkles, Loader2 } from 'lucide-react';
-import { BuildingAssessment } from '@mintenance/ai-core/types';
+import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 import { formatMoney } from '@/lib/utils/currency';
 
 function getCsrfTokenFromCookie(): string {
@@ -17,7 +17,7 @@ function getCsrfTokenFromCookie(): string {
 }
 
 interface BuildingAssessmentDisplayProps {
-  assessment: BuildingAssessment | null;
+  assessment: Phase1BuildingAssessment | null;
   loading?: boolean;
   onCorrection?: (assessmentId: string, corrections: unknown[]) => void;
   jobId?: string;
@@ -76,7 +76,8 @@ export function BuildingAssessmentDisplay({
     );
   }
 
-  if (!assessment) {
+  // Guard: also treat incomplete assessments (placeholder row without GPT data) as "no assessment"
+  if (!assessment || !assessment.damageAssessment) {
     if (jobId && photoUrls && photoUrls.length > 0) {
       return (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -86,7 +87,9 @@ export function BuildingAssessmentDisplay({
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">AI Building Assessment</h3>
-              <p className="text-sm text-gray-500">No analysis yet — run it now using your uploaded photos</p>
+              <p className="text-sm text-gray-500">
+                {assessment ? 'Previous analysis incomplete — run it again' : 'No analysis yet — run it now using your uploaded photos'}
+              </p>
             </div>
           </div>
           {reRunError && (
@@ -95,6 +98,7 @@ export function BuildingAssessmentDisplay({
             </p>
           )}
           <button
+            type="button"
             onClick={handleRunAnalysis}
             disabled={reRunLoading}
             className="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
@@ -111,10 +115,20 @@ export function BuildingAssessmentDisplay({
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical': return 'text-red-600 bg-red-50';
-      case 'severe': return 'text-orange-600 bg-orange-50';
-      case 'moderate': return 'text-yellow-600 bg-yellow-50';
-      case 'minimal': return 'text-green-600 bg-green-50';
+      case 'critical':
+      case 'full':
+        return 'text-red-600 bg-red-50';
+      case 'severe':
+      case 'midway':
+        return 'text-orange-600 bg-orange-50';
+      case 'moderate':
+      case 'medium':
+        return 'text-yellow-600 bg-yellow-50';
+      case 'minimal':
+      case 'early':
+      case 'low':
+      case 'none':
+        return 'text-green-600 bg-green-50';
       default: return 'text-gray-600 bg-gray-50';
     }
   };
@@ -132,6 +146,18 @@ export function BuildingAssessmentDisplay({
         return <Info className="w-5 h-5 text-gray-500" />;
     }
   };
+
+  // Derive risk level from numeric score
+  const getRiskLevelFromScore = (score: number): string => {
+    if (score >= 75) return 'critical';
+    if (score >= 50) return 'high';
+    if (score >= 25) return 'medium';
+    return 'low';
+  };
+
+  const safetyRiskLevel = getRiskLevelFromScore(100 - (assessment.safetyHazards.overallSafetyScore ?? 80));
+  const confidence = assessment.damageAssessment.confidence ?? 0;
+  const estimatedCost = assessment.contractorAdvice?.estimatedCost;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -154,7 +180,7 @@ export function BuildingAssessmentDisplay({
           </div>
           <div className="flex items-center gap-3">
             <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm font-medium rounded-full">
-              {Math.round(assessment.confidence)}% Confidence
+              {Math.round(confidence)}% Confidence
             </span>
             {expanded ? (
               <ChevronUp className="w-5 h-5 text-gray-400" />
@@ -193,57 +219,54 @@ export function BuildingAssessmentDisplay({
               </div>
             </div>
 
-            {/* Detected Issues */}
-            {assessment.damageAssessment.detectedIssues.length > 0 && (
+            {/* Detected Items */}
+            {(assessment.damageAssessment.detectedItems?.length ?? 0) > 0 && (
               <div className="mt-4">
                 <p className="text-sm font-medium text-gray-700 mb-2">Detected Issues:</p>
-                <div className="space-y-2">
-                  {assessment.damageAssessment.detectedIssues.map((issue, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-medium text-sm text-gray-900">{issue.type}</p>
-                          <p className="text-xs text-gray-500">Location: {issue.location}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">
-                            {Math.round(issue.confidence * 100)}% confidence
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            Source: {issue.source}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                <div className="flex flex-wrap gap-2">
+                  {assessment.damageAssessment.detectedItems!.map((item, index) => (
+                    <span key={index} className="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                      {item}
+                    </span>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Homeowner Explanation */}
+            {assessment.homeownerExplanation && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm font-medium text-blue-900 mb-2">What this means for you</p>
+                <p className="text-sm text-blue-800">{assessment.homeownerExplanation.whatIsIt}</p>
+                {assessment.homeownerExplanation.whatToDo && (
+                  <p className="text-sm text-blue-700 mt-1"><strong>Action:</strong> {assessment.homeownerExplanation.whatToDo}</p>
+                )}
               </div>
             )}
           </div>
 
           {/* Safety Hazards */}
-          {assessment.safetyHazards.hasSafetyHazards && (
+          {assessment.safetyHazards.hasCriticalHazards && (
             <div className="p-6 bg-red-50 border-t border-red-100">
               <div className="flex items-start gap-3">
-                {getRiskIcon(assessment.safetyHazards.riskLevel)}
+                {getRiskIcon(safetyRiskLevel)}
                 <div className="flex-1">
                   <h4 className="font-medium text-red-900 mb-2">Safety Hazards Detected</h4>
                   <p className="text-sm text-red-700 mb-3">
-                    Risk Level: <span className="font-semibold uppercase">{assessment.safetyHazards.riskLevel}</span>
+                    Safety Score: <span className="font-semibold">{assessment.safetyHazards.overallSafetyScore}/100</span>
                   </p>
-                  {assessment.safetyHazards.criticalFlags.length > 0 && (
+                  {(assessment.safetyHazards.hazards?.length ?? 0) > 0 && (
                     <div className="space-y-1 mb-3">
-                      {assessment.safetyHazards.criticalFlags.map((flag, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                          <span className="text-sm text-red-800">{flag}</span>
+                      {assessment.safetyHazards.hazards.map((hazard, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <span className="w-1.5 h-1.5 bg-red-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                          <span className="text-sm text-red-800">
+                            <strong>{hazard.type}</strong>: {hazard.description}
+                          </span>
                         </div>
                       ))}
                     </div>
                   )}
-                  <p className="text-sm text-red-700">
-                    {assessment.safetyHazards.details}
-                  </p>
                 </div>
               </div>
             </div>
@@ -256,28 +279,30 @@ export function BuildingAssessmentDisplay({
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm text-gray-600">Estimated Cost</span>
                 <span className="text-2xl font-bold text-blue-600">
-                  {formatMoney(assessment.estimatedCost.likely)}
+                  {formatMoney(estimatedCost?.recommended ?? 0)}
                 </span>
               </div>
               <div className="text-sm text-gray-600">
-                Range: {formatMoney(assessment.estimatedCost.min)} - {formatMoney(assessment.estimatedCost.max)}
+                Range: {formatMoney(estimatedCost?.min ?? 0)} – {formatMoney(estimatedCost?.max ?? 0)}
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Confidence: {assessment.estimatedCost.confidence}%
-              </div>
+              {assessment.contractorAdvice?.estimatedTime && (
+                <div className="text-xs text-gray-500 mt-1">
+                  Estimated time: {assessment.contractorAdvice.estimatedTime}
+                </div>
+              )}
             </div>
 
-            {/* Cost Breakdown */}
-            {assessment.estimatedCost.breakdown && assessment.estimatedCost.breakdown.length > 0 && (
+            {/* Materials Breakdown */}
+            {(assessment.contractorAdvice?.materials?.length ?? 0) > 0 && (
               <div className="mt-4">
-                <p className="text-sm font-medium text-gray-700 mb-2">Breakdown:</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">Materials:</p>
                 <div className="space-y-1">
-                  {assessment.estimatedCost.breakdown.map((item, index) => (
+                  {assessment.contractorAdvice!.materials.map((material, index) => (
                     <div key={index} className="flex items-center justify-between text-sm">
                       <span className="text-gray-600">
-                        {item.item} ({item.quantity} × {formatMoney(item.unitCost)})
+                        {material.name} ({material.quantity})
                       </span>
-                      <span className="font-medium">{formatMoney(item.totalCost)}</span>
+                      <span className="font-medium">{formatMoney(material.estimatedCost)}</span>
                     </div>
                   ))}
                 </div>
@@ -302,46 +327,42 @@ export function BuildingAssessmentDisplay({
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Category</p>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getSeverityColor(assessment.insuranceRisk.category)}`}>
-                  {assessment.insuranceRisk.category.replace(/_/g, ' ')}
+                <p className="text-sm text-gray-500 mb-1">Premium Impact</p>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getSeverityColor(assessment.insuranceRisk.premiumImpact)}`}>
+                  {assessment.insuranceRisk.premiumImpact}
                 </span>
               </div>
             </div>
-            <div className="mt-3">
-              <p className="text-sm text-gray-500 mb-1">Recommended Action</p>
-              <p className="text-sm text-gray-700">{assessment.insuranceRisk.recommendedAction}</p>
-            </div>
+            {(assessment.insuranceRisk.mitigationSuggestions?.length ?? 0) > 0 && (
+              <div className="mt-3">
+                <p className="text-sm text-gray-500 mb-1">Recommended Action</p>
+                <p className="text-sm text-gray-700">{assessment.insuranceRisk.mitigationSuggestions[0]}</p>
+              </div>
+            )}
           </div>
 
           {/* Recommendations */}
-          <div className="p-6 border-t border-gray-200">
-            <h4 className="font-medium text-gray-900 mb-3">AI Recommendations</h4>
-            <div className="space-y-2">
-              {assessment.recommendations.map((rec, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-gray-700">{rec}</p>
-                </div>
-              ))}
+          {(assessment.contractorAdvice?.repairNeeded?.length ?? 0) > 0 && (
+            <div className="p-6 border-t border-gray-200">
+              <h4 className="font-medium text-gray-900 mb-3">AI Recommendations</h4>
+              <div className="space-y-2">
+                {assessment.contractorAdvice!.repairNeeded.map((rec, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-gray-700">{rec}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Metadata */}
+          {/* Urgency */}
           <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
             <div className="flex items-center justify-between">
               <span>
-                Model: {assessment.metadata.model} v{assessment.metadata.version}
+                Urgency: <strong className="capitalize">{assessment.urgency.urgency}</strong>
               </span>
-              <span>
-                Processing: {assessment.metadata.processingTime}ms
-              </span>
-              <span>
-                API Calls: {assessment.metadata.apiCalls.length}
-              </span>
-              <span>
-                Cost: ${assessment.metadata.costTracking.actualCost.toFixed(4)}
-              </span>
+              <span>{assessment.urgency.recommendedActionTimeline}</span>
             </div>
           </div>
 
@@ -349,12 +370,14 @@ export function BuildingAssessmentDisplay({
           <div className="p-4 border-t border-gray-200 bg-gray-50">
             <div className="flex items-center justify-between">
               <button
+                type="button"
                 onClick={() => setShowCorrections(true)}
                 className="px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700"
               >
                 Improve Assessment
               </button>
               <button
+                type="button"
                 onClick={handleRunAnalysis}
                 disabled={reRunLoading || !jobId || !photoUrls?.length}
                 className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700 disabled:opacity-40 flex items-center gap-1.5"
