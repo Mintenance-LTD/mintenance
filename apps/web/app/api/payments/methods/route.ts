@@ -98,7 +98,6 @@ export const GET = withApiHandler(
         expMonth: pm.card.exp_month,
         expYear: pm.card.exp_year,
       } : null,
-      billing_details: pm.billing_details,
       created: pm.created,
     }));
 
@@ -111,7 +110,6 @@ export const GET = withApiHandler(
 
     const response = NextResponse.json({
       paymentMethods: formattedMethods,
-      stripeCustomerId,
       defaultPaymentMethodId,
     });
 

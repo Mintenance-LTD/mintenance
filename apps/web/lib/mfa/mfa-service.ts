@@ -17,6 +17,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import * as OTPAuth from 'otpauth';
 import QRCode from 'qrcode';
+import { encryptField, decryptField, type EncryptedField } from '@/lib/encryption/field-encryption';
 
 interface TOTPEnrollmentData {
   secret: string;
@@ -39,6 +40,22 @@ interface TrustedDeviceData {
   deviceToken: string;
   deviceName?: string;
   expiresAt: Date;
+}
+
+/**
+ * Decrypt TOTP secret — handles AES-256-GCM encrypted (JSON envelope) and
+ * legacy plaintext values for backward-compatibility during migration.
+ */
+function tryDecryptTOTPSecret(rawValue: string): string {
+  try {
+    const parsed = JSON.parse(rawValue) as Partial<EncryptedField>;
+    if (parsed.ciphertext && parsed.iv && parsed.authTag && parsed.algorithm) {
+      return decryptField(parsed as EncryptedField, 'totp_secret');
+    }
+  } catch {
+    // Not JSON — assume plaintext legacy value
+  }
+  return rawValue;
 }
 
 /**
@@ -96,12 +113,12 @@ export class MFAService {
       // Generate backup codes
       const backupCodes = this._createBackupCodeArray();
 
-      // Store encrypted secret in database
-      // NOTE: In production, use app-level encryption for totp_secret
+      // Encrypt TOTP secret at rest using AES-256-GCM before storing
+      const encryptedSecret = encryptField(secret.base32, 'totp_secret');
       const { error: updateError } = await serverSupabase
         .from('profiles')
         .update({
-          totp_secret: secret.base32,
+          totp_secret: JSON.stringify(encryptedSecret),
           mfa_method: 'totp',
           mfa_enrolled_at: new Date().toISOString(),
           // Don't enable MFA yet - wait for verification
@@ -164,13 +181,16 @@ export class MFAService {
         return { success: false, error: 'MFA already enabled' };
       }
 
+      // Decrypt secret (handles both encrypted and legacy plaintext values)
+      const plainSecret = tryDecryptTOTPSecret(user.totp_secret);
+
       // Verify token using otpauth (constant-time comparison)
       const totp = new OTPAuth.TOTP({
         issuer: 'Mintenance',
         algorithm: 'SHA1',
         digits: 6,
         period: 30,
-        secret: OTPAuth.Secret.fromBase32(user.totp_secret),
+        secret: OTPAuth.Secret.fromBase32(plainSecret),
       });
 
       const delta = totp.validate({ token, window: this.TOTP_WINDOW });
@@ -662,12 +682,15 @@ export class MFAService {
       return false;
     }
 
+    // Decrypt secret (handles both encrypted and legacy plaintext values)
+    const plainSecret = tryDecryptTOTPSecret(user.totp_secret);
+
     const totp = new OTPAuth.TOTP({
       issuer: 'Mintenance',
       algorithm: 'SHA1',
       digits: 6,
       period: 30,
-      secret: OTPAuth.Secret.fromBase32(user.totp_secret),
+      secret: OTPAuth.Secret.fromBase32(plainSecret),
     });
 
     const delta = totp.validate({ token, window: this.TOTP_WINDOW });

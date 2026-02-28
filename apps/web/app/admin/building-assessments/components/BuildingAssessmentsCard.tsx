@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
@@ -56,7 +57,7 @@ export function BuildingAssessmentsCard({ assessment, loading, onReview, onValid
           {assessment.images && assessment.images.length > 0 && (
             <div style={{ display: 'flex', gap: theme.spacing[2], marginTop: theme.spacing[3] }}>
               {assessment.images.slice(0, 4).map((img, idx) => (
-                <img key={idx} src={img.image_url} alt={`Assessment ${idx + 1}`} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: theme.borderRadius.lg, border: `1px solid ${theme.colors.border}` }} />
+                <Image key={idx} src={img.image_url} alt={`Assessment ${idx + 1}`} width={80} height={80} style={{ objectFit: 'cover', borderRadius: theme.borderRadius.lg, border: `1px solid ${theme.colors.border}` }} />
               ))}
             </div>
           )}

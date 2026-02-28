@@ -54,7 +54,9 @@ export async function middleware(request: NextRequest) {
   // IMPORTANT: Public route check MUST happen before ConfigManager to ensure
   // login, CSRF, session-status, and diag routes work even if config fails
   const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password', '/about', '/contact', '/privacy', '/terms', '/help', '/logout', '/careers', '/press', '/safety', '/cookies', '/faq', '/blog', '/pricing', '/how-it-works', '/ai-search', '/try-mint-ai'];
-  const publicApiRoutes = ['/api/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform', '/api/diag', '/api/building-surveyor/demo', '/api/building-surveyor/demo-feedback'];
+  const publicApiRoutes = ['/api/csrf', '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/session-status', '/api/stats/platform', '/api/diag', '/api/building-surveyor/demo', '/api/building-surveyor/demo-feedback',
+    '/api/csp-report', // Browser-generated CSP violation reports: no auth, no CSRF (browser controls headers)
+  ];
   const adminAuthRoutes = ['/admin/login', '/admin/register', '/admin/forgot-password'];
   // SECURITY: Only allow UUID-formatted contractor profile paths as public
   // This prevents /contractor/dashboard-enhanced, /contractor/settings, etc. from bypassing auth
@@ -91,7 +93,7 @@ export async function middleware(request: NextRequest) {
     if (!isDevelopment) {
       response.headers.set('Content-Security-Policy', [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
+        "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
         "font-src 'self' data: https://fonts.gstatic.com",
@@ -356,10 +358,16 @@ export async function middleware(request: NextRequest) {
         }
 
         // Add user info to request headers from Supabase session
+        // SECURITY: Read role from profiles table (not user_metadata which is client-writable)
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
         const requestHeaders = new Headers(request.headers);
         requestHeaders.set('x-user-id', user.id);
         requestHeaders.set('x-user-email', user.email || '');
-        requestHeaders.set('x-user-role', user.user_metadata?.role || 'homeowner');
+        requestHeaders.set('x-user-role', profileData?.role || 'homeowner');
         requestHeaders.set('x-pathname', pathname);
 
         const response = NextResponse.next({ request: { headers: requestHeaders } });
@@ -584,7 +592,7 @@ export async function middleware(request: NextRequest) {
     // This matches the public routes CSP (line 80-92) which works correctly.
     const cspHeader = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",

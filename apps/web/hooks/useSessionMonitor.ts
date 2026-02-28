@@ -77,12 +77,26 @@ export function useSessionMonitor() {
       });
 
       if (response.status === 429) {
-        // Rate limited - back off polling
-        logger.warn('Session status rate limit exceeded', { service: 'useSessionMonitor' });
-        setState(prev => ({
-          ...prev,
-          error: 'Too many requests. Polling paused.',
-        }));
+        // Rate limited — stop the current interval so we don't keep hammering the endpoint
+        // and schedule a restart after 2 minutes (2× the 60 s rate-limit window).
+        logger.warn('Session status rate limit exceeded — backing off for 2 minutes', { service: 'useSessionMonitor' });
+        setState(prev => ({ ...prev, error: 'Too many requests. Polling paused for 2 minutes.' }));
+
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+
+        setTimeout(() => {
+          const pollIntervalSeconds = parseInt(
+            process.env.NEXT_PUBLIC_SESSION_POLL_INTERVAL_SECONDS || '60'
+          );
+          setState(prev => ({ ...prev, error: null }));
+          pollIntervalRef.current = setInterval(() => {
+            if (isVisibleRef.current) fetchSessionStatus();
+          }, pollIntervalSeconds * 1000);
+        }, 2 * 60 * 1000); // 2-minute back-off
+
         return;
       }
 

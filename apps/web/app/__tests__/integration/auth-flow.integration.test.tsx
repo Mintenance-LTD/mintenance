@@ -148,6 +148,27 @@ describe('Authentication Flow Integration Tests', () => {
     mockSignOut.mockResolvedValue({ error: null });
     mockResetPasswordForEmail.mockResolvedValue({ data: {}, error: null });
     mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    // Register and login pages call fetch() directly (not supabase.auth methods)
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url === '/api/auth/register') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: { get: (_name: string) => 'application/json' },
+          json: () => Promise.resolve({ user: { id: 'user-1', role: 'homeowner' } }),
+        });
+      }
+      if (url === '/api/auth/login') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: { get: (_name: string) => 'application/json' },
+          json: () => Promise.resolve({ user: { id: 'user-1', role: 'homeowner', email: 'user@example.com' } }),
+        });
+      }
+      return Promise.reject(new Error(`Unmocked fetch: ${url}`));
+    });
   });
 
   afterEach(() => {
@@ -159,29 +180,26 @@ describe('Authentication Flow Integration Tests', () => {
       const { default: SignUpPage } = await import('@/app/auth/signup/page');
       render(<SignUpPage />);
 
-      // Fill sign up form
+      // Fill sign up form (register page uses fetch('/api/auth/register'), not supabase.auth.signUp)
+      await user.type(screen.getByLabelText(/first name/i), 'John');
+      await user.type(screen.getByLabelText(/last name/i), 'Smith');
       await user.type(screen.getByLabelText(/email/i), 'newuser@example.com');
       await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
       await user.type(screen.getByLabelText(/confirm password/i), 'SecurePass123!');
-
-      // Select role using the "I'm a" label
-      await user.selectOptions(screen.getByLabelText(/I'm a/i), 'homeowner');
+      // Role defaults to 'homeowner' — no need to interact with RoleToggle
+      // Accept terms checkbox
+      await user.click(screen.getByRole('checkbox'));
 
       // Submit
       const submitButton = screen.getByRole('button', { name: /create account/i });
       await user.click(submitButton);
 
-      // Verify signup was called
+      // Verify fetch was called with the registration endpoint
       await waitFor(() => {
-        expect(mockSignUp).toHaveBeenCalledWith({
-          email: 'newuser@example.com',
-          password: 'SecurePass123!',
-          options: expect.objectContaining({
-            data: expect.objectContaining({
-              role: 'homeowner',
-            }),
-          }),
-        });
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/auth/register',
+          expect.objectContaining({ method: 'POST' })
+        );
       });
     });
 
@@ -197,7 +215,7 @@ describe('Authentication Flow Integration Tests', () => {
 
       // Should show password strength error (use getAllByText since helper text also matches)
       await waitFor(() => {
-        const errorElement = screen.getByText('Password must be at least 8 characters long');
+        const errorElement = screen.getByText('Password must be at least 8 characters');
         expect(errorElement).toBeInTheDocument();
       });
 
@@ -216,7 +234,7 @@ describe('Authentication Flow Integration Tests', () => {
 
       // Should show password mismatch error
       await waitFor(() => {
-        expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
+        expect(screen.getByText("Passwords don't match")).toBeInTheDocument();
       });
 
       expect(mockSignUp).not.toHaveBeenCalled();
@@ -252,46 +270,50 @@ describe('Authentication Flow Integration Tests', () => {
       expect(mockSignUp).not.toHaveBeenCalled();
     });
 
-    it('shows verification email message after successful signup', async () => {
-      mockSignUp.mockResolvedValue({
-        data: {
-          user: createTestUser({ email_verified: false }),
-          session: null,
-        },
-        error: null,
-      });
+    it('shows success message after successful signup', async () => {
+      // Register page uses fetch('/api/auth/register') not supabase.auth.signUp
+      // Default fetch mock returns success — no need to override
 
       const { default: SignUpPage } = await import('@/app/auth/signup/page');
       render(<SignUpPage />);
 
+      await user.type(screen.getByLabelText(/first name/i), 'Jane');
+      await user.type(screen.getByLabelText(/last name/i), 'Doe');
       await user.type(screen.getByLabelText(/email/i), 'test@example.com');
       await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
       await user.type(screen.getByLabelText(/confirm password/i), 'SecurePass123!');
+      await user.click(screen.getByRole('checkbox'));
 
       await user.click(screen.getByRole('button', { name: /create account/i }));
 
-      // Should show verification message (the success page says "check your email")
+      // Register page shows "Registration Successful!" on success
       await waitFor(() => {
-        expect(screen.getByText(/check your email/i)).toBeInTheDocument();
+        expect(screen.getByText(/Registration Successful/i)).toBeInTheDocument();
       });
     });
 
     it('shows error for already registered email', async () => {
-      mockSignUp.mockResolvedValue({
-        data: { user: null, session: null },
-        error: { message: 'User already registered', code: 'user_already_exists' },
+      // Override fetch mock to return 400 error (register page uses fetch, not supabase.auth.signUp)
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        headers: { get: (_name: string) => 'application/json' },
+        json: () => Promise.resolve({ error: 'User already registered' }),
       });
 
       const { default: SignUpPage } = await import('@/app/auth/signup/page');
       render(<SignUpPage />);
 
+      await user.type(screen.getByLabelText(/first name/i), 'Jane');
+      await user.type(screen.getByLabelText(/last name/i), 'Doe');
       await user.type(screen.getByLabelText(/email/i), 'existing@example.com');
       await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
       await user.type(screen.getByLabelText(/confirm password/i), 'SecurePass123!');
+      await user.click(screen.getByRole('checkbox'));
 
       await user.click(screen.getByRole('button', { name: /create account/i }));
 
-      // Should show error
+      // Should show error from API response
       await waitFor(() => {
         expect(screen.getByText(/already registered/i)).toBeInTheDocument();
       });
@@ -300,45 +322,52 @@ describe('Authentication Flow Integration Tests', () => {
 
   describe('Login Flow', () => {
     it('logs in successfully with correct credentials', async () => {
+      // Login page uses fetch('/api/auth/login') not supabase.auth.signInWithPassword
+      // Default fetch mock returns homeowner user — already set in beforeEach
+
       const { default: LoginPage } = await import('@/app/auth/login/page');
       render(<LoginPage />);
 
       await user.type(screen.getByLabelText(/email/i), 'user@example.com');
-      await user.type(screen.getByLabelText(/password/i), 'CorrectPassword123!');
+      // Use exact match to avoid matching "Show password" aria-label button
+      await user.type(screen.getByLabelText(/^password$/i), 'CorrectPassword123!');
 
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-      // Verify login was called
+      // Verify fetch was called with login endpoint
       await waitFor(() => {
-        expect(mockSignIn).toHaveBeenCalledWith({
-          email: 'user@example.com',
-          password: 'CorrectPassword123!',
-        });
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/auth/login',
+          expect.objectContaining({ method: 'POST' })
+        );
       });
 
-      // Should redirect to dashboard (homeowner default)
+      // Should redirect to homeowner dashboard after 500ms timeout
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/dashboard');
-      });
+      }, { timeout: 2000 });
     });
 
     it('shows error with incorrect password', async () => {
-      mockSignIn.mockResolvedValue({
-        data: { user: null, session: null },
-        error: { message: 'Invalid login credentials', code: 'invalid_credentials' },
+      // Override fetch to return 401 error (login page uses fetch not supabase.auth.signInWithPassword)
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        headers: { get: (_name: string) => 'application/json' },
+        json: () => Promise.resolve({ error: 'Invalid login credentials' }),
       });
 
       const { default: LoginPage } = await import('@/app/auth/login/page');
       render(<LoginPage />);
 
       await user.type(screen.getByLabelText(/email/i), 'user@example.com');
-      await user.type(screen.getByLabelText(/password/i), 'WrongPassword');
+      await user.type(screen.getByLabelText(/^password$/i), 'WrongPassword');
 
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-      // Should show error
+      // 'Invalid login credentials' contains 'invalid' -> shows "Incorrect password..." message
       await waitFor(() => {
-        expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument();
+        expect(screen.getByText(/incorrect password/i)).toBeInTheDocument();
       });
 
       // Should NOT redirect
@@ -346,20 +375,23 @@ describe('Authentication Flow Integration Tests', () => {
     });
 
     it('prevents login for unverified email', async () => {
-      mockSignIn.mockResolvedValue({
-        data: { user: null, session: null },
-        error: { message: 'Email not confirmed', code: 'email_not_confirmed' },
+      // Override fetch to return 401 with email confirmation error
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        headers: { get: (_name: string) => 'application/json' },
+        json: () => Promise.resolve({ error: 'Email not confirmed' }),
       });
 
       const { default: LoginPage } = await import('@/app/auth/login/page');
       render(<LoginPage />);
 
       await user.type(screen.getByLabelText(/email/i), 'unverified@example.com');
-      await user.type(screen.getByLabelText(/password/i), 'Password123!');
+      await user.type(screen.getByLabelText(/^password$/i), 'Password123!');
 
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-      // Should show verification message
+      // 'Email not confirmed' contains 'confirm' -> shows "Please verify your email address..."
       await waitFor(() => {
         expect(screen.getByText(/verify your email/i)).toBeInTheDocument();
       });
@@ -371,9 +403,10 @@ describe('Authentication Flow Integration Tests', () => {
 
       // The login page has a "Forgot password?" link
       const forgotPasswordLink = screen.getByText(/forgot password/i);
+      // Login page has "Forgot password?" link at /forgot-password (not /auth/forgot-password)
       expect(forgotPasswordLink.closest('a')).toHaveAttribute(
         'href',
-        '/auth/forgot-password'
+        '/forgot-password'
       );
     });
   });
@@ -436,55 +469,44 @@ describe('Authentication Flow Integration Tests', () => {
     it('redirects homeowner to homeowner dashboard after login', async () => {
       const homeowner = createTestHomeowner();
 
-      mockSignIn.mockResolvedValue({
-        data: {
-          user: {
-            ...homeowner,
-            user_metadata: { role: 'homeowner' },
-          },
-          session: { access_token: 'token' },
-        },
-        error: null,
-      });
+      // Login page uses fetch('/api/auth/login') — default mock returns homeowner role
+      // No need to override; default beforeEach mock returns { user: { role: 'homeowner' } }
 
       const { default: LoginPage } = await import('@/app/auth/login/page');
       render(<LoginPage />);
 
       await user.type(screen.getByLabelText(/email/i), homeowner.email);
-      await user.type(screen.getByLabelText(/password/i), 'Password123!');
+      await user.type(screen.getByLabelText(/^password$/i), 'Password123!');
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-      // Homeowner goes to /dashboard
+      // Homeowner goes to /dashboard after 500ms timeout
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/dashboard');
-      });
+      }, { timeout: 2000 });
     });
 
     it('redirects contractor to contractor dashboard after login', async () => {
       const contractor = createTestContractor();
 
-      mockSignIn.mockResolvedValue({
-        data: {
-          user: {
-            ...contractor,
-            user_metadata: { role: 'contractor' },
-          },
-          session: { access_token: 'token' },
-        },
-        error: null,
+      // Override fetch mock to return contractor role
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: (_name: string) => 'application/json' },
+        json: () => Promise.resolve({ user: { id: contractor.id, role: 'contractor', email: contractor.email } }),
       });
 
       const { default: LoginPage } = await import('@/app/auth/login/page');
       render(<LoginPage />);
 
       await user.type(screen.getByLabelText(/email/i), contractor.email);
-      await user.type(screen.getByLabelText(/password/i), 'Password123!');
+      await user.type(screen.getByLabelText(/^password$/i), 'Password123!');
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-      // Contractor goes to /contractor/dashboard
+      // Contractor goes to /contractor/dashboard-enhanced (not /contractor/dashboard)
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/contractor/dashboard');
-      });
+        expect(mockPush).toHaveBeenCalledWith('/contractor/dashboard-enhanced');
+      }, { timeout: 2000 });
     });
   });
 });

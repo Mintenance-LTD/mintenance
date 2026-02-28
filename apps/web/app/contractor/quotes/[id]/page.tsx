@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { QuoteDetailsClient } from './components/QuoteDetailsClient';
 import { redirect } from 'next/navigation';
 
@@ -9,10 +9,6 @@ export const metadata: Metadata = {
   description: 'View and manage your quote details, line items, and send to homeowners on Mintenance.',
 };
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-);
 
 export default async function QuoteDetailsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -22,7 +18,7 @@ export default async function QuoteDetailsPage({ params }: { params: Promise<{ i
         redirect('/login');
     }
 
-    const { data: quote, error } = await supabase
+    const { data: quote, error } = await serverSupabase
         .from('contractor_quotes')
         .select('*')
         .eq('id', id)

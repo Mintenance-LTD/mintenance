@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ReactNode } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Briefcase, Plus, MessageSquare, Settings } from 'lucide-react';
@@ -34,7 +35,7 @@ export function HomeownerLayoutShell({
             <div className="text-lg font-semibold text-gray-900">Mintenance</div>
             {userAvatar && (
               <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
-                <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
+                <Image src={userAvatar} alt={userName ?? ''} width={32} height={32} className="object-cover" />
               </div>
             )}
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
@@ -206,7 +207,9 @@ export function HomeownerApprovalClient() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: theme.spacing.sm }}>
                 {approvalData.beforePhotos.map((photo, idx) => (
                   <div key={idx}>
-                    <img src={photo.url} alt={`Before ${idx + 1}`} style={{ width: '100%', borderRadius: theme.borderRadius.md }} />
+                    <div style={{ position: 'relative', height: '200px', overflow: 'hidden', borderRadius: theme.borderRadius.md }}>
+                    <Image src={photo.url} alt={`Before ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
+                  </div>
                     {photo.qualityScore && (
                       <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
                         Quality: {(photo.qualityScore * 100).toFixed(0)}%
@@ -228,7 +231,9 @@ export function HomeownerApprovalClient() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: theme.spacing.sm }}>
                 {approvalData.afterPhotos.map((photo, idx) => (
                   <div key={idx}>
-                    <img src={photo.url} alt={`After ${idx + 1}`} style={{ width: '100%', borderRadius: theme.borderRadius.md }} />
+                    <div style={{ position: 'relative', height: '200px', overflow: 'hidden', borderRadius: theme.borderRadius.md }}>
+                    <Image src={photo.url} alt={`After ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
+                  </div>
                     {photo.qualityScore && (
                       <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
                         Quality: {(photo.qualityScore * 100).toFixed(0)}%

@@ -337,11 +337,15 @@ export class CostControlService {
   private static async getMonthSpendFromDB(): Promise<number> {
     try {
       const thisMonth = new Date().toISOString().slice(0, 7);
+      // Use the first day of next month as the exclusive upper bound so the
+      // query works correctly for all months (including Feb which has 28/29 days).
+      const monthStart = new Date(`${thisMonth}-01T00:00:00`);
+      const nextMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
       const { data, error } = await serverSupabase
         .from('ai_service_costs')
         .select('cost')
         .gte('timestamp', `${thisMonth}-01T00:00:00`)
-        .lt('timestamp', `${thisMonth}-31T23:59:59`);
+        .lt('timestamp', nextMonthStart.toISOString());
 
       if (error) {
         logger.error('Failed to get month spend from DB', error);

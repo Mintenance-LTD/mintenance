@@ -1,6 +1,7 @@
 'use client';
 
 import React, { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -241,7 +242,7 @@ export function ProfessionalHomeownerLayout({
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200">
             <Link href="/dashboard" className="flex items-center gap-3">
-              <img src="/assets/icon.png" alt="Mintenance" className="w-8 h-8" />
+              <Image src="/assets/icon.png" alt="Mintenance" width={32} height={32} />
               <span className="text-gray-900 font-semibold text-lg">Mintenance</span>
             </Link>
             {isMobile && (
@@ -353,7 +354,7 @@ export function ProfessionalHomeownerLayout({
                 className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
               >
                 {homeowner?.profile_image_url ? (
-                  <img src={homeowner.profile_image_url} alt={fullName} className="w-9 h-9 rounded-full object-cover" />
+                  <Image src={homeowner.profile_image_url} alt={fullName} width={36} height={36} className="rounded-full object-cover" />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
                     <span className="text-white font-semibold text-sm">{initials}</span>
@@ -435,7 +436,7 @@ export function ProfessionalHomeownerLayout({
                   className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                 >
                   {homeowner?.profile_image_url ? (
-                    <img src={homeowner.profile_image_url} alt={fullName} className="w-9 h-9 rounded-full object-cover border-2 border-gray-200 hover:border-teal-500 transition-colors" />
+                    <Image src={homeowner.profile_image_url} alt={fullName} width={36} height={36} className="rounded-full object-cover border-2 border-gray-200 hover:border-teal-500 transition-colors" />
                   ) : (
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center border-2 border-gray-200 hover:border-teal-400 transition-colors">
                       <span className="text-white font-semibold text-sm">{initials}</span>

@@ -182,11 +182,12 @@ export const POST = withApiHandler(
       logger.error('Failed to create payment confirmation notifications', notifError, { service: 'payments', jobId });
     }
 
-    // Optionally update job status
+    // Update job status only if currently assigned (prevent invalid state transitions)
     await serverSupabase
       .from('jobs')
       .update({ status: 'in_progress' })
-      .eq('id', jobId);
+      .eq('id', jobId)
+      .eq('status', 'assigned');
 
     return NextResponse.json({
       success: true,

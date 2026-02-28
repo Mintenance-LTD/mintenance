@@ -27,7 +27,17 @@ export const optionalNumber = () =>
 
 // P1: Severity and urgency enums for structured validation
 const hazardSeverityEnum = z.enum(['low', 'medium', 'high', 'critical']).optional();
-const complianceSeverityEnum = z.enum(['minor', 'moderate', 'major']).optional();
+// Normalise GPT-4o's generic severity labels ('low'/'medium'/'high'/'critical') into
+// our canonical three-value enum so validation never rejects a valid response.
+const complianceSeverityEnum = z.preprocess(
+  (val) => {
+    if (val === 'low') return 'minor';
+    if (val === 'medium') return 'moderate';
+    if (val === 'high' || val === 'critical') return 'major';
+    return val;
+  },
+  z.enum(['minor', 'moderate', 'major']).optional(),
+);
 const riskSeverityEnum = z.enum(['low', 'medium', 'high']).optional();
 const urgencyEnum = z.enum(['immediate', 'urgent', 'soon', 'planned', 'monitor']).optional();
 const damageSeverityEnum = z.enum(['early', 'midway', 'full']).optional();

@@ -4,12 +4,8 @@
  * Uses proper indexing, select optimization, and RLS
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // Create server-side client (using service role key to bypass RLS)
 export const createServerClient = () => {

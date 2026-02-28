@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
@@ -181,7 +182,9 @@ export function PhotoUploadWizard({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: theme.spacing.md, marginBottom: theme.spacing.lg }}>
           {photos.map((photo, idx) => (
             <div key={idx}>
-              <img src={photo.url} alt={`Photo ${idx + 1}`} style={{ width: '100%', borderRadius: theme.borderRadius.md }} />
+              <div style={{ position: 'relative', height: '200px', overflow: 'hidden', borderRadius: theme.borderRadius.md }}>
+                <Image src={photo.url} alt={`Photo ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
+              </div>
               <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary, marginTop: theme.spacing.xs }}>
                 Quality: {(photo.qualityScore * 100).toFixed(0)}%
               </div>

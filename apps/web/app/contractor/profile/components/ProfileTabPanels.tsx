@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import NextImage from 'next/image';
 import { AnimatePresence } from 'framer-motion';
 import { formatMoney } from '@/lib/utils/currency';
 import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
@@ -203,7 +204,7 @@ export function ProfileTabPanels({
                   <MotionDiv key={post.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} whileHover={{ y: -4 }} className="group relative rounded-xl overflow-hidden hover:shadow-xl transition-all bg-white border border-gray-200">
                     <div className="relative h-56 bg-slate-100 overflow-hidden">
                       {post.media_urls && post.media_urls[0] ? (
-                        <img src={post.media_urls[0]} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <NextImage src={post.media_urls[0]} alt={post.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
                       ) : (<div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-16 h-16 text-slate-300" /></div>)}
                       {isEditMode && (
                         <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/60 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -248,7 +249,7 @@ export function ProfileTabPanels({
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
                         {review.reviewer?.profile_image_url ? (
-                          <img src={review.reviewer.profile_image_url} alt={`${review.reviewer.first_name} ${review.reviewer.last_name}`} className="w-full h-full rounded-xl object-cover" />
+                          <NextImage src={review.reviewer.profile_image_url} alt={`${review.reviewer.first_name} ${review.reviewer.last_name}`} width={48} height={48} className="rounded-xl object-cover" />
                         ) : (<span className="text-white font-bold text-lg">{review.reviewer?.first_name?.charAt(0).toUpperCase() || '?'}</span>)}
                       </div>
                       <div className="flex-1">

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
@@ -484,7 +485,9 @@ export function EscrowReviewDashboardClient() {
               {selectedReview.beforePhotos.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: theme.spacing.sm }}>
                   {selectedReview.beforePhotos.map((url, idx) => (
-                    <img key={idx} src={url} alt={`Before ${idx + 1}`} style={{ width: '100%', borderRadius: theme.borderRadius.md }} />
+                    <div key={idx} style={{ position: 'relative', height: '200px', overflow: 'hidden', borderRadius: theme.borderRadius.md }}>
+                      <Image src={url} alt={`Before ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
+                    </div>
                   ))}
                 </div>
               ) : (
@@ -499,7 +502,9 @@ export function EscrowReviewDashboardClient() {
               {selectedReview.afterPhotos.length > 0 ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: theme.spacing.sm }}>
                   {selectedReview.afterPhotos.map((url, idx) => (
-                    <img key={idx} src={url} alt={`After ${idx + 1}`} style={{ width: '100%', borderRadius: theme.borderRadius.md }} />
+                    <div key={idx} style={{ position: 'relative', height: '200px', overflow: 'hidden', borderRadius: theme.borderRadius.md }}>
+                      <Image src={url} alt={`After ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
+                    </div>
                   ))}
                 </div>
               ) : (

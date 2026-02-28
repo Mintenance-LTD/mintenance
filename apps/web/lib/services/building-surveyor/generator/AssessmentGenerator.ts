@@ -5,6 +5,7 @@
 
 import { logger } from '@mintenance/shared';
 import { fetchWithOpenAIRetry } from '@/lib/utils/openai-rate-limit';
+import { BuildingPathologyRAGService } from '../BuildingPathologyRAGService';
 
 export const USE_MINT_AI_VLM = process.env.USE_MINT_AI_VLM === 'true';
 const MINT_AI_VLM_API_KEY = process.env.MINT_AI_VLM_API_KEY?.trim() || '';
@@ -152,14 +153,50 @@ async function mintAiStub(
 }
 
 /**
- * Get assessment JSON content from the configured generator.
- * Priority: StudentRoutingGate (if VLM_ROUTING_MODE=auto) -> MINT_AI_VLM_ENDPOINT -> USE_MINT_AI_VLM (stub) -> GPT-4o.
+ * Inject RAG knowledge base context into the system message if available.
+ * Adds RICS/BRE-sourced defect knowledge to ground the AI in authoritative standards.
  */
+async function injectRAGContext(
+  messages: GeneratorMessage[],
+  damageCategory?: string
+): Promise<GeneratorMessage[]> {
+  try {
+    const categories = damageCategory
+      ? BuildingPathologyRAGService.damageTypeToCategories(damageCategory)
+      : [];
+
+    const ragContext = categories.length > 0
+      ? await BuildingPathologyRAGService.queryByCategory(categories, 4)
+      : await BuildingPathologyRAGService.queryByCategory(
+          ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'],
+          3
+        );
+
+    if (!ragContext.promptContext) return messages;
+
+    // Find the system message and append RAG context to it
+    return messages.map(msg => {
+      if (msg.role !== 'system') return msg;
+      const existingContent = typeof msg.content === 'string' ? msg.content : '';
+      return {
+        ...msg,
+        content: `${existingContent}\n\n${ragContext.promptContext}`,
+      };
+    });
+  } catch {
+    // RAG failure is non-fatal — return original messages unchanged
+    return messages;
+  }
+}
+
 export async function getGeneratorContent(
   messages: GeneratorMessage[],
   apiKey: string,
   context?: { assessmentId?: string; damageCategory?: string; propertyType?: string }
 ): Promise<GeneratorResult> {
+  // Inject RAG knowledge base context before any AI call
+  const enrichedMessages = await injectRAGContext(messages, context?.damageCategory);
+
   // Phase 4: Confidence-based student routing (only when VLM_ROUTING_MODE=auto)
   if (MINT_AI_VLM_ENDPOINT && process.env.VLM_ROUTING_MODE === 'auto' && context?.damageCategory) {
     try {
@@ -174,13 +211,13 @@ export async function getGeneratorContent(
 
       if (decision.decision === 'student_only') {
         try {
-          return await callMintAiVLM(messages, apiKey);
+          return await callMintAiVLM(enrichedMessages, apiKey);
         } catch (err) {
           logger.warn('Student VLM failed, falling back to GPT-4o', {
             service: 'AssessmentGenerator',
             error: err instanceof Error ? err.message : String(err),
           });
-          return callGPT4o(messages, apiKey);
+          return callGPT4o(enrichedMessages, apiKey);
         }
       }
       // teacher_only or shadow_compare -> fall through to existing logic
@@ -191,17 +228,17 @@ export async function getGeneratorContent(
 
   if (MINT_AI_VLM_ENDPOINT) {
     try {
-      return await callMintAiVLM(messages, apiKey);
+      return await callMintAiVLM(enrichedMessages, apiKey);
     } catch (err) {
       logger.warn('Mint AI VLM endpoint failed, falling back to GPT-4o', {
         service: 'AssessmentGenerator',
         error: err instanceof Error ? err.message : String(err),
       });
-      return callGPT4o(messages, apiKey);
+      return callGPT4o(enrichedMessages, apiKey);
     }
   }
   if (USE_MINT_AI_VLM) {
-    return mintAiStub(messages, apiKey);
+    return mintAiStub(enrichedMessages, apiKey);
   }
-  return callGPT4o(messages, apiKey);
+  return callGPT4o(enrichedMessages, apiKey);
 }

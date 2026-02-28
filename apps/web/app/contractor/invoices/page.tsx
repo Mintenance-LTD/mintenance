@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { InvoiceManagementClient } from './components/InvoiceManagementClient';
 
 export const metadata: Metadata = {
@@ -9,10 +9,6 @@ export const metadata: Metadata = {
   description: 'Create, send, and track invoices for your maintenance jobs. Manage outstanding payments and billing.',
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-);
 
 type InvoiceRow = {
   id: string;
@@ -35,7 +31,7 @@ export default async function InvoiceManagementPage() {
     redirect('/login');
   }
 
-  const { data: invoiceRows, error } = await supabase
+  const { data: invoiceRows, error } = await serverSupabase
     .from('contractor_invoices')
     .select('id, invoice_number, client_name, total_amount, status, due_date, created_at, updated_at')
     .eq('contractor_id', user.id)

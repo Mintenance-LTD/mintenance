@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { StandardCard } from '@/components/ui/StandardCard';
 import { Button } from '@/components/ui/Button';
@@ -219,8 +220,8 @@ export function JobPhotoUpload({
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   {previewUrls.map((url, i) => (
-                    <div key={i} className="relative group">
-                      <img src={url} alt={`Preview ${i + 1}`} className="w-full h-24 object-cover rounded-lg" />
+                    <div key={i} className="relative group h-24">
+                      <Image src={url} alt={`Preview ${i + 1}`} fill className="object-cover rounded-lg" />
                       <button
                         onClick={() => removePending(i)}
                         className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -250,8 +251,8 @@ export function JobPhotoUpload({
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   {uploadedPhotos.map((photo, i) => (
-                    <div key={i} className="relative">
-                      <img src={photo.url} alt={`Uploaded ${i + 1}`} className="w-full h-24 object-cover rounded-lg" />
+                    <div key={i} className="relative h-24">
+                      <Image src={photo.url} alt={`Uploaded ${i + 1}`} fill className="object-cover rounded-lg" />
                       <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
                         {Math.round(photo.qualityScore * 100)}%
                       </div>

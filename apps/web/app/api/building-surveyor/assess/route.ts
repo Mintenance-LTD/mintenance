@@ -65,7 +65,9 @@ async function loadDependencies() {
 }
 
 function generateCacheKey(imageUrls: string[]): string {
-  return `building_assessment:${crypto.createHash('sha256').update(imageUrls.sort().join('|')).digest('hex')}`;
+  // SHA-256 hex is exactly 64 chars, which fits the VARCHAR(64) cache_key column.
+  // The table name (building_assessments) provides the namespace implicitly.
+  return crypto.createHash('sha256').update(imageUrls.sort().join('|')).digest('hex');
 }
 
 /**
@@ -163,10 +165,12 @@ export const POST = withApiHandler({ auth: false, rateLimit: false }, async (req
     .gt('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
     .single();
 
-  if (cachedAssessment?.assessment_data) {
+  // Validate the cached data is complete (not just an empty placeholder `{}`)
+  const cachedData = cachedAssessment?.assessment_data as Record<string, unknown> | undefined;
+  if (cachedData?.damageAssessment) {
     deps.logger.info('Building assessment cache hit (database)', { service: 'building-surveyor-api', userId: user.id, cacheSource: 'database' });
-    assessmentCache.set(cacheKey, cachedAssessment.assessment_data);
-    return NextResponse.json({ ...cachedAssessment.assessment_data, cached: true, cacheSource: 'database' });
+    assessmentCache.set(cacheKey, cachedAssessment!.assessment_data);
+    return NextResponse.json({ ...cachedAssessment!.assessment_data, cached: true, cacheSource: 'database' });
   }
 
   // A/B Testing Integration (if enabled)
@@ -241,7 +245,7 @@ export const POST = withApiHandler({ auth: false, rateLimit: false }, async (req
         cache_key: cacheKey,
         domain,
         damage_type: 'general_damage',
-        severity: 0,
+        severity: 'early',  // DB column stores progression ('early'|'midway'|'full'), not damageAssessment.severity
         confidence: 0,
         safety_score: 50,
         compliance_score: 50,
@@ -254,12 +258,29 @@ export const POST = withApiHandler({ auth: false, rateLimit: false }, async (req
       .select('id')
       .single();
 
-    if (insertError || !placeholderRow?.id) {
+    let assessmentId: string;
+    if (insertError?.code === '23505') {
+      // Stale placeholder row exists (cache_key unique constraint hit on re-run) — fetch its id and reuse it.
+      const { data: existingRow, error: fetchError } = await deps.serverSupabase
+        .from('building_assessments')
+        .select('id')
+        .eq('cache_key', cacheKey)
+        .single();
+
+      if (fetchError || !existingRow?.id) {
+        deps.logger.error('Failed to locate existing assessment row after duplicate key conflict', { service: 'building-surveyor-api' });
+        throw new Error('Failed to create assessment');
+      }
+
+      deps.logger.info('Reusing stale placeholder row for re-run', { service: 'building-surveyor-api', assessmentId: existingRow.id });
+      assessmentId = existingRow.id;
+    } else if (insertError || !placeholderRow?.id) {
       deps.logger.error('Failed to create placeholder assessment row', { service: 'building-surveyor-api', error: insertError });
       throw new Error('Failed to create assessment');
+    } else {
+      assessmentId = placeholderRow.id;
     }
 
-    const assessmentId = placeholderRow.id;
     assessmentIdForImages = assessmentId;
     const agentResult = await deps.runAgent({
       assessmentId,

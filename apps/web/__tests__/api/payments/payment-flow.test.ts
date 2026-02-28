@@ -42,6 +42,7 @@ const mocks = vi.hoisted(() => ({
   stripeCustomersUpdate: vi.fn(),
   stripePaymentMethodsList: vi.fn(),
   stripePaymentMethodsAttach: vi.fn(),
+  stripeCustomersList: vi.fn(),
   stripeWithTimeout: vi.fn(),
   validateRequest: vi.fn(),
   detectAnomalies: vi.fn(),
@@ -164,6 +165,7 @@ vi.mock('stripe', () => {
       create: mocks.stripeCustomersCreate,
       retrieve: mocks.stripeCustomersRetrieve,
       update: mocks.stripeCustomersUpdate,
+      list: mocks.stripeCustomersList,
     };
     paymentMethods = {
       list: mocks.stripePaymentMethodsList,
@@ -505,6 +507,9 @@ function setupDefaultMocks() {
     status: 'completed',
     feeTransferId: 'fee-transfer-123',
   });
+
+  // Stripe customers list - returns empty by default (so customers.create is used)
+  mocks.stripeCustomersList.mockResolvedValue({ data: [] });
 
   // Notifications
   mocks.notifyPaymentEvent.mockResolvedValue(undefined);
@@ -1157,7 +1162,9 @@ describe('POST /api/payments/refund', () => {
       const body = await response.json();
 
       expect(response.status).toBe(429);
-      expect(body.error).toContain('Too many requests');
+      // body.error is { code, message } object from handleAPIError
+      const errorMsg = typeof body.error === 'string' ? body.error : body.error?.message;
+      expect(errorMsg).toContain('Too many requests');
     });
   });
 });
@@ -1539,6 +1546,13 @@ describe('POST /api/payments/create-intent', () => {
             error: null,
           },
         },
+        // contracts must return accepted contract so route proceeds past contract check
+        contracts: {
+          selectReturn: {
+            data: { id: 'contract-test-123', status: 'accepted' },
+            error: null,
+          },
+        },
         bids: {
           selectReturn: {
             data: null,
@@ -1730,7 +1744,8 @@ describe('GET /api/payments/methods', () => {
 
       expect(response.status).toBe(200);
       expect(body.paymentMethods).toHaveLength(2);
-      expect(body.stripeCustomerId).toBe('cus_test_123');
+      // stripeCustomerId is NOT exposed in the response (security fix FIX-5: PII removal)
+      expect(body.stripeCustomerId).toBeUndefined();
       expect(body.defaultPaymentMethodId).toBe('pm_default_123');
 
       // First method should be marked as default

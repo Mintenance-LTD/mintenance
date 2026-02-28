@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { stripe } from '@/lib/stripe';
 import { validateRequest } from '@/lib/validation/validator';
 import { releaseEscrowSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
@@ -11,18 +11,12 @@ import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
 import { HomeownerApprovalService } from '@/lib/services/escrow/HomeownerApprovalService';
-import { env } from '@/lib/env';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
 import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError, ConflictError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-// Initialize Stripe with validated secret key (server-side only)
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10',
-});
-
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
+  { roles: ['homeowner', 'admin', 'contractor'], rateLimit: { maxRequests: 20 } },
   async (request, { user }) => {
 
     // Validate and sanitize input using Zod schema

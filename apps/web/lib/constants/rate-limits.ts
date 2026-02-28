@@ -84,6 +84,23 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
     handler: 'block',
   },
 
+  // NOTE: This endpoint is in publicApiRoutes so middleware returns early without setting
+  // x-user-id. The in-route checkRateLimit() therefore classifies ALL callers as 'anonymous'.
+  // Set anonymous limit high enough for polling (2/min at 30s interval) + visibilitychange
+  // bursts from rapid tab switching without causing false-positive 429s.
+  '/api/auth/session-status': {
+    windowMs: 60 * 1000, // 1 minute
+    max: {
+      anonymous: 60,      // 1/s max — far above any legitimate polling schedule
+      authenticated: 120, // Future-proofed if x-user-id is ever forwarded
+      admin: 300,
+      premium: 150,
+    },
+    standardHeaders: true,
+    handler: 'throttle',
+    message: 'Session status polling rate limit exceeded.',
+  },
+
   '/api/auth/mfa/*': {
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: {

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import type {
   Material,
@@ -23,14 +23,10 @@ import {
  * - Finding similar materials for detected names
  */
 export class MaterialsService {
-  private supabase;
+  private supabase = serverSupabase;
 
-  constructor(supabaseUrl?: string, supabaseKey?: string) {
-    this.supabase = createClient(
-      supabaseUrl || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-      supabaseKey || process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-    );
-  }
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+  constructor() {}
 
   /**
    * Search materials by name with fuzzy matching using trigram similarity

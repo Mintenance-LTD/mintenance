@@ -16,9 +16,11 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 export const POST = withApiHandler(
   { rateLimit: false },
   async (request, { user }) => {
-    // Custom rate limiting
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const rateLimitResult = await checkApiRateLimit(`refund:${ip}`);
+    // Custom rate limiting - key on userId + IP to prevent both enumeration and per-user abuse
+    const ip = request.headers.get('x-real-ip')
+      || request.headers.get('x-forwarded-for')?.split(',')[0]
+      || 'unknown';
+    const rateLimitResult = await checkApiRateLimit(`refund:${user.id}:${ip}`);
 
     if (!rateLimitResult.allowed) {
       throw new RateLimitError();
@@ -138,10 +140,10 @@ export const POST = withApiHandler(
       );
     }
 
-    // Calculate refund amount (full or partial)
+    // Calculate refund amount (full or partial) — use toFixed(0) to avoid float drift
     const refundAmount = amount
-      ? Math.min(Math.round(amount * 100), Math.round(escrow.amount * 100))
-      : Math.round(escrow.amount * 100);
+      ? Math.min(Math.round(Number((amount * 100).toFixed(0))), Math.round(Number((escrow.amount * 100).toFixed(0))))
+      : Math.round(Number((escrow.amount * 100).toFixed(0)));
 
     const refundAmountDollars = refundAmount / 100;
 

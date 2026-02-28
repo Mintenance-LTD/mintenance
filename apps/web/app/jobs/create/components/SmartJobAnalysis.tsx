@@ -5,6 +5,7 @@ import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
 import { formatMoney } from '@/lib/utils/currency';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 interface DetectedMaterial {
   name: string;
@@ -88,10 +89,12 @@ export function SmartJobAnalysis({
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
+        const csrfToken = await getCsrfToken();
         const response = await fetch('/api/jobs/analyze', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
           },
           body: JSON.stringify({
             title,

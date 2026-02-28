@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
-import { createClient } from '@supabase/supabase-js';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { CardEditorClient } from './components/CardEditorClient';
 
@@ -9,10 +9,6 @@ export const metadata: Metadata = {
   description: 'Design and customize your digital business card to share with homeowners and clients on Mintenance.',
 };
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key'
-);
 
 export default async function CardEditorPage() {
   const user = await getCurrentUserFromCookies();
@@ -21,7 +17,7 @@ export default async function CardEditorPage() {
     redirect('/login');
   }
 
-  const { data: profile } = await supabase
+  const { data: profile } = await serverSupabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)

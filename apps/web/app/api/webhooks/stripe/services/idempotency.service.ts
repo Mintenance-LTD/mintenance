@@ -54,8 +54,7 @@ export class IdempotencyService {
    */
   async recordEventProcessed(
     eventId: string,
-    eventType: string,
-    eventData: unknown
+    eventType: string
   ): Promise<void> {
     try {
       const supabase = serverSupabase;
@@ -63,7 +62,6 @@ export class IdempotencyService {
         event_id: eventId,
         event_type: eventType,
         provider: 'stripe',
-        data: eventData,
         processed_at: new Date().toISOString(),
         created_at: new Date().toISOString(),
       });
