@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthStackParamList } from '../navigation/types';
 import { theme } from '../theme';
@@ -24,10 +24,7 @@ import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 
-type LoginScreenNavigationProp = StackNavigationProp<
-  AuthStackParamList,
-  'Login'
->;
+type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 interface Props {
   navigation: LoginScreenNavigationProp;
@@ -361,14 +358,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   formSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textTertiary,
+    fontSize: 15,
+    color: theme.colors.textSecondary,
   },
   formContainer: {
     paddingHorizontal: 24,
@@ -427,3 +424,4 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
+

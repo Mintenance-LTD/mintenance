@@ -1,13 +1,14 @@
-import React, { ChangeEvent, FormEvent, useState } from 'react';
-import { Briefcase, CreditCard, Home, Loader2, Lock, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { ShieldCheck, Loader2, Lock } from 'lucide-react';
 import { theme } from '@/lib/theme';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Card } from '@/components/ui/Card';
-import { FeeCalculator } from './FeeCalculator';
-import { PaymentService } from '@/lib/services/PaymentService';
 import { logger } from '@mintenance/shared';
-import { FormField, ValidatedInput } from '@/components/ui/FormField';
+
+// Load Stripe once outside component to avoid recreating on every render
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 interface PaymentFormProps {
   jobId: string;
@@ -19,13 +20,148 @@ interface PaymentFormProps {
   onCancel?: () => void;
 }
 
-type BillingAddress = {
-  line1: string;
-  city: string;
-  state: string;
-  postal_code: string;
-};
+// Inner form rendered inside the Elements provider
+function StripeCheckoutForm({
+  clientSecret,
+  amount,
+  onSuccess,
+  onError,
+  onCancel,
+}: {
+  clientSecret: string;
+  amount: number;
+  onSuccess: (paymentIntentId: string) => void;
+  onError: (error: string) => void;
+  onCancel?: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!stripe || !elements) return;
+
+    setProcessing(true);
+
+    // Trigger Stripe form validation and wallet collection
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      onError(submitError.message || 'Payment validation failed');
+      setProcessing(false);
+      return;
+    }
+
+    // Confirm the payment — redirect: 'if_required' avoids full-page redirects for most methods
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      clientSecret,
+      confirmParams: {
+        return_url: `${window.location.origin}/payments`,
+      },
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      logger.error('Stripe confirmPayment error', { error: error.message, code: error.code });
+      onError(error.message || 'Payment failed. Please try again.');
+      setProcessing(false);
+      return;
+    }
+
+    if (paymentIntent?.status === 'succeeded') {
+      onSuccess(paymentIntent.id);
+    } else {
+      onError('Payment was not completed. Please try again.');
+    }
+
+    setProcessing(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div
+        style={{
+          backgroundColor: theme.colors.background,
+          border: `1px solid ${theme.colors.border}`,
+          borderRadius: theme.borderRadius.lg,
+          padding: theme.spacing.lg,
+          marginBottom: theme.spacing.lg,
+        }}
+      >
+        {/* Stripe's PaymentElement renders card, Apple Pay, Google Pay, Link, etc. */}
+        <PaymentElement
+          options={{
+            layout: 'tabs',
+          }}
+        />
+      </div>
+
+      {/* Actions */}
+      <div
+        style={{
+          display: 'flex',
+          gap: theme.spacing.md,
+          justifyContent: 'space-between',
+        }}
+      >
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={processing}
+            style={{
+              padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: theme.borderRadius.md,
+              background: 'transparent',
+              color: theme.colors.textSecondary,
+              cursor: processing ? 'not-allowed' : 'pointer',
+              fontSize: theme.typography.fontSize.base,
+            }}
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          type="submit"
+          disabled={processing || !stripe || !elements}
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
+            backgroundColor: theme.colors.primary,
+            color: '#fff',
+            border: 'none',
+            borderRadius: theme.borderRadius.md,
+            cursor: processing || !stripe ? 'not-allowed' : 'pointer',
+            fontSize: theme.typography.fontSize.base,
+            fontWeight: theme.typography.fontWeight.semibold,
+            opacity: processing || !stripe ? 0.7 : 1,
+          }}
+        >
+          {processing ? (
+            <>
+              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+              Processing...
+            </>
+          ) : (
+            <>
+              <Lock size={16} />
+              Pay £{amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+// Outer component: fetches PaymentIntent clientSecret, then mounts Elements
 export const PaymentForm: React.FC<PaymentFormProps> = ({
   jobId,
   contractorId,
@@ -35,470 +171,105 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   onError,
   onCancel,
 }) => {
-  const enablePaymentMocks = process.env.NEXT_PUBLIC_ENABLE_PAYMENT_MOCKS === 'true';
-  const [amount, setAmount] = useState(defaultAmount.toString());
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvc, setCvc] = useState('');
-  const [cardholderName, setCardholderName] = useState('');
-  const [billingAddress, setBillingAddress] = useState<BillingAddress>({
-    line1: '',
-    city: '',
-    state: '',
-    postal_code: '',
-  });
-  const [processing, setProcessing] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [loadingIntent, setLoadingIntent] = useState(true);
 
-  const parsedAmount = Number.parseFloat(amount);
-  const amountNum = Number.isNaN(parsedAmount) ? 0 : parsedAmount;
-  const fees = PaymentService.calculateFees(amountNum);
+  // Amount in pence (Stripe uses smallest currency unit)
+  const amountInPence = Math.round(defaultAmount * 100);
 
-  const formatCardNumber = (value: string) => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    // Add spaces every 4 digits
-    return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
-  };
+  useEffect(() => {
+    if (!jobId || defaultAmount <= 0) return;
 
-  const formatExpiryDate = (value: string) => {
-    // Remove all non-digit characters
-    const digits = value.replace(/\D/g, '');
-    // Add slash after 2 digits
-    if (digits.length >= 2) {
-      return `${digits.slice(0, 2)}/${digits.slice(2, 4)}`;
-    }
-    return digits;
-  };
+    setLoadingIntent(true);
 
-  const handleBillingAddressChange = (field: keyof BillingAddress) => (event: ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-    setBillingAddress((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const validateField = (field: string, value: string): string | undefined => {
-    switch (field) {
-      case 'amount':
-        if (!value || parseFloat(value) <= 0) return 'Please enter a valid payment amount';
-        if (parseFloat(value) < 1) return 'Minimum payment is £1.00';
-        if (parseFloat(value) > 10000) return 'Maximum payment is £10,000.00';
-        return undefined;
-      case 'cardNumber':
-        if (!value) return 'Card number is required';
-        const digits = value.replace(/\s/g, '');
-        if (digits.length < 13) return 'Please enter a valid card number (13-19 digits)';
-        if (digits.length > 19) return 'Card number is too long';
-        return undefined;
-      case 'expiryDate':
-        if (!value) return 'Expiry date is required';
-        if (value.length < 5) return 'Please enter a valid expiry date (MM/YY)';
-        const [month, year] = value.split('/').map(Number);
-        if (month < 1 || month > 12) return 'Invalid month';
-        const currentYear = new Date().getFullYear() % 100;
-        const currentMonth = new Date().getMonth() + 1;
-        if (year < currentYear || (year === currentYear && month < currentMonth)) {
-          return 'Card has expired';
-        }
-        return undefined;
-      case 'cvc':
-        if (!value) return 'CVC is required';
-        if (value.length < 3) return 'CVC must be 3-4 digits';
-        return undefined;
-      case 'cardholderName':
-        if (!value.trim()) return 'Cardholder name is required';
-        if (value.trim().length < 2) return 'Please enter a valid name';
-        return undefined;
-      default:
-        return undefined;
-    }
-  };
-
-  const handleFieldBlur = (field: string, value: string) => {
-    setTouchedFields(prev => ({ ...prev, [field]: true }));
-    const error = validateField(field, value);
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      if (error) {
-        newErrors[field] = error;
-      } else {
-        delete newErrors[field];
-      }
-      return newErrors;
-    });
-  };
-
-  const isFieldValid = (field: string, value: string): boolean => {
-    return touchedFields[field] && !errors[field] && Boolean(value);
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    const newTouchedFields: Record<string, boolean> = {};
-
-    const fields = [
-      { name: 'amount', value: amount },
-      { name: 'cardNumber', value: cardNumber },
-      { name: 'expiryDate', value: expiryDate },
-      { name: 'cvc', value: cvc },
-      { name: 'cardholderName', value: cardholderName },
-    ];
-
-    fields.forEach(({ name, value }) => {
-      newTouchedFields[name] = true;
-      const error = validateField(name, value);
-      if (error) newErrors[name] = error;
-    });
-
-    setTouchedFields(newTouchedFields);
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length > 0) {
-      const firstError = Object.values(newErrors)[0];
-      onError(firstError);
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setProcessing(true);
-
-    try {
-      // Parse expiry date
-      const [expMonth, expYear] = expiryDate.split('/').map(num => parseInt(num, 10));
-      const fullYear = expYear < 50 ? 2000 + expYear : 1900 + expYear;
-
-      if (!enablePaymentMocks && (typeof window === 'undefined' || !window.Stripe)) {
-        throw new Error('Stripe.js is not available. Please configure Stripe before processing payments.');
-      }
-
-      if (!enablePaymentMocks) {
-        await PaymentService.createPaymentMethod({
-          type: 'card',
-          card: {
-            number: cardNumber.replace(/\s/g, ''),
-            expMonth,
-            expYear: fullYear,
-            cvc,
-          },
-          billingDetails: {
-            name: cardholderName,
-            address: showAdvanced ? billingAddress : undefined,
-          },
-        });
-      }
-
-      const { client_secret } = await PaymentService.initializePayment({
-        amount: amountNum,
+    fetch('/api/payments/create-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: amountInPence,
+        currency: 'gbp',
         jobId,
         contractorId,
-      });
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || 'Failed to initialise payment');
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!data.clientSecret) throw new Error('No client secret returned from server');
+        setClientSecret(data.clientSecret);
+      })
+      .catch((err) => {
+        logger.error('Failed to create PaymentIntent', { error: err.message, jobId });
+        onError(err.message || 'Failed to initialise payment. Please refresh and try again.');
+      })
+      .finally(() => setLoadingIntent(false));
+  }, [jobId, contractorId, amountInPence]);
 
-      if (!client_secret) {
-        throw new Error('Payment provider did not return a client secret.');
-      }
-
-      if (enablePaymentMocks) {
-        onSuccess(client_secret);
-        return;
-      }
-
-      onSuccess(client_secret);
-    } catch (error: unknown) {
-      logger.error('Payment error:', error);
-      const fallbackMessage = 'Payment failed. Please try again.';
-      const message = error instanceof Error ? error.message ?? fallbackMessage : fallbackMessage;
-      onError(message);
-    } finally {
-      setProcessing(false);
-    }
+  const appearance = {
+    theme: 'stripe' as const,
+    variables: {
+      colorPrimary: '#0d9488', // Mintenance teal
+      colorBackground: '#ffffff',
+      colorText: '#111827',
+      colorDanger: '#ef4444',
+      fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+      borderRadius: '12px',
+    },
   };
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      {/* Job Information */}
-      <Card style={{ marginBottom: theme.spacing.lg }}>
-        <div style={{ marginBottom: theme.spacing.md }}>
-          <h3
-            style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.text,
-              margin: 0,
-              marginBottom: '4px',
-            }}
-          >
-            <Briefcase size={18} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'text-bottom' }} /> {jobTitle}
-          </h3>
-          <p
-            style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              margin: 0,
-            }}
-          >
-            Secure payment with escrow protection
-          </p>
-        </div>
-      </Card>
+      {/* Job info header */}
+      <div
+        style={{
+          padding: theme.spacing.md,
+          backgroundColor: `${theme.colors.primary}10`,
+          border: `1px solid ${theme.colors.primary}30`,
+          borderRadius: theme.borderRadius.md,
+          marginBottom: theme.spacing.lg,
+          fontSize: theme.typography.fontSize.sm,
+          color: theme.colors.text,
+          fontWeight: theme.typography.fontWeight.medium,
+        }}
+      >
+        Paying for: <strong>{jobTitle}</strong> · £{defaultAmount.toLocaleString()}
+      </div>
 
-      <form onSubmit={handleSubmit}>
-        {/* Payment Amount */}
-        <Card style={{ marginBottom: theme.spacing.lg }}>
-          <h3
-            style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.text,
-              margin: 0,
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            Payment Amount
-          </h3>
-          <Input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Enter payment amount"
-            min="0"
-            step="0.01"
-            style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.bold,
-            }}
-            required
-          />
-          <div
-            style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              marginTop: theme.spacing.xs,
-            }}
-          >
-            Minimum: £1.00 • Maximum: £10,000.00
-          </div>
-        </Card>
-
-        {/* Fee Calculator */}
-        {amountNum > 0 && (
-          <FeeCalculator
-            amount={amountNum}
-            fees={fees}
-            style={{ marginBottom: theme.spacing.lg }}
-          />
-        )}
-
-        {/* Card Details */}
-        <Card style={{ marginBottom: theme.spacing.lg }}>
-          <h3
-            style={{
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.text,
-              margin: 0,
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            <CreditCard size={18} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'text-bottom' }} /> Card Details
-          </h3>
-
-          <div style={{ marginBottom: theme.spacing.md }}>
-            <FormField
-              label="Card Number"
-              required
-              error={touchedFields.cardNumber ? errors.cardNumber : undefined}
-              success={isFieldValid('cardNumber', cardNumber)}
-              helperText={isFieldValid('cardNumber', cardNumber) ? 'Card number valid' : 'Enter your 13-19 digit card number'}
-              htmlFor="payment-cardNumber"
-            >
-              <ValidatedInput
-                id="payment-cardNumber"
-                type="text"
-                value={cardNumber}
-                onChange={(e) => {
-                  const formatted = formatCardNumber(e.target.value);
-                  setCardNumber(formatted);
-                  if (touchedFields.cardNumber) {
-                    handleFieldBlur('cardNumber', formatted);
-                  }
-                }}
-                onBlur={() => handleFieldBlur('cardNumber', cardNumber)}
-                placeholder="1234 5678 9012 3456"
-                maxLength={19}
-                error={Boolean(touchedFields.cardNumber && errors.cardNumber)}
-                success={isFieldValid('cardNumber', cardNumber)}
-              />
-            </FormField>
-          </div>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: theme.spacing.md,
-              marginBottom: theme.spacing.md,
-            }}
-          >
-            <Input
-              type="text"
-              value={expiryDate}
-              onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
-              placeholder="MM/YY"
-              maxLength={5}
-              required
-            />
-            <Input
-              type="text"
-              value={cvc}
-              onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="CVC"
-              maxLength={4}
-              required
-            />
-          </div>
-
-          <FormField
-            label="Cardholder Name"
-            required
-            error={touchedFields.cardholderName ? errors.cardholderName : undefined}
-            success={isFieldValid('cardholderName', cardholderName)}
-            helperText={isFieldValid('cardholderName', cardholderName) ? 'Name confirmed' : 'Enter name as it appears on card'}
-            htmlFor="payment-cardholderName"
-          >
-            <ValidatedInput
-              id="payment-cardholderName"
-              type="text"
-              value={cardholderName}
-              onChange={(e) => {
-                setCardholderName(e.target.value);
-                if (touchedFields.cardholderName) {
-                  handleFieldBlur('cardholderName', e.target.value);
-                }
-              }}
-              onBlur={() => handleFieldBlur('cardholderName', cardholderName)}
-              placeholder="John Smith"
-              error={Boolean(touchedFields.cardholderName && errors.cardholderName)}
-              success={isFieldValid('cardholderName', cardholderName)}
-            />
-          </FormField>
-        </Card>
-
-        {/* Billing Address (Advanced) */}
-        <Card style={{ marginBottom: theme.spacing.lg }}>
-          <button
-            type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: theme.typography.fontSize.base,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.primary,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              width: '100%',
-              justifyContent: 'space-between',
-              padding: 0,
-            }}
-          >
-            <Home size={16} style={{ marginRight: '6px' }} /> Billing Address (Optional)
-            {showAdvanced ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </button>
-
-          {showAdvanced && (
-            <div style={{ marginTop: theme.spacing.md }}>
-              <div style={{ marginBottom: theme.spacing.md }}>
-                <Input
-                  type="text"
-                  value={billingAddress.line1}
-                  onChange={handleBillingAddressChange('line1')}
-                  placeholder="Street address"
-                />
-              </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '2fr 1fr 1fr',
-                  gap: theme.spacing.md,
-                }}
-              >
-                <Input
-                  type="text"
-                  value={billingAddress.city}
-                  onChange={handleBillingAddressChange('city')}
-                  placeholder="City"
-                />
-                <Input
-                  type="text"
-                  value={billingAddress.state}
-                  onChange={handleBillingAddressChange('state')}
-                  placeholder="State"
-                />
-                <Input
-                  type="text"
-                  value={billingAddress.postal_code}
-                  onChange={handleBillingAddressChange('postal_code')}
-                  placeholder="ZIP"
-                />
-              </div>
-            </div>
-          )}
-        </Card>
-
-        {/* Actions */}
+      {loadingIntent ? (
         <div
           style={{
             display: 'flex',
-            gap: theme.spacing.md,
-            justifyContent: 'space-between',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            padding: theme.spacing.xl,
+            color: theme.colors.textSecondary,
           }}
         >
-          {onCancel && (
-            <Button
-              type="button"
-              onClick={onCancel}
-              variant="outline"
-              disabled={processing}
-            >
-              Cancel
-            </Button>
-          )}
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={processing || amountNum <= 0}
-            style={{ flex: 1 }}
-          >
-            {processing ? (
-              <>
-                <Loader2 size={16} style={{ marginRight: '6px', animation: 'spin 1s linear infinite' }} />
-                Processing Payment...
-              </>
-            ) : (
-              <>
-                <Lock size={16} style={{ marginRight: '6px' }} />
-                Pay {amountNum > 0 ? `£${amountNum.toFixed(2)}` : ''}
-              </>
-            )}
-          </Button>
+          <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
+          Preparing secure payment form...
         </div>
-      </form>
+      ) : clientSecret ? (
+        <Elements
+          stripe={stripePromise}
+          options={{ clientSecret, appearance }}
+        >
+          <StripeCheckoutForm
+            clientSecret={clientSecret}
+            amount={defaultAmount}
+            onSuccess={onSuccess}
+            onError={onError}
+            onCancel={onCancel}
+          />
+        </Elements>
+      ) : null}
 
-      {/* Security Notice */}
+      {/* Security notice */}
       <div
         style={{
           marginTop: theme.spacing.lg,
@@ -515,9 +286,13 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
             color: theme.colors.success,
             fontWeight: theme.typography.fontWeight.medium,
             marginBottom: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
           }}
         >
-          <ShieldCheck size={16} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'text-bottom' }} /> Secure Escrow Payment
+          <ShieldCheck size={16} /> Secure Escrow Payment · Powered by Stripe
         </div>
         <div
           style={{
@@ -525,7 +300,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
             color: theme.colors.textSecondary,
           }}
         >
-          Your payment is securely held in escrow and will be released to the contractor only when the job is completed to your satisfaction.
+          Your payment is held safely in escrow and released only when the job is completed to your satisfaction.
         </div>
       </div>
     </div>

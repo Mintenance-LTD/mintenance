@@ -174,10 +174,10 @@ class LocalDatabaseService {
       // Messages table
       `CREATE TABLE IF NOT EXISTS messages (
         id TEXT PRIMARY KEY,
-        job_id TEXT NOT NULL,
+        job_id TEXT,
         sender_id TEXT NOT NULL,
-        receiver_id TEXT NOT NULL,
-        message_text TEXT NOT NULL,
+        receiver_id TEXT,
+        message_text TEXT,
         message_type TEXT DEFAULT 'text',
         attachment_url TEXT,
         read BOOLEAN DEFAULT FALSE,
@@ -251,7 +251,47 @@ class LocalDatabaseService {
    * Run database migrations
    */
   private async runMigrations(): Promise<void> {
-    // Placeholder for future migrations
+    if (!this.db) throw new Error('Database not initialized');
+
+    // Detect old schema: messages.receiver_id was NOT NULL in v0
+    const tableInfo = await this.db.getAllAsync<{ name: string; notnull: number }>(
+      'PRAGMA table_info(messages)'
+    );
+    const receiverIdCol = tableInfo.find((col) => col.name === 'receiver_id');
+
+    if (receiverIdCol?.notnull === 1) {
+      // Rebuild messages table with nullable receiver_id, job_id, message_text
+      // (SQLite does not support ALTER COLUMN)
+      try {
+        await this.db.execAsync('ALTER TABLE messages RENAME TO messages_backup');
+        await this.db.execAsync(`
+          CREATE TABLE messages (
+            id TEXT PRIMARY KEY,
+            job_id TEXT,
+            sender_id TEXT NOT NULL,
+            receiver_id TEXT,
+            message_text TEXT,
+            message_type TEXT DEFAULT 'text',
+            attachment_url TEXT,
+            read BOOLEAN DEFAULT FALSE,
+            created_at TEXT NOT NULL,
+            synced_at TEXT,
+            is_dirty BOOLEAN DEFAULT FALSE
+          )
+        `);
+        await this.db.execAsync('INSERT OR IGNORE INTO messages SELECT * FROM messages_backup');
+        await this.db.execAsync('DROP TABLE IF EXISTS messages_backup');
+        await this.db.execAsync('CREATE INDEX IF NOT EXISTS idx_messages_job ON messages(job_id)');
+        await this.db.execAsync('CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)');
+        await this.db.execAsync('CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id)');
+        await this.db.execAsync("CREATE INDEX IF NOT EXISTS idx_dirty_messages ON messages(is_dirty) WHERE is_dirty = TRUE");
+        logger.info('Database migration applied: messages columns made nullable');
+      } catch (error) {
+        logger.error('Database migration failed:', error);
+        await this.db.execAsync('DROP TABLE IF EXISTS messages_backup').catch(() => {});
+      }
+    }
+
     logger.info('Database migrations completed');
   }
 
@@ -456,7 +496,7 @@ class LocalDatabaseService {
       message.id,
       message.jobId ?? null,
       message.senderId,
-      message.receiverId,
+      message.receiverId ?? null,
       message.messageText ?? null,
       message.messageType ?? null,
       message.attachmentUrl ?? null,

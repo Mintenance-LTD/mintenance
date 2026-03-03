@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
@@ -18,7 +18,7 @@ import { BookingError } from './BookingError';
 import { CancellationModal } from './CancellationModal';
 import { BookingService } from './BookingService';
 
-import { RootStackParamList } from '../../navigation/types';
+import type { ProfileStackParamList } from '../../navigation/types';
 
 interface BookingStatusParams {
   jobId?: string;
@@ -26,7 +26,7 @@ interface BookingStatusParams {
 
 interface Props {
   route?: RouteProp<{ params: BookingStatusParams }>;
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'BookingStatus'>;
 }
 
 export type BookingStatus = 'upcoming' | 'completed' | 'cancelled';
@@ -51,7 +51,7 @@ export interface Booking {
 
 export const BookingStatusScreen: React.FC<{
   route?: RouteProp<{ params: BookingStatusParams }>;
-  navigation: StackNavigationProp<RootStackParamList>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'BookingStatus'>;
 }> = ({ navigation }) => {
   const { user } = useAuth();
 
@@ -195,3 +195,4 @@ const styles = StyleSheet.create({
 });
 
 export default BookingStatusScreen;
+

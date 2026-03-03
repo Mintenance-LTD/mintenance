@@ -1,12 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 
 interface ServiceAreasHeaderProps {
-  navigation: StackNavigationProp<Record<string, undefined>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList>;
 }
 
 export const ServiceAreasHeader: React.FC<ServiceAreasHeaderProps> = ({ navigation }) => {
@@ -58,3 +59,4 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 });
+

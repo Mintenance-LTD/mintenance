@@ -1,11 +1,11 @@
 /**
  * ContractorDashboard Component
- * 
- * Displays the contractor-specific dashboard with stats, schedule,
- * and quick actions.
+ *
+ * Displays the contractor-specific dashboard with stats and schedule.
+ * Quick actions are accessible via the profile avatar dropdown in the header.
  */
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -16,64 +16,41 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
-import { UserService, ContractorStats } from '../../services/UserService';
+import { UserService } from '../../services/UserService';
 import { theme } from '../../theme';
 import { useHaptics } from '../../utils/haptics';
-import { logger } from '../../utils/logger';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { FullScreenLoading } from '../../components/LoadingSpinner';
 import { NavigationHeader } from '../../components/navigation';
+import type { HeaderMenuItem } from '../../components/navigation/NavigationHeader';
 import { ContractorBanner } from './ContractorBanner';
 import { StatsSection } from './StatsSection';
 import { ScheduleSection } from './ScheduleSection';
-import { QuickActions } from './QuickActions';
 
 export const ContractorDashboard: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<unknown>();
+  const navigation = useNavigation();
   const haptics = useHaptics();
+  const queryClient = useQueryClient();
 
-  const [contractorStats, setContractorStats] = useState<ContractorStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: contractorStats = null,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery({
+    queryKey: ['contractorStats', user?.id],
+    queryFn: () => UserService.getContractorStats(user!.id),
+    enabled: !!user && user.role === 'contractor',
+  });
 
-  useEffect(() => {
-    loadContractorData();
-  }, [user]);
-
-  const loadContractorData = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setError(null);
-
-      if (user.role === 'contractor') {
-        const stats = await UserService.getContractorStats(user.id);
-        setContractorStats(stats);
-      }
-    } catch (error) {
-      logger.error('Error loading contractor data:', error);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadContractorData();
-    setRefreshing(false);
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['contractorStats', user?.id] });
   };
 
   const openJobsList = () => {
     navigation.navigate('JobsTab', { screen: 'JobsList' });
-  };
-
-  const openInbox = () => {
-    navigation.navigate('MessagingTab', { screen: 'MessagesList' });
   };
 
   const openMeetingSchedule = () => {
@@ -81,31 +58,81 @@ export const ContractorDashboard: React.FC = () => {
   };
 
   const openJobDetails = (jobId: string) => {
-    navigation.navigate('JobsTab', {
-      screen: 'JobDetails',
-      params: { jobId },
-    });
+    navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId } });
   };
 
-  // Loading state for contractor dashboard
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
+  const menuItems: HeaderMenuItem[] = [
+    {
+      label: 'Browse Jobs',
+      subtitle: 'Find new opportunities',
+      icon: 'search',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      onPress: openJobsList,
+    },
+    {
+      label: 'Inbox',
+      subtitle: 'Messages & updates',
+      icon: 'mail',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      onPress: () => navigation.navigate('MessagingTab', { screen: 'MessagesList' }),
+    },
+    {
+      label: 'Quotes',
+      subtitle: 'Build & send estimates',
+      icon: 'document-text',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      onPress: () => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' }),
+    },
+    {
+      label: 'Invoices',
+      subtitle: 'Manage billing',
+      icon: 'receipt',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      onPress: () => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' }),
+    },
+    {
+      label: 'Expenses',
+      subtitle: 'Track costs',
+      icon: 'wallet',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      onPress: () => navigation.navigate('ProfileTab', { screen: 'Expenses' }),
+    },
+    {
+      label: 'Calendar',
+      subtitle: 'Schedule & plan',
+      icon: 'calendar',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      onPress: () => navigation.navigate('ProfileTab', { screen: 'Calendar' }),
+    },
+    {
+      label: 'Profile & Settings',
+      subtitle: 'Edit your account',
+      icon: 'person-circle',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      onPress: () => navigation.navigate('ProfileTab' as never),
+    },
+  ];
+
+  if (isLoading) {
+    return <FullScreenLoading message="Loading dashboard..." />;
   }
 
-  // Error state
-  if (error) {
+  if (isError) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={styles.errorText}>Failed to load dashboard data</Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={() => loadContractorData()}
-          accessibilityRole='button'
-          accessibilityLabel='Retry loading dashboard'
+          onPress={() => refetch()}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading dashboard"
         >
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
@@ -116,11 +143,19 @@ export const ContractorDashboard: React.FC = () => {
   return (
     <View style={styles.container}>
       <NavigationHeader
-        title="Mintenance Pro"
+        title="Mintenance"
         subtitle={user?.first_name ? `Welcome back, ${user.first_name}!` : 'Contractor Dashboard'}
-        onNotificationPress={() => navigation.getParent?.()?.navigate('Modal', { screen: 'Notifications' })}
-        userInitials={user?.first_name && user?.last_name ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : undefined}
-        onUserPress={() => navigation.navigate('ProfileTab' as never)}
+        onNotificationPress={() =>
+          navigation.getParent?.()?.navigate('Modal', { screen: 'Notifications' })
+        }
+        userInitials={
+          user?.first_name && user?.last_name
+            ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase()
+            : undefined
+        }
+        userName={user?.company_name || `${user?.first_name ?? ''} ${user?.last_name ?? ''}`.trim()}
+        userRole="Contractor"
+        menuItems={menuItems}
       />
 
       <ScrollView
@@ -128,34 +163,41 @@ export const ContractorDashboard: React.FC = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
         }
       >
-        <ContractorBanner user={user} />
+        <ContractorBanner
+          user={user}
+          onFindJobsPress={openJobsList}
+          activeJobs={contractorStats?.activeJobs ?? 0}
+          monthlyEarnings={contractorStats?.monthlyEarnings ?? 0}
+        />
 
-      <StatsSection stats={contractorStats} />
+        <StatsSection stats={contractorStats} />
 
-      <ScheduleSection
-        stats={contractorStats}
-        upcomingJobs={contractorStats?.nextAppointment ? [{
-          id: contractorStats.nextAppointment.jobId,
-          title: `${contractorStats.nextAppointment.type} — ${contractorStats.nextAppointment.client}`,
-          time: contractorStats.nextAppointment.time,
-          status: 'Upcoming',
-        }] : []}
-        onViewAllPress={openMeetingSchedule}
-        onJobDetailsPress={openJobDetails}
-      />
-
-      <QuickActions
-        onBrowseJobsPress={openJobsList}
-        onInboxPress={openInbox}
-        onQuotesPress={() => navigation.navigate('ProfileTab', { screen: 'QuoteBuilder' })}
-        onInvoicesPress={() => navigation.navigate('ProfileTab', { screen: 'InvoiceManagement' })}
-        onExpensesPress={() => navigation.navigate('ProfileTab', { screen: 'Expenses' })}
-        onCalendarPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
-      />
-    </ScrollView>
+        <ScheduleSection
+          stats={contractorStats}
+          upcomingJobs={
+            contractorStats?.nextAppointment
+              ? [
+                  {
+                    id: contractorStats.nextAppointment.jobId,
+                    title: `${contractorStats.nextAppointment.type} — ${contractorStats.nextAppointment.client}`,
+                    time: contractorStats.nextAppointment.time,
+                    status: 'Upcoming',
+                  },
+                ]
+              : []
+          }
+          onViewAllPress={openMeetingSchedule}
+          onJobDetailsPress={openJobDetails}
+        />
+      </ScrollView>
     </View>
   );
 };
@@ -168,17 +210,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    marginTop: 16,
   },
   errorContainer: {
     flex: 1,

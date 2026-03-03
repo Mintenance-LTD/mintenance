@@ -10,13 +10,18 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Image,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
+import type { JobsStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { ScreenHeader, LoadingSpinner } from '../components/shared';
+import { Banner } from '../components/ui/Banner';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 
@@ -27,7 +32,7 @@ interface DisputeScreenParams {
 
 interface Props {
   route: RouteProp<{ Dispute: DisputeScreenParams }, 'Dispute'>;
-  navigation: StackNavigationProp<Record<string, unknown>>;
+  navigation: NativeStackNavigationProp<JobsStackParamList, 'Dispute'>;
 }
 
 const DISPUTE_REASONS = [
@@ -45,14 +50,37 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<ImagePicker.ImagePickerAsset[]>([]);
+
+  const handleAddEvidence = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow photo access to attach evidence.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setAttachments(prev => [...prev, ...result.assets].slice(0, 6));
+    }
+  };
+
+  const removeAttachment = (uri: string) => {
+    setAttachments(prev => prev.filter(a => a.uri !== uri));
+  };
 
   const handleSubmit = async () => {
+    setFormError(null);
     if (!selectedReason) {
-      Alert.alert('Select Reason', 'Please select a reason for the dispute.');
+      setFormError('Please select a reason for the dispute.');
       return;
     }
     if (description.trim().length < 20) {
-      Alert.alert('More Details Needed', 'Please provide at least 20 characters describing the issue.');
+      setFormError('Please provide at least 20 characters describing the issue.');
       return;
     }
 
@@ -62,11 +90,13 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
         escrow: { id: string };
       }>(`/api/jobs/${jobId}/escrow`);
 
+      const evidenceUris = attachments.map(a => a.uri);
       await apiClient.post('/api/disputes/create', {
         escrowId: escrowResponse.escrow.id,
         reason: selectedReason,
         description: description.trim(),
         priority: 'medium',
+        evidenceUris,
       });
       Alert.alert(
         'Dispute Submitted',
@@ -75,7 +105,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
       );
     } catch (error) {
       logger.error('Failed to submit dispute', error);
-      Alert.alert('Error', 'Failed to submit dispute. Please try again.');
+      setFormError('Failed to submit dispute. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -86,8 +116,9 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
       <ScreenHeader title="Raise Dispute" showBack onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Banner message={formError ?? ''} variant="error" />
         <View style={styles.jobCard}>
-          <Ionicons name="briefcase-outline" size={20} color={theme.colors.primary} />
+          <Ionicons name="briefcase-outline" size={20} color={theme.colors.textSecondary} />
           <Text style={styles.jobTitle} numberOfLines={1}>{jobTitle}</Text>
         </View>
 
@@ -132,6 +163,32 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
           {description.length}/500 characters (min 20)
         </Text>
 
+        {/* Evidence Attachment */}
+        <Text style={styles.sectionTitle}>Attach Evidence</Text>
+        {attachments.length > 0 && (
+          <FlatList
+            data={attachments}
+            horizontal
+            keyExtractor={item => item.uri}
+            showsHorizontalScrollIndicator={false}
+            style={styles.thumbList}
+            renderItem={({ item }) => (
+              <View style={styles.thumbWrap}>
+                <Image source={{ uri: item.uri }} style={styles.thumb} />
+                <TouchableOpacity style={styles.thumbRemove} onPress={() => removeAttachment(item.uri)}>
+                  <Ionicons name="close-circle" size={20} color={theme.colors.error} />
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        )}
+        <TouchableOpacity style={styles.evidenceButton} onPress={handleAddEvidence} disabled={attachments.length >= 6}>
+          <Ionicons name="camera-outline" size={20} color={theme.colors.textSecondary} />
+          <Text style={styles.evidenceButtonText}>
+            {attachments.length === 0 ? 'Add Photos' : `${attachments.length}/6 photos added`}
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
           onPress={handleSubmit}
@@ -141,7 +198,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
             <LoadingSpinner />
           ) : (
             <>
-              <Ionicons name="shield-outline" size={20} color="#fff" />
+              <Ionicons name="shield-outline" size={20} color={theme.colors.white} />
               <Text style={styles.submitButtonText}>Submit Dispute</Text>
             </>
           )}
@@ -257,6 +314,26 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'center',
   },
+  thumbList: { marginBottom: theme.spacing[3] },
+  thumbWrap: { marginRight: 10, position: 'relative' },
+  thumb: { width: 72, height: 72, borderRadius: 8, backgroundColor: theme.colors.border },
+  thumbRemove: { position: 'absolute', top: -6, right: -6 },
+  evidenceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: '#EBEBEB',
+    borderStyle: 'dashed',
+    justifyContent: 'center',
+    marginBottom: theme.spacing[5],
+  },
+  evidenceButtonText: { fontSize: 15, color: theme.colors.textPrimary, fontWeight: '600' },
 });
 
 export default DisputeScreen;
+
+

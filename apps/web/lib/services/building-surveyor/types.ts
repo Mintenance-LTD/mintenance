@@ -169,6 +169,8 @@ export interface AssessmentContext {
   shadowMode?: boolean;
   assessmentId?: string;
   userId?: string;
+  /** Before photos fetched from job_photos_metadata for before/after comparison. */
+  beforeImageUrls?: string[];
 }
 
 /**

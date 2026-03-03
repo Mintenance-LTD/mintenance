@@ -15,16 +15,13 @@ import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthService } from '../services/AuthService';
 import { AuthStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
-type ForgotPasswordScreenNavigationProp = StackNavigationProp<
-  AuthStackParamList,
-  'ForgotPassword'
->;
+type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 
 interface Props {
   navigation: ForgotPasswordScreenNavigationProp;
@@ -283,8 +280,8 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   instructionTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 12,
@@ -388,3 +385,4 @@ const styles = StyleSheet.create({
 });
 
 export default ForgotPasswordScreen;
+

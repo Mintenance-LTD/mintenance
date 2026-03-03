@@ -11,7 +11,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { ProfileStackParamList, RootTabParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,7 +27,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import SearchBar from '../components/SearchBar';
 
 interface CRMDashboardScreenProps {
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'CRMDashboard'>;
 }
 
 export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
@@ -32,6 +35,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const tabNavigation = useNavigation<BottomTabNavigationProp<RootTabParamList>>();
   const [clients, setClients] = useState<ClientData[]>([]);
   const [analytics, setAnalytics] = useState<ClientAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,7 +127,14 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   };
 
   const handleMessage = (client: ClientData) => {
-    Alert.alert('Coming Soon', 'Client chat is coming soon.');
+    tabNavigation.navigate('MessagingTab', {
+      screen: 'Messaging',
+      params: {
+        conversationId: client.client_id,
+        recipientId: client.client_id,
+        recipientName: `${client.first_name} ${client.last_name}`.trim(),
+      },
+    } as never);
   };
 
   const handleEmail = async (client: ClientData) => {
@@ -198,7 +209,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         <Text style={styles.headerTitle}>Client Management</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => Alert.alert('Coming Soon', 'Add client is coming soon.')}
+          onPress={() => navigation.navigate('AddClient')}
         >
           <Ionicons name='person-add' size={24} color={theme.colors.white} />
         </TouchableOpacity>
@@ -299,7 +310,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
               {!searchQuery && (
                 <TouchableOpacity
                   style={styles.addClientButton}
-                  onPress={() => Alert.alert('Coming Soon', 'Add client is coming soon.')}
+                  onPress={() => navigation.navigate('AddClient')}
                 >
                   <Text style={styles.addClientButtonText}>Add Client</Text>
                 </TouchableOpacity>
@@ -311,7 +322,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
                 key={client.id}
                 client={client}
                 onPress={() =>
-                  Alert.alert('Coming Soon', 'Client details coming soon.')
+                  navigation.navigate('ClientDetail', { client })
                 }
                 onCall={() => handleCall(client)}
                 onMessage={() => handleMessage(client)}

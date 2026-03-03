@@ -125,6 +125,20 @@ export const queryClient = new QueryClient({
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CACHE_MAX_ENTRIES = 500; // keep most recent 500 entries
 
+// Keys that must never be persisted to unencrypted AsyncStorage (PII / financial data)
+const EXCLUDED_CACHE_PREFIXES = [
+  '["user","profile"',
+  '["user","stats"',
+  '["payment-history"',
+  '["payment"',
+  '["escrow"',
+  '["financial"',
+  '["subscription"',
+];
+
+const isSensitiveQuery = (key: string): boolean =>
+  EXCLUDED_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix));
+
 export const persistQueryClient = async () => {
   try {
     const clientState = queryClient
@@ -133,9 +147,10 @@ export const persistQueryClient = async () => {
       .reduce(
         (acc, query) => {
           const { queryKey, state } = query;
-          if (state.status === 'success' && state.data) {
+          const serializedKey = JSON.stringify(queryKey);
+          if (state.status === 'success' && state.data && !isSensitiveQuery(serializedKey)) {
             acc.push({
-              key: JSON.stringify(queryKey),
+              key: serializedKey,
               data: state.data,
               dataUpdatedAt: state.dataUpdatedAt,
             });

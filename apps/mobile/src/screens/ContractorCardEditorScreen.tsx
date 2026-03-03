@@ -12,7 +12,8 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,7 +26,7 @@ import { Input } from '../components/ui/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface ContractorCardEditorScreenProps {
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'ContractorCardEditor'>;
 }
 
 export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProps> = ({
@@ -85,7 +86,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: type === 'logo' ? [1, 1] : [4, 3],
         quality: 0.8,

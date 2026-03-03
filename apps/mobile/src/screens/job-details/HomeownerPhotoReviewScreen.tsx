@@ -36,7 +36,7 @@ interface PhotoPair {
 }
 
 export const HomeownerPhotoReviewScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
   const route = useRoute<PhotoReviewRouteProp>();
   const { user } = useAuth();
   const { jobId } = route.params;
@@ -241,7 +241,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
 
         {/* Instructions */}
         <View style={styles.instructions}>
-          <Ionicons name="information-circle-outline" size={20} color={theme.colors.info} />
+          <Ionicons name="information-circle-outline" size={20} color={theme.colors.textTertiary} />
           <Text style={styles.instructionsText}>
             Drag the slider to compare before and after photos. Approve if satisfied, or request changes.
           </Text>
@@ -301,7 +301,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel="Request changes to the work"
           >
-            <Ionicons name="create-outline" size={20} color={theme.colors.warning} />
+            <Ionicons name="create-outline" size={20} color={theme.colors.textSecondary} />
             <Text style={styles.requestChangesText}>Request Changes</Text>
           </TouchableOpacity>
 
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {
@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   photoCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
   },
   content: {
     flex: 1,
@@ -487,14 +487,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: theme.colors.warning,
+    borderWidth: 1.5,
+    borderColor: '#EBEBEB',
     backgroundColor: theme.colors.surface,
   },
   requestChangesText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.warning,
+    color: theme.colors.textPrimary,
   },
   approveButton: {
     flex: 1,
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 12,
-    backgroundColor: theme.colors.success,
+    backgroundColor: theme.colors.primary,
   },
   approveButtonText: {
     fontSize: 15,

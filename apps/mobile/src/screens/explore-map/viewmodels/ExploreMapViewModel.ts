@@ -43,6 +43,7 @@ export interface JobsMapViewModel {
   loading: boolean;
   jobCount: number;
   locationGranted: boolean;
+  hasPanned: boolean;
   handleRegionChange: (region: MapRegion) => void;
   handleSearch: (query: string) => void;
   handleJobSelect: (job: JobMapItem | null) => void;
@@ -50,6 +51,7 @@ export interface JobsMapViewModel {
   handleFilterPress: () => void;
   centerOnUser: () => void;
   refreshJobs: () => void;
+  searchInRegion: () => void;
 }
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -69,12 +71,19 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 export const useJobsMapViewModel = (): JobsMapViewModel => {
   const { user } = useAuth();
   const isMounted = useRef(true);
+  // Track initial region load so we don't fire hasPanned on mount
+  const initialLoadDone = useRef(false);
+
   const [region, setRegion] = useState<MapRegion>({
     latitude: 51.5074,
     longitude: -0.1278,
     latitudeDelta: 0.15,
     longitudeDelta: 0.15,
   });
+  // Keep a ref so fetchJobs can read latest region without re-creating the callback
+  const regionRef = useRef(region);
+  regionRef.current = region;
+
   const [jobs, setJobs] = useState<JobMapItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJob, setSelectedJob] = useState<JobMapItem | null>(null);
@@ -82,24 +91,23 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [locationGranted, setLocationGranted] = useState(false);
+  const [hasPanned, setHasPanned] = useState(false);
 
-  // Get user location on mount
+  // Get user location on mount — tries GPS first, falls back to registered profile address
   useEffect(() => {
     isMounted.current = true;
     (async () => {
       try {
-        // Check existing permission first (non-prompting)
         const { status: existing } = await Location.getForegroundPermissionsAsync();
         let finalStatus = existing;
-
         if (existing !== 'granted') {
           const { status } = await Location.requestForegroundPermissionsAsync();
           finalStatus = status;
         }
-
         if (!isMounted.current) return;
 
         if (finalStatus === 'granted') {
+          // GPS available — use device location
           setLocationGranted(true);
           const loc = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
@@ -109,16 +117,35 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
           const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
           setUserLocation(coords);
           setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+        } else {
+          // GPS denied — geocode the user's registered address from their profile
+          const addressParts = [user?.address, user?.city, user?.postcode].filter(Boolean);
+          if (addressParts.length > 0) {
+            try {
+              const geocoded = await Location.geocodeAsync(addressParts.join(', '));
+              if (!isMounted.current) return;
+              if (geocoded.length > 0) {
+                const coords = { latitude: geocoded[0].latitude, longitude: geocoded[0].longitude };
+                setUserLocation(coords);
+                setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+                logger.info('Map centered on profile address', { address: addressParts.join(', ') });
+              }
+            } catch (geocodeErr) {
+              logger.warn('Profile address geocoding failed, using default region', geocodeErr);
+            }
+          }
+          // If no profile address or geocoding fails, region stays as default (London)
         }
       } catch (err) {
-        logger.warn('Location permission denied or unavailable', err);
+        logger.warn('Location initialisation failed', err);
       }
     })();
     return () => { isMounted.current = false; };
-  }, []);
+  }, [user?.address, user?.city, user?.postcode]);
 
-  // Fetch posted jobs
+  // Fetch jobs — uses regionRef so we don't re-create on every pan
   const fetchJobs = useCallback(async () => {
+    if (!isMounted.current) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -139,8 +166,8 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
         return;
       }
 
-      const refLat = userLocation?.latitude ?? region.latitude;
-      const refLng = userLocation?.longitude ?? region.longitude;
+      const refLat = userLocation?.latitude ?? regionRef.current.latitude;
+      const refLng = userLocation?.longitude ?? regionRef.current.longitude;
 
       const mapped: JobMapItem[] = (data || []).map((row: Record<string, unknown>) => {
         const homeowner = row.homeowner as { first_name?: string } | null;
@@ -162,20 +189,27 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
       });
 
       mapped.sort((a, b) => a.distance - b.distance);
-      setJobs(mapped);
+      if (isMounted.current) {
+        setJobs(mapped);
+        initialLoadDone.current = true;
+      }
     } catch (err) {
       logger.error('Failed to fetch jobs for map', err);
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
-  }, [userLocation, region.latitude, region.longitude]);
+  }, [userLocation]); // Only depends on userLocation, not region — prevents re-fetch on every pan
 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
 
+  // Region change: set hasPanned only after initial load is done
   const handleRegionChange = useCallback((newRegion: MapRegion) => {
     setRegion(newRegion);
+    if (initialLoadDone.current) {
+      setHasPanned(true);
+    }
   }, []);
 
   const handleSearch = useCallback((query: string) => {
@@ -198,12 +232,10 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
     try {
       const { status: existing } = await Location.getForegroundPermissionsAsync();
       let finalStatus = existing;
-
       if (existing !== 'granted') {
         const { status } = await Location.requestForegroundPermissionsAsync();
         finalStatus = status;
       }
-
       if (finalStatus === 'granted') {
         setLocationGranted(true);
         const loc = await Location.getCurrentPositionAsync({
@@ -213,17 +245,22 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
         const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
         setUserLocation(coords);
         setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
+        setHasPanned(false);
       }
     } catch (err) {
       logger.warn('Could not get current location', err);
     }
   }, []);
 
+  // Search in the currently visible map region
+  const searchInRegion = useCallback(() => {
+    setHasPanned(false);
+    fetchJobs();
+  }, [fetchJobs]);
+
   // Filter jobs by search query and category
   const filteredJobs = jobs.filter((j) => {
-    if (selectedCategory && j.category.toLowerCase() !== selectedCategory.toLowerCase()) {
-      return false;
-    }
+    if (selectedCategory && j.category.toLowerCase() !== selectedCategory.toLowerCase()) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return j.title.toLowerCase().includes(q) || j.category.toLowerCase().includes(q);
@@ -240,6 +277,7 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
     loading,
     jobCount: filteredJobs.length,
     locationGranted,
+    hasPanned,
     handleRegionChange,
     handleSearch,
     handleJobSelect,
@@ -247,6 +285,7 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
     handleFilterPress,
     centerOnUser,
     refreshJobs: fetchJobs,
+    searchInRegion,
   };
 };
 

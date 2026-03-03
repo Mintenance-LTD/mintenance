@@ -67,23 +67,8 @@ const getIconName = (type: NotificationData['type']): keyof typeof Ionicons.glyp
   }
 };
 
-const getIconColor = (type: NotificationData['type']): string => {
-  switch (type) {
-    case 'job_update':
-    case 'bid_received':
-    case 'quote_sent':
-      return theme.colors.primary;
-    case 'payment_received':
-      return '#F59E0B';
-    case 'message_received':
-      return '#3B82F6';
-    case 'meeting_scheduled':
-      return '#8B5CF6';
-    case 'system':
-      return theme.colors.textSecondary;
-    default:
-      return theme.colors.textSecondary;
-  }
+const getIconColor = (_type: NotificationData['type']): string => {
+  return '#717171';
 };
 
 const filterNotifications = (notifications: NotificationData[], tab: FilterTab): NotificationData[] => {
@@ -131,7 +116,7 @@ const CompactNotification: React.FC<CompactNotificationProps> = ({ notification,
 
 export const NotificationScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

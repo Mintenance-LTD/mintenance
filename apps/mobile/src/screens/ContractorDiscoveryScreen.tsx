@@ -115,32 +115,12 @@ const ContractorDiscoveryScreen: React.FC = () => {
   };
 
   const serviceFilters = [
-    { id: null, name: 'All', icon: 'grid-outline', color: theme.colors.textSecondary },
-    {
-      id: 'plumbing',
-      name: 'Plumbing',
-      icon: 'water-outline',
-      color: theme.colors.plumbing,
-    },
-    {
-      id: 'electrical',
-      name: 'Electrical',
-      icon: 'flash-outline',
-      color: theme.colors.electrical,
-    },
-    { id: 'hvac', name: 'HVAC', icon: 'thermometer-outline', color: theme.colors.hvac },
-    {
-      id: 'general',
-      name: 'General',
-      icon: 'hammer-outline',
-      color: theme.colors.handyman,
-    },
-    {
-      id: 'appliance',
-      name: 'Appliance',
-      icon: 'home-outline',
-      color: theme.colors.appliance,
-    },
+    { id: null, name: 'All', icon: 'grid-outline' },
+    { id: 'plumbing', name: 'Plumbing', icon: 'water-outline' },
+    { id: 'electrical', name: 'Electrical', icon: 'flash-outline' },
+    { id: 'hvac', name: 'HVAC', icon: 'thermometer-outline' },
+    { id: 'general', name: 'General', icon: 'hammer-outline' },
+    { id: 'appliance', name: 'Appliance', icon: 'home-outline' },
   ];
 
   if (loading) {
@@ -187,7 +167,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
 
       {locationDenied && (
         <View style={styles.locationBanner}>
-          <Ionicons name='location-outline' size={16} color={theme.colors.warning} />
+          <Ionicons name='location-outline' size={16} color={theme.colors.textSecondary} />
           <Text style={styles.locationBannerText}>
             Showing results for default area. Enable location for nearby results.
           </Text>
@@ -209,11 +189,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
           <Ionicons
             name='person-outline'
             size={20}
-            color={
-              viewMode === 'discover'
-                ? theme.colors.textInverse
-                : theme.colors.primary
-            }
+            color={viewMode === 'discover' ? theme.colors.textInverse : '#717171'}
           />
           <Text
             style={[
@@ -238,9 +214,7 @@ const ContractorDiscoveryScreen: React.FC = () => {
           <Ionicons
             name='map-outline'
             size={20}
-            color={
-              viewMode === 'map' ? theme.colors.textInverse : theme.colors.primary
-            }
+            color={viewMode === 'map' ? theme.colors.textInverse : '#717171'}
           />
           <Text
             style={[
@@ -255,38 +229,31 @@ const ContractorDiscoveryScreen: React.FC = () => {
 
       {/* Service Filters */}
       <View style={styles.filtersContainer}>
-        {serviceFilters.map((filter) => (
-          <TouchableOpacity
-            key={filter.id || 'all'}
-            style={[
-              styles.filterButton,
-              { borderColor: filter.color },
-              selectedService === filter.id && {
-                backgroundColor: filter.color,
-              },
-            ]}
-            onPress={() => setSelectedService(filter.id)}
-            accessibilityRole='button'
-            accessibilityLabel={`Filter by ${filter.name}`}
-            accessibilityState={{ selected: selectedService === filter.id }}
-          >
-            <Ionicons
-              name={filter.icon as unknown}
-              size={16}
-              color={selectedService === filter.id ? theme.colors.white : filter.color}
-            />
-            <Text
+        {serviceFilters.map((filter) => {
+          const isActive = selectedService === filter.id;
+          return (
+            <TouchableOpacity
+              key={filter.id || 'all'}
               style={[
-                styles.filterText,
-                {
-                  color: selectedService === filter.id ? theme.colors.white : filter.color,
-                },
+                styles.filterButton,
+                isActive && styles.filterButtonActive,
               ]}
+              onPress={() => setSelectedService(filter.id)}
+              accessibilityRole='button'
+              accessibilityLabel={`Filter by ${filter.name}`}
+              accessibilityState={{ selected: isActive }}
             >
-              {filter.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Ionicons
+                name={filter.icon as keyof typeof Ionicons.glyphMap}
+                size={16}
+                color={isActive ? '#FFFFFF' : '#717171'}
+              />
+              <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                {filter.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {/* Content Views */}
@@ -321,21 +288,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.backgroundSecondary,
   },
   header: {
-    backgroundColor: theme.colors.primary,
-    paddingTop: 60,
-    paddingBottom: 15,
+    backgroundColor: theme.colors.background,
+    paddingTop: 16,
+    paddingBottom: 12,
     paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: theme.colors.white,
+    fontSize: 28,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
   },
   headerSubtitle: {
-    fontSize: 16,
-    color: theme.colors.white,
-    opacity: 0.9,
-    marginTop: 4,
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
   viewToggle: {
     flexDirection: 'row',
@@ -358,7 +324,7 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: '#717171',
     marginLeft: 6,
   },
   toggleTextActive: {
@@ -376,13 +342,22 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
+    borderColor: '#EBEBEB',
     marginRight: 8,
     backgroundColor: theme.colors.white,
+  },
+  filterButtonActive: {
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   filterText: {
     fontSize: 12,
     fontWeight: '500',
+    color: '#717171',
     marginLeft: 4,
+  },
+  filterTextActive: {
+    color: '#FFFFFF',
   },
   contentContainer: {
     flex: 1,
@@ -422,7 +397,7 @@ const styles = StyleSheet.create({
   locationBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.warningLight || '#FFF8E1',
+    backgroundColor: '#F7F7F7',
     paddingHorizontal: 16,
     paddingVertical: 8,
     gap: 8,

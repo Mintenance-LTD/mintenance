@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,16 +19,23 @@ import Button from '../components/ui/Button';
 import { PaymentService } from '../services/PaymentService';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
+import { mobileApiClient } from '../utils/mobileApiClient';
+import { useToast } from '../components/ui/Toast';
 
 const AddPaymentMethodScreen: React.FC = () => {
-  const navigation = useNavigation<unknown>();
+  const navigation = useNavigation();
   const { user } = useAuth();
   const { createPaymentMethod } = useStripe();
+  const toast = useToast();
 
   const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'paypal'>('card');
   const [loading, setLoading] = useState(false);
   const [cardComplete, setCardComplete] = useState(false);
   const [cardBrand, setCardBrand] = useState<string>('');
+  const [bankName, setBankName] = useState('');
+  const [sortCode, setSortCode] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [notifyMePayPal, setNotifyMePayPal] = useState(false);
 
   const handleSubmit = async () => {
     if (!user) {
@@ -87,12 +95,27 @@ const AddPaymentMethodScreen: React.FC = () => {
       } finally {
         setLoading(false);
       }
-    } else if (paymentType === 'paypal') {
-      // PayPal integration would go here
-      Alert.alert('Coming Soon', 'PayPal integration is coming soon!');
     } else if (paymentType === 'bank') {
-      // Bank account integration would go here
-      Alert.alert('Coming Soon', 'Bank account linking is coming soon!');
+      if (!bankName.trim() || !sortCode.trim() || !accountNumber.trim()) {
+        Alert.alert('Missing Details', 'Please fill in all bank account fields.');
+        return;
+      }
+      setLoading(true);
+      try {
+        await mobileApiClient.post('/api/payments/bank-account', {
+          accountHolderName: bankName.trim(),
+          sortCode: sortCode.replace(/-/g, ''),
+          accountNumber: accountNumber.trim(),
+        });
+        Alert.alert('Bank Account Added', 'Your bank account has been linked successfully.', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } catch (error) {
+        logger.error('Failed to add bank account', error);
+        Alert.alert('Error', 'Failed to link bank account. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -128,24 +151,63 @@ const AddPaymentMethodScreen: React.FC = () => {
   const renderPayPalForm = () => (
     <View style={styles.paypalContainer}>
       <Ionicons name="logo-paypal" size={48} color="#003087" style={{ alignSelf: 'center', marginBottom: 16 }} />
-      <Text style={styles.paypalText}>
-        You'll be redirected to PayPal to securely link your account.
-      </Text>
+      <Text style={styles.paypalText}>PayPal is coming soon</Text>
       <Text style={styles.paypalSubtext}>
-        This will allow you to pay using your PayPal balance, linked bank account, or cards saved in PayPal.
+        We're working on PayPal integration. Get notified when it's available.
       </Text>
+      <TouchableOpacity
+        style={[styles.notifyButton, notifyMePayPal && styles.notifyButtonActive]}
+        onPress={() => {
+          setNotifyMePayPal(true);
+          toast.success('You\'re on the list!', 'We\'ll notify you when PayPal is available.');
+        }}
+        disabled={notifyMePayPal}
+      >
+        <Ionicons name={notifyMePayPal ? 'checkmark-circle' : 'notifications-outline'} size={18} color={notifyMePayPal ? theme.colors.success : theme.colors.primary} />
+        <Text style={[styles.notifyButtonText, notifyMePayPal && { color: theme.colors.success }]}>
+          {notifyMePayPal ? 'Notifications enabled' : 'Notify me when available'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 
   const renderBankForm = () => (
-    <View style={styles.bankContainer}>
-      <Ionicons name="business" size={48} color={theme.colors.primary} style={{ alignSelf: 'center', marginBottom: 16 }} />
-      <Text style={styles.bankText}>
-        Bank account linking is coming soon!
-      </Text>
-      <Text style={styles.bankSubtext}>
-        You'll be able to link your bank account for direct ACH transfers.
-      </Text>
+    <View>
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Account Holder Name</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Full name on account"
+          placeholderTextColor={theme.colors.textTertiary}
+          value={bankName}
+          onChangeText={setBankName}
+          autoCapitalize="words"
+        />
+      </View>
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Sort Code</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="00-00-00"
+          placeholderTextColor={theme.colors.textTertiary}
+          value={sortCode}
+          onChangeText={setSortCode}
+          keyboardType="numbers-and-punctuation"
+          maxLength={8}
+        />
+      </View>
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Account Number</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="00000000"
+          placeholderTextColor={theme.colors.textTertiary}
+          value={accountNumber}
+          onChangeText={setAccountNumber}
+          keyboardType="number-pad"
+          maxLength={8}
+        />
+      </View>
     </View>
   );
 
@@ -201,19 +263,19 @@ const AddPaymentMethodScreen: React.FC = () => {
             <Text style={styles.comingSoonBadge}>Soon</Text>
           </View>
 
-          <View
-            style={[styles.paymentTypeButton, styles.paymentTypeDisabled]}
+          <TouchableOpacity
+            style={[styles.paymentTypeButton, paymentType === 'bank' && styles.paymentTypeButtonActive]}
+            onPress={() => setPaymentType('bank')}
           >
             <Ionicons
               name="business"
               size={24}
-              color={theme.colors.textTertiary}
+              color={paymentType === 'bank' ? theme.colors.textInverse : theme.colors.primary}
             />
-            <Text style={[styles.paymentTypeText, styles.paymentTypeTextDisabled]}>
+            <Text style={[styles.paymentTypeText, paymentType === 'bank' && styles.paymentTypeTextActive]}>
               Bank Account
             </Text>
-            <Text style={styles.comingSoonBadge}>Soon</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Form Content */}
@@ -239,7 +301,7 @@ const AddPaymentMethodScreen: React.FC = () => {
           title={paymentType === 'card' ? 'Add Card' : paymentType === 'paypal' ? 'Connect PayPal' : 'Link Bank Account'}
           onPress={handleSubmit}
           loading={loading}
-          disabled={loading || paymentType === 'bank'}
+          disabled={loading || paymentType === 'paypal'}
           fullWidth
           style={styles.submitButton}
         />
@@ -448,6 +510,23 @@ const styles = StyleSheet.create({
   submitButton: {
     marginBottom: 32,
   },
+  notifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: theme.colors.primary,
+    alignSelf: 'center',
+  },
+  notifyButtonActive: {
+    borderColor: theme.colors.success,
+    backgroundColor: theme.colors.primaryLight,
+  },
+  notifyButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
 });
 
 export default AddPaymentMethodScreen;

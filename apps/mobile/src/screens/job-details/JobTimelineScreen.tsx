@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
@@ -20,7 +20,7 @@ import type { JobsStackParamList } from '../../navigation/types';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'JobDetails'>;
-  navigation: StackNavigationProp<JobsStackParamList>;
+  navigation: NativeStackNavigationProp<JobsStackParamList>;
 };
 
 const LIFECYCLE_STEPS = [
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.primary + '15',
+    backgroundColor: '#F7F7F7',
     paddingVertical: theme.spacing[1],
     paddingHorizontal: theme.spacing[3],
     borderRadius: theme.borderRadius.sm,
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: theme.typography.fontSize.xs,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
     letterSpacing: 0.5,
   },
   timeline: {
@@ -199,3 +199,4 @@ const styles = StyleSheet.create({
 });
 
 export default JobTimelineScreen;
+

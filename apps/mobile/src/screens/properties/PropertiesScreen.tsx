@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,7 +22,7 @@ import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 
 interface Props {
-  navigation: StackNavigationProp<Record<string, unknown>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'Properties'>;
 }
 
 const PropertyCard: React.FC<{
@@ -239,3 +240,4 @@ const styles = StyleSheet.create({
 });
 
 export default PropertiesScreen;
+

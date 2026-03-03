@@ -10,7 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { AuthStackParamList } from '../navigation/types';
 import { theme } from '../theme';
@@ -20,8 +20,9 @@ import { Banner } from '../components/ui/Banner';
 import { RoleSelector } from './register/components/RoleSelector';
 import { TermsSection, TermsModal } from './register/components/TermsSection';
 import { useRegistrationForm } from './register/hooks/useRegistrationForm';
+import { PasswordStrengthBar } from '../components/ui/PasswordStrengthBar';
 
-type RegisterScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Register'>;
+type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
 interface Props {
   navigation?: RegisterScreenNavigationProp;
@@ -193,6 +194,7 @@ const RegisterScreen: React.FC<Props> = () => {
                 fullWidth
                 required
               />
+              <PasswordStrengthBar password={form.password} />
 
               <Input
                 testID="confirm-password-input"
@@ -320,14 +322,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   formSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textTertiary,
+    fontSize: 15,
+    color: theme.colors.textSecondary,
   },
   formContainer: {
     paddingHorizontal: 24,
@@ -367,3 +369,4 @@ const styles = StyleSheet.create({
 });
 
 export default RegisterScreen;
+

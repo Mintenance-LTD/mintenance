@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   scheduleStatus: {
-    backgroundColor: theme.colors.accent,
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,

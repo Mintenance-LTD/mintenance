@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/types';
 import { RouteProp } from '@react-navigation/native';
 import { MapView, Marker, PROVIDER_GOOGLE, Region } from '../components/map/MapViewWrapper';
 import { ContractorMarker } from '../components/map/ContractorMarker';
@@ -18,7 +19,7 @@ interface ContractorMapParams {
 
 interface Props {
   route?: RouteProp<{ params: ContractorMapParams }>;
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<RootStackParamList>;
 }
 
 const ContractorMapScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -124,3 +125,4 @@ const styles = StyleSheet.create({
 });
 
 export default ContractorMapScreen;
+

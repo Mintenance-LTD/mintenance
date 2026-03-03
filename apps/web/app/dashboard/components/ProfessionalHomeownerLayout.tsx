@@ -18,7 +18,6 @@ import {
   Menu,
   X,
   ChevronDown,
-  Compass,
   Building2,
   LogOut,
   User,
@@ -26,7 +25,6 @@ import {
   PoundSterling,
   CreditCard,
   Video,
-  Plus,
   Crown,
 } from 'lucide-react';
 
@@ -116,7 +114,6 @@ export function ProfessionalHomeownerLayout({
         name: 'MAIN',
         items: [
           { label: 'Dashboard', href: '/dashboard', icon: Home },
-          { label: 'Discover', href: '/discover', icon: Compass },
         ],
       },
       {
@@ -253,17 +250,6 @@ export function ProfessionalHomeownerLayout({
                 <X className="w-5 h-5" />
               </button>
             )}
-          </div>
-
-          {/* Quick Action */}
-          <div className="px-4 py-4">
-            <button
-              onClick={() => router.push('/jobs/create')}
-              className="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Post a Job
-            </button>
           </div>
 
           {/* Navigation */}

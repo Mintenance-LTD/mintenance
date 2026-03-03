@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -32,7 +33,7 @@ interface PaymentRecord {
 }
 
 interface Props {
-  navigation: StackNavigationProp<Record<string, unknown>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'PaymentHistory'>;
 }
 
 const PAGE_SIZE = 20;
@@ -390,3 +391,4 @@ const styles = StyleSheet.create({
 });
 
 export default PaymentHistoryScreen;
+

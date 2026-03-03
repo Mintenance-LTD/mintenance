@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { HapticService } from '../../utils/haptics';
 import { theme } from '../../theme';
@@ -25,7 +25,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobsStackParamList } from '../../navigation/types';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ContractView'>;
-type ScreenNavigationProp = StackNavigationProp<JobsStackParamList, 'ContractView'>;
+type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'ContractView'>;
 
 interface Props {
   route: ScreenRouteProp;
@@ -368,11 +368,11 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderLight,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   backButton: {
     width: 40,
@@ -528,8 +528,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 24,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: theme.colors.borderLight,
@@ -556,3 +556,4 @@ const styles = StyleSheet.create({
 });
 
 export default ContractViewScreen;
+

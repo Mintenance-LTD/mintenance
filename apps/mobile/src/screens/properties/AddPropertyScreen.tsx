@@ -15,16 +15,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../theme';
 import { ScreenHeader } from '../../components/shared';
+import { DatePicker } from '../../components/ui/DatePicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
 
 interface Props {
-  navigation: StackNavigationProp<ProfileStackParamList, 'AddProperty'>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddProperty'>;
 }
 
 const PROPERTY_TYPES = [
@@ -47,6 +48,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
   const [propertyType, setPropertyType] = useState('house');
   const [bedrooms, setBedrooms] = useState('');
   const [bathrooms, setBathrooms] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState<Date | null>(null);
   const [notes, setNotes] = useState('');
 
   const createMutation = useMutation({
@@ -85,6 +87,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       property_type: propertyType,
       bedrooms: bedrooms ? parseInt(bedrooms, 10) : undefined,
       bathrooms: bathrooms ? parseInt(bathrooms, 10) : undefined,
+      purchase_date: purchaseDate ? purchaseDate.toISOString().split('T')[0] : undefined,
       notes: notes.trim() || undefined,
     });
   };
@@ -223,6 +226,12 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 />
               </View>
             </View>
+
+            <DatePicker
+              label="Purchase / Build Date"
+              value={purchaseDate}
+              onChange={setPurchaseDate}
+            />
           </View>
 
           <View style={styles.section}>
@@ -356,3 +365,4 @@ const styles = StyleSheet.create({
 });
 
 export default AddPropertyScreen;
+

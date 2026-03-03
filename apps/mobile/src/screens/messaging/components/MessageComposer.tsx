@@ -14,6 +14,7 @@ interface MessageComposerProps {
   value: string;
   onChangeText: (text: string) => void;
   onSend: () => void;
+  onAttach?: () => void;
   isSending: boolean;
   error: string | null;
   bottomInset: number;
@@ -23,6 +24,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
   value,
   onChangeText,
   onSend,
+  onAttach,
   isSending,
   error,
   bottomInset,
@@ -44,6 +46,16 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
         />
       ) : null}
       <View style={styles.inputWrapper}>
+        {onAttach && (
+          <TouchableOpacity
+            style={styles.attachButton}
+            onPress={onAttach}
+            disabled={isSending}
+            accessibilityLabel="Attach image"
+          >
+            <Ionicons name="image-outline" size={22} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        )}
         <TextInput
           style={styles.textInput}
           value={value}
@@ -106,5 +118,9 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: theme.colors.surfaceTertiary,
+  },
+  attachButton: {
+    padding: 6,
+    marginRight: 4,
   },
 });

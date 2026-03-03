@@ -1,7 +1,7 @@
 /**
  * QuickActions Component
- * 
- * Displays quick action buttons for contractors to browse jobs and access inbox.
+ *
+ * Modern horizontal-row action list with coloured icon chips.
  */
 
 import React from 'react';
@@ -19,6 +19,15 @@ interface QuickActionsProps {
   onCalendarPress?: () => void;
 }
 
+interface ActionItem {
+  label: string;
+  subtitle: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  iconBg: string;
+  onPress: () => void;
+}
+
 export const QuickActions: React.FC<QuickActionsProps> = ({
   onBrowseJobsPress,
   onInboxPress,
@@ -29,36 +38,98 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
 }) => {
   const haptics = useHaptics();
 
-  const actions = [
-    { label: 'Browse Jobs', subtitle: 'Find opportunities', icon: 'search', color: theme.colors.primary, onPress: onBrowseJobsPress },
-    { label: 'Inbox', subtitle: 'Messages & updates', icon: 'mail', color: theme.colors.accent, onPress: onInboxPress },
-    ...(onQuotesPress ? [{ label: 'Quotes', subtitle: 'Build & send', icon: 'document-text', color: '#8B5CF6', onPress: onQuotesPress }] : []),
-    ...(onInvoicesPress ? [{ label: 'Invoices', subtitle: 'Manage billing', icon: 'receipt', color: '#F59E0B', onPress: onInvoicesPress }] : []),
-    ...(onExpensesPress ? [{ label: 'Expenses', subtitle: 'Track costs', icon: 'wallet', color: '#EF4444', onPress: onExpensesPress }] : []),
-    ...(onCalendarPress ? [{ label: 'Calendar', subtitle: 'Schedule & plan', icon: 'calendar', color: '#10B981', onPress: onCalendarPress }] : []),
+  const actions: ActionItem[] = [
+    {
+      label: 'Browse Jobs',
+      subtitle: 'Find new opportunities',
+      icon: 'search',
+      iconColor: '#0D9488',
+      iconBg: '#CCFBF1',
+      onPress: onBrowseJobsPress,
+    },
+    {
+      label: 'Inbox',
+      subtitle: 'Messages & updates',
+      icon: 'mail',
+      iconColor: '#3B82F6',
+      iconBg: '#DBEAFE',
+      onPress: onInboxPress,
+    },
+    ...(onQuotesPress
+      ? [
+          {
+            label: 'Quotes',
+            subtitle: 'Build & send estimates',
+            icon: 'document-text' as keyof typeof Ionicons.glyphMap,
+            iconColor: '#8B5CF6',
+            iconBg: '#EDE9FE',
+            onPress: onQuotesPress,
+          },
+        ]
+      : []),
+    ...(onInvoicesPress
+      ? [
+          {
+            label: 'Invoices',
+            subtitle: 'Manage billing',
+            icon: 'receipt' as keyof typeof Ionicons.glyphMap,
+            iconColor: '#D97706',
+            iconBg: '#FEF3C7',
+            onPress: onInvoicesPress,
+          },
+        ]
+      : []),
+    ...(onExpensesPress
+      ? [
+          {
+            label: 'Expenses',
+            subtitle: 'Track costs',
+            icon: 'wallet' as keyof typeof Ionicons.glyphMap,
+            iconColor: '#DC2626',
+            iconBg: '#FEE2E2',
+            onPress: onExpensesPress,
+          },
+        ]
+      : []),
+    ...(onCalendarPress
+      ? [
+          {
+            label: 'Calendar',
+            subtitle: 'Schedule & plan',
+            icon: 'calendar' as keyof typeof Ionicons.glyphMap,
+            iconColor: '#059669',
+            iconBg: '#D1FAE5',
+            onPress: onCalendarPress,
+          },
+        ]
+      : []),
   ];
 
   return (
-    <View style={styles.quickActionsSection}>
+    <View style={styles.section}>
       <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-      <View style={styles.actionsGrid}>
-        {actions.map((action) => (
+      <View style={styles.list}>
+        {actions.map((action, index) => (
           <TouchableOpacity
             key={action.label}
-            style={styles.actionCard}
+            style={[styles.row, index === actions.length - 1 && styles.rowLast]}
             onPress={() => {
               haptics.buttonPress();
               action.onPress();
             }}
             accessibilityRole="button"
             accessibilityLabel={action.label}
+            activeOpacity={0.7}
           >
-            <View style={styles.actionIcon}>
-              <Ionicons name={action.icon as keyof typeof Ionicons.glyphMap} size={24} color={action.color} />
+            <View style={[styles.iconChip, { backgroundColor: action.iconBg }]}>
+              <Ionicons name={action.icon} size={20} color={action.iconColor} />
             </View>
-            <Text style={styles.actionTitle}>{action.label}</Text>
-            <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+            <View style={styles.textBlock}>
+              <Text style={styles.rowTitle}>{action.label}</Text>
+              <Text style={styles.rowSubtitle}>{action.subtitle}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         ))}
       </View>
@@ -67,47 +138,56 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
 };
 
 const styles = StyleSheet.create({
-  quickActionsSection: {
+  section: {
     marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 16,
-  },
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  actionCard: {
-    width: '47%',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    ...theme.shadows.base,
-  },
-  actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.surfaceSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 12,
   },
-  actionTitle: {
-    fontSize: 16,
+  list: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.04)',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    gap: 14,
+  },
+  rowLast: {
+    borderBottomWidth: 0,
+  },
+  iconChip: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textBlock: {
+    flex: 1,
+  },
+  rowTitle: {
+    fontSize: 15,
     fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginBottom: 4,
-    textAlign: 'center',
+    marginBottom: 2,
   },
-  actionSubtitle: {
+  rowSubtitle: {
     fontSize: 12,
     color: theme.colors.textSecondary,
-    textAlign: 'center',
   },
 });

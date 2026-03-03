@@ -9,7 +9,8 @@
 
 import React from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { useCreateQuoteViewModel } from './viewmodels/CreateQuoteViewModel';
@@ -22,7 +23,7 @@ import {
 } from './components';
 
 interface CreateQuoteScreenProps {
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'CreateQuote'>;
   route: {
     params?: {
       jobId?: string;
@@ -114,3 +115,4 @@ const styles = StyleSheet.create({
 });
 
 export default CreateQuoteScreen;
+

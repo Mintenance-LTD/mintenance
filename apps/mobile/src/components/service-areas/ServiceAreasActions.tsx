@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 interface ServiceAreasActionsProps {
-  navigation: StackNavigationProp<Record<string, undefined>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList>;
 }
 
 export const ServiceAreasActions: React.FC<ServiceAreasActionsProps> = ({ navigation }) => {
@@ -78,3 +79,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+

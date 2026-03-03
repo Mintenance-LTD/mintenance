@@ -11,7 +11,8 @@
 import React from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, StatusBar } from 'react-native';
 import { theme } from '../../theme';
-import { LoadingSpinner, ErrorView } from '../../components/shared';
+import { ErrorView } from '../../components/shared';
+import { SkeletonDashboard } from '../../components/ui/LoadingStates';
 import { useEnhancedHomeViewModel } from './viewmodels/EnhancedHomeViewModel';
 import {
   LocationHeader,
@@ -26,7 +27,7 @@ export const EnhancedHomeScreen: React.FC = () => {
 
   // Loading state
   if (viewModel.loading) {
-    return <LoadingSpinner message="Loading..." />;
+    return <SkeletonDashboard />;
   }
 
   // Error state

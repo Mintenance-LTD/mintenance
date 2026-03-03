@@ -5,7 +5,7 @@
  * stats overview, bids, appointments, and recent jobs.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -21,8 +21,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { JobService } from '../../services/JobService';
-import { BidService, Bid as ServiceBid } from '../../services/BidService';
-import { useQuery } from '@tanstack/react-query';
+import { BidService } from '../../services/BidService';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { FullScreenLoading } from '../../components/LoadingSpinner';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import { theme } from '../../theme';
 import { logger } from '../../utils/logger';
@@ -34,16 +35,54 @@ const appIcon = require('../../../assets/icon.png');
 
 export const HomeownerDashboard: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<unknown>();
-
-  const [homeownerJobs, setHomeownerJobs] = useState<{ id?: string; status?: string; title?: string; [key: string]: unknown }[]>([]);
-  const [recentBids, setRecentBids] = useState<{ id: string; contractorName: string; jobTitle: string; amount: number; status: string; jobId: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Fetch upcoming appointments
+  // Jobs query
+  const {
+    data: jobsData,
+    isLoading: jobsLoading,
+    isError: jobsError,
+    isFetching,
+    refetch: refetchJobs,
+  } = useQuery({
+    queryKey: ['homeownerJobs', user?.id],
+    queryFn: () => JobService.getUserJobs(user!.id),
+    enabled: !!user,
+  });
+
+  const homeownerJobs = jobsData || [];
+  const activeJobIds = homeownerJobs
+    .filter((j) => j?.status === 'posted' || j?.status === 'assigned')
+    .map((j) => j?.id)
+    .filter(Boolean) as string[];
+
+  // Bids query — single batch request, depends on jobs
+  const { data: recentBids = [] } = useQuery({
+    queryKey: ['homeownerBids', activeJobIds.slice(0, 5).join(',')],
+    queryFn: async () => {
+      const bids = await BidService.getBidsByJobs(activeJobIds.slice(0, 5), 'pending').catch(
+        (err: unknown) => {
+          logger.warn('Failed to fetch bids for jobs', { error: err });
+          return [];
+        }
+      );
+      return bids.slice(0, 5).map((b) => ({
+        id: b.id,
+        contractorName: b.contractor
+          ? `${b.contractor.first_name} ${b.contractor.last_name}`
+          : 'Unknown',
+        jobTitle: b.job?.title || 'Untitled job',
+        amount: b.amount,
+        status: b.status,
+        jobId: b.job_id,
+      }));
+    },
+    enabled: !!user && activeJobIds.length > 0,
+  });
+
+  // Appointments query
   const { data: appointments } = useQuery({
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
@@ -53,91 +92,32 @@ export const HomeownerDashboard: React.FC = () => {
     enabled: !!user,
   });
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [user]);
-
-  const loadDashboardData = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setError(null);
-      const jobs = await JobService.getUserJobs(user.id);
-      setHomeownerJobs(jobs || []);
-
-      // Fetch recent bids for homeowner's active jobs
-      const activeJobIds = (jobs || [])
-        .filter((j) => j?.status === 'posted' || j?.status === 'assigned')
-        .map((j) => j?.id)
-        .filter(Boolean) as string[];
-
-      if (activeJobIds.length > 0) {
-        const allBids: ServiceBid[] = [];
-        for (const jobId of activeJobIds.slice(0, 5)) {
-          try {
-            const bids = await BidService.getBidsByJob(jobId, 'pending');
-            allBids.push(...bids);
-          } catch (bidErr) {
-            logger.warn('Failed to fetch bids for job', { jobId, error: bidErr });
-          }
-        }
-        setRecentBids(
-          allBids.slice(0, 5).map((b) => ({
-            id: b.id,
-            contractorName: b.contractor
-              ? `${b.contractor.first_name} ${b.contractor.last_name}`
-              : 'Unknown',
-            jobTitle: b.job?.title || 'Untitled job',
-            amount: b.amount,
-            status: b.status,
-            jobId: b.job_id,
-          }))
-        );
-      }
-    } catch (error) {
-      logger.error('Error loading dashboard data:', error);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    if (user) {
-      try {
-        const jobs = await JobService.getUserJobs(user.id);
-        setHomeownerJobs(jobs || []);
-      } catch (err) {
-        logger.error('Failed to refresh dashboard', err);
-      }
-    }
-    setRefreshing(false);
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['homeownerJobs', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['homeownerBids'] });
+    queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] });
   };
 
   const openJobsList = () => {
     navigation.navigate('JobsTab', { screen: 'JobsList' });
   };
 
-  // Error state
-  if (error) {
+  if (jobsLoading) {
+    return <FullScreenLoading message="Loading dashboard..." />;
+  }
+
+  if (jobsError) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() => loadDashboardData()}
-        >
+        <Text style={styles.errorText}>Failed to load dashboard data</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => refetchJobs()}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const userName = user?.firstName || user?.first_name || 'there';
+  const userName = user?.first_name || user?.firstName || 'there';
   const userInitial = userName[0].toUpperCase();
 
   return (
@@ -157,7 +137,7 @@ export const HomeownerDashboard: React.FC = () => {
         <View style={styles.rightActions}>
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={() => (navigation as any).navigate('Modal', { screen: 'Notifications' })}
+            onPress={() => navigation.navigate('Modal', { screen: 'Notifications' } as never)}
             accessibilityRole="button"
             accessibilityLabel="Notifications"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -189,10 +169,11 @@ export const HomeownerDashboard: React.FC = () => {
         <Pressable style={styles.dropdownOverlay} onPress={() => setShowProfileMenu(false)}>
           <Pressable style={styles.dropdownMenu}>
             {([
-              { label: 'Properties', icon: 'home-outline' as const, color: theme.colors.primary, onPress: () => navigation.navigate('ProfileTab', { screen: 'Properties' }) },
-              { label: 'Messages', icon: 'chatbubble-outline' as const, color: '#3B82F6', onPress: () => navigation.navigate('MessagingTab' as never) },
-              { label: 'Payments', icon: 'card-outline' as const, color: '#F59E0B', onPress: () => navigation.navigate('ProfileTab', { screen: 'PaymentMethods' }) },
-              { label: 'Settings', icon: 'settings-outline' as const, color: '#8B5CF6', onPress: () => navigation.navigate('ProfileTab' as never) },
+              { label: 'Properties', icon: 'home-outline' as const, onPress: () => navigation.navigate('ProfileTab', { screen: 'Properties' }) },
+              { label: 'Discover Contractors', icon: 'search-outline' as const, onPress: () => navigation.navigate('Modal', { screen: 'EnhancedHome' } as never) },
+              { label: 'Messages', icon: 'chatbubble-outline' as const, onPress: () => navigation.navigate('MessagingTab' as never) },
+              { label: 'Payments', icon: 'card-outline' as const, onPress: () => navigation.navigate('ProfileTab', { screen: 'PaymentMethods' }) },
+              { label: 'Settings', icon: 'settings-outline' as const, onPress: () => navigation.navigate('ProfileTab' as never) },
             ]).map((item) => (
               <TouchableOpacity
                 key={item.label}
@@ -204,7 +185,7 @@ export const HomeownerDashboard: React.FC = () => {
                 accessibilityRole="button"
                 accessibilityLabel={item.label}
               >
-                <Ionicons name={item.icon} size={20} color={item.color} />
+                <Ionicons name={item.icon} size={20} color={theme.colors.textSecondary} />
                 <Text style={styles.dropdownItemText}>{item.label}</Text>
               </TouchableOpacity>
             ))}
@@ -229,13 +210,16 @@ export const HomeownerDashboard: React.FC = () => {
         showsVerticalScrollIndicator={false}
         testID='home-scroll-view'
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={isFetching} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
       >
         {/* Welcome greeting */}
         <View style={styles.welcomeRow}>
-          <Text style={[styles.welcomeGreeting, { color: theme.colors.textSecondary }]}>
+          <Text style={styles.welcomeGreeting}>
             Welcome back, {userName}
+          </Text>
+          <Text style={styles.welcomeSubtitle}>
+            Here's what's happening
           </Text>
         </View>
 
@@ -302,12 +286,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 10,
     backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 10,
   },
   brandButton: {
     flexDirection: 'row',
@@ -320,10 +309,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   brandText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1E3A5F',
-    letterSpacing: -0.3,
+    color: theme.colors.textPrimary,
   },
   rightActions: {
     flexDirection: 'row',
@@ -366,11 +354,19 @@ const styles = StyleSheet.create({
   },
   welcomeRow: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 20,
+    paddingBottom: 4,
   },
   welcomeGreeting: {
-    fontSize: 16,
+    fontSize: 28,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    lineHeight: 34,
+  },
+  welcomeSubtitle: {
+    fontSize: 15,
     color: theme.colors.textSecondary,
+    marginTop: 4,
   },
   homeownerContent: {
     paddingHorizontal: 24,

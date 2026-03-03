@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,21 +10,23 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { JobService } from '../services/JobService';
 import { Job } from '@mintenance/types';
 import { theme, getStatusColor as themeGetStatusColor } from '../theme';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { NavigationHeader } from '../components/navigation';
 import { ImageCarousel } from '../components/ui/ImageCarousel';
-import {
-  ResponsiveContainer,
-} from '../components/responsive';
+import { ResponsiveContainer } from '../components/responsive';
+import { ExploreMapScreen } from './explore-map/ExploreMapScreen';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed';
+type ViewMode = 'list' | 'map';
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   plumbing: 'water-outline',
@@ -38,34 +40,88 @@ const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   general: 'construct-outline',
 };
 
+const CATEGORY_COLORS: Record<string, { icon: string; bg: string; text: string }> = {
+  plumbing:    { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+  electrical:  { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+  roofing:     { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+  painting:    { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+  carpentry:   { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+  cleaning:    { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+  hvac:        { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+  landscaping: { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+  general:     { icon: '#717171', bg: '#F7F7F7', text: '#717171' },
+};
+
+const FILTER_LABELS: Record<FilterStatus, string> = {
+  all: 'All',
+  posted: 'Posted',
+  assigned: 'Assigned',
+  in_progress: 'In Progress',
+  completed: 'Done',
+};
+
 const JobsScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<unknown>();
+  const navigation = useNavigation();
+  const queryClient = useQueryClient();
 
-  const [allJobs, setAllJobs] = useState<Job[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    void loadJobs();
-  }, [user]);
+    AsyncStorage.getItem('saved_jobs').then((v) => {
+      if (v) setSavedJobIds(new Set(JSON.parse(v) as string[]));
+    }).catch(() => {});
+  }, []);
 
-  const loadJobs = async () => {
-    if (!user) return;
-    try {
-      setError(null);
-      const jobs =
-        user.role === 'homeowner'
-          ? await JobService.getJobsByHomeowner(user.id)
-          : await JobService.getAvailableJobs();
-      setAllJobs(jobs);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load jobs';
-      setError(message);
-    }
-  };
+  const toggleSave = useCallback(async (jobId: string) => {
+    setSavedJobIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(jobId)) next.delete(jobId);
+      else next.add(jobId);
+      AsyncStorage.setItem('saved_jobs', JSON.stringify([...next])).catch(() => {});
+      return next;
+    });
+  }, []);
+
+  const {
+    data: allJobs = [],
+    isError,
+    error: queryError,
+    isFetching,
+    refetch,
+  } = useQuery<Job[]>({
+    queryKey: ['jobs', user?.id, user?.role],
+    queryFn: () =>
+      user!.role === 'homeowner'
+        ? JobService.getJobsByHomeowner(user!.id)
+        : JobService.getAvailableJobs(),
+    enabled: !!user,
+  });
+
+  const filterCounts = useMemo(() => {
+    const counts: Record<FilterStatus, number> = {
+      all: allJobs.length,
+      posted: 0,
+      assigned: 0,
+      in_progress: 0,
+      completed: 0,
+    };
+    allJobs.forEach((j) => {
+      const s = j.status as FilterStatus;
+      if (s in counts) counts[s]++;
+    });
+    return counts;
+  }, [allJobs]);
+
+  const newToday = useMemo(() =>
+    allJobs.filter((j) => {
+      const age = (Date.now() - new Date(j.created_at || (j as any).createdAt || Date.now()).getTime()) / (1000 * 3600 * 24);
+      return age < 1;
+    }).length,
+  [allJobs]);
 
   const filteredJobs = useMemo(() => {
     let data = allJobs;
@@ -84,116 +140,108 @@ const JobsScreen: React.FC = () => {
     return data;
   }, [allJobs, selectedFilter, searchQuery]);
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await loadJobs();
-    } finally {
-      setRefreshing(false);
-    }
+  const onRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['jobs', user?.id, user?.role] });
   };
 
   const renderItem = useCallback(({ item }: { item: Job }) => (
     <JobCard
       item={item}
-      onPress={() => navigation.navigate('JobDetails', { jobId: item.id })}
+      saved={savedJobIds.has(item.id)}
+      onPress={() => (navigation as any).navigate('JobDetails', { jobId: item.id })}
+      onSave={() => toggleSave(item.id)}
+      bidCount={item.bids?.length}
     />
-  ), [navigation]);
+  ), [navigation, savedJobIds, toggleSave]);
+
+  const isContractor = user?.role === 'contractor';
+
+  // When map mode is active, render the explore map full-screen
+  if (viewMode === 'map' && isContractor) {
+    return <ExploreMapScreen onBackToList={() => setViewMode('list')} />;
+  }
+
+  const subtitle = newToday > 0
+    ? `${newToday} new today · ${filteredJobs.length} total`
+    : `${filteredJobs.length} ${user?.role === 'homeowner' ? 'jobs' : 'opportunities'}`;
 
   return (
     <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
       <NavigationHeader
         title={user?.role === 'homeowner' ? 'My Jobs' : 'Job Marketplace'}
-        subtitle={`${filteredJobs.length} ${user?.role === 'homeowner' ? 'jobs' : 'opportunities'}`}
+        subtitle={subtitle}
         rightIcon={
           user?.role === 'homeowner'
-            ? {
-                name: 'add-circle-outline',
-                onPress: () =>
-                  navigation.getParent?.()?.navigate('Modal', {
-                    screen: 'ServiceRequest',
-                  }),
-              }
+            ? { name: 'add-circle-outline', onPress: () => navigation.getParent?.()?.navigate('Modal', { screen: 'ServiceRequest' }) }
             : undefined
         }
       />
 
       <ResponsiveContainer
-        maxWidth={{
-          mobile: undefined,
-          tablet: 768,
-          desktop: 1200,
-        }}
-        padding={{
-          mobile: 24,
-          tablet: 16,
-          desktop: 24,
-        }}
+        maxWidth={{ mobile: undefined, tablet: 768, desktop: 1200 }}
+        padding={{ mobile: 0, tablet: 16, desktop: 24 }}
         style={[styles.container, { backgroundColor: theme.colors.background }]}
         testID="jobs-screen"
       >
         <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
-          {error && (
+          {isError && (
             <View style={styles.errorBanner}>
-              <Ionicons name='alert-circle' size={18} color={theme.colors.error} />
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity onPress={() => void loadJobs()} accessibilityRole='button' accessibilityLabel='Retry loading jobs'>
+              <Ionicons name="alert-circle" size={18} color={theme.colors.error} />
+              <Text style={styles.errorText}>
+                {queryError instanceof Error ? queryError.message : 'Failed to load jobs'}
+              </Text>
+              <TouchableOpacity onPress={() => refetch()} accessibilityRole="button">
                 <Text style={styles.retryText}>Retry</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          <View style={styles.searchSection}>
+          <View style={styles.searchRow}>
             <View style={styles.searchContainer}>
-              <Ionicons
-                name='search'
-                size={20}
-                color={theme.colors.textSecondary}
-                style={styles.searchIcon}
-              />
+              <Ionicons name="search" size={18} color={theme.colors.textSecondary} style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
-                placeholder='Search jobs...'
+                placeholder="Search by trade, location..."
                 placeholderTextColor={theme.colors.textTertiary}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                accessibilityLabel='Search jobs'
-                accessibilityHint='Type to search by title, description, or location'
+                accessibilityLabel="Search jobs"
               />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={18} color={theme.colors.textTertiary} />
+                </TouchableOpacity>
+              )}
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.filterRow}>
-                {(
-                  ['all', 'posted', 'assigned', 'in_progress', 'completed'] as FilterStatus[]
-                ).map((key) => (
-                  <TouchableOpacity
-                    key={key}
-                    style={[
-                      styles.filterChip,
-                      selectedFilter === key && styles.filterChipActive,
-                    ]}
-                    onPress={() => setSelectedFilter(key)}
-                    accessibilityRole='button'
-                    accessibilityLabel={`Filter by ${key === 'all' ? 'all jobs' : key === 'in_progress' ? 'in progress' : key}`}
-                    accessibilityState={{ selected: selectedFilter === key }}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        selectedFilter === key && styles.filterChipTextActive,
-                      ]}
-                    >
-                      {key === 'all'
-                        ? 'All'
-                        : key === 'in_progress'
-                          ? 'In Progress'
-                          : key.charAt(0).toUpperCase() + key.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+            {isContractor && (
+              <TouchableOpacity
+                style={styles.mapToggle}
+                onPress={() => setViewMode('map')}
+                accessibilityRole="button"
+                accessibilityLabel="Switch to map view"
+              >
+                <Ionicons name="map-outline" size={20} color={theme.colors.textPrimary} />
+              </TouchableOpacity>
+            )}
           </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {(Object.keys(FILTER_LABELS) as FilterStatus[]).map((key) => (
+              <TouchableOpacity
+                key={key}
+                style={[styles.filterChip, selectedFilter === key && styles.filterChipActive]}
+                onPress={() => setSelectedFilter(key)}
+                accessibilityRole="button"
+                accessibilityLabel={`Filter: ${FILTER_LABELS[key]} (${filterCounts[key]})`}
+                accessibilityState={{ selected: selectedFilter === key }}
+              >
+                <Text style={[styles.filterChipText, selectedFilter === key && styles.filterChipTextActive]}>
+                  {FILTER_LABELS[key]}
+                  {filterCounts[key] > 0 && key !== 'all' ? ` ${filterCounts[key]}` : ''}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         <FlatList
@@ -213,7 +261,7 @@ const JobsScreen: React.FC = () => {
             </View>
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl refreshing={isFetching} onRefresh={onRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
           }
           showsVerticalScrollIndicator={false}
         />
@@ -222,62 +270,78 @@ const JobsScreen: React.FC = () => {
   );
 };
 
-// ============================================================================
-// IMAGE-FORWARD JOB CARD (Airbnb Pattern)
-// ============================================================================
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPACT JOB CARD
+// ─────────────────────────────────────────────────────────────────────────────
 
-const JobCard: React.FC<{ item: Job; onPress: () => void }> = ({
-  item,
-  onPress,
-}) => {
+const JobCard: React.FC<{
+  item: Job;
+  saved: boolean;
+  onPress: () => void;
+  onSave: () => void;
+  bidCount?: number;
+  hasAIAssessment?: boolean;
+}> = ({ item, saved, onPress, onSave, bidCount, hasAIAssessment }) => {
   const daysAgo = Math.floor(
-    (Date.now() - new Date(item.created_at || item.createdAt || Date.now()).getTime()) /
-      (1000 * 3600 * 24)
+    (Date.now() - new Date(item.created_at || (item as any).createdAt || Date.now()).getTime()) / (1000 * 3600 * 24)
   );
-  const photos = item.photos || item.images || [];
+  const photos = item.photos || (item as any).images || [];
   const hasPhotos = photos.length > 0;
-  const locationStr = typeof item.location === 'string' ? item.location : item.city || '';
-  const budget = item.budget || item.budget_min || 0;
-  const urgency = item.urgency || item.priority || 'medium';
-  const categoryIcon = CATEGORY_ICONS[item.category?.toLowerCase() || ''] || 'construct-outline';
+
+  // Show city/town only — strip full address noise
+  const rawLocation = typeof item.location === 'string' ? item.location : (item as any).city || '';
+  const locationStr = (item as any).city || rawLocation.split(',').slice(-2, -1)[0]?.trim() || rawLocation;
+
+  const budget = item.budget || (item as any).budget_min || 0;
+  const urgency = item.urgency || (item as any).priority || 'medium';
+  const isUrgent = urgency === 'high' || urgency === 'emergency';
+  const catKey = item.category?.toLowerCase() || 'general';
+  const catColor = CATEGORY_COLORS[catKey] || CATEGORY_COLORS.general;
+  const categoryIcon = CATEGORY_ICONS[catKey] || 'construct-outline';
 
   return (
     <TouchableOpacity
       style={styles.jobCard}
       onPress={onPress}
       activeOpacity={0.9}
-      accessibilityRole='button'
-      accessibilityLabel={`${item.title}, ${formatStatus(item.status)}, budget £${budget.toLocaleString()}, ${locationStr}`}
-      accessibilityHint='Double tap to view job details'
+      accessibilityRole="button"
+      accessibilityLabel={`${item.title}, £${budget.toLocaleString()}, ${locationStr}`}
+      accessibilityHint="Double tap to view job details"
     >
-      {/* Hero Image Section */}
+      {/* Photo or placeholder – compact 130px height */}
       {hasPhotos ? (
         <View style={styles.heroSection}>
           <ImageCarousel
             images={photos}
-            height={260}
-            width={SCREEN_WIDTH - 40}
+            height={130}
+            width={SCREEN_WIDTH - 32}
             showDots={photos.length > 1}
             gradientOverlay
             overlayContent={
               <View style={styles.overlayRow}>
+                {isUrgent && (
+                  <View style={styles.urgentTag}>
+                    <Ionicons name="flame" size={11} color="#FFFFFF" />
+                    <Text style={styles.urgentTagText}>Urgent</Text>
+                  </View>
+                )}
                 <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status) }]}>
                   <Text style={styles.statusTagText}>{formatStatus(item.status)}</Text>
                 </View>
-                {urgency === 'high' || urgency === 'emergency' ? (
-                  <View style={styles.urgentTag}>
-                    <Ionicons name="flame" size={12} color="#FFFFFF" />
-                    <Text style={styles.urgentTagText}>Urgent</Text>
-                  </View>
-                ) : null}
               </View>
             }
           />
         </View>
       ) : (
-        <View style={styles.placeholderHero}>
-          <Ionicons name={categoryIcon} size={48} color={theme.colors.textTertiary} />
+        <View style={[styles.placeholderHero, { backgroundColor: catColor.bg }]}>
+          <Ionicons name={categoryIcon} size={36} color={catColor.icon} />
           <View style={styles.placeholderOverlay}>
+            {isUrgent && (
+              <View style={styles.urgentTag}>
+                <Ionicons name="flame" size={11} color="#FFFFFF" />
+                <Text style={styles.urgentTagText}>Urgent</Text>
+              </View>
+            )}
             <View style={[styles.statusTag, { backgroundColor: getStatusColor(item.status) }]}>
               <Text style={styles.statusTagText}>{formatStatus(item.status)}</Text>
             </View>
@@ -285,40 +349,61 @@ const JobCard: React.FC<{ item: Job; onPress: () => void }> = ({
         </View>
       )}
 
-      {/* Content Section */}
+      {/* Save button – absolute top-right */}
+      <TouchableOpacity
+        style={styles.saveButton}
+        onPress={(e) => { e.stopPropagation?.(); onSave(); }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={saved ? 'Remove from saved' : 'Save job'}
+      >
+        <Ionicons name={saved ? 'heart' : 'heart-outline'} size={20} color={saved ? '#EF4444' : '#FFFFFF'} />
+      </TouchableOpacity>
+
+      {/* Content */}
       <View style={styles.cardContent}>
-        <Text style={styles.jobTitle} numberOfLines={1}>
-          {item.title}
-        </Text>
-
-        {locationStr ? (
-          <View style={styles.locationRow}>
-            <Ionicons name='location-outline' size={14} color={theme.colors.textSecondary} />
-            <Text style={styles.locationText} numberOfLines={1}>{locationStr}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.metaRow}>
-          {budget > 0 && (
-            <Text style={styles.priceText}>
-              {'\u00A3'}{budget.toLocaleString()}
-            </Text>
-          )}
-          {item.category && (
-            <View style={styles.categoryTag}>
-              <Text style={styles.categoryTagText}>
-                {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-              </Text>
-            </View>
-          )}
-          <Text style={styles.timeText}>
-            {daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`}
-          </Text>
+        <View style={styles.cardTopRow}>
+          <Text style={styles.jobTitle} numberOfLines={1}>{item.title}</Text>
         </View>
 
-        <Text style={styles.jobDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
+        <View style={styles.cardMeta}>
+          {locationStr ? (
+            <View style={styles.metaItem}>
+              <Ionicons name="location-outline" size={13} color={theme.colors.textTertiary} />
+              <Text style={styles.metaText}>{locationStr}</Text>
+            </View>
+          ) : null}
+          <View style={styles.metaItem}>
+            <Ionicons name="time-outline" size={13} color={theme.colors.textTertiary} />
+            <Text style={styles.metaText}>{daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d ago' : `${daysAgo}d ago`}</Text>
+          </View>
+        </View>
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.priceText}>{budget > 0 ? `£${budget.toLocaleString()}` : 'Budget TBD'}</Text>
+          <View style={styles.footerRight}>
+            {item.category && (
+              <View style={[styles.categoryTag, { backgroundColor: catColor.bg }]}>
+                <Text style={[styles.categoryTagText, { color: catColor.text }]}>
+                  {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                </Text>
+              </View>
+            )}
+            {!!bidCount && bidCount > 0 && (
+              <View style={styles.bidBadge}>
+                <Ionicons name="people-outline" size={11} color="#EA580C" />
+                <Text style={styles.bidBadgeText}>{bidCount}</Text>
+              </View>
+            )}
+            {hasAIAssessment && (
+              <View style={styles.aiBadge}><Text style={styles.aiBadgeText}>AI</Text></View>
+            )}
+          </View>
+        </View>
+
+        {item.description ? (
+          <Text style={styles.jobDescription} numberOfLines={2}>{item.description}</Text>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -331,190 +416,161 @@ const formatStatus = (status: string) => {
     case 'posted': return 'Open';
     case 'assigned': return 'Assigned';
     case 'in_progress': return 'In Progress';
-    case 'completed': return 'Completed';
+    case 'completed': return 'Done';
     default: return status;
   }
 };
 
-// ============================================================================
+// ─────────────────────────────────────────────────────────────────────────────
 // STYLES
-// ============================================================================
+// ─────────────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    backgroundColor: theme.colors.background,
-    paddingBottom: 12,
-  },
-  searchSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+  mainContainer: { flex: 1, backgroundColor: theme.colors.background },
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  header: { backgroundColor: theme.colors.background, paddingBottom: 8 },
+
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+    gap: 10,
   },
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 20,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    height: 48,
+    paddingHorizontal: 14,
+    height: 44,
     ...theme.shadows.base,
   },
-  searchIcon: {
-    marginRight: 12,
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 15, color: theme.colors.textPrimary },
+  mapToggle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.shadows.base,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-  },
+
   filterRow: {
-    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
     gap: 8,
-    paddingVertical: 4,
   },
   filterChip: {
-    backgroundColor: theme.colors.background,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
+    backgroundColor: '#F7F7F7',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 20,
   },
   filterChipActive: {
-    backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
+    backgroundColor: theme.colors.primary,
   },
-  filterChipText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  listContainer: {
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
+  filterChipText: { fontSize: 13, color: '#717171', fontWeight: '500' },
+  filterChipTextActive: { color: theme.colors.textInverse, fontWeight: '600' },
 
-  // ── Image-Forward Job Card ──
+  listContainer: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24 },
+
+  // Compact Job Card
   jobCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    marginBottom: 20,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    marginBottom: 14,
     overflow: 'hidden',
     ...theme.shadows.base,
   },
-  heroSection: {
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    overflow: 'hidden',
-  },
+  heroSection: { borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden' },
   placeholderHero: {
-    height: 220,
-    backgroundColor: theme.colors.backgroundSecondary,
+    height: 90,
     alignItems: 'center',
     justifyContent: 'center',
   },
   placeholderOverlay: {
     position: 'absolute',
-    bottom: 12,
-    left: 12,
+    bottom: 8,
+    left: 10,
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
-  overlayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statusTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  statusTagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
+  overlayRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statusTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 },
+  statusTagText: { fontSize: 11, fontWeight: '600', color: theme.colors.white },
   urgentTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.accent,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-    gap: 4,
-  },
-  urgentTagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-
-  // ── Card Content ──
-  cardContent: {
-    padding: 18,
-  },
-  jobTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 8,
-  },
-  locationText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  priceText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  categoryTag: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: '#EF4444',
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingVertical: 4,
+    borderRadius: 5,
+    gap: 3,
   },
-  categoryTagText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  timeText: {
-    fontSize: 13,
-    color: theme.colors.textTertiary,
-  },
-  jobDescription: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
+  urgentTagText: { fontSize: 11, fontWeight: '700', color: '#FFFFFF' },
+
+  saveButton: {
+    position: 'absolute',
+    top: 8,
+    right: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5,
   },
 
-  // ── Empty & Error ──
+  cardContent: { padding: 12 },
+  cardTopRow: { marginBottom: 4 },
+  jobTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  cardMeta: { flexDirection: 'row', gap: 12, marginBottom: 8 },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  metaText: { fontSize: 12, color: theme.colors.textTertiary },
+
+  cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  priceText: { fontSize: 17, fontWeight: '700', color: theme.colors.textPrimary },
+  footerRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+
+  categoryTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  categoryTagText: { fontSize: 12, fontWeight: '600' },
+
+  bidBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F7F7F7',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  bidBadgeText: { fontSize: 11, fontWeight: '600', color: '#717171' },
+  aiBadge: {
+    backgroundColor: '#F7F7F7',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  aiBadgeText: { fontSize: 11, fontWeight: '600', color: '#717171' },
+
+  jobDescription: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 6,
+  },
+
+  // Empty & Error
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -523,39 +579,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     gap: 12,
   },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    textAlign: 'center',
-  },
-  emptyDescription: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: 280,
-  },
+  emptyTitle: { fontSize: 22, fontWeight: '700', color: theme.colors.textPrimary, textAlign: 'center' },
+  emptyDescription: { fontSize: 16, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 24, maxWidth: 280 },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.accentLight,
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 8,
     padding: 12,
     borderRadius: 8,
     gap: 8,
   },
-  errorText: {
-    flex: 1,
-    fontSize: 14,
-    color: theme.colors.error,
-  },
-  retryText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.primary,
-  },
+  errorText: { flex: 1, fontSize: 14, color: theme.colors.error },
+  retryText: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
 });
 
 export default JobsScreen;

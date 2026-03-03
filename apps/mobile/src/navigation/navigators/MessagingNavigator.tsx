@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { MessagingStackParamList } from '@mintenance/types';
 
 // Import existing screens
@@ -29,7 +29,7 @@ const SafeMessagingScreen = withScreenErrorBoundary(
 // MESSAGING NAVIGATOR
 // ============================================================================
 
-const MessagingStack = createStackNavigator<MessagingStackParamList>();
+const MessagingStack = createNativeStackNavigator<MessagingStackParamList>();
 
 export const MessagingNavigator: React.FC = () => {
   return (
@@ -37,22 +37,7 @@ export const MessagingNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
         gestureEnabled: true,
-        transitionSpec: {
-          open: { animation: 'timing', config: { duration: 300 } },
-          close: { animation: 'timing', config: { duration: 250 } },
-        },
-        cardStyleInterpolator: ({ current, layouts }) => ({
-          cardStyle: {
-            transform: [
-              {
-                translateX: current.progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [layouts.screen.width, 0],
-                }),
-              },
-            ],
-          },
-        }),
+        animation: 'slide_from_right',
       }}
       initialRouteName="MessagesList"
     >

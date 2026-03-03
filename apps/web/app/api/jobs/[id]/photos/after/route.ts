@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { validateImageUpload } from '@/lib/utils/fileValidation';
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
@@ -83,6 +84,12 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     // Validate file
     if (file.size > MAX_FILE_SIZE) {
       throw new BadRequestError('Each photo must be less than 10MB');
+    }
+
+    // SECURITY: Validate actual file bytes (magic numbers), not just client-declared MIME
+    const magicValidation = await validateImageUpload(file);
+    if (!magicValidation.valid) {
+      throw new BadRequestError(magicValidation.error ?? 'Invalid image file');
     }
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {

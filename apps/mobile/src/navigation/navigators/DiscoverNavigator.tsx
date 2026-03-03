@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ExploreMapScreen } from '../../screens/explore-map';
 import ContractorDiscoveryScreen from '../../screens/ContractorDiscoveryScreen';
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -10,7 +10,7 @@ type DiscoverStackParamList = {
   ContractorDiscovery: undefined;
 };
 
-const Stack = createStackNavigator<DiscoverStackParamList>();
+const Stack = createNativeStackNavigator<DiscoverStackParamList>();
 
 const SafeExploreMapScreen = withScreenErrorBoundary(
   ExploreMapScreen,

@@ -276,7 +276,13 @@ export async function middleware(request: NextRequest) {
   // Mobile clients send Bearer token in Authorization header instead of cookies.
   // Let these API requests through — actual token verification happens in route
   // handlers via getUserFromRequest() → getCurrentUserFromBearerToken().
-  if (pathname.startsWith('/api/') && request.headers.get('authorization')?.startsWith('Bearer ')) {
+  // SECURITY FIX: Require valid JWT format (3-part dot-separated base64url) before
+  // waiving CSRF. A fake/malformed "Bearer invalid" header no longer bypasses CSRF.
+  const bearerToken = request.headers.get('authorization')?.replace('Bearer ', '');
+  const isValidJwtFormat =
+    !!bearerToken &&
+    /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(bearerToken);
+  if (pathname.startsWith('/api/') && isValidJwtFormat) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-pathname', pathname);
     const requestId = crypto.randomUUID();
@@ -457,7 +463,11 @@ export async function middleware(request: NextRequest) {
 
       if (!sessionValidation.isValid) {
         // Determine enforcement mode from environment variable
-        const enforceTimeouts = process.env.ENFORCE_SESSION_TIMEOUTS === 'true';
+        // SECURITY FIX: Default to enforcing timeouts in production.
+        // Set ENFORCE_SESSION_TIMEOUTS=false to explicitly disable (e.g., during rollout).
+        const enforceTimeouts =
+          process.env.ENFORCE_SESSION_TIMEOUTS !== 'false' &&
+          process.env.NODE_ENV === 'production';
 
         // Log violation (both soft and hard enforcement)
         securityMonitor.logSuspiciousActivity(

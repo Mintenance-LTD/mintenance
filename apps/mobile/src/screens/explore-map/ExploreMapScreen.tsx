@@ -9,7 +9,6 @@
 
 import React, { useRef, useEffect } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -18,12 +17,27 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { useExploreMapViewModel } from './viewmodels/ExploreMapViewModel';
 import { MapSearchBar, JobPreviewCard } from './components';
+
+// Category-to-color map for map markers (matches JobsScreen badge colors)
+const CATEGORY_MARKER_COLORS: Record<string, { bg: string; text: string }> = {
+  plumbing:    { bg: '#2563EB', text: '#FFFFFF' },
+  electrical:  { bg: '#D97706', text: '#FFFFFF' },
+  roofing:     { bg: '#7C3AED', text: '#FFFFFF' },
+  painting:    { bg: '#DB2777', text: '#FFFFFF' },
+  carpentry:   { bg: '#92400E', text: '#FFFFFF' },
+  cleaning:    { bg: '#059669', text: '#FFFFFF' },
+  hvac:        { bg: '#0891B2', text: '#FFFFFF' },
+  landscaping: { bg: '#16A34A', text: '#FFFFFF' },
+  appliance:   { bg: '#EA580C', text: '#FFFFFF' },
+  general:     { bg: '#475569', text: '#FFFFFF' },
+};
 
 // Category tabs - same data as QuickServices for consistency
 const CATEGORIES = [
@@ -67,18 +81,29 @@ const LoadingDots: React.FC = () => {
   );
 };
 
-export const ExploreMapScreen: React.FC = () => {
+interface ExploreMapScreenProps {
+  onBackToList?: () => void;
+}
+
+export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList }) => {
   const viewModel = useExploreMapViewModel();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+
+  // Pill sits at insets.top + 12 from screen top (set in MapSearchBar).
+  // Pill height ~47px → pill bottom at insets.top + 59.
+  // These overlay elements sit just below/beside the pill.
+  const overlayTop = insets.top + 72; // clear the pill + 13px gap
 
   const handleViewDetails = (jobId: string) => {
     viewModel.handleJobSelect(null);
-    navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId } });
+    // Navigate within the JobsStack (works from either JobsStack or DiscoverTab context)
+    (navigation as any).navigate('JobDetails', { jobId });
   };
 
   const handleBidNow = (jobId: string) => {
     viewModel.handleJobSelect(null);
-    navigation.navigate('JobsTab', { screen: 'BidSubmission', params: { jobId } });
+    (navigation as any).navigate('BidSubmission', { jobId });
   };
 
   return (
@@ -88,6 +113,7 @@ export const ExploreMapScreen: React.FC = () => {
         jobCount={viewModel.jobCount}
         selectedCategory={viewModel.selectedCategory}
         onFilterPress={viewModel.handleFilterPress}
+        onBackToList={onBackToList}
       />
 
       {/* Category tabs */}
@@ -146,6 +172,7 @@ export const ExploreMapScreen: React.FC = () => {
           const isSelected = viewModel.selectedJob?.id === job.id;
           const budget = job.budget_max || job.budget_min;
           const label = budget ? `\u00A3${budget >= 1000 ? `${(budget / 1000).toFixed(budget % 1000 === 0 ? 0 : 1)}k` : budget}` : job.category.slice(0, 3).toUpperCase();
+          const catColor = CATEGORY_MARKER_COLORS[job.category.toLowerCase()] ?? CATEGORY_MARKER_COLORS.general;
 
           return (
             <Marker
@@ -155,11 +182,12 @@ export const ExploreMapScreen: React.FC = () => {
             >
               <View style={[
                 styles.priceMarker,
-                isSelected && styles.priceMarkerSelected,
+                { backgroundColor: isSelected ? '#FFFFFF' : catColor.bg },
+                isSelected && { borderColor: catColor.bg, borderWidth: 2 },
               ]}>
                 <Text style={[
                   styles.priceMarkerText,
-                  isSelected && styles.priceMarkerTextSelected,
+                  { color: isSelected ? catColor.bg : catColor.text },
                 ]}>
                   {label}
                 </Text>
@@ -169,16 +197,29 @@ export const ExploreMapScreen: React.FC = () => {
         })}
       </MapView>
 
+      {/* "Search this area" pill — appears after user pans the map */}
+      {viewModel.hasPanned && !viewModel.loading && (
+        <TouchableOpacity
+          style={[styles.searchAreaPill, { top: overlayTop }]}
+          onPress={viewModel.searchInRegion}
+          accessibilityRole="button"
+          accessibilityLabel="Search jobs in this area"
+        >
+          <Ionicons name="search" size={14} color="#FFFFFF" />
+          <Text style={styles.searchAreaText}>Search this area</Text>
+        </TouchableOpacity>
+      )}
+
       {/* Loading dots */}
       {viewModel.loading && (
-        <View style={styles.loadingOverlay}>
+        <View style={[styles.loadingOverlay, { top: overlayTop }]}>
           <LoadingDots />
         </View>
       )}
 
       {/* My location button */}
       <TouchableOpacity
-        style={styles.locationButton}
+        style={[styles.locationButton, { top: overlayTop }]}
         accessibilityRole="button"
         accessibilityLabel="Center on my location"
         onPress={viewModel.centerOnUser}
@@ -268,9 +309,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Price tag markers (Airbnb style)
+  // Price tag markers — background/text color applied inline per category
   priceMarker: {
-    backgroundColor: '#222222',
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -280,24 +320,38 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  priceMarkerSelected: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#222222',
-  },
   priceMarkerText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  priceMarkerTextSelected: {
-    color: '#222222',
   },
 
-  // Loading dots
+  // "Search this area" pill — top set dynamically via overlayTop inline style
+  searchAreaPill: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#222222',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    gap: 6,
+    zIndex: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  searchAreaText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // Loading dots — top set dynamically via overlayTop inline style
   loadingOverlay: {
     position: 'absolute',
-    top: 140,
     alignSelf: 'center',
     zIndex: 5,
   },
@@ -316,11 +370,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
-  // My location button
+  // My location button — top set dynamically via overlayTop inline style
   locationButton: {
     position: 'absolute',
     right: 16,
-    top: 150,
     width: 44,
     height: 44,
     borderRadius: 22,

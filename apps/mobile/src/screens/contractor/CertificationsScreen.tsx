@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -98,7 +97,7 @@ export const CertificationsScreen: React.FC = () => {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => Alert.alert('Add Certification', 'Form coming soon.')}
+        onPress={() => navigation.navigate('AddCertification' as never)}
         accessibilityLabel="Add certification"
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />

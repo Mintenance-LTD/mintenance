@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../navigation/types';
 import { ServiceAreasHeader } from '../components/service-areas/ServiceAreasHeader';
 import { ServiceAreasStats } from '../components/service-areas/ServiceAreasStats';
 import { ServiceAreasInsights } from '../components/service-areas/ServiceAreasInsights';
@@ -12,7 +13,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { theme } from '../theme';
 
 interface ServiceAreasScreenProps {
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'ServiceAreas'>;
 }
 
 export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({

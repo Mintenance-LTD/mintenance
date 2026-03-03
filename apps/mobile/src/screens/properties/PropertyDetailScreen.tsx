@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
@@ -25,7 +25,7 @@ import type { ProfileStackParamList } from '../../navigation/types';
 import { Badge } from '../../components/ui/Badge';
 
 interface Props {
-  navigation: StackNavigationProp<ProfileStackParamList, 'PropertyDetail'>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'PropertyDetail'>;
   route: RouteProp<ProfileStackParamList, 'PropertyDetail'>;
 }
 
@@ -200,7 +200,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
               <TouchableOpacity
                 key={job.id}
                 style={styles.jobRow}
-                onPress={() => (navigation as any).navigate('JobsTab', { screen: 'JobDetails', params: { jobId: job.id } })}
+                onPress={() => navigation.navigate('JobsTab' as never, { screen: 'JobDetails', params: { jobId: job.id } } as never)}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${job.title}`}
               >

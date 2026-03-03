@@ -21,9 +21,9 @@ export const TAB_CONFIG = {
     label: 'Home',
   },
   JobsTab: {
-    icon: 'briefcase-outline' as keyof typeof Ionicons.glyphMap,
-    activeIcon: 'briefcase' as keyof typeof Ionicons.glyphMap,
-    label: 'Jobs',
+    icon: 'receipt-outline' as keyof typeof Ionicons.glyphMap,
+    activeIcon: 'receipt' as keyof typeof Ionicons.glyphMap,
+    label: 'Invoices',
   },
   DiscoverTab: {
     icon: 'map-outline' as keyof typeof Ionicons.glyphMap,

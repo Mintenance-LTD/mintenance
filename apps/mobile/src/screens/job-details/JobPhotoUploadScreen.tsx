@@ -18,14 +18,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../theme';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
 import { JobsStackParamList } from '../../navigation/types';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'PhotoUpload'>;
-type ScreenNavigationProp = StackNavigationProp<JobsStackParamList, 'PhotoUpload'>;
+type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'PhotoUpload'>;
 
 interface Props {
   route: ScreenRouteProp;
@@ -375,3 +375,4 @@ const styles = StyleSheet.create({
 });
 
 export default JobPhotoUploadScreen;
+

@@ -44,6 +44,10 @@ export interface VLMTrainingExample {
   userPrompt: string;
   teacherResponse: Phase1BuildingAssessment;
   studentResponse: Phase1BuildingAssessment | null;
+  /** GPT-4o chain-of-thought reasoning. Included as <thinking> block in training JSONL. */
+  teacherReasoning: string | null;
+  /** Admin-corrected label. Overrides teacherResponse in training export when set. */
+  humanCorrectedResponse: Phase1BuildingAssessment | null;
   surpriseScore: number;
   priorityScore: number;
   difficultyScore: number | null;

@@ -23,10 +23,10 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
   savedPros = 0,
 }) => {
   const stats = [
-    { label: 'Active', value: activeJobs, icon: 'briefcase-outline' as const, color: theme.colors.primary },
-    { label: 'Done', value: completedJobs, icon: 'checkmark-circle-outline' as const, color: '#34C759' },
-    { label: 'Spent', value: totalSpent > 0 ? `£${totalSpent.toLocaleString()}` : '£0', icon: 'card-outline' as const, color: '#FF9500' },
-    { label: 'Saved', value: savedPros, icon: 'heart-outline' as const, color: '#FF6B6B' },
+    { label: 'Active', value: activeJobs, icon: 'briefcase-outline' as const, color: '#717171' },
+    { label: 'Done', value: completedJobs, icon: 'checkmark-circle-outline' as const, color: '#717171' },
+    { label: 'Spent', value: totalSpent > 0 ? `£${totalSpent.toLocaleString()}` : '£0', icon: 'card-outline' as const, color: '#717171' },
+    { label: 'Saved', value: savedPros, icon: 'heart-outline' as const, color: '#717171' },
   ];
 
   return (
@@ -56,13 +56,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     paddingVertical: 14,
   },
   value: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
   },
   label: {

@@ -10,11 +10,11 @@ interface DiscoverEmptyStateProps {
 }
 
 /**
- * Empty state component shown when all items have been reviewed
+ * Empty state component shown when all items have been reviewed (swipe mode)
  */
 export function DiscoverEmptyState({ userRole, onRestart }: DiscoverEmptyStateProps) {
   const isContractor = userRole === 'contractor';
-  
+
   return (
     <div style={{ textAlign: 'center', padding: '80px 40px', maxWidth: '600px', margin: '0 auto' }}>
       <div style={{
@@ -45,7 +45,7 @@ export function DiscoverEmptyState({ userRole, onRestart }: DiscoverEmptyStatePr
           ? "You've reviewed all available jobs. Check back later for new opportunities or browse all jobs."
           : "You've seen all available contractors in your area. Check back later for new professionals."}
       </p>
-      
+
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -68,14 +68,6 @@ export function DiscoverEmptyState({ userRole, onRestart }: DiscoverEmptyStatePr
                 transition: 'all 0.2s',
                 boxShadow: theme.shadows.sm
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = theme.shadows.md;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = theme.shadows.sm;
-              }}
             >
               Browse All Jobs
             </Link>
@@ -91,12 +83,6 @@ export function DiscoverEmptyState({ userRole, onRestart }: DiscoverEmptyStatePr
                 fontWeight: theme.typography.fontWeight.medium,
                 cursor: 'pointer',
                 transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
               Start Over
@@ -118,14 +104,6 @@ export function DiscoverEmptyState({ userRole, onRestart }: DiscoverEmptyStatePr
                 transition: 'all 0.2s',
                 boxShadow: theme.shadows.sm
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = theme.shadows.md;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = theme.shadows.sm;
-              }}
             >
               Start Over
             </button>
@@ -143,12 +121,6 @@ export function DiscoverEmptyState({ userRole, onRestart }: DiscoverEmptyStatePr
                 textDecoration: 'none',
                 transition: 'all 0.2s'
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
             >
               Go to Dashboard
             </Link>
@@ -158,4 +130,3 @@ export function DiscoverEmptyState({ userRole, onRestart }: DiscoverEmptyStatePr
     </div>
   );
 }
-

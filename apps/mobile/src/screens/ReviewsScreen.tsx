@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -42,7 +43,7 @@ interface ReviewsResponse {
 }
 
 interface Props {
-  navigation: StackNavigationProp<Record<string, unknown>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'Reviews'>;
 }
 
 const StarRating: React.FC<{ rating: number; size?: number }> = ({ rating, size = 16 }) => (
@@ -52,7 +53,7 @@ const StarRating: React.FC<{ rating: number; size?: number }> = ({ rating, size 
         key={star}
         name={star <= rating ? 'star' : star - 0.5 <= rating ? 'star-half' : 'star-outline'}
         size={size}
-        color={theme.colors.warning}
+        color={star <= rating || star - 0.5 <= rating ? '#222222' : '#B0B0B0'}
       />
     ))}
   </View>
@@ -147,7 +148,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
               return (
                 <View key={star} style={styles.distRow}>
                   <Text style={styles.distLabel}>{star}</Text>
-                  <Ionicons name="star" size={12} color={theme.colors.warning} />
+                  <Ionicons name="star" size={12} color="#717171" />
                   <View style={styles.distBarBg}>
                     <View style={[styles.distBarFill, { width: `${pct}%` }]} />
                   </View>
@@ -251,7 +252,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.primary + '20',
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: theme.spacing[2],
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   reviewerName: {
     fontSize: theme.typography.fontSize.base,
@@ -275,7 +276,7 @@ const styles = StyleSheet.create({
   },
   jobLabel: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
     fontWeight: theme.typography.fontWeight.medium,
     marginBottom: theme.spacing[2],
   },
@@ -312,7 +313,7 @@ const styles = StyleSheet.create({
   },
   distBarFill: {
     height: 8,
-    backgroundColor: theme.colors.warning,
+    backgroundColor: '#222222',
     borderRadius: 4,
   },
   distCount: {
@@ -350,3 +351,4 @@ const styles = StyleSheet.create({
 });
 
 export default ReviewsScreen;
+

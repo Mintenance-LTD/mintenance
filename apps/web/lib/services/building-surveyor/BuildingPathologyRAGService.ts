@@ -90,7 +90,7 @@ export class BuildingPathologyRAGService {
         .from('building_pathology_knowledge')
         .select('*')
         .textSearch(
-          'fts_col',  // we use a generated column approach via raw filter below
+          'fts',  // generated tsvector column — see migration 20260225000001
           tsQuery,
           { type: 'websearch', config: 'english' }
         )
@@ -279,6 +279,121 @@ ${blocks.join('\n\n')}
 
 === END KNOWLEDGE BASE CONTEXT ===
 `.trim();
+  }
+
+  /**
+   * Semantic similarity search using pgvector cosine distance.
+   *
+   * Embeds `queryText` via text-embedding-3-small, then queries the
+   * `search_pathology_semantic` RPC for entries above `matchThreshold`.
+   * Falls back gracefully (returns empty context) if embeddings are not yet
+   * seeded or if the pgvector extension is not available.
+   */
+  static async queryBySemantic(
+    queryText: string,
+    options: { matchThreshold?: number; matchCount?: number } = {}
+  ): Promise<RAGContext> {
+    // 0.50 threshold chosen empirically: text-embedding-3-small produces
+    // cosine similarities of ~0.50–0.65 for closely related building-pathology
+    // terms (e.g. "roof leak water ingress" → damp-penetrating-roof ≈ 0.60).
+    // 0.70 was too strict and missed valid hits for a 30-entry knowledge base.
+    const { matchThreshold = 0.50, matchCount = 5 } = options;
+
+    try {
+      const embedding = await this.generateEmbedding(queryText);
+      const { data, error } = await serverSupabase.rpc('search_pathology_semantic', {
+        query_embedding: embedding,
+        match_threshold: matchThreshold,
+        match_count: matchCount,
+      });
+
+      if (error || !data || data.length === 0) {
+        return { promptContext: '', entries: [], count: 0 };
+      }
+
+      const entries = data as PathologyKnowledgeEntry[];
+      return {
+        promptContext: this.formatPromptContext(entries),
+        entries,
+        count: entries.length,
+      };
+    } catch (err) {
+      logger.warn('BuildingPathologyRAGService.queryBySemantic failed', {
+        service: 'BuildingPathologyRAGService',
+        error: err instanceof Error ? err.message : 'unknown',
+      });
+      return { promptContext: '', entries: [], count: 0 };
+    }
+  }
+
+  /**
+   * Generate embeddings for all knowledge base entries that don't have one yet.
+   * Call once via POST /api/admin/rag/generate-embeddings after deploying the
+   * pgvector migration (20260303000000_building_pathology_embeddings.sql).
+   */
+  static async seedMissingEmbeddings(): Promise<{ seeded: number; failed: number }> {
+    const { data: entries, error } = await serverSupabase
+      .from('building_pathology_knowledge')
+      .select('id, name, description, why_it_happens, visual_indicators')
+      .is('embedding', null);
+
+    if (error || !entries) {
+      throw new Error(`Failed to fetch unseeded entries: ${error?.message ?? 'unknown'}`);
+    }
+
+    let seeded = 0;
+    let failed = 0;
+
+    for (const entry of entries) {
+      try {
+        const text = [
+          entry.name,
+          entry.description,
+          entry.why_it_happens,
+          ...(Array.isArray(entry.visual_indicators) ? entry.visual_indicators : []),
+        ].filter(Boolean).join(' ');
+
+        const embedding = await this.generateEmbedding(text);
+
+        const { error: updateError } = await serverSupabase
+          .from('building_pathology_knowledge')
+          .update({ embedding, embedding_updated_at: new Date().toISOString() })
+          .eq('id', entry.id);
+
+        if (updateError) throw new Error(updateError.message);
+        seeded++;
+      } catch {
+        failed++;
+      }
+    }
+
+    logger.info('BuildingPathologyRAGService.seedMissingEmbeddings complete', {
+      service: 'BuildingPathologyRAGService',
+      seeded,
+      failed,
+      total: entries.length,
+    });
+
+    return { seeded, failed };
+  }
+
+  /** Generate a 1536-dim embedding via OpenAI text-embedding-3-small. */
+  private static async generateEmbedding(text: string): Promise<number[]> {
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model: 'text-embedding-3-small', input: text }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI embeddings API error: ${response.status} ${await response.text()}`);
+    }
+
+    const data = await response.json() as { data: Array<{ embedding: number[] }> };
+    return data.data[0].embedding;
   }
 
   /**

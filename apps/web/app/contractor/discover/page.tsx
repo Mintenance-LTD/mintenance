@@ -13,6 +13,7 @@ interface Job {
   priority: string | null;
   photos: string[] | null;
   created_at: string;
+  bidCount?: number;
   homeowner: {
     first_name: string;
     last_name: string;
@@ -128,6 +129,8 @@ export default async function ContractorDiscoverPage2025() {
       photos,
       latitude,
       longitude,
+      job_attachments(file_url, file_type),
+      bids(count),
       building_assessments!building_assessments_job_id_fkey(
         id,
         severity,
@@ -157,11 +160,24 @@ export default async function ContractorDiscoverPage2025() {
         .eq('id', job.homeowner_id)
         .single();
 
+      // Resolve photo URLs: prefer jobs.photos (legacy), fall back to job_attachments
+      const attachmentPhotos = (job.job_attachments as { file_url: string; file_type: string }[] | null)
+        ?.filter(a => a.file_type === 'image')
+        .map(a => a.file_url) ?? [];
+      const resolvedPhotos =
+        (job.photos && job.photos.length > 0)
+          ? job.photos
+          : attachmentPhotos.length > 0 ? attachmentPhotos : null;
+
+      // Extract bid count from embedded aggregate
+      const bidCount = (job.bids as { count: number }[] | null)?.[0]?.count ?? 0;
+
       return {
         ...job,
         category: job.category || null,
         priority: job.priority || null,
-        photos: job.photos || null,
+        photos: resolvedPhotos,
+        bidCount,
         homeowner: homeownerResponse.data ? {
           ...homeownerResponse.data,
           rating: homeownerResponse.data.rating || null

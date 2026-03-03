@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import SearchBar from '../components/SearchBar';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
@@ -18,7 +19,7 @@ import { SkeletonMessageCard } from '../components/SkeletonLoader';
 import { Banner } from '../components/ui/Banner';
 import { useMessageThreadsWithRealTime } from '../hooks/useMessaging';
 
-const AVATAR_COLORS = ['#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#06B6D4'];
+const AVATAR_COLORS = ['#222222', '#444444', '#555555', '#717171', '#888888', '#999999'];
 
 function getAvatarColor(name: string): string {
   return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
@@ -33,10 +34,12 @@ function getInitials(name: string): string {
 }
 
 const MessagesListScreen: React.FC = () => {
-  const navigation = useNavigation<unknown>();
+  const navigation = useNavigation();
   const { user } = useAuth();
   const haptics = useHaptics();
   const [refreshing, setRefreshing] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Get real message threads
   const {
@@ -45,6 +48,18 @@ const MessagesListScreen: React.FC = () => {
     error,
     refetch,
   } = useMessageThreadsWithRealTime();
+
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery.trim()) return conversations;
+    const q = searchQuery.toLowerCase();
+    return conversations.filter((thread: { participants: Array<{ id: string; name: string }>; jobTitle?: string; lastMessage?: { messageText?: string } }) => {
+      const other = thread.participants.find((p) => p.id !== user?.id) || thread.participants[0];
+      return (
+        other?.name?.toLowerCase().includes(q) ||
+        thread.jobTitle?.toLowerCase().includes(q)
+      );
+    });
+  }, [conversations, searchQuery, user?.id]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -75,15 +90,28 @@ const MessagesListScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.searchButton}
           accessibilityRole='button'
-          accessibilityLabel='Search messages'
+          accessibilityLabel='Search conversations'
+          onPress={() => {
+            setIsSearching((prev) => !prev);
+            setSearchQuery('');
+          }}
         >
           <Ionicons
-            name='search-outline'
+            name={isSearching ? 'close-outline' : 'search-outline'}
             size={24}
             color={theme.colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
+      {isSearching && (
+        <View style={styles.searchContainer}>
+          <SearchBar
+            placeholder='Search by name or job...'
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      )}
 
       {/* Messages List */}
       {loading ? (
@@ -112,7 +140,7 @@ const MessagesListScreen: React.FC = () => {
         </View>
       ) : (
         <FlatList
-          data={conversations}
+          data={filteredConversations}
           keyExtractor={(item: unknown) => item.jobId}
           contentContainerStyle={[
             styles.content,
@@ -249,11 +277,16 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '800',
     color: theme.colors.textPrimary,
   },
   searchButton: {
     padding: 8,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    backgroundColor: theme.colors.background,
   },
   content: {
     flex: 1,
@@ -314,7 +347,7 @@ const styles = StyleSheet.create({
   },
   jobType: {
     fontSize: 13,
-    color: theme.colors.primary, // Dark blue
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginBottom: 4,
   },

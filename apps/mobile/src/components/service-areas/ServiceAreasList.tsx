@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { ServiceAreaCard } from '../ServiceAreaCard';
 import Button from '../ui/Button';
 import { theme } from '../../theme';
@@ -9,7 +10,7 @@ import type { ServiceArea } from '../../services/ServiceAreasService';
 
 interface ServiceAreasListProps {
   serviceAreas: ServiceArea[];
-  navigation: StackNavigationProp<Record<string, undefined>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList>;
   onToggleActive: (area: ServiceArea) => void;
   onDelete: (area: ServiceArea) => void;
 }
@@ -133,3 +134,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+

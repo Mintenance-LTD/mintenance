@@ -169,10 +169,42 @@ export const POST = withApiHandler(
       }
     }
 
+    // SECURITY FIX: Contractors cannot directly trigger escrow release.
+    // They can only REQUEST release — the homeowner must approve.
+    if (user.role === 'contractor') {
+      if (job.contractor_id !== user.id) {
+        throw new ForbiddenError('Not authorized for this escrow transaction');
+      }
+      try {
+        const { NotificationService } = await import('@/lib/services/notifications/NotificationService');
+        await NotificationService.createNotification({
+          userId: job.homeowner_id,
+          title: 'Contractor Requested Payment Release',
+          message: `Your contractor has requested payment release for "${job.title || 'your job'}". Please review and approve if the work is complete.`,
+          type: 'payment_release_requested',
+          actionUrl: `/jobs/${job.id}`,
+        });
+      } catch (notifyError) {
+        logger.error('Failed to notify homeowner of release request', notifyError, {
+          service: 'payments',
+          escrowTransactionId,
+        });
+      }
+      logger.info('Contractor requested escrow release — notified homeowner', {
+        service: 'payments',
+        contractorId: user.id,
+        homeownerId: job.homeowner_id,
+        escrowTransactionId,
+      });
+      return NextResponse.json(
+        { message: 'Release request sent to homeowner for approval.' },
+        { status: 202 }
+      );
+    }
+
     const canRelease =
       isAdminVerified || // Admin can release any escrow (verified from database)
-      (user.role === 'homeowner' && job.homeowner_id === user.id) || // Homeowner can release their escrow
-      (user.role === 'contractor' && job.contractor_id === user.id && releaseReason === 'job_completed'); // Contractor can request release when job completed
+      (user.role === 'homeowner' && job.homeowner_id === user.id); // Homeowner can release their escrow
 
     if (!canRelease) {
       logger.warn('Unauthorized escrow release attempt', {

@@ -96,6 +96,7 @@ export interface Invoice {
   contractor_id: string;
   job_id?: string;
   client_id: string;
+  client_name?: string;
   invoice_number: string;
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   subtotal: number;

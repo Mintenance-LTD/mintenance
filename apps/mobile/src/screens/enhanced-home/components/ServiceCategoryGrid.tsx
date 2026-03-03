@@ -64,10 +64,10 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
   },
   serviceItem: {
-    width: '18%',
+    // 5 equal columns — stable regardless of item count
+    width: '20%',
     alignItems: 'center',
     marginBottom: theme.spacing.lg,
   },

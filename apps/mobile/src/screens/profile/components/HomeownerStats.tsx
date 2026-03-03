@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
-import { ResponsiveGrid } from '../../../components/responsive';
 
 interface HomeownerStatsProps {
   totalJobs: number;
@@ -9,74 +9,106 @@ interface HomeownerStatsProps {
   activeJobs: number;
 }
 
+interface StatCard {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  iconBg: string;
+  valueColor: string;
+  value: number;
+  label: string;
+}
+
 export const HomeownerStats: React.FC<HomeownerStatsProps> = ({
   totalJobs,
   completedJobs,
   activeJobs,
 }) => {
+  const stats: StatCard[] = [
+    {
+      icon: 'list',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      valueColor: theme.colors.textPrimary,
+      value: totalJobs,
+      label: 'Posted',
+    },
+    {
+      icon: 'checkmark-circle',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      valueColor: theme.colors.textPrimary,
+      value: completedJobs,
+      label: 'Completed',
+    },
+    {
+      icon: 'time',
+      iconColor: '#717171',
+      iconBg: '#F7F7F7',
+      valueColor: theme.colors.textPrimary,
+      value: activeJobs,
+      label: 'Active',
+    },
+  ];
+
   return (
-    <View style={styles.statsSection}>
-      <Text style={styles.sectionTitle} accessibilityRole='header'>Your Activity</Text>
-      <ResponsiveGrid
-        columns={3}
-        gap={16}
-        responsive={{
-          mobile: 3,
-          tablet: 3,
-          desktop: 3,
-        }}
-        style={styles.statsGrid}
-      >
-        <View style={styles.statItem} accessibilityLabel={`${totalJobs} jobs posted`}>
-          <Text style={styles.statNumber}>{totalJobs}</Text>
-          <Text style={styles.statLabel}>Jobs Posted</Text>
-        </View>
-        <View style={styles.statItem} accessibilityLabel={`${completedJobs} jobs completed`}>
-          <Text style={styles.statNumber}>{completedJobs}</Text>
-          <Text style={styles.statLabel}>Completed</Text>
-        </View>
-        <View style={styles.statItem} accessibilityLabel={`${activeJobs} active jobs`}>
-          <Text style={styles.statNumber}>{activeJobs}</Text>
-          <Text style={styles.statLabel}>Active</Text>
-        </View>
-      </ResponsiveGrid>
+    <View style={styles.container}>
+      <Text style={styles.sectionTitle} accessibilityRole="header">
+        Your Activity
+      </Text>
+      <View style={styles.row}>
+        {stats.map((s) => (
+          <View key={s.label} style={styles.card} accessibilityLabel={`${s.value} ${s.label}`}>
+            <View style={[styles.iconChip, { backgroundColor: s.iconBg }]}>
+              <Ionicons name={s.icon} size={18} color={s.iconColor} />
+            </View>
+            <Text style={[styles.value, { color: s.valueColor }]}>{s.value}</Text>
+            <Text style={styles.label}>{s.label}</Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  statsSection: {
-    backgroundColor: theme.colors.surface,
+  container: {
     marginHorizontal: 16,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 20,
-    ...theme.shadows.base,
+    marginBottom: 8,
+    gap: 10,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 16,
   },
-  statsGrid: {
+  row: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
+    gap: 10,
   },
-  statItem: {
-    alignItems: 'center',
+  card: {
     flex: 1,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    padding: 14,
+    alignItems: 'flex-start',
+    ...theme.shadows.sm,
   },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.primary,
-    marginBottom: 4,
+  iconChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  statLabel: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
+  value: {
+    fontSize: 26,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  label: {
+    fontSize: 12,
     fontWeight: '500',
+    color: theme.colors.textSecondary,
   },
 });

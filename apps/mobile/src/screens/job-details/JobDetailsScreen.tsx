@@ -14,7 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
@@ -28,11 +28,12 @@ import { ContractorAssignment } from '../../components/ContractorAssignment';
 import { AIAnalysisCard } from './components';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobsStackParamList } from '../../navigation/types';
+import type { Job } from '@mintenance/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type JobDetailsScreenRouteProp = RouteProp<JobsStackParamList, 'JobDetails'>;
-type JobDetailsScreenNavigationProp = StackNavigationProp<JobsStackParamList, 'JobDetails'>;
+type JobDetailsScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'JobDetails'>;
 
 interface Props {
   route: JobDetailsScreenRouteProp;
@@ -140,8 +141,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             )}
             {urgency !== 'low' && urgency !== 'medium' && (
               <View style={[styles.tag, styles.urgentTag]}>
-                <Ionicons name="flame" size={12} color={theme.colors.accent} />
-                <Text style={[styles.tagText, { color: theme.colors.accent }]}>
+                <Ionicons name="flame" size={12} color={theme.colors.error} />
+                <Text style={[styles.tagText, { color: theme.colors.error }]}>
                   {urgency === 'emergency' ? 'Emergency' : 'Urgent'}
                 </Text>
               </View>
@@ -269,79 +270,99 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         )}
       </ScrollView>
 
-      {/* Sticky Bottom CTA - State-Aware */}
-      {/* Contractor: Submit bid on posted jobs */}
-      {isContractor && job.status === 'posted' && (
-        <StickyBottomCTA
-          price={budget > 0 ? budget : undefined}
-          priceLabel="Estimated budget"
-          buttonText="Submit Bid"
-          onPress={() => navigation.navigate('BidSubmission', { jobId: job.id })}
-        />
-      )}
-
-      {/* Homeowner: View bids on posted jobs */}
-      {isOwner && job.status === 'posted' && job.bids && job.bids.length > 0 && (
-        <StickyBottomCTA
-          buttonText={`View ${job.bids.length} Bid${job.bids.length !== 1 ? 's' : ''}`}
-          onPress={() => navigation.navigate('BidReview', { jobId: job.id })}
-          secondaryText="Review contractor bids"
-        />
-      )}
-
-      {/* Both: View/sign contract on assigned jobs */}
-      {job.status === 'assigned' && (isOwner || (isContractor && job.contractor_id === user?.id)) && (
-        <StickyBottomCTA
-          buttonText="View Contract"
-          onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
-          secondaryText="Review and sign the contract"
-        />
-      )}
-
-      {/* Contractor: Upload before photos on assigned jobs (after contract signed) */}
-      {isContractor && job.contractor_id === user?.id && job.status === 'assigned' && (
-        <StickyBottomCTA
-          buttonText="Upload Before Photos"
-          onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'before' })}
-          secondaryText="Required before starting work"
-        />
-      )}
-
-      {/* Homeowner: Pay into escrow on assigned jobs */}
-      {isOwner && job.status === 'assigned' && budget > 0 && (
-        <StickyBottomCTA
-          price={budget}
-          priceLabel="Contract amount"
-          buttonText="Pay Now"
-          onPress={() => navigation.navigate('JobPayment', {
-            jobId: job.id,
-            amount: budget,
-            contractorId: job.contractor_id || '',
-          })}
-          secondaryText="Secure payment in escrow"
-        />
-      )}
-
-      {/* Contractor: Upload after photos on in-progress jobs */}
-      {isContractor && job.contractor_id === user?.id && job.status === 'in_progress' && (
-        <StickyBottomCTA
-          buttonText="Upload After Photos"
-          onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'after' })}
-          secondaryText="Document completed work"
-        />
-      )}
-
-      {/* Homeowner: Review photos on completed jobs */}
-      {isOwner && job.status === 'completed' && (
-        <StickyBottomCTA
-          buttonText="Review Work"
-          onPress={() => navigation.navigate('PhotoReview', { jobId: job.id })}
-          secondaryText="Compare before & after photos"
-        />
-      )}
+      {/* Single priority-based CTA — only ever one renders */}
+      {getPriorityCTA({ job: job as CTAContext['job'], isOwner, isContractor, userId: user?.id, budget, navigation })}
     </View>
   );
 };
+
+// ── Priority CTA helper — exactly one action shown at a time ──
+//
+// Priority order (highest first):
+//   Contractor: submit bid → view contract → upload before photos → upload after photos
+//   Homeowner:  view bids → view contract → pay now → review work
+interface CTAContext {
+  job: Job & { bids?: { length: number }[] };
+  isOwner: boolean;
+  isContractor: boolean;
+  userId: string | undefined;
+  budget: number;
+  navigation: JobDetailsScreenNavigationProp;
+}
+
+function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation }: CTAContext): React.ReactElement | null {
+  const isAssignedContractor = isContractor && job.contractor_id === userId;
+
+  if (isContractor && job.status === 'posted') {
+    return (
+      <StickyBottomCTA
+        price={budget > 0 ? budget : undefined}
+        priceLabel="Estimated budget"
+        buttonText="Submit Bid"
+        onPress={() => navigation.navigate('BidSubmission', { jobId: job.id })}
+      />
+    );
+  }
+
+  if (isOwner && job.status === 'posted' && job.bids && job.bids.length > 0) {
+    return (
+      <StickyBottomCTA
+        buttonText={`View ${job.bids.length} Bid${job.bids.length !== 1 ? 's' : ''}`}
+        onPress={() => navigation.navigate('BidReview', { jobId: job.id })}
+        secondaryText="Review contractor bids"
+      />
+    );
+  }
+
+  if (job.status === 'assigned' && (isOwner || isAssignedContractor)) {
+    // Contract signing takes priority over pay/photos — it must happen first
+    return (
+      <StickyBottomCTA
+        buttonText="View Contract"
+        onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+        secondaryText={isOwner ? 'Sign to unlock payment' : 'Sign to start work'}
+      />
+    );
+  }
+
+  if (isOwner && job.status === 'in_progress' && budget > 0) {
+    return (
+      <StickyBottomCTA
+        price={budget}
+        priceLabel="Contract amount"
+        buttonText="Pay Now"
+        onPress={() => navigation.navigate('JobPayment', {
+          jobId: job.id,
+          amount: budget,
+          contractorId: job.contractor_id || '',
+        })}
+        secondaryText="Secure payment in escrow"
+      />
+    );
+  }
+
+  if (isAssignedContractor && job.status === 'in_progress') {
+    return (
+      <StickyBottomCTA
+        buttonText="Upload After Photos"
+        onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'after' })}
+        secondaryText="Document completed work"
+      />
+    );
+  }
+
+  if (isOwner && job.status === 'completed') {
+    return (
+      <StickyBottomCTA
+        buttonText="Review Work"
+        onPress={() => navigation.navigate('PhotoReview', { jobId: job.id })}
+        secondaryText="Compare before & after photos"
+      />
+    );
+  }
+
+  return null;
+}
 
 // ── Detail Row Component ──
 const DetailRow: React.FC<{
@@ -412,7 +433,7 @@ const styles = StyleSheet.create({
   // ── Title Section ──
   title: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '800',
     color: theme.colors.textPrimary,
     marginBottom: 8,
   },
@@ -431,7 +452,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   urgentTag: {
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: '#FEF2F2',
   },
   tagText: {
     fontSize: 13,
@@ -465,8 +486,8 @@ const styles = StyleSheet.create({
   },
   pricingAmount: {
     fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.accent,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
   },
   pricingLabel: {
     fontSize: 14,
@@ -511,10 +532,11 @@ const styles = StyleSheet.create({
 
   // ── Description ──
   description: {
-    fontSize: 16,
-    color: theme.colors.textPrimary,
+    fontSize: 15,
+    color: theme.colors.textSecondary,
     lineHeight: 24,
   },
 });
 
 export default JobDetailsScreen;
+

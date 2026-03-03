@@ -202,37 +202,60 @@ export async function checkAndTriggerTraining(
 
     let shouldTrigger = false;
     let reason = '';
+    let trainingSamplesCount = 0;
 
     if (jobType === 'damage_classifier') {
       const { unused, verified } = stats.gpt4Labels;
       if (unused >= MIN_SAMPLES_FOR_TRAINING && verified >= MIN_VERIFIED_SAMPLES) {
         shouldTrigger = true;
+        trainingSamplesCount = unused;
         reason = `Sufficient GPT-4 labels: ${unused} unused, ${verified} verified`;
       }
     } else if (jobType === 'segmentation_model') {
       const { unused, verified } = stats.sam3Masks;
       if (unused >= MIN_SAMPLES_FOR_TRAINING && verified >= MIN_VERIFIED_SAMPLES) {
         shouldTrigger = true;
+        trainingSamplesCount = unused;
         reason = `Sufficient SAM3 masks: ${unused} unused, ${verified} verified`;
       }
     }
 
-    if (shouldTrigger) {
-      logger.info('Training threshold reached, triggering training job', {
+    if (!shouldTrigger) return;
+
+    // Guard: skip if a job of this type is already pending or running.
+    // Without this check, every assessment after the threshold is met would
+    // insert a duplicate job row.
+    const { data: activeJobs } = await serverSupabase
+      .from('knowledge_distillation_jobs')
+      .select('id, status')
+      .eq('job_type', jobType)
+      .in('status', ['pending', 'running'])
+      .limit(1);
+
+    if (activeJobs && activeJobs.length > 0) {
+      logger.info('checkAndTriggerTraining: skipping — job already active', {
         service: 'KnowledgeDistillationService',
         jobType,
-        reason,
+        activeJobId: activeJobs[0].id,
+        activeJobStatus: activeJobs[0].status,
       });
-
-      await createTrainingJob({
-        jobType,
-        config: getDefaultTrainingConfig(jobType),
-        trainingSamplesCount: 0,
-        modelVersion: `v${Date.now()}`,
-        triggeredBy: 'threshold_reached',
-        notes: reason,
-      });
+      return;
     }
+
+    logger.info('Training threshold reached, triggering training job', {
+      service: 'KnowledgeDistillationService',
+      jobType,
+      reason,
+    });
+
+    await createTrainingJob({
+      jobType,
+      config: getDefaultTrainingConfig(jobType),
+      trainingSamplesCount,
+      modelVersion: `v${Date.now()}`,
+      triggeredBy: 'threshold_reached',
+      notes: reason,
+    });
   } catch (error) {
     logger.error('Failed to check training trigger', error, {
       service: 'KnowledgeDistillationService',

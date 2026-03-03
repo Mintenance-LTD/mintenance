@@ -39,10 +39,8 @@ function extendConfig(baseConfig) {
   baseConfig.projectRoot = projectRoot;
 
   // Note: Do NOT override server.unstable_serverRoot.
-  // Expo's default sets it to the monorepo root, which is required for:
-  // 1. The dev client's .expo/.virtual-metro-entry URL to resolve correctly
-  // 2. Compatibility with the native build's entry point configuration
-  // The "main" field in package.json (index.ts) ensures correct entry resolution.
+  // Expo's default sets it to the monorepo root, which is required so that the
+  // bundle URL /apps/mobile/index.bundle resolves correctly against the server root.
 
   // Ensure proper node_modules resolution for monorepo
   baseConfig.watchFolders = [monorepoRoot];

@@ -11,8 +11,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme, getStatusColor } from '../../theme';
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
 
+interface RecentJob {
+  id: string;
+  title: string;
+  status?: string;
+  category?: string;
+  budget?: number;
+  budget_min?: number;
+  photos?: string[];
+  images?: string[];
+}
+
 interface RecentJobsProps {
-  jobs: any[];
+  jobs: RecentJob[];
   onViewAllPress: () => void;
   onJobPress?: (jobId: string) => void;
 }
@@ -186,13 +197,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   placeholderIconCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -227,7 +238,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   listingContent: {
     paddingTop: 12,
@@ -249,7 +260,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     alignSelf: 'flex-start',
     marginTop: 6,
@@ -257,7 +268,7 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
   },
   budgetRow: {
     flexDirection: 'row',

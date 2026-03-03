@@ -128,7 +128,7 @@ export const FinancialsScreen: React.FC = () => {
               {data.subscription.planType} Plan
             </Text>
             <TouchableOpacity
-              onPress={() => (navigation as any).navigate('Subscription')}
+              onPress={() => navigation.navigate('Subscription' as never)}
               style={styles.manageLink}
             >
               <Text style={styles.manageLinkText}>Manage Subscription</Text>
@@ -141,7 +141,7 @@ export const FinancialsScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            <TouchableOpacity onPress={() => (navigation as any).navigate('PaymentHistory')}>
+            <TouchableOpacity onPress={() => navigation.navigate('PaymentHistory' as never)}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>

@@ -131,6 +131,29 @@ export class BidService {
     return data || [];
   }
 
+  /** Batch fetch bids for multiple jobs in a single query (avoids N+1). */
+  static async getBidsByJobs(jobIds: string[], status?: string): Promise<Bid[]> {
+    if (jobIds.length === 0) return [];
+    let query = supabase
+      .from('bids')
+      .select(
+        `*,
+        contractor:contractor_id (
+          id, first_name, last_name, email, rating, reviews_count, profile_picture
+        ),
+        job:job_id (
+          id, title, description, budget, category, status, location, created_at
+        )`
+      )
+      .in('job_id', jobIds);
+    if (status) {
+      query = query.eq('status', status);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
   static async getBidsByContractor(contractorId: string): Promise<Bid[]> {
     const { data, error } = await supabase
       .from('bids')

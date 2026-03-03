@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../types';
 
 // Import existing screens
@@ -50,7 +50,7 @@ const SafeMFAVerificationScreen = withScreenErrorBoundary(
 // AUTH NAVIGATOR
 // ============================================================================
 
-const AuthStack = createStackNavigator<AuthStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 
 export const AuthNavigator: React.FC = () => {
   return (
@@ -58,68 +58,34 @@ export const AuthNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
         gestureEnabled: true,
-        transitionSpec: {
-          open: { animation: 'timing', config: { duration: 300 } },
-          close: { animation: 'timing', config: { duration: 250 } },
-        },
-        cardStyleInterpolator: ({ current, layouts }) => ({
-          cardStyle: {
-            transform: [
-              {
-                translateX: current.progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [layouts.screen.width, 0],
-                }),
-              },
-            ],
-          },
-        }),
+        animation: 'slide_from_right',
       }}
       initialRouteName="Landing"
     >
       <AuthStack.Screen
         name="Landing"
         component={SafeLandingScreen}
-        options={{
-          title: 'Welcome',
-          headerShown: false,
-        }}
+        options={{ title: 'Welcome' }}
       />
-
       <AuthStack.Screen
         name="Login"
         component={SafeLoginScreen}
-        options={{
-          title: 'Sign In',
-          animationTypeForReplace: 'push',
-        }}
+        options={{ title: 'Sign In' }}
       />
-
       <AuthStack.Screen
         name="Register"
         component={SafeRegisterScreen}
-        options={{
-          title: 'Create Account',
-          gestureEnabled: true,
-        }}
+        options={{ title: 'Create Account' }}
       />
-
       <AuthStack.Screen
         name="ForgotPassword"
         component={SafeForgotPasswordScreen}
-        options={{
-          title: 'Reset Password',
-          gestureEnabled: true,
-        }}
+        options={{ title: 'Reset Password' }}
       />
-
       <AuthStack.Screen
         name="MFAVerification"
         component={SafeMFAVerificationScreen}
-        options={{
-          title: 'Verify Identity',
-          gestureEnabled: false,
-        }}
+        options={{ title: 'Verify Identity', gestureEnabled: false }}
       />
     </AuthStack.Navigator>
   );

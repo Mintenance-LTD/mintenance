@@ -8,7 +8,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { Input } from '../components/ui/Input';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { Banner } from '../components/ui/Banner';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { JobService } from '../services/JobService';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,15 +18,13 @@ import { JobsStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../theme';
+import { DatePicker } from '../components/ui/DatePicker';
 
 type BidSubmissionScreenRouteProp = RouteProp<
   JobsStackParamList,
   'BidSubmission'
 >;
-type BidSubmissionScreenNavigationProp = StackNavigationProp<
-  JobsStackParamList,
-  'BidSubmission'
->;
+type BidSubmissionScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'BidSubmission'>;
 
 interface Props {
   route: BidSubmissionScreenRouteProp;
@@ -40,9 +39,10 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [estimatedDuration, setEstimatedDuration] = useState('');
-  const [proposedStartDate, setProposedStartDate] = useState('');
+  const [proposedStartDate, setProposedStartDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     loadJob();
@@ -61,19 +61,21 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleSubmit = async () => {
+    setFormError(null);
+
     if (!user || user.role !== 'contractor') {
-      Alert.alert('Error', 'Only contractors can submit bids');
+      setFormError('Only contractors can submit bids');
       return;
     }
 
     if (!amount || !description) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setFormError('Please fill in all required fields');
       return;
     }
 
     const bidAmount = parseFloat(amount);
     if (isNaN(bidAmount) || bidAmount <= 0) {
-      Alert.alert('Error', 'Please enter a valid bid amount');
+      setFormError('Please enter a valid bid amount');
       return;
     }
 
@@ -91,7 +93,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to submit bid');
+      setFormError(error.message || 'Failed to submit bid. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -137,9 +139,10 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         </View>
 
         <View style={styles.form}>
+          <Banner message={formError ?? ''} variant="error" />
           <Input
-            label='Your Bid Amount *'
-            placeholder='Enter your bid amount'
+            label='Your Bid Amount (£) *'
+            placeholder='e.g. 250'
             value={amount}
             onChangeText={setAmount}
             keyboardType='numeric'
@@ -148,6 +151,34 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             size='lg'
             fullWidth
           />
+          {(() => {
+            const parsed = parseFloat(amount);
+            const budgetMax = job.budget_max ?? job.budget;
+            const budgetMin = job.budget_min;
+            if (!amount || isNaN(parsed)) return null;
+            if (budgetMax && parsed > budgetMax * 1.5) {
+              return (
+                <Text style={styles.bidWarning}>
+                  ⚠️ Your bid (£{parsed.toLocaleString()}) is significantly above the budget
+                  {budgetMax ? ` (£${budgetMax.toLocaleString()})` : ''}
+                </Text>
+              );
+            }
+            if (budgetMin && parsed < budgetMin * 0.5) {
+              return (
+                <Text style={styles.bidWarning}>
+                  ⚠️ Your bid (£{parsed.toLocaleString()}) is much lower than the minimum budget
+                  (£{budgetMin.toLocaleString()})
+                </Text>
+              );
+            }
+            return (
+              <Text style={styles.bidHint}>
+                £{parsed.toLocaleString()} bid
+                {budgetMax ? ` · Budget up to £${budgetMax.toLocaleString()}` : ''}
+              </Text>
+            );
+          })()}
 
           <Input
             label='Proposal Description *'
@@ -175,15 +206,11 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             fullWidth
           />
 
-          <Input
+          <DatePicker
             label='Proposed Start Date'
-            placeholder='DD/MM/YYYY'
             value={proposedStartDate}
-            onChangeText={setProposedStartDate}
-            leftIcon='calendar-outline'
-            variant='outline'
-            size='lg'
-            fullWidth
+            onChange={setProposedStartDate}
+            minimumDate={new Date()}
           />
 
           <View style={styles.tipBox}>
@@ -241,19 +268,25 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   backButton: {
     padding: 5,
   },
   backButtonText: {
     fontSize: 18,
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: theme.colors.textPrimary,
   },
   placeholder: {
     width: 50,
@@ -262,9 +295,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   jobInfo: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: '#F7F7F7',
     padding: 20,
     marginBottom: 15,
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: 16,
   },
   jobTitle: {
     fontSize: 20,
@@ -312,21 +348,33 @@ const styles = StyleSheet.create({
     height: 150,
     paddingTop: 15,
   },
+  bidHint: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    marginTop: -4,
+    marginBottom: 8,
+  },
+  bidWarning: {
+    fontSize: 12,
+    color: theme.colors.warning,
+    marginTop: -4,
+    marginBottom: 8,
+  },
   tipBox: {
-    backgroundColor: theme.colors.successLight,
+    backgroundColor: '#F7F7F7',
     padding: 15,
     borderRadius: 12,
     marginTop: 20,
   },
   tipTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.successDark,
+    color: theme.colors.textPrimary,
     marginBottom: 10,
   },
   tipText: {
     fontSize: 14,
-    color: theme.colors.successDark,
+    color: '#717171',
     marginBottom: 5,
   },
   footer: {
@@ -351,3 +399,4 @@ const styles = StyleSheet.create({
 });
 
 export default BidSubmissionScreen;
+

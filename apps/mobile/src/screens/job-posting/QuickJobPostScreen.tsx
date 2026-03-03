@@ -326,7 +326,7 @@ export const QuickJobPostScreen: React.FC = () => {
           onPress={() => {
             navigation.goBack();
             setTimeout(() => {
-              (navigation as any).navigate('Modal', { screen: 'ServiceRequest' });
+              navigation.navigate('Modal', { screen: 'ServiceRequest' } as never);
             }, 300);
           }}
         >

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Alert, Platform, Linking } from 'react-native';
 import * as Location from 'expo-location';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { ContractorService } from '../services/ContractorService';
@@ -29,7 +30,7 @@ interface ContractorLocation {
 interface UseContractorMapProps {
   contractorId?: string;
   initialRegion?: Region;
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<RootStackParamList>;
 }
 
 export const useContractorMap = ({ contractorId, initialRegion, navigation }: UseContractorMapProps) => {
@@ -267,3 +268,4 @@ export const useContractorMap = ({ contractorId, initialRegion, navigation }: Us
     handleMyLocation,
   };
 };
+

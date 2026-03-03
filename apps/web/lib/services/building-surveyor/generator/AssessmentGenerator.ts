@@ -50,6 +50,8 @@ export interface GeneratorResult {
   content: string;
   model: string;
   usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
+  /** GPT-4o chain-of-thought reasoning extracted from JSON response. Used for CoT distillation. */
+  reasoning?: string | null;
 }
 
 /**
@@ -85,11 +87,31 @@ async function callGPT4o(messages: GeneratorMessage[], apiKey: string): Promise<
     choices?: Array<{ message?: { content?: string } }>;
     usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
   };
-  const content = data.choices?.[0]?.message?.content ?? '{}';
+  const rawContent = data.choices?.[0]?.message?.content ?? '{}';
+
+  // Extract and strip the reasoning field from the JSON payload.
+  // The system prompt asks GPT-4o to include a top-level "reasoning" key
+  // explaining its diagnostic process. We capture it for CoT distillation
+  // but remove it from the assessment payload so downstream code and the
+  // student VLM schema stay clean.
+  let content = rawContent;
+  let reasoning: string | null = null;
+  try {
+    const parsed = JSON.parse(rawContent) as Record<string, unknown>;
+    if (typeof parsed.reasoning === 'string' && parsed.reasoning.length > 0) {
+      reasoning = parsed.reasoning;
+      delete parsed.reasoning;
+      content = JSON.stringify(parsed);
+    }
+  } catch {
+    // Non-fatal: if JSON parse fails, pass raw content through unchanged
+  }
+
   return {
     content,
     model: OPENAI_MODEL,
     usage: data.usage,
+    reasoning,
   };
 }
 
@@ -161,20 +183,34 @@ async function injectRAGContext(
   damageCategory?: string
 ): Promise<GeneratorMessage[]> {
   try {
-    const categories = damageCategory
-      ? BuildingPathologyRAGService.damageTypeToCategories(damageCategory)
-      : [];
+    let ragContext;
 
-    const ragContext = categories.length > 0
-      ? await BuildingPathologyRAGService.queryByCategory(categories, 4)
-      : await BuildingPathologyRAGService.queryByCategory(
-          ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'],
-          3
-        );
+    if (damageCategory) {
+      // Try semantic search first — higher recall for damage types not in the
+      // exact slug mapping, or where the category label is imprecise.
+      ragContext = await BuildingPathologyRAGService.queryBySemantic(
+        damageCategory.replace(/_/g, ' '),  // "wall_crack" → "wall crack"
+        { matchCount: 4, matchThreshold: 0.50 }
+      );
+      // Fall back to category filter if embeddings not yet seeded
+      if (!ragContext.entries.length) {
+        const categories = BuildingPathologyRAGService.damageTypeToCategories(damageCategory);
+        ragContext = categories.length > 0
+          ? await BuildingPathologyRAGService.queryByCategory(categories, 4)
+          : await BuildingPathologyRAGService.queryByCategory(
+              ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'], 3
+            );
+      }
+    } else {
+      ragContext = await BuildingPathologyRAGService.queryByCategory(
+        ['damp_moisture', 'structural_movement', 'roofing', 'masonry_walls'],
+        3
+      );
+    }
 
     if (!ragContext.promptContext) return messages;
 
-    // Find the system message and append RAG context to it
+    // Append RAG context to the system message
     return messages.map(msg => {
       if (msg.role !== 'system') return msg;
       const existingContent = typeof msg.content === 'string' ? msg.content : '';

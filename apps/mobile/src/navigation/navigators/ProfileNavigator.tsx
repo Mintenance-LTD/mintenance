@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../types';
 
 // Import existing screens
@@ -10,16 +10,26 @@ import { PaymentMethodsScreen } from '../../screens/payment-methods';
 import AddPaymentMethodScreen from '../../screens/AddPaymentMethodScreen';
 import HelpCenterScreen from '../../screens/HelpCenterScreen';
 import InvoiceManagementScreen from '../../screens/InvoiceManagementScreen';
+import { CreateInvoiceScreen } from '../../screens/create-invoice/CreateInvoiceScreen';
+import { InvoiceDetailScreen } from '../../screens/invoice-detail/InvoiceDetailScreen';
 import CRMDashboardScreen from '../../screens/CRMDashboardScreen';
+import { AddClientScreen } from '../../screens/add-client/AddClientScreen';
+import { ClientDetailScreen } from '../../screens/client-detail/ClientDetailScreen';
 import FinanceDashboardScreen from '../../screens/FinanceDashboardScreen';
 import ServiceAreasScreen from '../../screens/ServiceAreasScreen';
 import QuoteBuilderScreen from '../../screens/QuoteBuilderScreen';
 import { CreateQuoteScreen } from '../../screens/create-quote';
+import { QuoteDetailScreen } from '../../screens/quote-detail/QuoteDetailScreen';
+import { QuoteTemplatesScreen } from '../../screens/quote-templates/QuoteTemplatesScreen';
 import ContractorCardEditorScreen from '../../screens/ContractorCardEditorScreen';
 import { ContractorVerificationScreen } from '../../screens/contractor-verification/ContractorVerificationScreen';
 import { PropertiesScreen } from '../../screens/properties/PropertiesScreen';
 import { PropertyDetailScreen } from '../../screens/properties/PropertyDetailScreen';
+import { PropertyAssessmentScreen } from '../../screens/assessment/PropertyAssessmentScreen';
 import { AddPropertyScreen } from '../../screens/properties/AddPropertyScreen';
+import { VideoCaptureScreen } from '../../screens/video-capture/VideoCaptureScreen';
+import { VideoProcessingStatusScreen } from '../../screens/video-capture/VideoProcessingStatusScreen';
+import { JobPhotoUploadScreen } from '../../screens/job-details/JobPhotoUploadScreen';
 import { CalendarScreen } from '../../screens/CalendarScreen';
 import { ReviewsScreen } from '../../screens/ReviewsScreen';
 import { PaymentHistoryScreen } from '../../screens/payment/PaymentHistoryScreen';
@@ -30,6 +40,8 @@ import { ExpensesScreen } from '../../screens/contractor/ExpensesScreen';
 import { DocumentsScreen } from '../../screens/contractor/DocumentsScreen';
 import { CertificationsScreen } from '../../screens/contractor/CertificationsScreen';
 import { TimeTrackingScreen } from '../../screens/contractor/TimeTrackingScreen';
+import { AddTimeEntryScreen } from '../../screens/contractor/AddTimeEntryScreen';
+import { AddCertificationScreen } from '../../screens/contractor/AddCertificationScreen';
 import { ReportingScreen } from '../../screens/contractor/ReportingScreen';
 import { PayoutsScreen } from '../../screens/contractor/PayoutsScreen';
 import { BookingStatusScreen } from '../../screens/booking/BookingStatusScreen';
@@ -83,10 +95,34 @@ const SafeInvoiceManagementScreen = withScreenErrorBoundary(
   { fallbackRoute: 'ProfileMain' }
 );
 
+const SafeCreateInvoiceScreen = withScreenErrorBoundary(
+  CreateInvoiceScreen,
+  'Create Invoice',
+  { fallbackRoute: 'InvoiceManagement' }
+);
+
+const SafeInvoiceDetailScreen = withScreenErrorBoundary(
+  InvoiceDetailScreen,
+  'Invoice Detail',
+  { fallbackRoute: 'InvoiceManagement' }
+);
+
 const SafeCRMDashboardScreen = withScreenErrorBoundary(
   CRMDashboardScreen,
   'CRM Dashboard',
   { fallbackRoute: 'ProfileMain' }
+);
+
+const SafeAddClientScreen = withScreenErrorBoundary(
+  AddClientScreen,
+  'Add Client',
+  { fallbackRoute: 'CRMDashboard' }
+);
+
+const SafeClientDetailScreen = withScreenErrorBoundary(
+  ClientDetailScreen,
+  'Client Detail',
+  { fallbackRoute: 'CRMDashboard' }
 );
 
 const SafeFinanceDashboardScreen = withScreenErrorBoundary(
@@ -113,6 +149,18 @@ const SafeCreateQuoteScreen = withScreenErrorBoundary(
   { fallbackRoute: 'QuoteBuilder' }
 );
 
+const SafeQuoteDetailScreen = withScreenErrorBoundary(
+  QuoteDetailScreen,
+  'Quote Detail',
+  { fallbackRoute: 'QuoteBuilder' }
+);
+
+const SafeQuoteTemplatesScreen = withScreenErrorBoundary(
+  QuoteTemplatesScreen,
+  'Quote Templates',
+  { fallbackRoute: 'QuoteBuilder' }
+);
+
 const SafeContractorCardEditorScreen = withScreenErrorBoundary(
   ContractorCardEditorScreen,
   'Edit Discovery Card',
@@ -135,6 +183,34 @@ const SafePropertyDetailScreen = withScreenErrorBoundary(
   PropertyDetailScreen,
   'Property Detail',
   { fallbackRoute: 'Properties' }
+);
+
+const SafePropertyAssessmentScreen = withScreenErrorBoundary(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PropertyAssessmentScreen as any,
+  'Property Assessment',
+  { fallbackRoute: 'PropertyDetail' }
+);
+
+const SafeVideoCaptureScreen = withScreenErrorBoundary(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  VideoCaptureScreen as any,
+  'Video Capture',
+  { fallbackRoute: 'PropertyAssessment' }
+);
+
+const SafeVideoProcessingStatusScreen = withScreenErrorBoundary(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  VideoProcessingStatusScreen as any,
+  'Video Processing',
+  { fallbackRoute: 'PropertyAssessment' }
+);
+
+const SafeJobPhotoUploadScreen = withScreenErrorBoundary(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  JobPhotoUploadScreen as any,
+  'Photo Upload',
+  { fallbackRoute: 'PropertyAssessment' }
 );
 
 const SafeAddPropertyScreen = withScreenErrorBoundary(
@@ -203,6 +279,18 @@ const SafeTimeTrackingScreen = withScreenErrorBoundary(
   { fallbackRoute: 'ProfileMain' }
 );
 
+const SafeAddTimeEntryScreen = withScreenErrorBoundary(
+  AddTimeEntryScreen,
+  'Add Time Entry',
+  { fallbackRoute: 'TimeTracking' }
+);
+
+const SafeAddCertificationScreen = withScreenErrorBoundary(
+  AddCertificationScreen,
+  'Add Certification',
+  { fallbackRoute: 'Certifications' }
+);
+
 const SafeReportingScreen = withScreenErrorBoundary(
   ReportingScreen,
   'Reporting',
@@ -225,7 +313,7 @@ const SafeBookingStatusScreen = withScreenErrorBoundary(
 // PROFILE NAVIGATOR
 // ============================================================================
 
-const ProfileStack = createStackNavigator<ProfileStackParamList>();
+const ProfileStack = createNativeStackNavigator<ProfileStackParamList>();
 
 export const ProfileNavigator: React.FC = () => {
   return (
@@ -233,22 +321,7 @@ export const ProfileNavigator: React.FC = () => {
       screenOptions={{
         headerShown: false,
         gestureEnabled: true,
-        transitionSpec: {
-          open: { animation: 'timing', config: { duration: 300 } },
-          close: { animation: 'timing', config: { duration: 250 } },
-        },
-        cardStyleInterpolator: ({ current, layouts }) => ({
-          cardStyle: {
-            transform: [
-              {
-                translateX: current.progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [layouts.screen.width, 0],
-                }),
-              },
-            ],
-          },
-        }),
+        animation: 'slide_from_right',
       }}
       initialRouteName="ProfileMain"
     >
@@ -320,6 +393,20 @@ export const ProfileNavigator: React.FC = () => {
           gestureEnabled: true,
         }}
       />
+
+      <ProfileStack.Screen
+        name="CreateInvoice"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        component={SafeCreateInvoiceScreen as any}
+        options={{ title: 'New Invoice', headerShown: false, presentation: 'modal', gestureEnabled: true }}
+      />
+
+      <ProfileStack.Screen
+        name="InvoiceDetail"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        component={SafeInvoiceDetailScreen as any}
+        options={{ title: 'Invoice', headerShown: false, gestureEnabled: true }}
+      />
       
       <ProfileStack.Screen
         name="CRMDashboard"
@@ -330,7 +417,29 @@ export const ProfileNavigator: React.FC = () => {
           gestureEnabled: true,
         }}
       />
-      
+
+      <ProfileStack.Screen
+        name="AddClient"
+        component={SafeAddClientScreen}
+        options={{
+          title: 'Add Client',
+          headerShown: false,
+          presentation: 'modal',
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="ClientDetail"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        component={SafeClientDetailScreen as any}
+        options={{
+          title: 'Client',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
       <ProfileStack.Screen
         name="FinanceDashboard"
         component={SafeFinanceDashboardScreen}
@@ -368,19 +477,20 @@ export const ProfileNavigator: React.FC = () => {
           title: 'Create Quote',
           presentation: 'modal',
           gestureEnabled: true,
-          cardStyleInterpolator: ({ current, layouts }) => ({
-            cardStyle: {
-              transform: [
-                {
-                  translateY: current.progress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [layouts.screen.height, 0],
-                  }),
-                },
-              ],
-            },
-          }),
         }}
+      />
+
+      <ProfileStack.Screen
+        name="QuoteDetail"
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        component={SafeQuoteDetailScreen as any}
+        options={{ title: 'Quote', headerShown: false, gestureEnabled: true }}
+      />
+
+      <ProfileStack.Screen
+        name="QuoteTemplates"
+        component={SafeQuoteTemplatesScreen}
+        options={{ title: 'Templates', headerShown: false, gestureEnabled: true }}
       />
 
       <ProfileStack.Screen
@@ -418,6 +528,46 @@ export const ProfileNavigator: React.FC = () => {
         component={SafePropertyDetailScreen}
         options={{
           title: 'Property Details',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="PropertyAssessment"
+        component={SafePropertyAssessmentScreen}
+        options={{
+          title: 'Assessment',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="VideoCapture"
+        component={SafeVideoCaptureScreen}
+        options={{
+          title: 'Video Capture',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="VideoProcessingStatus"
+        component={SafeVideoProcessingStatusScreen}
+        options={{
+          title: 'Processing',
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+
+      <ProfileStack.Screen
+        name="PhotoUpload"
+        component={SafeJobPhotoUploadScreen}
+        options={{
+          title: 'Photo Upload',
           headerShown: false,
           gestureEnabled: true,
         }}
@@ -524,6 +674,12 @@ export const ProfileNavigator: React.FC = () => {
       />
 
       <ProfileStack.Screen
+        name="AddCertification"
+        component={SafeAddCertificationScreen}
+        options={{ title: 'Add Certification', headerShown: false, presentation: 'modal', gestureEnabled: true }}
+      />
+
+      <ProfileStack.Screen
         name="TimeTracking"
         component={SafeTimeTrackingScreen}
         options={{
@@ -531,6 +687,12 @@ export const ProfileNavigator: React.FC = () => {
           headerShown: false,
           gestureEnabled: true,
         }}
+      />
+
+      <ProfileStack.Screen
+        name="AddTimeEntry"
+        component={SafeAddTimeEntryScreen}
+        options={{ title: 'Add Time Entry', headerShown: false, presentation: 'modal', gestureEnabled: true }}
       />
 
       <ProfileStack.Screen

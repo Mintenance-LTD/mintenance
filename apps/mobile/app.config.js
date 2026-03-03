@@ -176,6 +176,7 @@ module.exports = {
     plugins: [
       ["expo-build-properties", {
         android: {
+          newArchEnabled: true,
           enableProguardInReleaseBuilds: true,
           enableSeparateBuildPerCPUArchitecture: true,
           universalApk: false,
@@ -190,6 +191,7 @@ module.exports = {
           proguardFiles: ["proguard-android-optimize.txt"]
         },
         ios: {
+          newArchEnabled: true,
           deploymentTarget: "15.1",
           useFrameworks: "static"
         }

@@ -7,14 +7,8 @@ import type {
   JobsStackParamList,
   MessagingStackParamList,
   ProfileStackParamList,
-  JobsNavigationProp,
-  JobsRouteProp,
-  MessagingNavigationProp,
-  MessagingRouteProp,
-  ProfileNavigationProp,
-  ProfileRouteProp,
 } from './types';
-import type { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 
 // ============================================================================
@@ -25,7 +19,7 @@ import type { RouteProp } from '@react-navigation/native';
  * Type-safe version of useNavigation for root navigation
  */
 export const useTypedNavigation = <T extends keyof RootStackParamList>() =>
-  useNavigation<StackNavigationProp<RootStackParamList, T>>();
+  useNavigation<NativeStackNavigationProp<RootStackParamList, T>>();
 
 /**
  * Type-safe version of useRoute for root navigation
@@ -41,37 +35,37 @@ export const useTypedRoute = <T extends keyof RootStackParamList>() =>
  * Type-safe navigation hook for Jobs feature
  */
 export const useJobsNavigation = <T extends keyof JobsStackParamList>() =>
-  useNavigation<JobsNavigationProp<T>>();
+  useNavigation<NativeStackNavigationProp<JobsStackParamList, T>>();
 
 /**
  * Type-safe route hook for Jobs feature
  */
 export const useJobsRoute = <T extends keyof JobsStackParamList>() =>
-  useRoute<JobsRouteProp<T>>();
+  useRoute<RouteProp<JobsStackParamList, T>>();
 
 /**
  * Type-safe navigation hook for Messaging feature
  */
 export const useMessagingNavigation = <T extends keyof MessagingStackParamList>() =>
-  useNavigation<MessagingNavigationProp<T>>();
+  useNavigation<NativeStackNavigationProp<MessagingStackParamList, T>>();
 
 /**
  * Type-safe route hook for Messaging feature
  */
 export const useMessagingRoute = <T extends keyof MessagingStackParamList>() =>
-  useRoute<MessagingRouteProp<T>>();
+  useRoute<RouteProp<MessagingStackParamList, T>>();
 
 /**
  * Type-safe navigation hook for Profile feature
  */
 export const useProfileNavigation = <T extends keyof ProfileStackParamList>() =>
-  useNavigation<ProfileNavigationProp<T>>();
+  useNavigation<NativeStackNavigationProp<ProfileStackParamList, T>>();
 
 /**
  * Type-safe route hook for Profile feature
  */
 export const useProfileRoute = <T extends keyof ProfileStackParamList>() =>
-  useRoute<ProfileRouteProp<T>>();
+  useRoute<RouteProp<ProfileStackParamList, T>>();
 
 // ============================================================================
 // NAVIGATION UTILITIES
@@ -81,7 +75,7 @@ export const useProfileRoute = <T extends keyof ProfileStackParamList>() =>
  * Navigate to any screen with type safety
  */
 export const navigateToScreen = <T extends keyof RootStackParamList>(
-  navigation: StackNavigationProp<RootStackParamList>,
+  navigation: NativeStackNavigationProp<RootStackParamList>,
   screen: T,
   params?: RootStackParamList[T]
 ) => {
@@ -96,7 +90,7 @@ export const navigateToScreen = <T extends keyof RootStackParamList>(
  * Navigate back with optional fallback
  */
 export const goBackSafe = (
-  navigation: StackNavigationProp<RootStackParamList>,
+  navigation: NativeStackNavigationProp<RootStackParamList>,
   fallbackScreen?: keyof RootStackParamList
 ) => {
   if (navigation.canGoBack()) {
@@ -110,7 +104,7 @@ export const goBackSafe = (
  * Reset navigation stack to specific screen
  */
 export const resetToScreen = <T extends keyof RootStackParamList>(
-  navigation: StackNavigationProp<RootStackParamList>,
+  navigation: NativeStackNavigationProp<RootStackParamList>,
   screen: T,
   params?: RootStackParamList[T]
 ) => {
@@ -133,7 +127,7 @@ export const resetToScreen = <T extends keyof RootStackParamList>(
  * Type guard to check if navigation has specific route
  */
 export const hasRoute = (
-  navigation: StackNavigationProp<RootStackParamList>,
+  navigation: NativeStackNavigationProp<RootStackParamList>,
   routeName: keyof RootStackParamList
 ): boolean => {
   const state = navigation.getState();
@@ -144,7 +138,7 @@ export const hasRoute = (
  * Get current route name with type safety
  */
 export const getCurrentRouteName = (
-  navigation: StackNavigationProp<RootStackParamList>
+  navigation: NativeStackNavigationProp<RootStackParamList>
 ): keyof RootStackParamList | undefined => {
   const state = navigation.getState();
   return state.routes[state.index]?.name as keyof RootStackParamList;
@@ -285,14 +279,22 @@ export const useNavigationFlows = () => {
   };
 
   const navigateToMessaging = (params: {
-    jobId: string;
-    jobTitle: string;
-    otherUserId: string;
-    otherUserName: string;
+    conversationId: string;
+    jobTitle?: string;
+    otherUserId?: string;
+    otherUserName?: string;
   }) => {
     return navigateWithGuard('Main', {
       screen: 'MessagingTab',
-      params: { screen: 'Messaging', params }
+      params: {
+        screen: 'Messaging',
+        params: {
+          conversationId: params.conversationId,
+          jobTitle: params.jobTitle,
+          recipientId: params.otherUserId,
+          recipientName: params.otherUserName,
+        },
+      },
     }, {
       requiresAuth: true,
     });
@@ -309,8 +311,8 @@ export const useNavigationFlows = () => {
   };
 
   const navigateToContractorDiscovery = () => {
-    return navigateWithGuard('Modal', {
-      screen: 'ContractorDiscovery'
+    return navigateWithGuard('Main', {
+      screen: 'DiscoverTab',
     }, {
       requiresAuth: true,
       allowedRoles: ['homeowner'],

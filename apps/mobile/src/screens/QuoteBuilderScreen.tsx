@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,9 +22,11 @@ import {
 } from '../services/QuoteBuilderService';
 import { QuoteCard } from '../components/QuoteCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { Banner } from '../components/ui/Banner';
+import { useToast } from '../components/ui/Toast';
 
 interface QuoteBuilderScreenProps {
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteBuilder'>;
 }
 
 export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
@@ -36,6 +39,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     loadQuotes();
@@ -54,7 +60,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       setQuotes(data);
     } catch (error) {
       logger.error('Error loading quotes', error);
-      Alert.alert('Error', 'Failed to load quotes');
+      setListError('Failed to load quotes. Pull to refresh.');
     } finally {
       setLoading(false);
     }
@@ -88,7 +94,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       });
       setQuotes(data);
     } catch (error) {
-      Alert.alert('Error', 'Failed to filter quotes');
+      toast.error('Failed to filter quotes');
     } finally {
       setLoading(false);
     }
@@ -98,9 +104,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     try {
       await QuoteBuilderService.sendQuote(quoteId);
       await loadQuotes();
-      Alert.alert('Success', 'Quote sent successfully');
+      toast.success('Quote sent successfully');
     } catch (error) {
-      Alert.alert('Error', 'Failed to send quote');
+      toast.error('Failed to send quote');
     }
   };
 
@@ -108,9 +114,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     try {
       await QuoteBuilderService.duplicateQuote(quoteId);
       await loadQuotes();
-      Alert.alert('Success', 'Quote duplicated successfully');
+      toast.success('Quote duplicated successfully');
     } catch (error) {
-      Alert.alert('Error', 'Failed to duplicate quote');
+      toast.error('Failed to duplicate quote');
     }
   };
 
@@ -127,9 +133,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             try {
               await QuoteBuilderService.deleteQuote(quoteId);
               await loadQuotes();
-              Alert.alert('Success', 'Quote deleted successfully');
+              toast.success('Quote deleted successfully');
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete quote');
+              toast.error('Failed to delete quote');
             }
           },
         },
@@ -145,44 +151,25 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         <Text style={styles.statsTitle}>Quote Performance</Text>
 
         <View style={styles.statsRow}>
-          <View
-            style={[styles.statCard, { borderLeftColor: theme.colors.primary }]}
-          >
-            <Text style={[styles.statValue, { color: theme.colors.primary }]}>
-              {stats.total_quotes}
-            </Text>
+          <View style={[styles.statCard, { borderLeftColor: '#EBEBEB' }]}>
+            <Text style={styles.statValue}>{stats.total_quotes}</Text>
             <Text style={styles.statLabel}>Total Quotes</Text>
           </View>
 
-          <View
-            style={[styles.statCard, { borderLeftColor: theme.colors.success }]}
-          >
-            <Text style={[styles.statValue, { color: theme.colors.success }]}>
-              {stats.accepted_quotes}
-            </Text>
+          <View style={[styles.statCard, { borderLeftColor: '#EBEBEB' }]}>
+            <Text style={styles.statValue}>{stats.accepted_quotes}</Text>
             <Text style={styles.statLabel}>Accepted</Text>
           </View>
         </View>
 
         <View style={styles.statsRow}>
-          <View
-            style={[styles.statCard, { borderLeftColor: theme.colors.warning }]}
-          >
-            <Text style={[styles.statValue, { color: theme.colors.warning }]}>
-              £{stats.total_value.toFixed(0)}
-            </Text>
+          <View style={[styles.statCard, { borderLeftColor: '#EBEBEB' }]}>
+            <Text style={styles.statValue}>£{stats.total_value.toFixed(0)}</Text>
             <Text style={styles.statLabel}>Total Value</Text>
           </View>
 
-          <View
-            style={[
-              styles.statCard,
-              { borderLeftColor: theme.colors.primary },
-            ]}
-          >
-            <Text style={[styles.statValue, { color: theme.colors.primary }]}>
-              {stats.acceptance_rate.toFixed(1)}%
-            </Text>
+          <View style={[styles.statCard, { borderLeftColor: '#EBEBEB' }]}>
+            <Text style={styles.statValue}>{stats.acceptance_rate.toFixed(1)}%</Text>
             <Text style={styles.statLabel}>Success Rate</Text>
           </View>
         </View>
@@ -245,14 +232,14 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name='arrow-back' size={24} color={theme.colors.white} />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote Builder</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('CreateQuote')}
         >
-          <Ionicons name='add' size={24} color={theme.colors.white} />
+          <Ionicons name='add' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -263,6 +250,11 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         }
         showsVerticalScrollIndicator={false}
       >
+        {listError && (
+          <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+            <Banner message={listError} variant="error" />
+          </View>
+        )}
         {/* Statistics */}
         {renderStatsCard()}
 
@@ -273,7 +265,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => Alert.alert('Coming Soon', 'Quote templates coming soon.')}
+            onPress={() => navigation.navigate('QuoteTemplates')}
           >
             <Ionicons
               name='document-text'
@@ -285,7 +277,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => Alert.alert('Coming Soon', 'Quote analytics coming soon.')}
+            onPress={() => setShowAnalytics(prev => !prev)}
           >
             <Ionicons name='analytics' size={24} color={theme.colors.primary} />
             <Text style={styles.actionButtonText}>Analytics</Text>
@@ -303,6 +295,31 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             <Text style={styles.actionButtonText}>New Quote</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Inline Analytics Panel */}
+        {showAnalytics && stats && (
+          <View style={styles.analyticsPanel}>
+            <Text style={styles.analyticsTitle}>Analytics Overview</Text>
+            <View style={styles.analyticsRow}>
+              <View style={styles.analyticsStat}>
+                <Text style={styles.analyticsValue}>{stats.total_quotes}</Text>
+                <Text style={styles.analyticsLabel}>Total Quotes</Text>
+              </View>
+              <View style={styles.analyticsStat}>
+                <Text style={[styles.analyticsValue, { color: theme.colors.success }]}>
+                  {stats.acceptance_rate ? `${Math.round(stats.acceptance_rate)}%` : '—'}
+                </Text>
+                <Text style={styles.analyticsLabel}>Acceptance Rate</Text>
+              </View>
+              <View style={styles.analyticsStat}>
+                <Text style={styles.analyticsValue}>
+                  £{stats.total_value ? Math.round(stats.total_value / 1000) + 'k' : '0'}
+                </Text>
+                <Text style={styles.analyticsLabel}>Total Value</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Quotes List */}
         <View style={styles.quotesContainer}>
@@ -338,10 +355,10 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
                 key={quote.id}
                 quote={quote}
                 onPress={() =>
-                  Alert.alert('Coming Soon', 'Quote details coming soon.')
+                  navigation.navigate('QuoteDetail', { quoteId: quote.id })
                 }
                 onEdit={() =>
-                  Alert.alert('Coming Soon', 'Quote editing coming soon.')
+                  navigation.navigate('CreateQuote', { jobId: quote.job_id })
                 }
                 onSend={() => handleSendQuote(quote.id)}
                 onDuplicate={() => handleDuplicateQuote(quote.id)}
@@ -365,16 +382,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: theme.colors.primary,
+    paddingBottom: 12,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.white,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
   },
   addButton: {
     padding: 8,
@@ -413,6 +432,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '700',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   statLabel: {
@@ -436,8 +456,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   filterChipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   filterText: {
     fontSize: 14,
@@ -506,6 +526,39 @@ const styles = StyleSheet.create({
     color: theme.colors.white,
     fontSize: 16,
     fontWeight: '600',
+  },
+  analyticsPanel: {
+    backgroundColor: theme.colors.background,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: theme.borderRadius.lg,
+    padding: 16,
+    ...theme.shadows.sm,
+  },
+  analyticsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 12,
+  },
+  analyticsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  analyticsStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  analyticsValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.primary,
+  },
+  analyticsLabel: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
+    textAlign: 'center',
   },
 });
 
