@@ -122,11 +122,11 @@ function RegisterForm() {
           throw new Error('Too many registration attempts. Please try again later.');
         } else if (response.status === 400) {
           // Check if it's a duplicate email error
-          const errorMsg = responseData.error || responseData.message || 'Invalid registration data. Please check your information.';
+          const errorMsg = responseData.error?.message || responseData.error || responseData.message || 'Invalid registration data. Please check your information.';
           throw new Error(errorMsg);
         } else if (response.status === 403) {
           throw new Error(
-            responseData.error === 'CSRF validation failed'
+            responseData.error?.message === 'CSRF validation failed' || responseData.error === 'CSRF validation failed'
               ? 'Security token expired. Please refresh the page and try again.'
               : 'Access denied. Please refresh the page and try again.'
           );
