@@ -219,7 +219,7 @@ export class AuthManager {
 
       // Use Supabase Auth to create user (unified with mobile app)
       logger.info('Creating user with Supabase Auth', { email: userData.email, service: 'auth' });
-      const { data: authData, error: authError } = await serverSupabase.auth.signUp({
+      let { data: authData, error: authError } = await serverSupabase.auth.signUp({
         email: userData.email,
         password: userData.password,
         options: {
@@ -234,10 +234,30 @@ export class AuthManager {
         },
       });
 
+      // Handle confirmation email failures by auto-confirming via admin API
+      if (authError && authError.message === 'Error sending confirmation email' && authData?.user) {
+        logger.warn('Confirmation email failed, auto-confirming user via admin API', {
+          userId: authData.user.id,
+          email: userData.email,
+          service: 'auth'
+        });
+        const { error: confirmError } = await serverSupabase.auth.admin.updateUser(
+          authData.user.id,
+          { email_confirm: true }
+        );
+        if (confirmError) {
+          logger.error('Failed to auto-confirm user', confirmError, { userId: authData.user.id, service: 'auth' });
+        } else {
+          logger.info('User auto-confirmed successfully', { userId: authData.user.id, service: 'auth' });
+          // Clear the error since we recovered
+          authError = null;
+        }
+      }
+
       if (authError) {
-        logger.error('Supabase Auth registration failed', authError, { 
-          email: userData.email, 
-          service: 'auth' 
+        logger.error('Supabase Auth registration failed', authError, {
+          email: userData.email,
+          service: 'auth'
         });
         
         // Handle specific Supabase Auth errors
