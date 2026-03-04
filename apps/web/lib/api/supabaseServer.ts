@@ -35,11 +35,24 @@ const clientOptions: SupabaseClientOptions<'public'> = {
   global: {
     // Connection reuse and timeout settings
     fetch: (url, options) => {
+      // 10-second server-side timeout prevents hung Supabase connections
+      // from causing the mobile client's 30-second AbortController to fire.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
+      // Propagate any existing abort signal (e.g. from Next.js request cancellation)
+      if (options?.signal) {
+        const upstream = options.signal as AbortSignal;
+        if (upstream.aborted) {
+          controller.abort();
+        } else {
+          upstream.addEventListener('abort', () => controller.abort(), { once: true });
+        }
+      }
       return fetch(url, {
         ...options,
-        // Enable connection keep-alive for HTTP/2 multiplexing
+        signal: controller.signal,
         keepalive: true,
-      });
+      }).finally(() => clearTimeout(timeoutId));
     },
     headers: {
       // Add connection hints for better pooler behavior

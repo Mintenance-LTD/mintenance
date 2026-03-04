@@ -40,7 +40,7 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
       <View style={styles.infoGrid}>
         <View style={styles.infoItem}>
           <View style={styles.infoIcon}>
-            <Ionicons name="location-outline" size={20} color={theme.colors.primary} />
+            <Ionicons name="location-outline" size={20} color='#717171' />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Location</Text>
@@ -50,7 +50,7 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
 
         <View style={styles.infoItem}>
           <View style={styles.infoIcon}>
-            <Ionicons name="cash-outline" size={20} color={theme.colors.primary} />
+            <Ionicons name="cash-outline" size={20} color='#717171' />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Budget Range</Text>
@@ -65,7 +65,7 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
 
         <View style={styles.infoItem}>
           <View style={styles.infoIcon}>
-            <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+            <Ionicons name="calendar-outline" size={20} color='#717171' />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Timeline</Text>
@@ -77,7 +77,7 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
 
         <View style={styles.infoItem}>
           <View style={styles.infoIcon}>
-            <Ionicons name="time-outline" size={20} color={theme.colors.primary} />
+            <Ionicons name="time-outline" size={20} color='#717171' />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoLabel}>Created</Text>

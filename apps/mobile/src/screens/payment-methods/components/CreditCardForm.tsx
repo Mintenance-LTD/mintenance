@@ -154,8 +154,8 @@ const styles = StyleSheet.create({
     marginRight: theme.spacing.sm,
   },
   checkboxSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
+    borderColor: '#222222',
+    backgroundColor: '#222222',
   },
   saveCardText: {
     fontSize: theme.typography.fontSize.base,

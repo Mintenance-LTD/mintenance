@@ -150,19 +150,19 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   const renderFilterButton = (
     filter: typeof selectedFilter,
     label: string,
-    color: string
+    _color?: string
   ) => (
     <TouchableOpacity
       style={[
         styles.filterButton,
-        selectedFilter === filter && { backgroundColor: color },
+        selectedFilter === filter && styles.filterButtonActive,
       ]}
       onPress={() => setSelectedFilter(filter)}
     >
       <Text
         style={[
           styles.filterText,
-          selectedFilter === filter && { color: theme.colors.white },
+          selectedFilter === filter && styles.filterTextActive,
         ]}
       >
         {label}
@@ -182,9 +182,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
       <Ionicons
         name={icon as unknown}
         size={16}
-        color={
-          sortBy === sort ? theme.colors.primary : theme.colors.textSecondary
-        }
+        color={sortBy === sort ? '#222222' : theme.colors.textSecondary}
       />
       <Text style={[styles.sortText, sortBy === sort && styles.sortTextActive]}>
         {label}
@@ -204,20 +202,20 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name='arrow-back' size={24} color={theme.colors.white} />
+          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Client Management</Text>
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => navigation.navigate('AddClient')}
         >
-          <Ionicons name='person-add' size={24} color={theme.colors.white} />
+          <Ionicons name='person-add' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -231,24 +229,20 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
               <Text style={styles.analyticsLabel}>Total Clients</Text>
             </View>
             <View style={styles.analyticsCard}>
-              <Text
-                style={[styles.analyticsValue, { color: theme.colors.success }]}
-              >
+              <Text style={styles.analyticsValue}>
                 {analytics.new_clients_this_month}
               </Text>
               <Text style={styles.analyticsLabel}>New This Month</Text>
             </View>
             <View style={styles.analyticsCard}>
-              <Text
-                style={[styles.analyticsValue, { color: theme.colors.warning }]}
-              >
+              <Text style={styles.analyticsValue}>
                 {analytics.repeat_clients}
               </Text>
               <Text style={styles.analyticsLabel}>Repeat Clients</Text>
             </View>
             <View style={styles.analyticsCard}>
               <Text style={styles.analyticsValue}>
-                £{Math.round(analytics.client_lifetime_value)}
+                £{Math.round(analytics.client_lifetime_value ?? 0)}
               </Text>
               <Text style={styles.analyticsLabel}>Avg. LTV</Text>
             </View>
@@ -270,7 +264,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           showsHorizontalScrollIndicator={false}
           style={styles.filtersContainer}
         >
-          {renderFilterButton('all', 'All', theme.colors.primary)}
+          {renderFilterButton('all', 'All', '#222222')}
           {renderFilterButton('active', 'Active', theme.colors.success)}
           {renderFilterButton('prospect', 'Prospects', theme.colors.warning)}
           {renderFilterButton(
@@ -346,16 +340,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 16,
-    backgroundColor: theme.colors.primary,
+    paddingBottom: 12,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.white,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
   },
   addButton: {
     padding: 8,
@@ -377,7 +373,7 @@ const styles = StyleSheet.create({
   analyticsValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   analyticsLabel: {
@@ -398,14 +394,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: theme.borderRadius.full,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: '#EBEBEB',
     marginRight: 8,
     backgroundColor: theme.colors.background,
+  },
+  filterButtonActive: {
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   filterText: {
     fontSize: 14,
     fontWeight: '500',
     color: theme.colors.textPrimary,
+  },
+  filterTextActive: {
+    color: '#FFFFFF',
   },
   sortContainer: {
     paddingHorizontal: 16,
@@ -432,8 +435,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   sortButtonActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primaryLight,
+    borderColor: '#222222',
+    backgroundColor: '#F7F7F7',
   },
   sortText: {
     fontSize: 12,
@@ -441,7 +444,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   sortTextActive: {
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '500',
   },
   clientList: {
@@ -467,7 +470,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   addClientButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: theme.borderRadius.lg,

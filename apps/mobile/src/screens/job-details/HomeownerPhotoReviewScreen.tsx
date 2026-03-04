@@ -22,7 +22,6 @@ import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import type { JobsStackParamList } from '../../navigation/types';
@@ -31,8 +30,8 @@ import { logger } from '../../utils/logger';
 type PhotoReviewRouteProp = RouteProp<JobsStackParamList, 'PhotoReview'>;
 
 interface PhotoPair {
-  before: { url: string; id: string };
-  after: { url: string; id: string };
+  before: { url: string; id: string; timestamp?: string };
+  after: { url: string; id: string; timestamp?: string };
 }
 
 export const HomeownerPhotoReviewScreen: React.FC = () => {
@@ -54,23 +53,14 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       setLoading(true);
 
       // Fetch job title
-      const { data: job } = await supabase
-        .from('jobs')
-        .select('title')
-        .eq('id', jobId)
-        .single();
-
-      if (job?.title) setJobTitle(job.title);
+      const jobRes = await mobileApiClient.get<{ job: { title?: string } }>(`/api/jobs/${jobId}`);
+      if (jobRes?.job?.title) setJobTitle(jobRes.job.title);
 
       // Fetch before and after photos
-      const { data: photos, error } = await supabase
-        .from('job_photos_metadata')
-        .select('id, photo_url, photo_type, created_at')
-        .eq('job_id', jobId)
-        .in('photo_type', ['before', 'after'])
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
+      const photosRes = await mobileApiClient.get<{ photos: Array<{ id: string; photo_url: string; photo_type: string; created_at: string }> }>(
+        `/api/jobs/${jobId}/photos?types=before,after`
+      );
+      const photos = photosRes?.photos || [];
 
       // Pair before and after photos
       const beforePhotos = (photos || []).filter(p => p.photo_type === 'before');
@@ -80,8 +70,8 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       const pairCount = Math.min(beforePhotos.length, afterPhotos.length);
       for (let i = 0; i < pairCount; i++) {
         pairs.push({
-          before: { url: beforePhotos[i].photo_url, id: beforePhotos[i].id },
-          after: { url: afterPhotos[i].photo_url, id: afterPhotos[i].id },
+          before: { url: beforePhotos[i].photo_url, id: beforePhotos[i].id, timestamp: beforePhotos[i].created_at },
+          after: { url: afterPhotos[i].photo_url, id: afterPhotos[i].id, timestamp: afterPhotos[i].created_at },
         });
       }
 
@@ -89,8 +79,8 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
       for (let i = pairCount; i < afterPhotos.length; i++) {
         if (beforePhotos.length > 0) {
           pairs.push({
-            before: { url: beforePhotos[0].photo_url, id: beforePhotos[0].id },
-            after: { url: afterPhotos[i].photo_url, id: afterPhotos[i].id },
+            before: { url: beforePhotos[0].photo_url, id: beforePhotos[0].id, timestamp: beforePhotos[0].created_at },
+            after: { url: afterPhotos[i].photo_url, id: afterPhotos[i].id, timestamp: afterPhotos[i].created_at },
           });
         }
       }
@@ -212,6 +202,27 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
             afterUrl={currentPair.after.url}
             height={320}
           />
+          {/* Photo Timestamps */}
+          {(currentPair.before.timestamp || currentPair.after.timestamp) && (
+            <View style={styles.timestampRow}>
+              {currentPair.before.timestamp && (
+                <View style={styles.timestampBadge}>
+                  <Ionicons name="camera-outline" size={12} color={theme.colors.textTertiary} />
+                  <Text style={styles.timestampText}>
+                    Before: {new Date(currentPair.before.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
+              )}
+              {currentPair.after.timestamp && (
+                <View style={styles.timestampBadge}>
+                  <Ionicons name="checkmark-circle-outline" size={12} color={theme.colors.textTertiary} />
+                  <Text style={styles.timestampText}>
+                    After: {new Date(currentPair.after.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Photo Pair Thumbnails */}
@@ -376,6 +387,27 @@ const styles = StyleSheet.create({
   sliderContainer: {
     paddingTop: 16,
   },
+  timestampRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginTop: 8,
+    gap: 8,
+  },
+  timestampBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: 6,
+  },
+  timestampText: {
+    fontSize: 11,
+    color: theme.colors.textTertiary,
+    fontWeight: '500',
+  },
   thumbnailRow: {
     marginTop: 12,
   },
@@ -394,8 +426,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   thumbnailActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primaryLight || theme.colors.surfaceSecondary,
+    borderColor: '#222222',
+    backgroundColor: '#F7F7F7',
   },
   thumbnailText: {
     fontSize: 14,

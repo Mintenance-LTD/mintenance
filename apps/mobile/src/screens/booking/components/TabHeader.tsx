@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeTab: {
-    borderBottomColor: theme.colors.primary,
+    borderBottomColor: '#222222',
   },
   tabText: {
     fontSize: 16,
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   activeTabText: {
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '600',
   },
   tabBadge: {

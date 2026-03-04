@@ -193,7 +193,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
           keyExtractor={item => item.id}
           renderItem={({ item }) => <ReviewCard review={item} />}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
           }
           contentContainerStyle={styles.listContainer}
         />

@@ -50,6 +50,18 @@ const profileUpdateSchema = z.object({
     .max(256, 'Location must be less than 256 characters')
     .optional()
     .nullable(),
+  address: z
+    .string()
+    .max(256, 'Address must be less than 256 characters')
+    .optional()
+    .nullable(),
+  postcode: z
+    .string()
+    .max(10, 'Postcode must be less than 10 characters')
+    .optional()
+    .nullable(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
 /**
@@ -61,7 +73,7 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
   const { data: profile, error } = await serverSupabase
     .from('profiles')
     .select(
-      'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, verified, phone_verified'
+      'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, latitude, longitude, verified, phone_verified'
     )
     .eq('id', user.id)
     .single();
@@ -96,7 +108,7 @@ export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
   const validatedData = validation.data;
 
   // Build update payload with sanitized values
-  const updateData: Record<string, string | null> = {};
+  const updateData: Record<string, string | number | null> = {};
 
   if (validatedData.first_name !== undefined) {
     updateData.first_name = sanitizeText(validatedData.first_name, 50);
@@ -122,6 +134,22 @@ export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
     updateData.location = validatedData.location
       ? sanitizeText(validatedData.location, 256)
       : null;
+  }
+  if (validatedData.address !== undefined) {
+    updateData.address = validatedData.address
+      ? sanitizeText(validatedData.address, 256)
+      : null;
+  }
+  if (validatedData.postcode !== undefined) {
+    updateData.postcode = validatedData.postcode
+      ? sanitizeText(validatedData.postcode, 10).toUpperCase()
+      : null;
+  }
+  if (validatedData.latitude !== undefined) {
+    updateData.latitude = validatedData.latitude ?? null;
+  }
+  if (validatedData.longitude !== undefined) {
+    updateData.longitude = validatedData.longitude ?? null;
   }
 
   // Nothing to update

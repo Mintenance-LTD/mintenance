@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   },
   roleToggleActive: {
     backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
     ...theme.shadows.sm,
   },
   roleRow: {

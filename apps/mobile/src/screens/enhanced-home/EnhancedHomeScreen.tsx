@@ -9,7 +9,8 @@
  */
 
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, StatusBar } from 'react-native';
+import { ScrollView, StyleSheet, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { ErrorView } from '../../components/shared';
 import { SkeletonDashboard } from '../../components/ui/LoadingStates';
@@ -42,7 +43,7 @@ export const EnhancedHomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={theme.colors.primary} />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.background} />
       <LocationHeader
         location={viewModel.location}
         onLocationPress={() => { }}

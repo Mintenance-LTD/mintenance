@@ -130,7 +130,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Invoice</Text>
         <TouchableOpacity
@@ -166,7 +166,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Due Date</Text>
           <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={18} color={theme.colors.primary} />
+            <Ionicons name="calendar-outline" size={18} color='#717171' />
             <Text style={styles.dateText}>{formatDate(dueDate)}</Text>
             <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
@@ -188,7 +188,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({ naviga
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Line Items</Text>
             <TouchableOpacity style={styles.addItemButton} onPress={addLineItem}>
-              <Ionicons name="add" size={18} color={theme.colors.textInverse} />
+              <Ionicons name="add" size={18} color='#FFFFFF' />
               <Text style={styles.addItemText}>Add Item</Text>
             </TouchableOpacity>
           </View>
@@ -291,12 +291,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8, minWidth: 60 },
   headerButtonDisabled: { opacity: 0.5 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textInverse },
-  saveText: { fontSize: 16, fontWeight: '600', color: theme.colors.textInverse, textAlign: 'right' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  saveText: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'right' },
   scroll: { flex: 1 },
   section: {
     backgroundColor: theme.colors.background,
@@ -335,13 +337,13 @@ const styles = StyleSheet.create({
   addItemButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     borderRadius: theme.borderRadius.md,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 4,
   },
-  addItemText: { fontSize: 13, fontWeight: '600', color: theme.colors.textInverse },
+  addItemText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
   lineItem: {
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -373,7 +375,7 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
   totalValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
   grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.primary },
+  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
 });
 
 export default CreateInvoiceScreen;

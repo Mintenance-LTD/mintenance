@@ -68,7 +68,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) 
         )}
         {user?.verified && (
           <View style={styles.verifiedDot}>
-            <Ionicons name="checkmark-circle" size={18} color="#10B981" />
+            <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
           </View>
         )}
       </View>

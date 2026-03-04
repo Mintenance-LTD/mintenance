@@ -108,7 +108,7 @@ export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navi
       activeOpacity={0.7}
     >
       <View style={styles.templateIcon}>
-        <Ionicons name={item.icon} size={28} color={theme.colors.primary} />
+        <Ionicons name={item.icon} size={28} color='#717171' />
       </View>
       <View style={styles.templateInfo}>
         <View style={styles.templateHeader}>
@@ -129,7 +129,7 @@ export const QuoteTemplatesScreen: React.FC<QuoteTemplatesScreenProps> = ({ navi
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote Templates</Text>
         <View style={styles.headerButton} />
@@ -159,10 +159,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textInverse },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
   listContent: { padding: 16 },
   subtitle: { fontSize: 14, color: theme.colors.textSecondary, marginBottom: 16, lineHeight: 20 },
   templateCard: {
@@ -186,9 +188,9 @@ const styles = StyleSheet.create({
   templateInfo: { flex: 1, marginRight: 8 },
   templateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   templateTitle: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary, flex: 1 },
-  templateCategory: { fontSize: 11, color: theme.colors.primary, fontWeight: '600', backgroundColor: theme.colors.surfaceSecondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 6 },
+  templateCategory: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: '600', backgroundColor: theme.colors.surfaceSecondary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginLeft: 6 },
   templateDescription: { fontSize: 13, color: theme.colors.textSecondary, lineHeight: 18, marginBottom: 6 },
-  templatePrice: { fontSize: 13, fontWeight: '600', color: theme.colors.success },
+  templatePrice: { fontSize: 13, fontWeight: '600', color: theme.colors.textPrimary },
 });
 
 export default QuoteTemplatesScreen;

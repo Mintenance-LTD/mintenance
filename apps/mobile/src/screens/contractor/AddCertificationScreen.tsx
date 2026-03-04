@@ -21,7 +21,25 @@ interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddCertification'>;
 }
 
-const CATEGORIES = ['Health & Safety', 'Electrical', 'Plumbing', 'Gas', 'Construction', 'HVAC', 'Other'];
+const CATEGORY_OPTIONS = [
+  { label: 'Safety', value: 'safety' },
+  { label: 'Electrical', value: 'electrical' },
+  { label: 'Plumbing', value: 'plumbing' },
+  { label: 'Kitchen', value: 'kitchen' },
+  { label: 'General', value: 'general' },
+  { label: 'Other', value: 'other' },
+] as const;
+
+/** Convert DD/MM/YYYY → YYYY-MM-DD. Returns undefined if input is blank or unparseable. */
+const toISODate = (ddmmyyyy: string): string | undefined => {
+  const trimmed = ddmmyyyy.trim();
+  if (!trimmed) return undefined;
+  const parts = trimmed.split('/');
+  if (parts.length !== 3) return undefined;
+  const [dd, mm, yyyy] = parts;
+  if (!dd || !mm || !yyyy || yyyy.length !== 4) return undefined;
+  return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+};
 
 export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -35,23 +53,28 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isValid = certName.trim().length > 0 && issuer.trim().length > 0;
+  const issueDateISO = toISODate(issueDate);
+  const expiryDateISO = toISODate(expiryDate);
+  const isValid =
+    certName.trim().length > 0 &&
+    issuer.trim().length > 0 &&
+    !!issueDateISO;
 
   const handleSave = async () => {
     if (!isValid) {
-      toast.error('Missing fields', 'Please enter the certificate name and issuer.');
+      toast.error('Missing fields', 'Please enter the certificate name, issuer, and a valid issue date (DD/MM/YYYY).');
       return;
     }
 
     setLoading(true);
     try {
       await mobileApiClient.post('/api/contractor/certifications', {
-        certificateName: certName.trim(),
-        issuingOrganisation: issuer.trim(),
+        name: certName.trim(),
+        issuer: issuer.trim(),
         credentialId: credentialId.trim() || undefined,
-        issueDate: issueDate || undefined,
-        expiryDate: expiryDate || undefined,
-        category: selectedCategory || 'Other',
+        issueDate: issueDateISO,
+        expiryDate: expiryDateISO || undefined,
+        category: selectedCategory || 'general',
       });
       toast.success('Certification added', `${certName} has been saved`);
       navigation.goBack();
@@ -69,7 +92,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
     >
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Certification</Text>
         <TouchableOpacity
@@ -134,14 +157,14 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
 
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-            {CATEGORIES.map((cat) => (
+            {CATEGORY_OPTIONS.map((cat) => (
               <TouchableOpacity
-                key={cat}
-                style={[styles.categoryChip, selectedCategory === cat && styles.categoryChipActive]}
-                onPress={() => setSelectedCategory(cat)}
+                key={cat.value}
+                style={[styles.categoryChip, selectedCategory === cat.value && styles.categoryChipActive]}
+                onPress={() => setSelectedCategory(cat.value)}
               >
-                <Text style={[styles.categoryText, selectedCategory === cat && styles.categoryTextActive]}>
-                  {cat}
+                <Text style={[styles.categoryText, selectedCategory === cat.value && styles.categoryTextActive]}>
+                  {cat.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -160,12 +183,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8, width: 60 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textInverse },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
   saveButton: { alignItems: 'flex-end' },
-  saveButtonText: { fontSize: 16, fontWeight: '700', color: theme.colors.textInverse },
+  saveButtonText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
   saveButtonDisabled: { opacity: 0.5 },
   content: { padding: 16 },
   card: {
@@ -202,11 +227,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   categoryChipActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primaryLight,
+    borderColor: '#222222',
+    backgroundColor: '#222222',
   },
   categoryText: { fontSize: 13, color: theme.colors.textSecondary },
-  categoryTextActive: { color: theme.colors.primary, fontWeight: '600' },
+  categoryTextActive: { color: '#FFFFFF', fontWeight: '600' },
 });
 
 export default AddCertificationScreen;

@@ -96,6 +96,78 @@ const NotificationSettingsScreen: React.FC = () => {
     }));
   };
 
+  const handleEnableAll = () => {
+    setSettings((prev) => ({
+      ...prev,
+      pushEnabled: true,
+      newJobs: true,
+      newBids: true,
+      newMessages: true,
+      jobUpdates: true,
+      paymentUpdates: true,
+      emailEnabled: true,
+      weeklyDigest: true,
+      securityAlerts: true,
+      soundEnabled: true,
+      vibrationEnabled: true,
+      productUpdates: true,
+    }));
+  };
+
+  const handleDisableAll = () => {
+    setSettings((prev) => ({
+      ...prev,
+      pushEnabled: false,
+      newJobs: false,
+      newBids: false,
+      newMessages: false,
+      jobUpdates: false,
+      paymentUpdates: false,
+      emailEnabled: false,
+      weeklyDigest: false,
+      promotionalEmails: false,
+      securityAlerts: false,
+      soundEnabled: false,
+      vibrationEnabled: false,
+      marketingEmails: false,
+      productUpdates: false,
+    }));
+  };
+
+  const handleResetToDefaults = () => {
+    Alert.alert(
+      'Reset to Defaults',
+      'This will restore all notification settings to their default values.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          onPress: () => {
+            setSettings({
+              pushEnabled: true,
+              newJobs: true,
+              newBids: true,
+              newMessages: true,
+              jobUpdates: true,
+              paymentUpdates: true,
+              emailEnabled: true,
+              weeklyDigest: true,
+              promotionalEmails: false,
+              securityAlerts: true,
+              soundEnabled: true,
+              vibrationEnabled: true,
+              marketingEmails: false,
+              productUpdates: true,
+              quietHoursEnabled: false,
+              quietHoursStart: '22:00',
+              quietHoursEnd: '07:00',
+            });
+          },
+        },
+      ]
+    );
+  };
+
   const handleSave = async () => {
     if (!user?.id) {
       Alert.alert('Error', 'You must be logged in to save settings');
@@ -151,7 +223,7 @@ const NotificationSettingsScreen: React.FC = () => {
           <Ionicons
             name={icon as unknown}
             size={20}
-            color={disabled ? '#C7C7CC' : theme.colors.primary}
+            color={disabled ? '#C7C7CC' : '#717171'}
           />
         </View>
         <View style={styles.settingInfo}>
@@ -186,7 +258,7 @@ const NotificationSettingsScreen: React.FC = () => {
           <Ionicons
             name='arrow-back'
             size={24}
-            color={theme.colors.textInverse}
+            color={theme.colors.textPrimary}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
@@ -340,7 +412,7 @@ const NotificationSettingsScreen: React.FC = () => {
               >
                 <View style={styles.settingLeft}>
                   <View style={styles.iconContainer}>
-                    <Ionicons name='time-outline' size={20} color={theme.colors.primary} />
+                    <Ionicons name='time-outline' size={20} color='#717171' />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>Start Time</Text>
@@ -355,7 +427,7 @@ const NotificationSettingsScreen: React.FC = () => {
               >
                 <View style={styles.settingLeft}>
                   <View style={styles.iconContainer}>
-                    <Ionicons name='time-outline' size={20} color={theme.colors.primary} />
+                    <Ionicons name='time-outline' size={20} color='#717171' />
                   </View>
                   <View style={styles.settingInfo}>
                     <Text style={styles.settingTitle}>End Time</Text>
@@ -405,12 +477,12 @@ const NotificationSettingsScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleEnableAll}>
             <View style={styles.actionLeft}>
               <Ionicons
                 name='checkmark-circle'
                 size={20}
-                color={theme.colors.success}
+                color='#717171'
               />
               <Text style={styles.actionText}>Enable All Notifications</Text>
             </View>
@@ -421,12 +493,12 @@ const NotificationSettingsScreen: React.FC = () => {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleDisableAll}>
             <View style={styles.actionLeft}>
               <Ionicons
                 name='close-circle'
                 size={20}
-                color={theme.colors.error}
+                color='#717171'
               />
               <Text style={styles.actionText}>Disable All Notifications</Text>
             </View>
@@ -437,9 +509,9 @@ const NotificationSettingsScreen: React.FC = () => {
             />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleResetToDefaults}>
             <View style={styles.actionLeft}>
-              <Ionicons name='refresh' size={20} color={theme.colors.primary} />
+              <Ionicons name='refresh' size={20} color='#717171' />
               <Text style={styles.actionText}>Reset to Defaults</Text>
             </View>
             <Ionicons
@@ -462,25 +534,26 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceSecondary,
   },
   header: {
-    backgroundColor: theme.colors.primary,
-    paddingBottom: 16,
+    backgroundColor: theme.colors.background,
+    paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,

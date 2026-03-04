@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   loginLinkText: {
-    color: theme.colors.primary,
+    color: '#222222',
     fontSize: 15,
     fontWeight: '600',
   },

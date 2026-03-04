@@ -1,15 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
-interface ServiceAreasActionsProps {
-  navigation: NativeStackNavigationProp<ProfileStackParamList>;
-}
-
-export const ServiceAreasActions: React.FC<ServiceAreasActionsProps> = ({ navigation }) => {
+export const ServiceAreasActions: React.FC = () => {
   return (
     <View style={styles.actionsContainer}>
       <Text style={styles.actionsTitle}>Quick Actions</Text>
@@ -21,7 +15,7 @@ export const ServiceAreasActions: React.FC<ServiceAreasActionsProps> = ({ naviga
         <Ionicons
           name='analytics'
           size={24}
-          color={theme.colors.primary}
+          color='#717171'
         />
         <Text style={styles.actionButtonText}>View Analytics</Text>
       </TouchableOpacity>
@@ -30,7 +24,7 @@ export const ServiceAreasActions: React.FC<ServiceAreasActionsProps> = ({ naviga
         style={styles.actionButton}
         onPress={() => Alert.alert('Coming Soon', 'Route optimisation features will be available in the next update.')}
       >
-        <Ionicons name='map' size={24} color={theme.colors.primary} />
+        <Ionicons name='map' size={24} color='#717171' />
         <Text style={styles.actionButtonText}>Route Planning</Text>
       </TouchableOpacity>
 
@@ -41,7 +35,7 @@ export const ServiceAreasActions: React.FC<ServiceAreasActionsProps> = ({ naviga
         <Ionicons
           name='location'
           size={24}
-          color={theme.colors.primary}
+          color='#717171'
         />
         <Text style={styles.actionButtonText}>Coverage Map</Text>
       </TouchableOpacity>

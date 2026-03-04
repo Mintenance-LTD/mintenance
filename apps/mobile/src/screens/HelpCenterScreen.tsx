@@ -140,7 +140,7 @@ const HelpCenterScreen: React.FC = () => {
           <Ionicons
             name='arrow-back'
             size={24}
-            color={theme.colors.textInverse}
+            color={theme.colors.textPrimary}
           />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Help Center</Text>
@@ -175,7 +175,7 @@ const HelpCenterScreen: React.FC = () => {
                   <Ionicons
                     name={action.icon as unknown}
                     size={24}
-                    color={theme.colors.primary}
+                    color='#717171'
                   />
                 </View>
                 <Text style={styles.quickActionTitle}>{action.title}</Text>
@@ -236,7 +236,7 @@ const HelpCenterScreen: React.FC = () => {
             onPress={() => Linking.openURL(HELP_LINKS.userGuide)}
           >
             <View style={styles.resourceLeft}>
-              <Ionicons name='book' size={20} color={theme.colors.primary} />
+              <Ionicons name='book' size={20} color={theme.colors.textTertiary} />
               <Text style={styles.resourceText}>User Guide</Text>
             </View>
             <Ionicons
@@ -254,7 +254,7 @@ const HelpCenterScreen: React.FC = () => {
               <Ionicons
                 name='play-circle'
                 size={20}
-                color={theme.colors.primary}
+                color={theme.colors.textTertiary}
               />
               <Text style={styles.resourceText}>Video Tutorials</Text>
             </View>
@@ -270,7 +270,7 @@ const HelpCenterScreen: React.FC = () => {
             onPress={() => Linking.openURL(HELP_LINKS.knowledgeBase)}
           >
             <View style={styles.resourceLeft}>
-              <Ionicons name='globe' size={20} color={theme.colors.primary} />
+              <Ionicons name='globe' size={20} color={theme.colors.textTertiary} />
               <Text style={styles.resourceText}>Knowledge Base</Text>
             </View>
             <Ionicons
@@ -285,7 +285,7 @@ const HelpCenterScreen: React.FC = () => {
             onPress={() => Linking.openURL(HELP_LINKS.community)}
           >
             <View style={styles.resourceLeft}>
-              <Ionicons name='people' size={20} color={theme.colors.primary} />
+              <Ionicons name='people' size={20} color={theme.colors.textTertiary} />
               <Text style={styles.resourceText}>Community Forum</Text>
             </View>
             <Ionicons
@@ -316,7 +316,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceSecondary,
   },
   header: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
     paddingBottom: 16,
     paddingHorizontal: 16,
     flexDirection: 'row',
@@ -326,15 +328,13 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,

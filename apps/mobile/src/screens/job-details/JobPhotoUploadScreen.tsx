@@ -164,7 +164,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           <Ionicons
             name={isBefore ? 'camera-outline' : 'checkmark-circle-outline'}
             size={24}
-            color={theme.colors.primary}
+            color='#717171'
           />
           <Text style={styles.infoText}>
             {isBefore
@@ -194,7 +194,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromCamera}
             accessibilityLabel="Take a photo"
           >
-            <Ionicons name="camera" size={32} color={theme.colors.primary} />
+            <Ionicons name="camera" size={32} color='#717171' />
             <Text style={styles.addPhotoText}>Camera</Text>
           </TouchableOpacity>
 
@@ -203,7 +203,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromGallery}
             accessibilityLabel="Choose from gallery"
           >
-            <Ionicons name="images" size={32} color={theme.colors.primary} />
+            <Ionicons name="images" size={32} color='#717171' />
             <Text style={styles.addPhotoText}>Gallery</Text>
           </TouchableOpacity>
         </View>
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     padding: 16,
     gap: 12,

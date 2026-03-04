@@ -21,7 +21,6 @@ export interface HomeState {
   loading: boolean;
   refreshing: boolean;
   error: string | null;
-  showFindContractorsButton: boolean;
 }
 
 export interface HomeActions {
@@ -44,8 +43,6 @@ export const useHomeViewModel = (user: unknown): HomeViewModel => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showFindContractorsButton, setShowFindContractorsButton] = useState(true);
-
   /**
    * Load contractor data from services
    */
@@ -145,7 +142,6 @@ export const useHomeViewModel = (user: unknown): HomeViewModel => {
     loading,
     refreshing,
     error,
-    showFindContractorsButton,
 
     // Actions
     loadContractorData,

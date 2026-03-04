@@ -105,7 +105,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
     );
   }
 
-  const statusColor = STATUS_COLORS[invoice.status] ?? theme.colors.primary;
+  const statusColor = STATUS_COLORS[invoice.status] ?? '#717171';
   const canSendReminder = invoice.status === 'sent' || invoice.status === 'overdue';
   const canMarkPaid = invoice.status !== 'paid' && invoice.status !== 'cancelled';
 
@@ -114,14 +114,14 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Invoice #{invoice.invoice_number}</Text>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => navigation.navigate('CreateInvoice', { invoiceId: invoice.id })}
         >
-          <Ionicons name="pencil" size={22} color={theme.colors.textInverse} />
+          <Ionicons name="pencil" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -211,7 +211,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({ naviga
         <View style={styles.actionsSection}>
           {canSendReminder && (
             <TouchableOpacity style={styles.reminderButton} onPress={handleSendReminder}>
-              <Ionicons name="mail-outline" size={18} color={theme.colors.primary} />
+              <Ionicons name="mail-outline" size={18} color='#717171' />
               <Text style={styles.reminderButtonText}>Send Reminder</Text>
             </TouchableOpacity>
           )}
@@ -238,10 +238,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textInverse },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
   scroll: { flex: 1 },
   statusCard: {
     margin: 16,
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
   totalValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
   grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.primary },
+  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
   notesText: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 },
   actionsSection: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 4 },
   reminderButton: {
@@ -294,13 +296,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
     borderRadius: theme.borderRadius.md,
     paddingVertical: 12,
     gap: 6,
     backgroundColor: theme.colors.background,
   },
-  reminderButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
+  reminderButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
   paidButton: {
     flex: 1,
     flexDirection: 'row',
@@ -313,7 +315,7 @@ const styles = StyleSheet.create({
   },
   paidButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textInverse },
   emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 16 },
-  backLink: { fontSize: 14, color: theme.colors.primary, marginTop: 12 },
+  backLink: { fontSize: 14, color: theme.colors.textPrimary, marginTop: 12 },
 });
 
 export default InvoiceDetailScreen;

@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   linkInline: {
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '500',
     textDecorationLine: 'underline' as const,
   },

@@ -310,16 +310,6 @@ export const useNavigationFlows = () => {
     });
   };
 
-  const navigateToContractorDiscovery = () => {
-    return navigateWithGuard('Main', {
-      screen: 'DiscoverTab',
-    }, {
-      requiresAuth: true,
-      allowedRoles: ['homeowner'],
-      fallbackScreen: 'Main',
-    });
-  };
-
   const navigateToBidSubmission = (jobId: string) => {
     return navigateWithGuard('Main', {
       screen: 'JobsTab',
@@ -335,7 +325,6 @@ export const useNavigationFlows = () => {
     navigateToJobDetails,
     navigateToMessaging,
     navigateToCreateJob,
-    navigateToContractorDiscovery,
     navigateToBidSubmission,
     user,
   };

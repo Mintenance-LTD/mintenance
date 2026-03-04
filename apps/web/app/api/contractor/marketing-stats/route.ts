@@ -51,24 +51,30 @@ export const GET = withApiHandler(
         .eq('contractor_id', userId)
         .gte('created_at', sixMonthsISO),
 
-      // Jobs assigned to this contractor (for category breakdown + monthly trend)
+      // Jobs assigned to this contractor — limited to last 6 months for trend/breakdown.
+      // completed_jobs count comes from profile.total_jobs_completed (all-time) instead.
       supabase
         .from('jobs')
         .select('id, category, status, completed_at, created_at')
-        .eq('contractor_id', userId),
+        .eq('contractor_id', userId)
+        .gte('created_at', sixMonthsISO)
+        .limit(200),
 
-      // Escrow earnings (released)
+      // Escrow earnings (released) — cap at 500 rows; sum is all we need
+      // Note: contractor is the payee in escrow_transactions; table has no contractor_id column.
       supabase
         .from('escrow_transactions')
         .select('amount, updated_at')
-        .eq('contractor_id', userId)
-        .eq('status', 'released'),
+        .eq('payee_id', userId)
+        .eq('status', 'released')
+        .limit(500),
 
-      // Messages received (inquiries proxy)
+      // Message threads where contractor is a participant (inquiries proxy)
+      // Note: messages table uses thread-based model; no recipient_id column.
       supabase
-        .from('messages')
+        .from('message_threads')
         .select('id', { count: 'exact', head: true })
-        .eq('recipient_id', userId),
+        .contains('participant_ids', [userId]),
 
       // Contractor posts
       supabase

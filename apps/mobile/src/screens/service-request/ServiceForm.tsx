@@ -132,7 +132,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
                   <Ionicons
                     name="home-outline"
                     size={20}
-                    color={selectedProperty?.id === property.id ? theme.colors.primary : theme.colors.textSecondary}
+                    color={selectedProperty?.id === property.id ? '#222222' : theme.colors.textSecondary}
                   />
                   <View style={styles.propertyOptionText}>
                     <Text style={[
@@ -146,7 +146,7 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
                     </Text>
                   </View>
                   {selectedProperty?.id === property.id && (
-                    <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} />
+                    <Ionicons name="checkmark-circle" size={22} color='#222222' />
                   )}
                 </View>
               </TouchableOpacity>

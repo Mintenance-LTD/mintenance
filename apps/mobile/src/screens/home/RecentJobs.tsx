@@ -26,6 +26,8 @@ interface RecentJobsProps {
   jobs: RecentJob[];
   onViewAllPress: () => void;
   onJobPress?: (jobId: string) => void;
+  savedJobIds?: string[];
+  onSavePress?: (jobId: string) => void;
 }
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -44,7 +46,7 @@ function formatStatus(status: string): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, onJobPress }) => {
+export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, onJobPress, savedJobIds = [], onSavePress }) => {
   const displayJobs = jobs.slice(0, 3);
 
   return (
@@ -102,9 +104,19 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
                 )}
 
                 {/* Heart/save overlay (top-right) */}
-                <View style={styles.heartOverlay}>
-                  <Ionicons name="heart-outline" size={22} color="#FFFFFF" />
-                </View>
+                <TouchableOpacity
+                  style={styles.heartOverlay}
+                  onPress={() => onSavePress?.(job.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={savedJobIds.includes(job.id) ? 'Unsave job' : 'Save job'}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons
+                    name={savedJobIds.includes(job.id) ? 'heart' : 'heart-outline'}
+                    size={22}
+                    color={savedJobIds.includes(job.id) ? '#FF385C' : '#FFFFFF'}
+                  />
+                </TouchableOpacity>
 
                 {/* Status badge overlay (top-left) */}
                 <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
@@ -119,7 +131,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
                 </View>
                 {job.category && (
                   <View style={styles.categoryBadge}>
-                    <Ionicons name={categoryIcon} size={12} color={theme.colors.primary} />
+                    <Ionicons name={categoryIcon} size={12} color='#717171' />
                     <Text style={styles.categoryBadgeText}>
                       {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
                     </Text>
@@ -188,7 +200,7 @@ const styles = StyleSheet.create({
   },
   heroImage: {
     width: '100%',
-    height: 290,
+    height: 200,
     borderRadius: 18,
   },
   placeholderHero: {

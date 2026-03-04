@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   currentUserBubble: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     borderBottomRightRadius: 4,
   },
   otherUserBubble: {

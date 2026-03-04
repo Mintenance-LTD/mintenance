@@ -17,14 +17,38 @@ import { Card } from '../../components/ui/Card';
 import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 
+interface SubscriptionPlanFeatures {
+  maxJobs?: number | null;
+  maxActiveJobs?: number;
+  prioritySupport?: boolean;
+  advancedAnalytics?: boolean;
+  customBranding?: boolean;
+  apiAccess?: boolean;
+  additionalFeatures?: Record<string, unknown>;
+}
+
 interface SubscriptionPlan {
   id: string;
   name: string;
   price: number;
   billingCycle: 'monthly' | 'yearly';
-  features: string[];
+  features: string[] | SubscriptionPlanFeatures;
   recommended?: boolean;
 }
+
+const getFeatureStrings = (features: SubscriptionPlan['features']): string[] => {
+  if (Array.isArray(features)) return features;
+  if (!features || typeof features !== 'object') return [];
+  const f = features as SubscriptionPlanFeatures;
+  const result: string[] = [];
+  if (f.maxJobs != null) result.push(`Up to ${f.maxJobs} jobs`);
+  if (f.maxActiveJobs) result.push(`${f.maxActiveJobs} active jobs`);
+  if (f.prioritySupport) result.push('Priority support');
+  if (f.advancedAnalytics) result.push('Advanced analytics');
+  if (f.customBranding) result.push('Custom branding');
+  if (f.apiAccess) result.push('API access');
+  return result;
+};
 
 interface SubscriptionStatus {
   role: string;
@@ -193,7 +217,7 @@ export const SubscriptionScreen: React.FC = () => {
                 )}
               </View>
 
-              {plan.features.map((feature, idx) => (
+              {getFeatureStrings(plan.features).map((feature, idx) => (
                 <View key={idx} style={styles.featureRow}>
                   <Text style={styles.featureCheck}>✓</Text>
                   <Text style={styles.featureText}>{feature}</Text>
@@ -279,7 +303,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[4],
   },
   currentPlanCard: {
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
     borderWidth: 2,
   },
   planHeader: {
@@ -296,7 +320,7 @@ const styles = StyleSheet.create({
   planPrice: {
     fontSize: theme.typography.fontSize['2xl'],
     fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginTop: theme.spacing[1],
   },
   planCycle: {
@@ -311,7 +335,7 @@ const styles = StyleSheet.create({
   },
   featureCheck: {
     fontSize: theme.typography.fontSize.base,
-    color: theme.colors.primary,
+    color: theme.colors.success,
     marginRight: theme.spacing[2],
     fontWeight: theme.typography.fontWeight.bold,
   },

@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing[5],
   },
   ctaButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     paddingVertical: theme.spacing[3],
     paddingHorizontal: theme.spacing[6],
     borderRadius: theme.borderRadius.lg,

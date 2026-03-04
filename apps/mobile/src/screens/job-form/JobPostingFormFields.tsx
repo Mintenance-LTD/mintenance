@@ -271,8 +271,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   urgencyButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   urgencyButtonText: {
     fontSize: theme.typography.fontSize.sm,
@@ -304,18 +304,18 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   budgetComparisonContainer: {
-    backgroundColor: `${theme.colors.primary}20`,
+    backgroundColor: '#F7F7F7',
     padding: theme.spacing[2],
     borderRadius: theme.borderRadius.sm,
     marginTop: theme.spacing[1],
   },
   budgetComparisonText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: theme.typography.fontWeight.medium,
   },
   budgetHint: {
-    backgroundColor: `${theme.colors.primary}15`,
+    backgroundColor: '#F7F7F7',
     padding: theme.spacing[3],
     borderRadius: theme.borderRadius.md,
     marginTop: theme.spacing[3],
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.primary,
+    color: '#717171',
     lineHeight: 20,
   },
   addPhotoButton: {

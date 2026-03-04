@@ -139,7 +139,7 @@ const JobsStack = createNativeStackNavigator<JobsStackParamList>();
 export const JobsNavigator: React.FC = () => {
   return (
     <JobsStack.Navigator
-      initialRouteName="InvoiceManagement"
+      initialRouteName="JobsList"
       screenOptions={{
         headerShown: false,
         gestureEnabled: true,

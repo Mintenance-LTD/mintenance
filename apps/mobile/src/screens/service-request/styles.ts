@@ -205,7 +205,7 @@ export const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   propertyOptionSelected: {
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
     backgroundColor: '#F7F7F7',
   },
   propertyOptionContent: {
@@ -222,7 +222,7 @@ export const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   propertyAddressSelected: {
-    color: theme.colors.primary,
+    color: '#222222',
   },
   propertyLocation: {
     fontSize: 13,

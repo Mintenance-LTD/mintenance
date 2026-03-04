@@ -10,6 +10,7 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,8 +68,14 @@ const JobsScreen: React.FC = () => {
 
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     AsyncStorage.getItem('saved_jobs').then((v) => {
@@ -94,10 +101,15 @@ const JobsScreen: React.FC = () => {
     refetch,
   } = useQuery<Job[]>({
     queryKey: ['jobs', user?.id, user?.role],
-    queryFn: () =>
-      user!.role === 'homeowner'
-        ? JobService.getJobsByHomeowner(user!.id)
-        : JobService.getAvailableJobs(),
+    queryFn: async () => {
+      if (user!.role === 'homeowner') {
+        // Homeowners see jobs they have posted
+        return JobService.getJobsByHomeowner(user!.id);
+      }
+      // Contractors see only their own active jobs (assigned, in_progress, completed).
+      // Available jobs to bid on are shown via the "Find Jobs" map (ExploreMapScreen).
+      return JobService.getJobsByUser(user!.id, 'contractor');
+    },
     enabled: !!user,
   });
 
@@ -128,8 +140,8 @@ const JobsScreen: React.FC = () => {
     if (selectedFilter !== 'all') {
       data = data.filter((j) => j.status === selectedFilter);
     }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    if (debouncedQuery.trim()) {
+      const q = debouncedQuery.toLowerCase();
       data = data.filter(
         (j) =>
           j.title.toLowerCase().includes(q) ||
@@ -138,7 +150,7 @@ const JobsScreen: React.FC = () => {
       );
     }
     return data;
-  }, [allJobs, selectedFilter, searchQuery]);
+  }, [allJobs, selectedFilter, debouncedQuery]);
 
   const onRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['jobs', user?.id, user?.role] });
@@ -161,12 +173,17 @@ const JobsScreen: React.FC = () => {
     return <ExploreMapScreen onBackToList={() => setViewMode('list')} />;
   }
 
+  // Contractors only have active-job statuses here; available jobs live in Find Jobs (map)
+  const contractorFilters: FilterStatus[] = ['all', 'assigned', 'in_progress', 'completed'];
+  const homeownerFilters: FilterStatus[] = ['all', 'posted', 'assigned', 'in_progress', 'completed'];
+  const visibleFilters = isContractor ? contractorFilters : homeownerFilters;
+
   const subtitle = newToday > 0
     ? `${newToday} new today · ${filteredJobs.length} total`
-    : `${filteredJobs.length} ${user?.role === 'homeowner' ? 'jobs' : 'opportunities'}`;
+    : `${filteredJobs.length} ${user?.role === 'homeowner' ? 'jobs' : 'active jobs'}`;
 
   return (
-    <View style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.mainContainer, { backgroundColor: theme.colors.background }]}>
       <NavigationHeader
         title={user?.role === 'homeowner' ? 'My Jobs' : 'Job Marketplace'}
         subtitle={subtitle}
@@ -226,7 +243,7 @@ const JobsScreen: React.FC = () => {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {(Object.keys(FILTER_LABELS) as FilterStatus[]).map((key) => (
+            {visibleFilters.map((key) => (
               <TouchableOpacity
                 key={key}
                 style={[styles.filterChip, selectedFilter === key && styles.filterChipActive]}
@@ -266,7 +283,7 @@ const JobsScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
         />
       </ResponsiveContainer>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -592,7 +609,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   errorText: { flex: 1, fontSize: 14, color: theme.colors.error },
-  retryText: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
+  retryText: { fontSize: 14, fontWeight: '600', color: '#222222' },
 });
 
 export default JobsScreen;

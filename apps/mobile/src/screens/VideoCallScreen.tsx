@@ -114,7 +114,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
       <SafeAreaView style={styles.container}>
         <View style={styles.connectingContainer}>
           <View style={styles.connectingContent}>
-            <Ionicons name="videocam-outline" size={64} color={theme.colors.primary} />
+            <Ionicons name="videocam-outline" size={64} color='#717171' />
             <Text style={styles.connectingTitle}>Connecting...</Text>
             <Text style={styles.connectingSubtitle}>
               Please wait while we connect your call
@@ -210,7 +210,7 @@ export const VideoCallScreen: React.FC<VideoCallScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#000000',
   },
   connectingContainer: {
     flex: 1,
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#222222',
   },
   localVideoLabel: {
     fontSize: theme.typography.fontSize.sm,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     height: screenHeight * 0.5,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#222222',
     borderRadius: theme.borderRadius.xl,
   },
   remoteVideoLabel: {

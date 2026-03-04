@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
 import { ServiceAreasHeader } from '../components/service-areas/ServiceAreasHeader';
@@ -8,6 +9,7 @@ import { ServiceAreasInsights } from '../components/service-areas/ServiceAreasIn
 import { ServiceAreasList } from '../components/service-areas/ServiceAreasList';
 import { ServiceAreasActions } from '../components/service-areas/ServiceAreasActions';
 import { DeleteConfirmationModal } from '../components/service-areas/DeleteConfirmationModal';
+import { CreateServiceAreaModal } from '../components/service-areas/CreateServiceAreaModal';
 import { useServiceAreas } from '../hooks/useServiceAreas';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { theme } from '../theme';
@@ -26,7 +28,10 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
     selectedArea,
     deleteModalVisible,
     setDeleteModalVisible,
+    createModalVisible,
+    setCreateModalVisible,
     handleRefresh,
+    handleCreateServiceArea,
     handleToggleActive,
     handleDeletePress,
     handleDeleteConfirm,
@@ -37,13 +42,16 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
   }
 
   return (
-    <View style={styles.container}>
-      <ServiceAreasHeader navigation={navigation} />
+    <SafeAreaView style={styles.container}>
+      <ServiceAreasHeader
+        navigation={navigation}
+        onAddPress={() => setCreateModalVisible(true)}
+      />
 
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -53,13 +61,13 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
 
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={navigation}
           onToggleActive={handleToggleActive}
           onDelete={handleDeletePress}
+          onCreatePress={() => setCreateModalVisible(true)}
         />
 
         {serviceAreas.length > 0 && (
-          <ServiceAreasActions navigation={navigation} />
+          <ServiceAreasActions />
         )}
       </ScrollView>
 
@@ -69,7 +77,14 @@ export const ServiceAreasScreen: React.FC<ServiceAreasScreenProps> = ({
         onClose={() => setDeleteModalVisible(false)}
         onConfirm={handleDeleteConfirm}
       />
-    </View>
+
+      <CreateServiceAreaModal
+        visible={createModalVisible}
+        onClose={() => setCreateModalVisible(false)}
+        onCreated={() => setCreateModalVisible(false)}
+        onCreate={handleCreateServiceArea}
+      />
+    </SafeAreaView>
   );
 };
 

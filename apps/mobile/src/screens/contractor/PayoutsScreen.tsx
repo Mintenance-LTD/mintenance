@@ -74,7 +74,7 @@ export const PayoutsScreen: React.FC = () => {
           <Ionicons
             name={hasConnectedStripe ? 'checkmark-circle' : 'alert-circle'}
             size={24}
-            color={hasConnectedStripe ? '#10B981' : '#F59E0B'}
+            color={hasConnectedStripe ? theme.colors.success : '#F59E0B'}
           />
           <View style={styles.connectInfo}>
             <Text style={styles.connectTitle}>
@@ -104,7 +104,7 @@ export const PayoutsScreen: React.FC = () => {
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Released</Text>
-          <Text style={[styles.statValue, { color: '#10B981' }]}>{'\u00A3'}{totalReleased.toFixed(2)}</Text>
+          <Text style={[styles.statValue, { color: theme.colors.success }]}>{'\u00A3'}{totalReleased.toFixed(2)}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>In Escrow</Text>

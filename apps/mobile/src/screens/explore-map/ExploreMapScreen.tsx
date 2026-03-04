@@ -17,7 +17,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -88,16 +88,8 @@ interface ExploreMapScreenProps {
 export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList }) => {
   const viewModel = useExploreMapViewModel();
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
-
-  // Pill sits at insets.top + 12 from screen top (set in MapSearchBar).
-  // Pill height ~47px → pill bottom at insets.top + 59.
-  // These overlay elements sit just below/beside the pill.
-  const overlayTop = insets.top + 72; // clear the pill + 13px gap
-
   const handleViewDetails = (jobId: string) => {
     viewModel.handleJobSelect(null);
-    // Navigate within the JobsStack (works from either JobsStack or DiscoverTab context)
     (navigation as any).navigate('JobDetails', { jobId });
   };
 
@@ -158,86 +150,88 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList
         <View style={styles.jobCountLine} />
       </View>
 
-      {/* Map */}
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        style={styles.map}
-        region={viewModel.region}
-        onRegionChangeComplete={viewModel.handleRegionChange}
-        onPress={() => viewModel.handleJobSelect(null)}
-        showsUserLocation={viewModel.locationGranted}
-        showsMyLocationButton={false}
-      >
-        {viewModel.jobs.map((job) => {
-          const isSelected = viewModel.selectedJob?.id === job.id;
-          const budget = job.budget_max || job.budget_min;
-          const label = budget ? `\u00A3${budget >= 1000 ? `${(budget / 1000).toFixed(budget % 1000 === 0 ? 0 : 1)}k` : budget}` : job.category.slice(0, 3).toUpperCase();
-          const catColor = CATEGORY_MARKER_COLORS[job.category.toLowerCase()] ?? CATEGORY_MARKER_COLORS.general;
-
-          return (
-            <Marker
-              key={job.id}
-              coordinate={{ latitude: job.latitude, longitude: job.longitude }}
-              onPress={() => viewModel.handleJobSelect(job)}
-            >
-              <View style={[
-                styles.priceMarker,
-                { backgroundColor: isSelected ? '#FFFFFF' : catColor.bg },
-                isSelected && { borderColor: catColor.bg, borderWidth: 2 },
-              ]}>
-                <Text style={[
-                  styles.priceMarkerText,
-                  { color: isSelected ? catColor.bg : catColor.text },
-                ]}>
-                  {label}
-                </Text>
-              </View>
-            </Marker>
-          );
-        })}
-      </MapView>
-
-      {/* "Search this area" pill — appears after user pans the map */}
-      {viewModel.hasPanned && !viewModel.loading && (
-        <TouchableOpacity
-          style={[styles.searchAreaPill, { top: overlayTop }]}
-          onPress={viewModel.searchInRegion}
-          accessibilityRole="button"
-          accessibilityLabel="Search jobs in this area"
+      {/* Map + overlays in a single container so absolute positions are map-relative */}
+      <View style={styles.mapWrapper}>
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          region={viewModel.region}
+          onRegionChangeComplete={viewModel.handleRegionChange}
+          onPress={() => viewModel.handleJobSelect(null)}
+          showsUserLocation={viewModel.locationGranted}
+          showsMyLocationButton={false}
         >
-          <Ionicons name="search" size={14} color="#FFFFFF" />
-          <Text style={styles.searchAreaText}>Search this area</Text>
+          {viewModel.jobs.map((job) => {
+            const isSelected = viewModel.selectedJob?.id === job.id;
+            const budget = job.budget_max || job.budget_min;
+            const label = budget ? `\u00A3${budget >= 1000 ? `${(budget / 1000).toFixed(budget % 1000 === 0 ? 0 : 1)}k` : budget}` : job.category.slice(0, 3).toUpperCase();
+            const catColor = CATEGORY_MARKER_COLORS[job.category.toLowerCase()] ?? CATEGORY_MARKER_COLORS.general;
+
+            return (
+              <Marker
+                key={job.id}
+                coordinate={{ latitude: job.latitude, longitude: job.longitude }}
+                onPress={() => viewModel.handleJobSelect(job)}
+              >
+                <View style={[
+                  styles.priceMarker,
+                  { backgroundColor: isSelected ? '#FFFFFF' : catColor.bg },
+                  isSelected && { borderColor: catColor.bg, borderWidth: 2 },
+                ]}>
+                  <Text style={[
+                    styles.priceMarkerText,
+                    { color: isSelected ? catColor.bg : catColor.text },
+                  ]}>
+                    {label}
+                  </Text>
+                </View>
+              </Marker>
+            );
+          })}
+        </MapView>
+
+        {/* "Search this area" pill — appears after user pans the map */}
+        {viewModel.hasPanned && !viewModel.loading && (
+          <TouchableOpacity
+            style={styles.searchAreaPill}
+            onPress={viewModel.searchInRegion}
+            accessibilityRole="button"
+            accessibilityLabel="Search jobs in this area"
+          >
+            <Ionicons name="search" size={14} color="#FFFFFF" />
+            <Text style={styles.searchAreaText}>Search this area</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Loading dots */}
+        {viewModel.loading && (
+          <View style={styles.loadingOverlay}>
+            <LoadingDots />
+          </View>
+        )}
+
+        {/* My location button — bottom-right, above preview card */}
+        <TouchableOpacity
+          style={styles.locationButton}
+          accessibilityRole="button"
+          accessibilityLabel="Center on my location"
+          onPress={viewModel.centerOnUser}
+        >
+          <Ionicons name="navigate" size={20} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-      )}
 
-      {/* Loading dots */}
-      {viewModel.loading && (
-        <View style={[styles.loadingOverlay, { top: overlayTop }]}>
-          <LoadingDots />
-        </View>
-      )}
-
-      {/* My location button */}
-      <TouchableOpacity
-        style={[styles.locationButton, { top: overlayTop }]}
-        accessibilityRole="button"
-        accessibilityLabel="Center on my location"
-        onPress={viewModel.centerOnUser}
-      >
-        <Ionicons name="navigate" size={20} color={theme.colors.textPrimary} />
-      </TouchableOpacity>
-
-      {/* Job preview card */}
-      {viewModel.selectedJob && (
-        <View style={styles.cardContainer}>
-          <JobPreviewCard
-            job={viewModel.selectedJob}
-            onViewDetails={() => handleViewDetails(viewModel.selectedJob!.id)}
-            onBidNow={() => handleBidNow(viewModel.selectedJob!.id)}
-            onDismiss={() => viewModel.handleJobSelect(null)}
-          />
-        </View>
-      )}
+        {/* Job preview card */}
+        {viewModel.selectedJob && (
+          <View style={styles.cardContainer}>
+            <JobPreviewCard
+              job={viewModel.selectedJob}
+              onViewDetails={() => handleViewDetails(viewModel.selectedJob!.id)}
+              onBidNow={() => handleBidNow(viewModel.selectedJob!.id)}
+              onDismiss={() => viewModel.handleJobSelect(null)}
+            />
+          </View>
+        )}
+      </View>
     </SafeAreaView>
   );
 };
@@ -304,6 +298,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
+  // Map wrapper — contains map + all floating overlays so absolute positions are map-relative
+  mapWrapper: {
+    flex: 1,
+  },
   // Map
   map: {
     flex: 1,
@@ -325,9 +323,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // "Search this area" pill — top set dynamically via overlayTop inline style
+  // "Search this area" pill — 16px inside the top of the map container
   searchAreaPill: {
     position: 'absolute',
+    top: 16,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
@@ -349,9 +348,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // Loading dots — top set dynamically via overlayTop inline style
+  // Loading dots — 16px inside top of map container
   loadingOverlay: {
     position: 'absolute',
+    top: 16,
     alignSelf: 'center',
     zIndex: 5,
   },
@@ -370,10 +370,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
-  // My location button — top set dynamically via overlayTop inline style
+  // My location button — bottom-right of map container, above preview card
   locationButton: {
     position: 'absolute',
     right: 16,
+    bottom: 96,
     width: 44,
     height: 44,
     borderRadius: 22,

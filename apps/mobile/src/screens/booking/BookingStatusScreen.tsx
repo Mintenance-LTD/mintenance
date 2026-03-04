@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -145,7 +146,7 @@ export const BookingStatusScreen: React.FC<{
   const filteredBookings = bookings.filter(booking => booking.status === activeTab);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {loading && <BookingLoading />}
       {!loading && error && (
         <BookingError message={error} onRetry={loadBookings} />
@@ -183,7 +184,7 @@ export const BookingStatusScreen: React.FC<{
           setSelectedBooking(null);
         }}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -32,7 +32,7 @@ export const BookingDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {job?.title ?? 'Booking Details'}
@@ -46,7 +46,7 @@ export const BookingDetailsScreen: React.FC<Props> = ({ navigation, route }) => 
           <Text style={styles.value}>{job?.title ?? '—'}</Text>
 
           <Text style={[styles.label, { marginTop: 16 }]}>Status</Text>
-          <View style={[styles.statusBadge, { backgroundColor: theme.colors.primary }]}>
+          <View style={[styles.statusBadge, { backgroundColor: '#222222' }]}>
             <Text style={styles.statusText}>{(job?.status ?? 'unknown').toUpperCase()}</Text>
           </View>
 
@@ -83,14 +83,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8, width: 40 },
   headerTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
     textAlign: 'center',
   },
   content: { padding: 16 },

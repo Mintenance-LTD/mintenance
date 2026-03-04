@@ -31,6 +31,10 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
   const [hourlyRate, setHourlyRate] = useState('');
   const [billable, setBillable] = useState(true);
   const [date] = useState(new Date().toISOString().split('T')[0]);
+  const [startTime] = useState(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  });
   const [loading, setLoading] = useState(false);
 
   const isValid = taskDescription.trim().length > 0 && parseFloat(hours) > 0;
@@ -45,10 +49,11 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
     try {
       await mobileApiClient.post('/api/contractor/time-tracking', {
         taskDescription: taskDescription.trim(),
-        duration: Math.round(parseFloat(hours) * 60), // convert hours to minutes
+        durationMinutes: Math.round(parseFloat(hours) * 60),
         hourlyRate: parseFloat(hourlyRate) || 0,
         isBillable: billable,
         date,
+        startTime,
       });
       toast.success('Time entry added', `${hours}h logged successfully`);
       navigation.goBack();
@@ -66,7 +71,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
     >
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="close" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Time Entry</Text>
         <TouchableOpacity
@@ -143,7 +148,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <Switch
               value={billable}
               onValueChange={setBillable}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              trackColor={{ false: theme.colors.border, true: '#222222' }}
               thumbColor={theme.colors.background}
             />
           </View>
@@ -161,12 +166,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8, width: 60 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textInverse },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
   saveButton: { alignItems: 'flex-end' },
-  saveButtonText: { fontSize: 16, fontWeight: '700', color: theme.colors.textInverse },
+  saveButtonText: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
   saveButtonDisabled: { opacity: 0.5 },
   content: { padding: 16 },
   card: {
@@ -214,11 +221,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 12,
     padding: 12,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F7F7F7',
     borderRadius: theme.borderRadius.md,
   },
   totalLabel: { fontSize: 13, color: theme.colors.textSecondary },
-  totalValue: { fontSize: 16, fontWeight: '700', color: theme.colors.primary },
+  totalValue: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

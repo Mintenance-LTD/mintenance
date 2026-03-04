@@ -22,7 +22,7 @@ export const MeetingHeader: React.FC<MeetingHeaderProps> = ({ contractor, job })
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Ionicons name="calendar-outline" size={24} color={theme.colors.primary} />
+        <Ionicons name="calendar-outline" size={24} color='#717171' />
         <Text style={styles.title}>Schedule Meeting</Text>
       </View>
 

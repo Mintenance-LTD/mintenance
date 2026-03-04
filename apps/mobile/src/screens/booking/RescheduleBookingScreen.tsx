@@ -78,7 +78,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Reschedule Booking</Text>
         <View style={styles.headerButton} />
@@ -90,7 +90,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
           <Text style={styles.cardSubtitle}>Select when you would like to reschedule your booking.</Text>
 
           <TouchableOpacity style={styles.pickerRow} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={22} color={theme.colors.primary} />
+            <Ionicons name="calendar-outline" size={22} color='#717171' />
             <View style={styles.pickerInfo}>
               <Text style={styles.pickerLabel}>Date</Text>
               <Text style={styles.pickerValue}>{formatDate(selectedDate)}</Text>
@@ -99,7 +99,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({ navigation, route }) 
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.pickerRow} onPress={() => setShowTimePicker(true)}>
-            <Ionicons name="time-outline" size={22} color={theme.colors.primary} />
+            <Ionicons name="time-outline" size={22} color='#717171' />
             <View style={styles.pickerInfo}>
               <Text style={styles.pickerLabel}>Time</Text>
               <Text style={styles.pickerValue}>{formatTime(selectedDate)}</Text>
@@ -149,10 +149,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textInverse },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
   content: { padding: 16 },
   card: {
     backgroundColor: theme.colors.background,

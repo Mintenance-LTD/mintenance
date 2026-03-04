@@ -12,9 +12,11 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { theme } from '../../theme';
 import { ScreenHeader } from '../../components/shared';
@@ -23,6 +25,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddProperty'>;
@@ -50,6 +53,12 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
   const [bathrooms, setBathrooms] = useState('');
   const [purchaseDate, setPurchaseDate] = useState<Date | null>(null);
   const [notes, setNotes] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [latitude, setLatitude] = useState<number | undefined>();
+  const [longitude, setLongitude] = useState<number | undefined>();
+
+  const hasUnsavedChanges = !!(address1 || city || postcode || notes || bedrooms || bathrooms);
+  useUnsavedChanges(hasUnsavedChanges);
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) =>
@@ -63,6 +72,39 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
     },
   });
 
+  const handleUseMyLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please allow location access to use this feature.');
+        return;
+      }
+      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setLatitude(coords.latitude);
+      setLongitude(coords.longitude);
+      interface GeoAddr { house_number?: string; road?: string; city?: string; town?: string; village?: string; postcode?: string }
+      const res = await apiClient.get<{ address?: GeoAddr }>(
+        `/api/geocoding/reverse?lat=${coords.latitude}&lon=${coords.longitude}`
+      );
+      const addr = res.address;
+      if (addr) {
+        const line1 = [addr.house_number, addr.road].filter(Boolean).join(' ');
+        if (line1) setAddress1(line1);
+        const cityVal = addr.city || addr.town || addr.village || '';
+        if (cityVal) setCity(cityVal);
+        if (addr.postcode) setPostcode(addr.postcode.toUpperCase());
+      }
+    } catch {
+      Alert.alert('Error', 'Could not fetch your location. Please enter your address manually.');
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const isValidPostcode = (code: string) =>
+    /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(code.trim());
+
   const handleSubmit = () => {
     if (!address1.trim()) {
       Alert.alert('Required', 'Please enter the address line 1.');
@@ -74,6 +116,10 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
     }
     if (!postcode.trim()) {
       Alert.alert('Required', 'Please enter the postcode.');
+      return;
+    }
+    if (!isValidPostcode(postcode)) {
+      Alert.alert('Invalid Postcode', 'Please enter a valid UK postcode (e.g. SW1A 1AA).');
       return;
     }
 
@@ -89,6 +135,8 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       bathrooms: bathrooms ? parseInt(bathrooms, 10) : undefined,
       purchase_date: purchaseDate ? purchaseDate.toISOString().split('T')[0] : undefined,
       notes: notes.trim() || undefined,
+      latitude,
+      longitude,
     });
   };
 
@@ -98,8 +146,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScreenHeader
         title="Add Property"
-        showBack
-        onBack={() => navigation.goBack()}
+        onBackPress={() => navigation.goBack()}
       />
 
       <KeyboardAvoidingView
@@ -109,6 +156,23 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Address</Text>
+
+            {/* Use current location */}
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={handleUseMyLocation}
+              disabled={locating}
+              accessibilityRole="button"
+              accessibilityLabel="Use current location to fill address"
+            >
+              {locating
+                ? <ActivityIndicator size="small" color="#FFFFFF" />
+                : <Ionicons name="location" size={18} color="#FFFFFF" />
+              }
+              <Text style={styles.locationButtonText}>
+                {locating ? 'Locating...' : 'Use Current Location'}
+              </Text>
+            </TouchableOpacity>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Address Line 1 *</Text>
@@ -336,8 +400,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   typeChipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   typeChipText: {
     fontSize: theme.typography.fontSize.sm,
@@ -347,8 +411,23 @@ const styles = StyleSheet.create({
   typeChipTextSelected: {
     color: theme.colors.textInverse,
   },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#222222',
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 12,
+    gap: 8,
+    marginBottom: theme.spacing[3],
+  },
+  locationButtonText: {
+    color: '#FFFFFF',
+    fontSize: theme.typography.fontSize.sm,
+    fontWeight: theme.typography.fontWeight.semibold,
+  },
   submitButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     borderRadius: theme.borderRadius.xl,
     paddingVertical: theme.spacing[4],
     alignItems: 'center',

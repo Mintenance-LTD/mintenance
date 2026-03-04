@@ -32,7 +32,7 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
         <Text style={styles.itemName}>{item.item_name}</Text>
         <View style={styles.itemActions}>
           <TouchableOpacity onPress={() => onEditItem(index)} style={styles.actionButton}>
-            <Ionicons name="pencil" size={16} color={theme.colors.primary} />
+            <Ionicons name="pencil" size={16} color='#717171' />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => onRemoveItem(index)} style={styles.actionButton}>
             <Ionicons name="trash" size={16} color={theme.colors.error} />

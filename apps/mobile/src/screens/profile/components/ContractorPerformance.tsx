@@ -102,7 +102,7 @@ interface VerificationItemProps {
 const VerificationItem: React.FC<VerificationItemProps> = ({ label, icon, verified }) => (
   <View style={styles.verificationRow} accessibilityLabel={`${label}: ${verified ? 'verified' : 'not verified'}`}>
     <View style={[styles.verifyIcon, verified ? styles.verifyIconActive : styles.verifyIconInactive]}>
-      <Ionicons name={icon} size={15} color={verified ? theme.colors.primary : theme.colors.textTertiary} />
+      <Ionicons name={icon} size={15} color={verified ? theme.colors.success : theme.colors.textTertiary} />
     </View>
     <Text style={styles.verificationText}>{label}</Text>
     <View style={[styles.verifyBadge, verified ? styles.verifyBadgeActive : styles.verifyBadgeInactive]}>
@@ -199,9 +199,9 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 20,
   },
-  verifyBadgeActive: { backgroundColor: theme.colors.primary + '15' },
+  verifyBadgeActive: { backgroundColor: '#F7F7F7' },
   verifyBadgeInactive: { backgroundColor: theme.colors.surfaceSecondary },
   verifyBadgeText: { fontSize: 11, fontWeight: '600' },
-  verifyBadgeTextActive: { color: theme.colors.primary },
+  verifyBadgeTextActive: { color: '#222222' },
   verifyBadgeTextInactive: { color: theme.colors.textSecondary },
 });

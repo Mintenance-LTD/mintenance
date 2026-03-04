@@ -77,7 +77,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {client.first_name} {client.last_name}
@@ -104,15 +104,15 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
         {/* Quick Actions */}
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.actionBtn} onPress={handleCall}>
-            <Ionicons name="call" size={22} color={theme.colors.primary} />
+            <Ionicons name="call" size={22} color='#717171' />
             <Text style={styles.actionBtnText}>Call</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={handleEmail}>
-            <Ionicons name="mail" size={22} color={theme.colors.primary} />
+            <Ionicons name="mail" size={22} color='#717171' />
             <Text style={styles.actionBtnText}>Email</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={handleMessage}>
-            <Ionicons name="chatbubble" size={22} color={theme.colors.primary} />
+            <Ionicons name="chatbubble" size={22} color='#717171' />
             <Text style={styles.actionBtnText}>Message</Text>
           </TouchableOpacity>
         </View>
@@ -145,7 +145,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({ navigati
               <Text style={styles.statLabel}>Revenue</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={[styles.statValue, { color: client.satisfaction_score >= 4 ? theme.colors.success : theme.colors.warning }]}>
+              <Text style={styles.statValue}>
                 {client.satisfaction_score?.toFixed(1) || '—'}
               </Text>
               <Text style={styles.statLabel}>Rating</Text>
@@ -175,10 +175,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8, width: 40 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '700', color: theme.colors.textInverse, textAlign: 'center' },
+  headerTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary, textAlign: 'center' },
   scroll: { flex: 1 },
   profileCard: {
     alignItems: 'center',
@@ -193,7 +195,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -213,7 +215,7 @@ const styles = StyleSheet.create({
     ...theme.shadows.sm,
   },
   actionBtn: { alignItems: 'center', gap: 6 },
-  actionBtnText: { fontSize: 12, color: theme.colors.primary, fontWeight: '600' },
+  actionBtnText: { fontSize: 12, color: theme.colors.textPrimary, fontWeight: '600' },
   section: {
     backgroundColor: theme.colors.background,
     marginHorizontal: 16,
@@ -227,7 +229,7 @@ const styles = StyleSheet.create({
   detailText: { fontSize: 14, color: theme.colors.textPrimary },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: '700', color: theme.colors.primary },
+  statValue: { fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary },
   statLabel: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
 });
 

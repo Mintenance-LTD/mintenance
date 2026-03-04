@@ -26,7 +26,7 @@ interface QuoteDetailScreenProps {
 const STATUS_COLORS: Record<string, string> = {
   accepted: theme.colors.success,
   rejected: theme.colors.error,
-  sent: theme.colors.primary,
+  sent: '#717171',
   viewed: theme.colors.info,
   expired: theme.colors.textSecondary,
   draft: theme.colors.textTertiary,
@@ -94,21 +94,21 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
     );
   }
 
-  const statusColor = STATUS_COLORS[quote.status] ?? theme.colors.primary;
+  const statusColor = STATUS_COLORS[quote.status] ?? '#717171';
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote #{quote.quote_number}</Text>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => navigation.navigate('CreateQuote', { jobId: quote.job_id })}
         >
-          <Ionicons name="pencil" size={22} color={theme.colors.textInverse} />
+          <Ionicons name="pencil" size={22} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -198,7 +198,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({ navigation
               style={styles.editButton}
               onPress={() => navigation.navigate('CreateQuote', { jobId: quote.job_id })}
             >
-              <Ionicons name="pencil-outline" size={18} color={theme.colors.primary} />
+              <Ionicons name="pencil-outline" size={18} color='#717171' />
               <Text style={styles.editButtonText}>Edit Quote</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
@@ -223,10 +223,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textInverse },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
   scroll: { flex: 1 },
   statusCard: {
     margin: 16,
@@ -257,7 +259,7 @@ const styles = StyleSheet.create({
   detailValue: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
   totalRowFinal: { borderTopWidth: 1, borderTopColor: theme.colors.border, marginTop: 8, paddingTop: 12 },
   grandTotalLabel: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
-  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.primary },
+  grandTotalValue: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
   notesText: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 },
   actionsSection: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 4 },
   editButton: {
@@ -266,13 +268,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
     borderRadius: theme.borderRadius.md,
     paddingVertical: 12,
     gap: 6,
     backgroundColor: theme.colors.background,
   },
-  editButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
+  editButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textPrimary },
   sendButton: {
     flex: 1,
     flexDirection: 'row',
@@ -285,7 +287,7 @@ const styles = StyleSheet.create({
   },
   sendButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textInverse },
   emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 16 },
-  backLink: { fontSize: 14, color: theme.colors.primary, marginTop: 12 },
+  backLink: { fontSize: 14, color: theme.colors.textPrimary, marginTop: 12 },
 });
 
 export default QuoteDetailScreen;

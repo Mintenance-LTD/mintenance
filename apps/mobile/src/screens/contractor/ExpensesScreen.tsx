@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   RefreshControl,
   TextInput,
   Alert,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -77,8 +78,51 @@ export const ExpensesScreen: React.FC = () => {
     onError: (err: Error) => Alert.alert('Error', err.message),
   });
 
+  // Undo delete state
+  const [pendingDelete, setPendingDelete] = useState<Expense | null>(null);
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const snackbarOpacity = useRef(new Animated.Value(0)).current;
+
+  const deleteMutation = useMutation({
+    mutationFn: async (expenseId: string) => {
+      return mobileApiClient.delete(`/api/contractor/expenses?id=${expenseId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });
+    },
+    onError: (err: Error) => Alert.alert('Error', err.message),
+  });
+
+  const handleDelete = useCallback((expense: Expense) => {
+    // Clear any existing pending delete
+    if (deleteTimerRef.current) {
+      clearTimeout(deleteTimerRef.current);
+      if (pendingDelete) {
+        deleteMutation.mutate(pendingDelete.id);
+      }
+    }
+
+    setPendingDelete(expense);
+    Animated.timing(snackbarOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+
+    deleteTimerRef.current = setTimeout(() => {
+      deleteMutation.mutate(expense.id);
+      setPendingDelete(null);
+      Animated.timing(snackbarOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+    }, 3000);
+  }, [pendingDelete, deleteMutation, snackbarOpacity]);
+
+  const handleUndoDelete = useCallback(() => {
+    if (deleteTimerRef.current) {
+      clearTimeout(deleteTimerRef.current);
+    }
+    setPendingDelete(null);
+    Animated.timing(snackbarOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+  }, [snackbarOpacity]);
+
   const expenses = data?.expenses || [];
-  const filtered = filter === 'all' ? expenses : expenses.filter((e) => e.category === filter);
+  const visibleExpenses = pendingDelete ? expenses.filter((e) => e.id !== pendingDelete.id) : expenses;
+  const filtered = filter === 'all' ? visibleExpenses : visibleExpenses.filter((e) => e.category === filter);
 
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
   const thisMonth = expenses
@@ -105,11 +149,11 @@ export const ExpensesScreen: React.FC = () => {
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>This Month</Text>
-          <Text style={[styles.statValue, { color: theme.colors.primary }]}>{'\u00A3'}{thisMonth.toFixed(2)}</Text>
+          <Text style={styles.statValue}>{'\u00A3'}{thisMonth.toFixed(2)}</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Billable</Text>
-          <Text style={[styles.statValue, { color: '#10B981' }]}>{'\u00A3'}{billableTotal.toFixed(2)}</Text>
+          <Text style={styles.statValue}>{'\u00A3'}{billableTotal.toFixed(2)}</Text>
         </View>
       </View>
 
@@ -162,9 +206,30 @@ export const ExpensesScreen: React.FC = () => {
               <Text style={styles.expenseAmount}>{'\u00A3'}{item.amount.toFixed(2)}</Text>
               {item.billable && <Badge variant="success" size="sm">Billable</Badge>}
             </View>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDelete(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete expense ${item.description}`}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="trash-outline" size={16} color={theme.colors.textTertiary} />
+            </TouchableOpacity>
           </View>
         )}
       />
+
+      {/* Undo Snackbar */}
+      {pendingDelete && (
+        <Animated.View style={[styles.snackbar, { opacity: snackbarOpacity }]}>
+          <Text style={styles.snackbarText} numberOfLines={1}>
+            Deleted "{pendingDelete.description}"
+          </Text>
+          <TouchableOpacity onPress={handleUndoDelete} accessibilityRole="button" accessibilityLabel="Undo delete">
+            <Text style={styles.snackbarUndo}>UNDO</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
 
       {/* FAB */}
       {!showForm && (
@@ -198,7 +263,11 @@ const styles = StyleSheet.create({
   expenseDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
   expenseRight: { alignItems: 'flex-end', gap: 4 },
   expenseAmount: { fontSize: 15, fontWeight: '600', color: theme.colors.textPrimary },
-  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
+  deleteButton: { marginLeft: 8, padding: 4 },
+  snackbar: { position: 'absolute', bottom: 90, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#222222', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 14, ...theme.shadows.lg },
+  snackbarText: { fontSize: 14, color: '#FFFFFF', flex: 1, marginRight: 12 },
+  snackbarUndo: { fontSize: 14, fontWeight: '700', color: '#60A5FA' },
+  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
 });
 
 export default ExpensesScreen;

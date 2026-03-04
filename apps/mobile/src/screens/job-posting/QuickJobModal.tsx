@@ -21,6 +21,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
@@ -69,6 +70,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
   onSearch,
 }) => {
   const { user } = useAuth();
+  const navigation = useNavigation();
   const [activeSegment, setActiveSegment] = useState<SearchSegment>(null);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [selectedUrgency, setSelectedUrgency] = useState('flexible');
@@ -146,6 +148,26 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
 
           {/* Title */}
           <Text style={styles.title}>What maintenance do you need?</Text>
+
+          {/* Step Progress Indicator */}
+          <View style={styles.stepIndicator}>
+            {(['where', 'when', 'what'] as const).map((step, index) => {
+              const isCompleted = step === 'where' ? !!selectedProperty : step === 'when' ? selectedUrgency !== 'flexible' : !!selectedCategory;
+              const isActive = activeSegment === step;
+              return (
+                <React.Fragment key={step}>
+                  <View style={[styles.stepDot, isCompleted && styles.stepDotCompleted, isActive && styles.stepDotActive]}>
+                    {isCompleted ? (
+                      <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                    ) : (
+                      <Text style={[styles.stepDotText, isActive && styles.stepDotTextActive]}>{index + 1}</Text>
+                    )}
+                  </View>
+                  {index < 2 && <View style={[styles.stepLine, isCompleted && styles.stepLineCompleted]} />}
+                </React.Fragment>
+              );
+            })}
+          </View>
 
           {/* Search Bar Segments */}
           <View style={styles.searchBar}>
@@ -234,7 +256,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
                         <Ionicons
                           name="home"
                           size={22}
-                          color={selectedProperty?.id === property.id ? theme.colors.primary : theme.colors.textSecondary}
+                          color={selectedProperty?.id === property.id ? '#222222' : theme.colors.textSecondary}
                         />
                       </View>
                       <View style={styles.propertyInfo}>
@@ -247,7 +269,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
                         )}
                       </View>
                       {selectedProperty?.id === property.id && (
-                        <Ionicons name="checkmark-circle" size={22} color={theme.colors.primary} />
+                        <Ionicons name="checkmark-circle" size={22} color='#222222' />
                       )}
                     </TouchableOpacity>
                   ))
@@ -255,6 +277,21 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
                   <View style={styles.emptyState}>
                     <Ionicons name="home-outline" size={36} color={theme.colors.textTertiary} />
                     <Text style={styles.emptyText}>No properties yet</Text>
+                    <Text style={styles.emptySubtext}>Add a property to start posting jobs</Text>
+                    <TouchableOpacity
+                      style={styles.addPropertyButton}
+                      onPress={() => {
+                        onClose();
+                        setTimeout(() => {
+                          navigation.navigate('ProfileTab', { screen: 'AddProperty' });
+                        }, 300);
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Add a property"
+                    >
+                      <Ionicons name="add-circle-outline" size={18} color={theme.colors.primary} />
+                      <Text style={styles.addPropertyText}>Add Property</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
               </View>
@@ -304,7 +341,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
                       <Ionicons
                         name={cat.icon as keyof typeof Ionicons.glyphMap}
                         size={28}
-                        color={selectedCategory === cat.id ? theme.colors.primary : theme.colors.textSecondary}
+                        color={selectedCategory === cat.id ? '#222222' : theme.colors.textSecondary}
                       />
                       <Text
                         style={[
@@ -379,6 +416,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     paddingHorizontal: 20,
+  },
+
+  // Step Progress
+  stepIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 60,
+  },
+  stepDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: theme.colors.borderLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDotCompleted: {
+    backgroundColor: '#222222',
+  },
+  stepDotActive: {
+    borderWidth: 2,
+    borderColor: '#222222',
+    backgroundColor: theme.colors.surface,
+  },
+  stepDotText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
+  },
+  stepDotTextActive: {
+    color: '#222222',
+  },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: theme.colors.borderLight,
+    marginHorizontal: 4,
+  },
+  stepLineCompleted: {
+    backgroundColor: '#222222',
   },
 
   // Search Bar
@@ -468,8 +547,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   propertyCardActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: '#F0FDF4',
+    borderColor: '#222222',
+    backgroundColor: '#F7F7F7',
   },
   propertyIcon: {
     width: 44,
@@ -505,7 +584,28 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 15,
+    fontWeight: '600',
     color: theme.colors.textSecondary,
+  },
+  emptySubtext: {
+    fontSize: 13,
+    color: theme.colors.textTertiary,
+    marginTop: 4,
+  },
+  addPropertyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: theme.colors.backgroundSecondary,
+  },
+  addPropertyText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
 
   // Urgency chips
@@ -551,8 +651,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   categoryCardActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: '#F0FDF4',
+    borderColor: '#222222',
+    backgroundColor: '#F7F7F7',
   },
   categoryLabel: {
     fontSize: 13,
@@ -561,7 +661,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryLabelActive: {
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '700',
   },
   doneButton: {

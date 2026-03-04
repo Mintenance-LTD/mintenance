@@ -55,7 +55,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             <Ionicons
               name="person"
               size={24}
-              color={theme.colors.primary}
+              color='#717171'
             />
           </View>
         </TouchableOpacity>
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: '#EBEBEB',
   },
   greetingContainer: {
     flex: 1,
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
   roleText: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
     fontWeight: '500',
     marginTop: 1,
   },

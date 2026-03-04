@@ -77,11 +77,11 @@ export const TimeTrackingScreen: React.FC = () => {
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Billable</Text>
-          <Text style={[styles.statValue, { color: '#10B981' }]}>{billableHoursWeek.toFixed(1)}h</Text>
+          <Text style={styles.statValue}>{billableHoursWeek.toFixed(1)}h</Text>
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Earnings</Text>
-          <Text style={[styles.statValue, { color: theme.colors.primary }]}>{'\u00A3'}{estimatedEarnings.toFixed(0)}</Text>
+          <Text style={styles.statValue}>{'\u00A3'}{estimatedEarnings.toFixed(0)}</Text>
         </View>
       </View>
 
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   entryRight: { alignItems: 'flex-end', gap: 2 },
   entryHours: { fontSize: 16, fontWeight: '700', color: theme.colors.textPrimary },
   entryRate: { fontSize: 12, color: theme.colors.textTertiary },
-  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
+  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
 });
 
 export default TimeTrackingScreen;

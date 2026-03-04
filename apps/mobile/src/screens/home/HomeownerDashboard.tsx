@@ -23,7 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { JobService } from '../../services/JobService';
 import { BidService } from '../../services/BidService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FullScreenLoading } from '../../components/LoadingSpinner';
+import { SkeletonDashboard } from '../../components/SkeletonLoader';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import { theme } from '../../theme';
 import { logger } from '../../utils/logger';
@@ -34,7 +34,7 @@ import { BidsReceived } from './BidsReceived';
 const appIcon = require('../../../assets/icon.png');
 
 export const HomeownerDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigation = useNavigation();
   const queryClient = useQueryClient();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -82,6 +82,21 @@ export const HomeownerDashboard: React.FC = () => {
     enabled: !!user && activeJobIds.length > 0,
   });
 
+  // Unread notifications count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unreadNotifications', user?.id],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get<{ count: number }>('/api/notifications/unread-count');
+        return res.count || 0;
+      } catch {
+        return 0;
+      }
+    },
+    enabled: !!user,
+    refetchInterval: 30000, // refresh every 30s
+  });
+
   // Appointments query
   const { data: appointments } = useQuery({
     queryKey: ['appointments', user?.id],
@@ -103,7 +118,19 @@ export const HomeownerDashboard: React.FC = () => {
   };
 
   if (jobsLoading) {
-    return <FullScreenLoading message="Loading dashboard..." />;
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.topBar, { backgroundColor: theme.colors.background }]}>
+          <View style={styles.brandButton}>
+            <Image source={appIcon} style={styles.brandIcon} />
+            <Text style={styles.brandText}>Mintenance</Text>
+          </View>
+        </View>
+        <View style={styles.homeownerContent}>
+          <SkeletonDashboard />
+        </View>
+      </View>
+    );
   }
 
   if (jobsError) {
@@ -119,6 +146,8 @@ export const HomeownerDashboard: React.FC = () => {
 
   const userName = user?.first_name || user?.firstName || 'there';
   const userInitial = userName[0].toUpperCase();
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -144,6 +173,13 @@ export const HomeownerDashboard: React.FC = () => {
           >
             <View style={styles.notificationCircle}>
               <Ionicons name="notifications-outline" size={20} color={theme.colors.textPrimary} />
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -202,6 +238,19 @@ export const HomeownerDashboard: React.FC = () => {
               <Ionicons name="person-outline" size={20} color={theme.colors.textSecondary} />
               <Text style={styles.dropdownItemText}>View Profile</Text>
             </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setShowProfileMenu(false);
+                signOut();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Sign out"
+            >
+              <Ionicons name="log-out-outline" size={20} color={theme.colors.error} />
+              <Text style={[styles.dropdownItemText, { color: theme.colors.error }]}>Sign Out</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -216,7 +265,7 @@ export const HomeownerDashboard: React.FC = () => {
         {/* Welcome greeting */}
         <View style={styles.welcomeRow}>
           <Text style={styles.welcomeGreeting}>
-            Welcome back, {userName}
+            {greeting}, {userName}
           </Text>
           <Text style={styles.welcomeSubtitle}>
             Here's what's happening
@@ -245,11 +294,20 @@ export const HomeownerDashboard: React.FC = () => {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+                {appointments.length > 3 && (
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
+                    accessibilityRole="button"
+                    accessibilityLabel="View all appointments"
+                  >
+                    <Text style={styles.viewAllLink}>View All</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {appointments.slice(0, 3).map((apt) => (
                 <View key={apt.id} style={styles.appointmentCard}>
                   <View style={styles.appointmentIcon}>
-                    <Ionicons name="calendar" size={18} color={theme.colors.primary} />
+                    <Ionicons name="calendar" size={18} color='#717171' />
                   </View>
                   <View style={styles.appointmentInfo}>
                     <Text style={styles.appointmentTitle} numberOfLines={1}>{apt.title}</Text>
@@ -351,6 +409,23 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FF385C',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   welcomeRow: {
     paddingHorizontal: 24,
@@ -486,5 +561,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textTertiary,
     marginTop: 2,
+  },
+  viewAllLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
 });

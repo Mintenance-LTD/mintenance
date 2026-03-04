@@ -12,6 +12,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
+  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -127,6 +128,20 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
 
+        {/* Share button overlay */}
+        <TouchableOpacity
+          style={[styles.shareButton, { top: insets.top + 8 }]}
+          onPress={() => {
+            Share.share({
+              message: `${job.title} - Check out this job on Mintenance: https://mintenance.com/jobs/${job.id}`,
+            });
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Share this job"
+        >
+          <Ionicons name="share-outline" size={22} color="#000000" />
+        </TouchableOpacity>
+
         {/* 2. Title Section */}
         <View style={styles.section}>
           <Text style={styles.title}>{job.title}</Text>
@@ -204,7 +219,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   <Text style={styles.pricingLabel}>Estimated cost</Text>
                 </View>
                 <View style={styles.escrowBadge}>
-                  <Ionicons name="shield-checkmark" size={16} color={theme.colors.primary} />
+                  <Ionicons name="shield-checkmark" size={16} color='#717171' />
                   <Text style={styles.escrowText}>Escrow protected</Text>
                 </View>
               </View>
@@ -406,6 +421,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...theme.shadows.sm,
   },
+  shareButton: {
+    position: 'absolute',
+    right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...theme.shadows.sm,
+  },
 
   // ── Sections ──
   section: {
@@ -502,7 +528,7 @@ const styles = StyleSheet.create({
   escrowText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: '#717171',
   },
 
   // ── Details ──

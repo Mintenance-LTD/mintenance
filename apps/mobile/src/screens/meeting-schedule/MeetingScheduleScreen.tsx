@@ -8,7 +8,8 @@
  */
 
 import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, TextInput, View, Text, KeyboardAvoidingView, Platform } from 'react-native';
+import { ScrollView, StyleSheet, TextInput, View, Text, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { useMeetingScheduleViewModel } from './viewmodels/MeetingScheduleViewModel';

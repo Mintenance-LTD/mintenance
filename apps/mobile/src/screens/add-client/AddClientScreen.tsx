@@ -79,7 +79,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({ navigation }) 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Client</Text>
         <TouchableOpacity
@@ -177,12 +177,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   headerButton: { padding: 8, minWidth: 60 },
   headerButtonDisabled: { opacity: 0.5 },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textInverse },
-  saveText: { fontSize: 16, fontWeight: '600', color: theme.colors.textInverse, textAlign: 'right' },
+  headerTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.textPrimary },
+  saveText: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary, textAlign: 'right' },
   scroll: { flex: 1 },
   section: {
     backgroundColor: theme.colors.background,

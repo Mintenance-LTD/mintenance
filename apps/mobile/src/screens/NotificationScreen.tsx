@@ -301,7 +301,7 @@ export const NotificationScreen: React.FC = () => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   tabActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   tabText: {
     fontSize: 13,
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   },
   notifRowUnread: {
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
+    borderLeftColor: '#222222',
   },
   iconCircle: {
     width: 34,
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   // Header actions
   markAllText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '500',
   },
   // Empty state

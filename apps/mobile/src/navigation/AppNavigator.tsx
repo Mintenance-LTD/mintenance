@@ -24,8 +24,6 @@ import JobsNavigator from './navigators/JobsNavigator';
 import MessagingNavigator from './navigators/MessagingNavigator';
 import ProfileNavigator from './navigators/ProfileNavigator';
 import ModalNavigator from './navigators/ModalNavigator';
-import DiscoverNavigator from './navigators/DiscoverNavigator';
-
 // Import core screens
 import HomeScreen from '../screens/HomeScreen';
 
@@ -81,7 +79,7 @@ const AddActionScreen: React.FC = () => {
       if (user?.role === 'homeowner') {
         tabNavigation.navigate('HomeTab');
       } else {
-        tabNavigation.navigate('JobsTab', { screen: 'JobsList' });
+        tabNavigation.navigate('JobsTab', { screen: 'ExploreMap' });
       }
     }, [tabNavigation, user?.role])
   );
@@ -161,11 +159,11 @@ const TabNavigator: React.FC = () => {
         name="JobsTab"
         component={JobsNavigator}
         options={{
-          tabBarLabel: 'Invoices',
+          tabBarLabel: 'Jobs',
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt" size={size} color={color} />
+            <Ionicons name="briefcase" size={size} color={color} />
           ),
-          tabBarAccessibilityLabel: 'Invoices tab',
+          tabBarAccessibilityLabel: 'Jobs tab',
           tabBarButton: (props) => (
             <TouchableOpacity
               {...props}
@@ -174,8 +172,8 @@ const TabNavigator: React.FC = () => {
                 props.onPress?.(e);
               }}
               accessibilityRole="tab"
-              accessibilityLabel="Invoices tab"
-              accessibilityHint="Navigate to invoices"
+              accessibilityLabel="Jobs tab"
+              accessibilityHint="Navigate to jobs"
               style={[props.style, { minHeight: 44, minWidth: 44 }]}
             />
           ),
@@ -191,7 +189,7 @@ const TabNavigator: React.FC = () => {
           tabBarAccessibilityLabel:
             user?.role === 'homeowner'
               ? 'Create service request'
-              : 'Browse jobs',
+              : 'Find jobs near you',
           tabBarButton: (props) => (
             <TouchableOpacity
               {...props}
@@ -203,7 +201,7 @@ const TabNavigator: React.FC = () => {
               accessibilityLabel={
                 user?.role === 'homeowner'
                   ? 'Create service request'
-                  : 'Browse jobs'
+                  : 'Find jobs near you'
               }
               style={[
                 props.style,
@@ -230,7 +228,8 @@ const TabNavigator: React.FC = () => {
               haptics.buttonPress();
               setShowQuickJobModal(true);
             } else {
-              tabNavigation.navigate('JobsTab', { screen: 'JobsList' });
+              // Contractors: centre button = Find Jobs (map of available jobs to bid on)
+              tabNavigation.navigate('JobsTab', { screen: 'ExploreMap' });
             }
           },
         })}
@@ -301,7 +300,6 @@ const linking: LinkingOptions<RootStackParamList> = {
       Main: {
         screens: {
           HomeTab: 'home',
-          DiscoverTab: 'discover',
           JobsTab: 'jobs',
           AddTab: 'add',
           MessagingTab: 'messages',

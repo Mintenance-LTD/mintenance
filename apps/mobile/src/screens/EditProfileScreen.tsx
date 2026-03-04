@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,45 +9,135 @@ import {
   Alert,
   Switch,
   Image,
+  ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
 import { Input } from '../components/ui/Input';
 import { theme } from '../theme';
 import { AuthService } from '../services/AuthService';
+import { mobileApiClient } from '../utils/mobileApiClient';
+
+interface GeoAddr { house_number?: string; road?: string; city?: string; town?: string; village?: string; postcode?: string }
+interface NominatimResult { lat: string; lon: string }
 
 const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
-  // Form state
+  // Form state — pre-filled from profile on mount
   const [firstName, setFirstName] = useState(user?.first_name || user?.firstName || '');
   const [lastName, setLastName] = useState(user?.last_name || user?.lastName || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [bio, setBio] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [postcode, setPostcode] = useState('');
+  const [locating, setLocating] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
+  // GPS coordinates captured when user taps "Use My Location"
+  const [gpsLat, setGpsLat] = useState<number | null>(null);
+  const [gpsLng, setGpsLng] = useState<number | null>(null);
+
+  // Load existing profile data on mount so address/bio fields are pre-filled
+  useEffect(() => {
+    if (!user) return;
+    mobileApiClient
+      .get<{ profile: { bio?: string; address?: string; city?: string; postcode?: string } }>(
+        '/api/users/profile'
+      )
+      .then(res => {
+        const p = res.profile;
+        if (p.bio) setBio(p.bio);
+        if (p.address) setAddress(p.address);
+        if (p.city) setCity(p.city);
+        if (p.postcode) setPostcode(p.postcode);
+      })
+      .catch(() => {
+        // Non-critical — fields remain empty, user can type manually
+      });
+  }, [user?.id]);
+
+  const handleUseMyLocation = async () => {
+    try {
+      setLocating(true);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Please allow location access to use this feature.');
+        return;
+      }
+      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      // Persist GPS coords so handleSave can write lat/lng to the profile
+      setGpsLat(coords.latitude);
+      setGpsLng(coords.longitude);
+
+      const res = await mobileApiClient.get<{ address?: GeoAddr }>(
+        `/api/geocoding/reverse?lat=${coords.latitude}&lon=${coords.longitude}`
+      );
+      const addr = res.address;
+      if (addr) {
+        const line1 = [addr.house_number, addr.road].filter(Boolean).join(' ');
+        if (line1) setAddress(line1);
+        const cityVal = addr.city || addr.town || addr.village || '';
+        if (cityVal) setCity(cityVal);
+        if (addr.postcode) setPostcode(addr.postcode.toUpperCase());
+      }
+    } catch {
+      Alert.alert('Error', 'Could not fetch your location. Please enter your address manually.');
+    } finally {
+      setLocating(false);
+    }
+  };
 
   const handleSave = async () => {
     try {
       setLoading(true);
 
-      const updates = {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        phone: phone.trim(),
-        bio: bio.trim(),
+      // Resolve lat/lng: prefer GPS coords; fall back to forward-geocoding the typed address
+      let latitude: number | undefined = gpsLat ?? undefined;
+      let longitude: number | undefined = gpsLng ?? undefined;
+
+      if (latitude == null && (address.trim() || city.trim() || postcode.trim())) {
+        try {
+          const q = [address.trim(), city.trim(), postcode.trim()].filter(Boolean).join(', ');
+          const results = await mobileApiClient.get<NominatimResult[]>(
+            `/api/geocoding/search?q=${encodeURIComponent(q)}`
+          );
+          if (results?.[0]) {
+            latitude = parseFloat(results[0].lat);
+            longitude = parseFloat(results[0].lon);
+          }
+        } catch {
+          // Geocoding failed — save address text without coordinates
+        }
+      }
+
+      const updates: Partial<{ first_name: string; last_name: string; phone: string; bio: string; address: string; city: string; postcode: string; latitude: number; longitude: number }> = {
+        first_name: firstName.trim() || undefined,
+        last_name: lastName.trim() || undefined,
+        phone: phone.trim() || undefined,
+        bio: bio.trim() || undefined,
+        address: address.trim() || undefined,
+        city: city.trim() || undefined,
+        postcode: postcode.trim().toUpperCase() || undefined,
+        latitude,
+        longitude,
       };
 
-      // Only update non-empty fields
+      // Strip undefined values before sending to Supabase
       const filteredUpdates = Object.fromEntries(
-        Object.entries(updates).filter(([_, value]) => value !== '')
+        Object.entries(updates).filter(([, v]) => v !== undefined)
       );
 
       if (user && Object.keys(filteredUpdates).length > 0) {
-        await AuthService.updateUserProfile(user.id, filteredUpdates);
+        await AuthService.updateUserProfile(user.id, filteredUpdates as Parameters<typeof AuthService.updateUserProfile>[1]);
         Alert.alert('Success', 'Profile updated successfully!', [
           { text: 'OK', onPress: () => navigation.goBack() },
         ]);
@@ -55,14 +145,66 @@ const EditProfileScreen: React.FC = () => {
         navigation.goBack();
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to update profile');
+      const msg = error instanceof Error ? error.message : 'Failed to update profile';
+      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleChangePassword = async () => {
+    const email = user?.email;
+    if (!email) {
+      Alert.alert('Error', 'No email address associated with your account.');
+      return;
+    }
+    Alert.alert(
+      'Change Password',
+      `A password reset link will be sent to ${email}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send Reset Link',
+          onPress: async () => {
+            try {
+              await AuthService.resetPassword(email);
+              Alert.alert('Email Sent', 'Check your inbox for the password reset link.');
+            } catch {
+              Alert.alert('Error', 'Failed to send password reset email. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'To permanently delete your account and all associated data, please contact our support team at support@mintenance.co.uk. This action cannot be undone.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handlePickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission required', 'Please allow access to your photo library.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]?.uri) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -95,9 +237,9 @@ const EditProfileScreen: React.FC = () => {
         {/* Profile Photo Section */}
         <View style={styles.photoSection}>
           <View style={styles.avatarContainer}>
-            {user?.profileImageUrl ? (
+            {(photoUri || user?.profile_image_url) ? (
               <Image
-                source={{ uri: user.profileImageUrl }}
+                source={{ uri: photoUri || user?.profile_image_url }}
                 style={styles.avatar}
               />
             ) : (
@@ -110,14 +252,16 @@ const EditProfileScreen: React.FC = () => {
             )}
             <TouchableOpacity
               style={styles.photoEditButton}
+              onPress={handlePickPhoto}
               accessibilityRole='button'
               accessibilityLabel='Change profile photo'
             >
-              <Ionicons name='camera' size={20} color={theme.colors.primary} />
+              <Ionicons name='camera' size={20} color='#717171' />
             </TouchableOpacity>
           </View>
           <TouchableOpacity
             style={styles.changePhotoButton}
+            onPress={handlePickPhoto}
             accessibilityRole='button'
             accessibilityLabel='Change profile photo'
           >
@@ -200,6 +344,64 @@ const EditProfileScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* Location Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Location</Text>
+
+          <TouchableOpacity
+            style={styles.locationButton}
+            onPress={handleUseMyLocation}
+            disabled={locating}
+            accessibilityRole="button"
+            accessibilityLabel="Use current GPS location to fill address"
+          >
+            {locating
+              ? <ActivityIndicator size="small" color="#FFFFFF" />
+              : <Ionicons name="location" size={18} color="#FFFFFF" />
+            }
+            <Text style={styles.locationButtonText}>
+              {locating ? 'Detecting location...' : 'Use My Location'}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Address</Text>
+            <TextInput
+              style={styles.input}
+              value={address}
+              onChangeText={setAddress}
+              placeholder="e.g. 42 High Street"
+              placeholderTextColor={theme.colors.textTertiary}
+              autoCorrect={false}
+            />
+          </View>
+
+          <View style={styles.locationRow}>
+            <View style={styles.locationRowLeft}>
+              <Text style={styles.label}>City</Text>
+              <TextInput
+                style={styles.input}
+                value={city}
+                onChangeText={setCity}
+                placeholder="e.g. London"
+                placeholderTextColor={theme.colors.textTertiary}
+              />
+            </View>
+            <View style={styles.locationRowSpacer} />
+            <View style={styles.locationRowRight}>
+              <Text style={styles.label}>Postcode</Text>
+              <TextInput
+                style={styles.input}
+                value={postcode}
+                onChangeText={setPostcode}
+                placeholder="e.g. SW1A 1AA"
+                placeholderTextColor={theme.colors.textTertiary}
+                autoCapitalize="characters"
+              />
+            </View>
+          </View>
+        </View>
+
         {/* Notification Preferences */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notification Preferences</Text>
@@ -253,6 +455,7 @@ const EditProfileScreen: React.FC = () => {
 
           <TouchableOpacity
             style={styles.actionItem}
+            onPress={handleChangePassword}
             accessibilityRole='button'
             accessibilityLabel='Change password'
           >
@@ -265,6 +468,7 @@ const EditProfileScreen: React.FC = () => {
 
           <TouchableOpacity
             style={[styles.actionItem, styles.dangerAction]}
+            onPress={handleDeleteAccount}
             accessibilityRole='button'
             accessibilityLabel='Delete account'
             accessibilityHint='This action cannot be undone'
@@ -279,7 +483,7 @@ const EditProfileScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -316,7 +520,7 @@ const styles = StyleSheet.create({
   saveButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     borderRadius: 12,
   },
   saveButtonText: {
@@ -346,7 +550,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -373,7 +577,7 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     fontSize: 16,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: '500',
   },
   section: {
@@ -466,6 +670,36 @@ const styles = StyleSheet.create({
   },
   dangerText: {
     color: theme.colors.error,
+  },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#222222',
+    borderRadius: 10,
+    paddingVertical: 12,
+    gap: 8,
+    marginBottom: 20,
+  },
+  locationButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    marginBottom: 0,
+  },
+  locationRowLeft: {
+    flex: 3,
+    marginBottom: 20,
+  },
+  locationRowSpacer: {
+    width: 12,
+  },
+  locationRowRight: {
+    flex: 2,
+    marginBottom: 20,
   },
 });
 

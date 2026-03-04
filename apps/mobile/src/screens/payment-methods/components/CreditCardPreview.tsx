@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing['2xl'],
   },
   card: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     borderRadius: theme.borderRadius.xl,
     padding: theme.spacing.xl,
     height: 200,

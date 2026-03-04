@@ -8,6 +8,7 @@ import { ErrorCapture } from './ErrorCapture';
 import { ErrorReporting } from './ErrorReporting';
 import { ErrorAnalytics } from './ErrorAnalytics';
 import { ErrorRecovery } from './ErrorRecovery';
+import { ErrorSeverity } from './ErrorTypes';
 
 // Export all types
 export * from './ErrorTypes';
@@ -267,7 +268,7 @@ export const enhancedErrorAnalytics = EnhancedErrorAnalytics.getInstance();
 export const trackEnhancedError = (
   error: Error,
   category: import('./ErrorTypes').ErrorCategory,
-  severity: import('./ErrorTypes').ErrorSeverity = import('./ErrorTypes').ErrorSeverity.ERROR,
+  severity: import('./ErrorTypes').ErrorSeverity = ErrorSeverity.ERROR,
   context: import('./ErrorTypes').ErrorContext = {},
   userId?: string
 ): string => {

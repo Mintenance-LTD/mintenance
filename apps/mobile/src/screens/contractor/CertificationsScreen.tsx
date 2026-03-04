@@ -75,7 +75,7 @@ export const CertificationsScreen: React.FC = () => {
                 <View style={styles.certBadges}>
                   <Badge variant={status.variant} size="sm">{status.label}</Badge>
                   {item.verified && (
-                    <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+                    <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
                   )}
                 </View>
               </View>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   certMeta: { flexDirection: 'row', justifyContent: 'space-between' },
   certDate: { fontSize: 12, color: theme.colors.textTertiary },
   credentialId: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 6 },
-  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
+  fab: { position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: '#222222', justifyContent: 'center', alignItems: 'center', ...theme.shadows.lg },
 });
 
 export default CertificationsScreen;

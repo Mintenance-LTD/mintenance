@@ -12,8 +12,6 @@ import { NavigationProp } from '@react-navigation/native';
 import { useHaptics } from '../../../utils/haptics';
 
 export interface HomeNavigationActions {
-  openContractorDiscovery: (params: Record<string, unknown>) => void;
-  openFindContractors: () => void;
   openServiceRequest: (params?: Record<string, unknown>) => void;
   openJobsList: () => void;
   openInbox: () => void;
@@ -41,27 +39,6 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
     this.navigation = navigation;
     this.haptics = haptics;
   }
-
-  /**
-   * Navigate to contractor discovery with Tinder-style interface
-   */
-  openContractorDiscovery = (params: Record<string, unknown>) => {
-    this.haptics.impact('light');
-    this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'ContractorDiscovery',
-      params,
-    });
-  };
-
-  /**
-   * Navigate to find contractors screen
-   */
-  openFindContractors = () => {
-    this.haptics.impact('light');
-    this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'FindContractors'
-    });
-  };
 
   /**
    * Navigate to service request screen
@@ -177,8 +154,6 @@ export const useHomeNavigation = (
   const coordinator = new HomeNavigationCoordinator(navigation, haptics);
 
   return {
-    openContractorDiscovery: coordinator.openContractorDiscovery,
-    openFindContractors: coordinator.openFindContractors,
     openServiceRequest: coordinator.openServiceRequest,
     openJobsList: coordinator.openJobsList,
     openInbox: coordinator.openInbox,
@@ -197,8 +172,6 @@ export const useHomeNavigation = (
  * Navigation route definitions for type safety
  */
 export type HomeNavigationRoutes = {
-  ContractorDiscovery: { params?: Record<string, unknown> };
-  FindContractors: undefined;
   ServiceRequest: { params?: Record<string, unknown> };
   JobsList: undefined;
   MessagesList: undefined;
@@ -253,14 +226,6 @@ export const generateQuickActions = (
   if (userRole === 'homeowner') {
     return [
       {
-        id: 'find_contractors',
-        title: 'Find Contractors',
-        subtitle: 'Discover professionals',
-        icon: 'search-outline',
-        color: '#34C759',
-        action: navigation.openFindContractors,
-      },
-      {
         id: 'post_job',
         title: 'Post Job',
         subtitle: 'Create service request',
@@ -295,14 +260,6 @@ export const generateQuickActions = (
         icon: 'calendar-outline',
         color: '#FF9500',
         action: navigation.openMeetingSchedule,
-      },
-      {
-        id: 'contractor_discovery',
-        title: 'Network',
-        subtitle: 'Connect with peers',
-        icon: 'people-outline',
-        color: '#5856D6',
-        action: () => navigation.openContractorDiscovery({}),
       },
       ...commonActions,
     ];

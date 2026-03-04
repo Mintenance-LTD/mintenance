@@ -18,19 +18,21 @@ export const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   header: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
     paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
     marginRight: 15,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
   },
   content: {
     flex: 1,
@@ -190,7 +192,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   startTravelButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   arrivedButton: {
     backgroundColor: theme.colors.success,

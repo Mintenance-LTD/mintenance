@@ -316,28 +316,6 @@ jest.mock('../../screens/ServiceRequestScreen', () => {
   };
 });
 
-jest.mock('../../screens/FindContractorsScreen', () => {
-  const { View, Text } = require('react-native');
-  return function MockFindContractorsScreen() {
-    return (
-      <View testID="find-contractors-screen">
-        <Text>Find Contractors Screen</Text>
-      </View>
-    );
-  };
-});
-
-jest.mock('../../screens/ContractorDiscoveryScreen', () => {
-  const { View, Text } = require('react-native');
-  return function MockContractorDiscoveryScreen() {
-    return (
-      <View testID="contractor-discovery-screen">
-        <Text>Contractor Discovery Screen</Text>
-      </View>
-    );
-  };
-});
-
 const { useAuth } = require('../../contexts/AuthContext');
 
 // Test wrapper component

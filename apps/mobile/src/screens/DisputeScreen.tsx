@@ -136,7 +136,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
               <Ionicons
                 name={reason.icon}
                 size={24}
-                color={selectedReason === reason.id ? theme.colors.primary : theme.colors.textSecondary}
+                color={selectedReason === reason.id ? '#222222' : theme.colors.textSecondary}
               />
               <Text style={[
                 styles.reasonLabel,
@@ -260,8 +260,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   reasonCardSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary + '08',
+    borderColor: '#222222',
+    backgroundColor: '#F7F7F7',
   },
   reasonLabel: {
     fontSize: theme.typography.fontSize.sm,
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   reasonLabelSelected: {
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: theme.typography.fontWeight.medium,
   },
   descriptionInput: {

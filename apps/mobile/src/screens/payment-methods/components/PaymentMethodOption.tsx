@@ -35,7 +35,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
     >
       <View style={styles.left}>
         <View style={styles.iconContainer}>
-          <Ionicons name={method.icon} size={24} color={theme.colors.textSecondary} />
+          <Ionicons name={method.icon as keyof typeof Ionicons.glyphMap} size={24} color={theme.colors.textSecondary} />
         </View>
         <Text style={styles.text}>{method.name}</Text>
       </View>
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   selected: {
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
   },
   left: {
     flexDirection: 'row',
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   radioSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
+    borderColor: '#222222',
+    backgroundColor: '#222222',
   },
 });

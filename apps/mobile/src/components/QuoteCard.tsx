@@ -80,7 +80,9 @@ export const QuoteCard: React.FC<QuoteCardProps> = ({
       <View style={styles.header}>
         <View style={styles.quoteInfo}>
           <View style={styles.titleRow}>
-            <Text style={styles.quoteNumber}>#{quote.quote_number}</Text>
+            <Text style={styles.quoteNumber}>
+              #{quote.quote_number || quote.id.slice(0, 8).toUpperCase()}
+            </Text>
             <View
               style={[
                 styles.statusBadge,

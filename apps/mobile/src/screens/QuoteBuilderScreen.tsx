@@ -151,24 +151,24 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         <Text style={styles.statsTitle}>Quote Performance</Text>
 
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderLeftColor: '#EBEBEB' }]}>
+          <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.total_quotes}</Text>
             <Text style={styles.statLabel}>Total Quotes</Text>
           </View>
 
-          <View style={[styles.statCard, { borderLeftColor: '#EBEBEB' }]}>
+          <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.accepted_quotes}</Text>
             <Text style={styles.statLabel}>Accepted</Text>
           </View>
         </View>
 
         <View style={styles.statsRow}>
-          <View style={[styles.statCard, { borderLeftColor: '#EBEBEB' }]}>
+          <View style={styles.statCard}>
             <Text style={styles.statValue}>£{stats.total_value.toFixed(0)}</Text>
             <Text style={styles.statLabel}>Total Value</Text>
           </View>
 
-          <View style={[styles.statCard, { borderLeftColor: '#EBEBEB' }]}>
+          <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.acceptance_rate.toFixed(1)}%</Text>
             <Text style={styles.statLabel}>Success Rate</Text>
           </View>
@@ -246,7 +246,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -267,11 +267,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             style={styles.actionButton}
             onPress={() => navigation.navigate('QuoteTemplates')}
           >
-            <Ionicons
-              name='document-text'
-              size={24}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='document-text' size={24} color='#717171' />
             <Text style={styles.actionButtonText}>Templates</Text>
           </TouchableOpacity>
 
@@ -279,7 +275,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             style={styles.actionButton}
             onPress={() => setShowAnalytics(prev => !prev)}
           >
-            <Ionicons name='analytics' size={24} color={theme.colors.primary} />
+            <Ionicons name='analytics' size={24} color='#717171' />
             <Text style={styles.actionButtonText}>Analytics</Text>
           </TouchableOpacity>
 
@@ -287,11 +283,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             style={styles.actionButton}
             onPress={() => navigation.navigate('CreateQuote')}
           >
-            <Ionicons
-              name='add-circle'
-              size={24}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='add-circle' size={24} color='#717171' />
             <Text style={styles.actionButtonText}>New Quote</Text>
           </TouchableOpacity>
         </View>
@@ -306,7 +298,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
                 <Text style={styles.analyticsLabel}>Total Quotes</Text>
               </View>
               <View style={styles.analyticsStat}>
-                <Text style={[styles.analyticsValue, { color: theme.colors.success }]}>
+                <Text style={styles.analyticsValue}>
                   {stats.acceptance_rate ? `${Math.round(stats.acceptance_rate)}%` : '—'}
                 </Text>
                 <Text style={styles.analyticsLabel}>Acceptance Rate</Text>
@@ -426,7 +418,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceSecondary,
     borderRadius: theme.borderRadius.base,
     padding: 16,
-    borderLeftWidth: 4,
     alignItems: 'center',
   },
   statValue: {
@@ -517,7 +508,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   createButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: theme.borderRadius.lg,
@@ -552,7 +543,7 @@ const styles = StyleSheet.create({
   analyticsValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   analyticsLabel: {
     fontSize: 11,

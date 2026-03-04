@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
 import { FinanceHeader } from '../components/finance/FinanceHeader';
@@ -37,7 +38,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FinanceHeader navigation={navigation} />
 
       <ScrollView
@@ -74,7 +75,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           </>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

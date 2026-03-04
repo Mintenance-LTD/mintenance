@@ -12,6 +12,7 @@ import { supabase } from '../../../config/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
 import * as Location from 'expo-location';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 
 export interface JobMapItem {
   id: string;
@@ -93,11 +94,31 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
   const [locationGranted, setLocationGranted] = useState(false);
   const [hasPanned, setHasPanned] = useState(false);
 
-  // Get user location on mount — tries GPS first, falls back to registered profile address
+  // Get user location on mount — prefers saved profile coordinates (home address), falls back to GPS
   useEffect(() => {
     isMounted.current = true;
     (async () => {
       try {
+        // Prefer the saved profile lat/lng — home maintenance is done at the user's home address.
+        // This also prevents the Android emulator's default GPS (Mountain View, CA) from overriding.
+        try {
+          const res = await mobileApiClient.get<{
+            profile: { latitude?: number; longitude?: number };
+          }>('/api/users/profile');
+          const { latitude: lat, longitude: lng } = res.profile;
+          if (lat && lng && isMounted.current) {
+            const coords = { latitude: lat, longitude: lng };
+            setUserLocation(coords);
+            setRegion((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+            logger.info('Map centered on saved profile coordinates');
+            return;
+          }
+        } catch {
+          // Profile coords unavailable — fall through to GPS
+        }
+
+        if (!isMounted.current) return;
+
         const { status: existing } = await Location.getForegroundPermissionsAsync();
         let finalStatus = existing;
         if (existing !== 'granted') {
@@ -107,7 +128,6 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
         if (!isMounted.current) return;
 
         if (finalStatus === 'granted') {
-          // GPS available — use device location
           setLocationGranted(true);
           const loc = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,
@@ -117,31 +137,14 @@ export const useJobsMapViewModel = (): JobsMapViewModel => {
           const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
           setUserLocation(coords);
           setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
-        } else {
-          // GPS denied — geocode the user's registered address from their profile
-          const addressParts = [user?.address, user?.city, user?.postcode].filter(Boolean);
-          if (addressParts.length > 0) {
-            try {
-              const geocoded = await Location.geocodeAsync(addressParts.join(', '));
-              if (!isMounted.current) return;
-              if (geocoded.length > 0) {
-                const coords = { latitude: geocoded[0].latitude, longitude: geocoded[0].longitude };
-                setUserLocation(coords);
-                setRegion((prev) => ({ ...prev, latitude: coords.latitude, longitude: coords.longitude }));
-                logger.info('Map centered on profile address', { address: addressParts.join(', ') });
-              }
-            } catch (geocodeErr) {
-              logger.warn('Profile address geocoding failed, using default region', geocodeErr);
-            }
-          }
-          // If no profile address or geocoding fails, region stays as default (London)
         }
+        // If GPS denied and no profile coords, region stays as default (London)
       } catch (err) {
         logger.warn('Location initialisation failed', err);
       }
     })();
     return () => { isMounted.current = false; };
-  }, [user?.address, user?.city, user?.postcode]);
+  }, []);
 
   // Fetch jobs — uses regionRef so we don't re-create on every pan
   const fetchJobs = useCallback(async () => {

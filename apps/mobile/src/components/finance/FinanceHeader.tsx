@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
@@ -24,7 +24,7 @@ export const FinanceHeader: React.FC<FinanceHeaderProps> = ({ navigation }) => {
       <Text style={styles.headerTitle}>Finance Dashboard</Text>
       <TouchableOpacity
         style={styles.exportButton}
-        onPress={() => Alert.alert('Coming Soon', 'Finance reports coming soon.')}
+        onPress={() => navigation.navigate('Reporting')}
         testID="export-button"
       >
         <Ionicons name='document-text' size={24} color={theme.colors.textPrimary} />

@@ -190,7 +190,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Captured Videos</Text>
               <TouchableOpacity onPress={handleStartVideoCapture}>
-                <Icon name="add-circle" size={24} color="#007AFF" />
+                <Icon name="add-circle" size={24} color="#717171" />
               </TouchableOpacity>
             </View>
             {capturedVideos.map(video => (
@@ -259,7 +259,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
             </View>
             <View style={styles.reviewRow}>
               <Text style={styles.reviewLabel}>Progress</Text>
-              <Text style={[styles.reviewValue, { color: theme.colors.success }]}>{progressPercentage}% complete</Text>
+              <Text style={styles.reviewValue}>{progressPercentage}% complete</Text>
             </View>
             <TouchableOpacity
               style={styles.submitButton}
@@ -280,7 +280,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({ navigation, route })
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F7F7F7',
   },
   content: {
     padding: 16,

@@ -124,7 +124,7 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.profileVisible ?? true}
           onValueChange={() => togglePrivacy('profileVisible')}
-          trackColor={{ false: '#E2E8F0', true: theme.colors.primary }}
+          trackColor={{ false: '#E2E8F0', true: '#222222' }}
         />
       ),
     },
@@ -135,7 +135,7 @@ export const SettingsHubScreen: React.FC = () => {
         <Switch
           value={settings?.privacy?.shareActivityData ?? false}
           onValueChange={() => togglePrivacy('shareActivityData')}
-          trackColor={{ false: '#E2E8F0', true: theme.colors.primary }}
+          trackColor={{ false: '#E2E8F0', true: '#222222' }}
         />
       ),
     },

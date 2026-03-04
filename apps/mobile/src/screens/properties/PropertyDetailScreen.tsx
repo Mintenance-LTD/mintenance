@@ -127,7 +127,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         }
       >
         <View style={styles.addressCard}>
-          <Ionicons name="home" size={32} color={theme.colors.primary} />
+          <Ionicons name="home" size={32} color='#717171' />
           <Text style={styles.addressLine1}>{property.property_name}</Text>
           <Text style={styles.addressCity}>
             {property.address}
@@ -200,7 +200,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
               <TouchableOpacity
                 key={job.id}
                 style={styles.jobRow}
-                onPress={() => navigation.navigate('JobsTab' as never, { screen: 'JobDetails', params: { jobId: job.id } } as never)}
+                onPress={() => navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId: job.id } })}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${job.title}`}
               >
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   totalSpent: {
     fontSize: theme.typography.fontSize.sm,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   emptyJobsText: {
     fontSize: theme.typography.fontSize.base,

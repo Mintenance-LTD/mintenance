@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   ratingLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: '#222222',
     marginTop: 8,
   },
   commentSection: {

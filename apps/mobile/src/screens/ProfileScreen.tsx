@@ -7,6 +7,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { theme } from '../theme';
@@ -127,10 +128,11 @@ const ProfileScreen: React.FC = () => {
   ], [navigation]);
 
   return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
     <ResponsiveContainer
       maxWidth={{ mobile: undefined, tablet: 768, desktop: 1200 }}
       padding={{ mobile: 0, tablet: 16, desktop: 24 }}
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={{ flex: 1 }}
     >
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <ProfileHeader user={user} joinDate={userStats.joinDate} />
@@ -169,6 +171,7 @@ const ProfileScreen: React.FC = () => {
         </View>
       </ScrollView>
     </ResponsiveContainer>
+    </SafeAreaView>
   );
 };
 

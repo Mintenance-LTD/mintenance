@@ -4,7 +4,7 @@ import { theme } from '../../theme';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#007AFF',
+    backgroundColor: '#222222',
   },
   loader: {
     marginTop: 8,
@@ -125,7 +125,7 @@ export const styles = StyleSheet.create({
   queueStatValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#007AFF',
+    color: theme.colors.textPrimary,
   },
   queueStatLabel: {
     fontSize: 12,
@@ -155,7 +155,7 @@ export const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   overallAssessment: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
@@ -282,7 +282,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: theme.colors.primary,
   },
   primaryButtonText: {
     color: 'white',
@@ -299,7 +299,7 @@ export const styles = StyleSheet.create({
   },
   tipsCard: {
     flexDirection: 'row',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
@@ -308,7 +308,7 @@ export const styles = StyleSheet.create({
   tipsText: {
     flex: 1,
     fontSize: 13,
-    color: '#1565C0',
+    color: theme.colors.textSecondary,
     lineHeight: 18,
   },
 });

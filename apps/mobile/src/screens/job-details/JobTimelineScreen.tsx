@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   },
   currentStepLabel: {
     fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
+    color: '#222222',
   },
   stepDescription: {
     fontSize: theme.typography.fontSize.sm,

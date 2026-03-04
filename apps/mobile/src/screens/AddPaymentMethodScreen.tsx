@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { CardField, useStripe } from '@stripe/stripe-react-native';
@@ -163,7 +164,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         }}
         disabled={notifyMePayPal}
       >
-        <Ionicons name={notifyMePayPal ? 'checkmark-circle' : 'notifications-outline'} size={18} color={notifyMePayPal ? theme.colors.success : theme.colors.primary} />
+        <Ionicons name={notifyMePayPal ? 'checkmark-circle' : 'notifications-outline'} size={18} color={notifyMePayPal ? theme.colors.success : '#717171'} />
         <Text style={[styles.notifyButtonText, notifyMePayPal && { color: theme.colors.success }]}>
           {notifyMePayPal ? 'Notifications enabled' : 'Notify me when available'}
         </Text>
@@ -212,8 +213,9 @@ const AddPaymentMethodScreen: React.FC = () => {
   );
 
   return (
+    <SafeAreaView style={styles.container}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.header}>
@@ -239,7 +241,7 @@ const AddPaymentMethodScreen: React.FC = () => {
             <Ionicons
               name="card"
               size={24}
-              color={paymentType === 'card' ? theme.colors.textInverse : theme.colors.primary}
+              color={paymentType === 'card' ? theme.colors.textInverse : '#717171'}
             />
             <Text style={[
               styles.paymentTypeText,
@@ -270,7 +272,7 @@ const AddPaymentMethodScreen: React.FC = () => {
             <Ionicons
               name="business"
               size={24}
-              color={paymentType === 'bank' ? theme.colors.textInverse : theme.colors.primary}
+              color={paymentType === 'bank' ? theme.colors.textInverse : '#717171'}
             />
             <Text style={[styles.paymentTypeText, paymentType === 'bank' && styles.paymentTypeTextActive]}>
               Bank Account
@@ -288,7 +290,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         {/* Security Info */}
         <View style={styles.securityInfo}>
           <View style={styles.securityHeader}>
-            <Ionicons name="shield-checkmark" size={20} color={theme.colors.primary} />
+            <Ionicons name="shield-checkmark" size={20} color='#717171' />
             <Text style={styles.securityTitle}>Your information is secure</Text>
           </View>
           <Text style={styles.securityText}>
@@ -307,6 +309,7 @@ const AddPaymentMethodScreen: React.FC = () => {
         />
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -364,8 +367,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.borderLight,
   },
   paymentTypeButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   paymentTypeText: {
     fontSize: 12,
@@ -519,14 +522,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: theme.colors.primary,
+    borderColor: '#EBEBEB',
     alignSelf: 'center',
   },
   notifyButtonActive: {
     borderColor: theme.colors.success,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F7F7F7',
   },
-  notifyButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.primary },
+  notifyButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
 });
 
 export default AddPaymentMethodScreen;

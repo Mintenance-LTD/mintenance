@@ -332,7 +332,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Meeting Details</Text>
       </View>
@@ -358,7 +358,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
           <View style={styles.participantInfo}>
             <View style={styles.participant}>
-              <Ionicons name="person-circle" size={40} color={theme.colors.primary} />
+              <Ionicons name="person-circle" size={40} color='#717171' />
               <View>
                 <Text style={styles.participantName}>
                   {meeting.contractor
@@ -398,7 +398,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   }}
                   title="Meeting Location"
                   description={meeting.location.address}
-                  pinColor={theme.colors.primary}
+                  pinColor={'#222222'}
                 />
 
                 {/* Contractor Location Marker */}
@@ -431,7 +431,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                         longitude: meeting.location.longitude,
                       },
                     ]}
-                    strokeColor={theme.colors.primary}
+                    strokeColor={'#222222'}
                     strokeWidth={3}
                     lineDashPattern={[5, 10]}
                   />
@@ -443,7 +443,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <View style={styles.locationOverlay}>
               {contractorLocation && distance && (
                 <View style={styles.distanceInfo}>
-                  <Ionicons name="location" size={16} color={theme.colors.primary} />
+                  <Ionicons name="location" size={16} color='#717171' />
                   <Text style={styles.distanceText}>
                     {distance.toFixed(1)} km away
                   </Text>
@@ -478,7 +478,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             ) : (
               <View style={styles.trackingActiveContainer}>
                 <View style={styles.etaDisplay}>
-                  <Ionicons name="time" size={20} color={theme.colors.primary} />
+                  <Ionicons name="time" size={20} color='#717171' />
                   <Text style={styles.etaText}>
                     ETA: {travelTracking.eta ? `${travelTracking.eta} minutes` : 'Calculating...'}
                   </Text>
@@ -523,7 +523,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleMessageContractor}
             >
-              <Ionicons name="chatbubble" size={20} color={theme.colors.primary} />
+              <Ionicons name="chatbubble" size={20} color='#717171' />
               <Text style={styles.actionButtonText}>Message</Text>
             </TouchableOpacity>
 
@@ -531,7 +531,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               style={styles.actionButton}
               onPress={handleReschedule}
             >
-              <Ionicons name="calendar" size={20} color={theme.colors.warning} />
+              <Ionicons name="calendar" size={20} color='#717171' />
               <Text style={styles.actionButtonText}>Reschedule</Text>
             </TouchableOpacity>
 
@@ -563,7 +563,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                         : 'notifications'
                     }
                     size={16}
-                    color={theme.colors.primary}
+                    color='#717171'
                   />
                 </View>
                 <View style={styles.updateContent}>
