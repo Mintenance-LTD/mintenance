@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { User as UserIcon, Shield, Bell, Globe, Loader2 } from 'lucide-react';
+import { User as UserIcon, Shield, Bell, Globe, Loader2, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -226,6 +227,17 @@ export default function ProfilePage2025() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50">
+      {/* Back to Dashboard */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <Link
+          href={user.role === 'contractor' ? '/contractor/dashboard' : '/dashboard'}
+          className="inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </Link>
+      </div>
+
       <ProfileHeroHeader
         firstName={userData.firstName}
         lastName={userData.lastName}
