@@ -241,7 +241,7 @@ export class AuthManager {
           email: userData.email,
           service: 'auth'
         });
-        const { error: confirmError } = await serverSupabase.auth.admin.updateUser(
+        const { error: confirmError } = await serverSupabase.auth.admin.updateUserById(
           authData.user.id,
           { email_confirm: true }
         );
