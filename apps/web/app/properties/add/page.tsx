@@ -96,7 +96,7 @@ export default function AddPropertyPage2025() {
 
         const uploadRes = await fetch('/api/properties/upload-photos', {
           method: 'POST',
-          headers: { 'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '' },
+          headers: { ...getCsrfHeaders() },
           body: uploadFormData,
         });
 
