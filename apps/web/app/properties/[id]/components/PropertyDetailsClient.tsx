@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { SpendingChart, aggregateSpendingByMonth } from '@/app/properties/components/SpendingChart';
 import { calculatePropertyHealthScore } from '@/lib/utils/property-health-score';
 import { PropertyHealthScoreCard } from '@/app/properties/components/PropertyHealthScore';
@@ -244,7 +245,7 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
         const response = await fetch(`/api/properties/${property.id}`, {
           method: 'DELETE',
           headers: {
-            'X-CSRF-Token': window.csrfToken || '',
+            ...await getCsrfHeaders(),
           },
         });
 

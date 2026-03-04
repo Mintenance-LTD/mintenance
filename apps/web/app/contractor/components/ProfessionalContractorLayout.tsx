@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   Home,
   Briefcase,
@@ -257,7 +258,7 @@ export function ProfessionalContractorLayout({
   // Handle logout
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST', headers: await getCsrfHeaders() });
       router.push('/login');
     } catch (error) {
       logger.error('Logout error', error, { service: 'ui' });

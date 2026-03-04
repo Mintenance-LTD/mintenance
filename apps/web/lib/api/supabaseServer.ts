@@ -4,10 +4,18 @@ import { createClient, SupabaseClient, SupabaseClientOptions } from '@supabase/s
 // Module-level constants can capture stale/placeholder values during
 // Vercel serverless cold starts or Next.js build-time page collection.
 function getSupabaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) {
+    throw new Error('[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL environment variable.');
+  }
+  return url;
 }
 function getSupabaseServiceKey(): string {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) {
+    throw new Error('[Supabase] Missing SUPABASE_SERVICE_ROLE_KEY environment variable. Server operations will fail without the service role key.');
+  }
+  return key;
 }
 
 /**

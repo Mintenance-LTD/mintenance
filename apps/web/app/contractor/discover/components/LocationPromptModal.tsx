@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Navigation, MapPinned, X, AlertCircle, Loader2 } from 'lucide-react';
 import { designTokens } from '@/lib/design-tokens';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 
 // ============================================
 // TYPE DEFINITIONS
@@ -258,7 +259,7 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRF-Token': window.csrfToken || '',
+        ...await getCsrfHeaders(),
       },
       body: JSON.stringify({
         contractorId,

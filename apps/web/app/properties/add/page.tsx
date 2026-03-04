@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, Crown, Home, Lock, Upload, X, Building2, Building } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useFeatureAccess } from '@/hooks/useFeatureAccess';
+import { useCSRF } from '@/lib/hooks/useCSRF';
 import Link from 'next/link';
 
 interface PropertyFormData {
@@ -22,6 +23,7 @@ interface PropertyFormData {
 export default function AddPropertyPage2025() {
   const router = useRouter();
   const { hasAccess: checkAccess, loading: featureLoading, tier } = useFeatureAccess();
+  const { getCsrfHeaders } = useCSRF();
 
   const [formData, setFormData] = useState<PropertyFormData>({
     name: '',
@@ -112,7 +114,7 @@ export default function AddPropertyPage2025() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          ...getCsrfHeaders(),
         },
         body: JSON.stringify({
           property_name: formData.name.trim(),

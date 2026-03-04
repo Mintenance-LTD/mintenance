@@ -192,7 +192,8 @@ export default function JobEditPage2025() {
       for (const file of Array.from(files)) {
         const formData = new FormData();
         formData.append('file', file);
-        const response = await fetch('/api/upload', { method: 'POST', body: formData });
+        const csrfToken = await getCsrfToken();
+        const response = await fetch('/api/upload', { method: 'POST', headers: { 'x-csrf-token': csrfToken }, body: formData });
         if (!response.ok) {
           const error = await response.json();
           throw new Error(error.error || 'Failed to upload image');

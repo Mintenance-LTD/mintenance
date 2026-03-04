@@ -185,7 +185,9 @@ export default function ContractorSettingsPage() {
     const formData = new FormData();
     formData.append('profileImage', file);
     try {
-      const response = await fetch('/api/user/update-profile', { method: 'POST', body: formData });
+      const csrfRes = await fetch('/api/csrf');
+      const { token: csrfToken } = csrfRes.ok ? await csrfRes.json() : { token: '' };
+      const response = await fetch('/api/user/update-profile', { method: 'POST', headers: csrfToken ? { 'x-csrf-token': csrfToken } : {}, body: formData });
       if (response.ok) { const data = await response.json(); if (data.profileImageUrl) { setProfileData({ ...profileData, profile_image_url: data.profileImageUrl }); toast.success('Profile picture updated'); } }
       else toast.error('Failed to upload image');
     } catch (error) { toast.error('Error uploading image'); }
@@ -194,7 +196,9 @@ export default function ContractorSettingsPage() {
   const handleExportData = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/user/export-data', { method: 'POST' });
+      const csrfRes2 = await fetch('/api/csrf');
+      const { token: csrfToken2 } = csrfRes2.ok ? await csrfRes2.json() : { token: '' };
+      const response = await fetch('/api/user/export-data', { method: 'POST', headers: csrfToken2 ? { 'x-csrf-token': csrfToken2 } : {} });
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -210,7 +214,9 @@ export default function ContractorSettingsPage() {
 
   const handleDeleteAccount = async () => {
     try {
-      const response = await fetch('/api/user/delete-account', { method: 'DELETE' });
+      const csrfRes3 = await fetch('/api/csrf');
+      const { token: csrfToken3 } = csrfRes3.ok ? await csrfRes3.json() : { token: '' };
+      const response = await fetch('/api/user/delete-account', { method: 'DELETE', headers: csrfToken3 ? { 'x-csrf-token': csrfToken3 } : {} });
       if (response.ok) { toast.success('Account deleted successfully'); window.location.href = '/login?deleted=true'; }
       else toast.error('Failed to delete account');
     } catch (error) { toast.error('Error deleting account'); }
