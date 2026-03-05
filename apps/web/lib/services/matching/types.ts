@@ -14,6 +14,7 @@ export interface MatchingCriteria {
   preferredSkills?: string[];
   projectComplexity: 'simple' | 'medium' | 'complex';
   timeframe: 'immediate' | 'this_week' | 'this_month' | 'flexible';
+  homeownerTier?: 'free' | 'landlord' | 'agency';
 }
 
 export interface ContractorMatch {

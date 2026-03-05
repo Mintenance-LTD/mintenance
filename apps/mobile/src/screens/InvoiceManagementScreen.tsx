@@ -10,6 +10,8 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
@@ -20,10 +22,16 @@ import Button from '../components/ui/Button';
 import { Banner } from '../components/ui/Banner';
 import { useToast } from '../components/ui/Toast';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import type { JobsStackParamList, ProfileStackParamList } from '../navigation/types';
+
+// Shared between ProfileStack and JobsStack — navigates to CreateInvoice and InvoiceDetail
+type InvoiceNavigation = CompositeNavigationProp<
+  NativeStackNavigationProp<JobsStackParamList>,
+  NativeStackNavigationProp<ProfileStackParamList>
+>;
 
 interface InvoiceManagementScreenProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  navigation: any; // Shared between ProfileStack and JobsStack — navigates to CreateInvoice and InvoiceDetail
+  navigation: InvoiceNavigation;
 }
 
 export const InvoiceManagementScreen: React.FC<

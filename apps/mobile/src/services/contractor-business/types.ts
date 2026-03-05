@@ -258,3 +258,30 @@ export interface ReviewManagement {
   featured: boolean;
   created_at: string;
 }
+
+// =====================================================
+// HOOK-COMPATIBLE TYPES (simplified for UI layer)
+// =====================================================
+
+export interface BusinessGoal {
+  id?: string;
+  contractor_id?: string;
+  title: string;
+  description?: string;
+  target_value: number;
+  target_date: string;
+  category?: string;
+  status?: string;
+}
+
+export interface ClientCRM {
+  id: string;
+  contractorId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  companyName?: string;
+  status?: string;
+  notes?: string;
+}

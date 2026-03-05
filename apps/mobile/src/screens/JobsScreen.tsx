@@ -13,6 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { JobsStackParamList } from '../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { JobService } from '../services/JobService';
@@ -63,7 +65,7 @@ const FILTER_LABELS: Record<FilterStatus, string> = {
 
 const JobsScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
   const queryClient = useQueryClient();
 
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
@@ -130,7 +132,7 @@ const JobsScreen: React.FC = () => {
 
   const newToday = useMemo(() =>
     allJobs.filter((j) => {
-      const age = (Date.now() - new Date(j.created_at || (j as any).createdAt || Date.now()).getTime()) / (1000 * 3600 * 24);
+      const age = (Date.now() - new Date(j.created_at || j.createdAt || Date.now()).getTime()) / (1000 * 3600 * 24);
       return age < 1;
     }).length,
   [allJobs]);
@@ -160,7 +162,7 @@ const JobsScreen: React.FC = () => {
     <JobCard
       item={item}
       saved={savedJobIds.has(item.id)}
-      onPress={() => (navigation as any).navigate('JobDetails', { jobId: item.id })}
+      onPress={() => navigation.navigate('JobDetails', { jobId: item.id })}
       onSave={() => toggleSave(item.id)}
       bidCount={item.bids?.length}
     />
@@ -300,17 +302,17 @@ const JobCard: React.FC<{
   hasAIAssessment?: boolean;
 }> = ({ item, saved, onPress, onSave, bidCount, hasAIAssessment }) => {
   const daysAgo = Math.floor(
-    (Date.now() - new Date(item.created_at || (item as any).createdAt || Date.now()).getTime()) / (1000 * 3600 * 24)
+    (Date.now() - new Date(item.created_at || item.createdAt || Date.now()).getTime()) / (1000 * 3600 * 24)
   );
-  const photos = item.photos || (item as any).images || [];
+  const photos = item.photos || item.images || [];
   const hasPhotos = photos.length > 0;
 
   // Show city/town only — strip full address noise
-  const rawLocation = typeof item.location === 'string' ? item.location : (item as any).city || '';
-  const locationStr = (item as any).city || rawLocation.split(',').slice(-2, -1)[0]?.trim() || rawLocation;
+  const rawLocation = typeof item.location === 'string' ? item.location : item.city || '';
+  const locationStr = item.city || rawLocation.split(',').slice(-2, -1)[0]?.trim() || rawLocation;
 
-  const budget = item.budget || (item as any).budget_min || 0;
-  const urgency = item.urgency || (item as any).priority || 'medium';
+  const budget = item.budget || item.budget_min || 0;
+  const urgency = item.urgency || item.priority || 'medium';
   const isUrgent = urgency === 'high' || urgency === 'emergency';
   const catKey = item.category?.toLowerCase() || 'general';
   const catColor = CATEGORY_COLORS[catKey] || CATEGORY_COLORS.general;

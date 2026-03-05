@@ -481,12 +481,14 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
                 </div>
               </div>
 
-              {/* Spending Trend Chart */}
+              {/* Spending Trend Chart — gated: landlord + agency */}
               {jobs.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending Trend</h2>
-                  <SpendingChart data={aggregateSpendingByMonth(jobs)} height={280} />
-                </div>
+                <FeatureGateCard featureId="HOMEOWNER_PORTFOLIO_ANALYTICS">
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending Trend</h2>
+                    <SpendingChart data={aggregateSpendingByMonth(jobs)} height={280} />
+                  </div>
+                </FeatureGateCard>
               )}
             </div>
 

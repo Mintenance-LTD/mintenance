@@ -1,9 +1,9 @@
 import { productionReadinessOrchestrator } from '../../utils/productionReadinessOrchestrator';
 import { logger } from '../../utils/logger';
 import { performanceMonitor } from '../../utils/performanceMonitor';
-import { WebOptimizations } from '../../utils/webOptimizations';
+import { WebOptimizationsManager } from '../../utils/webOptimizations/';
 import { monitoringAndAlerting } from '../../utils/monitoringAndAlerting';
-import { enhancedErrorAnalytics } from '../../utils/errorTracking';
+import { enhancedErrorAnalytics } from '../../utils/errorTracking/';
 import { securityAuditService } from '../../utils/security';
 import { apiProtectionService } from '../../utils/ApiProtection';
 import { Platform } from 'react-native';
@@ -27,9 +27,22 @@ jest.mock('../../utils/performanceMonitor', () => ({
 }));
 
 jest.mock('../../utils/webOptimizations', () => ({
-  WebOptimizations: {
-    getInstance: jest.fn()
-  }
+  WebOptimizationsManager: {
+    getInstance: jest.fn(() => ({
+      initialize: jest.fn().mockResolvedValue(undefined),
+      getWebVitals: jest.fn(() => ({ lcp: 2000, fid: 50, cls: 0.05 })),
+      initialized: true,
+    })),
+  },
+}));
+jest.mock('../../utils/webOptimizations/', () => ({
+  WebOptimizationsManager: {
+    getInstance: jest.fn(() => ({
+      initialize: jest.fn().mockResolvedValue(undefined),
+      getWebVitals: jest.fn(() => ({ lcp: 2000, fid: 50, cls: 0.05 })),
+      initialized: true,
+    })),
+  },
 }));
 
 jest.mock('../../utils/monitoringAndAlerting', () => ({
@@ -41,6 +54,13 @@ jest.mock('../../utils/monitoringAndAlerting', () => ({
 }));
 
 jest.mock('../../utils/errorTracking', () => ({
+  enhancedErrorAnalytics: {
+    getErrorAnalytics: jest.fn(),
+    getErrorPatterns: jest.fn(),
+    getTrendAnalysis: jest.fn()
+  }
+}));
+jest.mock('../../utils/errorTracking/', () => ({
   enhancedErrorAnalytics: {
     getErrorAnalytics: jest.fn(),
     getErrorPatterns: jest.fn(),
@@ -114,18 +134,18 @@ describe('ProductionReadinessOrchestrator', () => {
     });
     (apiProtectionService.getSecurityStats as jest.Mock).mockReturnValue({ recentViolations: 2 });
 
-    // Setup mock WebOptimizations instance
+    // Setup mock WebOptimizationsManager instance
     mockWebOptimizationsInstance = {
       initialized: false,
-      initializeEnhanced: jest.fn(),
-      getCoreWebVitals: jest.fn().mockReturnValue({
+      initialize: jest.fn().mockResolvedValue(undefined),
+      getWebVitals: jest.fn().mockReturnValue({
         lcp: 2000,
         fid: 80,
         cls: 0.05
       })
     };
 
-    (WebOptimizations.getInstance as jest.Mock).mockReturnValue(mockWebOptimizationsInstance);
+    (WebOptimizationsManager.getInstance as jest.Mock).mockReturnValue(mockWebOptimizationsInstance);
   });
 
   afterEach(() => {
@@ -170,21 +190,13 @@ describe('ProductionReadinessOrchestrator', () => {
 
       await productionReadinessOrchestrator.initialize();
 
-      expect(WebOptimizations.getInstance).toHaveBeenCalled();
-      expect(mockWebOptimizationsInstance.initializeEnhanced).toHaveBeenCalledWith(
+      expect(WebOptimizationsManager.getInstance).toHaveBeenCalled();
+      expect(mockWebOptimizationsInstance.initialize).toHaveBeenCalledWith(
         expect.objectContaining({
-          appName: 'Mintenance',
-          themeColor: '#007AFF'
-        }),
-        expect.objectContaining({
-          enableWebP: true,
-          enableLazyLoading: true
-        }),
-        expect.objectContaining({
-          siteName: 'Mintenance'
-        }),
-        expect.objectContaining({
-          googleAnalyticsId: 'G-XXXXXXXXXX'
+          pwa: expect.objectContaining({ appName: 'Mintenance', themeColor: '#007AFF' }),
+          image: expect.objectContaining({ enableWebP: true, enableLazyLoading: true }),
+          seo: expect.objectContaining({ siteName: 'Mintenance' }),
+          analytics: expect.objectContaining({ googleAnalyticsId: 'G-XXXXXXXXXX' }),
         })
       );
 
@@ -248,7 +260,7 @@ describe('ProductionReadinessOrchestrator', () => {
 
       const mocks = { ...defaults, ...overrides };
 
-      mockWebOptimizationsInstance.getCoreWebVitals.mockReturnValue(mocks.webMetrics);
+      mockWebOptimizationsInstance.getWebVitals.mockReturnValue(mocks.webMetrics);
       mockWebOptimizationsInstance.initialized = true;
 
       (monitoringAndAlerting.checkSystemHealth as jest.Mock).mockResolvedValue(mocks.healthStatus);

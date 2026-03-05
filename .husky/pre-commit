@@ -4,6 +4,14 @@
 
 echo "🔍 Running pre-commit checks..."
 
+# Block any attempt to commit a .env file
+STAGED_ENV=$(git diff --cached --name-only | grep -E '\.env(\.|$)' || true)
+if [ -n "$STAGED_ENV" ]; then
+  echo "❌ SECURITY: .env file is staged for commit: $STAGED_ENV"
+  echo "Run: git reset HEAD $STAGED_ENV"
+  exit 1
+fi
+
 # Check for existing hex validation
 node scripts/ci/check-no-hex.js || exit 1
 

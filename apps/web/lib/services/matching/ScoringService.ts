@@ -43,8 +43,11 @@ export class ScoringService {
     const marketRate = 75; // Mock market average
     const priceCompetitiveness = Math.max(0, 100 - Math.abs(contractorRate - marketRate) / marketRate * 100);
 
+    // Priority tier boost for landlord/agency homeowners (+5 overall)
+    const tierBoost = criteria.homeownerTier === 'landlord' || criteria.homeownerTier === 'agency' ? 5 : 0;
+
     // Calculate weighted overall score
-    const overallScore = (
+    const overallScore = Math.min(100,
       skillMatch * 0.30 +
       locationScore * 0.20 +
       budgetAlignment * 0.15 +
@@ -52,7 +55,8 @@ export class ScoringService {
       availabilityScore * 0.10 +
       experienceScore * 0.05 +
       responsiveness * 0.03 +
-      priceCompetitiveness * 0.02
+      priceCompetitiveness * 0.02 +
+      tierBoost
     );
 
     return {

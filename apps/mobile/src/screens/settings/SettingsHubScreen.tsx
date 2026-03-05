@@ -8,6 +8,12 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as WebBrowser from 'expo-web-browser';
+
+const LEGAL_URLS = {
+  privacyPolicy: 'https://mintenance.app/privacy',
+  termsAndConditions: 'https://mintenance.app/terms',
+} as const;
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -148,6 +154,19 @@ export const SettingsHubScreen: React.FC = () => {
     { label: 'Reviews', icon: 'star-outline', onPress: () => navigation.navigate('Reviews') },
   ];
 
+  const legalItems: SettingsRow[] = [
+    {
+      label: 'Privacy Policy',
+      icon: 'shield-checkmark-outline',
+      onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy),
+    },
+    {
+      label: 'Terms & Conditions',
+      icon: 'document-text-outline',
+      onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.termsAndConditions),
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <ScreenHeader title="Settings" showBack onBack={() => navigation.goBack()} />
@@ -156,6 +175,7 @@ export const SettingsHubScreen: React.FC = () => {
         {renderSection('Account', accountItems)}
         {renderSection('Privacy', privacyItems)}
         {renderSection('More', supportItems)}
+        {renderSection('Legal', legalItems)}
       </ScrollView>
     </SafeAreaView>
   );

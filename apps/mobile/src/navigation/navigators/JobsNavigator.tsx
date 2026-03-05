@@ -148,8 +148,7 @@ export const JobsNavigator: React.FC = () => {
     >
       <JobsStack.Screen
         name="InvoiceManagement"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        component={SafeInvoiceManagementScreen as any}
+        component={SafeInvoiceManagementScreen as React.ComponentType<object>}
         options={{
           title: 'Invoices',
           headerShown: false,
@@ -158,15 +157,13 @@ export const JobsNavigator: React.FC = () => {
 
       <JobsStack.Screen
         name="CreateInvoice"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        component={SafeCreateInvoiceScreen as any}
+        component={SafeCreateInvoiceScreen as React.ComponentType<object>}
         options={{ title: 'New Invoice', headerShown: false, presentation: 'modal', gestureEnabled: true }}
       />
 
       <JobsStack.Screen
         name="InvoiceDetail"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        component={SafeInvoiceDetailScreen as any}
+        component={SafeInvoiceDetailScreen as React.ComponentType<object>}
         options={{ title: 'Invoice Detail', headerShown: false, gestureEnabled: true }}
       />
 
@@ -201,15 +198,13 @@ export const JobsNavigator: React.FC = () => {
       />
       <JobsStack.Screen
         name="JobPayment"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        component={SafePaymentScreen as any}
+        component={SafePaymentScreen as React.ComponentType<object>}
         options={{ title: 'Payment', presentation: 'modal', gestureEnabled: true }}
       />
 
       <JobsStack.Screen
         name="JobTimeline"
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        component={SafeJobTimelineScreen as any}
+        component={SafeJobTimelineScreen as React.ComponentType<object>}
         options={{
           title: 'Job Timeline',
           headerShown: false,

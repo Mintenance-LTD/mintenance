@@ -1,17 +1,24 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { NotFoundError } from '@/lib/errors/api-error';
+import { NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { updatePropertySchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  // Allow property owner OR team members with any role to view
+  const { authorized } = await PropertyTeamService.authorize(user.id, params.id, 'view');
+
+  if (!authorized && user.role !== 'admin') {
+    throw new NotFoundError('Property not found');
+  }
+
   const { data, error } = await serverSupabase
     .from('properties')
     .select('*')
     .eq('id', params.id)
-    .eq('owner_id', user.id)
     .single();
 
   if (error || !data) {
@@ -22,6 +29,12 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
 });
 
 export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  // Require manager+ role for edits
+  const { authorized } = await PropertyTeamService.authorize(user.id, params.id, 'edit');
+  if (!authorized && user.role !== 'admin') {
+    throw new ForbiddenError('You do not have permission to edit this property');
+  }
+
   // Validate and sanitize input using Zod schema
   const validation = await validateRequest(request, updatePropertySchema);
   if ('headers' in validation) {
@@ -58,7 +71,6 @@ export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
       updated_at: new Date().toISOString(),
     })
     .eq('id', params.id)
-    .eq('owner_id', user.id)
     .select()
     .single();
 
@@ -79,12 +91,17 @@ export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
 });
 
 export const DELETE = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user, params }) => {
+  // Only property owner can delete
+  const { authorized } = await PropertyTeamService.authorize(user.id, params.id, 'delete');
+  if (!authorized && user.role !== 'admin') {
+    throw new ForbiddenError('Only the property owner can delete this property');
+  }
+
   // Delete the property from the database
   const { error } = await serverSupabase
     .from('properties')
     .delete()
-    .eq('id', params.id)
-    .eq('owner_id', user.id);
+    .eq('id', params.id);
 
   if (error) {
     logger.error('Error deleting property', error, {

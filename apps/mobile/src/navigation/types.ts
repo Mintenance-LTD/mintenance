@@ -98,8 +98,7 @@ export type ProfileStackParamList = {
   InvoiceDetail: { invoiceId: string };
   CRMDashboard: undefined;
   AddClient: undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ClientDetail: { client: any }; // ClientData from ClientCard
+  ClientDetail: { client: Record<string, unknown> }; // ClientData — use ClientData type directly in ClientDetailScreen
   QuoteDetail: { quoteId: string };
   QuoteTemplates: undefined;
   FinanceDashboard: undefined;

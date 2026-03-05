@@ -40,6 +40,7 @@ export function usePayment({
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const fees = PaymentService.calculateFees(amount);
   const platformFee = fees.platformFee;
@@ -145,12 +146,26 @@ export function usePayment({
         );
       }
     } catch (err) {
-      Alert.alert('Payment Failed', 'Please try again or contact support.');
       logger.error('Payment failed', err);
+      setRetryCount((prev) => prev + 1);
+      Alert.alert(
+        'Payment Failed',
+        retryCount < 2
+          ? 'There was a problem processing your payment. Would you like to try again?'
+          : 'Payment could not be completed. Please check your connection and try a different payment method.',
+        retryCount < 2
+          ? [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Try Again', onPress: handlePayment },
+            ]
+          : [{ text: 'OK' }]
+      );
     } finally {
       setProcessing(false);
     }
   };
+
+  const resetRetry = () => setRetryCount(0);
 
   return {
     paymentMethods,
@@ -164,5 +179,7 @@ export function usePayment({
     totalAmount,
     handlePayment,
     loadPaymentMethods,
+    retryCount,
+    resetRetry,
   };
 }

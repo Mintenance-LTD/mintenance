@@ -96,6 +96,16 @@ export const GET = withApiHandler(
     // Determine complexity from budget (simple heuristic)
     const complexity = job.budget > 5000 ? 'complex' : job.budget > 2000 ? 'medium' : 'simple';
 
+    // Look up homeowner subscription tier for priority matching
+    const { data: subscription } = await serverSupabase
+      .from('homeowner_subscriptions')
+      .select('plan_type')
+      .eq('homeowner_id', user.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    const homeownerTier = (subscription?.plan_type as 'free' | 'landlord' | 'agency') || 'free';
+
     // Build matching criteria
     const criteria: MatchingCriteria = {
       jobId: job.id,
@@ -112,6 +122,7 @@ export const GET = withApiHandler(
       requiredSkills,
       projectComplexity: complexity,
       timeframe: urgency === 'urgent' || urgency === 'emergency' ? 'immediate' : 'this_week',
+      homeownerTier,
     };
 
     // Get intelligently matched contractors

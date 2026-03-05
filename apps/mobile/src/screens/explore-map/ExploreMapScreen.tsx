@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { JobsStackParamList } from '../../navigation/types';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
@@ -87,15 +89,15 @@ interface ExploreMapScreenProps {
 
 export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList }) => {
   const viewModel = useExploreMapViewModel();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
   const handleViewDetails = (jobId: string) => {
     viewModel.handleJobSelect(null);
-    (navigation as any).navigate('JobDetails', { jobId });
+    navigation.navigate('JobDetails', { jobId });
   };
 
   const handleBidNow = (jobId: string) => {
     viewModel.handleJobSelect(null);
-    (navigation as any).navigate('BidSubmission', { jobId });
+    navigation.navigate('BidSubmission', { jobId });
   };
 
   return (
