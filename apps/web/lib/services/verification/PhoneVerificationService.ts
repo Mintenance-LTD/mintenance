@@ -152,59 +152,15 @@ export class PhoneVerificationService {
           error: errorData,
         });
         
-        // If Admin API times out (504), try Twilio Verify as fallback
-        if (response.status === 504 || response.status === 408) {
-          logger.warn('Supabase Admin API timed out, trying Twilio Verify fallback', {
-            service: 'PhoneVerificationService',
-            phoneNumber: phoneNumber.substring(0, 4) + '****',
-          });
+        // Supabase Admin API failed - always try Twilio Verify as final fallback
+        logger.warn('Supabase Admin API failed, trying Twilio Verify as final fallback', {
+          service: 'PhoneVerificationService',
+          phoneNumber: phoneNumber.substring(0, 4) + '****',
+          status: response.status,
+          error: errorData,
+        });
 
-          return await this.sendSMSViaTwilioVerify(phoneNumber);
-        }
-        
-        // Check if it's a Twilio error that indicates we should bypass Supabase and use Twilio Verify directly
-        const errorMsg = errorData.msg || errorData.message || '';
-        const errorCode = errorData.error_code || '';
-        
-        // Detect Twilio errors that indicate Supabase configuration issues
-        // Error codes: 20003 (Auth), 21212 (Invalid From Number), 20404 (Resource Not Found)
-        const isTwilioAuthError = errorMsg.includes('Authenticate') || errorMsg.includes('20003');
-        const isTwilioConfigError = errorMsg.includes('Invalid From Number') || 
-                                   errorMsg.includes('21212') ||
-                                   (errorMsg.includes('Invalid') && errorMsg.includes('caller ID'));
-        const isTwilioResourceError = errorMsg.includes('20404') || 
-                                     errorMsg.includes('not found') ||
-                                     errorMsg.includes('/Messages.json');
-        const isAnyTwilioError = errorMsg.includes('twilio.com') || 
-                                errorMsg.includes('Twilio') ||
-                                /^\d{5}$/.test(errorCode); // Twilio error codes are 5 digits
-        
-        if (isTwilioAuthError || isTwilioConfigError || isTwilioResourceError || isAnyTwilioError) {
-          logger.warn('Twilio error in Supabase configuration, trying Twilio Verify fallback', {
-            service: 'PhoneVerificationService',
-            phoneNumber: phoneNumber.substring(0, 4) + '****',
-            error: errorMsg,
-            errorCode,
-            errorType: isTwilioAuthError ? 'auth' : isTwilioConfigError ? 'config' : isTwilioResourceError ? 'resource' : 'other',
-          });
-          
-          return await this.sendSMSViaTwilioVerify(phoneNumber);
-        }
-        
-        // Provide specific error messages based on status code
-        let errorMessage = 'Failed to send SMS';
-        if (response.status === 400 || response.status === 422) {
-          errorMessage = errorData.msg || errorData.message || 'SMS provider not configured. Please configure TextLocal or another provider in Supabase settings.';
-        } else if (errorData.message) {
-          errorMessage = `Failed to send SMS: ${errorData.message}`;
-        } else {
-          errorMessage = 'SMS provider not configured or service unavailable. Please check your Supabase SMS provider configuration.';
-        }
-        
-        return { 
-          success: false, 
-          error: errorMessage
-        };
+        return await this.sendSMSViaTwilioVerify(phoneNumber);
       }
 
       const responseData = await response.json().catch(() => ({}));
