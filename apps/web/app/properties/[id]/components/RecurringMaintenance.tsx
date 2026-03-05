@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Plus, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 interface Schedule {
   id: string;
@@ -55,11 +56,12 @@ export default function RecurringMaintenance({ propertyId }: { propertyId: strin
     }
     setSaving(true);
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/properties/${propertyId}/recurring-maintenance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify(form),
       });
@@ -82,9 +84,10 @@ export default function RecurringMaintenance({ propertyId }: { propertyId: strin
 
   const handleDelete = async (id: string) => {
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/properties/${propertyId}/recurring-maintenance?scheduleId=${id}`, {
         method: 'DELETE',
-        headers: { 'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '' },
+        headers: { 'X-CSRF-Token': csrfToken },
       });
       if (res.ok) {
         setSchedules(prev => prev.filter(s => s.id !== id));
@@ -97,11 +100,12 @@ export default function RecurringMaintenance({ propertyId }: { propertyId: strin
 
   const handleToggle = async (id: string, currentActive: boolean) => {
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/properties/${propertyId}/recurring-maintenance`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({ scheduleId: id, is_active: !currentActive }),
       });

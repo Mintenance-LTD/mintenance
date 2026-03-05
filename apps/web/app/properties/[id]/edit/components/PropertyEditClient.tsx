@@ -6,6 +6,7 @@ import { ArrowLeft, Save, Upload, X, Plus, Home, Building2, Warehouse } from 'lu
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { logger } from '@mintenance/shared';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 interface PropertyData {
   id: string;
@@ -83,9 +84,10 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
           uploadFormData.append('photos', file);
         });
 
+        const uploadCsrf = await getCsrfToken();
         const uploadRes = await fetch('/api/properties/upload-photos', {
           method: 'POST',
-          headers: { 'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '' },
+          headers: { 'X-CSRF-Token': uploadCsrf },
           body: uploadFormData,
         });
 
@@ -101,11 +103,12 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
       // Combine existing photos with newly uploaded ones
       const allPhotos = [...existingPhotos, ...uploadedUrls];
 
+      const csrfToken = await getCsrfToken();
       const response = await fetch(`/api/properties/${property.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({
           ...formData,

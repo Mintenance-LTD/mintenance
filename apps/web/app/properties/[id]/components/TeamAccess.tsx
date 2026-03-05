@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Plus, Trash2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 interface TeamMember {
   id: string;
@@ -52,11 +53,12 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
     }
     setSaving(true);
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/properties/${propertyId}/team`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify(form),
       });
@@ -79,9 +81,10 @@ export default function TeamAccess({ propertyId }: { propertyId: string }) {
 
   const handleRemove = async (id: string) => {
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/properties/${propertyId}/team?memberId=${id}`, {
         method: 'DELETE',
-        headers: { 'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '' },
+        headers: { 'X-CSRF-Token': csrfToken },
       });
       if (res.ok) {
         setMembers(prev => prev.filter(m => m.id !== id));

@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { MapPin, LayoutGrid, Map } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@mintenance/shared';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 import { calculateDistance } from './discoverUtils';
 import { DiscoverQuickStats } from './DiscoverQuickStats';
@@ -156,7 +157,7 @@ export function ContractorDiscoverClient({
           method: wasSaved ? 'DELETE' : 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': (window as Window & { csrfToken?: string }).csrfToken || '',
+            'X-CSRF-Token': await getCsrfToken(),
           },
           body: wasSaved ? undefined : JSON.stringify({ jobId }),
         }

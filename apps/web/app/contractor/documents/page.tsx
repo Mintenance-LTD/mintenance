@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getCsrfToken } from '@/lib/csrf-client';
 import {
   FolderOpen,
   File,
@@ -192,10 +193,11 @@ export default function DocumentManagementPage() {
         formData.append('category', uploadCategory);
         if (uploadTags) formData.append('tags', uploadTags);
 
+        const csrfToken = await getCsrfToken();
         const res = await fetch('/api/contractor/documents', {
           method: 'POST',
           headers: {
-            'X-CSRF-Token': (window as unknown as { csrfToken?: string }).csrfToken || '',
+            'X-CSRF-Token': csrfToken,
           },
           body: formData,
         });
@@ -234,11 +236,12 @@ export default function DocumentManagementPage() {
     setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, starred: newStarred } : d));
 
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/contractor/documents', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as unknown as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({ id: doc.id, starred: newStarred }),
       });
@@ -262,10 +265,11 @@ export default function DocumentManagementPage() {
     setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
 
     try {
+      const deleteCsrf = await getCsrfToken();
       const res = await fetch(`/api/contractor/documents?id=${doc.id}`, {
         method: 'DELETE',
         headers: {
-          'X-CSRF-Token': (window as unknown as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': deleteCsrf,
         },
       });
 

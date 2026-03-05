@@ -24,7 +24,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { logger } from '@mintenance/shared';
-import { getCsrfHeaders } from '@/lib/csrf-client';
+import { getCsrfHeaders, getCsrfToken } from '@/lib/csrf-client';
 import { SpendingChart, aggregateSpendingByMonth } from '@/app/properties/components/SpendingChart';
 import { calculatePropertyHealthScore } from '@/lib/utils/property-health-score';
 import { PropertyHealthScoreCard } from '@/app/properties/components/PropertyHealthScore';
@@ -106,11 +106,12 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
   const handleGenerateReportToken = async () => {
     setIsGeneratingToken(true);
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/properties/${property.id}/report-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({ label: `Report link for ${property.name}` }),
       });
@@ -130,11 +131,12 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
 
   const handleToggleToken = async (tokenId: string, isActive: boolean) => {
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/properties/${property.id}/report-token`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({ token_id: tokenId, is_active: !isActive }),
       });
@@ -193,10 +195,11 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
       const formData = new FormData();
       Array.from(files).forEach(file => formData.append('photos', file));
 
+      const uploadCsrf = await getCsrfToken();
       const res = await fetch('/api/properties/upload-photos', {
         method: 'POST',
         headers: {
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': uploadCsrf,
         },
         body: formData,
       });
@@ -209,11 +212,12 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
       const data = await res.json();
       const newPhotos = data.urls as string[];
 
+      const updateCsrf = await getCsrfToken();
       const updateRes = await fetch(`/api/properties/${property.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': updateCsrf,
         },
         body: JSON.stringify({
           name: property.name,
