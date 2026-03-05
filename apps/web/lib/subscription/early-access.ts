@@ -22,8 +22,8 @@ function isEarlyAccessEnabled(): boolean {
 
 /**
  * Early-access cohort:
- * - First N contractors (default 50)
- * - First N homeowners (default 30)
+ * - First 100 contractors
+ * - First 100 homeowners
  *
  * "First" is determined by profiles.created_at ascending.
  */
