@@ -174,6 +174,15 @@ export const HOMEOWNER_FEATURES: Record<string, FeatureDefinition> = {
     upgradeMessage: 'Upgrade to Landlord for detailed per-property analytics and spend tracking.',
     learnMoreUrl: '/pricing',
   },
+  HOMEOWNER_ROOM_PHOTOS: {
+    id: 'HOMEOWNER_ROOM_PHOTOS',
+    name: 'Room Photo Gallery',
+    description: 'Upload and organize property photos by room for documentation and maintenance tracking',
+    category: 'Property Management',
+    limits: { homeowner_free: false, homeowner_landlord: true, homeowner_agency: true },
+    upgradeMessage: 'Upgrade to Landlord to upload and organize photos by room.',
+    learnMoreUrl: '/pricing',
+  },
   HOMEOWNER_TENANT_CONTACTS: {
     id: 'HOMEOWNER_TENANT_CONTACTS',
     name: 'Tenant & Contact Records',

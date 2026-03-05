@@ -33,6 +33,7 @@ import RecurringMaintenance from './RecurringMaintenance';
 import TenantContacts from './TenantContacts';
 import TeamAccess from './TeamAccess';
 import BulkOperations from './BulkOperations';
+import RoomPhotoGallery from './RoomPhotoGallery';
 import YearOverYearComparison from './YearOverYearComparison';
 
 interface Job {
@@ -567,6 +568,11 @@ export default function PropertyDetailsClient({ property, jobs, stats }: Propert
             <p className="text-sm text-gray-500">Manage your property with premium tools. Features are available based on your subscription plan.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Room Photos */}
+              <FeatureGateCard featureId="HOMEOWNER_ROOM_PHOTOS">
+                <RoomPhotoGallery propertyId={property.id} />
+              </FeatureGateCard>
+
               {/* Tenant Reporting */}
               <FeatureGateCard featureId="HOMEOWNER_TENANT_REPORTING">
                 <div className="p-5 bg-white border border-gray-200 rounded-xl h-full">
