@@ -15,8 +15,9 @@ import {
 } from './quotes/TemplateCRUD';
 import {
   createQuote, getQuotes, getQuote, getQuoteLineItems,
-  updateQuote, sendQuote, duplicateQuote, deleteQuote, generateQuotePDF,
+  updateQuote, sendQuote,
 } from './quotes/QuoteCRUD';
+import { duplicateQuote, deleteQuote, generateQuotePDF } from './quotes/QuoteOperations';
 import { trackQuoteInteraction, getQuoteAnalytics, getQuoteSummaryStats } from './quotes/QuoteAnalytics';
 import { getQuoteRevisions, createQuoteRevision } from './quotes/QuoteRevisions';
 

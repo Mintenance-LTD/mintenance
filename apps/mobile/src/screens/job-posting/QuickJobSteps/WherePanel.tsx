@@ -40,7 +40,7 @@ export const WherePanel: React.FC<Props> = ({ properties, selectedProperty, onSe
           <Ionicons name='home-outline' size={36} color={theme.colors.textTertiary} />
           <Text style={styles.emptyText}>No properties yet</Text>
           <Text style={styles.emptySubtext}>Add a property to start posting jobs</Text>
-          <TouchableOpacity style={styles.addPropertyButton} onPress={() => { onClose(); setTimeout(() => { navigation.navigate('ProfileTab', { screen: 'AddProperty' }); }, 300); }} accessibilityRole='button' accessibilityLabel='Add a property'>
+          <TouchableOpacity style={styles.addPropertyButton} onPress={() => { onClose(); setTimeout(() => { (navigation as any).navigate('ProfileTab', { screen: 'AddProperty' }); }, 300); }} accessibilityRole='button' accessibilityLabel='Add a property'>
             <Ionicons name='add-circle-outline' size={18} color={theme.colors.primary} />
             <Text style={styles.addPropertyText}>Add Property</Text>
           </TouchableOpacity>

@@ -116,7 +116,7 @@ export const ModalTrigger = memo<ModalTriggerProps>(({
   const { toggle } = useModal();
 
   if (asChild && isValidElement(children)) {
-    return cloneElement(children, {
+    return cloneElement(children as React.ReactElement<{ onPress?: () => void; testID?: string }>, {
       onPress: toggle,
       testID,
     });
@@ -221,7 +221,7 @@ export const ModalClose = memo<ModalCloseProps>(({
   const { close } = useModal();
 
   if (asChild && isValidElement(children)) {
-    return cloneElement(children, {
+    return cloneElement(children as React.ReactElement<{ onPress?: () => void; testID?: string }>, {
       onPress: close,
       testID,
     });
@@ -240,12 +240,12 @@ export const ModalClose = memo<ModalCloseProps>(({
 
 ModalClose.displayName = 'Modal.Close';
 
-// Attach sub-components to Modal
-Modal.Trigger = ModalTrigger;
-Modal.Content = ModalContent;
-Modal.Header = ModalHeader;
-Modal.Title = ModalTitle;
-Modal.Close = ModalClose;
+// Attach sub-components to Modal (cast required for memo() + compound component pattern)
+(Modal as any).Trigger = ModalTrigger;
+(Modal as any).Content = ModalContent;
+(Modal as any).Header = ModalHeader;
+(Modal as any).Title = ModalTitle;
+(Modal as any).Close = ModalClose;
 
 const styles = StyleSheet.create({
   trigger: { padding: 12, backgroundColor: "#007AFF", borderRadius: 8, alignItems: "center", justifyContent: "center" },

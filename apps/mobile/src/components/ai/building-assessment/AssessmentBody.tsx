@@ -14,7 +14,7 @@ const getSeverityColor = (severity: string) => {
   }
 };
 
-const getRiskLevelIcon = (level: string): string => {
+const getRiskLevelIcon = (level: string) => {
   switch (level) {
     case 'critical': return 'alert-circle';
     case 'high': return 'warning';

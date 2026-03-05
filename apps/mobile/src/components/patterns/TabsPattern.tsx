@@ -140,10 +140,10 @@ export const TabsContent = memo<TabsContentProps>(({
 
 TabsContent.displayName = 'Tabs.Content';
 
-// Attach sub-components to Tabs
-Tabs.List = TabsList;
-Tabs.Trigger = TabsTrigger;
-Tabs.Content = TabsContent;
+// Attach sub-components to Tabs (cast required for memo() + compound component pattern)
+(Tabs as any).List = TabsList;
+(Tabs as any).Trigger = TabsTrigger;
+(Tabs as any).Content = TabsContent;
 
 const styles = StyleSheet.create({
   tabsList: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E5E5E5" },

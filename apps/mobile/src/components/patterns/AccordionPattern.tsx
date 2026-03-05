@@ -196,10 +196,10 @@ export const AccordionContent = memo<AccordionContentProps>(({
 
 AccordionContent.displayName = 'Accordion.Content';
 
-// Attach sub-components to Accordion
-Accordion.Item = AccordionItem;
-Accordion.Trigger = AccordionTrigger;
-Accordion.Content = AccordionContent;
+// Attach sub-components to Accordion (cast required for memo() + compound component pattern)
+(Accordion as any).Item = AccordionItem;
+(Accordion as any).Trigger = AccordionTrigger;
+(Accordion as any).Content = AccordionContent;
 
 const styles = StyleSheet.create({
   accordionItem: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#E5E5E5" },

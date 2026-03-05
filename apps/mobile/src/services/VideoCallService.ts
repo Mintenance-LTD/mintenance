@@ -6,9 +6,9 @@ export type { VideoCall, CallParticipant, CallSession, CallStatistics } from './
 
 import {
   scheduleCall, startInstantCall, joinCall, endCall,
-  cancelCall, getCallHistory, startRecording, getCallStatistics,
-  getActiveCall, isUserInCall,
+  cancelCall, getActiveCall, isUserInCall,
 } from './video/CallManager';
+import { startRecording, getCallStatistics, getCallHistory } from './video/CallRecordingService';
 
 export class VideoCallService {
   static scheduleCall = scheduleCall;
