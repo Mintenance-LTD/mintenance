@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import type { HomeownerSubscriptionTier } from '@/lib/feature-access-config';
 
 type EligibleRole = 'homeowner' | 'contractor';
 
@@ -79,4 +80,27 @@ export async function getEarlyAccessEntitlement(userId: string): Promise<EarlyAc
     });
     return { eligible: false, role: null, cohortLimit: null, reason: 'error' };
   }
+}
+
+/**
+ * Resolve the effective homeowner subscription tier, checking early access first.
+ * Use this instead of querying homeowner_subscriptions directly.
+ */
+export async function getEffectiveHomeownerTier(userId: string): Promise<HomeownerSubscriptionTier> {
+  const earlyAccess = await getEarlyAccessEntitlement(userId);
+
+  if (earlyAccess.eligible && earlyAccess.role === 'homeowner') {
+    return 'agency';
+  }
+
+  const { data: sub } = await serverSupabase
+    .from('homeowner_subscriptions')
+    .select('plan_type')
+    .eq('homeowner_id', userId)
+    .in('status', ['active', 'trial'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return (sub?.plan_type as HomeownerSubscriptionTier) || 'free';
 }

@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
 import { getCachedUser } from '@/lib/cache';
 import { PropertiesClient2025 } from './components/PropertiesClient2025';
-import { getFeatureLimit, type HomeownerSubscriptionTier } from '@/lib/feature-access-config';
+import { getFeatureLimit } from '@/lib/feature-access-config';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 
 export const metadata: Metadata = {
   title: 'Your Properties | Mintenance',
@@ -102,17 +103,8 @@ export default async function PropertiesPage2025() {
     };
   });
 
-  // Fetch subscription tier for property limit
-  const { data: subscription } = await serverSupabase
-    .from('homeowner_subscriptions')
-    .select('plan_type')
-    .eq('homeowner_id', user.id)
-    .in('status', ['active', 'trial'])
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const tier = (subscription?.plan_type as HomeownerSubscriptionTier) || 'free';
+  // Check early access first, then subscription
+  const tier = await getEffectiveHomeownerTier(user.id);
   const rawLimit = getFeatureLimit('HOMEOWNER_PROPERTY_LIMIT', 'homeowner', tier);
   const propertyLimit: number | 'unlimited' = rawLimit === 'unlimited' ? 'unlimited' : (typeof rawLimit === 'number' ? rawLimit : 1);
 

@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { JobCreationService } from '@/lib/services/job-creation-service';
 import { hasFeatureAccess } from '@/lib/feature-access-config';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { z } from 'zod';
 
@@ -20,15 +21,8 @@ const bulkJobSchema = z.object({
 export const POST = withApiHandler(
   { roles: ['homeowner'] },
   async (req, { user }) => {
-    // Check agency tier
-    const { data: subscription } = await serverSupabase
-      .from('homeowner_subscriptions')
-      .select('plan_type')
-      .eq('homeowner_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle();
-
-    const tier = subscription?.plan_type || 'free';
+    // Check agency tier (early access included)
+    const tier = await getEffectiveHomeownerTier(user.id);
     if (!hasFeatureAccess('HOMEOWNER_BULK_OPERATIONS', 'homeowner', tier)) {
       throw new ForbiddenError('Bulk job posting requires an Agency subscription');
     }

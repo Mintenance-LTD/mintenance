@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { AgencyActivityLogger } from '@/lib/services/agency/AgencyActivityLogger';
 import { hasFeatureAccess } from '@/lib/feature-access-config';
-import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import { ForbiddenError } from '@/lib/errors/api-error';
 
 /**
@@ -12,15 +12,8 @@ import { ForbiddenError } from '@/lib/errors/api-error';
 export const GET = withApiHandler(
   { roles: ['homeowner'], csrf: false },
   async (request, { user }) => {
-    // Check agency tier
-    const { data: subscription } = await serverSupabase
-      .from('homeowner_subscriptions')
-      .select('plan_type')
-      .eq('homeowner_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle();
-
-    const tier = subscription?.plan_type || 'free';
+    // Check agency tier (early access included)
+    const tier = await getEffectiveHomeownerTier(user.id);
     if (!hasFeatureAccess('HOMEOWNER_ACTIVITY_AUDIT_LOG', 'homeowner', tier)) {
       throw new ForbiddenError('Activity audit log requires an Agency subscription');
     }

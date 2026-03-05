@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ComplianceDashboardClient } from './components/ComplianceDashboardClient';
-import { hasFeatureAccess, type HomeownerSubscriptionTier } from '@/lib/feature-access-config';
+import { hasFeatureAccess } from '@/lib/feature-access-config';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
@@ -43,16 +44,7 @@ export default async function ComplianceDashboardPage() {
 
   // Check subscription tier for compliance dashboard access
   if (user.role === 'homeowner') {
-    const { data: sub } = await serverSupabase
-      .from('homeowner_subscriptions')
-      .select('plan_type')
-      .eq('homeowner_id', user.id)
-      .in('status', ['active', 'trial'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const tier = (sub?.plan_type as HomeownerSubscriptionTier) || 'free';
+    const tier = await getEffectiveHomeownerTier(user.id);
     const canAccess = hasFeatureAccess('HOMEOWNER_COMPLIANCE_DASHBOARD', 'homeowner', tier);
 
     if (!canAccess) {

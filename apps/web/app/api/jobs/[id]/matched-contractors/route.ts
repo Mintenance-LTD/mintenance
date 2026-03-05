@@ -5,6 +5,7 @@ import type { MatchingCriteria } from '@/lib/services/matching/types';
 import { logger } from '@mintenance/shared';
 import { NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 
 /**
  * Get intelligently matched contractors for a job
@@ -96,15 +97,8 @@ export const GET = withApiHandler(
     // Determine complexity from budget (simple heuristic)
     const complexity = job.budget > 5000 ? 'complex' : job.budget > 2000 ? 'medium' : 'simple';
 
-    // Look up homeowner subscription tier for priority matching
-    const { data: subscription } = await serverSupabase
-      .from('homeowner_subscriptions')
-      .select('plan_type')
-      .eq('homeowner_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle();
-
-    const homeownerTier = (subscription?.plan_type as 'free' | 'landlord' | 'agency') || 'free';
+    // Look up homeowner subscription tier for priority matching (early access included)
+    const homeownerTier = await getEffectiveHomeownerTier(user.id);
 
     // Build matching criteria
     const criteria: MatchingCriteria = {

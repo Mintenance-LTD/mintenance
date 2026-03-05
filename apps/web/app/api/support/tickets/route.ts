@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { hasFeatureAccess } from '@/lib/feature-access-config';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { z } from 'zod';
 
@@ -17,16 +18,10 @@ const createTicketSchema = z.object({
 export const GET = withApiHandler(
   { roles: ['homeowner', 'contractor'], csrf: false },
   async (request, { user }) => {
-    // Check agency tier for homeowners
+    // Check agency tier for homeowners (early access included)
     if (user.role === 'homeowner') {
-      const { data: sub } = await serverSupabase
-        .from('homeowner_subscriptions')
-        .select('plan_type')
-        .eq('homeowner_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (!hasFeatureAccess('HOMEOWNER_DEDICATED_SUPPORT', 'homeowner', sub?.plan_type || 'free')) {
+      const tier = await getEffectiveHomeownerTier(user.id);
+      if (!hasFeatureAccess('HOMEOWNER_DEDICATED_SUPPORT', 'homeowner', tier)) {
         throw new ForbiddenError('Dedicated support requires an Agency subscription');
       }
     }
@@ -56,16 +51,10 @@ export const GET = withApiHandler(
 export const POST = withApiHandler(
   { roles: ['homeowner', 'contractor'] },
   async (req, { user }) => {
-    // Check agency tier
+    // Check agency tier (early access included)
     if (user.role === 'homeowner') {
-      const { data: sub } = await serverSupabase
-        .from('homeowner_subscriptions')
-        .select('plan_type')
-        .eq('homeowner_id', user.id)
-        .eq('status', 'active')
-        .maybeSingle();
-
-      if (!hasFeatureAccess('HOMEOWNER_DEDICATED_SUPPORT', 'homeowner', sub?.plan_type || 'free')) {
+      const tier = await getEffectiveHomeownerTier(user.id);
+      if (!hasFeatureAccess('HOMEOWNER_DEDICATED_SUPPORT', 'homeowner', tier)) {
         throw new ForbiddenError('Dedicated support requires an Agency subscription');
       }
     }
