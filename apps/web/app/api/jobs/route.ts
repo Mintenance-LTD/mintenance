@@ -6,7 +6,7 @@ import { checkJobCreationRateLimit } from '@/lib/rate-limiter';
 import { BadRequestError, RateLimitError, ForbiddenError } from '@/lib/errors/api-error';
 import { JobQueryService } from '@/lib/services/job-query-service';
 import { JobCreationService } from '@/lib/services/job-creation-service';
-import { validateRequest } from '@/lib/validation/validator';
+
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const listQuerySchema = z.object({
@@ -92,30 +92,32 @@ export const POST = withApiHandler(
       }
     }
 
-    // Validate and sanitize input using Zod schema
-    // Clone request to pre-process: strip null values (client sends null for unset fields like property_id)
-    const rawBody = await request.json();
+    // Parse and validate input using Zod schema
+    // Strip null values first (client sends property_id: null for unset fields)
+    let rawBody: Record<string, unknown>;
+    try {
+      rawBody = await request.json();
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
+    }
     const cleanBody = Object.fromEntries(
       Object.entries(rawBody).filter(([, v]) => v !== null)
     );
-    const syntheticRequest = new NextRequest(request.url, {
-      method: request.method,
-      headers: request.headers,
-      body: JSON.stringify(cleanBody),
-    });
-    const validation = await validateRequest(syntheticRequest, createJobSchema);
-    if ('headers' in validation) {
-      // Extract validation errors from the response for debugging
-      const errorBody = await validation.clone().json().catch(() => null);
+    const parsed = createJobSchema.safeParse(cleanBody);
+    if (!parsed.success) {
+      const errors = parsed.error.issues.map(e => ({
+        field: e.path.join('.'),
+        message: e.message,
+      }));
       logger.error('Job creation validation failed', {
         service: 'jobs',
         userId: user.id,
-        validationErrors: errorBody?.errors,
+        validationErrors: errors,
       });
-      return validation;
+      return NextResponse.json({ error: 'Validation failed', errors }, { status: 400 });
     }
 
-    const payload = validation.data;
+    const payload = parsed.data;
     const job = await JobCreationService.getInstance().createJob(user, payload);
 
     logger.info('Job created successfully', {
