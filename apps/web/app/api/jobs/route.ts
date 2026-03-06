@@ -28,7 +28,7 @@ const createJobSchema = z.object({
   location: z.string().max(256).optional().transform(val => val ? sanitizeText(val, 256) : val),
   photoUrls: z.array(z.string().url()).optional(),
   requiredSkills: z.array(z.string().max(100)).max(10).optional(),
-  property_id: z.string().uuid().optional(),
+  property_id: z.string().uuid().nullable().optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),
   longitude: z.coerce.number().min(-180).max(180).optional(),
 });
@@ -95,9 +95,12 @@ export const POST = withApiHandler(
     // Validate and sanitize input using Zod schema
     const validation = await validateRequest(request, createJobSchema);
     if ('headers' in validation) {
+      // Extract validation errors from the response for debugging
+      const errorBody = await validation.clone().json().catch(() => null);
       logger.error('Job creation validation failed', {
         service: 'jobs',
         userId: user.id,
+        validationErrors: errorBody?.errors,
       });
       return validation;
     }
