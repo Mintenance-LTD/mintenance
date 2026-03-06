@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { sanitizeJobDescription, sanitizeText } from '@/lib/sanitizer';
+import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 import { checkJobCreationRateLimit } from '@/lib/rate-limiter';
 import { BadRequestError, RateLimitError, ForbiddenError } from '@/lib/errors/api-error';
@@ -17,7 +17,7 @@ const listQuerySchema = z.object({
 
 const createJobSchema = z.object({
   title: z.string().min(1, 'Title is required').transform(val => sanitizeText(val, 200)),
-  description: z.string().max(5000).optional().transform(val => val ? sanitizeJobDescription(val) : val),
+  description: z.string().max(5000).optional().transform(val => val ? sanitizeText(val, 5000) : val),
   status: z.string().optional().transform(val => val ? sanitizeText(val, 50) : val),
   category: z.string().max(128).optional().transform(val => val ? sanitizeText(val, 128) : val),
   budget: z.coerce.number().positive().optional(),
