@@ -105,6 +105,8 @@ export default function QuickJobPage() {
     property_name?: string;
     address?: string;
     street_address?: string;
+    city?: string;
+    postcode?: string;
   } | null>(null);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
@@ -240,11 +242,20 @@ export default function QuickJobPage() {
         return;
       }
 
+      // Build a full location string for accurate geocoding
+      // Include postcode and city alongside address for better Google Maps results
+      const locationParts = [
+        primaryProperty?.address || primaryProperty?.street_address,
+        primaryProperty?.city,
+        primaryProperty?.postcode,
+      ].filter(Boolean);
+      const locationString = locationParts.length > 0 ? locationParts.join(', ') : 'Property location';
+
       const jobData = {
         title: formData.title.trim(),
         // Ensure description meets minimum length for API (50 chars)
         description: fullDescription.trim(),
-        location: primaryProperty?.address || primaryProperty?.street_address || 'Property location',
+        location: locationString,
         category: formData.category,
         budget: budgetValue, // Use validated number
         requiredSkills: [],
