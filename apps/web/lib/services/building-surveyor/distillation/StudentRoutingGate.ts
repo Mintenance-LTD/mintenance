@@ -17,7 +17,27 @@ const MINT_AI_VLM_ENDPOINT = process.env.MINT_AI_VLM_ENDPOINT?.trim() || '';
 const VLM_ROUTING_MODE = process.env.VLM_ROUTING_MODE?.trim() || 'shadow_only';
 const MIN_ACCURACY = parseFloat(process.env.VLM_MIN_ACCURACY_FOR_ROUTING || '0.85');
 const MIN_SAFETY_RECALL = parseFloat(process.env.VLM_MIN_SAFETY_RECALL || '0.95');
-const MIN_PREDICTIONS_FOR_ROUTING = 50;
+
+// Standard threshold for structurally/mechanically complex damage types.
+const MIN_PREDICTIONS_STANDARD = parseInt(
+  process.env.VLM_MIN_PREDICTIONS_FOR_ROUTING ?? '50', 10
+);
+
+// Reduced threshold for visually unambiguous, non-safety cosmetic categories.
+// These are easier to classify and unlikely to cause harm if mis-routed.
+// Halves the cold-start barrier so the student can serve common low-risk jobs sooner.
+const MIN_PREDICTIONS_LOW_RISK = parseInt(
+  process.env.VLM_MIN_PREDICTIONS_LOW_RISK ?? '20', 10
+);
+
+// Categories where cosmetic/aesthetic damage dominates — lower cold-start threshold applies.
+const LOW_RISK_CATEGORIES = new Set([
+  'cosmetic_damage',
+  'weathering',
+  'paint_deterioration',
+  'minor_cracking',
+  'surface_staining',
+]);
 
 // Categories where safety stakes are too high for student-only routing
 const ALWAYS_TEACHER_CATEGORIES = new Set([
@@ -73,10 +93,15 @@ export class StudentRoutingGate {
     const category = estimatedCategory ?? 'general';
     const calibration = await this.getCalibration(category);
 
-    if (!calibration || calibration.totalPredictions < MIN_PREDICTIONS_FOR_ROUTING) {
+    // Use a lower threshold for cosmetic/low-risk categories to reduce cold-start delay.
+    const minPredictions = LOW_RISK_CATEGORIES.has(category)
+      ? MIN_PREDICTIONS_LOW_RISK
+      : MIN_PREDICTIONS_STANDARD;
+
+    if (!calibration || calibration.totalPredictions < minPredictions) {
       return {
         decision: 'shadow_compare',
-        reasoning: `Insufficient data for ${category} (${calibration?.totalPredictions ?? 0}/${MIN_PREDICTIONS_FOR_ROUTING})`,
+        reasoning: `Insufficient data for ${category} (${calibration?.totalPredictions ?? 0}/${minPredictions})`,
         category,
         studentAccuracy: calibration?.emaAccuracy,
         safetyRecall: calibration?.emaSafetyRecall,

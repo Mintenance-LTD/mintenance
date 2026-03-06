@@ -37,7 +37,7 @@ export class UnifiedAIService {
     const startTime = Date.now();
 
     try {
-      if (CostControlService.isEmergencyStopped()) {
+      if (await CostControlService.isEmergencyStopped()) {
         return {
           success: false,
           error: {
@@ -100,7 +100,7 @@ export class UnifiedAIService {
     services: Record<string, boolean>;
   }> {
     const budgetStatus = await CostControlService.getBudgetStatus();
-    const isEmergencyStopped = CostControlService.isEmergencyStopped();
+    const isEmergencyStopped = await CostControlService.isEmergencyStopped();
 
     return {
       operational: !isEmergencyStopped && budgetStatus.daily.remaining > 0,

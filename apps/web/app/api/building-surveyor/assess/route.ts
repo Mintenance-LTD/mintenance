@@ -282,11 +282,34 @@ export const POST = withApiHandler({ auth: false, rateLimit: false }, async (req
     }
 
     assessmentIdForImages = assessmentId;
+
+    // Auto-fetch before photos from job_photos_metadata for before/after comparison.
+    // Up to 2 before images are retrieved so the total stays within the 4-image limit.
+    let beforeImageUrls: string[] | undefined;
+    if (bodyJobId) {
+      const { data: beforePhotos } = await deps.serverSupabase
+        .from('job_photos_metadata')
+        .select('photo_url')
+        .eq('job_id', bodyJobId)
+        .eq('photo_type', 'before')
+        .limit(2);
+      if (beforePhotos && beforePhotos.length > 0) {
+        beforeImageUrls = (beforePhotos as Array<{ photo_url: string }>)
+          .map((p) => p.photo_url)
+          .filter(Boolean);
+      }
+    }
+
     const agentResult = await deps.runAgent({
       assessmentId,
       imageUrls,
       userId: user.id,
-      context: context ? { propertyType: context.propertyType, ageOfProperty: context.ageOfProperty, location: context.location, propertyDetails: context.propertyDetails } : undefined,
+      context: (context || beforeImageUrls?.length)
+        ? {
+            ...(context ? { propertyType: context.propertyType, ageOfProperty: context.ageOfProperty, location: context.location, propertyDetails: context.propertyDetails } : {}),
+            ...(beforeImageUrls?.length ? { beforeImageUrls } : {}),
+          }
+        : undefined,
       jobId: bodyJobId,
       propertyId: bodyPropertyId,
       domain,

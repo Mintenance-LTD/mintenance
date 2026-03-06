@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
@@ -25,7 +25,7 @@ import type { ProfileStackParamList } from '../../navigation/types';
 import { Badge } from '../../components/ui/Badge';
 
 interface Props {
-  navigation: StackNavigationProp<ProfileStackParamList, 'PropertyDetail'>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'PropertyDetail'>;
   route: RouteProp<ProfileStackParamList, 'PropertyDetail'>;
 }
 
@@ -127,7 +127,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
         }
       >
         <View style={styles.addressCard}>
-          <Ionicons name="home" size={32} color={theme.colors.primary} />
+          <Ionicons name="home" size={32} color='#717171' />
           <Text style={styles.addressLine1}>{property.property_name}</Text>
           <Text style={styles.addressCity}>
             {property.address}
@@ -200,7 +200,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({ navigation, route }) => 
               <TouchableOpacity
                 key={job.id}
                 style={styles.jobRow}
-                onPress={() => (navigation as any).navigate('JobsTab', { screen: 'JobDetails', params: { jobId: job.id } })}
+                onPress={() => navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId: job.id } })}
                 accessibilityRole="button"
                 accessibilityLabel={`View ${job.title}`}
               >
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
   totalSpent: {
     fontSize: theme.typography.fontSize.sm,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   emptyJobsText: {
     fontSize: theme.typography.fontSize.base,

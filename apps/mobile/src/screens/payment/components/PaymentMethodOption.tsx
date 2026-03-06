@@ -48,7 +48,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
           <Ionicons
             name={getMethodIcon(method.type) as keyof typeof Ionicons.glyphMap}
             size={24}
-            color={theme.colors.primary}
+            color='#717171'
           />
         </View>
         <View style={styles.methodDetails}>
@@ -59,7 +59,7 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
         </View>
       </View>
       {isSelected && (
-        <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
+        <Ionicons name="checkmark-circle" size={24} color='#222222' />
       )}
     </TouchableOpacity>
   );
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   defaultLabel: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.primary,
+    color: '#717171',
     marginTop: theme.spacing.xs,
   },
 });

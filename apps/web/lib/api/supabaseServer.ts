@@ -4,10 +4,18 @@ import { createClient, SupabaseClient, SupabaseClientOptions } from '@supabase/s
 // Module-level constants can capture stale/placeholder values during
 // Vercel serverless cold starts or Next.js build-time page collection.
 function getSupabaseUrl(): string {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) {
+    throw new Error('[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL environment variable.');
+  }
+  return url;
 }
 function getSupabaseServiceKey(): string {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) {
+    throw new Error('[Supabase] Missing SUPABASE_SERVICE_ROLE_KEY environment variable. Server operations will fail without the service role key.');
+  }
+  return key;
 }
 
 /**
@@ -35,11 +43,24 @@ const clientOptions: SupabaseClientOptions<'public'> = {
   global: {
     // Connection reuse and timeout settings
     fetch: (url, options) => {
+      // 10-second server-side timeout prevents hung Supabase connections
+      // from causing the mobile client's 30-second AbortController to fire.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
+      // Propagate any existing abort signal (e.g. from Next.js request cancellation)
+      if (options?.signal) {
+        const upstream = options.signal as AbortSignal;
+        if (upstream.aborted) {
+          controller.abort();
+        } else {
+          upstream.addEventListener('abort', () => controller.abort(), { once: true });
+        }
+      }
       return fetch(url, {
         ...options,
-        // Enable connection keep-alive for HTTP/2 multiplexing
+        signal: controller.signal,
         keepalive: true,
-      });
+      }).finally(() => clearTimeout(timeoutId));
     },
     headers: {
       // Add connection hints for better pooler behavior

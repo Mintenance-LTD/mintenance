@@ -65,9 +65,14 @@ export const GET = withApiHandler(
     const cookies = parseCookie(cookieHeader);
     const existingToken = cookies[cookieName];
 
-    // Reuse existing token if it exists and is valid (64 hex characters = 32 bytes)
+    // Reuse existing token if it exists and has any non-empty value.
+    // The middleware sets UUID-format tokens (crypto.randomUUID); this route
+    // previously rejected them because it only accepted 64-char hex strings,
+    // causing a new token to be generated on every call and the replacement
+    // cookie to be set HttpOnly — breaking document.cookie reads for
+    // components that use the double-submit cookie pattern directly.
     let token = existingToken;
-    if (!token || token.length !== 64 || !/^[a-f0-9]{64}$/.test(token)) {
+    if (!token) {
       token = generateCSRFToken();
       logger.info('CSRF token generated (new)', { service: 'csrf' });
     } else {
@@ -87,10 +92,11 @@ export const GET = withApiHandler(
       }
     );
 
-    // Set CSRF token as HTTP-only cookie
+    // SECURITY: Must NOT be HttpOnly — the double-submit cookie pattern requires
+    // JavaScript to read the cookie value and echo it in the x-csrf-token
+    // header. HttpOnly cookies are invisible to document.cookie.
     const cookieOptions = [
       `${cookieName}=${token}`,
-      'HttpOnly',
       cookieSecure ? 'Secure' : '',
       `SameSite=${cookieSameSite}`,
       'Path=/',

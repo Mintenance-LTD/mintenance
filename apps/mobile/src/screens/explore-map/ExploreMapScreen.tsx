@@ -9,7 +9,6 @@
 
 import React, { useRef, useEffect } from 'react';
 import {
-  SafeAreaView,
   View,
   Text,
   StyleSheet,
@@ -18,12 +17,29 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { JobsStackParamList } from '../../navigation/types';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { useExploreMapViewModel } from './viewmodels/ExploreMapViewModel';
 import { MapSearchBar, JobPreviewCard } from './components';
+
+// Category-to-color map for map markers (matches JobsScreen badge colors)
+const CATEGORY_MARKER_COLORS: Record<string, { bg: string; text: string }> = {
+  plumbing:    { bg: '#2563EB', text: '#FFFFFF' },
+  electrical:  { bg: '#D97706', text: '#FFFFFF' },
+  roofing:     { bg: '#7C3AED', text: '#FFFFFF' },
+  painting:    { bg: '#DB2777', text: '#FFFFFF' },
+  carpentry:   { bg: '#92400E', text: '#FFFFFF' },
+  cleaning:    { bg: '#059669', text: '#FFFFFF' },
+  hvac:        { bg: '#0891B2', text: '#FFFFFF' },
+  landscaping: { bg: '#16A34A', text: '#FFFFFF' },
+  appliance:   { bg: '#EA580C', text: '#FFFFFF' },
+  general:     { bg: '#475569', text: '#FFFFFF' },
+};
 
 // Category tabs - same data as QuickServices for consistency
 const CATEGORIES = [
@@ -67,18 +83,21 @@ const LoadingDots: React.FC = () => {
   );
 };
 
-export const ExploreMapScreen: React.FC = () => {
-  const viewModel = useExploreMapViewModel();
-  const navigation = useNavigation<any>();
+interface ExploreMapScreenProps {
+  onBackToList?: () => void;
+}
 
+export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({ onBackToList }) => {
+  const viewModel = useExploreMapViewModel();
+  const navigation = useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
   const handleViewDetails = (jobId: string) => {
     viewModel.handleJobSelect(null);
-    navigation.navigate('JobsTab', { screen: 'JobDetails', params: { jobId } });
+    navigation.navigate('JobDetails', { jobId });
   };
 
   const handleBidNow = (jobId: string) => {
     viewModel.handleJobSelect(null);
-    navigation.navigate('JobsTab', { screen: 'BidSubmission', params: { jobId } });
+    navigation.navigate('BidSubmission', { jobId });
   };
 
   return (
@@ -88,6 +107,7 @@ export const ExploreMapScreen: React.FC = () => {
         jobCount={viewModel.jobCount}
         selectedCategory={viewModel.selectedCategory}
         onFilterPress={viewModel.handleFilterPress}
+        onBackToList={onBackToList}
       />
 
       {/* Category tabs */}
@@ -132,71 +152,88 @@ export const ExploreMapScreen: React.FC = () => {
         <View style={styles.jobCountLine} />
       </View>
 
-      {/* Map */}
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        style={styles.map}
-        region={viewModel.region}
-        onRegionChangeComplete={viewModel.handleRegionChange}
-        onPress={() => viewModel.handleJobSelect(null)}
-        showsUserLocation={viewModel.locationGranted}
-        showsMyLocationButton={false}
-      >
-        {viewModel.jobs.map((job) => {
-          const isSelected = viewModel.selectedJob?.id === job.id;
-          const budget = job.budget_max || job.budget_min;
-          const label = budget ? `\u00A3${budget >= 1000 ? `${(budget / 1000).toFixed(budget % 1000 === 0 ? 0 : 1)}k` : budget}` : job.category.slice(0, 3).toUpperCase();
+      {/* Map + overlays in a single container so absolute positions are map-relative */}
+      <View style={styles.mapWrapper}>
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          style={styles.map}
+          region={viewModel.region}
+          onRegionChangeComplete={viewModel.handleRegionChange}
+          onPress={() => viewModel.handleJobSelect(null)}
+          showsUserLocation={viewModel.locationGranted}
+          showsMyLocationButton={false}
+        >
+          {viewModel.jobs.map((job) => {
+            const isSelected = viewModel.selectedJob?.id === job.id;
+            const budget = job.budget_max || job.budget_min;
+            const label = budget ? `\u00A3${budget >= 1000 ? `${(budget / 1000).toFixed(budget % 1000 === 0 ? 0 : 1)}k` : budget}` : job.category.slice(0, 3).toUpperCase();
+            const catColor = CATEGORY_MARKER_COLORS[job.category.toLowerCase()] ?? CATEGORY_MARKER_COLORS.general;
 
-          return (
-            <Marker
-              key={job.id}
-              coordinate={{ latitude: job.latitude, longitude: job.longitude }}
-              onPress={() => viewModel.handleJobSelect(job)}
-            >
-              <View style={[
-                styles.priceMarker,
-                isSelected && styles.priceMarkerSelected,
-              ]}>
-                <Text style={[
-                  styles.priceMarkerText,
-                  isSelected && styles.priceMarkerTextSelected,
+            return (
+              <Marker
+                key={job.id}
+                coordinate={{ latitude: job.latitude, longitude: job.longitude }}
+                onPress={() => viewModel.handleJobSelect(job)}
+              >
+                <View style={[
+                  styles.priceMarker,
+                  { backgroundColor: isSelected ? '#FFFFFF' : catColor.bg },
+                  isSelected && { borderColor: catColor.bg, borderWidth: 2 },
                 ]}>
-                  {label}
-                </Text>
-              </View>
-            </Marker>
-          );
-        })}
-      </MapView>
+                  <Text style={[
+                    styles.priceMarkerText,
+                    { color: isSelected ? catColor.bg : catColor.text },
+                  ]}>
+                    {label}
+                  </Text>
+                </View>
+              </Marker>
+            );
+          })}
+        </MapView>
 
-      {/* Loading dots */}
-      {viewModel.loading && (
-        <View style={styles.loadingOverlay}>
-          <LoadingDots />
-        </View>
-      )}
+        {/* "Search this area" pill — appears after user pans the map */}
+        {viewModel.hasPanned && !viewModel.loading && (
+          <TouchableOpacity
+            style={styles.searchAreaPill}
+            onPress={viewModel.searchInRegion}
+            accessibilityRole="button"
+            accessibilityLabel="Search jobs in this area"
+          >
+            <Ionicons name="search" size={14} color="#FFFFFF" />
+            <Text style={styles.searchAreaText}>Search this area</Text>
+          </TouchableOpacity>
+        )}
 
-      {/* My location button */}
-      <TouchableOpacity
-        style={styles.locationButton}
-        accessibilityRole="button"
-        accessibilityLabel="Center on my location"
-        onPress={viewModel.centerOnUser}
-      >
-        <Ionicons name="navigate" size={20} color={theme.colors.textPrimary} />
-      </TouchableOpacity>
+        {/* Loading dots */}
+        {viewModel.loading && (
+          <View style={styles.loadingOverlay}>
+            <LoadingDots />
+          </View>
+        )}
 
-      {/* Job preview card */}
-      {viewModel.selectedJob && (
-        <View style={styles.cardContainer}>
-          <JobPreviewCard
-            job={viewModel.selectedJob}
-            onViewDetails={() => handleViewDetails(viewModel.selectedJob!.id)}
-            onBidNow={() => handleBidNow(viewModel.selectedJob!.id)}
-            onDismiss={() => viewModel.handleJobSelect(null)}
-          />
-        </View>
-      )}
+        {/* My location button — bottom-right, above preview card */}
+        <TouchableOpacity
+          style={styles.locationButton}
+          accessibilityRole="button"
+          accessibilityLabel="Center on my location"
+          onPress={viewModel.centerOnUser}
+        >
+          <Ionicons name="navigate" size={20} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
+
+        {/* Job preview card */}
+        {viewModel.selectedJob && (
+          <View style={styles.cardContainer}>
+            <JobPreviewCard
+              job={viewModel.selectedJob}
+              onViewDetails={() => handleViewDetails(viewModel.selectedJob!.id)}
+              onBidNow={() => handleBidNow(viewModel.selectedJob!.id)}
+              onDismiss={() => viewModel.handleJobSelect(null)}
+            />
+          </View>
+        )}
+      </View>
     </SafeAreaView>
   );
 };
@@ -263,14 +300,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
 
+  // Map wrapper — contains map + all floating overlays so absolute positions are map-relative
+  mapWrapper: {
+    flex: 1,
+  },
   // Map
   map: {
     flex: 1,
   },
 
-  // Price tag markers (Airbnb style)
+  // Price tag markers — background/text color applied inline per category
   priceMarker: {
-    backgroundColor: '#222222',
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -280,24 +320,40 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  priceMarkerSelected: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#222222',
-  },
   priceMarkerText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  priceMarkerTextSelected: {
-    color: '#222222',
   },
 
-  // Loading dots
+  // "Search this area" pill — 16px inside the top of the map container
+  searchAreaPill: {
+    position: 'absolute',
+    top: 16,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#222222',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    gap: 6,
+    zIndex: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  searchAreaText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+
+  // Loading dots — 16px inside top of map container
   loadingOverlay: {
     position: 'absolute',
-    top: 140,
+    top: 16,
     alignSelf: 'center',
     zIndex: 5,
   },
@@ -316,11 +372,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
 
-  // My location button
+  // My location button — bottom-right of map container, above preview card
   locationButton: {
     position: 'absolute',
     right: 16,
-    top: 150,
+    bottom: 96,
     width: 44,
     height: 44,
     borderRadius: 22,

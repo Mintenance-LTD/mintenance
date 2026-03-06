@@ -4,7 +4,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 
 const applyMigrationSchema = z.object({
   migrationFile: z.string()
@@ -41,20 +41,14 @@ export const POST = withApiHandler(
       throw new NotFoundError('Migration file not found');
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      throw new InternalServerError('Supabase configuration missing');
-    }
-
     logger.info('Migration SQL prepared', { service: 'migrations', file: migrationFile, sqlLength: sql.length });
 
+    // SECURITY FIX: Never return raw SQL in response — it leaks the full DB schema
+    // to any compromised admin account. Admins must execute via Supabase Dashboard.
     return NextResponse.json({
-      message: 'Migration SQL prepared',
+      success: true,
       file: migrationFile,
-      sql,
-      instructions: 'Execute this SQL in Supabase Dashboard SQL Editor or use Supabase CLI: supabase db push',
+      message: 'Migration file validated. Copy SQL from Supabase Dashboard to execute.',
     });
   }
 );

@@ -25,11 +25,6 @@ export const TAB_CONFIG = {
     activeIcon: 'briefcase' as keyof typeof Ionicons.glyphMap,
     label: 'Jobs',
   },
-  DiscoverTab: {
-    icon: 'map-outline' as keyof typeof Ionicons.glyphMap,
-    activeIcon: 'map' as keyof typeof Ionicons.glyphMap,
-    label: 'Find Jobs',
-  },
   AddTab: {
     icon: 'add-circle-outline' as keyof typeof Ionicons.glyphMap,
     activeIcon: 'add-circle' as keyof typeof Ionicons.glyphMap,

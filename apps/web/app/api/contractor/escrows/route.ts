@@ -22,14 +22,13 @@ export const GET = withApiHandler(
         created_at,
         jobs!inner (
           id,
-          title,
-          contractor_id
+          title
         )
       `
       )
       .eq('payee_id', user.id)
-      .eq('jobs.contractor_id', user.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100);
 
     if (error) {
       logger.error('Error fetching contractor escrows', error);
@@ -45,7 +44,6 @@ export const GET = withApiHandler(
       jobs: {
         id: string;
         title: string;
-        contractor_id: string;
       }[] | null;
     }
 

@@ -15,16 +15,13 @@ import Button from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthService } from '../services/AuthService';
 import { AuthStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 
-type ForgotPasswordScreenNavigationProp = StackNavigationProp<
-  AuthStackParamList,
-  'ForgotPassword'
->;
+type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
 
 interface Props {
   navigation: ForgotPasswordScreenNavigationProp;
@@ -131,7 +128,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           <Ionicons
             name='arrow-back'
             size={24}
-            color={theme.colors.textInverse}
+            color={theme.colors.textPrimary}
           />
         </TouchableOpacity>
 
@@ -164,7 +161,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
           ) : null}
           <View style={styles.formContainer}>
             <View style={styles.instructionContainer}>
-              <Ionicons name='mail' size={48} color={theme.colors.primary} accessible={false} />
+              <Ionicons name='mail' size={48} color='#717171' accessible={false} />
               <Text style={styles.instructionTitle} accessibilityRole='header'>Forgot your password?</Text>
               <Text style={styles.instructionText}>
                 Enter your email address and we'll send you a link to reset your
@@ -237,12 +234,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
     paddingBottom: 30,
     paddingHorizontal: 24,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   backIconButton: {
     position: 'absolute',
@@ -262,8 +261,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
   },
   keyboardContainer: {
     flex: 1,
@@ -283,8 +282,8 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   instructionTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
     marginTop: 16,
     marginBottom: 12,
@@ -324,12 +323,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: theme.colors.primary,
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.12,
     shadowRadius: 8,
     elevation: 6,
   },
@@ -348,7 +347,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backLinkText: {
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontSize: 16,
     fontWeight: '500',
     textDecorationLine: 'underline',
@@ -388,3 +387,4 @@ const styles = StyleSheet.create({
 });
 
 export default ForgotPasswordScreen;
+

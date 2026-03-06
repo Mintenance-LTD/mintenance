@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { render , waitFor} from '../test-utils';
-import FindContractorsScreen from '../../screens/FindContractorsScreen';
+import { render } from '../test-utils';
 import PaymentMethodsScreen from '../../screens/PaymentMethodsScreen';
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -19,13 +18,6 @@ jest.mock('../../contexts/AuthContext', () => ({
       role: 'homeowner',
     },
   }),
-}));
-
-jest.mock('../../services/ContractorService', () => ({
-  ContractorService: {
-    getUnmatchedContractors: jest.fn(() => Promise.resolve([])),
-    recordContractorMatch: jest.fn(() => Promise.resolve()),
-  },
 }));
 
 jest.mock('../../services/PaymentService', () => ({
@@ -48,14 +40,6 @@ jest.mock('../../services/UserService', () => ({
 }));
 
 describe('Crash Fixes Verification', () => {
-  describe('FindContractorsScreen', () => {
-    it('should render without crashing', () => {
-      expect(() => {
-        render(<FindContractorsScreen />);
-      }).not.toThrow();
-    });
-  });
-
   describe('PaymentMethodsScreen', () => {
     it('should render without crashing', () => {
       expect(() => {

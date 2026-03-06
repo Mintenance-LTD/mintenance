@@ -6,7 +6,6 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   getOnboardingState,
   markStepComplete,
@@ -42,7 +41,6 @@ interface UseOnboardingOptions {
 
 export function useOnboarding(options: UseOnboardingOptions = {}) {
   const { userType = 'homeowner', autoStart = false, onComplete, onSkip } = options;
-  const router = useRouter();
 
   const [state, setState] = useState<OnboardingState>(getOnboardingState());
   const [flow, setFlow] = useState<OnboardingFlow>(getFlowByUserType(userType));
@@ -90,14 +88,9 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
         setCurrentStepState(step);
         setState(getOnboardingState());
         setIsActive(true);
-
-        // Navigate to step route if specified
-        if (step.targetRoute) {
-          router.push(step.targetRoute);
-        }
       }
     }
-  }, [flow, router]);
+  }, [flow]);
 
   /**
    * Complete current step and advance to next
@@ -118,17 +111,12 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
         setCurrentStep(nextStep.id);
         setCurrentStepState(nextStep);
         setState(getOnboardingState());
-
-        // Navigate to step route if specified
-        if (nextStep.targetRoute) {
-          router.push(nextStep.targetRoute);
-        }
       } else {
         // Onboarding complete
         finishOnboarding();
       }
     },
-    [currentStep, flow, router]
+    [currentStep, flow]
   );
 
   /**
@@ -142,13 +130,8 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
       setCurrentStep(prevStep.id);
       setCurrentStepState(prevStep);
       setState(getOnboardingState());
-
-      // Navigate to step route if specified
-      if (prevStep.targetRoute) {
-        router.push(prevStep.targetRoute);
-      }
     }
-  }, [currentStep, flow, router]);
+  }, [currentStep, flow]);
 
   /**
    * Skip onboarding

@@ -63,7 +63,7 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
           accessibilityLabel={`Selected date: ${formatDate(selectedDate)}. Double tap to change`}
         >
           <View style={styles.selectorContent}>
-            <Ionicons name="calendar-outline" size={20} color={theme.colors.primary} />
+            <Ionicons name="calendar-outline" size={20} color='#717171' />
             <View style={styles.selectorText}>
               <Text style={styles.selectorLabel}>Date</Text>
               <Text style={styles.selectorValue}>{formatDate(selectedDate)}</Text>
@@ -79,7 +79,7 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
           accessibilityLabel={`Selected time: ${formatTime(selectedTime)}. Double tap to change`}
         >
           <View style={styles.selectorContent}>
-            <Ionicons name="time-outline" size={20} color={theme.colors.primary} />
+            <Ionicons name="time-outline" size={20} color='#717171' />
             <View style={styles.selectorText}>
               <Text style={styles.selectorLabel}>Time</Text>
               <Text style={styles.selectorValue}>{formatTime(selectedTime)}</Text>

@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
+import { getAppUrl } from '@/lib/env';
 
 export type AnnouncementType = 'general' | 'feature' | 'maintenance' | 'security' | 'feedback_request';
 export type TargetAudience = 'all' | 'contractors' | 'homeowners' | 'verified_contractors';
@@ -310,7 +311,7 @@ export class AdminCommunicationService {
         return;
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
 
       // Send emails to all target users
       for (const user of users) {

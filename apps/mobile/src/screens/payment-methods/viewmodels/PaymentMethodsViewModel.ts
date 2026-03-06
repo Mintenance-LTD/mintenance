@@ -16,7 +16,7 @@ export interface PaymentMethod {
   id: string;
   type: 'cash' | 'card' | 'paypal' | 'apple_pay';
   name: string;
-  icon: keyof import('@expo/vector-icons/Ionicons').default['glyphMap'];
+  icon: string;
   details?: string;
   isDefault?: boolean;
 }
@@ -28,6 +28,13 @@ export interface SavedCard {
   expiryMonth: number;
   expiryYear: number;
   isDefault: boolean;
+}
+
+export interface CardDetails {
+  holderName: string;
+  number: string;
+  expiry: string;
+  cvv: string;
 }
 
 export interface PaymentMethodsViewModel {

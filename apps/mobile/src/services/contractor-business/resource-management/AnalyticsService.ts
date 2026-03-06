@@ -105,7 +105,7 @@ export class AnalyticsService {
 
     if (error || !data) return 0;
 
-    return data.reduce((sum, item) => sum + (item.quantity * item.unit_cost), 0);
+    return data.reduce((sum: number, item: { quantity: number; unit_cost: number }) => sum + (item.quantity * item.unit_cost), 0);
   }
 
   private static async calculateTotalEquipmentValue(contractorId: string): Promise<number> {
@@ -117,7 +117,7 @@ export class AnalyticsService {
 
     if (error || !data) return 0;
 
-    return data.reduce((sum, item) => sum + (item.current_value || 0), 0);
+    return data.reduce((sum: number, item: { current_value: number | null }) => sum + (item.current_value || 0), 0);
   }
 
   private static async getLowStockItemsCount(contractorId: string): Promise<number> {
@@ -140,7 +140,7 @@ export class AnalyticsService {
     if (error || !data) return { average: 0 };
 
     const average = data.length > 0 ?
-      data.reduce((sum, item) => sum + item.utilization, 0) / data.length : 0;
+      data.reduce((sum: number, item: { utilization: number }) => sum + item.utilization, 0) / data.length : 0;
 
     return { average };
   }
@@ -155,7 +155,7 @@ export class AnalyticsService {
 
     if (error || !data) return 0;
 
-    return data.reduce((sum, record) => sum + record.cost, 0);
+    return data.reduce((sum: number, record: { cost: number }) => sum + record.cost, 0);
   }
 
   private static async getMostUsedItems(contractorId: string, startDate: string, endDate: string): Promise<InventoryItem[]> {
@@ -169,7 +169,7 @@ export class AnalyticsService {
 
     if (error || !data) return [];
 
-    const usage = data.reduce<Record<string, number>>((acc, record) => {
+    const usage = data.reduce<Record<string, number>>((acc: Record<string, number>, record: Record<string, unknown>) => {
       const typedRecord = record as { resource_id: string; quantity?: number };
       acc[typedRecord.resource_id] = (acc[typedRecord.resource_id] || 0) + (typedRecord.quantity || 0);
       return acc;

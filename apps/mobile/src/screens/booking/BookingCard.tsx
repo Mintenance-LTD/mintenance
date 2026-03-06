@@ -122,7 +122,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
       <View style={styles.footer}>
         <View style={styles.priceContainer}>
           <Text style={styles.priceLabel}>Total</Text>
-          <Text style={styles.price}>${booking.amount}</Text>
+          <Text style={styles.price}>{'\u00A3'}{booking.amount}</Text>
         </View>
 
         <View style={styles.actions}>
@@ -136,7 +136,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                     onReschedule(booking);
                   }}
                 >
-                  <Ionicons name="refresh-outline" size={16} color={theme.colors.primary} />
+                  <Ionicons name="refresh-outline" size={16} color='#717171' />
                   <Text style={styles.actionButtonText}>Reschedule</Text>
                 </TouchableOpacity>
               )}
@@ -178,7 +178,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
             }}
           >
             <Text style={styles.viewDetailsText}>View Details</Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+            <Ionicons name="chevron-forward" size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: '#222222',
   },
   cancelButton: {
     backgroundColor: theme.colors.errorLight,
@@ -333,6 +333,6 @@ const styles = StyleSheet.create({
   viewDetailsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: '#222222',
   },
 });

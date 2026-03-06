@@ -29,6 +29,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
 import { sanitize } from '@mintenance/security';
 import { theme } from '../../theme';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 // ============================================================================
 // DATA
@@ -128,6 +129,8 @@ export const QuickJobPostScreen: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useUnsavedChanges(!!(title || description));
+
   const handleTemplateSelect = useCallback((template: typeof REPAIR_TEMPLATES[0]) => {
     setSelectedTemplate(template.id);
     setTitle(template.title);
@@ -211,7 +214,7 @@ export const QuickJobPostScreen: React.FC = () => {
         <View style={styles.propertyBanner}>
           <Text style={styles.propertyLabel}>Property</Text>
           <View style={styles.propertyRow}>
-            <Ionicons name="home" size={20} color={theme.colors.primary} />
+            <Ionicons name="home" size={20} color='#717171' />
             <View style={styles.propertyText}>
               <Text style={styles.propertyNameText}>{params?.propertyName || 'My Property'}</Text>
               <Text style={styles.propertyAddressText} numberOfLines={1}>
@@ -237,7 +240,7 @@ export const QuickJobPostScreen: React.FC = () => {
                 <Ionicons
                   name={template.icon as keyof typeof Ionicons.glyphMap}
                   size={22}
-                  color={selectedTemplate === template.id ? theme.colors.primary : theme.colors.textSecondary}
+                  color={selectedTemplate === template.id ? '#222222' : theme.colors.textSecondary}
                 />
                 <Text
                   style={[styles.templateTitle, selectedTemplate === template.id && styles.templateTitleActive]}
@@ -326,12 +329,12 @@ export const QuickJobPostScreen: React.FC = () => {
           onPress={() => {
             navigation.goBack();
             setTimeout(() => {
-              (navigation as any).navigate('Modal', { screen: 'ServiceRequest' });
+              navigation.navigate('Modal', { screen: 'ServiceRequest' } as never);
             }, 300);
           }}
         >
           <Text style={styles.moreOptionsText}>Need more options? Use the full form</Text>
-          <Ionicons name="arrow-forward" size={16} color={theme.colors.primary} />
+          <Ionicons name="arrow-forward" size={16} color={theme.colors.textTertiary} />
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />
@@ -406,14 +409,14 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
     padding: 16,
     marginBottom: 24,
   },
   propertyLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
@@ -465,8 +468,8 @@ const styles = StyleSheet.create({
     minHeight: 100,
   },
   templateCardActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: '#F0FDF4',
+    borderColor: '#222222',
+    backgroundColor: '#F7F7F7',
   },
   templateTitle: {
     fontSize: 13,
@@ -475,7 +478,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   templateTitleActive: {
-    color: theme.colors.primary,
+    color: '#222222',
   },
   templateBudget: {
     fontSize: 11,
@@ -522,8 +525,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   budgetChipActive: {
-    borderColor: theme.colors.primary,
-    backgroundColor: '#F0FDF4',
+    borderColor: '#222222',
+    backgroundColor: '#F7F7F7',
   },
   budgetText: {
     fontSize: 13,
@@ -531,7 +534,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   budgetTextActive: {
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '700',
   },
 
@@ -570,7 +573,7 @@ const styles = StyleSheet.create({
   },
   moreOptionsText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '500',
   },
 

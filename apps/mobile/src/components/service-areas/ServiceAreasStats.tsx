@@ -16,10 +16,9 @@ export const ServiceAreasStats: React.FC<ServiceAreasStatsProps> = ({ serviceAre
   const renderStatsCard = (
     title: string,
     value: string | number,
-    icon: string,
-    color: string
+    icon: string
   ) => (
-    <View style={[styles.statCard, { borderLeftColor: color }]}>
+    <View style={styles.statCard}>
       <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={20} color={theme.colors.textSecondary} />
       <View style={styles.statContent}>
         <Text style={styles.statValue}>{value}</Text>
@@ -30,30 +29,10 @@ export const ServiceAreasStats: React.FC<ServiceAreasStatsProps> = ({ serviceAre
 
   return (
     <View style={styles.statsContainer}>
-      {renderStatsCard(
-        'Total Areas',
-        serviceAreas.length,
-        'map',
-        theme.colors.primary
-      )}
-      {renderStatsCard(
-        'Active',
-        activeAreas.length,
-        'checkmark-circle',
-        theme.colors.success
-      )}
-      {renderStatsCard(
-        'Inactive',
-        inactiveAreas.length,
-        'pause-circle',
-        theme.colors.textSecondary
-      )}
-      {renderStatsCard(
-        'Primary',
-        primaryArea ? '1' : '0',
-        'star',
-        theme.colors.warning
-      )}
+      {renderStatsCard('Total Areas', serviceAreas.length, 'map')}
+      {renderStatsCard('Active', activeAreas.length, 'checkmark-circle')}
+      {renderStatsCard('Inactive', inactiveAreas.length, 'pause-circle')}
+      {renderStatsCard('Primary', primaryArea ? '1' : '0', 'star')}
     </View>
   );
 };
@@ -73,7 +52,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
     padding: 20,
-    borderLeftWidth: 4,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
     ...theme.shadows.base,
   },
   statContent: {

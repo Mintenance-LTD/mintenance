@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../navigation/types';
 import { theme } from '../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../components/shared';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -48,7 +49,7 @@ interface AppointmentsResponse {
 }
 
 interface Props {
-  navigation: StackNavigationProp<Record<string, unknown>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'Calendar'>;
 }
 
 const ScheduleCard: React.FC<{
@@ -66,10 +67,8 @@ const ScheduleCard: React.FC<{
 
   const getTypeColor = () => {
     switch (item.type) {
-      case 'job': return theme.colors.primary;
-      case 'meeting': return theme.colors.primary;
-      case 'deadline': return theme.colors.warning;
-      default: return theme.colors.textSecondary;
+      case 'deadline': return '#222222';
+      default: return '#717171';
     }
   };
 
@@ -104,7 +103,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const { data: schedule, isLoading, error, refetch } = useQuery({
     queryKey: ['contractor-schedule', user?.id],
     queryFn: async () => {
-      const response = await apiClient.get<AppointmentsResponse>('/api/contractor/appointments');
+      const response = await apiClient.get<AppointmentsResponse>('/api/appointments');
       return (response.appointments || []).map((appointment) => ({
         id: appointment.id,
         job_id: appointment.jobId || appointment.id,
@@ -154,7 +153,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -220,3 +219,4 @@ const styles = StyleSheet.create({
 });
 
 export default CalendarScreen;
+

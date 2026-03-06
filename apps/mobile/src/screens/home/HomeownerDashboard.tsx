@@ -5,7 +5,7 @@
  * stats overview, bids, appointments, and recent jobs.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -21,8 +21,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { JobService } from '../../services/JobService';
-import { BidService, Bid as ServiceBid } from '../../services/BidService';
-import { useQuery } from '@tanstack/react-query';
+import { BidService } from '../../services/BidService';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { SkeletonDashboard } from '../../components/SkeletonLoader';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import { theme } from '../../theme';
 import { logger } from '../../utils/logger';
@@ -33,17 +34,70 @@ import { BidsReceived } from './BidsReceived';
 const appIcon = require('../../../assets/icon.png');
 
 export const HomeownerDashboard: React.FC = () => {
-  const { user } = useAuth();
-  const navigation = useNavigation<unknown>();
-
-  const [homeownerJobs, setHomeownerJobs] = useState<{ id?: string; status?: string; title?: string; [key: string]: unknown }[]>([]);
-  const [recentBids, setRecentBids] = useState<{ id: string; contractorName: string; jobTitle: string; amount: number; status: string; jobId: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { user, signOut } = useAuth();
+  const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Fetch upcoming appointments
+  // Jobs query
+  const {
+    data: jobsData,
+    isLoading: jobsLoading,
+    isError: jobsError,
+    isFetching,
+    refetch: refetchJobs,
+  } = useQuery({
+    queryKey: ['homeownerJobs', user?.id],
+    queryFn: () => JobService.getUserJobs(user!.id),
+    enabled: !!user,
+  });
+
+  const homeownerJobs = jobsData || [];
+  const activeJobIds = homeownerJobs
+    .filter((j) => j?.status === 'posted' || j?.status === 'assigned')
+    .map((j) => j?.id)
+    .filter(Boolean) as string[];
+
+  // Bids query — single batch request, depends on jobs
+  const { data: recentBids = [] } = useQuery({
+    queryKey: ['homeownerBids', activeJobIds.slice(0, 5).join(',')],
+    queryFn: async () => {
+      const bids = await BidService.getBidsByJobs(activeJobIds.slice(0, 5), 'pending').catch(
+        (err: unknown) => {
+          logger.warn('Failed to fetch bids for jobs', { error: err });
+          return [];
+        }
+      );
+      return bids.slice(0, 5).map((b) => ({
+        id: b.id,
+        contractorName: b.contractor
+          ? `${b.contractor.first_name} ${b.contractor.last_name}`
+          : 'Unknown',
+        jobTitle: b.job?.title || 'Untitled job',
+        amount: b.amount,
+        status: b.status,
+        jobId: b.job_id,
+      }));
+    },
+    enabled: !!user && activeJobIds.length > 0,
+  });
+
+  // Unread notifications count
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['unreadNotifications', user?.id],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get<{ count: number }>('/api/notifications/unread-count');
+        return res.count || 0;
+      } catch {
+        return 0;
+      }
+    },
+    enabled: !!user,
+    refetchInterval: 30000, // refresh every 30s
+  });
+
+  // Appointments query
   const { data: appointments } = useQuery({
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
@@ -53,92 +107,47 @@ export const HomeownerDashboard: React.FC = () => {
     enabled: !!user,
   });
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [user]);
-
-  const loadDashboardData = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setError(null);
-      const jobs = await JobService.getUserJobs(user.id);
-      setHomeownerJobs(jobs || []);
-
-      // Fetch recent bids for homeowner's active jobs
-      const activeJobIds = (jobs || [])
-        .filter((j) => j?.status === 'posted' || j?.status === 'assigned')
-        .map((j) => j?.id)
-        .filter(Boolean) as string[];
-
-      if (activeJobIds.length > 0) {
-        const allBids: ServiceBid[] = [];
-        for (const jobId of activeJobIds.slice(0, 5)) {
-          try {
-            const bids = await BidService.getBidsByJob(jobId, 'pending');
-            allBids.push(...bids);
-          } catch (bidErr) {
-            logger.warn('Failed to fetch bids for job', { jobId, error: bidErr });
-          }
-        }
-        setRecentBids(
-          allBids.slice(0, 5).map((b) => ({
-            id: b.id,
-            contractorName: b.contractor
-              ? `${b.contractor.first_name} ${b.contractor.last_name}`
-              : 'Unknown',
-            jobTitle: b.job?.title || 'Untitled job',
-            amount: b.amount,
-            status: b.status,
-            jobId: b.job_id,
-          }))
-        );
-      }
-    } catch (error) {
-      logger.error('Error loading dashboard data:', error);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    if (user) {
-      try {
-        const jobs = await JobService.getUserJobs(user.id);
-        setHomeownerJobs(jobs || []);
-      } catch (err) {
-        logger.error('Failed to refresh dashboard', err);
-      }
-    }
-    setRefreshing(false);
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['homeownerJobs', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['homeownerBids'] });
+    queryClient.invalidateQueries({ queryKey: ['appointments', user?.id] });
   };
 
   const openJobsList = () => {
     navigation.navigate('JobsTab', { screen: 'JobsList' });
   };
 
-  // Error state
-  if (error) {
+  if (jobsLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.topBar, { backgroundColor: theme.colors.background }]}>
+          <View style={styles.brandButton}>
+            <Image source={appIcon} style={styles.brandIcon} />
+            <Text style={styles.brandText}>Mintenance</Text>
+          </View>
+        </View>
+        <View style={styles.homeownerContent}>
+          <SkeletonDashboard />
+        </View>
+      </View>
+    );
+  }
+
+  if (jobsError) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() => loadDashboardData()}
-        >
+        <Text style={styles.errorText}>Failed to load dashboard data</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => refetchJobs()}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const userName = user?.firstName || user?.first_name || 'there';
+  const userName = user?.first_name || user?.firstName || 'there';
   const userInitial = userName[0].toUpperCase();
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -157,13 +166,20 @@ export const HomeownerDashboard: React.FC = () => {
         <View style={styles.rightActions}>
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={() => (navigation as any).navigate('Modal', { screen: 'Notifications' })}
+            onPress={() => navigation.navigate('Modal', { screen: 'Notifications' } as never)}
             accessibilityRole="button"
             accessibilityLabel="Notifications"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <View style={styles.notificationCircle}>
               <Ionicons name="notifications-outline" size={20} color={theme.colors.textPrimary} />
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -189,10 +205,11 @@ export const HomeownerDashboard: React.FC = () => {
         <Pressable style={styles.dropdownOverlay} onPress={() => setShowProfileMenu(false)}>
           <Pressable style={styles.dropdownMenu}>
             {([
-              { label: 'Properties', icon: 'home-outline' as const, color: theme.colors.primary, onPress: () => navigation.navigate('ProfileTab', { screen: 'Properties' }) },
-              { label: 'Messages', icon: 'chatbubble-outline' as const, color: '#3B82F6', onPress: () => navigation.navigate('MessagingTab' as never) },
-              { label: 'Payments', icon: 'card-outline' as const, color: '#F59E0B', onPress: () => navigation.navigate('ProfileTab', { screen: 'PaymentMethods' }) },
-              { label: 'Settings', icon: 'settings-outline' as const, color: '#8B5CF6', onPress: () => navigation.navigate('ProfileTab' as never) },
+              { label: 'Properties', icon: 'home-outline' as const, onPress: () => navigation.navigate('ProfileTab', { screen: 'Properties' }) },
+              { label: 'Discover Contractors', icon: 'search-outline' as const, onPress: () => navigation.navigate('Modal', { screen: 'EnhancedHome' } as never) },
+              { label: 'Messages', icon: 'chatbubble-outline' as const, onPress: () => navigation.navigate('MessagingTab' as never) },
+              { label: 'Payments', icon: 'card-outline' as const, onPress: () => navigation.navigate('ProfileTab', { screen: 'PaymentMethods' }) },
+              { label: 'Settings', icon: 'settings-outline' as const, onPress: () => navigation.navigate('ProfileTab' as never) },
             ]).map((item) => (
               <TouchableOpacity
                 key={item.label}
@@ -204,7 +221,7 @@ export const HomeownerDashboard: React.FC = () => {
                 accessibilityRole="button"
                 accessibilityLabel={item.label}
               >
-                <Ionicons name={item.icon} size={20} color={item.color} />
+                <Ionicons name={item.icon} size={20} color={theme.colors.textSecondary} />
                 <Text style={styles.dropdownItemText}>{item.label}</Text>
               </TouchableOpacity>
             ))}
@@ -221,6 +238,19 @@ export const HomeownerDashboard: React.FC = () => {
               <Ionicons name="person-outline" size={20} color={theme.colors.textSecondary} />
               <Text style={styles.dropdownItemText}>View Profile</Text>
             </TouchableOpacity>
+            <View style={styles.dropdownDivider} />
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setShowProfileMenu(false);
+                signOut();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Sign out"
+            >
+              <Ionicons name="log-out-outline" size={20} color={theme.colors.error} />
+              <Text style={[styles.dropdownItemText, { color: theme.colors.error }]}>Sign Out</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -229,13 +259,16 @@ export const HomeownerDashboard: React.FC = () => {
         showsVerticalScrollIndicator={false}
         testID='home-scroll-view'
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+          <RefreshControl refreshing={isFetching} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
         }
       >
         {/* Welcome greeting */}
         <View style={styles.welcomeRow}>
-          <Text style={[styles.welcomeGreeting, { color: theme.colors.textSecondary }]}>
-            Welcome back, {userName}
+          <Text style={styles.welcomeGreeting}>
+            {greeting}, {userName}
+          </Text>
+          <Text style={styles.welcomeSubtitle}>
+            Here's what's happening
           </Text>
         </View>
 
@@ -261,11 +294,20 @@ export const HomeownerDashboard: React.FC = () => {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Upcoming Appointments</Text>
+                {appointments.length > 3 && (
+                  <TouchableOpacity
+                    onPress={() => navigation.navigate('ProfileTab', { screen: 'Calendar' })}
+                    accessibilityRole="button"
+                    accessibilityLabel="View all appointments"
+                  >
+                    <Text style={styles.viewAllLink}>View All</Text>
+                  </TouchableOpacity>
+                )}
               </View>
               {appointments.slice(0, 3).map((apt) => (
                 <View key={apt.id} style={styles.appointmentCard}>
                   <View style={styles.appointmentIcon}>
-                    <Ionicons name="calendar" size={18} color={theme.colors.primary} />
+                    <Ionicons name="calendar" size={18} color='#717171' />
                   </View>
                   <View style={styles.appointmentInfo}>
                     <Text style={styles.appointmentTitle} numberOfLines={1}>{apt.title}</Text>
@@ -302,12 +344,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 12,
     paddingBottom: 10,
     backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomWidth: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+    zIndex: 10,
   },
   brandButton: {
     flexDirection: 'row',
@@ -320,10 +367,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   brandText: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1E3A5F',
-    letterSpacing: -0.3,
+    color: theme.colors.textPrimary,
   },
   rightActions: {
     flexDirection: 'row',
@@ -364,13 +410,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#FF385C',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   welcomeRow: {
     paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingTop: 20,
+    paddingBottom: 4,
   },
   welcomeGreeting: {
-    fontSize: 16,
+    fontSize: 28,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    lineHeight: 34,
+  },
+  welcomeSubtitle: {
+    fontSize: 15,
     color: theme.colors.textSecondary,
+    marginTop: 4,
   },
   homeownerContent: {
     paddingHorizontal: 24,
@@ -490,5 +561,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: theme.colors.textTertiary,
     marginTop: 2,
+  },
+  viewAllLink: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
   },
 });

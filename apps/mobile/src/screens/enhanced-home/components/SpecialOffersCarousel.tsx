@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   },
   offerCard: {
     width: width - 60,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     borderRadius: theme.borderRadius.xl,
     padding: theme.spacing.xl,
     marginHorizontal: theme.spacing.md,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   offerBadgeText: {
     fontSize: theme.typography.fontSize.sm,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    color: '#FFFFFF',
   },
   offerTitle: {
     fontSize: theme.typography.fontSize['2xl'],
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   claimButtonText: {
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.primary,
+    color: '#222222',
   },
   pagination: {
     flexDirection: 'row',
@@ -164,6 +164,6 @@ const styles = StyleSheet.create({
   },
   paginationDotActive: {
     width: 24,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
 });

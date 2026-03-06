@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { ServiceAreaCard } from '../ServiceAreaCard';
 import Button from '../ui/Button';
 import { theme } from '../../theme';
@@ -9,9 +8,9 @@ import type { ServiceArea } from '../../services/ServiceAreasService';
 
 interface ServiceAreasListProps {
   serviceAreas: ServiceArea[];
-  navigation: StackNavigationProp<Record<string, undefined>>;
   onToggleActive: (area: ServiceArea) => void;
   onDelete: (area: ServiceArea) => void;
+  onCreatePress: () => void;
 }
 
 type ListItem =
@@ -20,9 +19,9 @@ type ListItem =
 
 export const ServiceAreasList: React.FC<ServiceAreasListProps> = ({
   serviceAreas,
-  navigation,
   onToggleActive,
   onDelete,
+  onCreatePress,
 }) => {
   const listData = useMemo(() => {
     const activeAreas = serviceAreas.filter((area) => area.is_active);
@@ -56,12 +55,8 @@ export const ServiceAreasList: React.FC<ServiceAreasListProps> = ({
         return (
           <ServiceAreaCard
             serviceArea={area}
-            onPress={() =>
-              Alert.alert('Coming Soon', 'Service area details coming soon.')
-            }
-            onEdit={() =>
-              Alert.alert('Coming Soon', 'Service area editing coming soon.')
-            }
+            onPress={() => {}}
+            onEdit={() => {}}
             onToggleActive={() => onToggleActive(area)}
             onDelete={() => onDelete(area)}
           />
@@ -78,15 +73,14 @@ export const ServiceAreasList: React.FC<ServiceAreasListProps> = ({
             size={64}
             color={theme.colors.textTertiary}
           />
-          <Text style={styles.emptyTitle}>No service areas defined</Text>
+          <Text style={styles.emptyTitle}>No service areas yet</Text>
           <Text style={styles.emptyText}>
-            Create your first service area to start accepting jobs in your
-            preferred locations
+            Add your first service area so homeowners nearby can find you for jobs in your preferred locations.
           </Text>
           <Button
             variant='primary'
-            title='Create Service Area'
-            onPress={() => Alert.alert('Coming Soon', 'Service area creation coming soon.')}
+            title='Add Service Area'
+            onPress={onCreatePress}
           />
         </View>
       }

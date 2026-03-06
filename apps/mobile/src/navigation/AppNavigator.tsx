@@ -11,7 +11,7 @@ import {
   LinkingOptions,
 } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
-import { createStackNavigator, CardStyleInterpolators } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
@@ -24,8 +24,6 @@ import JobsNavigator from './navigators/JobsNavigator';
 import MessagingNavigator from './navigators/MessagingNavigator';
 import ProfileNavigator from './navigators/ProfileNavigator';
 import ModalNavigator from './navigators/ModalNavigator';
-import DiscoverNavigator from './navigators/DiscoverNavigator';
-
 // Import core screens
 import HomeScreen from '../screens/HomeScreen';
 
@@ -45,6 +43,11 @@ import { CustomTabBar } from './components/CustomTabBar';
 // Import QuickJobModal for homeowner (+) button
 import { QuickJobModal } from '../screens/job-posting/QuickJobModal';
 
+// Import booking screens for root stack
+import { RescheduleBookingScreen } from '../screens/booking/RescheduleBookingScreen';
+import { RateBookingScreen } from '../screens/booking/RateBookingScreen';
+import { BookingDetailsScreen } from '../screens/booking/BookingDetailsScreen';
+
 // Export types for backward compatibility
 export type { RootStackParamList, AuthStackParamList } from './types';
 
@@ -58,7 +61,7 @@ const SafeHomeScreen = withScreenErrorBoundary(HomeScreen, 'Home');
 // NAVIGATION STACKS
 // ============================================================================
 
-const RootStack = createStackNavigator<RootStackParamList>();
+const RootStack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<RootTabParamList>();
 
 // ============================================================================
@@ -76,7 +79,7 @@ const AddActionScreen: React.FC = () => {
       if (user?.role === 'homeowner') {
         tabNavigation.navigate('HomeTab');
       } else {
-        tabNavigation.navigate('JobsTab', { screen: 'JobsList' });
+        tabNavigation.navigate('JobsTab', { screen: 'ExploreMap' });
       }
     }, [tabNavigation, user?.role])
   );
@@ -91,7 +94,6 @@ const AddActionScreen: React.FC = () => {
 const TabNavigator: React.FC = () => {
   const { user } = useAuth();
   const haptics = useHaptics();
-  const enableMap = process.env.EXPO_PUBLIC_ENABLE_MAP !== 'false';
   const [showQuickJobModal, setShowQuickJobModal] = useState(false);
 
   // Store root navigation ref for QuickJobModal search callback
@@ -152,24 +154,8 @@ const TabNavigator: React.FC = () => {
           ),
         }}
       />
-      {enableMap && user?.role !== 'homeowner' && (
-        <Tab.Screen
-          name="DiscoverTab"
-          component={DiscoverNavigator}
-          options={{
-            tabBarLabel: 'Find Jobs',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="map" size={size} color={color} />
-            ),
-            tabBarAccessibilityLabel: 'Find jobs near you',
-          }}
-          listeners={{
-            tabPress: () => handleTabPress('DiscoverTab' as keyof RootTabParamList),
-          }}
-        />
-      )}
 
-      <Tab.Screen
+<Tab.Screen
         name="JobsTab"
         component={JobsNavigator}
         options={{
@@ -203,7 +189,7 @@ const TabNavigator: React.FC = () => {
           tabBarAccessibilityLabel:
             user?.role === 'homeowner'
               ? 'Create service request'
-              : 'Browse jobs',
+              : 'Find jobs near you',
           tabBarButton: (props) => (
             <TouchableOpacity
               {...props}
@@ -215,7 +201,7 @@ const TabNavigator: React.FC = () => {
               accessibilityLabel={
                 user?.role === 'homeowner'
                   ? 'Create service request'
-                  : 'Browse jobs'
+                  : 'Find jobs near you'
               }
               style={[
                 props.style,
@@ -230,7 +216,7 @@ const TabNavigator: React.FC = () => {
           ),
         }}
         listeners={({ navigation }: { navigation: BottomTabNavigationProp<RootTabParamList> }) => ({
-          tabPress: (e: unknown) => {
+          tabPress: (e: { preventDefault: () => void }) => {
             e.preventDefault();
             const tabNavigation =
               navigation as BottomTabNavigationProp<RootTabParamList>;
@@ -242,7 +228,8 @@ const TabNavigator: React.FC = () => {
               haptics.buttonPress();
               setShowQuickJobModal(true);
             } else {
-              tabNavigation.navigate('JobsTab', { screen: 'JobsList' });
+              // Contractors: centre button = Find Jobs (map of available jobs to bid on)
+              tabNavigation.navigate('JobsTab', { screen: 'ExploreMap' });
             }
           },
         })}
@@ -313,7 +300,6 @@ const linking: LinkingOptions<RootStackParamList> = {
       Main: {
         screens: {
           HomeTab: 'home',
-          DiscoverTab: 'discover',
           JobsTab: 'jobs',
           AddTab: 'add',
           MessagingTab: 'messages',
@@ -384,12 +370,8 @@ export const AppNavigator: React.FC = () => {
           screenOptions={{
             headerShown: false,
             gestureEnabled: true,
-            cardStyle: { backgroundColor: theme.colors.background },
-            cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
-            transitionSpec: {
-              open: { animation: 'spring', config: { stiffness: 1000, damping: 100, mass: 3, overshootClamping: true, restDisplacementThreshold: 0.01, restSpeedThreshold: 0.01 } },
-              close: { animation: 'spring', config: { stiffness: 1000, damping: 100, mass: 3, overshootClamping: true, restDisplacementThreshold: 0.01, restSpeedThreshold: 0.01 } },
-            },
+            animation: 'slide_from_right',
+            contentStyle: { backgroundColor: theme.colors.background },
           }}
         >
           {user ? (
@@ -397,32 +379,38 @@ export const AppNavigator: React.FC = () => {
               <RootStack.Screen
                 name="Main"
                 component={TabNavigator}
+                options={{ animation: 'none' }}
+              />
+              <RootStack.Screen
+                name="Modal"
+                component={ModalNavigator}
                 options={{
-                  animationTypeForReplace: user ? 'push' : 'pop',
+                  headerShown: false,
+                  presentation: 'modal',
+                  animation: 'slide_from_bottom',
                 }}
               />
-              <RootStack.Group
-                screenOptions={{
-                  presentation: 'modal',
-                  gestureEnabled: true,
-                }}
-              >
-                <RootStack.Screen
-                  name="Modal"
-                  component={ModalNavigator}
-                  options={{
-                    headerShown: false,
-                  }}
-                />
-              </RootStack.Group>
+              <RootStack.Screen
+                name="BookingDetails"
+                component={BookingDetailsScreen}
+                options={{ headerShown: false, gestureEnabled: true }}
+              />
+              <RootStack.Screen
+                name="RescheduleBooking"
+                component={RescheduleBookingScreen}
+                options={{ headerShown: false, gestureEnabled: true }}
+              />
+              <RootStack.Screen
+                name="RateBooking"
+                component={RateBookingScreen}
+                options={{ headerShown: false, gestureEnabled: true }}
+              />
             </>
           ) : (
             <RootStack.Screen
               name="Auth"
               component={AuthNavigator}
-              options={{
-                animationTypeForReplace: user ? 'push' : 'pop',
-              }}
+              options={{ animation: 'none' }}
             />
           )}
         </RootStack.Navigator>
@@ -436,30 +424,14 @@ export const AppNavigator: React.FC = () => {
 // ============================================================================
 
 const FloatingActionButton: React.FC = () => {
-  const { user } = useAuth();
-  const haptics = useHaptics();
   const insets = useSafeAreaInsets();
 
-  const handlePress = React.useCallback(() => {
-    haptics.buttonPress();
-  }, [haptics]);
-
+  // Press handling is done by the outer tabBarButton + tabPress listener.
+  // This component is purely visual (circular icon inside the tab bar button).
   return (
-    <TouchableOpacity
-      style={[styles.fab, { bottom: insets.bottom + 16 }]}
-      onPress={handlePress}
-      accessibilityRole="button"
-      accessibilityLabel={
-        user?.role === 'homeowner' ? 'Create service request' : 'Browse jobs'
-      }
-      accessibilityHint={
-        user?.role === 'homeowner'
-          ? 'Double tap to create a new service request'
-          : 'Double tap to browse available jobs'
-      }
-    >
+    <View style={[styles.fab, { bottom: insets.bottom + 16 }]}>
       <Ionicons name="add" size={28} color={theme.colors.textInverse} />
-    </TouchableOpacity>
+    </View>
   );
 };
 

@@ -67,7 +67,7 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
             >
               <View style={styles.scheduleHeader}>
                 <View style={styles.scheduleIcon}>
-                  <Ionicons name="calendar" size={16} color={theme.colors.primary} accessible={false} />
+                  <Ionicons name="calendar" size={16} color='#717171' accessible={false} />
                 </View>
                 <View style={styles.scheduleInfo}>
                   <Text style={styles.scheduleTitle} numberOfLines={1}>{job.title}</Text>
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
   },
   viewAllLink: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '600',
   },
   emptyState: {
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   scheduleStatus: {
-    backgroundColor: theme.colors.accent,
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   viewDetailsLink: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '600',
   },
 });

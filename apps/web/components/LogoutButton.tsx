@@ -2,6 +2,7 @@
 
 import { logger } from '@/lib/logger';
 import { SessionManager } from '@/lib/session-manager';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 
 export default function LogoutButton() {
   const handleLogout = async () => {
@@ -13,7 +14,7 @@ export default function LogoutButton() {
       await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
-          'x-csrf-token': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || window.csrfToken || '',
+          ...await getCsrfHeaders(),
         },
       });
       window.location.href = '/login';

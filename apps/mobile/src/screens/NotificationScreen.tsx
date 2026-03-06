@@ -67,23 +67,8 @@ const getIconName = (type: NotificationData['type']): keyof typeof Ionicons.glyp
   }
 };
 
-const getIconColor = (type: NotificationData['type']): string => {
-  switch (type) {
-    case 'job_update':
-    case 'bid_received':
-    case 'quote_sent':
-      return theme.colors.primary;
-    case 'payment_received':
-      return '#F59E0B';
-    case 'message_received':
-      return '#3B82F6';
-    case 'meeting_scheduled':
-      return '#8B5CF6';
-    case 'system':
-      return theme.colors.textSecondary;
-    default:
-      return theme.colors.textSecondary;
-  }
+const getIconColor = (_type: NotificationData['type']): string => {
+  return '#717171';
 };
 
 const filterNotifications = (notifications: NotificationData[], tab: FilterTab): NotificationData[] => {
@@ -131,7 +116,7 @@ const CompactNotification: React.FC<CompactNotificationProps> = ({ notification,
 
 export const NotificationScreen: React.FC = () => {
   const { user } = useAuth();
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -316,7 +301,7 @@ export const NotificationScreen: React.FC = () => {
             />
           )}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor='#222222' colors={['#222222']} />
           }
           contentContainerStyle={styles.listContainer}
         />
@@ -350,7 +335,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   tabActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   tabText: {
     fontSize: 13,
@@ -373,7 +358,7 @@ const styles = StyleSheet.create({
   },
   notifRowUnread: {
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
+    borderLeftColor: '#222222',
   },
   iconCircle: {
     width: 34,
@@ -417,7 +402,7 @@ const styles = StyleSheet.create({
   // Header actions
   markAllText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '500',
   },
   // Empty state

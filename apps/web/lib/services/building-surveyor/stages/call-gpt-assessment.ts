@@ -54,31 +54,59 @@ export async function callGptAssessment(
   context?: AssessmentContext,
   damageTypesForPrompt?: string[],
 ): Promise<AiAssessmentPayload> {
-  // Limit to 4 images (GPT-4 Vision limit)
-  const imagesToAnalyze = validatedImageUrls.slice(0, 4);
-
   // Build prompts
   const systemPrompt = buildSystemPrompt(damageTypesForPrompt);
   const evidenceSummary = buildEvidenceSummary(roboflowDetections, visionAnalysis);
   const hasDetectionEvidence = roboflowDetections.length > 0 || !!visionAnalysis;
   const userPrompt = buildUserPrompt(context, evidenceSummary, hasDetectionEvidence);
 
+  // Before/after comparison mode: when before photos are present, interleave them with
+  // the after (current) photos so the model can reason about change over time.
+  // Keep total images ≤ 4 (GPT-4 Vision practical limit).
+  const beforeUrls = (context?.beforeImageUrls ?? []).filter(Boolean);
+  let userContent: ChatMessage['content'];
+  let imageCount: number;
+
+  if (beforeUrls.length > 0) {
+    const beforeToShow = beforeUrls.slice(0, 2);
+    const afterToShow = validatedImageUrls.slice(0, 4 - beforeToShow.length);
+    imageCount = beforeToShow.length + afterToShow.length;
+    userContent = [
+      {
+        type: 'text',
+        text: `You are comparing BEFORE and AFTER photos of the same building area.\nBEFORE images show the pre-existing/damaged state.\nAFTER images show the current state for assessment.\n\n${userPrompt}`,
+      },
+      { type: 'text', text: '[BEFORE photos — pre-existing state:]' },
+      ...beforeToShow.map((url) => ({
+        type: 'image_url' as const,
+        image_url: { url, detail: 'auto' as const },
+      })),
+      { type: 'text', text: '[AFTER photos — current state for assessment:]' },
+      ...afterToShow.map((url) => ({
+        type: 'image_url' as const,
+        image_url: { url, detail: 'auto' as const },
+      })),
+    ];
+  } else {
+    // Standard mode: single set of current photos (up to 4)
+    const imagesToAnalyze = validatedImageUrls.slice(0, 4);
+    imageCount = imagesToAnalyze.length;
+    userContent = [
+      { type: 'text', text: userPrompt },
+      ...imagesToAnalyze.map((url) => ({
+        type: 'image_url' as const,
+        image_url: { url, detail: 'auto' as const },
+      })),
+    ];
+  }
+
   const messages: ChatMessage[] = [
     { role: 'system', content: systemPrompt },
-    {
-      role: 'user',
-      content: [
-        { type: 'text', text: userPrompt },
-        ...imagesToAnalyze.map((url) => ({
-          type: 'image_url' as const,
-          image_url: { url, detail: 'auto' as const }, // 'auto' is faster and cheaper than 'high' for property photos
-        })),
-      ],
-    },
+    { role: 'user', content: userContent },
   ];
 
   // Emergency stop check
-  if (CostControlService.isEmergencyStopped()) {
+  if (await CostControlService.isEmergencyStopped()) {
     throw new Error('AI services are currently disabled due to emergency stop');
   }
 
@@ -88,11 +116,11 @@ export async function callGptAssessment(
   }
 
   // Budget check
-  const estimatedTokens = 1500 + imagesToAnalyze.length * 500;
+  const estimatedTokens = 1500 + imageCount * 500;
   const estimatedCost = CostControlService.estimateCost(OPENAI_MODEL, {
     inputTokens: estimatedTokens,
     outputTokens: 2000,
-    images: imagesToAnalyze.length,
+    images: imageCount,
   });
 
   const budgetCheck = await CostControlService.checkBudget({
@@ -157,9 +185,10 @@ export async function callGptAssessment(
 
   recordMetric('gpt.assessment', {
     durationMs: gptDuration,
-    imageCount: imagesToAnalyze.length,
+    imageCount,
     hasMachineEvidence,
     generator: genResult.model,
+    beforeAfterMode: beforeUrls.length > 0,
   });
 
   // Parse JSON

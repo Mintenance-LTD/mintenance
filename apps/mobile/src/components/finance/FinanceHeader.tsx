@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../theme';
 
 interface FinanceHeaderProps {
-  navigation: StackNavigationProp<Record<string, undefined>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList>;
 }
 
 export const FinanceHeader: React.FC<FinanceHeaderProps> = ({ navigation }) => {
@@ -23,7 +24,7 @@ export const FinanceHeader: React.FC<FinanceHeaderProps> = ({ navigation }) => {
       <Text style={styles.headerTitle}>Finance Dashboard</Text>
       <TouchableOpacity
         style={styles.exportButton}
-        onPress={() => Alert.alert('Coming Soon', 'Finance reports coming soon.')}
+        onPress={() => navigation.navigate('Reporting')}
         testID="export-button"
       >
         <Ionicons name='document-text' size={24} color={theme.colors.textPrimary} />
@@ -55,3 +56,4 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 });
+

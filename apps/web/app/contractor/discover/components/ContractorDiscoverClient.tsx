@@ -5,64 +5,21 @@ import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPag
 import { DynamicGoogleMap } from '@/components/maps';
 import { LocationPromptModal } from './LocationPromptModal';
 import toast from 'react-hot-toast';
-import { MapPin } from 'lucide-react';
+import { MapPin, LayoutGrid, Map } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@mintenance/shared';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 import { calculateDistance } from './discoverUtils';
 import { DiscoverQuickStats } from './DiscoverQuickStats';
-import { DiscoverJobCard } from './DiscoverJobCard';
+import { DiscoverJobCard, type DiscoverJob } from './DiscoverJobCard';
+import { DiscoverFilters } from './DiscoverFilters';
+import { DiscoverSkeletonCard } from './DiscoverSkeletonCard';
+import { DiscoverJobsEmptyState } from './DiscoverJobsEmptyState';
 import { updateMapMarkers } from './DiscoverMapMarkers';
 import type { MapJob, ContractorLocationForMap } from './DiscoverMapMarkers';
 
-// ── Types ───────────────────────────────────────────────────────────────────
-
-interface AIAssessment {
-  id: string;
-  severity: 'early' | 'midway' | 'full';
-  damage_type: string;
-  confidence: number;
-  urgency: 'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor';
-  created_at?: string;
-  assessment_data?: {
-    contractorAdvice?: {
-      estimatedCost?: {
-        min: number;
-        max: number;
-        recommended: number;
-      };
-      complexity?: 'low' | 'medium' | 'high';
-    };
-    safetyHazards?: {
-      hasCriticalHazards: boolean;
-      overallSafetyScore: number;
-    };
-  };
-}
-
-interface Job {
-  id: string;
-  title: string;
-  description: string;
-  category: string | null;
-  budget: number;
-  priority: string | null;
-  photos: string[] | null;
-  created_at: string;
-  homeowner: {
-    first_name: string;
-    last_name: string;
-    profile_image_url: string | null;
-    rating: number | null;
-  } | null;
-  property: {
-    address: string;
-    postcode: string;
-  } | null;
-  matchScore: number;
-  building_assessments?: AIAssessment[] | null;
-}
-
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface ContractorLocation {
   latitude?: number | null;
   longitude?: number | null;
@@ -72,407 +29,299 @@ interface ContractorLocation {
 }
 
 interface ContractorDiscoverClientProps {
-  jobs: Job[];
+  jobs: DiscoverJob[];
   contractorId: string;
   contractorLocation?: ContractorLocation | null;
 }
 
-// ── Component ───────────────────────────────────────────────────────────────
+type JobWithCoords = DiscoverJob & { lat?: number; lng?: number };
 
+// ── Component ─────────────────────────────────────────────────────────────────
 export function ContractorDiscoverClient({
   jobs,
   contractorId,
-  contractorLocation: initialContractorLocation,
+  contractorLocation: initialLocation,
 }: ContractorDiscoverClientProps) {
-  // Debug logging - track props received from server
-  logger.info('[CLIENT] ContractorDiscoverClient Props', {
-    totalJobs: jobs.length,
-    contractorId,
-    contractorLocation: initialContractorLocation,
-    firstJob: jobs[0] ? {
-      id: jobs[0].id,
-      title: jobs[0].title,
-      lat: (jobs[0] as Job & { latitude?: number }).latitude,
-      lng: (jobs[0] as Job & { longitude?: number }).longitude,
-      property: jobs[0].property
-    } : null,
-    service: 'ui',
-  });
-
   const router = useRouter();
+
+  // Core state
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [skippedJobIds, setSkippedJobIds] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState<string | null>(null);
-  const [jobsWithCoordinates, setJobsWithCoordinates] = useState<(Job & { lat?: number; lng?: number; distance?: number })[]>([]);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [jobsWithCoords, setJobsWithCoords] = useState<JobWithCoords[]>([]);
   const [isGeocoding, setIsGeocoding] = useState(true);
-  const [selectedRadius, setSelectedRadius] = useState<number>(10);
   const [loadingSavedJobs, setLoadingSavedJobs] = useState(true);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
-  const [contractorLocation, setContractorLocation] = useState<ContractorLocation | null | undefined>(initialContractorLocation);
+  const [contractorLocation, setContractorLocation] = useState(initialLocation);
+
+  // Filter state
+  const [selectedRadius, setSelectedRadius] = useState(10);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [minBudget, setMinBudget] = useState(0);
+  const [aiAssessedOnly, setAiAssessedOnly] = useState(false);
+
+  // UI state
+  const [viewMode, setViewMode] = useState<'split' | 'cards'>('split');
+  const [hoveredJobId, setHoveredJobId] = useState<string | null>(null);
+
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
 
   // Load saved jobs on mount
   useEffect(() => {
-    loadSavedJobs();
+    fetch('/api/contractor/saved-jobs')
+      .then(r => r.json())
+      .then(d => setSavedJobIds(new Set<string>(d.jobIds || [])))
+      .catch(err => logger.error('Error loading saved jobs', err, { service: 'ui' }))
+      .finally(() => setLoadingSavedJobs(false));
   }, []);
 
-  // Check if we should show location prompt
+  // Location prompt
   useEffect(() => {
-    const hasLocation = contractorLocation?.latitude && contractorLocation?.longitude;
-    const isDismissed = localStorage.getItem('location-prompt-dismissed') === 'true';
-
-    if (!hasLocation && !isDismissed) {
-      const timer = setTimeout(() => {
-        setShowLocationPrompt(true);
-      }, 1000);
-
-      return () => clearTimeout(timer);
+    const hasLoc = contractorLocation?.latitude && contractorLocation?.longitude;
+    if (!hasLoc && localStorage.getItem('location-prompt-dismissed') !== 'true') {
+      const t = setTimeout(() => setShowLocationPrompt(true), 1000);
+      return () => clearTimeout(t);
     }
   }, [contractorLocation]);
 
-  const loadSavedJobs = async () => {
-    try {
-      const response = await fetch('/api/contractor/saved-jobs');
-      if (response.ok) {
-        const data = await response.json();
-        const savedIds = new Set<string>(data.jobIds || []);
-        setSavedJobIds(savedIds);
-      }
-    } catch (error) {
-      logger.error('Error loading saved jobs', error, { service: 'ui' });
-    } finally {
-      setLoadingSavedJobs(false);
-    }
-  };
-
-  // Filter out only skipped jobs (saved jobs should remain visible with saved state)
-  const availableJobs = useMemo(() =>
-    jobs.filter(job => !skippedJobIds.has(job.id)),
+  // Available jobs (skip filter)
+  const availableJobs = useMemo(
+    () => jobs.filter(j => !skippedJobIds.has(j.id)),
     [jobs, skippedJobIds]
   );
 
-  // Filter jobs by radius
-  const filteredJobsByRadius = useMemo(() => {
-    if (!contractorLocation?.latitude || !contractorLocation?.longitude) {
-      const filtered = jobsWithCoordinates.filter(job => job.lat && job.lng);
-      logger.info('[CLIENT] Filtering (no contractor location)', {
-        input: jobsWithCoordinates.length,
-        output: filtered.length,
-        contractorHasLocation: false,
-        service: 'ui',
-      });
-      return filtered;
-    }
-
-    const filtered = jobsWithCoordinates.filter(job => {
-      if (!job.lat || !job.lng) return false;
-      if (!job.distance) return true;
-      return job.distance <= selectedRadius;
-    });
-
-    logger.info('[CLIENT] Filtering (with contractor location)', {
-      input: jobsWithCoordinates.length,
-      output: filtered.length,
-      radius: selectedRadius,
-      contractorLocation: {
-        lat: contractorLocation.latitude,
-        lng: contractorLocation.longitude
-      },
-      service: 'ui',
-    });
-
-    return filtered;
-  }, [jobsWithCoordinates, selectedRadius, contractorLocation]);
-
-  const handleSaveToggle = async (jobId: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-
-    setIsLoading(jobId);
-    const isCurrentlySaved = savedJobIds.has(jobId);
-
-    try {
-      if (isCurrentlySaved) {
-        const response = await fetch(`/api/contractor/saved-jobs?jobId=${jobId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': ((window as Window & { csrfToken?: string }).csrfToken) || '',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to unsave job');
-        }
-
-        setSavedJobIds(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(jobId);
-          return newSet;
-        });
-        toast.success('Job removed from saved');
-      } else {
-        const response = await fetch('/api/contractor/saved-jobs', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': ((window as Window & { csrfToken?: string }).csrfToken) || '',
-          },
-          body: JSON.stringify({ jobId }),
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          if (response.status === 409) {
-            setSavedJobIds(prev => new Set(prev).add(jobId));
-            return;
-          }
-          throw new Error(error.error || 'Failed to save job');
-        }
-
-        setSavedJobIds(prev => new Set(prev).add(jobId));
-        toast.success('Job saved! You can view it in your saved jobs.');
-      }
-    } catch (error) {
-      logger.error('Error toggling save', error, { service: 'ui' });
-      toast.error(isCurrentlySaved ? 'Failed to unsave job' : 'Failed to save job');
-    } finally {
-      setIsLoading(null);
-    }
-  };
-
-  const handleSkip = (jobId: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    setSkippedJobIds(prev => new Set(prev).add(jobId));
-  };
-
-  // Use stored coordinates from database and calculate distances
+  // Geocode + calculate distances from stored coordinates
   useEffect(() => {
-    const jobsWithCoords = availableJobs.map(job => {
-      const jobWithCoords = job as Job & { latitude?: number; lat?: number; longitude?: number; lng?: number };
-      const lat = jobWithCoords.latitude || jobWithCoords.lat;
-      const lng = jobWithCoords.longitude || jobWithCoords.lng;
-
-      let distance: number | undefined;
-      if (contractorLocation?.latitude && contractorLocation?.longitude && lat && lng) {
-        distance = calculateDistance(
-          contractorLocation.latitude,
-          contractorLocation.longitude,
-          lat,
-          lng
-        );
-      }
-
-      return {
-        ...job,
-        lat,
-        lng,
-        distance,
-      };
+    const withCoords = availableJobs.map(job => {
+      const j = job as DiscoverJob & { latitude?: number; longitude?: number };
+      const lat = j.latitude ?? undefined;
+      const lng = j.longitude ?? undefined;
+      const distance =
+        contractorLocation?.latitude && contractorLocation?.longitude && lat && lng
+          ? calculateDistance(contractorLocation.latitude, contractorLocation.longitude, lat, lng)
+          : undefined;
+      return { ...job, lat, lng, distance } as JobWithCoords & { distance?: number };
     });
-
-    logger.info('[CLIENT] Jobs with coordinates', {
-      total: jobsWithCoords.length,
-      withCoords: jobsWithCoords.filter(j => j.lat && j.lng).length,
-      withoutCoords: jobsWithCoords.filter(j => !j.lat || !j.lng).length,
-      sample: jobsWithCoords.slice(0, 2).map(j => ({
-        id: j.id,
-        title: j.title,
-        lat: j.lat,
-        lng: j.lng,
-        distance: j.distance
-      })),
-      service: 'ui',
-    });
-
-    setJobsWithCoordinates(jobsWithCoords);
+    setJobsWithCoords(withCoords);
     setIsGeocoding(false);
   }, [availableJobs, contractorLocation]);
 
-  // Handle map load
-  const handleMapLoad = (map: google.maps.Map) => {
-    mapRef.current = map;
-    runUpdateMapMarkers();
-  };
+  // Apply all filters
+  const filteredJobs = useMemo(() => {
+    const hasLoc = !!(contractorLocation?.latitude && contractorLocation?.longitude);
+    return jobsWithCoords
+      .filter(j => j.lat && j.lng)
+      .filter(j => !hasLoc || !j.distance || j.distance <= selectedRadius)
+      .filter(j => !selectedCategory || j.category === selectedCategory)
+      .filter(j => j.budget >= minBudget)
+      .filter(j => !aiAssessedOnly || (j.building_assessments?.length ?? 0) > 0);
+  }, [jobsWithCoords, selectedRadius, selectedCategory, minBudget, aiAssessedOnly, contractorLocation]);
 
-  // Update markers when jobs change
+  // Pan map to hovered job
   useEffect(() => {
-    if (mapRef.current && !isGeocoding) {
-      runUpdateMapMarkers();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredJobsByRadius, isGeocoding]);
+    if (!hoveredJobId || !mapRef.current) return;
+    const job = filteredJobs.find(j => j.id === hoveredJobId) as (JobWithCoords & { lat?: number; lng?: number }) | undefined;
+    if (job?.lat && job?.lng) mapRef.current.panTo({ lat: job.lat, lng: job.lng });
+  }, [hoveredJobId, filteredJobs]);
 
-  /** Delegate to the extracted map-marker logic. */
-  const runUpdateMapMarkers = () => {
+  // Update map markers when filtered jobs change
+  const runUpdateMarkers = () => {
     if (!mapRef.current) return;
-
-    const mapJobs: MapJob[] = filteredJobsByRadius.map(j => ({
-      id: j.id,
-      title: j.title,
-      description: j.description,
-      category: j.category,
-      budget: j.budget,
-      priority: j.priority,
-      property: j.property,
-      building_assessments: j.building_assessments,
-      lat: j.lat,
-      lng: j.lng,
-      distance: j.distance,
+    const mapJobs: MapJob[] = (filteredJobs as (JobWithCoords & { lat?: number; lng?: number; distance?: number })[]).map(j => ({
+      id: j.id, title: j.title, description: j.description,
+      category: j.category, budget: j.budget, priority: j.priority,
+      property: j.property ?? null, building_assessments: j.building_assessments as MapJob['building_assessments'],
+      lat: j.lat, lng: j.lng, distance: j.distance,
     }));
-
     markersRef.current = updateMapMarkers(
-      mapRef.current,
-      markersRef.current,
-      mapJobs,
+      mapRef.current, markersRef.current, mapJobs,
       contractorLocation as ContractorLocationForMap,
     );
   };
 
-  // Handle location set from modal
-  const handleLocationSet = (location: ContractorLocation) => {
-    setContractorLocation(location);
-    toast.success('Location saved successfully!');
-    router.refresh();
+  useEffect(() => {
+    if (mapRef.current && !isGeocoding) runUpdateMarkers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredJobs, isGeocoding]);
+
+  // Save/skip handlers
+  const handleSaveToggle = async (jobId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setActionLoadingId(jobId);
+    const wasSaved = savedJobIds.has(jobId);
+    try {
+      const res = await fetch(
+        wasSaved ? `/api/contractor/saved-jobs?jobId=${jobId}` : '/api/contractor/saved-jobs',
+        {
+          method: wasSaved ? 'DELETE' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': await getCsrfToken(),
+          },
+          body: wasSaved ? undefined : JSON.stringify({ jobId }),
+        }
+      );
+      if (!res.ok && res.status !== 409) throw new Error('Request failed');
+      setSavedJobIds(prev => {
+        const next = new Set(prev);
+        wasSaved ? next.delete(jobId) : next.add(jobId);
+        return next;
+      });
+      toast.success(wasSaved ? 'Job removed from saved' : 'Job saved!');
+    } catch {
+      toast.error(wasSaved ? 'Failed to unsave job' : 'Failed to save job');
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
-  const hasContractorLocation = !!(contractorLocation?.latitude && contractorLocation?.longitude);
+  const handleSkip = (jobId: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setSkippedJobIds(prev => new Set(prev).add(jobId));
+  };
+
+  // Derived values
+  const hasLocation = !!(contractorLocation?.latitude && contractorLocation?.longitude);
+  const categories = useMemo(
+    () => [...new Set(jobs.map(j => j.category).filter(Boolean))] as string[],
+    [jobs]
+  );
+  const isInitialLoading = isGeocoding || loadingSavedJobs;
+
+  const cardProps = (job: JobWithCoords) => ({
+    job,
+    isSaved: savedJobIds.has(job.id),
+    isLoading: actionLoadingId === job.id,
+    onSaveToggle: handleSaveToggle,
+    onSkip: handleSkip,
+    onNavigate: (id: string) => router.push(`/contractor/bid/${id}/details`),
+    onHover: setHoveredJobId,
+  });
 
   return (
     <ContractorPageWrapper>
       <DiscoverQuickStats
-        filteredJobCount={filteredJobsByRadius.length}
+        filteredJobCount={filteredJobs.length}
         savedJobCount={savedJobIds.size}
         selectedRadius={selectedRadius}
-        hasContractorLocation={hasContractorLocation}
+        hasContractorLocation={hasLocation}
         totalJobCount={jobs.length}
-        onReviewAgain={() => {
-          setSavedJobIds(new Set());
-          setSkippedJobIds(new Set());
-        }}
+        onReviewAgain={() => { setSavedJobIds(new Set()); setSkippedJobIds(new Set()); }}
       />
 
-      {/* Content */}
-      <div className="w-full">
-        {filteredJobsByRadius.length > 0 && (
-          // Split View - Map and Cards Side by Side
-          <div className="flex gap-6">
-            {/* Left Side - Job Cards (Scrollable) */}
-            <div className="w-1/3 space-y-4 overflow-y-auto" style={{ maxHeight: '800px' }}>
-              <div className="sticky top-0 bg-white z-10 pb-3 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Available Jobs ({filteredJobsByRadius.length})
-                  {hasContractorLocation && (
-                    <span className="text-sm text-gray-500 ml-2">
-                      within {selectedRadius}km
-                    </span>
-                  )}
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">Click on a job to view details</p>
+      {/* Header: count + view toggle + filter chips */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-base font-semibold text-gray-900">
+            Available Jobs ({filteredJobs.length})
+            {hasLocation && (
+              <span className="text-sm text-gray-400 font-normal ml-1.5">within {selectedRadius}km</span>
+            )}
+          </h3>
 
-                {/* Radius Selector */}
-                {hasContractorLocation && (
-                  <div className="mt-3 flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700">Radius:</label>
-                    <select
-                      value={selectedRadius}
-                      onChange={(e) => setSelectedRadius(Number(e.target.value))}
-                      className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                    >
-                      <option value="5">5 km</option>
-                      <option value="10">10 km</option>
-                      <option value="20">20 km</option>
-                      <option value="30">30 km</option>
-                      <option value="50">50 km</option>
-                      <option value="100">100 km</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-4 pr-2">
-                {filteredJobsByRadius.map(job => (
-                  <DiscoverJobCard
-                    key={job.id}
-                    job={{
-                      ...job,
-                      distance: job.distance,
-                    }}
-                    isSaved={savedJobIds.has(job.id)}
-                    isLoading={isLoading === job.id}
-                    onSaveToggle={handleSaveToggle}
-                    onSkip={handleSkip}
-                    onNavigate={(id) => router.push(`/contractor/bid/${id}/details`)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Right Side - Map */}
-            <div className="flex-1">
-              {/* Map Info Bar with Legend */}
-              <div className="bg-white rounded-xl border border-gray-200 px-6 py-3 mb-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-teal-600" />
-                    <span className="text-gray-700 font-medium">
-                      {filteredJobsByRadius.length} jobs near you
-                      {hasContractorLocation && (
-                        <span className="text-gray-500"> within {selectedRadius}km</span>
-                      )}
-                    </span>
-                    {contractorLocation?.address && (
-                      <span className="text-sm text-gray-500">
-                        {'\u2022'} {contractorLocation.address}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Click markers for details
-                  </div>
-                </div>
-              </div>
-
-              {/* Map Container */}
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden" style={{ height: '740px' }}>
-                {isGeocoding ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p className="text-gray-600">Loading map...</p>
-                    </div>
-                  </div>
-                ) : (
-                  <DynamicGoogleMap
-                    center={{
-                      lat: contractorLocation?.latitude || 51.5074,
-                      lng: contractorLocation?.longitude || -0.1278
-                    }}
-                    zoom={12}
-                    onMapLoad={handleMapLoad}
-                    style={{ width: '100%', height: '100%' }}
-                  />
-                )}
-              </div>
-            </div>
+          {/* View mode toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('split')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                viewMode === 'split' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Map className="w-3.5 h-3.5" /> Map
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                viewMode === 'cards' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> Cards
+            </button>
           </div>
-        )}
+        </div>
+
+        <DiscoverFilters
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          selectedRadius={selectedRadius}
+          onRadiusChange={setSelectedRadius}
+          minBudget={minBudget}
+          onMinBudgetChange={setMinBudget}
+          aiAssessedOnly={aiAssessedOnly}
+          onAiAssessedToggle={() => setAiAssessedOnly(v => !v)}
+          hasLocation={hasLocation}
+        />
       </div>
 
-      {/* Location Prompt Modal */}
+      {/* Content */}
+      {isInitialLoading ? (
+        /* Skeleton loading */
+        <div className={viewMode === 'cards' ? 'grid grid-cols-2 gap-4' : 'flex gap-6'}>
+          <div className={`space-y-4 ${viewMode === 'split' ? 'w-1/3' : 'contents'}`}>
+            {[1, 2, 3].map(i => <DiscoverSkeletonCard key={i} />)}
+          </div>
+          {viewMode === 'split' && <div className="flex-1 h-64 bg-gray-100 rounded-xl animate-pulse" />}
+        </div>
+      ) : filteredJobs.length === 0 ? (
+        /* Empty state */
+        <DiscoverJobsEmptyState
+          hasLocation={hasLocation}
+          onExpandRadius={() => setSelectedRadius(r => Math.min(r * 2, 100))}
+        />
+      ) : viewMode === 'split' ? (
+        /* Split: cards left, map right */
+        <div className="flex gap-6">
+          <div className="w-1/3 space-y-4 overflow-y-auto pr-1" style={{ maxHeight: '800px' }}>
+            {filteredJobs.map(job => (
+              <DiscoverJobCard key={job.id} {...cardProps(job)} />
+            ))}
+          </div>
+
+          <div className="flex-1">
+            <div className="bg-white rounded-xl border border-gray-200 px-5 py-3 mb-4 flex items-center gap-3">
+              <MapPin className="w-4 h-4 text-teal-600 flex-shrink-0" />
+              <span className="text-sm text-gray-700">
+                {filteredJobs.length} jobs near you
+                {hasLocation && <span className="text-gray-400"> · within {selectedRadius}km</span>}
+              </span>
+              <span className="text-xs text-gray-400 ml-auto">Hover a card to focus the map</span>
+            </div>
+            <div
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+              style={{ height: '740px' }}
+            >
+              <DynamicGoogleMap
+                center={{ lat: contractorLocation?.latitude || 51.5074, lng: contractorLocation?.longitude || -0.1278 }}
+                zoom={12}
+                onMapLoad={map => { mapRef.current = map; runUpdateMarkers(); }}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Cards grid view */
+        <div className="grid grid-cols-2 gap-4">
+          {filteredJobs.map(job => (
+            <DiscoverJobCard key={job.id} {...cardProps(job)} />
+          ))}
+        </div>
+      )}
+
       <LocationPromptModal
         isOpen={showLocationPrompt}
         onClose={() => setShowLocationPrompt(false)}
-        onLocationSet={handleLocationSet}
+        onLocationSet={loc => {
+          setContractorLocation(loc);
+          toast.success('Location saved!');
+          router.refresh();
+        }}
         contractorId={contractorId}
       />
     </ContractorPageWrapper>
   );
 }
 
-// Also export as default for better compatibility with dynamic imports
 export default ContractorDiscoverClient;

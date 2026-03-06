@@ -6,8 +6,9 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
 import { validateRequest } from '@/lib/validation/validator';
 import { createPropertySchema } from '@/lib/validation/schemas';
-import { getFeatureLimit, type HomeownerSubscriptionTier } from '@/lib/feature-access-config';
+import { getFeatureLimit } from '@/lib/feature-access-config';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
 
 // Type definition for property insert data
 interface PropertyInsertData {
@@ -78,17 +79,8 @@ export const GET = withApiHandler({ rateLimit: false }, async (request, { user }
 export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
   // Enforce property count limit based on subscription tier
   if (user.role === 'homeowner') {
-    // Get user's subscription tier
-    const { data: sub } = await serverSupabase
-      .from('homeowner_subscriptions')
-      .select('plan_type')
-      .eq('homeowner_id', user.id)
-      .in('status', ['active', 'trial'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const tier = (sub?.plan_type as HomeownerSubscriptionTier) || 'free';
+    // Check early access first, then subscription
+    const tier = await getEffectiveHomeownerTier(user.id);
     const limit = getFeatureLimit('HOMEOWNER_PROPERTY_LIMIT', 'homeowner', tier);
 
     if (typeof limit === 'number') {

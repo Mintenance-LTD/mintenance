@@ -124,7 +124,7 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
                   {reason.reason}
                 </Text>
                 {selectedReason === reason.id && (
-                  <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
+                  <Ionicons name="checkmark" size={20} color='#222222' />
                 )}
               </TouchableOpacity>
             ))}
@@ -251,16 +251,16 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceSecondary,
   },
   selectedReasonItem: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F7F7F7',
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
   },
   reasonText: {
     fontSize: 16,
     color: theme.colors.textPrimary,
   },
   selectedReasonText: {
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '600',
   },
   customReasonContainer: {

@@ -151,7 +151,7 @@ export function useSettingsState() {
     try {
       const response = await fetch('/api/user/update-profile', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}) },
         body: JSON.stringify({
           firstName: profileData.first_name,
           lastName: profileData.last_name,
@@ -189,6 +189,7 @@ export function useSettingsState() {
     try {
       const response = await fetch('/api/user/update-profile', {
         method: 'POST',
+        headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
         body: formData,
       });
 
@@ -240,7 +241,7 @@ export function useSettingsState() {
   const handleExportData = async (): Promise<void> => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/user/export-data', { method: 'POST' });
+      const response = await fetch('/api/user/export-data', { method: 'POST', headers: csrfToken ? { 'x-csrf-token': csrfToken } : {} });
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -264,7 +265,7 @@ export function useSettingsState() {
 
   const handleDeleteAccount = async (): Promise<void> => {
     try {
-      const response = await fetch('/api/user/delete-account', { method: 'DELETE' });
+      const response = await fetch('/api/user/delete-account', { method: 'DELETE', headers: csrfToken ? { 'x-csrf-token': csrfToken } : {} });
       if (response.ok) {
         toast.success('Account deleted successfully');
         window.location.href = '/login?deleted=true';

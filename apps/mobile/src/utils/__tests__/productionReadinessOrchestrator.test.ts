@@ -70,6 +70,19 @@ jest.mock('../errorTracking', () => ({
     })),
   },
 }));
+jest.mock('../errorTracking/', () => ({
+  enhancedErrorAnalytics: {
+    getErrorAnalytics: jest.fn(() => ({
+      errorRate: 0.005,
+      totalErrors: 10,
+    })),
+    getErrorPatterns: jest.fn(() => []),
+    getTrendAnalysis: jest.fn(() => ({
+      isIncreasing: false,
+      changeRate: 0.1,
+    })),
+  },
+}));
 
 jest.mock('../security', () => ({
   securityAuditService: {

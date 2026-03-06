@@ -30,7 +30,8 @@ export class StudentShadowService {
     imageUrls: string[],
     teacherAssessment: Phase1BuildingAssessment,
     messages: GeneratorMessage[],
-    apiKey: string
+    apiKey: string,
+    teacherReasoning?: string | null
   ): Promise<void> {
     const startMs = Date.now();
 
@@ -98,7 +99,8 @@ export class StudentShadowService {
         typeof messages[0]?.content === 'string' ? messages[0].content : '',
         typeof messages[1]?.content === 'string' ? messages[1].content : JSON.stringify(messages[1]?.content ?? ''),
         teacherAssessment,
-        studentAssessment
+        studentAssessment,
+        teacherReasoning
       ).catch((err) => {
         logger.debug('Experience buffer recording failed (non-critical)', {
           service: 'StudentShadowService',

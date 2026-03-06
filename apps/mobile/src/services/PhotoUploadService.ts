@@ -55,8 +55,6 @@ export class PhotoUploadService {
     photos: ImagePicker.ImagePickerAsset[]
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
-    const { config } = require('../config/environment');
-    const API_BASE_URL = config.apiBaseUrl;
 
     for (const photo of photos) {
       try {
@@ -69,11 +67,13 @@ export class PhotoUploadService {
           quality: this.assessPhotoQuality(photo),
         };
 
+        const ext = photo.uri.split('.').pop()?.toLowerCase();
+        const mimeType = ext === 'png' ? 'image/png' : ext === 'heic' ? 'image/heic' : 'image/jpeg';
         const formData = new FormData();
         formData.append('photo', {
           uri: photo.uri,
-          type: 'image/jpeg',
-          name: `before_${Date.now()}.jpg`,
+          type: mimeType,
+          name: `before_${Date.now()}.${ext || 'jpg'}`,
         } as unknown);
         formData.append('metadata', JSON.stringify(metadata));
 
@@ -119,8 +119,6 @@ export class PhotoUploadService {
     photos: ImagePicker.ImagePickerAsset[]
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
-    const { config } = require('../config/environment');
-    const API_BASE_URL = config.apiBaseUrl;
 
     for (const photo of photos) {
       try {
@@ -133,11 +131,13 @@ export class PhotoUploadService {
           quality: this.assessPhotoQuality(photo),
         };
 
+        const ext = photo.uri.split('.').pop()?.toLowerCase();
+        const mimeType = ext === 'png' ? 'image/png' : ext === 'heic' ? 'image/heic' : 'image/jpeg';
         const formData = new FormData();
         formData.append('photo', {
           uri: photo.uri,
-          type: 'image/jpeg',
-          name: `after_${Date.now()}.jpg`,
+          type: mimeType,
+          name: `after_${Date.now()}.${ext || 'jpg'}`,
         } as unknown);
         formData.append('metadata', JSON.stringify(metadata));
 
@@ -182,9 +182,6 @@ export class PhotoUploadService {
     jobId: string,
     video: ImagePicker.ImagePickerAsset
   ): Promise<PhotoUploadResult> {
-    const { config } = require('../config/environment');
-    const API_BASE_URL = config.apiBaseUrl;
-    
     try {
       const location = await this.getCurrentLocation();
       const metadata: PhotoMetadata = {
@@ -261,18 +258,35 @@ export class PhotoUploadService {
   }
 
   /**
-   * Assess photo quality (simplified - would use actual image analysis in production)
+   * Assess photo quality using resolution and JPEG compression ratio.
+   *
+   * Compression ratio (bytes/pixel) is a meaningful proxy for sharpness:
+   * sharp, well-exposed images contain more high-frequency detail and compress
+   * less aggressively than blurry or underexposed ones.
+   *
+   * Note: the server-side PhotoVerificationService runs an independent quality
+   * check on upload — this value is used for client-side UX feedback only.
    */
   private static assessPhotoQuality(
     photo: ImagePicker.ImagePickerAsset
   ): 'high' | 'medium' | 'low' {
-    // Simplified quality assessment
-    // In production, would analyze image sharpness, brightness, etc.
-    if (photo.width && photo.height) {
-      const megapixels = (photo.width * photo.height) / 1000000;
-      if (megapixels >= 8) return 'high';
-      if (megapixels >= 2) return 'medium';
+    const { width, height, fileSize } = photo;
+    if (!width || !height) return 'low';
+
+    const megapixels = (width * height) / 1_000_000;
+    if (megapixels < 1) return 'low';  // minimum resolution gate
+
+    if (fileSize) {
+      // bytes/pixel: sharp/well-exposed JPEG ≈ 0.15–0.30, blurry/dark ≈ 0.05–0.12
+      const bytesPerPixel = fileSize / (width * height);
+      if (megapixels >= 4 && bytesPerPixel >= 0.15) return 'high';
+      if (megapixels >= 1 && bytesPerPixel >= 0.08) return 'medium';
+      return 'low';
     }
+
+    // fileSize unavailable (some picker configurations omit it) — resolution-only fallback
+    if (megapixels >= 8) return 'high';
+    if (megapixels >= 2) return 'medium';
     return 'low';
   }
 
@@ -283,7 +297,7 @@ export class PhotoUploadService {
     allowsMultiple: boolean = true
   ): Promise<ImagePicker.ImagePickerAsset[]> {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: allowsMultiple,
       quality: 0.9,
       allowsEditing: false,
@@ -301,7 +315,7 @@ export class PhotoUploadService {
    */
   static async takePhoto(): Promise<ImagePicker.ImagePickerAsset | null> {
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 0.9,
       allowsEditing: false,
     });
@@ -318,7 +332,7 @@ export class PhotoUploadService {
    */
   static async pickVideo(): Promise<ImagePicker.ImagePickerAsset | null> {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      mediaTypes: ['videos'],
       allowsMultipleSelection: false,
       quality: 0.8,
       videoMaxDuration: 60, // 60 seconds max

@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import Logo from '@/app/components/Logo';
 import { SessionManager } from '@/lib/session-manager';
 import { logger } from '@/lib/logger';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { theme } from '@/lib/theme';
 import styles from './UnifiedSidebar.module.css';
 import { AdminNotificationBell } from '@/components/admin/AdminNotificationBell';
@@ -67,7 +68,7 @@ export function AdminLayoutShell(props: AdminLayoutShellProps) {
       await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
-          'x-csrf-token': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content || window.csrfToken || '',
+          ...await getCsrfHeaders(),
         },
       });
       router.push('/login');

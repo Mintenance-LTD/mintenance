@@ -386,7 +386,10 @@ export class InputValidationMiddleware {
     const now = Date.now();
     const key = `rate_limit_${identifier}`;
 
-    // TODO: Implement proper rate limiting with persistent storage
+    // TODO(GH-PENDING): Implement persistent rate limiting storage.
+    // NOTE: Current in-memory rate limit resets on app restart.
+    // Use expo-sqlite to persist the rate limit window across restarts.
+    // Issue: "[Mobile Security] Implement persistent rate limiting in InputValidationMiddleware"
     logger.warn('Rate limiting should be implemented with persistent storage for production');
 
     return {

@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,7 +22,7 @@ import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 
 interface Props {
-  navigation: StackNavigationProp<Record<string, unknown>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'Properties'>;
 }
 
 const PropertyCard: React.FC<{
@@ -30,7 +31,7 @@ const PropertyCard: React.FC<{
 }> = ({ property, onPress }) => (
   <TouchableOpacity style={styles.propertyCard} onPress={onPress}>
     <View style={styles.cardHeader}>
-      <Ionicons name="home-outline" size={24} color={theme.colors.primary} />
+      <Ionicons name="home-outline" size={24} color='#717171' />
       <View style={styles.cardHeaderText}>
         <Text style={styles.propertyAddress} numberOfLines={1}>
           {property.property_name}
@@ -64,10 +65,13 @@ const PropertyCard: React.FC<{
   </TouchableOpacity>
 );
 
+type SortOption = 'name' | 'date' | 'type';
+
 export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('name');
 
   const { data: properties, isLoading, error, refetch } = useQuery({
     queryKey: ['properties', user?.id],
@@ -88,6 +92,21 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     return <LoadingSpinner message="Loading properties..." />;
   }
 
+  const sortedProperties = React.useMemo(() => {
+    if (!properties) return [];
+    const sorted = [...properties];
+    switch (sortBy) {
+      case 'name':
+        return sorted.sort((a, b) => (a.property_name || '').localeCompare(b.property_name || ''));
+      case 'date':
+        return sorted.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+      case 'type':
+        return sorted.sort((a, b) => (a.property_type || '').localeCompare(b.property_type || ''));
+      default:
+        return sorted;
+    }
+  }, [properties, sortBy]);
+
   if (error) {
     return <ErrorView message="Failed to load properties" onRetry={refetch} />;
   }
@@ -101,15 +120,38 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => navigation.navigate('AddProperty')}
             accessibilityLabel="Add property"
           >
-            <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
+            <Ionicons name="add-circle-outline" size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
         }
       />
 
+      {/* Sort options */}
+      {properties && properties.length > 1 && (
+        <View style={styles.sortRow}>
+          {([
+            { key: 'name' as SortOption, label: 'Name' },
+            { key: 'date' as SortOption, label: 'Date Added' },
+            { key: 'type' as SortOption, label: 'Type' },
+          ]).map((opt) => (
+            <TouchableOpacity
+              key={opt.key}
+              style={[styles.sortChip, sortBy === opt.key && styles.sortChipActive]}
+              onPress={() => setSortBy(opt.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sortBy === opt.key }}
+            >
+              <Text style={[styles.sortChipText, sortBy === opt.key && styles.sortChipTextActive]}>
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
       {!properties || properties.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>
-            <Ionicons name="home-outline" size={48} color={theme.colors.primary} />
+            <Ionicons name="home-outline" size={48} color='#717171' />
           </View>
           <Text style={styles.emptyTitle}>No Properties</Text>
           <Text style={styles.emptySubtitle}>
@@ -125,7 +167,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       ) : (
         <FlatList
-          data={properties}
+          data={sortedProperties}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
             <PropertyCard
@@ -204,7 +246,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#F7F7F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -236,6 +278,33 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.fontWeight.semibold,
     marginLeft: theme.spacing[2],
   },
+  sortRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: theme.spacing[4],
+    paddingVertical: 10,
+  },
+  sortChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+  },
+  sortChipActive: {
+    backgroundColor: theme.colors.textPrimary,
+    borderColor: theme.colors.textPrimary,
+  },
+  sortChipText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  sortChipTextActive: {
+    color: '#FFFFFF',
+  },
 });
 
 export default PropertiesScreen;
+

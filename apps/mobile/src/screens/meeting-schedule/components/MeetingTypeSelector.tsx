@@ -52,7 +52,7 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
               <Ionicons 
                 name={type.icon as unknown} 
                 size={24} 
-                color={selectedType === type.id ? theme.colors.textInverse : theme.colors.primary} 
+                color={selectedType === type.id ? theme.colors.textInverse : '#717171'}
               />
             </View>
             <Text style={[
@@ -125,8 +125,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   typeCardSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   typeIcon: {
     width: 48,
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   durationButtonSelected: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   durationText: {
     fontSize: theme.typography.fontSize.md,

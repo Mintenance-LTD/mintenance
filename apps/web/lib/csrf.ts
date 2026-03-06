@@ -30,30 +30,32 @@ function parseCookie(cookieString: string): Record<string, string> {
  */
 export async function validateCSRF(request: NextRequest): Promise<boolean> {
   const method = request.method;
-  
+
   // Only validate mutating methods
   if (!['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
     return true;
   }
-  
+
   try {
     // Get CSRF token from header
     const headerToken = request.headers.get('x-csrf-token');
-    
-    // Get CSRF token from cookie
-    // Use different cookie name in development vs production
-    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    // Get CSRF token from cookie (use request.cookies API for reliable access on Vercel)
+    const isDevelopment = process.env.NODE_ENV !== 'production';
     const cookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
-    
-    const cookieHeader = request.headers.get('cookie') || '';
-    const cookies = parseCookie(cookieHeader);
-    const cookieToken = cookies[cookieName];
-    
+    const cookieToken = request.cookies.get(cookieName)?.value;
+
     // Both tokens must exist and match
     if (!headerToken || !cookieToken) {
+      logger.warn('CSRF tokens missing', {
+        service: 'csrf',
+        hasHeader: !!headerToken,
+        hasCookie: !!cookieToken,
+        cookieName,
+      });
       return false;
     }
-    
+
     return headerToken === cookieToken;
   } catch (error) {
     logger.error('CSRF validation error', {
@@ -108,7 +110,7 @@ export function generateCSRFToken(): string {
  * Set CSRF token in response headers
  */
 export function setCSRFToken(response: Response, token: string): Response {
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = process.env.NODE_ENV !== 'production';
   const cookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
   const secureFlag = isDevelopment ? '' : ' Secure;';
   response.headers.set(

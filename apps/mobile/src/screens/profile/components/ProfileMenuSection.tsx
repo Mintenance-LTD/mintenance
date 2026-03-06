@@ -9,6 +9,9 @@ interface MenuItem {
   onPress: () => void;
   accessibilityRole?: 'link' | 'button';
   accessibilityLabel?: string;
+  iconColor?: string;
+  iconBg?: string;
+  badge?: number;
 }
 
 interface ProfileMenuSectionProps {
@@ -22,67 +25,108 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
 }) => {
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]} accessibilityRole='header'>{title}</Text>
-      {items.map((item) => (
-        <TouchableOpacity
-          key={item.label}
-          style={[styles.menuItem, { borderBottomColor: theme.colors.borderLight }]}
-          onPress={item.onPress}
-          accessibilityRole={item.accessibilityRole || 'button'}
-          accessibilityLabel={item.accessibilityLabel || item.label}
-        >
-          <View style={styles.menuItemLeft}>
-            <View style={styles.menuIconContainer}>
+      <Text style={styles.sectionTitle} accessibilityRole="header">
+        {title}
+      </Text>
+      <View style={styles.card}>
+        {items.map((item, index) => (
+          <TouchableOpacity
+            key={item.label}
+            style={[
+              styles.menuItem,
+              index < items.length - 1 && styles.menuItemBorder,
+            ]}
+            onPress={item.onPress}
+            accessibilityRole={item.accessibilityRole || 'button'}
+            accessibilityLabel={item.accessibilityLabel || item.label}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.iconChip,
+                { backgroundColor: item.iconBg ?? theme.colors.surfaceSecondary },
+              ]}
+            >
               <Ionicons
                 name={item.icon as keyof typeof Ionicons.glyphMap}
-                size={20}
-                color={theme.colors.textPrimary}
+                size={18}
+                color={item.iconColor ?? theme.colors.textSecondary}
               />
             </View>
-            <Text style={[styles.menuText, { color: theme.colors.textPrimary }]}>{item.label}</Text>
-          </View>
-          <Ionicons name='chevron-forward' size={16} color={theme.colors.textTertiary} />
-        </TouchableOpacity>
-      ))}
+            <Text style={styles.menuText}>{item.label}</Text>
+            {item.badge != null && item.badge > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {item.badge > 99 ? '99+' : item.badge}
+                </Text>
+              </View>
+            )}
+            <Ionicons name="chevron-forward" size={15} color={theme.colors.textTertiary} />
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   section: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 8,
+    paddingBottom: 4,
   },
   sectionTitle: {
     fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
+    fontWeight: '700',
+    color: theme.colors.textTertiary,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  card: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...theme.shadows.sm,
   },
   menuItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  menuItemBorder: {
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderLight,
   },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuIconContainer: {
-    width: 28,
-    height: 28,
+  iconChip: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuText: {
-    fontSize: 16,
+    flex: 1,
+    fontSize: 15,
     color: theme.colors.textPrimary,
-    marginLeft: 12,
+    fontWeight: '500',
+  },
+  badge: {
+    backgroundColor: theme.colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+  },
+  badgeText: {
+    color: theme.colors.textInverse,
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

@@ -122,6 +122,6 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: theme.typography.fontSize.xl,
     fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
 });

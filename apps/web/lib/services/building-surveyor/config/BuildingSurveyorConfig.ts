@@ -167,7 +167,7 @@ export function loadBuildingSurveyorConfig(): BuildingSurveyorConfig {
 
         // SAM 3 Configuration
         sam3: {
-            serviceUrl: process.env.SAM3_SERVICE_URL || 'http://localhost:8001',
+            serviceUrl: process.env.SAM3_SERVICE_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8001'),
             enabled: process.env.ENABLE_SAM3_SEGMENTATION === 'true',
             modelVersion: process.env.SAM_MODEL_VERSION || '3',
             rolloutPercentage: Number.parseInt(

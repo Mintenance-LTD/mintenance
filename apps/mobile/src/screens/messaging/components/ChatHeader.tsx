@@ -52,7 +52,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Ionicons
             name='videocam'
             size={24}
-            color={isInCall ? theme.colors.textTertiary : theme.colors.primary}
+            color={isInCall ? theme.colors.textTertiary : '#222222'}
           />
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>

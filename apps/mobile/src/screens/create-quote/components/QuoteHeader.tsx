@@ -42,7 +42,7 @@ export const QuoteHeader: React.FC<QuoteHeaderProps> = ({
 
       <TouchableOpacity style={styles.templateButton} onPress={onTemplatePress}>
         <View style={styles.templateButtonContent}>
-          <Ionicons name="document-text-outline" size={20} color={theme.colors.primary} />
+          <Ionicons name="document-text-outline" size={20} color='#717171' />
           <View style={styles.templateButtonText}>
             <Text style={styles.templateButtonLabel}>Quote Template</Text>
             <Text style={styles.templateButtonValue}>

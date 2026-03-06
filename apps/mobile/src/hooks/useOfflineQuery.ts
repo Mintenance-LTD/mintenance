@@ -410,9 +410,22 @@ const cacheMessagesData = async (
   data: unknown
 ): Promise<void> => {
   if (Array.isArray(data)) {
-    for (const message of data) {
-      const { senderName, senderRole, ...messageData } = message;
-      await LocalDatabase.saveMessage(messageData, false);
+    for (const raw of data) {
+      const m = raw as Record<string, unknown>;
+      // Normalize snake_case (Supabase) to camelCase (Message type)
+      const senderId = (m.senderId ?? m.sender_id) as string | undefined;
+      if (!senderId) continue; // skip messages without a sender
+      await LocalDatabase.saveMessage({
+        id: m.id as string,
+        jobId: (m.jobId ?? m.job_id ?? m.thread_id) as string | undefined,
+        senderId,
+        receiverId: (m.receiverId ?? m.receiver_id) as string | undefined,
+        messageText: (m.messageText ?? m.message_text ?? m.content) as string | undefined,
+        messageType: (m.messageType ?? m.message_type) as 'text' | 'image' | 'file' | 'system' | undefined,
+        attachmentUrl: (m.attachmentUrl ?? m.attachment_url) as string | undefined,
+        read: Boolean(m.read),
+        createdAt: ((m.createdAt ?? m.created_at) as string) ?? new Date().toISOString(),
+      }, false);
     }
   }
 };

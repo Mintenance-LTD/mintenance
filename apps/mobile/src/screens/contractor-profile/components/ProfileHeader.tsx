@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     borderRadius: theme.borderRadius.lg,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,

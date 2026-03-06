@@ -178,24 +178,23 @@ jobs:
           db-diff.txt
         retention-days: 30
 
-  # notify-security-team:
-  #   runs-on: ubuntu-latest
-  #   if: failure() && github.event_name == 'schedule'
-  #   needs: [security-scan, database-security-scan]
-  #
-  #   steps:
-  #   - name: Notify security team
-  #     uses: 8398a7/action-slack@v3
-  #     with:
-  #       status: failure
-  #       channel: '#security-alerts'
-  #       webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-  #       fields: repo,message,commit,author,action,eventName,ref,workflow
-  #       text: |
-  #         🚨 Security scan failed for Mintenance
-  #         Repository: ${{ github.repository }}
-  #         Branch: ${{ github.ref }}
-  #         Commit: ${{ github.sha }}
-  #         Please review the security reports and address any critical issues.
-  #
-  # NOTE: Uncomment when SLACK_WEBHOOK secret is configured
+  notify-security-team:
+    runs-on: ubuntu-latest
+    if: failure() && github.event_name == 'schedule'
+    needs: [security-scan, database-security-scan]
+
+    steps:
+    - name: Notify security team
+      if: ${{ secrets.SLACK_WEBHOOK != '' }}
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        channel: '#security-alerts'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow
+        text: |
+          Security scan failed for Mintenance
+          Repository: ${{ github.repository }}
+          Branch: ${{ github.ref }}
+          Commit: ${{ github.sha }}
+          Please review the security reports and address any critical issues.

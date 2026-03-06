@@ -47,26 +47,28 @@ const tokens = mobileTokens;
 import { isDarkMode } from './darkModeState';
 export { setDarkModeEnabled } from './darkModeState';
 
-// Light palette (default)
+// Light palette — Airbnb warm palette
+// Primary CTA: #10B981 (emerald) appears ONLY on CTAs, active states, success indicators
+// Everything else: #222222 headings, #717171 body, #B0B0B0 tertiary, #EBEBEB borders, #F7F7F7 bg
 const lightColors = {
   ...tokens.colors,
-  primary: '#0D9488',
-  primaryLight: '#CCFBF1',
-  primaryDark: '#0F766E',
+  primary: '#10B981',       // Airbnb emerald — CTAs & active states only
+  primaryLight: '#D1FAE5',  // light emerald tint
+  primaryDark: '#059669',   // darker emerald for pressed state
   accent: '#F59E0B',
   accentLight: '#FEF3C7',
   ratingGold: '#F59E0B',
-  textPrimary: '#0F172A',
-  textSecondary: '#475569',
-  textTertiary: '#64748B',
+  textPrimary: '#222222',   // warm dark (Airbnb-style, not cool slate)
+  textSecondary: '#717171', // warm medium gray
+  textTertiary: '#B0B0B0',  // warm tertiary / placeholders
   background: '#FFFFFF',
-  backgroundSecondary: '#F8FAFC',
-  backgroundTertiary: '#F1F5F9',
+  backgroundSecondary: '#F7F7F7', // warm off-white background
+  backgroundTertiary: '#F0F0F0',  // warm light gray
   surface: '#FFFFFF',
-  surfaceSecondary: '#F8FAFC',
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
-  placeholder: '#94A3B8',
+  surfaceSecondary: '#F7F7F7',
+  border: '#EBEBEB',        // warm border (not blue-tinted)
+  borderLight: '#F0F0F0',   // very subtle warm border
+  placeholder: '#B0B0B0',   // warm placeholder text
   textInverse: '#FFFFFF',
   textInverseMuted: 'rgba(255, 255, 255, 0.80)',
   overlayWhite10: 'rgba(255, 255, 255, 0.10)',
@@ -214,18 +216,18 @@ export const theme = {
   components: {
     button: {
       primary: {
-        backgroundColor: '#0D9488',
+        backgroundColor: '#10B981', // emerald CTA
         color: '#FFFFFF',
-        borderColor: '#0D9488',
+        borderColor: '#10B981',
       },
       secondary: {
         backgroundColor: 'transparent',
-        color: '#0F172A',
-        borderColor: '#CBD5E1',
+        color: '#222222',
+        borderColor: '#DDDDDD',
       },
       tertiary: {
         backgroundColor: 'transparent',
-        color: '#64748B',
+        color: '#717171',
         borderColor: 'transparent',
       },
       success: {
@@ -240,14 +242,14 @@ export const theme = {
       },
       ghost: {
         backgroundColor: 'transparent',
-        color: '#0F172A',
+        color: '#222222',
         borderColor: 'transparent',
       },
     },
     card: {
       default: {
         backgroundColor: '#FFFFFF',
-        borderColor: '#E2E8F0',
+        borderColor: '#EBEBEB',
         borderWidth: 0,
         borderRadius: 12,
       },
@@ -258,7 +260,7 @@ export const theme = {
       },
       outlined: {
         backgroundColor: 'transparent',
-        borderColor: '#E2E8F0',
+        borderColor: '#EBEBEB',
         borderWidth: 1,
         borderRadius: 12,
       },
@@ -266,27 +268,27 @@ export const theme = {
     input: {
       default: {
         backgroundColor: '#FFFFFF',
-        borderColor: '#E2E8F0',
-        color: '#0F172A',
-        placeholderTextColor: '#94A3B8',
+        borderColor: '#EBEBEB',
+        color: '#222222',
+        placeholderTextColor: '#B0B0B0',
       },
       outline: {
         backgroundColor: '#FFFFFF',
-        borderColor: '#E2E8F0',
-        color: '#0F172A',
-        placeholderTextColor: '#94A3B8',
+        borderColor: '#EBEBEB',
+        color: '#222222',
+        placeholderTextColor: '#B0B0B0',
       },
       filled: {
-        backgroundColor: '#F8FAFC',
-        borderColor: '#E2E8F0',
-        color: '#0F172A',
-        placeholderTextColor: '#94A3B8',
+        backgroundColor: '#F7F7F7',
+        borderColor: '#EBEBEB',
+        color: '#222222',
+        placeholderTextColor: '#B0B0B0',
       },
       focused: {
-        borderColor: '#0D9488',
+        borderColor: '#222222', // Airbnb uses dark border for focus, not primary color
         backgroundColor: '#FFFFFF',
         shadowColor: '#000000',
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.04,
       },
       error: {
         borderColor: tokens.colors.errorDark,
@@ -434,28 +436,29 @@ export const getCategoryColor = (category: string) => {
   return (tokens.colors as Record<string, string>)[categoryKey] || tokens.colors.textSecondary;
 };
 
-// Dark mode color overrides — consumed by the reactive getters above
+// Dark mode color overrides — warm darks (no pure black per Phase O spec)
+// Backgrounds: #181818, #222222, #333333 — warm not cool-slate
 const _darkColorsRef: Record<string, string> = {
   ...lightColors,
-  primary: '#14B8A6',
-  primaryLight: '#065F46',
-  primaryDark: '#2DD4BF',
+  primary: '#34D399',       // brighter emerald for dark bg contrast
+  primaryLight: '#064E3B',
+  primaryDark: '#6EE7B7',
   accent: '#FBBF24',
   accentLight: '#3A2A0A',
   ratingGold: '#FBBF24',
-  textPrimary: '#F1F5F9',
-  textSecondary: '#94A3B8',
-  textTertiary: '#64748B',
-  background: '#0F172A',
-  backgroundSecondary: '#1E293B',
-  backgroundTertiary: '#334155',
-  surface: '#1E293B',
-  surfaceSecondary: '#1E293B',
-  border: '#334155',
-  borderLight: '#1E293B',
-  placeholder: '#64748B',
-  textInverse: '#0F172A',
-  textInverseMuted: 'rgba(15, 23, 42, 0.78)',
+  textPrimary: '#F5F5F5',   // warm white (not cool blue-white)
+  textSecondary: '#B0B0B0', // warm medium gray
+  textTertiary: '#717171',  // warm tertiary
+  background: '#181818',    // warm dark (not pure black)
+  backgroundSecondary: '#222222',
+  backgroundTertiary: '#333333',
+  surface: '#222222',
+  surfaceSecondary: '#2A2A2A',
+  border: '#333333',
+  borderLight: '#2A2A2A',
+  placeholder: '#717171',
+  textInverse: '#181818',
+  textInverseMuted: 'rgba(24, 24, 24, 0.78)',
   overlayWhite10: 'rgba(255, 255, 255, 0.10)',
   overlayWhite15: 'rgba(255, 255, 255, 0.15)',
   overlayWhite20: 'rgba(255, 255, 255, 0.20)',
@@ -478,19 +481,19 @@ const darkShadows: typeof theme.shadows = {
 const darkComponents: typeof theme.components = {
   button: {
     ...theme.components.button,
-    secondary: { backgroundColor: 'transparent', color: '#F1F5F9', borderColor: '#475569' },
-    ghost: { backgroundColor: 'transparent', color: '#F1F5F9', borderColor: 'transparent' },
+    secondary: { backgroundColor: 'transparent', color: '#F5F5F5', borderColor: '#444444' },
+    ghost: { backgroundColor: 'transparent', color: '#F5F5F5', borderColor: 'transparent' },
   },
   card: {
-    default: { backgroundColor: '#1E293B', borderColor: '#334155', borderWidth: 0, borderRadius: 12 },
-    elevated: { backgroundColor: '#1E293B', borderColor: 'transparent', borderWidth: 0 },
-    outlined: { backgroundColor: 'transparent', borderColor: '#334155', borderWidth: 1, borderRadius: 12 },
+    default: { backgroundColor: '#222222', borderColor: '#333333', borderWidth: 0, borderRadius: 12 },
+    elevated: { backgroundColor: '#222222', borderColor: 'transparent', borderWidth: 0 },
+    outlined: { backgroundColor: 'transparent', borderColor: '#333333', borderWidth: 1, borderRadius: 12 },
   },
   input: {
-    default: { backgroundColor: '#1E293B', borderColor: '#475569', color: '#F1F5F9', placeholderTextColor: '#64748B' },
-    outline: { backgroundColor: '#1E293B', borderColor: '#475569', color: '#F1F5F9', placeholderTextColor: '#64748B' },
-    filled: { backgroundColor: '#334155', borderColor: '#475569', color: '#F1F5F9', placeholderTextColor: '#64748B' },
-    focused: { borderColor: '#2DD4BF', backgroundColor: '#1E293B', shadowColor: '#000000', shadowOpacity: 0.1 },
+    default: { backgroundColor: '#222222', borderColor: '#444444', color: '#F5F5F5', placeholderTextColor: '#717171' },
+    outline: { backgroundColor: '#222222', borderColor: '#444444', color: '#F5F5F5', placeholderTextColor: '#717171' },
+    filled: { backgroundColor: '#2A2A2A', borderColor: '#444444', color: '#F5F5F5', placeholderTextColor: '#717171' },
+    focused: { borderColor: '#F5F5F5', backgroundColor: '#222222', shadowColor: '#000000', shadowOpacity: 0.2 },
     error: { borderColor: tokens.colors.errorDark, backgroundColor: '#3A1A1A', color: tokens.colors.errorDark },
   },
 };

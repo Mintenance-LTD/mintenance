@@ -11,11 +11,15 @@ export { createClient } from '@supabase/supabase-js';
 
 // Create server-side Supabase client with service role key
 export function serverSupabase() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Missing Supabase environment variables');
+    throw new Error(
+      'Missing Supabase environment variables: ' +
+      (!supabaseUrl ? 'NEXT_PUBLIC_SUPABASE_URL ' : '') +
+      (!supabaseServiceKey ? 'SUPABASE_SERVICE_ROLE_KEY' : '')
+    );
   }
 
   return createSupabaseClient(supabaseUrl, supabaseServiceKey, {
@@ -29,11 +33,15 @@ export function serverSupabase() {
 
 // Create server-side Supabase client with user session
 export async function createServerSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables');
+    throw new Error(
+      'Missing Supabase environment variables: ' +
+      (!supabaseUrl ? 'NEXT_PUBLIC_SUPABASE_URL ' : '') +
+      (!supabaseAnonKey ? 'NEXT_PUBLIC_SUPABASE_ANON_KEY' : '')
+    );
   }
 
   const cookieStore = await cookies();

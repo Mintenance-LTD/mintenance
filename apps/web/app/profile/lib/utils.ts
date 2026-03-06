@@ -4,6 +4,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 
 /**
  * Format address from reverse geocoding response
@@ -89,6 +90,7 @@ export async function saveProfile(
 
       const uploadResponse = await fetch('/api/user/update-profile', {
         method: 'POST',
+        headers: await getCsrfHeaders(),
         body: formDataUpload,
       });
 
@@ -109,6 +111,7 @@ export async function saveProfile(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...await getCsrfHeaders(),
       },
       body: JSON.stringify({
         first_name: formData.firstName,

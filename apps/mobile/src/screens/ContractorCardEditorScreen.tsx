@@ -12,7 +12,8 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,7 +26,7 @@ import { Input } from '../components/ui/Input';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 
 interface ContractorCardEditorScreenProps {
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'ContractorCardEditor'>;
 }
 
 export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProps> = ({
@@ -85,7 +86,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: true,
         aspect: type === 'logo' ? [1, 1] : [4, 3],
         quality: 0.8,
@@ -160,14 +161,14 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Discovery Card</Text>
         <TouchableOpacity
           style={styles.previewButton}
           onPress={() => setPreviewVisible(true)}
         >
-          <Ionicons name="eye" size={24} color={theme.colors.textInverse} />
+          <Ionicons name="eye" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -231,7 +232,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
 
           <View style={styles.row}>
             <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.inputLabel}>Hourly Rate ($)</Text>
+              <Text style={styles.inputLabel}>Hourly Rate (£)</Text>
               <TextInput
                 style={styles.textInput}
                 value={profile.hourlyRate?.toString() || ''}
@@ -294,7 +295,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
             style={styles.addPortfolioButton}
             onPress={() => handleImagePicker('portfolio')}
           >
-            <Ionicons name="add" size={24} color={theme.colors.primary} />
+            <Ionicons name="add" size={24} color='#717171' />
             <Text style={styles.addPortfolioText}>Add Portfolio Images</Text>
           </TouchableOpacity>
 
@@ -368,7 +369,7 @@ export const ContractorCardEditorScreen: React.FC<ContractorCardEditorScreenProp
               )}
               <Text style={styles.previewCompanyName}>{profile.companyName || 'Your Company'}</Text>
               <Text style={styles.previewBio}>{profile.bio || 'Your professional bio...'}</Text>
-              <Text style={styles.previewRate}>${profile.hourlyRate || 0}/hr</Text>
+              <Text style={styles.previewRate}>£{profile.hourlyRate || 0}/hr</Text>
             </View>
           </View>
         </View>
@@ -388,15 +389,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
   },
   previewButton: {
     padding: 8,
@@ -485,8 +488,8 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
   },
   availabilityOptionActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   availabilityText: {
     fontSize: 14,
@@ -502,14 +505,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: theme.borderRadius.lg,
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: '#EBEBEB',
     borderStyle: 'dashed',
     marginBottom: 16,
   },
   addPortfolioText: {
     marginLeft: 8,
     fontSize: 16,
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
     fontWeight: '500',
   },
   portfolioGrid: {

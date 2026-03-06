@@ -55,15 +55,15 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
           }
         };
 
-        // Center (+) button — emits tabPress so AppNavigator listener can handle it
+        // Center FAB — contractors: Find Jobs / homeowners: Post a Job
         if (isAddTab) {
+          const isContractor = user?.role === 'contractor';
           const handleAddPress = () => {
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
               canPreventDefault: true,
             });
-            // If listener didn't prevent default, fall back to navigation
             if (!event.defaultPrevented) {
               navigation.navigate(route.name);
             }
@@ -73,13 +73,20 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             <TouchableOpacity
               key={route.key}
               accessibilityRole="button"
-              accessibilityLabel="Post a job"
+              accessibilityLabel={isContractor ? 'Find jobs' : 'Post a job'}
               onPress={handleAddPress}
               style={styles.addTabContainer}
             >
               <View style={styles.addButton}>
-                <Ionicons name="add" size={24} color={theme.colors.textInverse} />
+                <Ionicons
+                  name={isContractor ? 'search' : 'add'}
+                  size={isContractor ? 22 : 24}
+                  color={theme.colors.textInverse}
+                />
               </View>
+              <Text style={styles.addLabel}>
+                {isContractor ? 'Find Jobs' : 'Post Job'}
+              </Text>
             </TouchableOpacity>
           );
         }
@@ -100,12 +107,15 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
             {React.createElement(Ionicons, {
               name: (iconName || 'help-outline') as keyof typeof Ionicons.glyphMap,
               size: isFocused ? NAVIGATION_CONSTANTS.ACTIVE_ICON_SIZE : NAVIGATION_CONSTANTS.ICON_SIZE,
-              color: isFocused ? theme.colors.primary : '#808080',
+              color: isFocused ? theme.colors.primary : '#B0B0B0',
               style: TAB_STYLES.tabBarIconStyle,
             })}
             <Text style={[
               TAB_STYLES.tabBarLabelStyle,
-              { color: isFocused ? theme.colors.primary : '#808080' }
+              {
+                color: isFocused ? theme.colors.primary : '#B0B0B0',
+                fontWeight: isFocused ? '500' : '400',
+              },
             ]}>
               {String(label)}
             </Text>
@@ -122,17 +132,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopWidth: 0,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0,
-        shadowRadius: 0,
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 0,
+        elevation: 4,
       },
     }),
   },
@@ -148,6 +157,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -16,
+  },
+  addLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: theme.colors.primary,
+    marginTop: 4,
   },
   addButton: {
     width: 52,

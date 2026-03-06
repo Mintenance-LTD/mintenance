@@ -64,10 +64,28 @@ const envSchema = z.object({
     .url('NEXT_PUBLIC_SUPABASE_URL must be a valid URL')
     .describe('Supabase project URL'),
 
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z
+    .string()
+    .min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required')
+    .describe('Supabase anonymous key - required for client-side auth'),
+
   SUPABASE_SERVICE_ROLE_KEY: z
     .string()
     .min(1, 'SUPABASE_SERVICE_ROLE_KEY is required')
     .describe('Supabase service role key - server-side only'),
+
+  // Security Secrets (CRITICAL)
+  ENCRYPTION_MASTER_KEY: z
+    .string()
+    .min(32, 'ENCRYPTION_MASTER_KEY must be at least 32 characters (hex-encoded 16+ bytes)')
+    .optional()
+    .describe('Master key for PII field encryption - required if encryption features are used'),
+
+  CSRF_SECRET: z
+    .string()
+    .min(32, 'CSRF_SECRET must be at least 32 characters')
+    .optional()
+    .describe('Secret for CSRF token generation - required in production'),
 
   // Stripe Configuration (CRITICAL)
   STRIPE_SECRET_KEY: z
@@ -201,6 +219,7 @@ function validateEnv(): Env {
         NODE_ENV: (process.env.NODE_ENV || 'production') as 'production' | 'development' | 'test',
         JWT_SECRET: process.env.JWT_SECRET || 'Build_Phase_Placeholder_Secret_0123456789_ABCDEFGHIJ_klmnopqrstuvwxyz!@#',
         NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key',
         SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder',
         STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
         STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder',
@@ -226,6 +245,7 @@ function validateEnv(): Env {
         // Provide minimal defaults for test mode
         JWT_SECRET: process.env.JWT_SECRET || 'Test_JWT_Secret_1234567890_abcdefghij_KLMNOPQRSTUVWXYZ!@#$%^&*',
         NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://test.supabase.co',
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon-key',
         SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key',
         STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || 'sk_test_mock',
         STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_mock',
@@ -253,6 +273,18 @@ function validateEnv(): Env {
       const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || 
                          process.env.NEXT_PHASE === 'phase-development-build';
       
+      if (!parsed.ENCRYPTION_MASTER_KEY) {
+        logger.warn('ENCRYPTION_MASTER_KEY not configured — PII field encryption will fail at runtime', {
+          service: 'env-validation',
+        });
+      }
+
+      if (!parsed.CSRF_SECRET) {
+        logger.warn('CSRF_SECRET not configured — CSRF protection may not work correctly', {
+          service: 'env-validation',
+        });
+      }
+
       if (!isBuildTime && (!parsed.UPSTASH_REDIS_REST_URL || !parsed.UPSTASH_REDIS_REST_TOKEN)) {
         logger.warn('Redis not configured — rate limiting will use in-memory fallback', {
           service: 'env-validation',
@@ -346,6 +378,24 @@ export function isDevelopment(): boolean {
  */
 export function isTest(): boolean {
   return env.NODE_ENV === 'test';
+}
+
+/**
+ * Get the application URL safely.
+ * In production, throws if NEXT_PUBLIC_APP_URL is not configured.
+ * In development/test, falls back to http://localhost:3000.
+ */
+export function getAppUrl(): string {
+  const url = process.env.NEXT_PUBLIC_APP_URL;
+  if (url) return url;
+
+  if (env.NODE_ENV === 'production') {
+    throw new Error(
+      'NEXT_PUBLIC_APP_URL is required in production. Set it in your Vercel environment variables.'
+    );
+  }
+
+  return 'http://localhost:3000';
 }
 
 // Log successful validation in development

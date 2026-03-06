@@ -198,10 +198,108 @@ jobs:
             }
           "
 
+  e2e-android:
+    name: E2E Tests (Android)
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build:packages
+      - uses: android-actions/setup-android@v3
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | \
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: ~/.android/avd/*
+          key: avd-pixel-8-api-34-${{ runner.os }}
+      - name: Create AVD
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_8
+          script: echo "AVD ready"
+      - name: Build debug APK
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
+        run: npm run e2e:build:android
+      - name: Run E2E tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_8
+          disable-animations: true
+          script: cd apps/mobile && npm run e2e:test:android
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: detox-android-results
+          path: apps/mobile/artifacts/
+          retention-days: 7
+
+  e2e-ios:
+    name: E2E Tests (iOS)
+    runs-on: macos-latest
+    needs: unit-tests
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build:packages
+      - run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: apps/mobile/ios/Pods
+          key: pods-${{ hashFiles('apps/mobile/ios/Podfile.lock') }}
+      - run: pod install
+        working-directory: apps/mobile/ios
+      - name: Build iOS app
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL_STAGING }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY_STAGING }}
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY_TEST }}
+        run: npm run e2e:build:ios
+      - run: npm run e2e:test:ios
+        working-directory: apps/mobile
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: detox-ios-results
+          path: apps/mobile/artifacts/
+          retention-days: 7
+
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, service-tests]
+    needs: [unit-tests, integration-tests, service-tests, e2e-android, e2e-ios]
     if: always()
 
     steps:
@@ -221,11 +319,13 @@ jobs:
           echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Service Tests: ${{ needs.service-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- E2E Android: ${{ needs.e2e-android.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- E2E iOS: ${{ needs.e2e-ios.result }}" >> $GITHUB_STEP_SUMMARY
 
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, service-tests]
+    needs: [unit-tests, integration-tests, service-tests, e2e-android, e2e-ios]
     if: github.event_name == 'pull_request'
 
     steps:
@@ -233,7 +333,9 @@ jobs:
         run: |
           if [ "${{ needs.unit-tests.result }}" != "success" ] || \
              [ "${{ needs.integration-tests.result }}" != "success" ] || \
-             [ "${{ needs.service-tests.result }}" != "success" ]; then
+             [ "${{ needs.service-tests.result }}" != "success" ] || \
+             ([ "${{ needs.e2e-android.result }}" != "success" ] && [ "${{ needs.e2e-android.result }}" != "skipped" ]) || \
+             ([ "${{ needs.e2e-ios.result }}" != "success" ] && [ "${{ needs.e2e-ios.result }}" != "skipped" ]); then
             echo "❌ Tests failed - blocking PR"
             exit 1
           else
@@ -248,14 +350,18 @@ jobs:
             const unitTests = '${{ needs.unit-tests.result }}';
             const integrationTests = '${{ needs.integration-tests.result }}';
             const serviceTests = '${{ needs.service-tests.result }}';
+            const e2eAndroid = '${{ needs.e2e-android.result }}';
+            const e2eIos = '${{ needs.e2e-ios.result }}';
 
-            const statusEmoji = (status) => status === 'success' ? '✅' : '❌';
+            const statusEmoji = (status) => status === 'success' ? '✅' : status === 'skipped' ? '⏭️' : '❌';
 
             const comment = `## 🧪 Test Results
 
             ${statusEmoji(unitTests)} **Unit Tests**: ${unitTests}
             ${statusEmoji(integrationTests)} **Integration Tests**: ${integrationTests}
             ${statusEmoji(serviceTests)} **Service Tests**: ${serviceTests}
+            ${statusEmoji(e2eAndroid)} **E2E Android**: ${e2eAndroid}
+            ${statusEmoji(e2eIos)} **E2E iOS**: ${e2eIos}
 
             ${unitTests === 'success' && integrationTests === 'success' && serviceTests === 'success'
               ? '✅ All tests passed! This PR is ready to merge.'

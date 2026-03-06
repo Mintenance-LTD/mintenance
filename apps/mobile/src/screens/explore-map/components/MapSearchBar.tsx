@@ -3,10 +3,14 @@
  *
  * Airbnb-style search pill for map view.
  * Shows context (category/job count) with circular filter button.
+ *
+ * Uses useSafeAreaInsets() so the absolute-positioned pill clears the
+ * status bar on all devices — absolute children ignore SafeAreaView padding.
  */
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 
@@ -15,6 +19,7 @@ interface MapSearchBarProps {
   selectedCategory: string | null;
   onPress?: () => void;
   onFilterPress: () => void;
+  onBackToList?: () => void;
 }
 
 export const MapSearchBar: React.FC<MapSearchBarProps> = ({
@@ -22,7 +27,9 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
   selectedCategory,
   onPress,
   onFilterPress,
+  onBackToList,
 }) => {
+  const insets = useSafeAreaInsets();
   const subtitle = [
     selectedCategory
       ? selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)
@@ -31,7 +38,26 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
   ].join(' \u00B7 ');
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        // Offset by the real status-bar height so we sit below it, not behind it
+        { top: insets.top + 12 },
+        onBackToList && styles.containerWithBack,
+      ]}
+    >
+      {/* Back-to-list button — only shown when map is embedded in JobsScreen */}
+      {onBackToList && (
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={onBackToList}
+          accessibilityRole="button"
+          accessibilityLabel="Back to list"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+        </TouchableOpacity>
+      )}
       <TouchableOpacity
         style={styles.pill}
         onPress={onPress}
@@ -61,12 +87,32 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 16,
+    // top is set dynamically via insets.top + 12 (inline style above)
     left: 16,
     right: 16,
     zIndex: 10,
   },
+  containerWithBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+    flexShrink: 0,
+  },
   pill: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',

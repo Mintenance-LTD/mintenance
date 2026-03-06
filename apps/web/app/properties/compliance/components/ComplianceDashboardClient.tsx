@@ -1,7 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
+import { exportToPDFAdvanced } from '@/lib/utils/exportUtils';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   Shield,
   ShieldAlert,
@@ -119,18 +122,47 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
     properties.length === 1 ? properties[0].id : null
   );
 
+  const [exporting, setExporting] = useState(false);
+
   const toggleExpand = (id: string) => {
     setExpandedProperty(prev => prev === id ? null : id);
   };
 
+  const handleExportPDF = useCallback(async () => {
+    setExporting(true);
+    try {
+      // Expand all properties for the export
+      const prevExpanded = expandedProperty;
+      setExpandedProperty(null);
+      // Small delay to allow DOM update
+      await new Promise(r => setTimeout(r, 100));
+      await exportToPDFAdvanced('compliance-dashboard-content', 'compliance-report.pdf', { orientation: 'landscape' });
+      setExpandedProperty(prevExpanded);
+    } catch {
+      // fallback handled inside exportToPDFAdvanced
+    } finally {
+      setExporting(false);
+    }
+  }, [expandedProperty]);
+
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div id="compliance-dashboard-content" className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Compliance Dashboard</h1>
         <p className="mt-1 text-gray-500">
           Track gas safety, electrical, EPC and other compliance certificates across your properties.
         </p>
+        {properties.length > 0 && (
+          <button
+            onClick={handleExportPDF}
+            disabled={exporting}
+            className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            {exporting ? 'Exporting...' : 'Export PDF'}
+          </button>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -276,13 +308,7 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
                                   </a>
                                 )}
                                 {(cert.status === 'expired' || cert.status === 'expiring') && (
-                                  <Link
-                                    href={`/jobs/create?property=${property.id}&category=${type}`}
-                                    className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-white/80 rounded border border-current/20 hover:bg-white transition-colors"
-                                  >
-                                    <Wrench className="w-3 h-3" />
-                                    Book Renewal
-                                  </Link>
+                                  <RenewalButton certId={cert.id} />
                                 )}
                               </div>
                             </div>
@@ -335,6 +361,47 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
 }
 
 // ── Summary Card ─────────────────────────────────────────────────────
+
+function RenewalButton({ certId }: { certId: string }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleRenew = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/compliance/${certId}/renew`, {
+        method: 'POST',
+        headers: { ...await getCsrfHeaders() },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to create renewal job');
+        return;
+      }
+      if (data.alreadyExists) {
+        toast('A renewal job already exists', { icon: 'ℹ️' });
+      } else {
+        toast.success('Renewal job created!');
+      }
+      window.location.href = `/jobs/${data.jobId}`;
+    } catch {
+      toast.error('Failed to create renewal job');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleRenew}
+      disabled={loading}
+      className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-white/80 rounded border border-current/20 hover:bg-white transition-colors disabled:opacity-50"
+    >
+      <Wrench className="w-3 h-3" />
+      {loading ? 'Creating...' : 'Renew Now'}
+    </button>
+  );
+}
 
 function SummaryCard({
   icon,

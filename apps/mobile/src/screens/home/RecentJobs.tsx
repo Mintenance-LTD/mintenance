@@ -11,10 +11,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { theme, getStatusColor } from '../../theme';
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
 
+interface RecentJob {
+  id: string;
+  title: string;
+  status?: string;
+  category?: string;
+  budget?: number;
+  budget_min?: number;
+  photos?: string[];
+  images?: string[];
+}
+
 interface RecentJobsProps {
-  jobs: any[];
+  jobs: RecentJob[];
   onViewAllPress: () => void;
   onJobPress?: (jobId: string) => void;
+  savedJobIds?: string[];
+  onSavePress?: (jobId: string) => void;
 }
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -33,7 +46,7 @@ function formatStatus(status: string): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, onJobPress }) => {
+export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, onJobPress, savedJobIds = [], onSavePress }) => {
   const displayJobs = jobs.slice(0, 3);
 
   return (
@@ -91,9 +104,19 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
                 )}
 
                 {/* Heart/save overlay (top-right) */}
-                <View style={styles.heartOverlay}>
-                  <Ionicons name="heart-outline" size={22} color="#FFFFFF" />
-                </View>
+                <TouchableOpacity
+                  style={styles.heartOverlay}
+                  onPress={() => onSavePress?.(job.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={savedJobIds.includes(job.id) ? 'Unsave job' : 'Save job'}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons
+                    name={savedJobIds.includes(job.id) ? 'heart' : 'heart-outline'}
+                    size={22}
+                    color={savedJobIds.includes(job.id) ? '#FF385C' : '#FFFFFF'}
+                  />
+                </TouchableOpacity>
 
                 {/* Status badge overlay (top-left) */}
                 <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
@@ -108,7 +131,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({ jobs, onViewAllPress, on
                 </View>
                 {job.category && (
                   <View style={styles.categoryBadge}>
-                    <Ionicons name={categoryIcon} size={12} color={theme.colors.primary} />
+                    <Ionicons name={categoryIcon} size={12} color='#717171' />
                     <Text style={styles.categoryBadgeText}>
                       {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
                     </Text>
@@ -177,7 +200,7 @@ const styles = StyleSheet.create({
   },
   heroImage: {
     width: '100%',
-    height: 290,
+    height: 200,
     borderRadius: 18,
   },
   placeholderHero: {
@@ -186,13 +209,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: theme.colors.backgroundSecondary,
   },
   placeholderIconCircle: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -227,7 +250,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: theme.colors.textInverse,
   },
   listingContent: {
     paddingTop: 12,
@@ -249,7 +272,7 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 4,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     alignSelf: 'flex-start',
     marginTop: 6,
@@ -257,7 +280,7 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
   },
   budgetRow: {
     flexDirection: 'row',

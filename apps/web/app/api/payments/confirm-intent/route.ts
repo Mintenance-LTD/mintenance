@@ -182,12 +182,10 @@ export const POST = withApiHandler(
       logger.error('Failed to create payment confirmation notifications', notifError, { service: 'payments', jobId });
     }
 
-    // Update job status only if currently assigned (prevent invalid state transitions)
-    await serverSupabase
-      .from('jobs')
-      .update({ status: 'in_progress' })
-      .eq('id', jobId)
-      .eq('status', 'assigned');
+    // NOTE: Job status is NOT updated here. Per the canonical workflow (Phase 6),
+    // the contractor must upload before-photos and click "Start Job" via POST /api/jobs/[id]/start
+    // which transitions the job from 'assigned' to 'in_progress'. Payment confirmation
+    // only moves escrow to 'held' — the job remains 'assigned' until work begins.
 
     return NextResponse.json({
       success: true,

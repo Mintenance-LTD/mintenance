@@ -39,7 +39,7 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="images-outline" size={20} color={theme.colors.primary} />
+        <Ionicons name="images-outline" size={20} color='#717171' />
         <Text style={styles.title}>Job Photos ({job.photos.length})</Text>
       </View>
 

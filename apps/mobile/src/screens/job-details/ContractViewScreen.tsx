@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { HapticService } from '../../utils/haptics';
 import { theme } from '../../theme';
@@ -25,7 +25,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { JobsStackParamList } from '../../navigation/types';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ContractView'>;
-type ScreenNavigationProp = StackNavigationProp<JobsStackParamList, 'ContractView'>;
+type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'ContractView'>;
 
 interface Props {
   route: ScreenRouteProp;
@@ -108,7 +108,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }, [contract, fetchContract]);
 
-  const nonSignableStatuses = ['accepted', 'draft', 'rejected', 'cancelled'];
+  const nonSignableStatuses = ['accepted', 'rejected', 'cancelled'];
   const canSign =
     contract &&
     !nonSignableStatuses.includes(contract.status) &&
@@ -151,7 +151,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'accepted': return theme.colors.primary;
+      case 'accepted': return theme.colors.success;
       case 'pending_contractor':
       case 'pending_homeowner': return '#F59E0B';
       case 'rejected':
@@ -257,7 +257,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons
               name={contract.contractor_signed_at ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={contract.contractor_signed_at ? theme.colors.primary : theme.colors.textTertiary}
+              color={contract.contractor_signed_at ? theme.colors.success : theme.colors.textTertiary}
             />
             <View style={styles.signatureInfo}>
               <Text style={styles.signatureLabel}>
@@ -275,7 +275,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Ionicons
               name={contract.homeowner_signed_at ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={contract.homeowner_signed_at ? theme.colors.primary : theme.colors.textTertiary}
+              color={contract.homeowner_signed_at ? theme.colors.success : theme.colors.textTertiary}
             />
             <View style={styles.signatureInfo}>
               <Text style={styles.signatureLabel}>
@@ -293,7 +293,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Accepted Banner */}
         {contract.status === 'accepted' && (
           <View style={styles.acceptedBanner}>
-            <Ionicons name="checkmark-circle" size={24} color={theme.colors.primary} />
+            <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
             <Text style={styles.acceptedText}>Contract accepted! Both parties have signed.</Text>
           </View>
         )}
@@ -368,11 +368,11 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.borderLight,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
   },
   backButton: {
     width: 40,
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   amountValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
   },
   section: {
     marginBottom: 16,
@@ -513,7 +513,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: theme.colors.successLight,
     borderRadius: 12,
     padding: 16,
   },
@@ -521,15 +521,15 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primaryDark,
+    color: theme.colors.success,
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 24,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: theme.colors.borderLight,
@@ -556,3 +556,4 @@ const styles = StyleSheet.create({
 });
 
 export default ContractViewScreen;
+

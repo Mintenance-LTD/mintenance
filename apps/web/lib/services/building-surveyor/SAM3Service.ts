@@ -40,8 +40,14 @@ export interface SAM3HealthResponse {
 }
 
 export class SAM3Service {
-  private static readonly BASE_URL =
-    process.env.SAM3_SERVICE_URL || 'http://localhost:8001';
+  private static get BASE_URL(): string {
+    const url = process.env.SAM3_SERVICE_URL;
+    if (url) return url;
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SAM3_SERVICE_URL is required in production');
+    }
+    return 'http://localhost:8001';
+  }
 
   private static readonly TIMEOUT_MS = Number(process.env.SAM3_TIMEOUT_MS) || 30000;
 

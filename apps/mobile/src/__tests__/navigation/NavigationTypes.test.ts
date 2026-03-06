@@ -68,35 +68,35 @@ describe('Navigation Types', () => {
       const validParams: MessagingStackParamList = {
         MessagesList: undefined,
         Messaging: {
-          jobId: 'job-123',
+          conversationId: 'conv-123',
           jobTitle: 'Fix Kitchen Sink',
-          otherUserId: 'user-456',
-          otherUserName: 'John Contractor',
+          recipientId: 'user-456',
+          recipientName: 'John Contractor',
         },
       };
 
       expect(validParams).toBeDefined();
       expect(validParams.MessagesList).toBeUndefined();
       expect(validParams.Messaging).toEqual({
-        jobId: 'job-123',
+        conversationId: 'conv-123',
         jobTitle: 'Fix Kitchen Sink',
-        otherUserId: 'user-456',
-        otherUserName: 'John Contractor',
+        recipientId: 'user-456',
+        recipientName: 'John Contractor',
       });
     });
 
-    it('should enforce all required parameters for Messaging screen', () => {
+    it('should enforce required conversationId for Messaging screen', () => {
       const messagingParams: MessagingStackParamList['Messaging'] = {
-        jobId: 'job-123',
+        conversationId: 'conv-123',
         jobTitle: 'Test Job Title',
-        otherUserId: 'user-456',
-        otherUserName: 'Test User Name',
+        recipientId: 'user-456',
+        recipientName: 'Test User Name',
       };
 
-      expect(messagingParams.jobId).toBe('job-123');
+      expect(messagingParams.conversationId).toBe('conv-123');
       expect(messagingParams.jobTitle).toBe('Test Job Title');
-      expect(messagingParams.otherUserId).toBe('user-456');
-      expect(messagingParams.otherUserName).toBe('Test User Name');
+      expect(messagingParams.recipientId).toBe('user-456');
+      expect(messagingParams.recipientName).toBe('Test User Name');
     });
   });
 
@@ -113,16 +113,12 @@ describe('Navigation Types', () => {
         FinanceDashboard: undefined,
         ServiceAreas: undefined,
         QuoteBuilder: undefined,
-        CreateQuote: { jobId: 'job-123', clientName: 'John Doe', clientEmail: 'john@example.com' },
+        CreateQuote: { jobId: 'job-123' },
       };
 
       expect(validParams).toBeDefined();
       expect(validParams.ProfileMain).toBeUndefined();
-      expect(validParams.CreateQuote).toEqual({
-        jobId: 'job-123',
-        clientName: 'John Doe',
-        clientEmail: 'john@example.com',
-      });
+      expect(validParams.CreateQuote).toEqual({ jobId: 'job-123' });
     });
 
     it('should allow optional parameters for CreateQuote', () => {
@@ -131,17 +127,17 @@ describe('Navigation Types', () => {
       };
 
       expect(createQuoteParams.jobId).toBe('job-123');
-      expect(createQuoteParams.clientName).toBeUndefined();
-      expect(createQuoteParams.clientEmail).toBeUndefined();
     });
   });
 
   describe('AuthStackParamList', () => {
     it('should have correct structure for AuthStackParamList', () => {
       const validParams: AuthStackParamList = {
+        Landing: undefined,
         Login: undefined,
         Register: undefined,
         ForgotPassword: undefined,
+        MFAVerification: { preMfaToken: 'token-123' },
       };
 
       expect(validParams).toBeDefined();
@@ -155,15 +151,25 @@ describe('Navigation Types', () => {
     it('should have correct structure for ModalStackParamList', () => {
       const validParams: ModalStackParamList = {
         ServiceRequest: undefined,
-        FindContractors: undefined,
-        ContractorDiscovery: undefined,
         CreateQuote: { jobId: 'job-123' },
+        MeetingSchedule: { contractorId: 'contractor-123' },
+        MeetingDetails: { meetingId: 'meeting-123' },
+        ContractorProfile: { contractorId: 'contractor-123' },
+        EnhancedHome: undefined,
+        Notifications: undefined,
+        AIAssessment: undefined,
+        AISearch: undefined,
+        QuickJobPost: {
+          propertyId: 'prop-123',
+          propertyName: 'My Home',
+          propertyAddress: '1 Example St',
+          category: 'plumbing',
+          urgency: 'medium',
+        },
       };
 
       expect(validParams).toBeDefined();
       expect(validParams.ServiceRequest).toBeUndefined();
-      expect(validParams.FindContractors).toBeUndefined();
-      expect(validParams.ContractorDiscovery).toBeUndefined();
       expect(validParams.CreateQuote).toEqual({ jobId: 'job-123' });
     });
   });
@@ -173,14 +179,14 @@ describe('Navigation Types', () => {
       const validParams: RootTabParamList = {
         HomeTab: undefined,
         JobsTab: { screen: 'JobsList' },
-        FeedTab: undefined,
+        AddTab: undefined,
         MessagingTab: { screen: 'MessagesList' },
         ProfileTab: { screen: 'ProfileMain' },
       };
 
       expect(validParams).toBeDefined();
       expect(validParams.HomeTab).toBeUndefined();
-      expect(validParams.FeedTab).toBeUndefined();
+      expect(validParams.AddTab).toBeUndefined();
     });
   });
 });
@@ -194,31 +200,27 @@ describe('Navigation Type Constraints', () => {
     // This test ensures TypeScript compilation catches type errors
     const jobId: string = 'test-job-123';
     const jobDetailsParams: JobsStackParamList['JobDetails'] = { jobId };
-    
+
     expect(typeof jobDetailsParams.jobId).toBe('string');
   });
 
   it('should enforce correct parameter structure', () => {
     // Test that required parameters are enforced at compile time
     const messagingParams: MessagingStackParamList['Messaging'] = {
-      jobId: 'job-123',
+      conversationId: 'conv-123',
       jobTitle: 'Test Job',
-      otherUserId: 'user-456',
-      otherUserName: 'Test User',
+      recipientId: 'user-456',
+      recipientName: 'Test User',
     };
 
-    expect(Object.keys(messagingParams)).toEqual([
-      'jobId',
-      'jobTitle',
-      'otherUserId',
-      'otherUserName',
-    ]);
+    expect(messagingParams.conversationId).toBe('conv-123');
+    expect(messagingParams.jobTitle).toBe('Test Job');
   });
 
   it('should allow undefined for optional screens', () => {
     const undefinedParam: JobsStackParamList['JobsList'] = undefined;
     const undefinedParam2: AuthStackParamList['Login'] = undefined;
-    
+
     expect(undefinedParam).toBeUndefined();
     expect(undefinedParam2).toBeUndefined();
   });
@@ -237,15 +239,15 @@ describe('Navigation Utility Types', () => {
 
     const jobDetailsNav: JobDetailsNavigation = { jobId: 'job-123' };
     const messagingNav: MessagingNavigation = {
-      jobId: 'job-123',
+      conversationId: 'conv-123',
       jobTitle: 'Test Job',
-      otherUserId: 'user-456',
-      otherUserName: 'Test User',
+      recipientId: 'user-456',
+      recipientName: 'Test User',
     };
     const createQuoteNav: CreateQuoteNavigation = { jobId: 'job-123' };
 
     expect(jobDetailsNav.jobId).toBe('job-123');
-    expect(messagingNav.jobId).toBe('job-123');
+    expect(messagingNav.conversationId).toBe('conv-123');
     expect(createQuoteNav.jobId).toBe('job-123');
   });
 });

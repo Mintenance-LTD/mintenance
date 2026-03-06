@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { env } from '@/lib/env';
+import { env, getAppUrl } from '@/lib/env';
 import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -119,7 +119,7 @@ export const POST = withApiHandler(
     }
 
     // Get the base URL for return URL
-    const baseUrl = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = getAppUrl();
     const returnUrl = `${baseUrl}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
 
     // Create metadata for tracking
@@ -193,12 +193,25 @@ export const POST = withApiHandler(
         });
 
       if (escrowError) {
-        logger.error('Failed to create escrow transaction for checkout session', escrowError, {
+        logger.error('Failed to create escrow transaction for checkout session — aborting checkout', escrowError, {
           service: 'payments',
           sessionId: session.id,
           jobId,
         });
-        // Don't fail the checkout - we'll handle this in webhook
+        // SECURITY: Fail loudly — a checkout without an escrow record creates an unrecoverable
+        // inconsistency where payment is charged but no escrow exists.
+        try {
+          await stripe.checkout.sessions.expire(session.id);
+        } catch (expireError) {
+          logger.error('Failed to expire checkout session after escrow failure', expireError, {
+            service: 'payments',
+            sessionId: session.id,
+          });
+        }
+        return NextResponse.json(
+          { error: 'Payment setup failed. Please try again.' },
+          { status: 500 }
+        );
       }
     }
 

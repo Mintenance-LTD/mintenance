@@ -1,34 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { logger } from '../utils/logger';
-import { useAuth } from '../contexts/AuthContext';
-import { ServiceAreasService, type ServiceArea } from '../services/ServiceAreasService';
+import { mobileApiClient } from '../utils/mobileApiClient';
+import type { ServiceArea } from '../services/ServiceAreasService';
+
+interface CreateServiceAreaInput {
+  area_name: string;
+  center_latitude: number;
+  center_longitude: number;
+  radius_km: number;
+  is_primary_area: boolean;
+}
 
 export const useServiceAreas = () => {
-  const { user } = useAuth();
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedArea, setSelectedArea] = useState<ServiceArea | null>(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
 
-  useEffect(() => {
-    loadServiceAreas();
-  }, []);
-
-  const loadServiceAreas = async () => {
-    if (!user) return;
-
+  const loadServiceAreas = useCallback(async () => {
     try {
-      const data = await ServiceAreasService.getServiceAreas(user.id);
-      setServiceAreas(data);
+      const res = await mobileApiClient.get<{ success: boolean; data: ServiceArea[] }>(
+        '/api/contractor/service-areas'
+      );
+      setServiceAreas(res.data ?? []);
     } catch (error) {
       logger.error('Error loading service areas', error);
       Alert.alert('Error', 'Failed to load service areas');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadServiceAreas();
+  }, [loadServiceAreas]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -36,18 +44,29 @@ export const useServiceAreas = () => {
     setRefreshing(false);
   };
 
+  const handleCreateServiceArea = async (input: CreateServiceAreaInput): Promise<void> => {
+    await mobileApiClient.post('/api/contractor/service-areas', {
+      area_name: input.area_name,
+      area_type: 'radius',
+      center_latitude: input.center_latitude,
+      center_longitude: input.center_longitude,
+      radius_km: input.radius_km,
+      is_primary_area: input.is_primary_area,
+    });
+    await loadServiceAreas();
+  };
+
   const handleToggleActive = async (area: ServiceArea) => {
     try {
-      await ServiceAreasService.updateServiceArea(area.id, {
+      await mobileApiClient.patch(`/api/contractor/service-areas/${area.id}`, {
         is_active: !area.is_active,
       });
       await loadServiceAreas();
-
       Alert.alert(
-        'Success',
+        'Updated',
         `Service area ${area.is_active ? 'deactivated' : 'activated'} successfully`
       );
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to update service area');
     }
   };
@@ -61,11 +80,10 @@ export const useServiceAreas = () => {
     if (!selectedArea) return;
 
     try {
-      await ServiceAreasService.deleteServiceArea(selectedArea.id);
+      await mobileApiClient.delete(`/api/contractor/service-areas/${selectedArea.id}`);
       await loadServiceAreas();
-
-      Alert.alert('Success', 'Service area deleted successfully');
-    } catch (error) {
+      Alert.alert('Deleted', 'Service area deleted successfully');
+    } catch {
       Alert.alert('Error', 'Failed to delete service area');
     } finally {
       setDeleteModalVisible(false);
@@ -80,7 +98,10 @@ export const useServiceAreas = () => {
     selectedArea,
     deleteModalVisible,
     setDeleteModalVisible,
+    createModalVisible,
+    setCreateModalVisible,
     handleRefresh,
+    handleCreateServiceArea,
     handleToggleActive,
     handleDeletePress,
     handleDeleteConfirm,

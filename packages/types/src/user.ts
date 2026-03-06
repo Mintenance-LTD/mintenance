@@ -24,6 +24,8 @@ export interface User {
   country?: string;
   address?: string;
   postcode?: string;
+  latitude?: number;
+  longitude?: number;
   company_name?: string;
   admin_verified?: boolean;
   is_available?: boolean;

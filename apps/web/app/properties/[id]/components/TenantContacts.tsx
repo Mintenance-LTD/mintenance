@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User, Plus, Trash2, Loader2, Mail, Phone } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 interface Tenant {
   id: string;
@@ -43,11 +44,12 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
     }
     setSaving(true);
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/properties/${propertyId}/tenants`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify(form),
       });
@@ -70,9 +72,10 @@ export default function TenantContacts({ propertyId }: { propertyId: string }) {
 
   const handleDelete = async (id: string) => {
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/properties/${propertyId}/tenants?tenantId=${id}`, {
         method: 'DELETE',
-        headers: { 'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '' },
+        headers: { 'X-CSRF-Token': csrfToken },
       });
       if (res.ok) {
         setTenants(prev => prev.filter(t => t.id !== id));

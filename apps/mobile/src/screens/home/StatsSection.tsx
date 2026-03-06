@@ -1,7 +1,7 @@
 /**
  * StatsSection Component
- * 
- * Displays contractor statistics including earnings, jobs completed, and rating.
+ *
+ * Monochrome stat cards with bold numbers — Airbnb style.
  */
 
 import React from 'react';
@@ -14,105 +14,132 @@ interface StatsSectionProps {
   stats: ContractorStats | null;
 }
 
+interface StatConfig {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  iconBg: string;
+  getValue: (s: ContractorStats | null) => string;
+  label: string;
+  valueColor: string;
+}
+
+const STAT_CONFIG: StatConfig[] = [
+  {
+    icon: 'cash',
+    iconColor: '#717171',
+    iconBg: '#F7F7F7',
+    getValue: (s) => `£${s?.monthlyEarnings?.toFixed(0) || '0'}`,
+    label: 'Monthly Earnings',
+    valueColor: theme.colors.textPrimary,
+  },
+  {
+    icon: 'checkmark-circle',
+    iconColor: '#717171',
+    iconBg: '#F7F7F7',
+    getValue: (s) => `${s?.completedJobs || 0}`,
+    label: 'Jobs Completed',
+    valueColor: theme.colors.textPrimary,
+  },
+  {
+    icon: 'star',
+    iconColor: '#717171',
+    iconBg: '#F7F7F7',
+    getValue: (s) => s?.rating?.toFixed(1) || 'New',
+    label: 'Avg Rating',
+    valueColor: theme.colors.textPrimary,
+  },
+  {
+    icon: 'flash',
+    iconColor: '#717171',
+    iconBg: '#F7F7F7',
+    getValue: (s) => s?.responseTime || 'N/A',
+    label: 'Response Time',
+    valueColor: theme.colors.textPrimary,
+  },
+];
+
 export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
   return (
-    <View style={styles.statsSection}>
-      <Text style={styles.sectionTitle} accessibilityRole='header'>Your Stats</Text>
-      <Text style={styles.sectionSubtitle}>Track your performance</Text>
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          Your Stats
+        </Text>
+        <Text style={styles.sectionSubtitle}>This month</Text>
+      </View>
 
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard} accessibilityLabel={`Earnings: £${stats?.monthlyEarnings?.toFixed(0) || '0'}`}>
-          <View style={styles.statIcon}>
-            <Ionicons name="cash" size={20} color={theme.colors.successDark} accessible={false} />
+      <View style={styles.grid}>
+        {STAT_CONFIG.map((cfg) => (
+          <View
+            key={cfg.label}
+            style={styles.card}
+            accessibilityLabel={`${cfg.label}: ${cfg.getValue(stats)}`}
+          >
+            <View style={[styles.iconWrap, { backgroundColor: cfg.iconBg }]}>
+              <Ionicons name={cfg.icon} size={20} color={cfg.iconColor} accessible={false} />
+            </View>
+            <Text style={[styles.value, { color: cfg.valueColor }]}>
+              {cfg.getValue(stats)}
+            </Text>
+            <Text style={styles.label}>{cfg.label}</Text>
           </View>
-          <Text style={styles.statValue}>
-            £{stats?.monthlyEarnings?.toFixed(0) || '0'}
-          </Text>
-          <Text style={styles.statLabel}>Earnings</Text>
-        </View>
-
-        <View style={styles.statCard} accessibilityLabel={`${stats?.completedJobs || 0} jobs completed`}>
-          <View style={styles.statIcon}>
-            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} accessible={false} />
-          </View>
-          <Text style={styles.statValue}>
-            {stats?.completedJobs || 0}
-          </Text>
-          <Text style={styles.statLabel}>Jobs Completed</Text>
-        </View>
-
-        <View style={styles.statCard} accessibilityLabel={`Average rating: ${stats?.rating?.toFixed(1) || 'New'}`}>
-          <View style={styles.statIcon}>
-            <Ionicons name="star" size={20} color={theme.colors.ratingGold} accessible={false} />
-          </View>
-          <Text style={styles.statValue}>
-            {stats?.rating?.toFixed(1) || 'New'}
-          </Text>
-          <Text style={styles.statLabel}>Average Rating</Text>
-        </View>
-
-        <View style={styles.statCard} accessibilityLabel={`Response time: ${stats?.responseTime || 'N/A'}`}>
-          <View style={styles.statIcon}>
-            <Ionicons name="time" size={20} color={theme.colors.infoDark} accessible={false} />
-          </View>
-          <Text style={styles.statValue}>
-            {stats?.responseTime || 'N/A'}
-          </Text>
-          <Text style={styles.statLabel}>Response Time</Text>
-        </View>
+        ))}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  statsSection: {
-    marginBottom: 32,
-    marginTop: 24,
+  section: {
+    marginBottom: 28,
+    marginTop: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: theme.colors.textPrimary,
-    marginBottom: 4,
   },
   sectionSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 16,
+    fontSize: 13,
+    color: theme.colors.textTertiary,
+    fontWeight: '500',
   },
-  statsGrid: {
+  grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 10,
   },
-  statCard: {
-    backgroundColor: theme.colors.surface,
+  card: {
+    backgroundColor: '#F7F7F7',
     flex: 1,
     minWidth: '45%',
-    padding: 20,
+    padding: 18,
     borderRadius: 12,
-    alignItems: 'center',
-    ...theme.shadows.sm,
+    alignItems: 'flex-start',
   },
-  statIcon: {
+  iconWrap: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: theme.colors.surfaceSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
+  value: {
+    fontSize: 28,
+    fontWeight: '800',
+    marginBottom: 3,
+    letterSpacing: -0.3,
   },
-  statLabel: {
+  label: {
     fontSize: 12,
     color: theme.colors.textSecondary,
-    textAlign: 'center',
+    fontWeight: '500',
   },
 });

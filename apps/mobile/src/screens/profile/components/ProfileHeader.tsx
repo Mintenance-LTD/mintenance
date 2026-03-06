@@ -1,14 +1,20 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../../../theme';
 
 interface ProfileHeaderUser {
+  first_name?: string;
+  last_name?: string;
+  /** Computed compat fields */
   firstName?: string;
   lastName?: string;
+  company_name?: string;
   email?: string;
-  profileImageUrl?: string;
-  isVerified?: boolean;
+  profile_image_url?: string;
+  avatar_url?: string;
+  verified?: boolean;
   role?: string;
 }
 
@@ -18,216 +24,205 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ user, joinDate }) => {
+  const firstName = user?.first_name || user?.firstName || '';
+  const lastName = user?.last_name || user?.lastName || '';
+  const displayName =
+    user?.company_name ||
+    (firstName ? `${firstName}${lastName ? ' ' + lastName : ''}` : 'User');
+
+  const initials = firstName && lastName
+    ? `${firstName[0]}${lastName[0]}`.toUpperCase()
+    : firstName
+    ? firstName[0].toUpperCase()
+    : '?';
+
+  const avatarUri = user?.profile_image_url || user?.avatar_url;
+  const isContractor = user?.role === 'contractor';
+  const gradientColors: [string, string, string] = isContractor
+    ? ['#0F766E', '#0D9488', '#0891B2']
+    : ['#1E40AF', '#3B82F6', '#06B6D4'];
+
   return (
-    <View style={styles.profileInfo}>
-      <View style={styles.avatarContainer}>
-        {user?.profileImageUrl ? (
+    <LinearGradient
+      colors={gradientColors}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.hero}
+    >
+      {/* Decorative circles */}
+      <View style={styles.decor1} />
+      <View style={styles.decor2} />
+
+      {/* Avatar with white ring */}
+      <View style={styles.avatarRing}>
+        {avatarUri ? (
           <Image
-            source={{ uri: user.profileImageUrl }}
+            source={{ uri: avatarUri }}
             style={styles.avatarImage}
-            accessibilityLabel={`Profile photo of ${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()}
+            accessibilityLabel={`Profile photo of ${displayName}`}
           />
         ) : (
-          <View
-            style={styles.avatar}
-            accessibilityLabel={`Profile initials for ${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()}
-          >
-            <Text style={styles.avatarText}>
-              {user?.firstName?.[0]}
-              {user?.lastName?.[0]}
-            </Text>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
           </View>
         )}
-
-        {(user?.isVerified || user?.role === 'contractor') && (
-          <View style={styles.verificationBadges}>
-            {user?.isVerified && (
-              <View style={styles.verifiedBadge} accessibilityLabel='Verified account'>
-                <Ionicons
-                  name='checkmark-circle'
-                  size={20}
-                  color={theme.colors.success}
-                />
-              </View>
-            )}
-            {user?.role === 'contractor' && (
-              <View style={styles.licensedBadge} accessibilityLabel='Licensed contractor'>
-                <Ionicons
-                  name='shield-checkmark'
-                  size={16}
-                  color={theme.colors.primary}
-                />
-              </View>
-            )}
+        {user?.verified && (
+          <View style={styles.verifiedDot}>
+            <Ionicons name="checkmark-circle" size={18} color={theme.colors.success} />
           </View>
         )}
       </View>
 
-      <Text style={styles.userName}>
-        {user?.firstName} {user?.lastName}
+      {/* Name */}
+      <Text style={styles.displayName} numberOfLines={1}>
+        {displayName}
       </Text>
 
-      {user?.role === 'contractor' && (
-        <View style={styles.contractorTitle}>
-          <Ionicons name='hammer' size={16} color={theme.colors.textSecondary} />
-          <Text style={styles.contractorTitleText}>
-            Professional Contractor
-          </Text>
+      {/* Contractor subtitle */}
+      {isContractor && (
+        <View style={styles.subtitleRow}>
+          <Ionicons name="hammer" size={12} color="rgba(255,255,255,0.75)" />
+          <Text style={styles.subtitleText}>Professional Contractor</Text>
         </View>
       )}
 
-      <Text style={styles.userEmail}>{user?.email}</Text>
+      {/* Email */}
+      {user?.email ? (
+        <Text style={styles.emailText} numberOfLines={1}>
+          {user.email}
+        </Text>
+      ) : null}
 
-      <View style={styles.badgeContainer}>
-        <View
-          style={[
-            styles.roleBadge,
-            user?.role === 'contractor' && styles.contractorBadge,
-          ]}
-        >
+      {/* Badge pills */}
+      <View style={styles.badgeRow}>
+        <View style={styles.pill}>
           <Ionicons
-            name={user?.role === 'contractor' ? 'construct' : 'home'}
-            size={14}
-            color={user?.role === 'contractor' ? theme.colors.accent : theme.colors.primary}
+            name={isContractor ? 'construct' : 'home'}
+            size={11}
+            color="rgba(255,255,255,0.9)"
           />
-          <Text
-            style={[
-              styles.roleText,
-              user?.role === 'contractor' && styles.contractorRoleText,
-            ]}
-          >
-            {user?.role === 'contractor' ? 'Professional' : 'Homeowner'}
+          <Text style={styles.pillText}>
+            {isContractor ? 'Professional' : 'Homeowner'}
           </Text>
         </View>
-
-        <View style={styles.memberSinceBadge}>
-          <Ionicons name='calendar-outline' size={14} color={theme.colors.textSecondary} />
-          <Text style={styles.memberSinceText}>
-            Since {joinDate}
-          </Text>
-        </View>
+        {joinDate ? (
+          <View style={styles.pill}>
+            <Ionicons name="calendar-outline" size={11} color="rgba(255,255,255,0.9)" />
+            <Text style={styles.pillText}>Since {joinDate}</Text>
+          </View>
+        ) : null}
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  profileInfo: {
-    backgroundColor: theme.colors.background,
+  hero: {
+    paddingTop: 32,
+    paddingBottom: 28,
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 24,
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderLight,
-    marginBottom: 8,
+    marginBottom: 16,
+    overflow: 'hidden',
   },
-  avatarContainer: {
-    position: 'relative',
+  decor1: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    top: -60,
+    right: -50,
+  },
+  decor2: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    bottom: -40,
+    left: -30,
+  },
+  avatarRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 16,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: theme.colors.textPrimary,
+    width: 94,
+    height: 94,
+    borderRadius: 47,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 94,
+    height: 94,
+    borderRadius: 47,
   },
   avatarText: {
-    fontSize: 28,
+    fontSize: 34,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: '#FFFFFF',
   },
-  verificationBadges: {
+  verifiedDot: {
     position: 'absolute',
-    bottom: -5,
-    right: -5,
-    flexDirection: 'row',
-  },
-  verifiedBadge: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 15,
-    padding: 3,
-    marginLeft: 2,
-    ...theme.shadows.sm,
-  },
-  licensedBadge: {
-    backgroundColor: theme.colors.surface,
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 4,
-    marginLeft: 2,
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  contractorTitle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  contractorTitleText: {
-    fontSize: 16,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-    marginLeft: 6,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  badgeContainer: {
-    flexDirection: 'row',
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    flexWrap: 'wrap',
   },
-  roleBadge: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+  displayName: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  subtitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
-    marginBottom: 8,
+    gap: 5,
+    marginBottom: 6,
   },
-  contractorBadge: {
-    backgroundColor: theme.colors.surfaceSecondary,
-  },
-  roleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.primary,
-    marginLeft: 6,
-  },
-  contractorRoleText: {
-    color: theme.colors.primary,
-  },
-  memberSinceBadge: {
-    backgroundColor: theme.colors.surfaceSecondary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  memberSinceText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    marginLeft: 6,
+  subtitleText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.75)',
     fontWeight: '500',
+  },
+  emailText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 14,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  pillText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.92)',
+    fontWeight: '600',
   },
 });

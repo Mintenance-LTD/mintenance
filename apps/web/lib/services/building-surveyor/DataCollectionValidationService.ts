@@ -114,6 +114,18 @@ export async function validateAssessment(
     } catch {
       // Non-fatal: VLM calibration update failure doesn't block validation
     }
+
+    // Mark corresponding training buffer entries as human-verified so they get
+    // priority in the next training export and the label is treated as ground truth.
+    try {
+      await serverSupabase
+        .from('vlm_training_buffer')
+        .update({ human_verified: true })
+        .eq('assessment_id', assessmentId)
+        .eq('used_in_training', false);
+    } catch {
+      // Non-fatal: buffer update failure doesn't block validation
+    }
   } catch (error) {
     logger.error('Error validating assessment', error, {
       service: 'DataCollectionService',

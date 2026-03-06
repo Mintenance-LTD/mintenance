@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 16,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: '600',
   },
   headerTitle: {
@@ -322,12 +322,12 @@ const styles = StyleSheet.create({
   },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F7F7F7',
     margin: theme.spacing.md,
     padding: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.primary,
+    borderColor: '#EBEBEB',
   },
   infoBannerIcon: {
     fontSize: 32,
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: '#222222',
     marginRight: theme.spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
   },
   radioLabel: {
     fontSize: 14,

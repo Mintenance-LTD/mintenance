@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 interface QuickActionsProps {
-  navigation: StackNavigationProp<Record<string, undefined>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList>;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ navigation }) => {
@@ -93,3 +94,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+

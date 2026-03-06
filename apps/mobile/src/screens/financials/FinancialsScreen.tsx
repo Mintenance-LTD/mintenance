@@ -103,15 +103,15 @@ export const FinancialsScreen: React.FC = () => {
           </Card>
           <Card variant="elevated" padding="sm" style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>In Escrow</Text>
-            <Text style={[styles.kpiValue, { color: '#2563EB' }]}>{formatAmount(data.inEscrow)}</Text>
+            <Text style={styles.kpiValue}>{formatAmount(data.inEscrow)}</Text>
           </Card>
           <Card variant="elevated" padding="sm" style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Refunded</Text>
-            <Text style={[styles.kpiValue, { color: '#B45309' }]}>{formatAmount(data.refunded)}</Text>
+            <Text style={styles.kpiValue}>{formatAmount(data.refunded)}</Text>
           </Card>
           <Card variant="elevated" padding="sm" style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>This Month</Text>
-            <Text style={[styles.kpiValue, { color: theme.colors.primary }]}>{formatAmount(data.thisMonth)}</Text>
+            <Text style={styles.kpiValue}>{formatAmount(data.thisMonth)}</Text>
           </Card>
         </View>
 
@@ -128,11 +128,11 @@ export const FinancialsScreen: React.FC = () => {
               {data.subscription.planType} Plan
             </Text>
             <TouchableOpacity
-              onPress={() => (navigation as any).navigate('Subscription')}
+              onPress={() => navigation.navigate('Subscription')}
               style={styles.manageLink}
             >
               <Text style={styles.manageLinkText}>Manage Subscription</Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.colors.primary} />
+              <Ionicons name="chevron-forward" size={16} color='#717171' />
             </TouchableOpacity>
           </Card>
         )}
@@ -141,7 +141,7 @@ export const FinancialsScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            <TouchableOpacity onPress={() => (navigation as any).navigate('PaymentHistory')}>
+            <TouchableOpacity onPress={() => navigation.navigate('PaymentHistory')}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
@@ -238,12 +238,12 @@ const styles = StyleSheet.create({
   },
   manageLinkText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: theme.typography.fontWeight.medium,
   },
   viewAllText: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     fontWeight: theme.typography.fontWeight.medium,
   },
   emptyText: {

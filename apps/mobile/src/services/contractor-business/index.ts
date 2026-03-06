@@ -20,8 +20,14 @@ import { GoalManagementService } from '../goal-management';
 
 // Import types from their respective modules
 import type { Client } from '../client-management/types';
-import type { Invoice, ContractorSchedule } from './types';
+import type { Invoice, ContractorSchedule, ResourceInventory } from './types';
+import type { BusinessGoal, ClientCRM } from './types';
+import type { CreateGoalRequest } from '../goal-management/types';
+import type { UpdateClientRequest } from '../client-management/types';
+import type { CreateCampaignRequest, MarketingCampaign } from '../marketing-management/types';
+import type { AvailabilityUpdate, TimeSlot } from './ScheduleManagementService';
 export * from './types';
+export type { MarketingCampaign } from '../marketing-management/types';
 
 // Export all domain services
 export { BusinessAnalyticsService } from './BusinessAnalyticsService';
@@ -228,6 +234,58 @@ export class ContractorBusinessSuite {
     }
 
     return recommendations;
+  }
+
+  // Instance methods for hook compatibility (delegate to static sub-services)
+  async calculateBusinessMetrics(contractorId: string, periodStart: string, periodEnd: string) {
+    return ContractorBusinessSuite.analytics.calculateBusinessMetrics(contractorId, periodStart, periodEnd);
+  }
+
+  async getFinancialSummary(contractorId: string) {
+    return ContractorBusinessSuite.finance.getFinancialSummary(contractorId);
+  }
+
+  async createInvoice(invoiceData: Record<string, unknown>) {
+    return ContractorBusinessSuite.finance.createInvoice(invoiceData as Parameters<typeof ContractorBusinessSuite.finance.createInvoice>[0]);
+  }
+
+  async sendInvoice(invoiceId: string) {
+    return ContractorBusinessSuite.finance.sendInvoice(invoiceId, '');
+  }
+
+  async recordExpense(expenseData: Record<string, unknown>) {
+    return ContractorBusinessSuite.finance.recordExpense(expenseData as Parameters<typeof ContractorBusinessSuite.finance.recordExpense>[0]);
+  }
+
+  async updateScheduleAvailability(contractorId: string, date: string, timeSlots: TimeSlot[]) {
+    const availabilityData: AvailabilityUpdate = { date, timeSlots };
+    return ContractorBusinessSuite.schedule.updateAvailability(contractorId, availabilityData);
+  }
+
+  async manageInventory(contractorId: string, inventoryUpdates: Partial<ResourceInventory>[]) {
+    return Promise.all(
+      inventoryUpdates
+        .filter((item): item is Partial<ResourceInventory> & { id: string; quantity: number } => Boolean(item.id && item.quantity !== undefined))
+        .map(item => ContractorBusinessSuite.resources.updateInventoryQuantity(item.id, item.quantity, 'manual-update'))
+    );
+  }
+
+  async getClientAnalytics(contractorId: string) {
+    return ContractorBusinessSuite.clients.getClientAnalytics(contractorId);
+  }
+
+  async updateClientCRM(clientData: Partial<ClientCRM>) {
+    return ContractorBusinessSuite.clients.updateClient(clientData as UpdateClientRequest);
+  }
+
+  async setBusinessGoals(contractorId: string, goals: Partial<BusinessGoal>[]) {
+    return Promise.all(
+      goals.map(g => ContractorBusinessSuite.goals.createGoal({ contractorId, ...g } as CreateGoalRequest))
+    );
+  }
+
+  async createMarketingCampaign(campaignData: Partial<MarketingCampaign>) {
+    return ContractorBusinessSuite.marketing.createCampaign(campaignData as CreateCampaignRequest);
   }
 }
 

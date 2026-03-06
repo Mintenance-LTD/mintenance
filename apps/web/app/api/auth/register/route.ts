@@ -50,14 +50,16 @@ export const POST = withApiHandler(
       );
     }
 
-    // Validate admin email domain
-    if (role === 'admin' && !email.endsWith('@mintenance.co.uk')) {
-      logger.warn('Admin registration attempt with invalid email domain', {
+    // SECURITY: Admin accounts cannot be self-registered via public endpoint.
+    // Use POST /api/admin/users/create-admin (requires existing admin session).
+    // Cast to string: defense-in-depth check in case schema validation is bypassed.
+    if ((role as string) === 'admin') {
+      logger.warn('[SECURITY] Attempt to self-register as admin blocked', {
         service: 'auth',
         email,
         ip: request.headers.get('x-forwarded-for') || 'unknown'
       });
-      throw new BadRequestError('Admin accounts must use @mintenance.co.uk email address');
+      throw new BadRequestError('Admin accounts cannot be created via self-registration');
     }
 
     // Register user with AuthManager

@@ -88,7 +88,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                   .navigate('Main', { screen: 'ProfileTab', params: { screen: 'AddPaymentMethod' } });
               }}
             >
-              <Ionicons name="add-circle-outline" size={24} color={theme.colors.primary} />
+              <Ionicons name="add-circle-outline" size={24} color='#717171' />
               <Text style={styles.addMethodText}>Add Payment Method</Text>
             </TouchableOpacity>
           ) : (
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
   },
   addMethodText: {
     fontSize: theme.typography.fontSize.md,
-    color: theme.colors.primary,
+    color: '#222222',
     marginLeft: theme.spacing.sm,
   },
   paymentButtonContainer: {

@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../navigation/types';
 import { FinanceHeader } from '../components/finance/FinanceHeader';
 import { PeriodSelector } from '../components/finance/PeriodSelector';
 import { KPIContainer } from '../components/finance/KPIContainer';
@@ -9,11 +11,11 @@ import { QuickActions } from '../components/finance/QuickActions';
 import { FinancialInsights } from '../components/finance/FinancialInsights';
 import { useFinanceDashboard } from '../hooks/useFinanceDashboard';
 import { useI18n } from '../hooks/useI18n';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import { SkeletonDashboard } from '../components/ui/LoadingStates';
 import { theme } from '../theme';
 
 interface FinanceDashboardScreenProps {
-  navigation: StackNavigationProp<unknown>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'FinanceDashboard'>;
 }
 
 export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
@@ -32,11 +34,11 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
   const formatCurrency = (amount: number) => formatters.currency(amount);
 
   if (loading) {
-    return <LoadingSpinner message='Loading financial dashboard...' />;
+    return <SkeletonDashboard />;
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <FinanceHeader navigation={navigation} />
 
       <ScrollView
@@ -73,7 +75,7 @@ export const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           </>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

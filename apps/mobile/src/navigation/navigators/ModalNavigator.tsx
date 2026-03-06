@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { ModalStackParamList } from '../types';
 
 // Import existing screens
@@ -88,7 +88,7 @@ const SafeQuickJobPostScreen = withScreenErrorBoundary(
 // MODAL NAVIGATOR
 // ============================================================================
 
-const ModalStack = createStackNavigator<ModalStackParamList>();
+const ModalStack = createNativeStackNavigator<ModalStackParamList>();
 
 export const ModalNavigator: React.FC = () => {
   return (
@@ -97,28 +97,7 @@ export const ModalNavigator: React.FC = () => {
         headerShown: false,
         presentation: 'modal',
         gestureEnabled: true,
-        transitionSpec: {
-          open: { animation: 'timing', config: { duration: 300 } },
-          close: { animation: 'timing', config: { duration: 250 } },
-        },
-        cardStyleInterpolator: ({ current, layouts }) => ({
-          cardStyle: {
-            transform: [
-              {
-                translateY: current.progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [layouts.screen.height, 0],
-                }),
-              },
-            ],
-          },
-          overlayStyle: {
-            opacity: current.progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 0.5],
-            }),
-          },
-        }),
+        animation: 'slide_from_bottom',
       }}
     >
       <ModalStack.Screen

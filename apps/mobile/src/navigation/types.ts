@@ -26,7 +26,6 @@ export type RootStackParamList = {
 
 export type RootTabParamList = {
   HomeTab: undefined;
-  DiscoverTab: undefined;
   JobsTab: NavigatorScreenParams<JobsStackParamList> | undefined;
   AddTab: undefined;
   MessagingTab: NavigatorScreenParams<MessagingStackParamList> | undefined;
@@ -50,9 +49,13 @@ export type AuthStackParamList = {
 // ============================================================================
 
 export type JobsStackParamList = {
+  InvoiceManagement: undefined;
+  CreateInvoice: { invoiceId?: string } | undefined;
+  InvoiceDetail: { invoiceId: string };
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;
+  ExploreMap: undefined;
   BidSubmission: { jobId: string };
   JobPayment: { jobId: string; amount: number; contractorId: string; contractorName?: string };
   JobTimeline: { jobId: string };
@@ -91,7 +94,13 @@ export type ProfileStackParamList = {
   AddPaymentMethod: undefined;
   HelpCenter: undefined;
   InvoiceManagement: undefined;
+  CreateInvoice: { invoiceId?: string } | undefined;
+  InvoiceDetail: { invoiceId: string };
   CRMDashboard: undefined;
+  AddClient: undefined;
+  ClientDetail: { client: Record<string, unknown> }; // ClientData — use ClientData type directly in ClientDetailScreen
+  QuoteDetail: { quoteId: string };
+  QuoteTemplates: undefined;
   FinanceDashboard: undefined;
   ServiceAreas: undefined;
   QuoteBuilder: undefined;
@@ -100,7 +109,11 @@ export type ProfileStackParamList = {
   ContractorVerification: undefined;
   Properties: undefined;
   PropertyDetail: { propertyId: string };
+  PropertyAssessment: { propertyId?: string; propertyAddress?: string } | undefined;
   AddProperty: undefined;
+  VideoCapture: { assessmentId?: string; propertyId?: string } | undefined;
+  VideoProcessingStatus: { videoId: string; assessmentId?: string; propertyId?: string };
+  PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   Calendar: undefined;
   Reviews: undefined;
   PaymentHistory: undefined;
@@ -111,6 +124,8 @@ export type ProfileStackParamList = {
   Documents: undefined;
   Certifications: undefined;
   TimeTracking: undefined;
+  AddTimeEntry: undefined;
+  AddCertification: undefined;
   Reporting: undefined;
   Payouts: undefined;
   BookingStatus: undefined;

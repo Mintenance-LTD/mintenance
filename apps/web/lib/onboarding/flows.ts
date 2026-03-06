@@ -1,6 +1,10 @@
 /**
  * Onboarding Flow Definitions
  * Defines step-by-step onboarding flows for homeowners and contractors
+ *
+ * IMPORTANT: All steps are purely informational (observe-only).
+ * The tutorial NEVER force-navigates users away from the dashboard.
+ * Users can visit these pages in their own time via the sidebar navigation.
  */
 
 export interface OnboardingStep {
@@ -8,7 +12,6 @@ export interface OnboardingStep {
   title: string;
   description: string;
   targetSelector?: string; // CSS selector for element to highlight
-  targetRoute?: string; // Route to navigate to for this step
   action?: 'click' | 'input' | 'navigate' | 'observe'; // Required action type
   skippable: boolean;
   position?: 'top' | 'bottom' | 'left' | 'right'; // Tooltip position
@@ -31,13 +34,13 @@ export const homeownerFlow: OnboardingFlow = {
   id: 'homeowner-onboarding',
   name: 'Homeowner Onboarding',
   userType: 'homeowner',
-  estimatedMinutes: 5,
+  estimatedMinutes: 3,
   steps: [
     {
       id: 'welcome',
       title: 'Welcome to Mintenance!',
       description:
-        'Your all-in-one platform for finding trusted contractors, managing home projects, and ensuring quality work. Let\'s get you started in just 5 minutes.',
+        'Your all-in-one platform for finding trusted contractors, managing home projects, and ensuring quality work. Let\'s show you around!',
       skippable: true,
       nextLabel: 'Get Started',
     },
@@ -45,71 +48,60 @@ export const homeownerFlow: OnboardingFlow = {
       id: 'profile-setup',
       title: 'Complete Your Profile',
       description:
-        'Add your name, location, and a profile photo. This helps contractors understand who they\'re working with.',
-      targetRoute: '/profile',
-      targetSelector: '[data-onboarding="profile-form"]',
-      action: 'input',
+        'Add your name, location, and a profile photo. This helps contractors understand who they\'re working with. You can do this anytime from Settings.',
+      action: 'observe',
       position: 'right',
-      skippable: false,
-      nextLabel: 'Continue',
+      skippable: true,
+      nextLabel: 'Next',
     },
     {
       id: 'add-property',
       title: 'Add Your First Property',
       description:
-        'Tell us about your home. This helps us match you with contractors who specialize in your area and property type.',
-      targetRoute: '/properties',
-      targetSelector: '[data-onboarding="add-property-button"]',
-      action: 'click',
+        'Tell us about your home. This helps us match you with contractors who specialize in your area and property type. You can add properties anytime from the Properties page.',
+      action: 'observe',
       position: 'bottom',
       skippable: true,
-      nextLabel: 'Add Property',
+      nextLabel: 'Next',
     },
     {
       id: 'post-job',
       title: 'Post Your First Job',
       description:
-        'Describe the work you need done. Be specific about the problem and include photos if you have them. Our AI will help match you with the right contractors.',
-      targetRoute: '/jobs/create',
-      targetSelector: '[data-onboarding="job-form"]',
-      action: 'navigate',
+        'Describe the work you need done. Be specific about the problem and include photos if you have them. Our AI will help match you with the right contractors. Go to Jobs to get started.',
+      action: 'observe',
       position: 'top',
       skippable: true,
-      nextLabel: 'Create Job',
+      nextLabel: 'Next',
     },
     {
       id: 'contractor-matching',
       title: 'How Contractor Matching Works',
       description:
         'We use AI to analyze your job and match you with qualified contractors in your area. You\'ll receive multiple bids to compare pricing and reviews.',
-      targetSelector: '[data-onboarding="matching-info"]',
       action: 'observe',
       position: 'bottom',
-      skippable: false,
-      nextLabel: 'Got It',
+      skippable: true,
+      nextLabel: 'Next',
     },
     {
       id: 'review-bids',
       title: 'Reviewing Bids',
       description:
-        'When contractors submit bids, you can compare them side-by-side. Check their ratings, reviews, portfolio, and pricing before making a decision.',
-      targetRoute: '/jobs',
-      targetSelector: '[data-onboarding="bids-section"]',
+        'When contractors submit bids, you can compare them side-by-side. Check their ratings, reviews, portfolio, and pricing before making a decision. Find bids on your Jobs page.',
       action: 'observe',
       position: 'left',
-      skippable: false,
+      skippable: true,
       nextLabel: 'Next',
     },
     {
       id: 'messaging',
       title: 'Message Contractors',
       description:
-        'Ask questions, clarify details, or schedule video calls directly through our messaging system. Everything stays organized in one place.',
-      targetRoute: '/messages',
-      targetSelector: '[data-onboarding="messages-list"]',
+        'Ask questions, clarify details, or schedule video calls directly through our messaging system. Everything stays organized in one place. Access Messages from the sidebar.',
       action: 'observe',
       position: 'right',
-      skippable: false,
+      skippable: true,
       nextLabel: 'Next',
     },
     {
@@ -117,10 +109,9 @@ export const homeownerFlow: OnboardingFlow = {
       title: 'Secure Payments & Escrow',
       description:
         'Your payment is held in escrow until the job is complete. Release funds milestone by milestone, ensuring quality work at every step.',
-      targetSelector: '[data-onboarding="payment-info"]',
       action: 'observe',
       position: 'bottom',
-      skippable: false,
+      skippable: true,
       nextLabel: 'Finish',
     },
   ],
@@ -133,13 +124,13 @@ export const contractorFlow: OnboardingFlow = {
   id: 'contractor-onboarding',
   name: 'Contractor Onboarding',
   userType: 'contractor',
-  estimatedMinutes: 7,
+  estimatedMinutes: 3,
   steps: [
     {
       id: 'welcome',
       title: 'Welcome to Mintenance!',
       description:
-        'Join thousands of contractors finding quality leads, growing their business, and building their reputation. Let\'s set up your professional profile.',
+        'Join thousands of contractors finding quality leads, growing their business, and building their reputation. Let\'s show you around!',
       skippable: true,
       nextLabel: 'Get Started',
     },
@@ -147,81 +138,67 @@ export const contractorFlow: OnboardingFlow = {
       id: 'business-profile',
       title: 'Set Up Your Business Profile',
       description:
-        'Add your business name, bio, contact info, and what makes you unique. This is your chance to stand out to homeowners.',
-      targetRoute: '/contractor/profile',
-      targetSelector: '[data-onboarding="business-profile-form"]',
-      action: 'input',
+        'Add your business name, bio, contact info, and what makes you unique. You can complete this anytime from your Profile page.',
+      action: 'observe',
       position: 'right',
-      skippable: false,
-      nextLabel: 'Continue',
+      skippable: true,
+      nextLabel: 'Next',
     },
     {
       id: 'skills-certifications',
       title: 'Add Your Skills & Certifications',
       description:
-        'List your specialties and upload any licenses or certifications. Verified credentials help you win more jobs.',
-      targetRoute: '/contractor/profile',
-      targetSelector: '[data-onboarding="skills-section"]',
-      action: 'input',
+        'List your specialties and upload any licenses or certifications. Verified credentials help you win more jobs. You can add these later from your Profile.',
+      action: 'observe',
       position: 'bottom',
-      skippable: false,
-      nextLabel: 'Add Skills',
+      skippable: true,
+      nextLabel: 'Next',
     },
     {
       id: 'portfolio-upload',
       title: 'Showcase Your Best Work',
       description:
-        'Upload at least 3 photos of completed projects. High-quality before/after photos significantly increase your bid acceptance rate.',
-      targetRoute: '/contractor/profile',
-      targetSelector: '[data-onboarding="portfolio-upload"]',
-      action: 'click',
+        'Upload at least 3 photos of completed projects. High-quality before/after photos significantly increase your bid acceptance rate. You can do this anytime from your Profile.',
+      action: 'observe',
       position: 'top',
       skippable: true,
-      nextLabel: 'Upload Photos',
+      nextLabel: 'Next',
     },
     {
       id: 'service-areas',
       title: 'Set Your Service Areas',
       description:
-        'Define where you work. You\'ll only see jobs within your service radius, saving you time on irrelevant leads.',
-      targetRoute: '/contractor/profile',
-      targetSelector: '[data-onboarding="service-areas"]',
-      action: 'input',
+        'Define where you work. You\'ll only see jobs within your service radius, saving you time on irrelevant leads. You can set this up later from your Profile.',
+      action: 'observe',
       position: 'right',
-      skippable: false,
-      nextLabel: 'Set Areas',
+      skippable: true,
+      nextLabel: 'Next',
     },
     {
       id: 'discovery-how-it-works',
       title: 'How Job Discovery Works',
       description:
-        'Swipe through jobs matched to your skills and location. Swipe right to bid, left to pass. Our AI learns your preferences over time.',
-      targetRoute: '/contractor/discover',
-      targetSelector: '[data-onboarding="card-stack"]',
+        'Browse available jobs matched to your skills and location. Our AI learns your preferences over time. Find jobs from the Jobs page in the sidebar.',
       action: 'observe',
       position: 'bottom',
-      skippable: false,
-      nextLabel: 'Try It',
+      skippable: true,
+      nextLabel: 'Next',
     },
     {
       id: 'bidding-tutorial',
       title: 'Submitting Your First Bid',
       description:
         'Provide a detailed quote, timeline, and message. Be transparent and professional. Homeowners can see your profile and reviews.',
-      targetRoute: '/contractor/discover',
-      targetSelector: '[data-onboarding="bid-button"]',
       action: 'observe',
       position: 'left',
-      skippable: false,
+      skippable: true,
       nextLabel: 'Next',
     },
     {
       id: 'subscription-options',
       title: 'Forever Free - Upgrade Anytime',
       description:
-        'Start free with 5 bids/month - no credit card required. Upgrade to Basic (20 bids), Professional (100 bids), or Enterprise (unlimited) whenever you need more. All plans include professional features to grow your business.',
-      targetRoute: '/contractor/subscription',
-      targetSelector: '[data-onboarding="subscription-plans"]',
+        'Start free with 5 bids/month - no credit card required. Upgrade to Basic (20 bids), Professional (100 bids), or Enterprise (unlimited) whenever you need more. Visit Subscription from the sidebar.',
       action: 'observe',
       position: 'top',
       skippable: true,

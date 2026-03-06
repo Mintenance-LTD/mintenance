@@ -30,7 +30,8 @@ export class ExperienceBufferService {
     systemPrompt: string,
     userPrompt: string,
     teacherResponse: Phase1BuildingAssessment,
-    studentResponse: Phase1BuildingAssessment | null
+    studentResponse: Phase1BuildingAssessment | null,
+    teacherReasoning?: string | null
   ): Promise<string | null> {
     try {
       const surpriseScore = this.computeSurpriseScore(comparison);
@@ -61,6 +62,7 @@ export class ExperienceBufferService {
           user_prompt: userPrompt,
           teacher_response: teacherResponse,
           student_response: studentResponse,
+          teacher_reasoning: teacherReasoning ?? null,
           surprise_score: surpriseScore,
           priority_score: priorityScore,
           damage_category: comparison.damageCategory,
@@ -157,6 +159,8 @@ export class ExperienceBufferService {
       userPrompt: row.user_prompt,
       teacherResponse: row.teacher_response as Phase1BuildingAssessment,
       studentResponse: row.student_response as Phase1BuildingAssessment | null,
+      teacherReasoning: row.teacher_reasoning as string | null ?? null,
+      humanCorrectedResponse: row.human_corrected_response as Phase1BuildingAssessment | null ?? null,
       surpriseScore: row.surprise_score,
       priorityScore: row.priority_score,
       difficultyScore: row.difficulty_score,

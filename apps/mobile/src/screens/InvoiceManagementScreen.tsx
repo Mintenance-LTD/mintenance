@@ -10,18 +10,28 @@ import {
   Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { CompositeNavigationProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 import { type Invoice, FinancialManagementService } from '../services/contractor-business';
 import { InvoiceCard } from '../components/InvoiceCard';
 import Button from '../components/ui/Button';
+import { Banner } from '../components/ui/Banner';
+import { useToast } from '../components/ui/Toast';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import type { JobsStackParamList, ProfileStackParamList } from '../navigation/types';
+
+// Shared between ProfileStack and JobsStack — navigates to CreateInvoice and InvoiceDetail
+type InvoiceNavigation = CompositeNavigationProp<
+  NativeStackNavigationProp<JobsStackParamList>,
+  NativeStackNavigationProp<ProfileStackParamList>
+>;
 
 interface InvoiceManagementScreenProps {
-  navigation: StackNavigationProp<unknown>;
+  navigation: InvoiceNavigation;
 }
 
 export const InvoiceManagementScreen: React.FC<
@@ -37,6 +47,8 @@ export const InvoiceManagementScreen: React.FC<
   >('all');
   const [reminderModalVisible, setReminderModalVisible] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     loadInvoices();
@@ -50,7 +62,7 @@ export const InvoiceManagementScreen: React.FC<
       setInvoices(data);
     } catch (error) {
       logger.error('Error loading invoices', error);
-      Alert.alert('Error', 'Failed to load invoices');
+      setListError('Failed to load invoices. Pull to refresh.');
     } finally {
       setLoading(false);
     }
@@ -77,10 +89,10 @@ export const InvoiceManagementScreen: React.FC<
         'sent',
         user.id
       );
-      Alert.alert('Success', 'Reminder sent successfully');
+      toast.success('Reminder sent successfully');
       await loadInvoices();
     } catch (error) {
-      Alert.alert('Error', 'Failed to send reminder');
+      toast.error('Failed to send reminder');
     } finally {
       setReminderModalVisible(false);
       setSelectedInvoice(null);
@@ -102,10 +114,10 @@ export const InvoiceManagementScreen: React.FC<
                 'paid',
                 user!.id
               );
-              Alert.alert('Success', 'Invoice marked as paid');
+              toast.success('Invoice marked as paid');
               await loadInvoices();
             } catch (error) {
-              Alert.alert('Error', 'Failed to update invoice');
+              toast.error('Failed to update invoice');
             }
           },
         },
@@ -170,22 +182,26 @@ export const InvoiceManagementScreen: React.FC<
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textInverse}
-          />
-        </TouchableOpacity>
+        {navigation.canGoBack() ? (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons
+              name='arrow-back'
+              size={24}
+              color={theme.colors.textPrimary}
+            />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.backButton} />
+        )}
         <Text style={styles.headerTitle}>Invoice Management</Text>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => Alert.alert('Coming Soon', 'Invoice creation coming soon.')}
+          onPress={() => navigation.navigate('CreateInvoice')}
         >
-          <Ionicons name='add' size={24} color={theme.colors.textInverse} />
+          <Ionicons name='add' size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -213,6 +229,12 @@ export const InvoiceManagementScreen: React.FC<
           <Text style={styles.statLabel}>Paid This Month</Text>
         </View>
       </View>
+
+      {listError && (
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>
+          <Banner message={listError} variant="error" />
+        </View>
+      )}
 
       {/* Compact Filter Tabs */}
       <View style={styles.filtersContainer}>
@@ -250,7 +272,7 @@ export const InvoiceManagementScreen: React.FC<
               <Button
                 variant='primary'
                 title='Create Invoice'
-                onPress={() => Alert.alert('Coming Soon', 'Invoice creation coming soon.')}
+                onPress={() => navigation.navigate('CreateInvoice')}
               />
             )}
           </View>
@@ -260,7 +282,7 @@ export const InvoiceManagementScreen: React.FC<
               key={invoice.id}
               invoice={invoice}
               onPress={() =>
-                Alert.alert('Coming Soon', 'Invoice details coming soon.')
+                navigation.navigate('InvoiceDetail', { invoiceId: invoice.id })
               }
               onSendReminder={() => handleSendReminder(invoice)}
               onMarkPaid={() => handleMarkPaid(invoice)}
@@ -318,15 +340,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBEBEB',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontWeight: '800',
+    color: theme.colors.textPrimary,
   },
   addButton: {
     padding: 8,
@@ -350,7 +374,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   statLabel: {
@@ -378,15 +402,15 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.sm,
   },
   filterTabActive: {
-    backgroundColor: theme.colors.primary,
-    shadowColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    shadowColor: '#000000',
     shadowOffset: {
       width: 0,
       height: 1,
     },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   filterTabText: {
     fontSize: 12,

@@ -21,6 +21,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
@@ -172,8 +173,9 @@ export default function MFAVerificationScreen() {
   };
 
   return (
+    <SafeAreaView style={styles.container}>
     <KeyboardAvoidingView
-      style={styles.container}
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -316,6 +318,7 @@ export default function MFAVerificationScreen() {
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -359,7 +362,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   methodButtonActive: {
-    borderBottomColor: theme.colors.primary,
+    borderBottomColor: '#222222',
   },
   methodButtonText: {
     fontSize: 14,
@@ -367,7 +370,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   methodButtonTextActive: {
-    color: theme.colors.primary,
+    color: '#222222',
   },
   inputContainer: {
     marginBottom: 24,
@@ -411,8 +414,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: '#222222',
+    borderColor: '#222222',
   },
   checkmark: {
     color: theme.colors.white,
@@ -452,7 +455,7 @@ const styles = StyleSheet.create({
   },
   helpLink: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '500',
   },
   backButton: {

@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { performanceMonitor } from '../utils/performance';
 import type { PerformanceBudget, PerformanceReport } from '../utils/performance/types';
 import { logger } from '../utils/logger';
@@ -78,8 +79,9 @@ export const PerformanceDashboardScreen: React.FC = () => {
       : report.budgets;
 
   return (
+    <SafeAreaView style={styles.container}>
     <ScrollView
-      style={styles.container}
+      style={{ flex: 1 }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
@@ -309,6 +311,7 @@ export const PerformanceDashboardScreen: React.FC = () => {
         </Text>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 };
 

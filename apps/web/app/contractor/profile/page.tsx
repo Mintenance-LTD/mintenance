@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContractorProfileClient2025 } from './components/ContractorProfileClient2025';
@@ -108,6 +110,15 @@ export default async function ContractorProfilePage2025() {
 
   return (
     <ErrorBoundary>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+      <Link
+        href="/contractor/dashboard"
+        className="inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Dashboard
+      </Link>
+    </div>
     <ContractorProfileClient2025
       contractor={{
         id: contractor?.id || user.id,

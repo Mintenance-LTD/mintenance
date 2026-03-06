@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Message } from '../../../services/MessagingService';
 import VideoCallMessage from '../../../components/messaging/VideoCallMessage';
 import { theme } from '../../../theme';
@@ -50,22 +51,42 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {!isFromCurrentUser && (
           <Text style={styles.senderName}>{item.senderName}</Text>
         )}
-        <Text
-          style={[
-            styles.messageText,
-            isFromCurrentUser ? styles.currentUserText : styles.otherUserText,
-          ]}
-        >
-          {item.messageText}
-        </Text>
-        <Text
-          style={[
-            styles.messageTime,
-            isFromCurrentUser ? styles.currentUserTime : styles.otherUserTime,
-          ]}
-        >
-          {formatMessageTime(item.createdAt)}
-        </Text>
+        {item.attachmentUrl && (
+          <Image
+            source={{ uri: item.attachmentUrl }}
+            style={styles.attachedImage}
+            resizeMode="cover"
+            accessibilityLabel="Attached image"
+          />
+        )}
+        {item.messageText ? (
+          <Text
+            style={[
+              styles.messageText,
+              isFromCurrentUser ? styles.currentUserText : styles.otherUserText,
+            ]}
+          >
+            {item.messageText}
+          </Text>
+        ) : null}
+        <View style={styles.metaRow}>
+          <Text
+            style={[
+              styles.messageTime,
+              isFromCurrentUser ? styles.currentUserTime : styles.otherUserTime,
+            ]}
+          >
+            {formatMessageTime(item.createdAt)}
+          </Text>
+          {isFromCurrentUser && (
+            <Ionicons
+              name={item.read ? 'checkmark-done' : 'checkmark'}
+              size={13}
+              color={item.read ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)'}
+              style={styles.readReceipt}
+            />
+          )}
+        </View>
       </View>
     </View>
   );
@@ -88,7 +109,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   currentUserBubble: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     borderBottomRightRadius: 4,
   },
   otherUserBubble: {
@@ -116,14 +137,27 @@ const styles = StyleSheet.create({
   otherUserText: {
     color: theme.colors.textPrimary,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
   messageTime: {
     fontSize: 11,
-    marginTop: 4,
   },
   currentUserTime: {
     color: 'rgba(255, 255, 255, 0.8)',
   },
   otherUserTime: {
     color: theme.colors.textTertiary,
+  },
+  readReceipt: {
+    marginLeft: 3,
+  },
+  attachedImage: {
+    width: 200,
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 4,
   },
 });

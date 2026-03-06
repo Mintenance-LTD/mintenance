@@ -6,7 +6,7 @@
  * Uses existing SwipeableCardWrapper and BidService.
  */
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -33,20 +33,20 @@ function renderStars(rating: number) {
   const stars = [];
   const full = Math.floor(rating);
   for (let i = 0; i < full; i++) {
-    stars.push(<Ionicons key={i} name="star" size={14} color={theme.colors.ratingGold} />);
+    stars.push(<Ionicons key={i} name="star" size={14} color="#222222" />);
   }
   if (rating % 1 !== 0) {
-    stars.push(<Ionicons key="half" name="star-half" size={14} color={theme.colors.ratingGold} />);
+    stars.push(<Ionicons key="half" name="star-half" size={14} color="#222222" />);
   }
   const empty = 5 - Math.ceil(rating);
   for (let i = 0; i < empty; i++) {
-    stars.push(<Ionicons key={`e${i}`} name="star-outline" size={14} color={theme.colors.ratingGold} />);
+    stars.push(<Ionicons key={`e${i}`} name="star-outline" size={14} color="#B0B0B0" />);
   }
   return stars;
 }
 
 export const BidReviewScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation();
   const route = useRoute<BidReviewRouteProp>();
   const { user } = useAuth();
   const { jobId } = route.params;
@@ -56,7 +56,16 @@ export const BidReviewScreen: React.FC = () => {
   const [processing, setProcessing] = useState(false);
   const [allReviewed, setAllReviewed] = useState(false);
   const [jobTitle, setJobTitle] = useState('');
+  const [sortBy, setSortBy] = useState<'price' | 'rating' | 'timeline'>('price');
   const swiperRef = useRef<SwipeableCardRef>(null);
+
+  const sortedBids = useMemo(() => {
+    const copy = [...bids];
+    if (sortBy === 'price') copy.sort((a, b) => a.amount - b.amount);
+    else if (sortBy === 'rating') copy.sort((a, b) => (b.contractor?.rating ?? 0) - (a.contractor?.rating ?? 0));
+    else copy.sort((a, b) => (a.estimated_duration ?? '').localeCompare(b.estimated_duration ?? ''));
+    return copy;
+  }, [bids, sortBy]);
 
   const fetchBids = useCallback(async () => {
     try {
@@ -246,11 +255,46 @@ export const BidReviewScreen: React.FC = () => {
         <Text style={styles.bidCount}>{bids.length} bids</Text>
       </View>
 
+      {/* Comparison Summary */}
+      {bids.length > 1 && (
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Low</Text>
+            <Text style={styles.summaryValue}>£{Math.min(...bids.map(b => b.amount)).toLocaleString()}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Avg</Text>
+            <Text style={styles.summaryValue}>£{Math.round(bids.reduce((s, b) => s + b.amount, 0) / bids.length).toLocaleString()}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>High</Text>
+            <Text style={styles.summaryValue}>£{Math.max(...bids.map(b => b.amount)).toLocaleString()}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Top Rating</Text>
+            <Text style={styles.summaryValue}>{Math.max(...bids.map(b => b.contractor?.rating ?? 0)).toFixed(1)}★</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Sort Bar */}
+      <View style={styles.sortRow}>
+        {([['price', 'Lowest Price'], ['rating', 'Highest Rated'], ['timeline', 'Fastest']] as const).map(([key, label]) => (
+          <TouchableOpacity
+            key={key}
+            style={[styles.sortChip, sortBy === key && styles.sortChipActive]}
+            onPress={() => setSortBy(key)}
+          >
+            <Text style={[styles.sortChipText, sortBy === key && styles.sortChipTextActive]}>{label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       {/* Swipe Area */}
       <View style={styles.swiperContainer}>
         <SwipeableCardWrapper
           ref={swiperRef}
-          cards={bids}
+          cards={sortedBids}
           renderCard={(bid: unknown) => renderBidCard(bid as Bid)}
           onSwipedRight={handleAccept}
           onSwipedLeft={handleReject}
@@ -339,7 +383,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: theme.colors.textPrimary,
   },
   headerSubtitle: {
@@ -350,7 +394,7 @@ const styles = StyleSheet.create({
   bidCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: theme.colors.textSecondary,
   },
   swiperContainer: {
     flex: 1,
@@ -389,7 +433,7 @@ const styles = StyleSheet.create({
   },
   contractorName: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '800',
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },
@@ -419,7 +463,7 @@ const styles = StyleSheet.create({
   },
   amountValue: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: '800',
     color: theme.colors.textPrimary,
   },
   detailRow: {
@@ -430,7 +474,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: theme.colors.textSecondary,
   },
   proposalSection: {
     marginTop: 12,
@@ -526,10 +570,39 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: theme.colors.overlayDark30,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderLight,
+  },
+  summaryItem: { alignItems: 'center' },
+  summaryLabel: { fontSize: 11, color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.4 },
+  summaryValue: { fontSize: 14, fontWeight: '700', color: theme.colors.textPrimary, marginTop: 2 },
+  sortRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  sortChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  sortChipActive: { borderColor: '#222222', backgroundColor: '#222222' },
+  sortChipText: { fontSize: 12, fontWeight: '500', color: theme.colors.textSecondary },
+  sortChipTextActive: { color: '#FFFFFF', fontWeight: '700' },
 });
 
 export default BidReviewScreen;

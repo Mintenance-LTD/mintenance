@@ -210,13 +210,12 @@ describe('CostControlService', () => {
   });
 
   describe('emergencyStop', () => {
-    it('should set emergency stop flag', () => {
-      expect(CostControlService.isEmergencyStopped()).toBe(false);
+    it('should set emergency stop flag', async () => {
+      expect(await CostControlService.isEmergencyStopped()).toBe(false);
 
-      CostControlService.emergencyStop();
+      await CostControlService.emergencyStop();
 
-      expect(CostControlService.isEmergencyStopped()).toBe(true);
-      expect(process.env.AI_EMERGENCY_STOP).toBe('true');
+      expect(await CostControlService.isEmergencyStopped()).toBe(true);
     });
   });
 

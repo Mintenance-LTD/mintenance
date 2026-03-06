@@ -9,10 +9,12 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 import { ScreenHeader, LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -32,7 +34,7 @@ interface PaymentRecord {
 }
 
 interface Props {
-  navigation: StackNavigationProp<Record<string, unknown>>;
+  navigation: NativeStackNavigationProp<ProfileStackParamList, 'PaymentHistory'>;
 }
 
 const PAGE_SIZE = 20;
@@ -71,6 +73,12 @@ const getStatusLabel = (status: string) => {
   }
 };
 
+const getRefundExpectedDate = (createdAt: string): string => {
+  const refundDate = new Date(createdAt);
+  refundDate.setDate(refundDate.getDate() + 10); // typically 5-10 business days
+  return refundDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+};
+
 const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({ payment }) => (
   <View style={styles.paymentCard}>
     <View style={styles.paymentHeader}>
@@ -97,14 +105,35 @@ const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({ payment }) => (
         </View>
       </View>
     </View>
-    {payment.last4 && (
-      <View style={styles.methodRow}>
-        <Ionicons name="card-outline" size={14} color={theme.colors.textTertiary} />
-        <Text style={styles.methodText}>
-          **** {payment.last4}
+    {payment.status === 'refunded' && (
+      <View style={styles.refundTimeline}>
+        <Ionicons name="time-outline" size={14} color="#F59E0B" />
+        <Text style={styles.refundTimelineText}>
+          Expected by {getRefundExpectedDate(payment.createdAt)}
         </Text>
       </View>
     )}
+    <View style={styles.cardFooter}>
+      {payment.last4 && (
+        <View style={styles.methodRow}>
+          <Ionicons name="card-outline" size={14} color={theme.colors.textTertiary} />
+          <Text style={styles.methodText}>
+            **** {payment.last4}
+          </Text>
+        </View>
+      )}
+      {(payment.status === 'completed' || payment.status === 'succeeded') && (
+        <TouchableOpacity
+          style={styles.receiptButton}
+          onPress={() => Linking.openURL(`https://mintenance.com/invoices/${payment.jobId}`)}
+          accessibilityRole="button"
+          accessibilityLabel="Download receipt"
+        >
+          <Ionicons name="download-outline" size={16} color={theme.colors.primary} />
+          <Text style={styles.receiptButtonText}>Receipt</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   </View>
 );
 
@@ -185,19 +214,19 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Total Paid</Text>
-            <Text style={[styles.statValue, { color: theme.colors.primary }]}>
+            <Text style={styles.statValue}>
               {'\u00A3'}{totalPaid.toFixed(2)}
             </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Pending</Text>
-            <Text style={[styles.statValue, { color: '#F59E0B' }]}>
+            <Text style={styles.statValue}>
               {'\u00A3'}{totalPending.toFixed(2)}
             </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Refunded</Text>
-            <Text style={[styles.statValue, { color: '#EF4444' }]}>
+            <Text style={styles.statValue}>
               {'\u00A3'}{totalRefunded.toFixed(2)}
             </Text>
           </View>
@@ -317,18 +346,52 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
   },
-  methodRow: {
+  cardFooter: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: theme.colors.borderLight,
+  },
+  methodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
   methodText: {
     fontSize: 12,
     color: theme.colors.textTertiary,
+  },
+  receiptButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primary + '10',
+  },
+  receiptButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
+  refundTimeline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#FFFBEB',
+  },
+  refundTimelineText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#92400E',
   },
   loadingMore: {
     paddingVertical: 20,
@@ -360,6 +423,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: '700',
+    color: theme.colors.textPrimary,
   },
   filterRow: {
     flexDirection: 'row',
@@ -390,3 +454,4 @@ const styles = StyleSheet.create({
 });
 
 export default PaymentHistoryScreen;
+

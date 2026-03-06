@@ -22,7 +22,7 @@ export interface SpecialOffer {
 export interface Service {
   id: string;
   name: string;
-  icon: keyof import('@expo/vector-icons/Ionicons').default['glyphMap'];
+  icon: string;
 }
 
 export interface TopContractor {

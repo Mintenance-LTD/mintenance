@@ -35,9 +35,9 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
           accessibilityRole='button'
           accessibilityLabel={`Current location: ${location}. Double tap to change`}
         >
-          <Ionicons name="location" size={16} color={theme.colors.primary} />
+          <Ionicons name="location" size={16} color='#717171' />
           <Text style={styles.locationText}>{location}</Text>
-          <Ionicons name="chevron-down" size={16} color={theme.colors.white} />
+          <Ionicons name="chevron-down" size={16} color='#717171' />
         </TouchableOpacity>
       </View>
 
@@ -48,7 +48,7 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
         accessibilityLabel={hasNotifications ? 'Notifications, you have new notifications' : 'Notifications'}
         accessibilityHint='Double tap to view notifications'
       >
-        <Ionicons name="notifications" size={24} color={theme.colors.white} />
+        <Ionicons name="notifications" size={24} color='#222222' />
         {hasNotifications && <View style={styles.notificationBadge} accessible={false} />}
       </TouchableOpacity>
     </View>
@@ -62,14 +62,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: theme.spacing.xl,
     paddingVertical: theme.spacing.lg,
-    backgroundColor: theme.colors.primary, // Navy Blue
+    backgroundColor: theme.colors.background,
   },
   locationSection: {
     flex: 1,
   },
   locationLabel: {
     fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.textInverseMuted, // Light gray
+    color: theme.colors.textTertiary,
     marginBottom: 4,
   },
   locationRow: {
@@ -80,13 +80,13 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: theme.typography.fontSize.base,
     fontWeight: theme.typography.fontWeight.semibold,
-    color: theme.colors.white, // White text
+    color: theme.colors.textPrimary,
   },
   notificationButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Semi-transparent white
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',

@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { MessagingStackParamList } from '../navigation/types';
 import { RouteProp } from '@react-navigation/native';
 import { Message } from '../services/MessagingService';
 import VideoCallInterface from '../components/video-call/VideoCallInterface';
@@ -27,6 +31,7 @@ import { MessageBubble } from './messaging/components/MessageBubble';
 import { MessageComposer } from './messaging/components/MessageComposer';
 import { MessagingLoading, MessagingError, MessagingEmpty } from './messaging/components/MessagingStates';
 import { useVideoCall } from './messaging/hooks/useVideoCall';
+import { supabase } from '../config/supabase';
 
 interface MessagingScreenParams {
   jobId: string;
@@ -37,7 +42,7 @@ interface MessagingScreenParams {
 
 interface Props {
   route: RouteProp<{ params: MessagingScreenParams }>;
-  navigation: StackNavigationProp<Record<string, unknown>>;
+  navigation: NativeStackNavigationProp<MessagingStackParamList, 'Messaging'>;
 }
 
 const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -48,7 +53,10 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const [newMessage, setNewMessage] = useState('');
   const [composerError, setComposerError] = useState<string | null>(null);
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingBroadcastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     data: messages = [],
@@ -98,6 +106,43 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     true
   );
 
+  // Typing indicator — subscribe to realtime broadcast for this conversation
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase.channel(`typing:${jobId}`);
+    channel
+      .on('broadcast', { event: 'typing' }, (payload: { payload?: { userId?: string } }) => {
+        if (payload.payload?.userId !== user.id) {
+          setIsOtherUserTyping(true);
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setIsOtherUserTyping(false), 3000);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (typingBroadcastRef.current) clearTimeout(typingBroadcastRef.current);
+      supabase.removeChannel(channel);
+    };
+  }, [jobId, user?.id]);
+
+  const broadcastTyping = useCallback(() => {
+    if (!user?.id) return;
+    if (typingBroadcastRef.current) return; // Debounce: only send once every 2s
+
+    typingBroadcastRef.current = setTimeout(() => {
+      typingBroadcastRef.current = null;
+    }, 2000);
+
+    supabase.channel(`typing:${jobId}`).send({
+      type: 'broadcast',
+      event: 'typing',
+      payload: { userId: user.id },
+    }).catch(() => { /* ignore realtime errors */ });
+  }, [jobId, user?.id]);
+
   useEffect(() => {
     if (user?.id && messages.length > 0) {
       const hasUnread = messages.some(
@@ -135,7 +180,53 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleChangeText = (value: string) => {
     if (composerError) setComposerError(null);
     setNewMessage(value);
+    if (value.length > 0) broadcastTyping();
   };
+
+  const handleAttach = useCallback(async () => {
+    if (!user) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please allow photo access to attach images.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    const ext = asset.uri.split('.').pop() ?? 'jpg';
+    const path = `messages/${jobId}/${Date.now()}.${ext}`;
+
+    try {
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
+      const { error: uploadError } = await supabase.storage
+        .from('job-photos')
+        .upload(path, blob, { contentType: `image/${ext}` });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('job-photos')
+        .getPublicUrl(path);
+
+      await sendMessageMutation.mutateAsync({
+        jobId,
+        receiverId: otherUserId,
+        messageText: '',
+        senderId: user.id,
+        messageType: 'image',
+        attachmentUrl: urlData.publicUrl,
+      });
+      scrollToEnd();
+    } catch (err) {
+      logger.error('Failed to send image', err);
+      setComposerError('Failed to send image. Please try again.');
+    }
+  }, [user, jobId, otherUserId, sendMessageMutation, scrollToEnd]);
 
   const renderMessage = useCallback(({ item }: { item: Message }) => (
     <MessageBubble
@@ -186,10 +277,17 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             }}
           />
 
+          {isOtherUserTyping && (
+            <View style={styles.typingRow}>
+              <Text style={styles.typingText}>{otherUserName} is typing…</Text>
+            </View>
+          )}
+
           <MessageComposer
             value={newMessage}
             onChangeText={handleChangeText}
             onSend={handleSendMessage}
+            onAttach={handleAttach}
             isSending={sendMessageMutation.isPending}
             error={composerError}
             bottomInset={insets.bottom}
@@ -240,6 +338,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
   },
+  typingRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    backgroundColor: theme.colors.surface,
+  },
+  typingText: {
+    fontSize: 13,
+    color: theme.colors.textTertiary,
+    fontStyle: 'italic',
+  },
   videoCallOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
@@ -248,3 +356,4 @@ const styles = StyleSheet.create({
 });
 
 export default MessagingScreen;
+

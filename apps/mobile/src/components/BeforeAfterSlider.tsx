@@ -2,24 +2,21 @@
  * BeforeAfterSlider Component
  *
  * Draggable slider that overlays before/after photos for comparison.
- * Used in HomeownerPhotoReview to verify job completion quality.
+ * Uses Reanimated 4 shared values + react-native-gesture-handler for
+ * fully native-thread gesture handling at 60fps.
  */
 
-import React, { useRef } from 'react';
-import {
-  View,
-  Image,
-  StyleSheet,
-  Animated,
-  PanResponder,
-  Dimensions,
-  Text,
-} from 'react-native';
+import React from 'react';
+import { View, Image, StyleSheet, Dimensions, Text } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { theme } from '../theme';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SLIDER_PADDING = 32;
 const IMAGE_WIDTH = SCREEN_WIDTH - SLIDER_PADDING * 2;
+const CLAMP_MIN = 20;
+const CLAMP_MAX = IMAGE_WIDTH - 20;
 
 interface BeforeAfterSliderProps {
   beforeUrl: string;
@@ -32,25 +29,29 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
   afterUrl,
   height = 300,
 }) => {
-  const sliderPosition = useRef(new Animated.Value(IMAGE_WIDTH / 2)).current;
+  // Track slider position; starts at midpoint
+  const sliderX = useSharedValue(IMAGE_WIDTH / 2);
+  // Record where the gesture began so we can offset correctly
+  const startX = useSharedValue(IMAGE_WIDTH / 2);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        const newX = IMAGE_WIDTH / 2 + gestureState.dx;
-        const clamped = Math.max(20, Math.min(IMAGE_WIDTH - 20, newX));
-        sliderPosition.setValue(clamped);
-      },
+  const panGesture = Gesture.Pan()
+    .onBegin(() => {
+      'worklet';
+      startX.value = sliderX.value;
     })
-  ).current;
+    .onUpdate((event) => {
+      'worklet';
+      const next = startX.value + event.translationX;
+      sliderX.value = Math.max(CLAMP_MIN, Math.min(CLAMP_MAX, next));
+    });
 
-  const clipWidth = sliderPosition.interpolate({
-    inputRange: [0, IMAGE_WIDTH],
-    outputRange: [0, IMAGE_WIDTH],
-    extrapolate: 'clamp',
-  });
+  const beforeClipStyle = useAnimatedStyle(() => ({
+    width: sliderX.value,
+  }));
+
+  const sliderLineStyle = useAnimatedStyle(() => ({
+    left: sliderX.value,
+  }));
 
   return (
     <View
@@ -58,11 +59,11 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
       accessibilityLabel="Before and after photo comparison. Drag the slider to compare."
       accessibilityRole="adjustable"
     >
-      {/* After photo (full width, behind) */}
+      {/* After photo — full width, sits behind */}
       <Image source={{ uri: afterUrl }} style={[styles.image, { height }]} resizeMode="cover" />
 
-      {/* Before photo (clipped from left) */}
-      <Animated.View style={[styles.beforeContainer, { width: clipWidth, height }]}>
+      {/* Before photo — clipped from left by slider position */}
+      <Animated.View style={[styles.beforeContainer, beforeClipStyle, { height }]}>
         <Image
           source={{ uri: beforeUrl }}
           style={[styles.image, { width: IMAGE_WIDTH, height }]}
@@ -78,17 +79,16 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         <Text style={styles.labelText}>After</Text>
       </View>
 
-      {/* Slider handle */}
-      <Animated.View
-        style={[styles.sliderLine, { left: clipWidth }]}
-        {...panResponder.panHandlers}
-      >
-        <View style={styles.sliderHandle}>
-          <View style={styles.sliderArrows}>
-            <Text style={styles.arrowText}>{'◄ ►'}</Text>
+      {/* Slider handle — wrapped in GestureDetector for native-thread pan */}
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.sliderLine, sliderLineStyle]}>
+          <View style={styles.sliderHandle}>
+            <View style={styles.sliderArrows}>
+              <Text style={styles.arrowText}>{'◄ ►'}</Text>
+            </View>
           </View>
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </GestureDetector>
     </View>
   );
 };
@@ -121,12 +121,8 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  labelLeft: {
-    left: 12,
-  },
-  labelRight: {
-    right: 12,
-  },
+  labelLeft: { left: 12 },
+  labelRight: { right: 12 },
   labelText: {
     color: '#fff',
     fontSize: 12,
@@ -151,9 +147,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...theme.shadows.base,
   },
-  sliderArrows: {
-    flexDirection: 'row',
-  },
+  sliderArrows: { flexDirection: 'row' },
   arrowText: {
     fontSize: 12,
     color: theme.colors.textPrimary,

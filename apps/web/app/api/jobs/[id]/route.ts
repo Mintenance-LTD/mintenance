@@ -13,6 +13,7 @@ import { handleAPIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRe
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
+import { getAppUrl } from '@/lib/env';
 
 interface Params { params: Promise<{ id: string }> }
 
@@ -289,7 +290,7 @@ export const PUT = withApiHandler(
       if (fullAddress.length > 2) {
         try {
           const geocodeResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/geocode?address=${encodeURIComponent(fullAddress)}`
+            `${getAppUrl()}/api/geocode?address=${encodeURIComponent(fullAddress)}`
           );
 
           if (geocodeResponse.ok) {

@@ -72,6 +72,19 @@ export const POST = withApiHandler(
       return NextResponse.json({ error: 'This email has already been invited' }, { status: 409 });
     }
 
+    // Enforce 10-member cap
+    const { count: memberCount } = await serverSupabase
+      .from('property_team_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('property_id', propertyId);
+
+    if ((memberCount ?? 0) >= 10) {
+      return NextResponse.json(
+        { error: 'Team member limit reached (maximum 10 per property)' },
+        { status: 422 },
+      );
+    }
+
     const { data: member, error } = await serverSupabase
       .from('property_team_members')
       .insert({

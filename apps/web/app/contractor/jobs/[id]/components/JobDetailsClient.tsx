@@ -6,6 +6,7 @@ import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPag
 import toast from 'react-hot-toast';
 import { JobViewTracker } from '@/app/jobs/[id]/components/JobViewTracker';
 import { logger } from '@mintenance/shared';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   ArrowLeft,
   MapPin,
@@ -103,7 +104,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': window.csrfToken || '',
+            ...await getCsrfHeaders(),
           },
         });
 
@@ -119,7 +120,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': window.csrfToken || '',
+            ...await getCsrfHeaders(),
           },
           body: JSON.stringify({ jobId: job.id }),
         });

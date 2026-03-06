@@ -334,7 +334,7 @@ export default async function LandingPage() {
               </div>
             </div>
             <p className="mt-5 text-sm text-gray-600 text-center">
-              Launch offer: first 30 homeowners get full premium features.
+              Launch offer: first 100 homeowners get full premium features.
             </p>
           </div>
         </div>

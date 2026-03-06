@@ -78,8 +78,10 @@ export const POST = withApiHandler(
       }
     }
 
-    // Phone verification for homeowners (skipped in development or when SKIP_PHONE_VERIFICATION=true)
-    const skipVerification = process.env.NODE_ENV === 'development' || process.env.SKIP_PHONE_VERIFICATION === 'true';
+    // Phone verification for homeowners
+    // Can be skipped via SKIP_PHONE_VERIFICATION=true env var (useful for testing/early access)
+    const skipVerification = process.env.NODE_ENV === 'development'
+      || process.env.SKIP_PHONE_VERIFICATION === 'true';
 
     if (user.role === 'homeowner' && !skipVerification) {
       const { HomeownerVerificationService } = await import('@/lib/services/verification/HomeownerVerificationService');
@@ -91,11 +93,24 @@ export const POST = withApiHandler(
     }
 
     // Validate and sanitize input using Zod schema
-    const validation = await validateRequest(request, createJobSchema);
+    // Clone request to pre-process: strip null values (client sends null for unset fields like property_id)
+    const rawBody = await request.json();
+    const cleanBody = Object.fromEntries(
+      Object.entries(rawBody).filter(([, v]) => v !== null)
+    );
+    const syntheticRequest = new NextRequest(request.url, {
+      method: request.method,
+      headers: request.headers,
+      body: JSON.stringify(cleanBody),
+    });
+    const validation = await validateRequest(syntheticRequest, createJobSchema);
     if ('headers' in validation) {
+      // Extract validation errors from the response for debugging
+      const errorBody = await validation.clone().json().catch(() => null);
       logger.error('Job creation validation failed', {
         service: 'jobs',
         userId: user.id,
+        validationErrors: errorBody?.errors,
       });
       return validation;
     }

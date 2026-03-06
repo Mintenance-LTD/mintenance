@@ -28,13 +28,12 @@ const CATEGORIES = [
 ];
 
 export default function LandingScreen() {
-  const navigation = useNavigation<unknown>();
+  const navigation = useNavigation();
   const scrollViewRef = useRef<ScrollView>(null);
-  const featuresViewRef = useRef<View>(null);
+  const featuresOffsetY = useRef(0);
 
   const scrollToFeatures = () => {
-    // Scroll to approximately where the features section starts (after hero)
-    scrollViewRef.current?.scrollTo({ y: 420, animated: true });
+    scrollViewRef.current?.scrollTo({ y: featuresOffsetY.current, animated: true });
   };
 
   return (
@@ -131,7 +130,10 @@ export default function LandingScreen() {
 
         {/* KEY FEATURES — 2×2 grid */}
         <SectionHeader title="Why Choose Mintenance?" />
-        <View style={styles.featuresGrid}>
+        <View
+          style={styles.featuresGrid}
+          onLayout={(e) => { featuresOffsetY.current = e.nativeEvent.layout.y; }}
+        >
           <View style={styles.featuresRow}>
             <Feature icon="flash-outline"  title="Instant Quotes"  text="Post once, get multiple bids fast." />
             <Feature icon="map-outline"    title="Local Pros"     text="Find contractors near you." />

@@ -8,17 +8,8 @@
  */
 
 import React from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  TouchableOpacity,
-  Text,
-  View,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
+import { ScrollView, TouchableOpacity, Text, View, StyleSheet, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { ScreenHeader } from '../../components/shared';
@@ -82,7 +73,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
 
         {vm.loading && vm.savedCards.length === 0 ? (
           <View style={[styles.loadingBox, { backgroundColor: theme.colors.surface }]}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <ActivityIndicator size="small" color='#222222' />
             <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
               Loading payment methods...
             </Text>
@@ -94,7 +85,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
               style={[
                 styles.cardRow,
                 { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-                vm.selectedMethod === card.id && { borderColor: theme.colors.primary },
+                vm.selectedMethod === card.id && { borderColor: '#222222' },
               ]}
               onPress={() => vm.selectMethod(card.id)}
               onLongPress={() => handleDeleteCard(card.id, card.last4)}
@@ -121,14 +112,14 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
               </View>
               <View style={styles.cardRight}>
                 {card.isDefault && (
-                  <View style={[styles.defaultBadge, { backgroundColor: theme.colors.primaryLight }]}>
-                    <Text style={[styles.defaultText, { color: theme.colors.primary }]}>Default</Text>
+                  <View style={[styles.defaultBadge, { backgroundColor: '#F7F7F7' }]}>
+                    <Text style={[styles.defaultText, { color: '#222222' }]}>Default</Text>
                   </View>
                 )}
                 <View style={[
                   styles.radio,
                   { borderColor: theme.colors.border },
-                  vm.selectedMethod === card.id && { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary },
+                  vm.selectedMethod === card.id && { borderColor: '#222222', backgroundColor: '#222222' },
                 ]} />
               </View>
             </TouchableOpacity>
@@ -147,8 +138,8 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({ navi
           style={[styles.addCardTrigger, { backgroundColor: theme.colors.surface }]}
           onPress={() => navigation.navigate('AddPaymentMethod' as never)}
         >
-          <Ionicons name="add-circle-outline" size={20} color={theme.colors.primary} />
-          <Text style={[styles.addCardText, { color: theme.colors.primary }]}>Add New Card</Text>
+          <Ionicons name="add-circle-outline" size={20} color='#717171' />
+          <Text style={[styles.addCardText, { color: theme.colors.textPrimary }]}>Add New Card</Text>
         </TouchableOpacity>
 
         {/* Cash */}

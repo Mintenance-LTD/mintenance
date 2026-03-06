@@ -39,7 +39,7 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
               <Ionicons
                 name={service.icon}
                 size={28}
-                color={theme.colors.primary}
+                color='#717171'
               />
             </View>
             <Text style={styles.serviceName}>{service.name}</Text>
@@ -64,10 +64,10 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
   },
   serviceItem: {
-    width: '18%',
+    // 5 equal columns — stable regardless of item count
+    width: '20%',
     alignItems: 'center',
     marginBottom: theme.spacing.lg,
   },

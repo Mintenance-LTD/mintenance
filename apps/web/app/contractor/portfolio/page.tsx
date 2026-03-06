@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { AnimatePresence } from 'framer-motion';;
+import { AnimatePresence } from 'framer-motion';
+import { getCsrfToken } from '@/lib/csrf-client';
 import {
   Briefcase,
   Plus,
@@ -145,11 +146,12 @@ export default function ContractorPortfolioPage2025() {
 
     setIsSubmitting(true);
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch('/api/contractor/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({
           title: newProject.title.trim(),
@@ -187,11 +189,12 @@ export default function ContractorPortfolioPage2025() {
     );
 
     try {
+      const csrfToken = await getCsrfToken();
       const res = await fetch(`/api/contractor/posts/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({ is_featured: !item.featured }),
       });
@@ -217,10 +220,11 @@ export default function ContractorPortfolioPage2025() {
     setPortfolioItems(portfolioItems.filter((i) => i.id !== id));
 
     try {
+      const deleteCsrf = await getCsrfToken();
       const res = await fetch(`/api/contractor/posts/${id}`, {
         method: 'DELETE',
         headers: {
-          'X-CSRF-Token': (window as { csrfToken?: string }).csrfToken || '',
+          'X-CSRF-Token': deleteCsrf,
         },
       });
 

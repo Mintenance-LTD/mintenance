@@ -11,7 +11,6 @@ export { WelcomeBanner } from './WelcomeBanner';
 export { QuickServices } from './QuickServices';
 export { RecentJobs } from './RecentJobs';
 export { PreviousContractors } from './PreviousContractors';
-export { FindContractorsButton } from './FindContractorsButton';
 export { ContractorBanner } from './ContractorBanner';
 export { StatsSection } from './StatsSection';
 export { ScheduleSection } from './ScheduleSection';

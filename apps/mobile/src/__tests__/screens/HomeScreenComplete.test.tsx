@@ -172,25 +172,6 @@ describe('HomeScreen', () => {
     });
   });
 
-  it('navigates to contractor discovery screen when clicking service category', () => {
-    const { getByText } = render(<HomeScreen />);
-
-    act(() => fireEvent.press(getByText('Plumbing')));
-
-    expect(jest.requireMock('@react-navigation/native').useNavigation().navigate).toHaveBeenCalledWith('ContractorDiscovery', {
-      filter: { skills: ['Plumbing', 'Pipe Repair', 'Leak Repair'] },
-      serviceCategory: 'plumbing'
-    });
-  });
-
-  it('navigates to find contractors screen', () => {
-    const { getByText } = render(<HomeScreen />);
-
-    act(() => fireEvent.press(getByText('Find Contractors')));
-
-    expect(jest.requireMock('@react-navigation/native').useNavigation().navigate).toHaveBeenCalledWith('FindContractors');
-  });
-
   it('refreshes data on pull to refresh', async () => {
     const mockJobs = [];
     mockJobService.getUserJobs.mockResolvedValue(mockJobs);

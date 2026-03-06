@@ -18,14 +18,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../theme';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
 import { JobsStackParamList } from '../../navigation/types';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'PhotoUpload'>;
-type ScreenNavigationProp = StackNavigationProp<JobsStackParamList, 'PhotoUpload'>;
+type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'PhotoUpload'>;
 
 interface Props {
   route: ScreenRouteProp;
@@ -164,7 +164,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           <Ionicons
             name={isBefore ? 'camera-outline' : 'checkmark-circle-outline'}
             size={24}
-            color={theme.colors.primary}
+            color='#717171'
           />
           <Text style={styles.infoText}>
             {isBefore
@@ -194,7 +194,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromCamera}
             accessibilityLabel="Take a photo"
           >
-            <Ionicons name="camera" size={32} color={theme.colors.primary} />
+            <Ionicons name="camera" size={32} color='#717171' />
             <Text style={styles.addPhotoText}>Camera</Text>
           </TouchableOpacity>
 
@@ -203,7 +203,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
             onPress={pickFromGallery}
             accessibilityLabel="Choose from gallery"
           >
-            <Ionicons name="images" size={32} color={theme.colors.primary} />
+            <Ionicons name="images" size={32} color='#717171' />
             <Text style={styles.addPhotoText}>Gallery</Text>
           </TouchableOpacity>
         </View>
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: '#F7F7F7',
     borderRadius: 12,
     padding: 16,
     gap: 12,
@@ -375,3 +375,4 @@ const styles = StyleSheet.create({
 });
 
 export default JobPhotoUploadScreen;
+

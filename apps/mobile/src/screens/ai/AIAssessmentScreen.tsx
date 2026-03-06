@@ -124,7 +124,7 @@ export const AIAssessmentScreen: React.FC = () => {
         {!imageUri ? (
           <View style={styles.uploadSection}>
             <View style={styles.iconCircle}>
-              <Ionicons name="camera-outline" size={48} color={theme.colors.primary} />
+              <Ionicons name="camera-outline" size={48} color='#717171' />
             </View>
             <Text style={styles.uploadTitle}>Analyze Property Damage</Text>
             <Text style={styles.uploadDescription}>
@@ -156,7 +156,7 @@ export const AIAssessmentScreen: React.FC = () => {
 
             {analyzeMutation.isPending && (
               <Card variant="elevated" padding="md" style={styles.loadingCard}>
-                <Ionicons name="sparkles" size={24} color={theme.colors.primary} />
+                <Ionicons name="sparkles" size={24} color='#717171' />
                 <Text style={styles.loadingText}>Analyzing image...</Text>
               </Card>
             )}
@@ -184,7 +184,7 @@ export const AIAssessmentScreen: React.FC = () => {
                   </View>
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Estimated Cost</Text>
-                    <Text style={[styles.resultValue, { color: theme.colors.primary }]}>
+                    <Text style={[styles.resultValue, { color: theme.colors.textPrimary }]}>
                       {formatCost(result.estimatedCostMin)} - {formatCost(result.estimatedCostMax)}
                     </Text>
                   </View>
@@ -199,7 +199,7 @@ export const AIAssessmentScreen: React.FC = () => {
                     <Text style={styles.actionsTitle}>Recommended Actions</Text>
                     {result.recommendedActions.map((action, idx) => (
                       <View key={idx} style={styles.actionItem}>
-                        <Ionicons name="checkmark-circle" size={18} color={theme.colors.primary} />
+                        <Ionicons name="checkmark-circle" size={18} color='#717171' />
                         <Text style={styles.actionText}>{action}</Text>
                       </View>
                     ))}
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: `${theme.colors.primary}15`,
+    backgroundColor: '#F7F7F7',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: theme.spacing[5],

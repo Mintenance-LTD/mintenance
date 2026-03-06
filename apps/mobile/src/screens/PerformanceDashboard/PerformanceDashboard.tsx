@@ -7,6 +7,7 @@ import {
   Alert,
   Switch,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 import { performanceMonitor, usePerformanceMonitoring } from '../../utils/performance';
@@ -143,7 +144,7 @@ export const PerformanceDashboard: React.FC = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <ScrollView
         style={styles.scrollView}
         refreshControl={
@@ -169,7 +170,7 @@ export const PerformanceDashboard: React.FC = () => {
                 onValueChange={toggleMonitoring}
                 trackColor={{
                   false: theme.colors.surfaceTertiary,
-                  true: theme.colors.primary,
+                  true: '#222222',
                 }}
                 thumbColor={theme.colors.background}
               />
@@ -285,7 +286,7 @@ export const PerformanceDashboard: React.FC = () => {
           </Caption>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

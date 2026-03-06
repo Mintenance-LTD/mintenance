@@ -97,7 +97,7 @@ export const PreviousContractors: React.FC<PreviousContractorsProps> = ({
                   <Ionicons
                     name='chatbubble'
                     size={12}
-                    color={theme.colors.primary}
+                    color='#717171'
                   />
                   <Text style={styles.messageButtonText}>Message</Text>
                 </TouchableOpacity>
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#222222',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: theme.colors.success,
     borderRadius: 8,
     width: 16,
     height: 16,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   messageButtonText: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '500',
   },
   rehireButton: {

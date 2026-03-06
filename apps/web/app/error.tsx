@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import * as Sentry from '@sentry/nextjs';
 import { Button, Card } from '../components/ui';
 import { theme } from '@/lib/theme';
 import { AlertTriangle } from 'lucide-react';
@@ -17,6 +18,12 @@ interface ErrorPageProps {
  */
 export default function Error({ error, reset }: ErrorPageProps) {
   const isDevelopment = process.env.NODE_ENV === 'development';
+
+  useEffect(() => {
+    Sentry.captureException(error, {
+      tags: { errorBoundary: 'app-router', digest: error.digest },
+    });
+  }, [error]);
 
   return (
     <div style={{

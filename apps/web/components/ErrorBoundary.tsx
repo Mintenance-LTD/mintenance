@@ -2,9 +2,9 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { logger } from '@mintenance/shared';
+import * as Sentry from '@sentry/nextjs';
 import { colors, typography, spacing, borderRadius, shadows, components } from '@/lib/design-tokens';
 // import { focusRing } from '@/lib/a11y'; // Module not found
-// import * as Sentry from '@sentry/nextjs'; // Optional dependency
 
 // Design tokens for easy access
 const tokens = {
@@ -39,8 +39,7 @@ const focusRing = {
   primary: 'ring-2 ring-blue-500 ring-offset-2',
 };
 
-// Sentry is optional - will be undefined if not installed
-const Sentry: { captureException: (error: Error, options?: Record<string, unknown>) => string; showReportDialog: (options: { eventId: string }) => void } | null = null; // Disabled until @sentry/nextjs is installed
+// Sentry is now installed and used for production error tracking
 
 interface ErrorBoundaryProps {
   children: ReactNode;

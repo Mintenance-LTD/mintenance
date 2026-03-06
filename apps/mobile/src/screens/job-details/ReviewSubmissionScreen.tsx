@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { StackNavigationProp } from '@react-navigation/stack';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../theme';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -27,7 +27,7 @@ import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ReviewSubmission'>;
-type ScreenNavigationProp = StackNavigationProp<JobsStackParamList, 'ReviewSubmission'>;
+type ScreenNavigationProp = NativeStackNavigationProp<JobsStackParamList, 'ReviewSubmission'>;
 
 interface Props {
   route: ScreenRouteProp;
@@ -152,10 +152,12 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({ route, navigation }) =
                 styles.charCount,
                 comment.trim().length < MIN_COMMENT_LENGTH && comment.length > 0
                   ? styles.charCountWarning
+                  : comment.length > 490
+                  ? styles.charCountNearLimit
                   : null,
               ]}
             >
-              {comment.trim().length}/{MIN_COMMENT_LENGTH} min characters
+              {comment.length}/500{comment.trim().length < MIN_COMMENT_LENGTH && comment.length > 0 ? ` · min ${MIN_COMMENT_LENGTH} chars required` : ''}
             </Text>
           </View>
         </ScrollView>
@@ -263,7 +265,7 @@ const styles = StyleSheet.create({
   ratingLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: '#222222',
     marginTop: 8,
   },
   commentSection: {
@@ -287,7 +289,10 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   charCountWarning: {
-    color: '#F59E0B',
+    color: theme.colors.warning,
+  },
+  charCountNearLimit: {
+    color: theme.colors.error,
   },
   bottomBar: {
     position: 'absolute',
@@ -322,3 +327,4 @@ const styles = StyleSheet.create({
 });
 
 export default ReviewSubmissionScreen;
+

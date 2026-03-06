@@ -10,6 +10,20 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
+const AVATAR_COLORS = [
+  '#E74C3C', '#3498DB', '#2ECC71', '#9B59B6',
+  '#F39C12', '#1ABC9C', '#E67E22', '#34495E',
+];
+
+const getAvatarColor = (name: string): string => {
+  const charCode = name.charCodeAt(0) || 0;
+  return AVATAR_COLORS[charCode % AVATAR_COLORS.length];
+};
+
+const getInitial = (name: string): string => {
+  return (name.charAt(0) || '?').toUpperCase();
+};
+
 interface Bid {
   id: string;
   contractorName: string;
@@ -18,6 +32,13 @@ interface Bid {
   status: string;
   jobId?: string;
 }
+
+const getBidLabel = (bid: Bid, allBids: Bid[]): { text: string; color: string; bg: string } | null => {
+  if (allBids.length < 2) return null;
+  const sorted = [...allBids].sort((a, b) => a.amount - b.amount);
+  if (sorted[0].id === bid.id) return { text: 'Best Price', color: '#15803D', bg: '#F0FDF4' };
+  return null;
+};
 
 interface BidsReceivedProps {
   bids: Bid[];
@@ -60,13 +81,22 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
         )}
       </View>
 
-      {bids.slice(0, 3).map((bid) => (
+      {bids.slice(0, 3).map((bid) => {
+        const label = getBidLabel(bid, bids);
+        return (
         <View key={bid.id} style={styles.bidCard}>
-          <View style={styles.bidAvatar}>
-            <Ionicons name="person" size={18} color={theme.colors.textSecondary} />
+          <View style={[styles.bidAvatar, { backgroundColor: getAvatarColor(bid.contractorName) }]}>
+            <Text style={styles.avatarInitial}>{getInitial(bid.contractorName)}</Text>
           </View>
           <View style={styles.bidInfo}>
-            <Text style={styles.contractorName} numberOfLines={1}>{bid.contractorName}</Text>
+            <View style={styles.nameRow}>
+              <Text style={styles.contractorName} numberOfLines={1}>{bid.contractorName}</Text>
+              {label && (
+                <View style={[styles.bidLabel, { backgroundColor: label.bg }]}>
+                  <Text style={[styles.bidLabelText, { color: label.color }]}>{label.text}</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.jobTitle} numberOfLines={1}>{bid.jobTitle}</Text>
           </View>
           <View style={styles.bidRight}>
@@ -83,7 +113,8 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
             )}
           </View>
         </View>
-      ))}
+        );
+      })}
     </View>
   );
 };
@@ -104,7 +135,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
   },
   viewAll: {
-    color: theme.colors.primary,
+    color: '#222222',
     fontWeight: '600',
     fontSize: 14,
   },
@@ -141,19 +172,37 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundTertiary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
+  avatarInitial: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   bidInfo: {
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  bidLabel: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  bidLabelText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   contractorName: {
     fontSize: 14,
     fontWeight: '600',
     color: theme.colors.textPrimary,
-    marginBottom: 2,
   },
   jobTitle: {
     fontSize: 12,
@@ -164,8 +213,8 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   bidAmount: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '800',
     color: theme.colors.textPrimary,
     marginBottom: 4,
   },

@@ -5,6 +5,6 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-export const GET = withApiHandler({ auth: false, rateLimit: false }, async (_request) => {
+export const GET = withApiHandler({ roles: ['admin'] }, async (_request) => {
   return NextResponse.json({ ok: true, nodeVersion: process.version, env: process.env.NODE_ENV, timestamp: new Date().toISOString() });
 });

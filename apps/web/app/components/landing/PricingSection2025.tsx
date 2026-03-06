@@ -137,7 +137,7 @@ export function PricingSection2025() {
             Premium unlocks unlimited properties and landlord portfolio workflows.
           </p>
           <p className="text-emerald-100 text-sm mb-4">
-            Launch offer: first 30 homeowners get full premium features.
+            Launch offer: first 100 homeowners get full premium features.
           </p>
           <div className="flex items-center justify-center gap-8 text-sm">
             <div>

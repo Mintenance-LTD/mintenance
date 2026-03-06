@@ -24,6 +24,30 @@ vi.mock('./LocationPromptModal', () => ({
   LocationPromptModal: () => <div data-testid="location-modal">Location Modal</div>,
 }));
 
+vi.mock('./DiscoverJobCard', () => ({
+  DiscoverJobCard: ({ job }: { job: { title: string } }) => <div data-testid="job-card">{job.title}</div>,
+}));
+
+vi.mock('./DiscoverFilters', () => ({
+  DiscoverFilters: () => <div data-testid="discover-filters" />,
+}));
+
+vi.mock('./DiscoverSkeletonCard', () => ({
+  DiscoverSkeletonCard: () => <div data-testid="skeleton-card" />,
+}));
+
+vi.mock('./DiscoverJobsEmptyState', () => ({
+  DiscoverJobsEmptyState: () => <div data-testid="empty-state" />,
+}));
+
+vi.mock('./DiscoverQuickStats', () => ({
+  DiscoverQuickStats: () => <div data-testid="quick-stats" />,
+}));
+
+vi.mock('./DiscoverMapMarkers', () => ({
+  updateMapMarkers: vi.fn(() => []),
+}));
+
 vi.mock('react-hot-toast', () => ({
   default: {
     success: vi.fn(),
@@ -41,16 +65,18 @@ vi.mock('@mintenance/shared', () => ({
   },
 }));
 
-vi.mock('lucide-react', () => ({
-  MapPin: () => <span data-testid="icon" />,
-  List: () => <span data-testid="icon" />,
-  Map: () => <span data-testid="icon" />,
-  Filter: () => <span data-testid="icon" />,
-  X: () => <span data-testid="icon" />,
-  Heart: () => <span data-testid="icon" />,
-  Search: () => <span data-testid="icon" />,
-  ChevronRight: () => <span data-testid="icon" />,
-}));
+vi.mock('lucide-react', () => {
+  const stub = () => <span data-testid="icon" />;
+  return {
+    MapPin: stub, List: stub, Map: stub, LayoutGrid: stub,
+    Filter: stub, X: stub, Heart: stub, Search: stub,
+    ChevronRight: stub, ChevronLeft: stub, Bookmark: stub,
+    BookmarkCheck: stub, Users: stub, Brain: stub, Bot: stub,
+    Maximize2: stub, Wrench: stub, Zap: stub, Home: stub,
+    Paintbrush: stub, Layers: stub, Leaf: stub, Sparkles: stub,
+    Hammer: stub,
+  };
+});
 
 const mockJobs = [
   {

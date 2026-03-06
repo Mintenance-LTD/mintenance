@@ -7,6 +7,7 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { ArrowLeft, Crown, Heart, Home, Lock, MapPin, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import Image from 'next/image';
 import {
   PropertiesToolbar,
@@ -87,7 +88,7 @@ export function PropertiesClient2025({ properties, propertyLimit, tier, userInfo
         method,
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': window.csrfToken || '',
+          ...await getCsrfHeaders(),
         },
         body: JSON.stringify({ property_id: propertyId }),
       });

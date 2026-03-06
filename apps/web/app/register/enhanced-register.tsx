@@ -106,10 +106,10 @@ function RegisterForm() {
         if (response.status === 429) {
           throw new Error('Too many registration attempts. Please try again later.');
         } else if (response.status === 400) {
-          throw new Error(responseData.error || 'Invalid registration data. Please check your information.');
+          throw new Error(responseData.error?.message || responseData.error || 'Invalid registration data. Please check your information.');
         } else if (response.status === 403) {
           throw new Error(
-            responseData.error === 'CSRF validation failed'
+            responseData.error?.message === 'CSRF validation failed' || responseData.error === 'CSRF validation failed'
               ? 'Security token expired. Please refresh the page and try again.'
               : 'Access denied. Please refresh the page and try again.'
           );

@@ -33,7 +33,7 @@ export const registerSchema = z
       .max(100, 'Last name too long')
       .regex(/^[a-zA-Z\s-']+$/, 'Last name contains invalid characters')
       .transform((val) => sanitizeText(val, 100)),
-    role: z.enum(['homeowner', 'contractor', 'admin']),
+    role: z.enum(['homeowner', 'contractor']),
     phone: z.preprocess((val) => {
       if (!val || typeof val !== 'string' || val.trim() === '') return undefined;
       const stripped = val.replace(/[\s\-()]/g, '');
@@ -44,10 +44,6 @@ export const registerSchema = z
   .refine((data) => !(data.role === 'homeowner' && !data.phone), {
     message: 'Phone number is required for homeowners',
     path: ['phone'],
-  })
-  .refine((data) => !(data.role === 'admin' && !data.email.endsWith('@mintenance.co.uk')), {
-    message: 'Admin accounts must use @mintenance.co.uk email address',
-    path: ['email'],
   });
 
 export const passwordResetSchema = z.object({
