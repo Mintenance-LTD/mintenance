@@ -75,12 +75,18 @@ export function AccountSecuritySection({
               <p className="text-sm text-gray-500 mt-1">
                 {user.phone_verified
                   ? 'Your phone number is verified'
-                  : 'Phone verification is required to post jobs'}
+                  : process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION === 'true'
+                    ? 'Phone verification is currently not required'
+                    : 'Phone verification is required to post jobs'}
               </p>
             </div>
             {user.phone_verified ? (
               <span className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-medium">
                 Verified
+              </span>
+            ) : process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION === 'true' ? (
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium">
+                Skipped
               </span>
             ) : (
               <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium">
@@ -89,7 +95,7 @@ export function AccountSecuritySection({
             )}
           </div>
 
-          {!user.phone_verified && (
+          {!user.phone_verified && process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION !== 'true' && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <Shield className="w-5 h-5 text-amber-600 mt-0.5" />
@@ -104,7 +110,7 @@ export function AccountSecuritySection({
           )}
 
           <div className="flex gap-3 pt-2">
-            {!user.phone_verified && (
+            {!user.phone_verified && process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION !== 'true' && (
               <>
                 {!user.phone ? (
                   <button

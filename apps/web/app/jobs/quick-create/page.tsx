@@ -365,8 +365,8 @@ export default function QuickJobPage() {
               <p className="text-gray-600 mt-2">Get your repair fixed fast - select a template or describe your issue</p>
             </div>
 
-            {/* Phone Verification Warning */}
-            {user && !user.phone_verified && (
+            {/* Phone Verification Warning (hidden when SKIP_PHONE_VERIFICATION is enabled) */}
+            {user && !user.phone_verified && process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION !== 'true' && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
