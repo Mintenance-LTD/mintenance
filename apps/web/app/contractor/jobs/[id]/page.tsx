@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { JobPhotoUpload } from './components/JobPhotoUpload';
 import { OnMyWayButton } from './components/OnMyWayButton';
+import { PrepareContractButton } from './components/PrepareContractButton';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
 
 export const metadata: Metadata = {
@@ -43,7 +44,7 @@ function determineStage(jobStatus: string, contractStatus: string, escrowHeld: b
 function getStageConfig(stage: JobStage): { title: string; subtitle: string; accentColor: string; icon: LucideIcon } {
   switch (stage) {
     case 'contract_preparing':
-      return { title: 'Bid Accepted', subtitle: 'A contract is being prepared. You\'ll be able to review and sign it shortly.', accentColor: theme.colors.info, icon: FileText };
+      return { title: 'Bid Accepted — Prepare Your Contract', subtitle: 'Create a detailed contract with your business details, schedule, and terms. The homeowner will review and sign it.', accentColor: theme.colors.info, icon: FileText };
     case 'contract_pending':
       return { title: 'Sign Your Contract', subtitle: 'Review the contract terms below and sign to proceed.', accentColor: theme.colors.warning, icon: FileText };
     case 'awaiting_payment':
@@ -95,7 +96,9 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
     ? 'none'
     : contract.status === 'accepted' || (contract.contractor_signed_at && contract.homeowner_signed_at)
       ? 'accepted'
-      : 'pending';
+      : contract.status === 'draft'
+        ? 'none' // Draft contracts are treated as "not prepared yet"
+        : 'pending';
 
   const { data: escrowTransaction } = await serverSupabase
     .from('escrow_transactions')
@@ -278,7 +281,19 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
             />
           )}
 
-          {(currentStage === 'contract_preparing' || currentStage === 'awaiting_payment') && messageHref && (
+          {currentStage === 'contract_preparing' && (
+            <div style={{ marginTop: theme.spacing[2], display: 'flex', flexDirection: 'column', gap: theme.spacing[2] }}>
+              <PrepareContractButton jobId={resolvedParams.id} jobTitle={job.title || 'Untitled Job'} />
+              {messageHref && (
+                <Link href={messageHref} className="block">
+                  <Button variant="outline" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
+                    Message Homeowner
+                  </Button>
+                </Link>
+              )}
+            </div>
+          )}
+          {currentStage === 'awaiting_payment' && messageHref && (
             <Link href={messageHref} className="block" style={{ marginTop: theme.spacing[2] }}>
               <Button variant="primary" fullWidth leftIcon={<MessageCircle className="h-5 w-5" />}>
                 Message Homeowner

@@ -37,6 +37,11 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Not authorized to sign this contract');
     }
 
+    // Block signing draft contracts — contractor must prepare details first
+    if (contract.status === 'draft') {
+      throw new BadRequestError('Cannot sign a draft contract. The contractor must prepare the contract details first.');
+    }
+
     // Check if already signed
     if (isContractor && contract.contractor_signed_at) {
       throw new BadRequestError('Contractor has already signed this contract');

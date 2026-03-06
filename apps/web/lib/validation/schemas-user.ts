@@ -107,6 +107,8 @@ export const createContractSchema = z.object({
   contractor_company_name: z.string().min(1, 'Company name required').max(255, 'Company name too long'),
   contractor_license_registration: z.string().min(1, 'License registration required').max(100, 'License registration too long'),
   contractor_license_type: z.string().max(100, 'License type too long').optional(),
+  insurance_provider: z.string().max(255, 'Insurance provider too long').optional(),
+  insurance_policy_number: z.string().max(100, 'Insurance policy number too long').optional(),
 });
 
 export const updateContractSchema = z.object({

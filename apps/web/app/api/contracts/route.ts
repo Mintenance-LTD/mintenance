@@ -29,7 +29,14 @@ export const GET = withApiHandler({ csrf: false }, async (request, { user }) => 
 
   let query = serverSupabase
     .from('contracts')
-    .select('id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, terms, contractor_signed_at, homeowner_signed_at, created_at, updated_at');
+    .select(`
+      id, job_id, contractor_id, homeowner_id, status, title, description, amount,
+      start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,
+      contractor_company_name, contractor_license_registration, contractor_license_type,
+      created_at, updated_at,
+      contractor:profiles!contractor_id(first_name, last_name, company_name, company_logo, insurance_provider, insurance_policy_number, insurance_expiry_date, profile_image_url),
+      homeowner:profiles!homeowner_id(first_name, last_name)
+    `);
 
   // Filter by role
   if (user.role === 'contractor') {
@@ -74,7 +81,7 @@ export const POST = withApiHandler(
     if (validation instanceof NextResponse) return validation;
     const { data: validatedContract } = validation;
 
-    const { job_id, title, description, amount, start_date, end_date, terms, contractor_company_name, contractor_license_registration, contractor_license_type } = validatedContract;
+    const { job_id, title, description, amount, start_date, end_date, terms, contractor_company_name, contractor_license_registration, contractor_license_type, insurance_provider, insurance_policy_number } = validatedContract;
 
     // Verify job exists and contractor is assigned
     const { data: job, error: jobError } = await serverSupabase
@@ -118,7 +125,11 @@ export const POST = withApiHandler(
         amount,
         start_date: start_date || null,
         end_date: end_date || null,
-        terms: terms || {},
+        terms: {
+          ...(terms || {}),
+          ...(insurance_provider ? { insurance_provider } : {}),
+          ...(insurance_policy_number ? { insurance_policy_number } : {}),
+        },
         contractor_company_name,
         contractor_license_registration,
         contractor_license_type: contractor_license_type || null,

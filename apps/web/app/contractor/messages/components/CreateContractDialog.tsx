@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,8 +11,10 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Loader2, FileText } from 'lucide-react';
+import { AlertCircle, Loader2, FileText, Upload, X, Shield } from 'lucide-react';
 import { logger } from '@mintenance/shared';
+import { useCSRF } from '@/lib/hooks/useCSRF';
+import Image from 'next/image';
 
 interface CreateContractDialogProps {
   open: boolean;
@@ -35,6 +37,8 @@ const contractFormSchema = z.object({
   contractor_company_name: z.string().min(2, 'Company name is required'),
   contractor_license_registration: z.string().min(2, 'License registration number is required'),
   contractor_license_type: z.string().optional(),
+  insurance_provider: z.string().optional(),
+  insurance_policy_number: z.string().optional(),
 }).refine((data) => {
   const startDate = new Date(data.start_date);
   const endDate = new Date(data.end_date);
@@ -47,7 +51,6 @@ const contractFormSchema = z.object({
 type ContractFormData = z.infer<typeof contractFormSchema>;
 
 export function CreateContractDialog(props: CreateContractDialogProps) {
-  // Defensive prop destructuring with defaults to prevent test crashes
   const {
     open = false,
     onOpenChange = () => {},
@@ -57,6 +60,11 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
   } = props || {};
   const [loadingCompanyName, setLoadingCompanyName] = React.useState(true);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [logoFile, setLogoFile] = React.useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
+  const [existingLogo, setExistingLogo] = React.useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const { csrfToken } = useCSRF();
 
   const {
     register,
@@ -77,13 +85,13 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
       contractor_company_name: '',
       contractor_license_registration: '',
       contractor_license_type: '',
+      insurance_provider: '',
+      insurance_policy_number: '',
     },
   });
 
-  const contractorCompanyName = watch('contractor_company_name');
   const contractorLicenseType = watch('contractor_license_type');
 
-  // Fetch contractor company name and license from verification API
   useEffect(() => {
     const loadContractorInfo = async () => {
       try {
@@ -96,8 +104,25 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
             setValue('contractor_license_registration', verificationData.data.license_number || '');
           }
         }
+
+        // Also fetch profile for insurance and logo
+        const profileResponse = await fetch('/api/contractor/profile-data');
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          if (profileData.profile) {
+            if (profileData.profile.insurance_provider) {
+              setValue('insurance_provider', profileData.profile.insurance_provider);
+            }
+            if (profileData.profile.insurance_policy_number) {
+              setValue('insurance_policy_number', profileData.profile.insurance_policy_number);
+            }
+            if (profileData.profile.company_logo) {
+              setExistingLogo(profileData.profile.company_logo);
+            }
+          }
+        }
       } catch (err) {
-        logger.error('Error loading contractor verification info:', err);
+        logger.error('Error loading contractor info:', err);
       } finally {
         setLoadingCompanyName(false);
       }
@@ -105,7 +130,6 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
 
     if (open) {
       loadContractorInfo();
-      // Reset form when dialog opens
       reset({
         title: jobTitle,
         description: '',
@@ -116,15 +140,62 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
         contractor_company_name: '',
         contractor_license_registration: '',
         contractor_license_type: '',
+        insurance_provider: '',
+        insurance_policy_number: '',
       });
       setSubmitError(null);
+      setLogoFile(null);
+      setLogoPreview(null);
     }
   }, [open, jobTitle, setValue, reset]);
+
+  const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setSubmitError('Logo must be under 5MB');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setSubmitError('File must be an image');
+      return;
+    }
+
+    setLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+    setSubmitError(null);
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
 
   const onSubmit = async (data: ContractFormData) => {
     setSubmitError(null);
 
     try {
+      // Upload logo if a new one was selected
+      if (logoFile) {
+        const formData = new FormData();
+        formData.append('profileImage', logoFile);
+        // Use update-profile endpoint which already handles file uploads
+        const logoResponse = await fetch('/api/contractor/update-profile', {
+          method: 'POST',
+          headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
+          credentials: 'same-origin',
+          body: formData,
+        });
+        if (!logoResponse.ok) {
+          logger.warn('Failed to upload company logo, continuing with contract creation');
+        }
+      }
+
       const amount = parseFloat(data.amount);
       const startDateObj = new Date(data.start_date);
       const endDateObj = new Date(data.end_date);
@@ -140,13 +211,17 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
         contractor_company_name: data.contractor_company_name.trim(),
         contractor_license_registration: data.contractor_license_registration.trim(),
         contractor_license_type: data.contractor_license_type?.trim() || undefined,
+        insurance_provider: data.insurance_provider?.trim() || undefined,
+        insurance_policy_number: data.insurance_policy_number?.trim() || undefined,
       };
 
       const response = await fetch('/api/contracts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
         },
+        credentials: 'same-origin',
         body: JSON.stringify(contractData),
       });
 
@@ -155,7 +230,6 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
         throw new Error(errorData.error || 'Failed to create contract');
       }
 
-      // Success
       onContractCreated();
       onOpenChange(false);
     } catch (err) {
@@ -167,13 +241,12 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Contract</DialogTitle>
+          <DialogTitle>Prepare Contract</DialogTitle>
           <DialogDescription>
-            Fill out the contract details for this job
+            Fill in the contract details. This will be sent to the homeowner for review and signature.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Error Message */}
         {submitError && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -182,11 +255,14 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
           </Alert>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
-          {/* Title */}
+          {/* Section: Job Details */}
+          <div className="border-b pb-3 mb-3">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Scope of Work</h3>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="title">Contract Title *</Label>
             <Input
               id="title"
               {...register('title')}
@@ -195,21 +271,24 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
             />
           </div>
 
-          {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
+            <Label htmlFor="description">Description of Work *</Label>
             <Textarea
               id="description"
               {...register('description')}
               errorText={errors.description?.message}
               rows={4}
-              placeholder="Describe the work to be performed..."
+              placeholder="Describe the work to be performed in detail..."
             />
           </div>
 
-          {/* Amount */}
+          {/* Section: Payment & Schedule */}
+          <div className="border-b pb-3 mb-3 mt-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Payment & Schedule</h3>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount (£) *</Label>
+            <Label htmlFor="amount">Contract Amount (£) *</Label>
             <Input
               id="amount"
               type="number"
@@ -219,37 +298,80 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
               errorText={errors.amount?.message}
               placeholder="0.00"
             />
+            <p className="text-xs text-gray-500">Payment will be held securely in escrow via Mintenance</p>
           </div>
 
-          {/* Start Date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="start_date">Start Date *</Label>
+              <Input
+                id="start_date"
+                type="datetime-local"
+                {...register('start_date')}
+                errorText={errors.start_date?.message}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end_date">End Date *</Label>
+              <Input
+                id="end_date"
+                type="datetime-local"
+                {...register('end_date')}
+                errorText={errors.end_date?.message}
+              />
+            </div>
+          </div>
+
+          {/* Section: Contractor Business Details */}
+          <div className="border-b pb-3 mb-3 mt-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Business Details</h3>
+          </div>
+
+          {/* Company Logo */}
           <div className="space-y-2">
-            <Label htmlFor="start_date">Start Date *</Label>
-            <Input
-              id="start_date"
-              type="datetime-local"
-              {...register('start_date')}
-              errorText={errors.start_date?.message}
-            />
-            <p className="text-xs text-gray-500">
-              Select the date and time when work will begin
-            </p>
+            <Label>Company Logo (Optional)</Label>
+            <div className="flex items-center gap-4">
+              {(logoPreview || existingLogo) && (
+                <div className="relative w-16 h-16 rounded-lg border overflow-hidden bg-gray-50">
+                  <Image
+                    src={logoPreview || existingLogo || ''}
+                    alt="Company logo"
+                    fill
+                    className="object-contain"
+                  />
+                  {logoPreview && (
+                    <button
+                      type="button"
+                      onClick={removeLogo}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              )}
+              <div>
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoSelect}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => logoInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {logoPreview || existingLogo ? 'Change Logo' : 'Upload Logo'}
+                </Button>
+                <p className="text-xs text-gray-500 mt-1">Max 5MB. Appears on your contract.</p>
+              </div>
+            </div>
           </div>
 
-          {/* End Date */}
-          <div className="space-y-2">
-            <Label htmlFor="end_date">End Date *</Label>
-            <Input
-              id="end_date"
-              type="datetime-local"
-              {...register('end_date')}
-              errorText={errors.end_date?.message}
-            />
-            <p className="text-xs text-gray-500">
-              Select the date and time when work will be completed
-            </p>
-          </div>
-
-          {/* Contractor Company Name */}
           <div className="space-y-2">
             <Label htmlFor="contractor_company_name">Company Name *</Label>
             <Input
@@ -259,55 +381,79 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
               disabled={loadingCompanyName}
               placeholder={loadingCompanyName ? "Loading..." : "Enter your company name"}
             />
-            {loadingCompanyName && (
-              <p className="text-xs text-gray-500">Loading your company name...</p>
-            )}
           </div>
 
-          {/* License Registration */}
-          <div className="space-y-2">
-            <Label htmlFor="contractor_license_registration">License Registration Number *</Label>
-            <Input
-              id="contractor_license_registration"
-              {...register('contractor_license_registration')}
-              errorText={errors.contractor_license_registration?.message}
-              placeholder="Enter your license registration number"
-            />
-            <p className="text-xs text-gray-500">
-              This will be visible to the homeowner for verification and trust
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="contractor_license_registration">License Number *</Label>
+              <Input
+                id="contractor_license_registration"
+                {...register('contractor_license_registration')}
+                errorText={errors.contractor_license_registration?.message}
+                placeholder="e.g. LIC-12345"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="contractor_license_type">License Type</Label>
+              <Select value={contractorLicenseType || ''} onValueChange={(value: string) => setValue('contractor_license_type', value)}>
+                <SelectTrigger id="contractor_license_type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Select license type</SelectItem>
+                  <SelectItem value="General Contractor">General Contractor</SelectItem>
+                  <SelectItem value="Electrical">Electrical</SelectItem>
+                  <SelectItem value="Plumbing">Plumbing</SelectItem>
+                  <SelectItem value="HVAC">HVAC</SelectItem>
+                  <SelectItem value="Roofing">Roofing</SelectItem>
+                  <SelectItem value="Landscaping">Landscaping</SelectItem>
+                  <SelectItem value="Painting">Painting</SelectItem>
+                  <SelectItem value="Carpentry">Carpentry</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* License Type */}
-          <div className="space-y-2">
-            <Label htmlFor="contractor_license_type">License Type (Optional)</Label>
-            <Select value={contractorLicenseType || ''} onValueChange={(value: string) => setValue('contractor_license_type', value)}>
-              <SelectTrigger id="contractor_license_type">
-                <SelectValue placeholder="Select license type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Select license type</SelectItem>
-                <SelectItem value="General Contractor">General Contractor</SelectItem>
-                <SelectItem value="Electrical">Electrical</SelectItem>
-                <SelectItem value="Plumbing">Plumbing</SelectItem>
-                <SelectItem value="HVAC">HVAC</SelectItem>
-                <SelectItem value="Roofing">Roofing</SelectItem>
-                <SelectItem value="Landscaping">Landscaping</SelectItem>
-                <SelectItem value="Painting">Painting</SelectItem>
-                <SelectItem value="Carpentry">Carpentry</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Insurance Details */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2 text-blue-700">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm font-semibold">Insurance Details (Recommended)</span>
+            </div>
+            <p className="text-xs text-blue-600">Adding insurance details builds trust and shows professionalism</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="insurance_provider">Insurance Provider</Label>
+                <Input
+                  id="insurance_provider"
+                  {...register('insurance_provider')}
+                  placeholder="e.g. Hiscox, AXA"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="insurance_policy_number">Policy Number</Label>
+                <Input
+                  id="insurance_policy_number"
+                  {...register('insurance_policy_number')}
+                  placeholder="e.g. POL-123456"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Terms */}
+          {/* Additional Terms */}
+          <div className="border-b pb-3 mb-3 mt-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Additional Terms</h3>
+          </div>
+
           <div className="space-y-2">
-            <Label htmlFor="terms">Additional Terms (Optional)</Label>
+            <Label htmlFor="terms">Terms & Conditions (Optional)</Label>
             <Textarea
               id="terms"
               {...register('terms')}
               rows={3}
-              placeholder="Any additional terms or conditions..."
+              placeholder="Any additional terms, conditions, or special requirements..."
             />
           </div>
 
@@ -335,7 +481,7 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
               ) : (
                 <>
                   <FileText className="w-4 h-4 mr-2" />
-                  Create Contract
+                  Send Contract to Homeowner
                 </>
               )}
             </Button>
@@ -345,4 +491,3 @@ export function CreateContractDialog(props: CreateContractDialogProps) {
     </Dialog>
   );
 }
-
