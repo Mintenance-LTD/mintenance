@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
+import { getAppUrl } from '@/lib/env';
 
 /**
  * Service for sending admin-related notifications
@@ -43,7 +44,7 @@ export class AdminNotificationService {
         .single();
 
       const adminEmail = setting?.setting_value || process.env.ADMIN_EMAIL || 'admin@mintenance.com';
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
 
       const html = `
         <!DOCTYPE html>
@@ -141,7 +142,7 @@ This is an automated notification. You can manage notification preferences in th
         ? `${contractor.first_name} ${contractor.last_name}`
         : contractor.company_name || contractor.email.split('@')[0];
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
       const isApproved = status === 'approved';
 
       const html = `

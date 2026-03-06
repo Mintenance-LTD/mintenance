@@ -106,7 +106,7 @@ export async function callGptAssessment(
   ];
 
   // Emergency stop check
-  if (CostControlService.isEmergencyStopped()) {
+  if (await CostControlService.isEmergencyStopped()) {
     throw new Error('AI services are currently disabled due to emergency stop');
   }
 

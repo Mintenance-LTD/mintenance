@@ -2,6 +2,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
 import { TrialService } from '@/lib/services/subscription/TrialService';
+import { getAppUrl } from '@/lib/env';
 
 /**
  * Service for sending trial and subscription-related notifications
@@ -33,7 +34,7 @@ export class TrialNotifications {
         year: 'numeric',
       }) : 'soon';
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
       const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
 
       const html = `
@@ -117,7 +118,7 @@ export class TrialNotifications {
         year: 'numeric',
       }) : 'soon';
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
       const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
 
       const warning = TrialService.getTrialWarnings(daysRemaining);
@@ -194,7 +195,7 @@ export class TrialNotifications {
         return false;
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
       const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
 
       const html = `
@@ -264,7 +265,7 @@ export class TrialNotifications {
         return false;
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
       const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
 
       const html = `
@@ -329,7 +330,7 @@ export class TrialNotifications {
         return false;
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
       const contractorName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Contractor';
 
       const html = `

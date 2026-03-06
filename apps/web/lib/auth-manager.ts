@@ -3,6 +3,7 @@ import { DatabaseManager, type User, type CreateUserData } from './database';
 import { config } from './config';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from './api/supabaseServer';
+import { getAppUrl } from './env';
 
 export interface AuthResult {
   success: boolean;
@@ -230,7 +231,7 @@ export class AuthManager {
             phone: userData.phone || null,
             full_name: `${userData.first_name} ${userData.last_name}`,
           },
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
+          emailRedirectTo: `${getAppUrl()}/auth/callback`,
         },
       });
 

@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import { getAppUrl } from '@/lib/env';
 
 // Validation schema
 const sendQuoteSchema = z.object({
@@ -70,7 +71,7 @@ export const POST = withApiHandler(
     // Send email notification to client
     if (quote.client_email) {
       const contractorName = `${user.first_name} ${user.last_name}`.trim() || user.email;
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
 
       await EmailService.sendQuoteNotification(quote.client_email, {
         recipientName: quote.client_name || 'Valued Client',

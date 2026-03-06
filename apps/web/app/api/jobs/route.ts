@@ -78,8 +78,9 @@ export const POST = withApiHandler(
       }
     }
 
-    // Phone verification for homeowners (skipped in development or when SKIP_PHONE_VERIFICATION=true)
-    const skipVerification = process.env.NODE_ENV === 'development' || process.env.SKIP_PHONE_VERIFICATION === 'true';
+    // Phone verification for homeowners (only skipped in development)
+    // SECURITY: SKIP_PHONE_VERIFICATION env var is ignored — verification is mandatory in production
+    const skipVerification = process.env.NODE_ENV === 'development';
 
     if (user.role === 'homeowner' && !skipVerification) {
       const { HomeownerVerificationService } = await import('@/lib/services/verification/HomeownerVerificationService');

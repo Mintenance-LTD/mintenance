@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
+import { getAppUrl } from '@/lib/env';
 
 /**
  * Service for sending homeowner-related notifications
@@ -25,7 +26,7 @@ export class HomeownerNotifications {
         return false;
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = getAppUrl();
       const homeownerName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Homeowner';
 
       const html = `

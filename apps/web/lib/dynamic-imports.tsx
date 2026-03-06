@@ -117,7 +117,7 @@ export const DynamicMap = dynamicImport(
 );
 
 export const DynamicStripeElements = dynamicImport(
-  () => import('@/app/jobs/[id]/payment/components/StripePaymentElement2025'),
+  () => import('@/components/payments/PaymentForm').then(mod => ({ default: mod.PaymentForm })),
   { loading: LoadingForm, ssr: false }
 );
 

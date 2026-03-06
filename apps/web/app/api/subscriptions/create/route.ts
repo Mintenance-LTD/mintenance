@@ -8,6 +8,7 @@ import { BadRequestError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { createSubscriptionSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { stripe } from '@/lib/stripe';
 
 export const POST = withApiHandler(
   { roles: ['contractor', 'homeowner'], rateLimit: { maxRequests: 30 } },
@@ -93,24 +94,12 @@ export const POST = withApiHandler(
       // Cancel any existing paid subscriptions
       if (existingSubscription && existingSubscription.stripeSubscriptionId) {
         try {
-          const Stripe = (await import('stripe')).default;
-          if (process.env.STRIPE_SECRET_KEY) {
-            const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-              apiVersion: '2024-04-10',
-            });
-            try {
-              await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
-            } catch (cancelError) {
-              logger.warn('Could not cancel Stripe subscription', {
-                service: 'subscriptions',
-                subscriptionId: existingSubscription.stripeSubscriptionId,
-              });
-            }
-          }
-        } catch (err) {
-          logger.warn('Error canceling Stripe subscription', {
+          await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+        } catch (cancelError) {
+          logger.warn('Could not cancel Stripe subscription', {
             service: 'subscriptions',
-            error: err instanceof Error ? err.message : String(err),
+            subscriptionId: existingSubscription.stripeSubscriptionId,
+            error: cancelError instanceof Error ? cancelError.message : String(cancelError),
           });
         }
 
@@ -146,14 +135,6 @@ export const POST = withApiHandler(
       // Check the actual Stripe subscription status (more reliable than database status)
       let stripeSubscriptionStatus: string | null = null;
       try {
-        const Stripe = (await import('stripe')).default;
-        if (!process.env.STRIPE_SECRET_KEY) {
-          throw new Error('STRIPE_SECRET_KEY not configured');
-        }
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-          apiVersion: '2024-04-10',
-        });
-
         const stripeSub = await stripe.subscriptions.retrieve(existingSubscription.stripeSubscriptionId);
         stripeSubscriptionStatus = stripeSub.status;
       } catch (stripeError) {
@@ -185,14 +166,6 @@ export const POST = withApiHandler(
 
         try {
           if (existingSubscription.stripeSubscriptionId) {
-            const Stripe = (await import('stripe')).default;
-            if (!process.env.STRIPE_SECRET_KEY) {
-              throw new Error('STRIPE_SECRET_KEY not configured');
-            }
-            const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-              apiVersion: '2024-04-10',
-            });
-
             try {
               await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
             } catch (cancelError) {
@@ -299,14 +272,6 @@ export const POST = withApiHandler(
     let stripeCustomerId = userData?.stripe_customer_id;
 
     if (!stripeCustomerId) {
-      const Stripe = (await import('stripe')).default;
-      if (!process.env.STRIPE_SECRET_KEY) {
-        throw new Error('STRIPE_SECRET_KEY not configured');
-      }
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: '2024-04-10',
-      });
-
       const customer = await stripe.customers.create({
         email: userData?.email || user.email,
         metadata: {
@@ -336,14 +301,6 @@ export const POST = withApiHandler(
 
     // Get Stripe price ID (only for paid plans)
     let priceId = 'free-tier';
-    const Stripe = (await import('stripe')).default;
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY not configured');
-    }
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2024-04-10',
-    });
-
     const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
     priceId = stripeSubscription.items.data[0]?.price.id || '';
 

@@ -50,6 +50,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Check if IP is auto-blocked by security monitor (DDoS / attack mitigation)
+  const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || request.headers.get('x-real-ip')
+    || 'unknown';
+  if (securityMonitor.isIPBlocked(clientIP)) {
+    return new NextResponse('Forbidden', { status: 403 });
+  }
+
   // Define public routes that don't require authentication
   // IMPORTANT: Public route check MUST happen before ConfigManager to ensure
   // login, CSRF, session-status, and diag routes work even if config fails
@@ -89,7 +97,8 @@ export async function middleware(request: NextRequest) {
       maxAge: 24 * 60 * 60, // 24 hours
     });
 
-    // Set CSP for public routes (no nonce needed since these are login/register pages)
+    // Set CSP for public routes — using 'unsafe-inline' only for styles (required by Next.js)
+    // Scripts use 'strict-dynamic' with hash-based allowlisting via Next.js
     if (!isDevelopment) {
       response.headers.set('Content-Security-Policy', [
         "default-src 'self'",
@@ -596,13 +605,11 @@ export async function middleware(request: NextRequest) {
     const connectSrc = isDevelopment
       ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"
       : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com wss:";
-    // NOTE: Do NOT include nonce in script-src alongside 'unsafe-inline'.
-    // Per CSP Level 2 spec, 'unsafe-inline' is ignored when a nonce is present.
-    // Since Next.js inline scripts don't carry the nonce attribute, they get blocked.
-    // This matches the public routes CSP (line 80-92) which works correctly.
+    // Enforced CSP: 'unsafe-inline' removed from script-src for XSS protection.
+    // Styles still allow 'unsafe-inline' as Next.js injects inline styles.
     const cspHeader = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com",
+      `script-src 'self' 'nonce-${nonce}' https://js.stripe.com https://maps.googleapis.com`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",

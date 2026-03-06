@@ -4,6 +4,7 @@ import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
+import { getAppUrl } from '@/lib/env';
 import { z } from 'zod';
 
 const resendVerificationSchema = z.object({
@@ -64,7 +65,7 @@ export const POST = withApiHandler(
       supabaseUrl.includes('localhost');
 
     try {
-      const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`;
+      const redirectUrl = `${getAppUrl()}/auth/callback`;
       const resendUrl = `${supabaseUrl}/auth/v1/resend`;
 
       const response = await fetch(resendUrl, {

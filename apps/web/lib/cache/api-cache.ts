@@ -15,11 +15,20 @@
 import { Redis } from '@upstash/redis';
 import { logger } from '@mintenance/shared';
 
-// Initialize Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || '',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-});
+// Initialize Redis client — only if credentials are available
+function createRedisClient(): Redis | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    logger.warn('Redis not configured for API cache — caching disabled', {
+      service: 'api-cache',
+    });
+    return null;
+  }
+  return new Redis({ url, token });
+}
+
+const redis = createRedisClient();
 
 // Cache TTL configurations (in seconds)
 export const CACHE_TTL = {
@@ -62,8 +71,8 @@ export async function getCached<T>(
   const { forceRefresh = false, logMetrics = true } = options;
 
   try {
-    // Skip cache if force refresh requested
-    if (!forceRefresh) {
+    // Skip cache if Redis not available or force refresh requested
+    if (!forceRefresh && redis) {
       const cached = await redis.get(key);
 
       if (cached !== null) {
@@ -91,8 +100,10 @@ export async function getCached<T>(
 
     const data = await fetchFn();
 
-    // Store in cache
-    await redis.setex(key, ttl, JSON.stringify(data));
+    // Store in cache (skip if Redis not available)
+    if (redis) {
+      await redis.setex(key, ttl, JSON.stringify(data));
+    }
 
     return data;
   } catch (error) {
@@ -114,6 +125,7 @@ export async function setCache<T>(
   data: T,
   ttl: number
 ): Promise<void> {
+  if (!redis) return;
   try {
     await redis.setex(key, ttl, JSON.stringify(data));
 
@@ -134,6 +146,7 @@ export async function setCache<T>(
  * Delete specific cache entry
  */
 export async function deleteCache(key: string): Promise<void> {
+  if (!redis) return;
   try {
     await redis.del(key);
 
@@ -154,6 +167,7 @@ export async function deleteCache(key: string): Promise<void> {
  * Note: Scan is expensive, use sparingly
  */
 export async function deleteCachePattern(pattern: string): Promise<number> {
+  if (!redis) return 0;
   try {
     let cursor = 0;
     let deleted = 0;
@@ -195,6 +209,7 @@ export async function deleteCachePattern(pattern: string): Promise<number> {
  * Clear all caches (use with extreme caution)
  */
 export async function clearAllCache(): Promise<void> {
+  if (!redis) return;
   try {
     await redis.flushdb();
 
@@ -341,6 +356,7 @@ export async function getCacheStats(): Promise<{
   memoryUsage: string;
   hitRate?: number;
 }> {
+  if (!redis) return { totalKeys: 0, memoryUsage: 'unknown' };
   try {
     const info = await (redis as unknown as { info: () => Promise<string> }).info();
 

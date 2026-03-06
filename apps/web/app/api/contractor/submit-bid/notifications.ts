@@ -8,6 +8,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
+import { getAppUrl } from '@/lib/env';
 import type { SubmitBidInput } from './validation';
 
 interface Homeowner {
@@ -46,7 +47,7 @@ export async function sendBidEmailNotification(
 
   const contractorName = `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || contractor.email;
   const homeownerName = `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Valued Client';
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const baseUrl = getAppUrl();
   const proposalExcerpt = validatedData.proposalText.substring(0, 150);
 
   await EmailService.sendBidNotification(homeowner.email, {

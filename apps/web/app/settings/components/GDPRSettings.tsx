@@ -2,18 +2,25 @@
 
 import React, { useState } from 'react';
 import { logger } from '@mintenance/shared';
-import { AlertTriangle, Download, Trash2 } from 'lucide-react';
+import { useCSRF } from '@/lib/hooks/useCSRF';
+import { AlertTriangle, Download } from 'lucide-react';
 
 export function GDPRSettings() {
+    const { getCsrfHeaders } = useCSRF();
     const [isExporting, setIsExporting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleExportData = async () => {
         setIsExporting(true);
+        setError(null);
         try {
-            // TODO: Implement actual export functionality
             const response = await fetch('/api/user/export-data', {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getCsrfHeaders(),
+                },
             });
 
             if (response.ok) {
@@ -26,9 +33,12 @@ export function GDPRSettings() {
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
+            } else {
+                setError('Failed to export data. Please try again.');
             }
-        } catch (error) {
-            logger.error('Error exporting data:', error);
+        } catch (err) {
+            logger.error('Error exporting data:', err);
+            setError('An error occurred while exporting your data.');
         } finally {
             setIsExporting(false);
         }
@@ -39,23 +49,37 @@ export function GDPRSettings() {
     };
 
     const confirmDeleteAccount = async () => {
+        setError(null);
         try {
-            // TODO: Implement actual delete functionality
+            // The delete-account route expects POST with { confirmation: 'DELETE' }
             const response = await fetch('/api/user/delete-account', {
-                method: 'DELETE',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getCsrfHeaders(),
+                },
+                body: JSON.stringify({ confirmation: 'DELETE' }),
             });
 
             if (response.ok) {
-                // Redirect to goodbye page or login
                 window.location.href = '/login?deleted=true';
+            } else {
+                const data = await response.json().catch(() => ({}));
+                setError(data.error?.message || 'Failed to delete account. Please try again.');
             }
-        } catch (error) {
-            logger.error('Error deleting account:', error);
+        } catch (err) {
+            logger.error('Error deleting account:', err);
+            setError('An error occurred while deleting your account.');
         }
     };
 
     return (
         <div className="space-y-8">
+            {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-sm text-red-800">{error}</p>
+                </div>
+            )}
             <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">GDPR Rights</h2>
                 <p className="text-sm text-gray-600 leading-relaxed">
@@ -72,13 +96,13 @@ export function GDPRSettings() {
                     onClick={handleExportData}
                     disabled={isExporting}
                     className="
-            inline-flex items-center gap-2 
-            px-6 py-3 
-            bg-white 
-            border-2 border-gray-300 
-            rounded-lg 
+            inline-flex items-center gap-2
+            px-6 py-3
+            bg-white
+            border-2 border-gray-300
+            rounded-lg
             text-gray-700 font-medium
-            hover:bg-gray-50 
+            hover:bg-gray-50
             hover:border-gray-400
             transition-colors
             disabled:opacity-50 disabled:cursor-not-allowed
@@ -107,11 +131,11 @@ export function GDPRSettings() {
                         onClick={handleDeleteAccount}
                         className="
               w-full
-              px-6 py-3 
-              bg-red-600 
+              px-6 py-3
+              bg-red-600
               text-white font-semibold
-              rounded-lg 
-              hover:bg-red-700 
+              rounded-lg
+              hover:bg-red-700
               transition-colors
             "
                     >
@@ -127,11 +151,11 @@ export function GDPRSettings() {
                                 onClick={confirmDeleteAccount}
                                 className="
                   flex-1
-                  px-6 py-3 
-                  bg-red-600 
+                  px-6 py-3
+                  bg-red-600
                   text-white font-semibold
-                  rounded-lg 
-                  hover:bg-red-700 
+                  rounded-lg
+                  hover:bg-red-700
                   transition-colors
                 "
                             >
@@ -141,12 +165,12 @@ export function GDPRSettings() {
                                 onClick={() => setShowDeleteConfirm(false)}
                                 className="
                   flex-1
-                  px-6 py-3 
-                  bg-white 
-                  border-2 border-gray-300 
+                  px-6 py-3
+                  bg-white
+                  border-2 border-gray-300
                   text-gray-700 font-medium
-                  rounded-lg 
-                  hover:bg-gray-50 
+                  rounded-lg
+                  hover:bg-gray-50
                   transition-colors
                 "
                             >

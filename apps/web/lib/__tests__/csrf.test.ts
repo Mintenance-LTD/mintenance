@@ -24,10 +24,13 @@ Object.defineProperty(global, 'crypto', {
   }
 });
 
+// In non-production (NODE_ENV=test), the CSRF cookie name is 'csrf-token'
+const CSRF_COOKIE_NAME = 'csrf-token';
+
 /**
- * Helper to create a NextRequest with cookie header properly set.
- * happy-dom strips cookie headers from NextRequest, so we need to
- * spy on headers.get to return the cookie value.
+ * Helper to create a NextRequest with CSRF cookie properly set.
+ * happy-dom strips cookie headers, so we spy on request.cookies.get
+ * to match how validateCSRF actually reads cookies.
  */
 function createRequestWithCookies(
   url: string,
@@ -43,16 +46,31 @@ function createRequestWithCookies(
     headers: otherHeaders,
   });
 
-  // Spy on headers.get to inject the cookie value since happy-dom strips it
+  // Spy on request.cookies.get to return the CSRF token value
+  // This matches how validateCSRF reads cookies (via request.cookies API)
   if (cookieValue !== undefined) {
-    const originalGet = request.headers.get.bind(request.headers);
-    vi.spyOn(request.headers, 'get').mockImplementation((name: string) => {
-      if (name === 'cookie') return cookieValue;
+    const cookies = parseCookieString(cookieValue);
+    const originalGet = request.cookies.get.bind(request.cookies);
+    vi.spyOn(request.cookies, 'get').mockImplementation((name: string) => {
+      if (cookies[name] !== undefined) {
+        return { name, value: cookies[name] };
+      }
       return originalGet(name);
     });
   }
 
   return request;
+}
+
+/** Parse a cookie string into key-value pairs */
+function parseCookieString(str: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  if (!str) return result;
+  str.split(';').forEach(part => {
+    const [name, ...rest] = part.trim().split('=');
+    if (name) result[name] = rest.join('=');
+  });
+  return result;
 }
 
 describe('CSRF Protection', () => {
@@ -65,7 +83,7 @@ describe('CSRF Protection', () => {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `__Host-csrf-token=${validToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${validToken}`
         }
       });
 
@@ -78,7 +96,7 @@ describe('CSRF Protection', () => {
         method: 'PUT',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `__Host-csrf-token=${validToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${validToken}`
         }
       });
 
@@ -91,7 +109,7 @@ describe('CSRF Protection', () => {
         method: 'DELETE',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `__Host-csrf-token=${validToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${validToken}`
         }
       });
 
@@ -104,7 +122,7 @@ describe('CSRF Protection', () => {
         method: 'PATCH',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `__Host-csrf-token=${validToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${validToken}`
         }
       });
 
@@ -117,7 +135,7 @@ describe('CSRF Protection', () => {
         method: 'GET',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `__Host-csrf-token=${validToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${validToken}`
         }
       });
 
@@ -130,7 +148,7 @@ describe('CSRF Protection', () => {
         method: 'HEAD',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `__Host-csrf-token=${validToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${validToken}`
         }
       });
 
@@ -142,7 +160,7 @@ describe('CSRF Protection', () => {
       const request = createRequestWithCookies('http://localhost:3000/api/test', {
         method: 'POST',
         headers: {
-          'cookie': `__Host-csrf-token=${validToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${validToken}`
         }
       });
 
@@ -167,7 +185,7 @@ describe('CSRF Protection', () => {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `__Host-csrf-token=${invalidToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${invalidToken}`
         }
       });
 
@@ -216,7 +234,7 @@ describe('CSRF Protection', () => {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `session=abc123; __Host-csrf-token=${validToken}; other=value`
+          'cookie': `session=abc123; ${CSRF_COOKIE_NAME}=${validToken}; other=value`
         }
       });
 
@@ -231,7 +249,7 @@ describe('CSRF Protection', () => {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `__Host-csrf-token=${validToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${validToken}`
         }
       });
 
@@ -243,7 +261,7 @@ describe('CSRF Protection', () => {
         method: 'POST',
         headers: {
           'x-csrf-token': validToken,
-          'cookie': `__Host-csrf-token=${invalidToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${invalidToken}`
         }
       });
 
@@ -292,9 +310,9 @@ describe('CSRF Protection', () => {
       const result = setCSRFToken(response, token);
       
       const setCookieHeader = result.headers.get('Set-Cookie');
-      expect(setCookieHeader).toContain(`__Host-csrf-token=${token}`);
+      expect(setCookieHeader).toContain(`${CSRF_COOKIE_NAME}=${token}`);
       expect(setCookieHeader).toContain('HttpOnly');
-      expect(setCookieHeader).toContain('Secure');
+      // In test env (NODE_ENV=test), Secure flag is not set (only in production)
       expect(setCookieHeader).toContain('SameSite=Strict');
       expect(setCookieHeader).toContain('Path=/');
       expect(setCookieHeader).toContain('Max-Age=3600');
@@ -313,7 +331,7 @@ describe('CSRF Protection', () => {
       
       expect(result.headers.get('Content-Type')).toBe('application/json');
       expect(result.headers.get('X-Custom-Header')).toBe('custom-value');
-      expect(result.headers.get('Set-Cookie')).toContain(`__Host-csrf-token=${token}`);
+      expect(result.headers.get('Set-Cookie')).toContain(`${CSRF_COOKIE_NAME}=${token}`);
     });
   });
 
@@ -338,7 +356,7 @@ describe('CSRF Protection', () => {
         method: 'POST',
         headers: {
           'x-csrf-token': '',
-          'cookie': '__Host-csrf-token='
+          'cookie': `${CSRF_COOKIE_NAME}=`
         }
       });
 
@@ -351,7 +369,7 @@ describe('CSRF Protection', () => {
         method: 'POST',
         headers: {
           'x-csrf-token': ` ${validToken} `,
-          'cookie': `__Host-csrf-token=${validToken}`
+          'cookie': `${CSRF_COOKIE_NAME}=${validToken}`
         }
       });
 

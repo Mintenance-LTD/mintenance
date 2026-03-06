@@ -110,7 +110,7 @@ export function generateCSRFToken(): string {
  * Set CSRF token in response headers
  */
 export function setCSRFToken(response: Response, token: string): Response {
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = process.env.NODE_ENV !== 'production';
   const cookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
   const secureFlag = isDevelopment ? '' : ' Secure;';
   response.headers.set(

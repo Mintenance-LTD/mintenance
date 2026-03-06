@@ -18,15 +18,38 @@ export interface SecurityEvent {
   metadata?: Record<string, unknown>;
 }
 
+// Thresholds for automated IP blocking
+const BLOCK_THRESHOLDS = {
+  // Number of high/critical events within the window to trigger a block
+  HIGH_SEVERITY_COUNT: 5,
+  // Time window in ms (15 minutes)
+  WINDOW_MS: 15 * 60 * 1000,
+  // Block duration in ms (1 hour)
+  BLOCK_DURATION_MS: 60 * 60 * 1000,
+  // Max blocked IPs to prevent memory leak
+  MAX_BLOCKED_IPS: 1000,
+};
+
+interface IPRecord {
+  count: number;
+  firstSeen: number;
+}
+
 export class SecurityMonitor {
   private static instance: SecurityMonitor;
   private eventQueue: SecurityEvent[] = [];
   private readonly BATCH_SIZE = 10;
   private readonly FLUSH_INTERVAL = 30000; // 30 seconds
 
+  // Per-instance IP tracking for automated blocking
+  private ipEventCounts: Map<string, IPRecord> = new Map();
+  private blockedIPs: Map<string, number> = new Map(); // IP -> unblock timestamp
+
   private constructor() {
     // Start periodic flush
     setInterval(() => this.flushEvents(), this.FLUSH_INTERVAL);
+    // Periodically clean up expired blocks and stale tracking data
+    setInterval(() => this.cleanupExpiredEntries(), 60_000);
   }
 
   static getInstance(): SecurityMonitor {
@@ -34,6 +57,83 @@ export class SecurityMonitor {
       SecurityMonitor.instance = new SecurityMonitor();
     }
     return SecurityMonitor.instance;
+  }
+
+  /**
+   * Check if an IP is currently blocked
+   */
+  isIPBlocked(ip: string): boolean {
+    const unblockTime = this.blockedIPs.get(ip);
+    if (!unblockTime) return false;
+    if (Date.now() >= unblockTime) {
+      this.blockedIPs.delete(ip);
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Track high-severity events per IP and auto-block if threshold exceeded
+   */
+  private trackAndBlock(ip: string, severity: SecurityEvent['severity']): void {
+    if (ip === 'unknown' || severity === 'low') return;
+
+    const now = Date.now();
+    const existing = this.ipEventCounts.get(ip);
+
+    if (existing && (now - existing.firstSeen) < BLOCK_THRESHOLDS.WINDOW_MS) {
+      existing.count++;
+    } else {
+      this.ipEventCounts.set(ip, { count: 1, firstSeen: now });
+      return;
+    }
+
+    // Check if threshold exceeded for high/critical events
+    if (
+      (severity === 'high' || severity === 'critical') &&
+      existing.count >= BLOCK_THRESHOLDS.HIGH_SEVERITY_COUNT
+    ) {
+      // Enforce max blocked IPs to prevent memory leak
+      if (this.blockedIPs.size >= BLOCK_THRESHOLDS.MAX_BLOCKED_IPS) {
+        // Evict the earliest expiring block
+        let earliestIP: string | null = null;
+        let earliestTime = Infinity;
+        for (const [blockedIP, unblockTime] of this.blockedIPs) {
+          if (unblockTime < earliestTime) {
+            earliestTime = unblockTime;
+            earliestIP = blockedIP;
+          }
+        }
+        if (earliestIP) this.blockedIPs.delete(earliestIP);
+      }
+
+      this.blockedIPs.set(ip, now + BLOCK_THRESHOLDS.BLOCK_DURATION_MS);
+      this.ipEventCounts.delete(ip);
+
+      logger.error(`[security-monitor] IP auto-blocked due to ${existing.count} high-severity events`, {
+        service: 'security_monitor',
+        ip,
+        eventCount: existing.count,
+        blockDurationMinutes: BLOCK_THRESHOLDS.BLOCK_DURATION_MS / 60_000,
+      });
+    }
+  }
+
+  /**
+   * Clean up expired blocks and stale tracking entries
+   */
+  private cleanupExpiredEntries(): void {
+    const now = Date.now();
+
+    for (const [ip, unblockTime] of this.blockedIPs) {
+      if (now >= unblockTime) this.blockedIPs.delete(ip);
+    }
+
+    for (const [ip, record] of this.ipEventCounts) {
+      if (now - record.firstSeen > BLOCK_THRESHOLDS.WINDOW_MS) {
+        this.ipEventCounts.delete(ip);
+      }
+    }
   }
 
   /**
@@ -53,6 +153,9 @@ export class SecurityMonitor {
     if (this.eventQueue.length >= this.BATCH_SIZE) {
       await this.flushEvents();
     }
+
+    // Track IP for automated blocking (high/critical events)
+    this.trackAndBlock(event.ip_address, event.severity);
 
     // Log critical events immediately
     if (event.severity === 'critical') {

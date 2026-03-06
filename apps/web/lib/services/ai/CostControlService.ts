@@ -56,6 +56,11 @@ export class CostControlService {
   private static lastResetMonth = '';
   private static initialized = false;
 
+  // Emergency stop flag — in-memory cache, hydrated from DB
+  private static emergencyStopActive = false;
+  private static emergencyStopLastCheck = 0;
+  private static readonly EMERGENCY_STOP_CHECK_INTERVAL_MS = 30_000; // Re-check DB every 30s
+
   /**
    * Check if a request can proceed within budget constraints
    */
@@ -361,13 +366,12 @@ export class CostControlService {
 
   /**
    * Emergency stop - disable all AI services.
-   * P2: Persists to database so it survives process restarts and deploys.
+   * Persists to database so it survives process restarts and serverless cold starts.
    */
   static async emergencyStop(): Promise<void> {
     logger.error('AI EMERGENCY STOP ACTIVATED - All AI services disabled');
-    process.env.AI_EMERGENCY_STOP = 'true';
+    this.emergencyStopActive = true;
 
-    // Persist to database for cross-instance and cross-deploy durability
     try {
       await serverSupabase.from('system_config').upsert(
         { key: 'ai_emergency_stop', value: 'true', updated_at: new Date().toISOString() },
@@ -379,15 +383,21 @@ export class CostControlService {
   }
 
   /**
-   * Check if emergency stop is active
+   * Check if emergency stop is active.
+   * Uses in-memory cache with periodic DB re-checks so it works
+   * across serverless function invocations (no process.env mutation).
    */
-  static isEmergencyStopped(): boolean {
-    return process.env.AI_EMERGENCY_STOP === 'true';
+  static async isEmergencyStopped(): Promise<boolean> {
+    const now = Date.now();
+    if (now - this.emergencyStopLastCheck > this.EMERGENCY_STOP_CHECK_INTERVAL_MS) {
+      await this.hydrateEmergencyStop();
+    }
+    return this.emergencyStopActive;
   }
 
   /**
-   * P2: Hydrate emergency stop state from database on startup.
-   * Call this during app initialization.
+   * Hydrate emergency stop state from database.
+   * Called automatically by isEmergencyStopped() and can be called during app init.
    */
   static async hydrateEmergencyStop(): Promise<void> {
     try {
@@ -398,22 +408,27 @@ export class CostControlService {
         .single();
 
       if (!error && data?.value === 'true') {
-        process.env.AI_EMERGENCY_STOP = 'true';
+        this.emergencyStopActive = true;
         logger.warn('Emergency stop hydrated from database — AI services remain disabled', {
           service: 'CostControlService',
         });
+      } else {
+        this.emergencyStopActive = false;
       }
+      this.emergencyStopLastCheck = Date.now();
     } catch (error) {
+      // On DB failure, keep current in-memory state (fail safe)
       logger.warn('Failed to hydrate emergency stop from database', { error });
+      this.emergencyStopLastCheck = Date.now();
     }
   }
 
   /**
-   * P2: Clear emergency stop (re-enable AI services).
+   * Clear emergency stop (re-enable AI services).
    */
   static async clearEmergencyStop(): Promise<void> {
     logger.info('AI EMERGENCY STOP CLEARED - AI services re-enabled');
-    delete process.env.AI_EMERGENCY_STOP;
+    this.emergencyStopActive = false;
 
     try {
       await serverSupabase.from('system_config').upsert(

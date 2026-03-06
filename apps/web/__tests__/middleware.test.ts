@@ -111,6 +111,7 @@ vi.mock('@/lib/cors', () => ({
 vi.mock('@/lib/security-monitor', () => ({
   securityMonitor: {
     logSuspiciousActivity: mockLogSuspiciousActivity,
+    isIPBlocked: vi.fn().mockReturnValue(false),
   },
 }));
 

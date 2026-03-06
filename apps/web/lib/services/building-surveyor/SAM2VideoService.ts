@@ -125,8 +125,14 @@ export interface VideoSegmentationResponse {
 }
 
 export class SAM2VideoService {
-  private static readonly BASE_URL =
-    process.env.SAM2_VIDEO_SERVICE_URL || 'http://localhost:8002';
+  private static get BASE_URL(): string {
+    const url = process.env.SAM2_VIDEO_SERVICE_URL;
+    if (url) return url;
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SAM2_VIDEO_SERVICE_URL is required in production');
+    }
+    return 'http://localhost:8002';
+  }
 
   private static readonly TIMEOUT_MS = Number(process.env.SAM2_VIDEO_TIMEOUT_MS) || 120000; // 2 minutes
 

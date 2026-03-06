@@ -5,6 +5,7 @@ import { rateLimiter, checkAIUserRateLimit } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
 import type { SearchFilters } from '@mintenance/ai-core';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getAppUrl } from '@/lib/env';
 
 interface SearchResult {
   id: string;
@@ -105,7 +106,7 @@ export const POST = withApiHandler(
     let contractorResults: SearchResult[] = [];
 
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+      const apiBaseUrl = getAppUrl();
       const controller = new AbortController();
       const timeoutMs = 5000;
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
