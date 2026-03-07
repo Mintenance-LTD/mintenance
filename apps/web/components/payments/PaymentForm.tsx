@@ -6,6 +6,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { ShieldCheck, Loader2, Lock } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 // Load Stripe once outside component to avoid recreating on every render
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
@@ -182,16 +183,23 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 
     setLoadingIntent(true);
 
-    fetch('/api/payments/create-intent', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amount: amountInPence,
-        currency: 'gbp',
-        jobId,
-        contractorId,
-      }),
-    })
+    getCsrfToken()
+      .then((csrfToken) =>
+        fetch('/api/payments/create-intent', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify({
+            amount: amountInPence,
+            currency: 'gbp',
+            jobId,
+            contractorId,
+          }),
+        })
+      )
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
