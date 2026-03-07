@@ -3,22 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
-import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
-import { UnifiedButton, LoadingSpinner, ErrorView } from '@/components/ui';
-import { Button } from '@/components/ui/Button';
+import { LoadingSpinner, ErrorView } from '@/components/ui';
 import { PaymentForm } from '@/components/payments/PaymentForm';
 import { JobService } from '@/lib/services/JobService';
-import { PaymentService } from '@/lib/services/PaymentService';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { fadeIn, scaleIn } from '@/lib/animations/variants';
-import { BudgetDisplay } from '@/components/jobs/BudgetDisplay';
-import { CategoryIcon } from '@/components/jobs/CategoryIcon';
 import type { Job, User } from '@mintenance/types';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import toast from 'react-hot-toast';
-import { MapPin, Info, AlertTriangle } from 'lucide-react';
+import {
+  MapPin, ChevronLeft, ShieldCheck, Lock, CreditCard,
+  ArrowRight, CheckCircle2, AlertTriangle, Banknote, Receipt,
+  Building2, Wallet,
+} from 'lucide-react';
 
 interface PaymentDetails {
   platformFee: number;
@@ -37,7 +36,6 @@ function JobPaymentPageContent() {
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [paymentStep, setPaymentStep] = useState<'summary' | 'payment' | 'confirmation'>('summary');
 
   useEffect(() => {
     if (jobId) {
@@ -57,15 +55,12 @@ function JobPaymentPageContent() {
 
       setUser(currentUser);
 
-      // Get job details
       const jobData = await JobService.getJobById(jobId);
       if (!jobData) {
         setError('Job not found');
         return;
       }
 
-      // Verify user has permission to pay for this job
-      // Only homeowners can make payments
       const isHomeowner = currentUser.role === 'homeowner';
       const typedJobData = jobData as Job;
       const isJobOwner =
@@ -78,7 +73,6 @@ function JobPaymentPageContent() {
         return;
       }
 
-      // Normalize to Job shape
       const normalized: Job = {
         id: typedJobData.id,
         title: typedJobData.title ?? '',
@@ -97,7 +91,6 @@ function JobPaymentPageContent() {
 
       setJob(normalized);
 
-      // Verify contract is accepted before allowing payment
       const contractRes = await fetch(`/api/contracts?job_id=${jobId}`);
       if (contractRes.ok) {
         const contractData = await contractRes.json();
@@ -111,7 +104,6 @@ function JobPaymentPageContent() {
         return;
       }
 
-      // SECURITY: Fetch payment details from server (fees calculated server-side)
       const paymentDetailsResponse = await fetch(`/api/jobs/${jobId}/payment-details`);
       if (paymentDetailsResponse.ok) {
         const detailsData = await paymentDetailsResponse.json();
@@ -135,8 +127,6 @@ function JobPaymentPageContent() {
   };
 
   const handlePaymentSuccess = async (_paymentIntentId: string) => {
-    // Escrow transaction is already created server-side by the create-intent/checkout-session API.
-    // No need to create it again client-side (that causes duplicate records).
     toast.success('Payment successful! Funds are now held securely in escrow.', {
       duration: 5000,
       position: 'top-center',
@@ -147,8 +137,8 @@ function JobPaymentPageContent() {
     }, 1500);
   };
 
-  const handlePaymentError = (error: string) => {
-    setError(error);
+  const handlePaymentError = (errorMsg: string) => {
+    setError(errorMsg);
   };
 
   const handleCancel = () => {
@@ -160,7 +150,7 @@ function JobPaymentPageContent() {
   }
 
   if (loading) {
-    return <LoadingSpinner fullScreen message="Loading job details..." />;
+    return <LoadingSpinner fullScreen message="Loading payment details..." />;
   }
 
   if (error || !job) {
@@ -168,18 +158,13 @@ function JobPaymentPageContent() {
       <ErrorView
         title={error || 'Job Not Found'}
         message="The job you're trying to pay for could not be found or you don't have permission to make payments for it."
-        onRetry={() => loadJobDetails()}
+        onRetry={() => { setError(null); loadJobDetails(); }}
         retryLabel="Try Again"
         variant="fullscreen"
       />
     );
   }
 
-  const userDisplayName = user.first_name && user.last_name
-    ? `${user.first_name} ${user.last_name}`.trim()
-    : user.email;
-
-  // SECURITY: Use server-calculated fees (prevents client-side manipulation)
   if (!paymentDetails) {
     return (
       <HomeownerPageWrapper>
@@ -188,231 +173,203 @@ function JobPaymentPageContent() {
     );
   }
 
-  const platformFee = paymentDetails.platformFee;
-  const totalAmount = paymentDetails.totalAmount;
+  const { platformFee, stripeFee, totalAmount, contractorPayout } = paymentDetails;
+  const fmtGBP = (n: number) => `£${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <HomeownerPageWrapper>
-      {/* Hero Header */}
-      <MotionDiv
-        className="bg-white border border-gray-200 rounded-xl p-8 mb-6"
-        variants={fadeIn}
-        initial="initial"
-        animate="animate"
-      >
-        <div className="max-w-full">
-          <UnifiedButton
-            onClick={() => router.back()}
-            variant="ghost"
-            size="sm"
-            ariaLabel="Go back"
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 mb-6"
-            leftIcon={
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            }
-          >
-            Back
-          </UnifiedButton>
+      <div className="max-w-6xl mx-auto">
+        {/* Back button */}
+        <button
+          onClick={() => router.back()}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6 group"
+        >
+          <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+          Back to job
+        </button>
 
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center border border-teal-200">
-              <svg className="w-8 h-8 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
+        {/* Page header */}
+        <MotionDiv variants={fadeIn} initial="initial" animate="animate" className="mb-8">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
+              <CreditCard size={22} className="text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold mb-2 text-gray-900">Secure Payment</h1>
-              <p className="text-gray-600 text-lg">Your payment is protected by escrow</p>
+              <h1 className="text-2xl font-bold text-gray-900">Secure Payment</h1>
+              <p className="text-gray-500 mt-0.5">Complete your escrow-protected payment for this job</p>
             </div>
           </div>
-        </div>
-      </MotionDiv>
+        </MotionDiv>
 
-      {/* Content */}
-      <div className="w-full space-y-6">
-          <div className="grid grid-cols-12 gap-8">
-            {/* Left Column: Payment Form */}
-            <div className="col-span-12 lg:col-span-8 space-y-6">
-              {/* Job Summary Card */}
-              <MotionDiv
-                className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
-                variants={scaleIn}
-                initial="initial"
-                animate="animate"
-              >
-                <h2 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.text,
-            margin: 0,
-            marginBottom: theme.spacing.md
-          }}>
-            Job Summary
-          </h2>
+        {/* Two-column layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto',
-            gap: theme.spacing.lg,
-            alignItems: 'start'
-          }}>
-            <div>
-              <h3 style={{
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.text,
-                margin: 0,
-                marginBottom: theme.spacing.xs
-              }}>
-                {job.title}
-              </h3>
-              {job.description && (
-                <p style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textSecondary,
-                  margin: 0,
-                  marginBottom: theme.spacing.sm,
-                  lineHeight: theme.typography.lineHeight.relaxed
-                }}>
-                  {job.description}
-                </p>
-              )}
-              <div style={{
-                display: 'flex',
-                gap: theme.spacing.md,
-                flexWrap: 'wrap'
-              }}>
-                <div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                    marginBottom: '2px'
-                  }}>
-                    Category
+          {/* Left column — Payment form */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Job card */}
+            <MotionDiv
+              variants={scaleIn}
+              initial="initial"
+              animate="animate"
+              className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
+            >
+              <div className="bg-gradient-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  <Receipt size={13} />
+                  Job Details
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg font-bold text-gray-900 truncate">{job.title}</h3>
+                    {job.description && (
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{job.description}</p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-3 mt-3">
+                      {job.category && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-50 text-teal-700 text-xs font-medium rounded-full border border-teal-100">
+                          <Building2 size={12} />
+                          {job.category}
+                        </span>
+                      )}
+                      {job.location && (
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                          <MapPin size={12} />
+                          {typeof job.location === 'string' ? job.location : 'Not specified'}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.text,
-                    fontWeight: theme.typography.fontWeight.medium
-                  }}>
-                    {job.category || 'General Maintenance'}
+                  <div className="text-right shrink-0">
+                    <div className="text-[11px] uppercase tracking-wider font-medium text-gray-400 mb-1">Amount</div>
+                    <div className="text-2xl font-bold text-teal-600">{fmtGBP(totalAmount)}</div>
                   </div>
                 </div>
-                {job.location && (
-                  <div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.xs,
-                      color: theme.colors.textSecondary,
-                      marginBottom: '2px'
-                    }}>
-                      Location
-                    </div>
-                    <div style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      color: theme.colors.text,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}>
-                      <MapPin size={14} /> {typeof job.location === 'string' ? job.location : 'Not specified'}
-                    </div>
-                  </div>
-                )}
               </div>
-            </div>
+            </MotionDiv>
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
-                marginBottom: '2px'
-              }}>
-                Amount Due
+            {/* Error banner */}
+            {error && (
+              <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+                <AlertTriangle size={16} className="shrink-0" />
+                {error}
               </div>
-              <div style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.success
-              }}>
-                £{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            )}
+
+            {/* Stripe payment form */}
+            <MotionDiv
+              variants={scaleIn}
+              initial="initial"
+              animate="animate"
+              className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
+            >
+              <div className="bg-gradient-to-r from-gray-50 to-white px-6 py-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    <Lock size={13} />
+                    Payment Method
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
+                    <ShieldCheck size={13} />
+                    SSL Encrypted
+                  </div>
+                </div>
               </div>
-            </div>
+              <div className="p-6">
+                <PaymentForm
+                  jobId={job.id}
+                  contractorId={job.contractor_id || ''}
+                  jobTitle={job.title}
+                  defaultAmount={totalAmount}
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                  onCancel={handleCancel}
+                />
+              </div>
+            </MotionDiv>
           </div>
-              </MotionDiv>
 
-              {/* Error Display */}
-              {error && (
-                <div style={{
-                  backgroundColor: `${theme.colors.error}10`,
-                  border: `1px solid ${theme.colors.error}`,
-                  borderRadius: theme.borderRadius.md,
-                  padding: theme.spacing.md,
-                  marginBottom: theme.spacing.lg,
-                  textAlign: 'center'
-                }}>
-                  <div style={{
-                    color: theme.colors.error,
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}>
-                    <AlertTriangle size={16} /> {error}
+          {/* Right column — Summary sidebar */}
+          <div className="space-y-6">
+
+            {/* Payment breakdown */}
+            <MotionDiv
+              variants={scaleIn}
+              initial="initial"
+              animate="animate"
+              className="bg-white rounded-2xl border border-gray-200 overflow-hidden sticky top-6"
+            >
+              <div className="bg-gradient-to-r from-teal-600 to-teal-500 px-6 py-5">
+                <div className="flex items-center gap-2 text-teal-100 text-xs font-semibold uppercase tracking-wider mb-2">
+                  <Wallet size={13} />
+                  Payment Summary
+                </div>
+                <div className="text-3xl font-bold text-white">{fmtGBP(totalAmount)}</div>
+                <div className="text-teal-100 text-sm mt-0.5">Total amount due</div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Fee breakdown */}
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Contractor receives</span>
+                    <span className="font-semibold text-gray-900">{fmtGBP(contractorPayout)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Platform fee</span>
+                    <span className="text-gray-600">{fmtGBP(platformFee)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Processing fee</span>
+                    <span className="text-gray-600">{fmtGBP(stripeFee)}</span>
+                  </div>
+                  <div className="border-t border-gray-100 pt-3 flex justify-between">
+                    <span className="text-sm font-semibold text-gray-900">Total</span>
+                    <span className="text-lg font-bold text-teal-600">{fmtGBP(totalAmount)}</span>
                   </div>
                 </div>
-              )}
 
-              {/* Payment Form */}
-              <PaymentForm
-                jobId={job.id}
-                contractorId={job.contractor_id || ''}
-                jobTitle={job.title}
-                defaultAmount={totalAmount}
-                onSuccess={handlePaymentSuccess}
-                onError={handlePaymentError}
-                onCancel={handleCancel}
-              />
+                {/* Escrow steps */}
+                <div className="bg-gray-50 rounded-xl p-4 mt-2">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
+                    How Escrow Works
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      { icon: Banknote, label: 'You pay into escrow', desc: 'Funds held securely' },
+                      { icon: Building2, label: 'Contractor completes work', desc: 'Verified with photos' },
+                      { icon: CheckCircle2, label: 'You approve the work', desc: 'Release payment' },
+                      { icon: ArrowRight, label: 'Contractor gets paid', desc: 'Automatic transfer' },
+                    ].map((step, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center shrink-0 mt-0.5">
+                          <step.icon size={14} className="text-teal-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-800">{step.label}</div>
+                          <div className="text-xs text-gray-400">{step.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-              {/* Terms and Conditions */}
-              <div style={{
-                marginTop: theme.spacing.lg,
-                padding: theme.spacing.md,
-                backgroundColor: `${theme.colors.info}10`,
-                border: `1px solid ${theme.colors.info}`,
-                borderRadius: theme.borderRadius.md
-              }}>
-                <div style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.info,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  marginBottom: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <Info size={16} /> Payment Terms & Escrow Protection
+                {/* Trust badges */}
+                <div className="flex items-center justify-center gap-4 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-1 text-[11px] text-gray-400">
+                    <ShieldCheck size={12} className="text-green-500" />
+                    Escrow Protected
+                  </div>
+                  <div className="w-px h-3 bg-gray-200" />
+                  <div className="flex items-center gap-1 text-[11px] text-gray-400">
+                    <Lock size={12} className="text-green-500" />
+                    256-bit SSL
+                  </div>
                 </div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  lineHeight: theme.typography.lineHeight.relaxed
-                }}>
-                  • Your payment will be securely held in escrow until the job is completed
-                  <br />
-                  • Funds are only released when you approve the completed work
-                  <br />
-                  • You can request a full refund if the work is not satisfactory
-                  <br />
-                  • All payments are processed securely through Stripe
-                  <br />
-                  • Platform and processing fees are clearly displayed before payment
-                </div>
-            </div>
+              </div>
+            </MotionDiv>
           </div>
         </div>
       </div>

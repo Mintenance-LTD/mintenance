@@ -3,12 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { ShieldCheck, Loader2, Lock } from 'lucide-react';
-import { theme } from '@/lib/theme';
+import { Loader2, Lock } from 'lucide-react';
 import { logger } from '@mintenance/shared';
 import { getCsrfToken } from '@/lib/csrf-client';
 
-// Load Stripe once outside component to avoid recreating on every render
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 interface PaymentFormProps {
@@ -21,7 +19,6 @@ interface PaymentFormProps {
   onCancel?: () => void;
 }
 
-// Inner form rendered inside the Elements provider
 function StripeCheckoutForm({
   clientSecret,
   amount,
@@ -41,12 +38,10 @@ function StripeCheckoutForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!stripe || !elements) return;
 
     setProcessing(true);
 
-    // Trigger Stripe form validation and wallet collection
     const { error: submitError } = await elements.submit();
     if (submitError) {
       onError(submitError.message || 'Payment validation failed');
@@ -54,7 +49,6 @@ function StripeCheckoutForm({
       return;
     }
 
-    // Confirm the payment — redirect: 'if_required' avoids full-page redirects for most methods
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       clientSecret,
@@ -80,47 +74,25 @@ function StripeCheckoutForm({
     setProcessing(false);
   };
 
+  const fmtGBP = (n: number) =>
+    `£${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
-    <form onSubmit={handleSubmit}>
-      <div
-        style={{
-          backgroundColor: theme.colors.background,
-          border: `1px solid ${theme.colors.border}`,
-          borderRadius: theme.borderRadius.lg,
-          padding: theme.spacing.lg,
-          marginBottom: theme.spacing.lg,
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <PaymentElement
+        options={{
+          layout: 'tabs',
         }}
-      >
-        {/* Stripe's PaymentElement renders card, Apple Pay, Google Pay, Link, etc. */}
-        <PaymentElement
-          options={{
-            layout: 'tabs',
-          }}
-        />
-      </div>
+      />
 
       {/* Actions */}
-      <div
-        style={{
-          display: 'flex',
-          gap: theme.spacing.md,
-          justifyContent: 'space-between',
-        }}
-      >
+      <div className="flex items-center gap-3 pt-2">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
             disabled={processing}
-            style={{
-              padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-              border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.borderRadius.md,
-              background: 'transparent',
-              color: theme.colors.textSecondary,
-              cursor: processing ? 'not-allowed' : 'pointer',
-              fontSize: theme.typography.fontSize.base,
-            }}
+            className="px-5 py-3 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
@@ -128,32 +100,17 @@ function StripeCheckoutForm({
         <button
           type="submit"
           disabled={processing || !stripe || !elements}
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            padding: `${theme.spacing.sm} ${theme.spacing.lg}`,
-            backgroundColor: theme.colors.primary,
-            color: '#fff',
-            border: 'none',
-            borderRadius: theme.borderRadius.md,
-            cursor: processing || !stripe ? 'not-allowed' : 'pointer',
-            fontSize: theme.typography.fontSize.base,
-            fontWeight: theme.typography.fontWeight.semibold,
-            opacity: processing || !stripe ? 0.7 : 1,
-          }}
+          className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold text-white bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 rounded-xl shadow-lg shadow-teal-500/20 hover:shadow-teal-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:shadow-none"
         >
           {processing ? (
             <>
-              <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-              Processing...
+              <Loader2 size={16} className="animate-spin" />
+              Processing payment...
             </>
           ) : (
             <>
-              <Lock size={16} />
-              Pay £{amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <Lock size={15} />
+              Pay {fmtGBP(amount)} securely
             </>
           )}
         </button>
@@ -162,7 +119,6 @@ function StripeCheckoutForm({
   );
 }
 
-// Outer component: fetches PaymentIntent clientSecret, then mounts Elements
 export const PaymentForm: React.FC<PaymentFormProps> = ({
   jobId,
   contractorId,
@@ -175,7 +131,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loadingIntent, setLoadingIntent] = useState(true);
 
-  // Amount in pence (Stripe uses smallest currency unit)
   const amountInPence = Math.round(defaultAmount * 100);
 
   useEffect(() => {
@@ -221,96 +176,60 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   const appearance = {
     theme: 'stripe' as const,
     variables: {
-      colorPrimary: '#0d9488', // Mintenance teal
+      colorPrimary: '#0d9488',
       colorBackground: '#ffffff',
       colorText: '#111827',
       colorDanger: '#ef4444',
       fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-      borderRadius: '12px',
+      borderRadius: '10px',
+      spacingUnit: '4px',
+    },
+    rules: {
+      '.Tab': {
+        border: '1px solid #e5e7eb',
+        boxShadow: 'none',
+      },
+      '.Tab--selected': {
+        borderColor: '#0d9488',
+        boxShadow: '0 0 0 1px #0d9488',
+      },
+      '.Input': {
+        border: '1px solid #e5e7eb',
+        boxShadow: 'none',
+        padding: '12px',
+      },
+      '.Input:focus': {
+        borderColor: '#0d9488',
+        boxShadow: '0 0 0 1px #0d9488',
+      },
     },
   };
 
+  if (loadingIntent) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 gap-3">
+        <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center">
+          <Loader2 size={20} className="animate-spin text-teal-600" />
+        </div>
+        <p className="text-sm text-gray-500">Preparing secure payment form...</p>
+      </div>
+    );
+  }
+
+  if (!clientSecret) return null;
+
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-      {/* Job info header */}
-      <div
-        style={{
-          padding: theme.spacing.md,
-          backgroundColor: `${theme.colors.primary}10`,
-          border: `1px solid ${theme.colors.primary}30`,
-          borderRadius: theme.borderRadius.md,
-          marginBottom: theme.spacing.lg,
-          fontSize: theme.typography.fontSize.sm,
-          color: theme.colors.text,
-          fontWeight: theme.typography.fontWeight.medium,
-        }}
-      >
-        Paying for: <strong>{jobTitle}</strong> · £{defaultAmount.toLocaleString()}
-      </div>
-
-      {loadingIntent ? (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            padding: theme.spacing.xl,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
-          Preparing secure payment form...
-        </div>
-      ) : clientSecret ? (
-        <Elements
-          stripe={stripePromise}
-          options={{ clientSecret, appearance }}
-        >
-          <StripeCheckoutForm
-            clientSecret={clientSecret}
-            amount={defaultAmount}
-            onSuccess={onSuccess}
-            onError={onError}
-            onCancel={onCancel}
-          />
-        </Elements>
-      ) : null}
-
-      {/* Security notice */}
-      <div
-        style={{
-          marginTop: theme.spacing.lg,
-          padding: theme.spacing.md,
-          backgroundColor: `${theme.colors.success}10`,
-          border: `1px solid ${theme.colors.success}`,
-          borderRadius: theme.borderRadius.md,
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.success,
-            fontWeight: theme.typography.fontWeight.medium,
-            marginBottom: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-          }}
-        >
-          <ShieldCheck size={16} /> Secure Escrow Payment · Powered by Stripe
-        </div>
-        <div
-          style={{
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Your payment is held safely in escrow and released only when the job is completed to your satisfaction.
-        </div>
-      </div>
-    </div>
+    <Elements
+      stripe={stripePromise}
+      options={{ clientSecret, appearance }}
+    >
+      <StripeCheckoutForm
+        clientSecret={clientSecret}
+        amount={defaultAmount}
+        onSuccess={onSuccess}
+        onError={onError}
+        onCancel={onCancel}
+      />
+    </Elements>
   );
 };
