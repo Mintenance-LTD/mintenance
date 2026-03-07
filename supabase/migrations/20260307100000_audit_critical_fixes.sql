@@ -60,6 +60,10 @@ CREATE TABLE IF NOT EXISTS public.user_push_tokens (
   UNIQUE(user_id, push_token)
 );
 
+-- Ensure is_active column exists (table may pre-exist without it)
+ALTER TABLE public.user_push_tokens
+  ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
 -- Index for fast user token lookups
 CREATE INDEX IF NOT EXISTS idx_user_push_tokens_user_id
   ON public.user_push_tokens (user_id)
