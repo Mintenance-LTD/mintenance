@@ -152,7 +152,7 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
   ];
 
   const messageHref = homeowner
-    ? `/messages/${resolvedParams.id}?userId=${homeowner.id}&userName=${encodeURIComponent(`${homeowner.first_name} ${homeowner.last_name}`)}&jobTitle=${encodeURIComponent(job.title || 'Job')}`
+    ? `/contractor/messages?jobId=${resolvedParams.id}`
     : null;
 
   return (

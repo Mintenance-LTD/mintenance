@@ -43,7 +43,7 @@ export const POST = withApiHandler(
       return NextResponse.json({ updated: 0 });
     }
 
-    // Get messages not sent by user that user hasn't read yet
+    // Find unread messages (where user is NOT in read_by array)
     const { data: unreadMsgs, error: fetchError } = await serverSupabase
       .from('messages')
       .select('id, read_by')
@@ -59,21 +59,30 @@ export const POST = withApiHandler(
       throw fetchError;
     }
 
-    // Filter to only messages where user is not in read_by
-    const toUpdate = (unreadMsgs ?? []).filter((msg: { id: string; read_by: string[] | null }) => {
-      const readBy = Array.isArray(msg.read_by) ? msg.read_by : [];
+    // Filter to messages where user is NOT already in read_by
+    const toUpdate = (unreadMsgs ?? []).filter((m: { id: string; read_by: string[] | null }) => {
+      const readBy = m.read_by ?? [];
       return !readBy.includes(user.id);
     });
 
-    // Update each message's read_by to include user
     let updated = 0;
     for (const msg of toUpdate) {
-      const readBy = Array.isArray(msg.read_by) ? [...msg.read_by, user.id] : [user.id];
+      const currentReadBy = (msg as { read_by: string[] | null }).read_by ?? [];
       const { error: updateError } = await serverSupabase
         .from('messages')
-        .update({ read_by: readBy })
+        .update({ read_by: [...currentReadBy, user.id] })
         .eq('id', msg.id);
-      if (!updateError) updated++;
+
+      if (updateError) {
+        logger.error('mark-read update error', updateError, {
+          service: 'messages',
+          jobId,
+          userId: user.id,
+          messageId: msg.id,
+        });
+      } else {
+        updated++;
+      }
     }
 
     return NextResponse.json({ updated });

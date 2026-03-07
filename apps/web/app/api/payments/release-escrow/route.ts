@@ -398,22 +398,75 @@ export const POST = withApiHandler(
     // Note: Stripe processing fee is charged separately, not deducted from contractor payout
     const contractorAmountCents = Math.round(feeBreakdown.contractorAmount * 100);
 
-    // Create transfer to contractor using Stripe Connect (amount after platform fee)
-    const transfer = await stripe.transfers.create({
-      amount: contractorAmountCents,
-      currency: 'gbp',
-      destination: contractor.stripe_connect_account_id,
-      description: `Payment for job: ${job.title}`,
-      metadata: {
-        jobId: job.id,
+    // FIX CRIT-3: Update DB FIRST (mark as release_pending), THEN transfer via Stripe.
+    // This prevents double-payout: if DB update fails, no money moves.
+    // If Stripe transfer fails after DB update, we revert the DB status.
+    const originalUpdatedAt = escrowTransaction.updated_at;
+    const reconciliationId = crypto.randomUUID();
+
+    // Step 1: Mark escrow as release_pending (DB update BEFORE Stripe call)
+    const { data: pendingEscrow, error: pendingError } = await serverSupabase
+      .from('escrow_transactions')
+      .update({
+        status: 'release_pending',
+        reconciliation_id: reconciliationId,
+        transfer_attempted_at: new Date().toISOString(),
+        release_reason: releaseReason,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', escrowTransactionId)
+      .eq('updated_at', originalUpdatedAt)
+      .select()
+      .single();
+
+    if (pendingError || !pendingEscrow) {
+      logger.warn('Escrow release blocked - concurrent modification detected', {
+        service: 'payments',
+        userId: user.id,
         escrowTransactionId,
-        homeownerId: job.homeowner_id,
-        contractorId: job.contractor_id,
-        releaseReason,
-        platformFee: feeBreakdown.platformFee.toString(),
-        contractorAmount: feeBreakdown.contractorAmount.toString(),
-      },
-    });
+      });
+      throw new ConflictError('Escrow transaction was modified by another request. Please try again.');
+    }
+
+    // Step 2: Create Stripe transfer (DB is already locked as release_pending)
+    let transfer;
+    try {
+      transfer = await stripe.transfers.create({
+        amount: contractorAmountCents,
+        currency: 'gbp',
+        destination: contractor.stripe_connect_account_id,
+        description: `Payment for job: ${job.title}`,
+        metadata: {
+          jobId: job.id,
+          escrowTransactionId,
+          homeownerId: job.homeowner_id,
+          contractorId: job.contractor_id,
+          releaseReason,
+          reconciliationId,
+          platformFee: feeBreakdown.platformFee.toString(),
+          contractorAmount: feeBreakdown.contractorAmount.toString(),
+        },
+      });
+    } catch (stripeError) {
+      // Stripe transfer failed — revert DB to 'held' status
+      logger.error('Stripe transfer failed, reverting escrow to held', stripeError, {
+        service: 'payments',
+        escrowTransactionId,
+        reconciliationId,
+      });
+      await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          status: 'held',
+          reconciliation_id: null,
+          transfer_attempted_at: null,
+          release_reason: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', escrowTransactionId);
+
+      throw new InternalServerError('Payment transfer failed. No funds were moved. Please try again.');
+    }
 
     // Get payment intent and charge ID for fee tracking
     let chargeId: string | undefined;
@@ -422,8 +475,8 @@ export const POST = withApiHandler(
         const paymentIntent = await stripe.paymentIntents.retrieve(
           escrowTransaction.payment_intent_id
         );
-        chargeId = typeof paymentIntent.latest_charge === 'string' 
-          ? paymentIntent.latest_charge 
+        chargeId = typeof paymentIntent.latest_charge === 'string'
+          ? paymentIntent.latest_charge
           : paymentIntent.latest_charge?.id;
       } catch (error) {
         logger.warn('Failed to retrieve payment intent for fee tracking', {
@@ -450,111 +503,53 @@ export const POST = withApiHandler(
         service: 'payments',
         escrowTransactionId,
       });
-      // Don't fail the release if fee tracking fails, but log it
     }
 
-    // Update escrow transaction status with optimistic locking
-    // Use updated_at timestamp to prevent race conditions
-    const originalUpdatedAt = escrowTransaction.updated_at;
-    
-    // Create a reconciliation record before attempting transfer
-    // This helps track transfers that succeed but DB updates fail
-    const reconciliationId = crypto.randomUUID();
-    const { error: reconciliationError } = await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        reconciliation_id: reconciliationId,
-        transfer_attempted_at: new Date().toISOString(),
-      })
-      .eq('id', escrowTransactionId)
-      .eq('updated_at', originalUpdatedAt);
-    
-    if (reconciliationError) {
-      logger.warn('Failed to set reconciliation ID - possible race condition', {
-        service: 'payments',
-        userId: user.id,
-        escrowTransactionId,
-      });
-      // Continue anyway - reconciliation ID is for tracking, not blocking
-    }
-    
+    // Step 3: Finalize DB — mark as completed with transfer details
     const { data: updatedEscrow, error: updateError } = await serverSupabase
       .from('escrow_transactions')
       .update({
         status: 'completed',
         transfer_id: transfer.id,
         released_at: new Date().toISOString(),
-        release_reason: releaseReason,
         platform_fee: feeBreakdown.platformFee,
         contractor_payout: feeBreakdown.contractorAmount,
         stripe_processing_fee: feeBreakdown.stripeFee,
         fee_transfer_status: feeTransferResult?.status || 'pending',
         fee_transfer_id: feeTransferResult?.feeTransferId || null,
         updated_at: new Date().toISOString(),
-        reconciliation_id: reconciliationId,
       })
       .eq('id', escrowTransactionId)
-      .eq('updated_at', originalUpdatedAt) // Optimistic lock: only update if not modified
+      .eq('status', 'release_pending')
       .select();
 
     if (updateError) {
-      logger.error('Failed to update escrow transaction status', updateError, {
+      // Transfer succeeded but final DB update failed — create reconciliation record
+      logger.error('CRITICAL: Transfer succeeded but final DB update failed', updateError, {
         service: 'payments',
-        userId: user.id,
-        escrowTransactionId,
         transferId: transfer.id,
+        escrowTransactionId,
         reconciliationId,
       });
 
-      // Try to reverse the transfer if DB update fails
       try {
-        const reversal = await stripe.transfers.createReversal(transfer.id, {
-          amount: contractorAmountCents, // Reverse the exact amount transferred
-          metadata: {
-            reason: 'database_update_failed',
-            escrowTransactionId,
-            reconciliationId,
-            originalTransferId: transfer.id,
-          },
-        });
-        
-        logger.info('Transfer reversed successfully after DB error', {
-          service: 'payments',
-          transferId: transfer.id,
-          reversalId: reversal.id,
-          reconciliationId,
-        });
-      } catch (reversalError) {
-        // If reversal fails, create a reconciliation record for manual review
-        logger.error('CRITICAL: Failed to reverse transfer after DB error - manual reconciliation required', reversalError, {
-          service: 'payments',
-          transferId: transfer.id,
-          escrowTransactionId,
-          reconciliationId,
-          contractorId: job.contractor_id,
-          amount: contractorAmountCents,
-        });
-        
-        // Create reconciliation record for manual review
-        try {
-          await serverSupabase
-            .from('escrow_reconciliation')
-            .insert({
-              escrow_transaction_id: escrowTransactionId,
-              transfer_id: transfer.id,
-              reconciliation_id: reconciliationId,
-              status: 'pending_review',
-              issue_type: 'transfer_succeeded_db_update_failed',
-              amount: contractorAmountCents,
-              contractor_id: job.contractor_id,
-              created_at: new Date().toISOString(),
-            });
-        } catch (reconciliationErr: unknown) {
-          logger.error('Failed to create reconciliation record', reconciliationErr as Error);
-        }
+        await serverSupabase
+          .from('escrow_reconciliation')
+          .insert({
+            escrow_transaction_id: escrowTransactionId,
+            transfer_id: transfer.id,
+            reconciliation_id: reconciliationId,
+            status: 'pending_review',
+            issue_type: 'transfer_succeeded_final_update_failed',
+            amount: contractorAmountCents,
+            contractor_id: job.contractor_id,
+            created_at: new Date().toISOString(),
+          });
+      } catch (reconciliationErr: unknown) {
+        logger.error('Failed to create reconciliation record', reconciliationErr as Error);
       }
 
-      throw new InternalServerError('Failed to update escrow transaction. Transfer has been reversed.');
+      throw new InternalServerError('Payment was sent but status update failed. Our team has been notified.');
     }
 
     // Create payment released notification for contractor
@@ -579,65 +574,16 @@ export const POST = withApiHandler(
       }
     }
 
-    // Check if update succeeded (optimistic lock check)
+    // Verify the update actually applied
     if (!updatedEscrow || updatedEscrow.length === 0) {
-      logger.warn('Escrow release failed - transaction was modified by another request (race condition)', {
+      // This shouldn't happen since we used status='release_pending' lock,
+      // but log it for safety
+      logger.warn('Escrow final update returned empty - may already be completed', {
         service: 'payments',
         userId: user.id,
         escrowTransactionId,
         transferId: transfer.id,
-        reconciliationId,
       });
-
-      // Try to reverse the transfer due to race condition
-      try {
-        const reversal = await stripe.transfers.createReversal(transfer.id, {
-          amount: contractorAmountCents,
-          metadata: {
-            reason: 'race_condition',
-            escrowTransactionId,
-            reconciliationId,
-          },
-        });
-        
-        logger.info('Transfer reversed successfully after race condition', {
-          service: 'payments',
-          transferId: transfer.id,
-          reversalId: reversal.id,
-          reconciliationId,
-        });
-      } catch (reversalError) {
-        // If reversal fails, create reconciliation record
-        logger.error('CRITICAL: Failed to reverse transfer after race condition - manual reconciliation required', reversalError, {
-          service: 'payments',
-          transferId: transfer.id,
-          escrowTransactionId,
-          reconciliationId,
-        });
-        
-        // If reversal fails, create reconciliation record
-        try {
-          await serverSupabase
-            .from('escrow_reconciliation')
-            .insert({
-              escrow_transaction_id: escrowTransactionId,
-              transfer_id: transfer.id,
-              reconciliation_id: reconciliationId,
-              status: 'pending_review',
-              issue_type: 'race_condition_reversal_failed',
-              amount: contractorAmountCents,
-              contractor_id: job.contractor_id,
-              created_at: new Date().toISOString(),
-            });
-        } catch (reconciliationErr: unknown) {
-          logger.error('Failed to create reconciliation record', reconciliationErr as Error);
-        }
-      }
-
-      return NextResponse.json(
-        { error: 'This escrow transaction was modified by another request. Transfer has been reversed. Please try again.' },
-        { status: 409 }
-      );
     }
 
     // Update job status to completed if release reason is job_completed
@@ -660,6 +606,38 @@ export const POST = withApiHandler(
       releaseReason,
       feeTransferId: feeTransferResult?.feeTransferId,
     });
+
+    // Persistent audit trail for escrow releases (especially admin-initiated)
+    try {
+      await serverSupabase
+        .from('escrow_audit_log')
+        .insert({
+          escrow_transaction_id: escrowTransactionId,
+          action: 'released',
+          actor_id: user.id,
+          actor_role: user.role,
+          job_id: job.id,
+          amount: escrowTransaction.amount,
+          platform_fee: feeBreakdown.platformFee,
+          contractor_payout: feeBreakdown.contractorAmount,
+          transfer_id: transfer.id,
+          release_reason: releaseReason,
+          is_admin_action: isAdminVerified,
+          metadata: {
+            reconciliationId,
+            feeTransferId: feeTransferResult?.feeTransferId,
+            mfaUsed: !!mfaToken,
+            contractorId: job.contractor_id,
+            homeownerId: job.homeowner_id,
+          },
+          created_at: new Date().toISOString(),
+        });
+    } catch (auditError) {
+      logger.error('Failed to write escrow audit log', auditError, {
+        service: 'payments',
+        escrowTransactionId,
+      });
+    }
 
     const responseData = {
       success: true,

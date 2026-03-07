@@ -13,11 +13,14 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Linking,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import * as WebBrowser from 'expo-web-browser';
 import { HapticService } from '../../utils/haptics';
 import { theme } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
@@ -56,6 +59,9 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [contract, setContract] = useState<Contract | null>(null);
   const [loading, setLoading] = useState(true);
   const [signing, setSigning] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const userRole = user?.role as 'homeowner' | 'contractor' | undefined;
@@ -108,12 +114,48 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }, [contract, fetchContract]);
 
+  const handleViewPdf = useCallback(async () => {
+    if (!contract) return;
+    const appUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+    const pdfUrl = `${appUrl}/api/contracts/${contract.id}/pdf`;
+    try {
+      await WebBrowser.openBrowserAsync(pdfUrl);
+    } catch {
+      Linking.openURL(pdfUrl);
+    }
+  }, [contract]);
+
+  const handleReject = useCallback(async () => {
+    if (!contract) return;
+    setRejecting(true);
+    try {
+      await mobileApiClient.post(`/api/contracts/${contract.id}/reject`, {
+        reason: rejectReason.trim(),
+      });
+      HapticService.success();
+      Alert.alert('Changes Requested', 'The contractor has been notified of your requested changes.');
+      setShowRejectInput(false);
+      setRejectReason('');
+      await fetchContract();
+    } catch {
+      HapticService.error();
+      Alert.alert('Error', 'Failed to request changes. Please try again.');
+    } finally {
+      setRejecting(false);
+    }
+  }, [contract, rejectReason, fetchContract]);
+
   const nonSignableStatuses = ['accepted', 'rejected', 'cancelled'];
   const canSign =
     contract &&
     !nonSignableStatuses.includes(contract.status) &&
     ((userRole === 'contractor' && !contract.contractor_signed_at) ||
       (userRole === 'homeowner' && !contract.homeowner_signed_at));
+
+  const canReject =
+    contract &&
+    contract.status === 'pending_homeowner' &&
+    userRole === 'homeowner';
 
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString('en-GB', {
@@ -185,6 +227,14 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contract</Text>
+        <TouchableOpacity
+          style={styles.pdfButton}
+          onPress={handleViewPdf}
+          accessibilityRole="button"
+          accessibilityLabel="Download PDF"
+        >
+          <Ionicons name="download-outline" size={20} color={theme.colors.primary} />
+        </TouchableOpacity>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(contract.status) + '20' }]}>
           <Text style={[styles.statusText, { color: getStatusColor(contract.status) }]}>
             {getStatusLabel(contract.status)}
@@ -295,6 +345,54 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           <View style={styles.acceptedBanner}>
             <Ionicons name="checkmark-circle" size={24} color={theme.colors.success} />
             <Text style={styles.acceptedText}>Contract accepted! Both parties have signed.</Text>
+          </View>
+        )}
+
+        {/* Request Changes (Reject) */}
+        {canReject && !showRejectInput && (
+          <TouchableOpacity
+            style={styles.requestChangesButton}
+            onPress={() => setShowRejectInput(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Request changes to contract"
+          >
+            <Ionicons name="create-outline" size={18} color="#F59E0B" />
+            <Text style={styles.requestChangesText}>Request Changes</Text>
+          </TouchableOpacity>
+        )}
+
+        {showRejectInput && (
+          <View style={styles.rejectCard}>
+            <Text style={styles.rejectCardTitle}>What changes are needed?</Text>
+            <TextInput
+              style={styles.rejectInput}
+              placeholder="Describe the changes you'd like..."
+              placeholderTextColor={theme.colors.textTertiary}
+              multiline
+              numberOfLines={3}
+              value={rejectReason}
+              onChangeText={setRejectReason}
+              textAlignVertical="top"
+            />
+            <View style={styles.rejectActions}>
+              <TouchableOpacity
+                style={styles.rejectCancelButton}
+                onPress={() => { setShowRejectInput(false); setRejectReason(''); }}
+              >
+                <Text style={styles.rejectCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.rejectSubmitButton, rejecting && { opacity: 0.5 }]}
+                onPress={handleReject}
+                disabled={rejecting}
+              >
+                {rejecting ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <Text style={styles.rejectSubmitText}>Send Request</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         )}
       </ScrollView>
@@ -552,6 +650,83 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  pdfButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary + '15',
+    marginRight: 8,
+  },
+  requestChangesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    backgroundColor: '#FEF3C7',
+    marginBottom: 20,
+  },
+  requestChangesText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#B45309',
+  },
+  rejectCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F59E0B40',
+  },
+  rejectCardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 10,
+  },
+  rejectInput: {
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    minHeight: 80,
+    marginBottom: 12,
+  },
+  rejectActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  rejectCancelButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  rejectCancelText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: theme.colors.textSecondary,
+  },
+  rejectSubmitButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#F59E0B',
+    minWidth: 110,
+    alignItems: 'center',
+  },
+  rejectSubmitText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });
 

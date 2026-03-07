@@ -22,6 +22,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { theme } from '../../theme';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
+import { JobService } from '../../services/JobService';
 import { JobsStackParamList } from '../../navigation/types';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'PhotoUpload'>;
@@ -121,13 +122,38 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({ route, navigation }) => 
           [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
       } else {
-        Alert.alert(
-          'Upload Complete',
-          isBefore
-            ? `${successCount} before photo(s) uploaded. You can now start the job.`
-            : `${successCount} after photo(s) uploaded. The homeowner will be notified to review your work.`,
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
+        if (isBefore) {
+          // Before photos uploaded — offer to start the job immediately
+          Alert.alert(
+            'Upload Complete',
+            `${successCount} before photo(s) uploaded. Ready to start the job?`,
+            [
+              { text: 'Not Yet', style: 'cancel', onPress: () => navigation.goBack() },
+              {
+                text: 'Start Job',
+                onPress: async () => {
+                  try {
+                    await JobService.startJob(jobId);
+                    Alert.alert('Job Started', 'The homeowner has been notified that work has begun.', [
+                      { text: 'OK', onPress: () => navigation.goBack() },
+                    ]);
+                  } catch (startError) {
+                    const msg = startError instanceof Error ? startError.message : 'Failed to start job';
+                    Alert.alert('Could Not Start Job', msg, [
+                      { text: 'OK', onPress: () => navigation.goBack() },
+                    ]);
+                  }
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert(
+            'Upload Complete',
+            `${successCount} after photo(s) uploaded. The homeowner will be notified to review your work.`,
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+        }
       }
     } catch (error) {
       Alert.alert('Upload Failed', 'Failed to upload photos. Please try again.');

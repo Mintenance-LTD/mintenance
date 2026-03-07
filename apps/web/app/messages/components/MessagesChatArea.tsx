@@ -26,6 +26,7 @@ interface Message {
   sender_id: string;
   content: string;
   message_type?: string;
+  attachment_url?: string;
   created_at: string;
   read: boolean;
 }
@@ -39,6 +40,7 @@ interface MessagesChatAreaProps {
   onMessageInputChange: (value: string) => void;
   onSendMessage: () => void;
   sending: boolean;
+  isTyping?: boolean;
 }
 
 function getInitials(name: string): string {
@@ -64,6 +66,7 @@ export function MessagesChatArea({
   onMessageInputChange,
   onSendMessage,
   sending,
+  isTyping = false,
 }: MessagesChatAreaProps) {
   const router = useRouter();
 
@@ -139,15 +142,63 @@ export function MessagesChatArea({
                 )}
 
                 <div className={`max-w-md ${isCurrentUser ? 'ml-auto' : 'mr-auto'}`}>
-                  <div
-                    className={`px-4 py-2.5 rounded-2xl ${
-                      isCurrentUser
-                        ? 'bg-teal-600 text-white rounded-br-sm'
-                        : 'bg-gray-100 text-gray-900 rounded-bl-sm'
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                  </div>
+                  {message.message_type === 'file' && message.attachment_url ? (
+                    <div
+                      className={`px-4 py-3 rounded-2xl ${
+                        isCurrentUser
+                          ? 'bg-teal-600 text-white rounded-br-sm'
+                          : 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${isCurrentUser ? 'bg-white/15' : 'bg-teal-50'}`}>
+                          <svg className={`w-5 h-5 ${isCurrentUser ? 'text-white/80' : 'text-teal-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{message.content.replace(/^Shared document:\s*/i, '')}</p>
+                          <p className={`text-xs mt-0.5 ${isCurrentUser ? 'text-white/60' : 'text-gray-500'}`}>Shared document</p>
+                        </div>
+                      </div>
+                      <a
+                        href={message.attachment_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`mt-2.5 flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isCurrentUser ? 'bg-white/15 hover:bg-white/25 text-white' : 'bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200'}`}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        View Document
+                      </a>
+                    </div>
+                  ) : message.message_type === 'system' ? (
+                    <div
+                      className={`px-4 py-2.5 rounded-2xl ${
+                        isCurrentUser
+                          ? 'bg-teal-700 text-white rounded-br-sm'
+                          : 'bg-teal-50 text-teal-900 rounded-bl-sm border border-teal-200'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <svg className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isCurrentUser ? 'text-teal-200' : 'text-teal-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className={`px-4 py-2.5 rounded-2xl ${
+                        isCurrentUser
+                          ? 'bg-teal-600 text-white rounded-br-sm'
+                          : 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                    </div>
+                  )}
                   <div
                     className={`flex items-center gap-1 mt-1 text-xs text-gray-500 ${
                       isCurrentUser ? 'justify-end' : 'justify-start'
@@ -159,6 +210,23 @@ export function MessagesChatArea({
               </div>
             );
           })
+        )}
+
+        {isTyping && (
+          <div className="flex items-center gap-3 px-2 pb-2">
+            <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
+              <span className="text-teal-700 font-semibold text-xs">
+                {getInitials(conversation.otherUser.name)}
+              </span>
+            </div>
+            <div className="px-4 py-2.5 bg-gray-100 rounded-2xl">
+              <div className="flex gap-1.5">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

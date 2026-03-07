@@ -20,6 +20,7 @@ export interface Message {
   sender_id: string;
   content: string;
   message_type?: string;
+  attachment_url?: string;
   created_at: string;
   read: boolean;
 }
@@ -58,6 +59,8 @@ export interface ApiMessageResponse {
   messageText?: string;
   messageType?: string;
   message_type?: string;
+  attachmentUrl?: string;
+  attachment_url?: string;
   createdAt?: string;
   created_at?: string;
   read?: boolean;

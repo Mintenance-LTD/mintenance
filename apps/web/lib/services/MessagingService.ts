@@ -1,5 +1,6 @@
 import type { Message, MessageThread } from '@mintenance/types';
 import { logger } from '@/lib/logger';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface ThreadMessagesResponse {
   messages?: Message[];
@@ -34,10 +35,25 @@ export class MessagingService {
       throw new Error('Missing required fields for sending message');
     }
 
+    // Fetch CSRF token for the POST request
+    let csrfToken = '';
+    try {
+      const csrfResp = await fetch('/api/csrf', { credentials: 'same-origin' });
+      if (csrfResp.ok) {
+        const csrfData = await csrfResp.json();
+        csrfToken = csrfData.token || '';
+      }
+    } catch {
+      // CSRF fetch failed — request will still be attempted
+    }
+
     const resp = await fetch(`${API_BASE}/threads/${encodeURIComponent(jobId)}/messages`, {
       method: 'POST',
       credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+      },
       body: JSON.stringify({
         content: messageText,
         attachments: attachmentUrl ? [attachmentUrl] : undefined,
@@ -146,6 +162,71 @@ export class MessagingService {
       return () => {};
     }
 
+    // Use Supabase Realtime if configured, fall back to polling
+    if (isSupabaseConfigured) {
+      // Subscribe to messages table on INSERT. We filter by table-level and
+      // resolve the job association client-side (Supabase realtime filter
+      // doesn't support cross-table joins).
+      const channelName = `messages:job=${jobId}`;
+      const channel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+          },
+          (payload) => {
+            try {
+              const row = payload.new as Record<string, unknown>;
+              const readBy = Array.isArray(row.read_by) ? row.read_by as string[] : [];
+              const metadata = (row.metadata ?? {}) as Record<string, unknown>;
+              const msg: Message = {
+                id: row.id as string,
+                jobId,
+                senderId: row.sender_id as string,
+                receiverId: '',
+                messageText: (row.content as string) || '',
+                messageType: ((row.message_type as string) || 'text') as 'text' | 'image' | 'file' | 'system',
+                attachmentUrl: (metadata.attachment_url as string) || undefined,
+                read: readBy.length > 1,
+                createdAt: row.created_at as string,
+              };
+              onNewMessage(msg);
+            } catch (error) {
+              onError?.(error);
+            }
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR') {
+            logger.error('[MessagingService] Realtime channel error, falling back to polling', { jobId });
+            // Fall back to polling on channel error
+            channel.unsubscribe();
+            this.activeChannels.delete(jobId);
+            this._startPolling(jobId, onNewMessage, onError);
+          }
+        });
+
+      const cleanup = () => {
+        channel.unsubscribe();
+        this.activeChannels.delete(jobId);
+      };
+
+      this.activeChannels.set(jobId, cleanup);
+      return cleanup;
+    }
+
+    // Fallback: polling every 5 seconds
+    return this._startPolling(jobId, onNewMessage, onError);
+  }
+
+  private static _startPolling(
+    jobId: string,
+    onNewMessage: (message: Message) => void,
+    onError?: (error: unknown) => void
+  ): () => void {
     let cancelled = false;
 
     const poll = async () => {
@@ -158,7 +239,7 @@ export class MessagingService {
         } catch (error) {
           onError?.(error);
         }
-        await new Promise((resolve) => setTimeout(resolve, 15000));
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       }
     };
 

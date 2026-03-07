@@ -15,18 +15,37 @@ const listQuerySchema = z.object({
   status: z.array(z.string()).optional(),
 });
 
+const VALID_CATEGORIES = [
+  'plumbing', 'electrical', 'hvac', 'general', 'appliance', 'landscaping',
+  'roofing', 'painting', 'carpentry', 'cleaning', 'flooring', 'tiling',
+  'plastering', 'guttering', 'fencing', 'damp', 'pest_control', 'other',
+] as const;
+
 const createJobSchema = z.object({
-  title: z.string().min(1, 'Title is required').transform(val => sanitizeText(val, 200)),
-  description: z.string().max(5000).optional().transform(val => val ? sanitizeText(val, 5000) : val),
+  title: z.string()
+    .min(5, 'Title must be at least 5 characters')
+    .max(200, 'Title must be 200 characters or fewer')
+    .transform(val => sanitizeText(val, 200)),
+  description: z.string()
+    .min(20, 'Description must be at least 20 characters')
+    .max(5000, 'Description must be 5000 characters or fewer')
+    .optional()
+    .transform(val => val ? sanitizeText(val, 5000) : val),
   status: z.string().optional().transform(val => val ? sanitizeText(val, 50) : val),
-  category: z.string().max(128).optional().transform(val => val ? sanitizeText(val, 128) : val),
-  budget: z.coerce.number().positive().optional(),
-  budget_min: z.coerce.number().positive().optional(),  // Minimum budget (range)
-  budget_max: z.coerce.number().positive().optional(),  // Maximum budget (range)
-  show_budget_to_contractors: z.boolean().optional(),  // Whether to show exact budget
-  require_itemized_bids: z.boolean().optional(),  // Whether to require itemization
-  location: z.string().max(256).optional().transform(val => val ? sanitizeText(val, 256) : val),
-  photoUrls: z.array(z.string().url()).optional(),
+  category: z.enum(VALID_CATEGORIES, {
+    errorMap: () => ({ message: `Category must be one of: ${VALID_CATEGORIES.join(', ')}` }),
+  }).optional(),
+  budget: z.coerce.number().positive('Budget must be positive').max(1_000_000, 'Budget cannot exceed £1,000,000').optional(),
+  budget_min: z.coerce.number().positive().max(1_000_000).optional(),
+  budget_max: z.coerce.number().positive().max(1_000_000).optional(),
+  show_budget_to_contractors: z.boolean().optional(),
+  require_itemized_bids: z.boolean().optional(),
+  location: z.string()
+    .min(3, 'Location must be at least 3 characters')
+    .max(256, 'Location must be 256 characters or fewer')
+    .optional()
+    .transform(val => val ? sanitizeText(val, 256) : val),
+  photoUrls: z.array(z.string().url()).max(20, 'Maximum 20 photos allowed').optional(),
   requiredSkills: z.array(z.string().max(100)).max(10).optional(),
   property_id: z.string().uuid().optional(),
   latitude: z.coerce.number().min(-90).max(90).optional(),

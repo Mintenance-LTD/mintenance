@@ -246,34 +246,43 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
   try {
     const welcomeMessage = `Hi! I've accepted your bid for "${jobDetails?.title || 'this job'}". Let's discuss the details and schedule a start date. Feel free to ask any questions!`;
 
-    // Ensure message_thread exists for this job
+    // Ensure message_thread exists for this job (use upsert pattern)
+    let threadId: string | undefined;
     const { data: existingThread } = await serverSupabase
       .from('message_threads')
       .select('id')
       .eq('job_id', jobId)
       .single();
 
-    if (!existingThread) {
-      await serverSupabase
+    if (existingThread) {
+      threadId = existingThread.id;
+    } else {
+      const { data: newThread } = await serverSupabase
         .from('message_threads')
         .insert({
           job_id: jobId,
           participant_ids: [user.id, bid.contractor_id].filter(Boolean),
           last_message_at: new Date().toISOString(),
-        });
+        })
+        .select('id')
+        .single();
+      threadId = newThread?.id;
     }
 
-    // Insert welcome message using production schema (job_id, receiver_id, read)
-    const { error: messageError } = await serverSupabase
+    if (!threadId) {
+      logger.error('Failed to create or find message thread', { service: 'jobs', jobId });
+    }
+
+    // Insert welcome message using production schema (thread_id, read_by, metadata)
+    const { error: messageError } = threadId ? await serverSupabase
       .from('messages')
       .insert({
-        job_id: jobId,
+        thread_id: threadId,
         sender_id: user.id,
-        receiver_id: bid.contractor_id,
         content: welcomeMessage,
         message_type: 'text',
-        read: false,
-      });
+        read_by: [user.id],
+      }) : { error: { message: 'No thread ID' } };
 
     if (messageError) {
       logger.error('Failed to create welcome message', messageError, {
@@ -286,7 +295,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
       await serverSupabase
         .from('message_threads')
         .update({ last_message_at: new Date().toISOString() })
-        .eq('job_id', jobId);
+        .eq('id', threadId!);
 
       logger.info('Welcome message created', {
         service: 'jobs',
@@ -311,8 +320,22 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
     // Don't fail the request if message creation fails
   }
 
-  // Auto-create draft contract from accepted bid
+  // Auto-create draft contract from accepted bid (with existence check to prevent duplicates)
   try {
+    // Check if a contract already exists for this job (idempotency guard)
+    const { data: existingContract } = await serverSupabase
+      .from('contracts')
+      .select('id')
+      .eq('job_id', jobId)
+      .limit(1);
+
+    if (existingContract && existingContract.length > 0) {
+      logger.info('Contract already exists for this job, skipping auto-creation', {
+        service: 'jobs',
+        jobId,
+        existingContractId: existingContract[0].id,
+      });
+    } else {
     const bidAmount = bid.amount || 0;
 
     const { error: contractError } = await serverSupabase
@@ -366,6 +389,7 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
         }),
       ]);
     }
+    } // end else (no existing contract)
   } catch (contractError) {
     logger.error('Unexpected error creating draft contract', contractError, {
       service: 'jobs',

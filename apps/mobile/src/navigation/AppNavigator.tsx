@@ -39,6 +39,7 @@ import {
 
 // Import navigation components
 import { CustomTabBar } from './components/CustomTabBar';
+import OfflineSyncStatus from '../components/OfflineSyncStatus';
 
 // Import QuickJobModal for homeowner (+) button
 import { QuickJobModal } from '../screens/job-posting/QuickJobModal';
@@ -119,6 +120,7 @@ const TabNavigator: React.FC = () => {
 
   return (
     <>
+    <OfflineSyncStatus showWhenOnline compact position="top" />
     <QuickJobModal
       visible={showQuickJobModal}
       onClose={() => setShowQuickJobModal(false)}

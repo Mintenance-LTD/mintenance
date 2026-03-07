@@ -4,7 +4,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { useCSRF } from '@/lib/hooks/useCSRF';
-import { Shield, CheckCircle2, Circle, Clock, FileText, Building2, Scale } from 'lucide-react';
+import {
+  Shield, CheckCircle2, Circle, Clock, FileText, Building2,
+  Scale, Send, PenTool, CalendarCheck, User, Briefcase,
+  Calendar, PoundSterling, AlertCircle, RotateCcw, Trash2, Download,
+} from 'lucide-react';
 import Image from 'next/image';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -13,11 +17,9 @@ interface ContractorProfile {
   first_name: string | null;
   last_name: string | null;
   company_name: string | null;
-  company_logo: string | null;
-  insurance_provider: string | null;
-  insurance_policy_number: string | null;
-  insurance_expiry_date: string | null;
   profile_image_url: string | null;
+  insurance_number: string | null;
+  insurance_expiry_date: string | null;
 }
 
 interface HomeownerProfile {
@@ -61,59 +63,27 @@ const formatDate = (dateStr: string) =>
     weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
   });
 
+const formatDateTime = (dateStr: string) =>
+  new Date(dateStr).toLocaleString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+
 const formatCurrency = (amount: number) =>
   `£${Number(amount).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const getStatusBadge = (status: string) => {
-  const map: Record<string, { label: string; bg: string; text: string }> = {
-    draft: { label: 'Draft', bg: 'bg-gray-100', text: 'text-gray-600' },
-    pending_contractor: { label: 'Awaiting Contractor Signature', bg: 'bg-amber-50', text: 'text-amber-700' },
-    pending_homeowner: { label: 'Awaiting Homeowner Signature', bg: 'bg-amber-50', text: 'text-amber-700' },
-    accepted: { label: 'Fully Signed', bg: 'bg-green-50', text: 'text-green-700' },
-    rejected: { label: 'Rejected', bg: 'bg-red-50', text: 'text-red-700' },
-    cancelled: { label: 'Cancelled', bg: 'bg-red-50', text: 'text-red-700' },
+const getStatusConfig = (status: string) => {
+  const map: Record<string, { label: string; bg: string; text: string; border: string; icon: typeof CheckCircle2 }> = {
+    draft: { label: 'Draft', bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', icon: FileText },
+    pending_contractor: { label: 'Awaiting Contractor', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: Clock },
+    pending_homeowner: { label: 'Awaiting Your Signature', bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', icon: PenTool },
+    accepted: { label: 'Fully Signed', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: CheckCircle2 },
+    rejected: { label: 'Rejected', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: AlertCircle },
+    cancelled: { label: 'Cancelled', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', icon: AlertCircle },
   };
-  return map[status] || { label: status, bg: 'bg-gray-100', text: 'text-gray-600' };
+  return map[status] || { label: status, bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', icon: FileText };
 };
 
-// ── Sub-components ────────────────────────────────────────────────
-
-function SectionHeading({ number, title }: { number: number; title: string }) {
-  return (
-    <div className="flex items-center gap-2 mb-3 mt-6 first:mt-0">
-      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-teal-600 text-white text-xs font-bold">{number}</span>
-      <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500">{title}</h4>
-    </div>
-  );
-}
-
-function SignatureRow({ label, signedAt, name }: { label: string; signedAt: string | null; name: string }) {
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-dashed border-gray-200 last:border-0">
-      <div className="flex items-center gap-3">
-        {signedAt ? (
-          <CheckCircle2 className="w-5 h-5 text-green-600" />
-        ) : (
-          <Circle className="w-5 h-5 text-gray-300" />
-        )}
-        <div>
-          <p className="text-sm font-medium text-gray-900">{label}</p>
-          <p className="text-xs text-gray-500">{name}</p>
-        </div>
-      </div>
-      <div className="text-right">
-        {signedAt ? (
-          <div>
-            <p className="text-xs font-medium text-green-700">Signed</p>
-            <p className="text-xs text-gray-400">{formatDate(signedAt)}</p>
-          </div>
-        ) : (
-          <p className="text-xs text-gray-400">Pending</p>
-        )}
-      </div>
-    </div>
-  );
-}
+const TERMS_HIDDEN_KEYS = ['insurance_provider', 'insurance_policy_number', 'source', 'bid_id', 'created_from'];
 
 // ── Main Component ────────────────────────────────────────────────
 
@@ -123,6 +93,10 @@ export function ContractManagement(props: ContractManagementProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSigning, setIsSigning] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const { csrfToken } = useCSRF();
 
   const fetchContract = useCallback(async () => {
@@ -160,7 +134,7 @@ export function ContractManagement(props: ContractManagementProps) {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to sign contract');
+        throw new Error(errorData.error?.message || errorData.error || 'Failed to sign contract');
       }
       await fetchContract();
     } catch (err) {
@@ -170,7 +144,71 @@ export function ContractManagement(props: ContractManagementProps) {
     }
   };
 
-  // Only allow signing when contract is in the right state for this user
+  const handleRejectContract = async () => {
+    if (!contract || isRejecting) return;
+    setIsRejecting(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/contracts/${contract.id}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ reason: rejectReason }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || errorData.error || 'Failed to request changes');
+      }
+      setShowRejectForm(false);
+      setRejectReason('');
+      await fetchContract();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to request changes');
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
+  const handleDeleteContract = async () => {
+    if (!contract || isDeleting) return;
+    if (!confirm('Are you sure you want to delete this contract? This cannot be undone.')) return;
+    setIsDeleting(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/contracts/${contract.id}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+        },
+        credentials: 'same-origin',
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error?.message || errorData.error || 'Failed to delete contract');
+      }
+      await fetchContract();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete contract');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    if (!contract) return;
+    const link = document.createElement('a');
+    link.href = `/api/contracts/${contract.id}/pdf`;
+    link.download = `Contract-${contract.id.slice(0, 8).toUpperCase()}.pdf`;
+    link.click();
+  };
+
+  const canDelete = contract && userRole === 'contractor' && !contract.homeowner_signed_at
+    && ['draft', 'pending_homeowner', 'pending_contractor'].includes(contract.status);
+
   const needsSignature = contract && (
     (userRole === 'contractor' && contract.status === 'pending_contractor') ||
     (userRole === 'homeowner' && contract.status === 'pending_homeowner')
@@ -180,12 +218,14 @@ export function ContractManagement(props: ContractManagementProps) {
     (userRole === 'homeowner' && !contract.homeowner_signed_at)
   );
 
-  // ── Loading State ──
+  // ── Loading ──
   if (loading) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-400">
-        <Clock className="w-6 h-6 mx-auto mb-2 animate-pulse" />
-        Loading contract...
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+        <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-3">
+          <Clock className="w-5 h-5 text-teal-500 animate-pulse" />
+        </div>
+        <p className="text-sm text-gray-400">Loading contract...</p>
       </div>
     );
   }
@@ -193,22 +233,23 @@ export function ContractManagement(props: ContractManagementProps) {
   // ── No Contract ──
   if (!contract) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
-        <FileText className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-        <p className="text-gray-500 text-sm">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 text-center">
+        <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+          <FileText className="w-7 h-7 text-gray-300" />
+        </div>
+        <p className="text-gray-500 text-sm font-medium">
           {userRole === 'contractor'
-            ? 'No contract created yet. Use the "Prepare Contract" button to create one.'
+            ? 'No contract created yet. Use "Prepare Contract" to create one.'
             : 'No contract available yet. The contractor will prepare one shortly.'}
         </p>
       </div>
     );
   }
 
-  // ── Draft Banner ──
   const isDraft = contract.status === 'draft';
+  const statusConfig = getStatusConfig(contract.status);
+  const StatusIcon = statusConfig.icon;
 
-  // Derived data
-  const badge = getStatusBadge(contract.status);
   const contractorName = contract.contractor?.company_name
     || (contract.contractor?.first_name && contract.contractor?.last_name
       ? `${contract.contractor.first_name} ${contract.contractor.last_name}` : null)
@@ -217,218 +258,385 @@ export function ContractManagement(props: ContractManagementProps) {
   const homeownerName = contract.homeowner?.first_name && contract.homeowner?.last_name
     ? `${contract.homeowner.first_name} ${contract.homeowner.last_name}`
     : 'Homeowner';
-  const logoUrl = contract.contractor?.company_logo || contract.contractor?.profile_image_url;
-  const hasInsurance = !!(contract.contractor?.insurance_provider || contract.terms?.insurance_provider);
-  const insuranceProvider = (contract.contractor?.insurance_provider || contract.terms?.insurance_provider) as string | undefined;
-  const insurancePolicyNumber = (contract.contractor?.insurance_policy_number || contract.terms?.insurance_policy_number) as string | undefined;
+  const logoUrl = contract.contractor?.profile_image_url;
+  const hasInsurance = !!(contract.contractor?.insurance_number || contract.terms?.insurance_provider);
+  const insuranceProvider = (contract.terms?.insurance_provider) as string | undefined;
+  const insurancePolicyNumber = (contract.contractor?.insurance_number || contract.terms?.insurance_policy_number) as string | undefined;
+  const visibleTerms = contract.terms
+    ? Object.entries(contract.terms).filter(([key]) => !TERMS_HIDDEN_KEYS.includes(key))
+    : [];
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-      {/* ── Document Header ── */}
-      <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-5 text-white">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* ── Header ── */}
+      <div className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 px-6 py-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
             {logoUrl ? (
-              <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-white/10 flex-shrink-0">
+              <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-white/20 flex-shrink-0 ring-2 ring-white/20">
                 <Image src={logoUrl} alt="Company logo" fill className="object-contain p-1" />
               </div>
             ) : (
-              <div className="w-14 h-14 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                <Building2 className="w-7 h-7 text-white/60" />
+              <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0 ring-2 ring-white/20">
+                <Building2 className="w-6 h-6 text-white/70" />
               </div>
             )}
             <div>
-              <h3 className="text-lg font-bold tracking-tight">CONTRACT AGREEMENT</h3>
-              <p className="text-white/60 text-xs mt-0.5">
+              <h3 className="text-white font-bold text-lg tracking-tight">Contract Agreement</h3>
+              <p className="text-teal-100/70 text-xs mt-0.5">
                 Ref: {contract.id.slice(0, 8).toUpperCase()} &middot; {formatDate(contract.created_at)}
               </p>
             </div>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}>
-            {badge.label}
-          </span>
+          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${statusConfig.bg} ${statusConfig.text} border ${statusConfig.border}`}>
+            <StatusIcon className="w-3.5 h-3.5" />
+            {statusConfig.label}
+          </div>
         </div>
       </div>
 
-      <div className="px-6 py-5 space-y-1">
+      <div className="p-6 space-y-6">
+        {/* ── Actions Bar ── */}
+        {!isDraft && (
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              onClick={handleDownloadPdf}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+              type="button"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download PDF
+            </button>
+            {canDelete && (
+              <button
+                onClick={handleDeleteContract}
+                disabled={isDeleting}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200 disabled:opacity-50"
+                type="button"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* ── Draft Banner ── */}
         {isDraft && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-blue-700 font-medium">
+          <div className="bg-blue-50/80 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-blue-700">
               {userRole === 'homeowner'
-                ? 'The contractor is preparing the contract details. You will be notified when it is ready for your review and signature.'
-                : 'This is a draft contract. Use the "Prepare Contract" button above to fill in the details and send it to the homeowner.'}
+                ? 'The contractor is preparing the contract details. You\'ll be notified when it\'s ready for review.'
+                : 'This is a draft. Use "Prepare Contract" to fill in the details and send it to the homeowner.'}
             </p>
           </div>
         )}
 
-        {/* ── Section 1: Parties ── */}
-        <SectionHeading number={1} title="Parties" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Contractor</p>
-            <p className="font-semibold text-gray-900">{contractorName}</p>
-            {contract.contractor_license_type && (
-              <p className="text-xs text-gray-500 mt-1">
-                {contract.contractor_license_type} Contractor
-              </p>
-            )}
-            {contract.contractor_license_registration && (
-              <p className="text-xs text-gray-500">
-                License: {contract.contractor_license_registration}
-              </p>
-            )}
-            {hasInsurance && (
-              <div className="flex items-center gap-1 mt-2">
-                <Shield className="w-3.5 h-3.5 text-green-600" />
-                <span className="text-xs text-green-700 font-medium">
-                  Insured{insuranceProvider ? ` — ${insuranceProvider}` : ''}
-                </span>
-              </div>
-            )}
-            {insurancePolicyNumber && (
-              <p className="text-xs text-gray-400">Policy: {insurancePolicyNumber}</p>
-            )}
+        {/* ── Parties ── */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <User className="w-4 h-4 text-teal-600" />
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Parties</h4>
           </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Homeowner</p>
-            <p className="font-semibold text-gray-900">{homeownerName}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="border border-gray-100 rounded-xl p-4 hover:border-teal-100 transition-colors">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-600 mb-1.5">Contractor</p>
+              <p className="font-semibold text-gray-900 text-sm">{contractorName}</p>
+              {contract.contractor_license_type && (
+                <p className="text-xs text-gray-500 mt-1">{contract.contractor_license_type}</p>
+              )}
+              {contract.contractor_license_registration && (
+                <p className="text-xs text-gray-400">License: {contract.contractor_license_registration}</p>
+              )}
+              {hasInsurance && (
+                <div className="flex items-center gap-1 mt-2 bg-emerald-50 rounded-md px-2 py-1 w-fit">
+                  <Shield className="w-3 h-3 text-emerald-600" />
+                  <span className="text-[10px] text-emerald-700 font-medium">
+                    Insured{insuranceProvider ? ` — ${insuranceProvider}` : ''}
+                  </span>
+                </div>
+              )}
+              {insurancePolicyNumber && (
+                <p className="text-[10px] text-gray-400 mt-1">Policy: {insurancePolicyNumber}</p>
+              )}
+            </div>
+            <div className="border border-gray-100 rounded-xl p-4 hover:border-teal-100 transition-colors">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-600 mb-1.5">Homeowner</p>
+              <p className="font-semibold text-gray-900 text-sm">{homeownerName}</p>
+            </div>
           </div>
         </div>
 
-        {/* ── Section 2: Scope of Work ── */}
+        {/* ── Scope of Work ── */}
         {(contract.title || contract.description) && (
-          <>
-            <SectionHeading number={2} title="Scope of Work" />
-            {contract.title && (
-              <p className="font-medium text-gray-900">{contract.title}</p>
-            )}
-            {contract.description && (
-              <p className="text-sm text-gray-600 leading-relaxed mt-1 whitespace-pre-wrap">{contract.description}</p>
-            )}
-          </>
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Briefcase className="w-4 h-4 text-teal-600" />
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Scope of Work</h4>
+            </div>
+            <div className="border border-gray-100 rounded-xl p-4">
+              {contract.title && (
+                <p className="font-semibold text-gray-900 text-sm">{contract.title}</p>
+              )}
+              {contract.description && (
+                <p className="text-sm text-gray-600 leading-relaxed mt-1.5 whitespace-pre-wrap">{contract.description}</p>
+              )}
+            </div>
+          </div>
         )}
 
-        {/* ── Section 3: Payment Terms ── */}
-        <SectionHeading number={3} title="Payment Terms" />
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Contract Amount</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(contract.amount)}</p>
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1.5 text-teal-700">
-                <Scale className="w-4 h-4" />
-                <span className="text-xs font-semibold">Escrow Protected</span>
+        {/* ── Payment ── */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <PoundSterling className="w-4 h-4 text-teal-600" />
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Payment</h4>
+          </div>
+          <div className="bg-gradient-to-r from-gray-50 to-teal-50/30 border border-gray-100 rounded-xl p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Contract Amount</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{formatCurrency(contract.amount)}</p>
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">Payment held securely by Mintenance</p>
+              <div className="text-right">
+                <div className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-100 rounded-lg px-3 py-1.5">
+                  <Scale className="w-3.5 h-3.5 text-teal-600" />
+                  <span className="text-xs font-semibold text-teal-700">Escrow Protected</span>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1.5">Held securely by Mintenance</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ── Section 4: Schedule ── */}
+        {/* ── Schedule ── */}
         {(contract.start_date || contract.end_date) && (
-          <>
-            <SectionHeading number={4} title="Schedule" />
-            <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4 text-teal-600" />
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Schedule</h4>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               {contract.start_date && (
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">Start Date</p>
+                <div className="border border-gray-100 rounded-xl p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Start Date</p>
                   <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(contract.start_date)}</p>
                 </div>
               )}
               {contract.end_date && (
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide">Completion Date</p>
+                <div className="border border-gray-100 rounded-xl p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Completion</p>
                   <p className="text-sm font-medium text-gray-900 mt-1">{formatDate(contract.end_date)}</p>
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
 
-        {/* ── Section 5: Additional Terms ── */}
-        {contract.terms && Object.keys(contract.terms).filter(k => !['insurance_provider', 'insurance_policy_number', 'source', 'bid_id', 'created_from'].includes(k)).length > 0 && (
-          <>
-            <SectionHeading number={5} title="Additional Terms & Conditions" />
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-              {Object.entries(contract.terms)
-                .filter(([key]) => !['insurance_provider', 'insurance_policy_number', 'source', 'bid_id', 'created_from'].includes(key))
-                .map(([key, value]) => (
-                  <div key={key} className="flex gap-3">
-                    <span className="text-xs font-medium text-gray-500 min-w-[120px] capitalize">
-                      {key.replace(/_/g, ' ')}:
-                    </span>
-                    <span className="text-xs text-gray-700 flex-1 whitespace-pre-wrap">
-                      {typeof value === 'string' ? value : JSON.stringify(value)}
-                    </span>
-                  </div>
-                ))}
+        {/* ── Additional Terms ── */}
+        {visibleTerms.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="w-4 h-4 text-teal-600" />
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Additional Terms</h4>
             </div>
-          </>
+            <div className="border border-gray-100 rounded-xl p-4 space-y-2">
+              {visibleTerms.map(([key, value]) => (
+                <div key={key} className="flex gap-3">
+                  <span className="text-xs font-medium text-gray-400 min-w-[100px] capitalize">
+                    {key.replace(/_/g, ' ')}
+                  </span>
+                  <span className="text-xs text-gray-700 flex-1 whitespace-pre-wrap">
+                    {typeof value === 'string' ? value : JSON.stringify(value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* ── Signatures ── */}
-        <div className="mt-6 pt-4 border-t-2 border-gray-200">
-          <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">Signatures</h4>
-          <div className="bg-gray-50 rounded-lg px-4">
-            <SignatureRow
-              label="Contractor"
-              name={contractorName}
-              signedAt={contract.contractor_signed_at}
-            />
-            <SignatureRow
-              label="Homeowner"
-              name={homeownerName}
-              signedAt={contract.homeowner_signed_at}
-            />
+        <div className="border-t border-gray-100 pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <PenTool className="w-4 h-4 text-teal-600" />
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Signatures</h4>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { label: 'Contractor', name: contractorName, signedAt: contract.contractor_signed_at },
+              { label: 'Homeowner', name: homeownerName, signedAt: contract.homeowner_signed_at },
+            ].map(({ label, name, signedAt }) => (
+              <div key={label} className={`rounded-xl p-4 border ${signedAt ? 'bg-emerald-50/50 border-emerald-100' : 'bg-gray-50/50 border-gray-100'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</span>
+                  {signedAt ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <Circle className="w-4 h-4 text-gray-300" />
+                  )}
+                </div>
+                <p className="text-sm font-medium text-gray-900">{name}</p>
+                {signedAt ? (
+                  <p className="text-xs text-emerald-600 mt-1">Signed {formatDateTime(signedAt)}</p>
+                ) : (
+                  <p className="text-xs text-gray-400 mt-1">Awaiting signature</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Timeline ── */}
+        <div className="border-t border-gray-100 pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Clock className="w-4 h-4 text-teal-600" />
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Timeline</h4>
+          </div>
+          <div className="relative pl-6 space-y-4">
+            {/* Vertical line */}
+            <div className="absolute left-[11px] top-1 bottom-1 w-px bg-gray-200" />
+
+            <TimelineItem icon={FileText} color="gray" label="Contract Created" date={formatDateTime(contract.created_at)} />
+            {contract.status !== 'draft' && (
+              <TimelineItem icon={Send} color="blue" label="Sent to Homeowner" date={formatDateTime(contract.updated_at)} />
+            )}
+            {contract.contractor_signed_at && (
+              <TimelineItem icon={PenTool} color="green" label="Contractor Signed" date={formatDateTime(contract.contractor_signed_at)} />
+            )}
+            {contract.homeowner_signed_at && (
+              <TimelineItem icon={PenTool} color="green" label="Homeowner Signed" date={formatDateTime(contract.homeowner_signed_at)} />
+            )}
+            {contract.status === 'accepted' && (
+              <TimelineItem icon={CalendarCheck} color="teal" label="Contract Executed" date="Both parties signed" />
+            )}
           </div>
         </div>
 
         {/* ── Error ── */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-4 flex items-center gap-2">
-            <Icon name="xCircle" size={18} color={theme.colors.error} />
+          <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
-        {/* ── Sign Button ── */}
+        {/* ── Sign / Request Changes Buttons ── */}
         {canSign && !isDraft && (
-          <button
-            onClick={handleSignContract}
-            disabled={isSigning}
-            className="w-full mt-4 py-3 px-4 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-300 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
-            type="button"
-          >
-            {isSigning ? (
+          <div className="space-y-3">
+            <button
+              onClick={handleSignContract}
+              disabled={isSigning || isRejecting}
+              className="w-full py-3.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2"
+              type="button"
+            >
+              {isSigning ? (
+                <>
+                  <Icon name="loader" size={20} color="white" />
+                  Signing...
+                </>
+              ) : (
+                <>
+                  <PenTool className="w-5 h-5" />
+                  Sign Contract
+                </>
+              )}
+            </button>
+
+            {userRole === 'homeowner' && contract.status === 'pending_homeowner' && (
               <>
-                <Icon name="loader" size={20} color="white" />
-                Signing...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-5 h-5" />
-                Sign Contract
+                {!showRejectForm ? (
+                  <button
+                    onClick={() => setShowRejectForm(true)}
+                    disabled={isSigning || isRejecting}
+                    className="w-full py-3 px-4 border border-gray-200 hover:border-amber-300 hover:bg-amber-50 text-gray-600 hover:text-amber-700 font-medium rounded-xl transition-all flex items-center justify-center gap-2 text-sm"
+                    type="button"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Request Changes
+                  </button>
+                ) : (
+                  <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-4 space-y-3">
+                    <p className="text-sm font-medium text-amber-800">What changes would you like?</p>
+                    <textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Describe the changes you'd like the contractor to make..."
+                      className="w-full border border-amber-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
+                      rows={3}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => { setShowRejectForm(false); setRejectReason(''); }}
+                        className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
+                        type="button"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleRejectContract}
+                        disabled={isRejecting}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
+                        type="button"
+                      >
+                        {isRejecting ? (
+                          <>
+                            <Icon name="loader" size={16} color="white" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            Send Back to Contractor
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
-          </button>
-        )}
-
-        {/* ── Accepted Banner ── */}
-        {contract.status === 'accepted' && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-4 flex items-center justify-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-green-600" />
-            <p className="text-sm font-medium text-green-700">Contract accepted — both parties have signed.</p>
           </div>
         )}
 
-        {/* ── Legal Footer ── */}
-        <p className="text-[10px] text-gray-400 text-center mt-6 pt-3 border-t border-gray-100">
-          This contract is facilitated through the Mintenance platform. All payments are held in escrow and released upon homeowner approval of completed work.
-          By signing, both parties agree to the terms outlined above.
+        {/* ── Accepted ── */}
+        {contract.status === 'accepted' && (
+          <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center justify-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <p className="text-sm font-medium text-emerald-700">Contract executed — both parties have signed.</p>
+          </div>
+        )}
+
+        {/* ── Footer ── */}
+        <p className="text-[10px] text-gray-300 text-center pt-4 border-t border-gray-50">
+          Facilitated by Mintenance. Payments held in escrow. By signing, both parties agree to the above terms.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Timeline Item ──
+
+function TimelineItem({ icon: IconComp, color, label, date }: {
+  icon: typeof FileText;
+  color: 'gray' | 'blue' | 'green' | 'teal';
+  label: string;
+  date: string;
+}) {
+  const colors = {
+    gray: 'bg-gray-100 text-gray-500',
+    blue: 'bg-blue-50 text-blue-500',
+    green: 'bg-emerald-50 text-emerald-500',
+    teal: 'bg-teal-50 text-teal-600',
+  };
+  return (
+    <div className="flex items-center gap-3 relative">
+      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 -ml-6 ${colors[color]} ring-2 ring-white`}>
+        <IconComp className="w-3 h-3" />
+      </div>
+      <div className="flex items-center justify-between flex-1 min-w-0">
+        <p className="text-xs font-medium text-gray-700">{label}</p>
+        <p className="text-[10px] text-gray-400 ml-2">{date}</p>
       </div>
     </div>
   );

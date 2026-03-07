@@ -310,7 +310,7 @@ export default async function JobDetailPage2025({ params }: { params: Promise<{ 
           </div>
         )}
         {job.contractor_id && (
-          <div style={{ marginTop: '24px' }}>
+          <div id="contract-section" style={{ marginTop: '24px' }}>
             <ContractManagement
               jobId={job.id}
               userRole="homeowner"

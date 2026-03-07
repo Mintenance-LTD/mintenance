@@ -44,6 +44,10 @@ export class BidManagementService {
     description: string;
     estimatedDurationDays?: number;
   }): Promise<Bid> {
+    // Default bid expiry: 14 days from submission
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 14);
+
     const { data, error } = await supabase
       .from('bids')
       .insert([
@@ -53,6 +57,7 @@ export class BidManagementService {
           amount: bidData.amount,
           message: bidData.description,
           status: 'pending',
+          expires_at: expiresAt.toISOString(),
           created_at: new Date().toISOString(),
           ...(bidData.estimatedDurationDays && { estimated_duration_days: bidData.estimatedDurationDays }),
         },

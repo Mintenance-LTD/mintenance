@@ -24,6 +24,8 @@ export class JobService {
     priority?: 'low' | 'medium' | 'high';
     photos?: string[];
     property_id?: string;
+    latitude?: number;
+    longitude?: number;
   }): Promise<Job> {
     return JobCRUDService.createJob(jobData);
   }

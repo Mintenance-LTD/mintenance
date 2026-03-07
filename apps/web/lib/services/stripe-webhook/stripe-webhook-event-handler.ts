@@ -5,6 +5,9 @@ import {
   handlePaymentIntentSucceeded,
   handlePaymentIntentFailed,
   handlePaymentIntentCanceled,
+  handlePaymentIntentRequiresAction,
+  handleChargeSucceeded,
+  handleChargeFailed,
   handleChargeRefunded,
 } from './payment-handlers';
 import {
@@ -57,8 +60,17 @@ export class StripeWebhookEventHandler {
       case 'payment_intent.canceled':
         await handlePaymentIntentCanceled(event.data.object as Stripe.PaymentIntent, notify);
         return;
+      case 'payment_intent.requires_action':
+        await handlePaymentIntentRequiresAction(event.data.object as Stripe.PaymentIntent, notify);
+        return;
 
       // Charge events
+      case 'charge.succeeded':
+        await handleChargeSucceeded(event.data.object as Stripe.Charge, notify);
+        return;
+      case 'charge.failed':
+        await handleChargeFailed(event.data.object as Stripe.Charge, notify);
+        return;
       case 'charge.refunded':
         await handleChargeRefunded(event.data.object as Stripe.Charge, notify);
         return;

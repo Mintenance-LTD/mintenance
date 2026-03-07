@@ -82,6 +82,15 @@ function ChatContent({ params }: ChatPageProps) {
     }
   }, [jobId, router]);
 
+  // Redirect to the proper messages page with conversation auto-selected
+  useEffect(() => {
+    if (!user || !jobId) return;
+    const target = user.role === 'contractor'
+      ? `/contractor/messages?jobId=${jobId}`
+      : `/messages?jobId=${jobId}`;
+    router.replace(target);
+  }, [user, jobId, router]);
+
   // Determine the correct back route based on user role
   const getBackRoute = () => {
     if (!user) return '/messages';

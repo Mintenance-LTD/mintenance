@@ -57,6 +57,9 @@ interface Document {
   tags: string[];
   created_at: string;
   updated_at: string;
+  is_contract?: boolean;
+  contract_id?: string;
+  contract_status?: string;
 }
 
 const CATEGORIES = [
@@ -257,7 +260,7 @@ export default function DocumentManagementPage() {
     }
   };
 
-  // Delete document
+  // Delete document or contract
   const handleDelete = async (doc: Document) => {
     if (!confirm(`Delete "${doc.name}"?`)) return;
 
@@ -266,18 +269,32 @@ export default function DocumentManagementPage() {
 
     try {
       const deleteCsrf = await getCsrfToken();
-      const res = await fetch(`/api/contractor/documents?id=${doc.id}`, {
-        method: 'DELETE',
-        headers: {
-          'X-CSRF-Token': deleteCsrf,
-        },
-      });
+
+      let res: Response;
+      if (doc.is_contract && doc.contract_id) {
+        // Delete contract via contract API
+        res = await fetch(`/api/contracts/${doc.contract_id}/delete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': deleteCsrf,
+          },
+        });
+      } else {
+        res = await fetch(`/api/contractor/documents?id=${doc.id}`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-Token': deleteCsrf,
+          },
+        });
+      }
 
       if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
         setDocuments((prev) => [...prev, doc]);
-        toast.error('Failed to delete');
+        toast.error(errorData.error?.message || errorData.error || 'Failed to delete');
       } else {
-        toast.success('Document deleted');
+        toast.success(doc.is_contract ? 'Contract deleted' : 'Document deleted');
       }
     } catch {
       setDocuments((prev) => [...prev, doc]);
@@ -285,8 +302,17 @@ export default function DocumentManagementPage() {
     }
   };
 
-  // Download document
+  // Download document (contracts download as PDF)
   const handleDownload = (doc: Document) => {
+    if (doc.is_contract && doc.contract_id) {
+      // Download contract as PDF
+      const link = document.createElement('a');
+      link.href = `/api/contracts/${doc.contract_id}/pdf`;
+      link.download = `${doc.name}.pdf`;
+      link.click();
+      toast.success(`Downloading ${doc.name} as PDF...`);
+      return;
+    }
     if (!doc.public_url) {
       toast.error('No download URL available');
       return;

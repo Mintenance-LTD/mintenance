@@ -30,6 +30,8 @@ import { AIAnalysisCard } from './components';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobsStackParamList } from '../../navigation/types';
 import type { Job } from '@mintenance/types';
+import { Alert } from 'react-native';
+import { JobService } from '../../services/JobService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -330,7 +332,23 @@ function getPriorityCTA({ job, isOwner, isContractor, userId, budget, navigation
   }
 
   if (job.status === 'assigned' && (isOwner || isAssignedContractor)) {
-    // Contract signing takes priority over pay/photos — it must happen first
+    // Check if contract is signed and escrow is funded — if so, show before-photo upload for contractor
+    const jobRecord = job as unknown as Record<string, unknown>;
+    const contractSigned = jobRecord.contract_status === 'accepted';
+    const escrowFunded = jobRecord.payment_status === 'paid';
+
+    if (isAssignedContractor && contractSigned && escrowFunded) {
+      // Before-photo upload + Start Job flow (Phase 6 enforcement)
+      return (
+        <StickyBottomCTA
+          buttonText="Upload Before Photos"
+          onPress={() => navigation.navigate('PhotoUpload', { jobId: job.id, photoType: 'before' })}
+          secondaryText="Required before starting work"
+        />
+      );
+    }
+
+    // Contract not yet fully signed — show contract view
     return (
       <StickyBottomCTA
         buttonText="View Contract"

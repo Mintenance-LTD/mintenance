@@ -4,12 +4,13 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { JobStatusAgent } from '@/lib/services/agents/JobStatusAgent';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
+import { EmailService } from '@/lib/email-service';
 import { sanitizeMessage } from '@/lib/sanitizer';
 import {
   MESSAGE_TYPES,
   normalizeMessageType,
-  SupabaseMessageRow,
-  mapMessageRow,
+  ActualMessageRow,
+  mapActualMessageRow,
 } from '@/app/api/messages/utils';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -42,11 +43,22 @@ export const GET = withApiHandler(
       throw new NotFoundError('Thread not found or access denied');
     }
 
-    // Fetch messages directly by job_id (production schema uses job_id, not thread_id)
+    // Find the message_thread for this job
+    const { data: threadData } = await serverSupabase
+      .from('message_threads')
+      .select('id')
+      .eq('job_id', jobId)
+      .single();
+
+    if (!threadData) {
+      return NextResponse.json({ messages: [] });
+    }
+
+    // Fetch messages using thread_id (production schema)
     const { data: messageData, error: messagesError } = await serverSupabase
       .from('messages')
-      .select('id, job_id, sender_id, receiver_id, content, message_type, read, attachment_url, created_at')
-      .eq('job_id', jobId)
+      .select('id, thread_id, sender_id, content, message_type, metadata, read_by, created_at')
+      .eq('thread_id', threadData.id)
       .order('created_at', { ascending: true });
 
     if (messagesError) {
@@ -59,7 +71,7 @@ export const GET = withApiHandler(
     }
 
     const messages = (messageData ?? []).map((row: Record<string, unknown>) =>
-      mapMessageRow(row as unknown as SupabaseMessageRow)
+      mapActualMessageRow(row as unknown as ActualMessageRow, jobId, user.id)
     );
 
     return NextResponse.json({ messages });
@@ -112,24 +124,70 @@ export const POST = withApiHandler(
     const messageType = normalizeMessageType(data.messageType);
     const attachmentUrl = data.attachments?.[0];
 
-    // Insert message using production schema columns (job_id, receiver_id, read, attachment_url)
+    // Validate attachment URL if provided (FIX HIGH-3: file upload validation)
+    if (attachmentUrl) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (!attachmentUrl.startsWith('https://')) {
+        throw new BadRequestError('Attachment URL must use HTTPS');
+      }
+      if (supabaseUrl && !attachmentUrl.startsWith(supabaseUrl)) {
+        throw new BadRequestError('Attachment must be from official storage');
+      }
+      const pathname = new URL(attachmentUrl).pathname.toLowerCase();
+      const allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic'];
+      if (!allowedExtensions.some(ext => pathname.endsWith(ext))) {
+        throw new BadRequestError('File type not allowed');
+      }
+    }
+
+    // Find or create message_thread for this job
+    let threadId: string;
+    const { data: existingThread } = await serverSupabase
+      .from('message_threads')
+      .select('id')
+      .eq('job_id', jobId)
+      .single();
+
+    if (existingThread) {
+      threadId = existingThread.id;
+    } else {
+      const { data: newThread, error: threadError } = await serverSupabase
+        .from('message_threads')
+        .insert({
+          job_id: jobId,
+          participant_ids: [user.id, receiverId].filter(Boolean),
+          last_message_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (threadError || !newThread) {
+        logger.error('Failed to create message thread', threadError, { service: 'messages', jobId });
+        throw new BadRequestError('Failed to create message thread');
+      }
+      threadId = newThread.id;
+    }
+
+    // Build metadata for optional fields
+    const metadata: Record<string, unknown> = {};
+    if (attachmentUrl) {
+      metadata.attachment_url = attachmentUrl;
+    }
+
+    // Insert message using production schema (thread_id, content, read_by, metadata)
     const insertPayload: Record<string, unknown> = {
-      job_id: jobId,
+      thread_id: threadId,
       sender_id: user.id,
-      receiver_id: receiverId,
       content: messageText,
       message_type: messageType,
-      read: false,
+      read_by: [user.id],
+      metadata: Object.keys(metadata).length > 0 ? metadata : null,
     };
-
-    if (attachmentUrl) {
-      insertPayload.attachment_url = attachmentUrl;
-    }
 
     const { data: inserted, error: insertError } = await serverSupabase
       .from('messages')
       .insert(insertPayload)
-      .select('id, job_id, sender_id, receiver_id, content, message_type, read, attachment_url, created_at')
+      .select('id, thread_id, sender_id, content, message_type, metadata, read_by, created_at')
       .single();
 
     if (insertError) {
@@ -143,14 +201,14 @@ export const POST = withApiHandler(
     }
 
     // Map to frontend response format
-    const message = mapMessageRow(inserted as unknown as SupabaseMessageRow);
+    const message = mapActualMessageRow(inserted as unknown as ActualMessageRow, jobId, user.id);
 
-    // Update message_thread last_message_at (if thread exists)
+    // Update message_thread last_message_at
     Promise.resolve(
       serverSupabase
         .from('message_threads')
         .update({ last_message_at: new Date().toISOString() })
-        .eq('job_id', jobId)
+        .eq('id', threadId)
     ).catch((err: unknown) => {
       logger.error('Failed to update thread last_message_at', err, {
         service: 'messages',
@@ -196,9 +254,34 @@ export const POST = withApiHandler(
             message: `${senderName}: ${messagePreview}${messageText.length > 80 ? '...' : ''}`,
             type: 'message_received',
             read: false,
-            action_url: `/messages/${jobId}?userId=${user.id}&userName=${encodeURIComponent(senderName)}&jobTitle=${encodeURIComponent(jobData.title || 'Job')}`,
+            action_url: `/messages?jobId=${jobId}`,
             created_at: new Date().toISOString(),
           });
+        // Send email notification to the receiver
+        try {
+          const { data: receiverProfile } = await serverSupabase
+            .from('profiles')
+            .select('first_name, email')
+            .eq('id', receiverId)
+            .single();
+
+          if (receiverProfile?.email) {
+            const jobTitle = jobData.title || 'your job';
+            await EmailService.sendMessageNotification(receiverProfile.email, {
+              recipientName: receiverProfile.first_name || 'there',
+              senderName,
+              jobTitle,
+              messagePreview: messagePreview + (messageText.length > 80 ? '...' : ''),
+              viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://mintenance.com')}/messages?jobId=${jobId}`,
+            });
+          }
+        } catch (emailError) {
+          logger.error('Message POST email notification error', emailError, {
+            service: 'messages',
+            receiverId,
+            jobId,
+          });
+        }
       } catch (notificationError) {
         logger.error('Message POST notification creation error', notificationError, {
           service: 'messages',

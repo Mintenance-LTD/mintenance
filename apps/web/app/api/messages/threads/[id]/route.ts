@@ -84,12 +84,25 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
   let hasMore = false;
   let nextCursorValue: string | undefined;
 
-  if (threadData) {
-    // Fetch messages using actual schema columns
+  // Fetch messages by thread_id (production schema)
+  {
+    const threadIdToUse = threadData?.id;
+    if (!threadIdToUse) {
+      // No thread yet — return empty
+      const thread: MessageThread = {
+        jobId: job.id,
+        jobTitle: job.title ?? 'Untitled Job',
+        participants: buildThreadParticipants(job),
+        unreadCount: 0,
+        lastMessage: undefined,
+      };
+      return NextResponse.json({ thread, messages: [], nextCursor: undefined, limit });
+    }
+
     let messageQuery = serverSupabase
       .from('messages')
       .select('id, thread_id, sender_id, content, message_type, metadata, read_by, created_at')
-      .eq('thread_id', threadData.id)
+      .eq('thread_id', threadIdToUse)
       .order('created_at', { ascending: false })
       .limit(limit + 1);
 
@@ -118,21 +131,19 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
 
   const latestMessage = messages.length > 0 ? messages[messages.length - 1] : undefined;
 
-  // Calculate unread count (messages not sent by user, user not in read_by)
+  // Calculate unread count (messages where user is NOT in read_by)
   let unreadCount = 0;
-  if (threadData) {
+  {
     const { data: unreadData } = await serverSupabase
       .from('messages')
       .select('id, read_by')
-      .eq('thread_id', threadData.id)
+      .eq('thread_id', threadData!.id)
       .neq('sender_id', user.id);
 
-    if (unreadData) {
-      unreadCount = unreadData.filter((row: { id: string; read_by: string[] | null }) => {
-        const readBy = Array.isArray(row.read_by) ? row.read_by : [];
-        return !readBy.includes(user.id);
-      }).length;
-    }
+    unreadCount = (unreadData ?? []).filter((m: { read_by: string[] | null }) => {
+      const readBy = m.read_by ?? [];
+      return !readBy.includes(user.id);
+    }).length;
   }
 
   const thread: MessageThread = {

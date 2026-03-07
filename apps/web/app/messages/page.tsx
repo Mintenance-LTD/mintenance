@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { LoadingSpinner } from '@/components/ui';
@@ -12,6 +12,7 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 import { MessagesConversationSidebar } from './components/MessagesConversationSidebar';
 import { MessagesChatArea } from './components/MessagesChatArea';
 import { MessagesEmptyState } from './components/MessagesEmptyState';
+import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator';
 
 interface Conversation {
   id: string;
@@ -35,6 +36,7 @@ interface Message {
   sender_id: string;
   content: string;
   message_type?: string;
+  attachment_url?: string;
   created_at: string;
   read: boolean;
 }
@@ -47,6 +49,8 @@ interface ApiMessageResponse {
   messageText?: string;
   messageType?: string;
   message_type?: string;
+  attachmentUrl?: string;
+  attachment_url?: string;
   createdAt?: string;
   created_at?: string;
   read?: boolean;
@@ -73,13 +77,16 @@ interface ApiThread {
 export default function MessagesPage2025() {
   return (
     <ErrorBoundary componentName="MessagesPage">
-      <MessagesPageContent />
+      <Suspense fallback={<LoadingSpinner fullScreen message="Loading messages..." />}>
+        <MessagesPageContent />
+      </Suspense>
     </ErrorBoundary>
   );
 }
 
 function MessagesPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: loadingUser } = useCurrentUser();
   const { csrfToken } = useCSRF();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -91,6 +98,11 @@ function MessagesPageContent() {
   const [filter, setFilter] = useState<'all' | 'unread' | 'archived'>('all');
   const [messageInput, setMessageInput] = useState('');
   const [sending, setSending] = useState(false);
+
+  const { isOtherTyping, broadcastTyping } = useTypingIndicator({
+    channelId: selectedConversation?.id ?? null,
+    userId: user?.id ?? null,
+  });
 
   // Fetch conversations from real API
   useEffect(() => {
@@ -127,6 +139,13 @@ function MessagesPageContent() {
         });
 
         setConversations(transformedConversations);
+
+        // Auto-select conversation if jobId is in URL params
+        const targetJobId = searchParams.get('jobId');
+        if (targetJobId) {
+          const match = transformedConversations.find((c: Conversation) => c.id === targetJobId);
+          if (match) setSelectedConversation(match);
+        }
       } catch (error) {
         toast.error('Failed to load conversations');
       } finally {
@@ -153,6 +172,7 @@ function MessagesPageContent() {
           sender_id: msg.senderId || msg.sender_id || '',
           content: msg.content || msg.messageText || '',
           message_type: msg.messageType || msg.message_type || 'text',
+          attachment_url: msg.attachmentUrl || msg.attachment_url || undefined,
           created_at: msg.createdAt || msg.created_at || '',
           read: msg.read !== undefined ? msg.read : true,
         }));
@@ -161,6 +181,7 @@ function MessagesPageContent() {
 
         await fetch(`/api/messages/threads/${selectedConversation.id}/read`, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
         });
       } catch (error) {
         toast.error('Failed to load messages');
@@ -277,9 +298,10 @@ function MessagesPageContent() {
               currentUserId={user.id}
               loadingMessages={loadingMessages}
               messageInput={messageInput}
-              onMessageInputChange={setMessageInput}
+              onMessageInputChange={(val: string) => { setMessageInput(val); broadcastTyping(); }}
               onSendMessage={handleSendMessage}
               sending={sending}
+              isTyping={isOtherTyping}
             />
           ) : (
             <MessagesEmptyState />

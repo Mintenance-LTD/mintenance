@@ -47,6 +47,8 @@ export class JobCRUDService {
     priority?: 'low' | 'medium' | 'high';
     photos?: string[];
     property_id?: string;
+    latitude?: number;
+    longitude?: number;
   }): Promise<Job> {
     const context = {
       service: 'JobCRUDService',
@@ -94,6 +96,8 @@ export class JobCRUDService {
             priority: jobData.priority,
             photos: jobData.photos,
             property_id: jobData.property_id,
+            latitude: jobData.latitude,
+            longitude: jobData.longitude,
             status: 'posted',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

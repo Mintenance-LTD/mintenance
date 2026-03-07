@@ -43,6 +43,22 @@ export class EmailService {
   private static apiKey = process.env.SENDGRID_API_KEY || process.env.RESEND_API_KEY;
   private static fromEmail = process.env.EMAIL_FROM || 'noreply@mintenance.com';
   private static fromName = process.env.EMAIL_FROM_NAME || 'Mintenance';
+  private static baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+
+  /**
+   * Generate GDPR-compliant unsubscribe footer for emails
+   */
+  static getUnsubscribeFooter(unsubscribeToken?: string): string {
+    if (!unsubscribeToken) {
+      return `<p style="margin-top:30px;font-size:12px;color:#9ca3af;">&copy; ${new Date().getFullYear()} Mintenance. All rights reserved.</p>`;
+    }
+    const unsubUrl = `${this.baseUrl}/api/email/unsubscribe?token=${unsubscribeToken}`;
+    return `<div style="margin-top:30px;padding-top:20px;border-top:1px solid #e5e7eb;text-align:center;font-size:12px;color:#9ca3af;">
+      <p>&copy; ${new Date().getFullYear()} Mintenance. All rights reserved.</p>
+      <p>You received this email because you have a Mintenance account.</p>
+      <p><a href="${unsubUrl}" style="color:#6b7280;">Unsubscribe</a> | <a href="${this.baseUrl}/settings/notifications" style="color:#6b7280;">Email preferences</a></p>
+    </div>`;
+  }
 
   /**
    * Send a generic email
@@ -334,6 +350,122 @@ Building connections helps you grow your network and find more opportunities.
       to: contractorEmail,
       subject: `Quote Accepted - ${quoteNumber}`,
       html,
+    });
+  }
+
+  /**
+   * Send contract notification to homeowner when contractor creates/sends a contract
+   */
+  static async sendContractNotification(
+    homeownerEmail: string,
+    data: {
+      homeownerName: string;
+      contractorName: string;
+      jobTitle: string;
+      contractAmount: number;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #0d9488; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+            .amount { font-size: 28px; font-weight: bold; color: #0d9488; margin: 15px 0; }
+            .cta { display: inline-block; background-color: #0d9488; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px; }
+            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>New Contract Ready for Review</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${data.homeownerName},</p>
+              <p><strong>${data.contractorName}</strong> has sent you a contract for your job "<strong>${data.jobTitle}</strong>".</p>
+              <p class="amount">&pound;${data.contractAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p>Please review the contract details and sign it to proceed with the work.</p>
+              <p><a href="${data.viewUrl}" class="cta">Review &amp; Sign Contract</a></p>
+              <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">Payment will be held securely in escrow by Mintenance until the work is completed and approved.</p>
+            </div>
+            <div class="footer">
+              <p>&copy; ${new Date().getFullYear()} Mintenance. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has sent you a contract for "${data.jobTitle}" for £${data.contractAmount.toFixed(2)}.\n\nPlease review and sign: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+
+    return this.sendEmail({
+      to: homeownerEmail,
+      subject: `Contract Ready for Review - ${data.jobTitle}`,
+      html,
+      text,
+    });
+  }
+
+  /**
+   * Send new message notification email
+   */
+  static async sendMessageNotification(
+    recipientEmail: string,
+    data: {
+      recipientName: string;
+      senderName: string;
+      jobTitle: string;
+      messagePreview: string;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #0d9488; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+            .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+            .message-box { background: white; border-left: 4px solid #0d9488; padding: 15px; border-radius: 4px; margin: 15px 0; }
+            .cta { display: inline-block; background-color: #0d9488; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 15px; }
+            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>New Message</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${data.recipientName},</p>
+              <p><strong>${data.senderName}</strong> sent you a message about "<strong>${data.jobTitle}</strong>":</p>
+              <div class="message-box">
+                <p style="margin: 0; color: #374151;">${data.messagePreview}</p>
+              </div>
+              <p><a href="${data.viewUrl}" class="cta">Reply Now</a></p>
+            </div>
+            <div class="footer">
+              <p>&copy; ${new Date().getFullYear()} Mintenance. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `Hi ${data.recipientName},\n\n${data.senderName} sent you a message about "${data.jobTitle}":\n\n"${data.messagePreview}"\n\nReply: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+
+    return this.sendEmail({
+      to: recipientEmail,
+      subject: `New message from ${data.senderName} - ${data.jobTitle}`,
+      html,
+      text,
     });
   }
 }

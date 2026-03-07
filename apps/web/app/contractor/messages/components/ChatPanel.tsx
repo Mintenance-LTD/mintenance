@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send, Paperclip, MoreVertical, Phone, Video,
-  Briefcase, Calendar, CheckCheck,
+  Briefcase, Calendar, CheckCheck, FileText, Download, ClipboardList,
 } from 'lucide-react';
 import type { Conversation, Message, JobContext } from './messagesTypes';
 import { formatMessageTime, getInitials, getStatusColor } from './messagesTypes';
@@ -29,6 +29,7 @@ interface ChatPanelProps {
   onScheduleMeeting: () => void;
   onSendQuote: () => void;
   onShareDocument: () => void;
+  onPrepareContract: () => void;
   onViewJob: (jobId: string) => void;
 }
 
@@ -36,7 +37,7 @@ export function ChatPanel({
   conversation, userId, messages, loadingMessages, messageInput,
   sending, isTyping, jobContext, showMoreOptions, messagesEndRef,
   onMessageInputChange, onSendMessage, onVoiceCall, onVideoCall,
-  onToggleMoreOptions, onScheduleMeeting, onSendQuote, onShareDocument, onViewJob,
+  onToggleMoreOptions, onScheduleMeeting, onSendQuote, onShareDocument, onPrepareContract, onViewJob,
 }: ChatPanelProps) {
   return (
     <>
@@ -82,6 +83,9 @@ export function ChatPanel({
               </button>
               {showMoreOptions && (
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
+                  <button onClick={() => { onPrepareContract(); onToggleMoreOptions(); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3">
+                    <FileText className="w-4 h-4" /> Prepare Contract
+                  </button>
                   <button onClick={() => { onScheduleMeeting(); onToggleMoreOptions(); }} className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3">
                     <Calendar className="w-4 h-4" /> Schedule Meeting
                   </button>
@@ -171,9 +175,39 @@ export function ChatPanel({
                       </div>
                     )}
                     <div className={`flex flex-col max-w-md ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-                      <div className={`px-5 py-3.5 rounded-2xl shadow-sm ${isCurrentUser ? 'bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-br-md' : 'bg-white text-slate-900 rounded-bl-md border border-slate-200'}`}>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-                      </div>
+                      {message.message_type === 'file' && message.attachment_url ? (
+                        <div className={`px-5 py-3.5 rounded-2xl shadow-sm ${isCurrentUser ? 'bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-br-md' : 'bg-white text-slate-900 rounded-bl-md border border-slate-200'}`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isCurrentUser ? 'bg-white/10' : 'bg-teal-50'}`}>
+                              <FileText className={`w-5 h-5 ${isCurrentUser ? 'text-white/80' : 'text-teal-600'}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{message.content.replace(/^Shared document:\s*/i, '')}</p>
+                              <p className={`text-xs mt-0.5 ${isCurrentUser ? 'text-white/60' : 'text-slate-500'}`}>Shared document</p>
+                            </div>
+                          </div>
+                          <a
+                            href={message.attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`mt-3 flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${isCurrentUser ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200'}`}
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            View Document
+                          </a>
+                        </div>
+                      ) : message.message_type === 'system' ? (
+                        <div className={`px-5 py-3.5 rounded-2xl shadow-sm ${isCurrentUser ? 'bg-gradient-to-r from-teal-700 to-teal-800 text-white rounded-br-md' : 'bg-teal-50 text-teal-900 rounded-bl-md border border-teal-200'}`}>
+                          <div className="flex items-start gap-2">
+                            <ClipboardList className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isCurrentUser ? 'text-teal-200' : 'text-teal-600'}`} />
+                            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={`px-5 py-3.5 rounded-2xl shadow-sm ${isCurrentUser ? 'bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-br-md' : 'bg-white text-slate-900 rounded-bl-md border border-slate-200'}`}>
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
+                        </div>
+                      )}
                       <div className={`flex items-center gap-2 mt-1.5 text-xs ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'}`}>
                         <span className="text-slate-500 font-medium">{formatMessageTime(message.created_at)}</span>
                         {isCurrentUser && <CheckCheck className={`w-4 h-4 ${message.read ? 'text-teal-500' : 'text-slate-400'}`} />}

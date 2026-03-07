@@ -675,6 +675,18 @@ export async function DELETE(request: NextRequest, context: Params) {
       throw new ForbiddenError('You can only delete your own jobs');
     }
 
+    // Block deletion if contract has been accepted by both parties
+    const { data: acceptedContract } = await serverSupabase
+      .from('contracts')
+      .select('id')
+      .eq('job_id', id)
+      .eq('status', 'accepted')
+      .limit(1);
+
+    if (acceptedContract && acceptedContract.length > 0) {
+      throw new BadRequestError('Cannot delete job with a fully signed contract. Please cancel the job instead.');
+    }
+
     // Only allow deletion of posted jobs (jobs without assigned contractors or accepted bids)
     // For posted jobs, allow deletion (pending bids are OK)
     // For other statuses, check restrictions
