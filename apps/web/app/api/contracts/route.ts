@@ -35,7 +35,7 @@ export const GET = withApiHandler({ csrf: false }, async (request, { user }) => 
       start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,
       contractor_company_name, contractor_license_registration, contractor_license_type,
       created_at, updated_at,
-      contractor:profiles!contractor_id(first_name, last_name, company_name, profile_image_url, insurance_number, insurance_expiry_date),
+      contractor:profiles!contractor_id(first_name, last_name, company_name, profile_image_url, insurance_expiry_date),
       homeowner:profiles!homeowner_id(first_name, last_name)
     `);
 
