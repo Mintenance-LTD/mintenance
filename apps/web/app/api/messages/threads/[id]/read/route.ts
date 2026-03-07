@@ -32,59 +32,24 @@ export const POST = withApiHandler(
       throw new ForbiddenError('You are not a participant in this thread');
     }
 
-    // Find message_thread for this job
-    const { data: threadData } = await serverSupabase
-      .from('message_threads')
-      .select('id')
-      .eq('job_id', jobId)
-      .single();
-
-    if (!threadData) {
-      return NextResponse.json({ updated: 0 });
-    }
-
-    // Find unread messages (where user is NOT in read_by array)
-    const { data: unreadMsgs, error: fetchError } = await serverSupabase
+    // Mark all unread messages in this job as read (actual DB uses `read` boolean)
+    const { data: updateResult, error: updateError } = await serverSupabase
       .from('messages')
-      .select('id, read_by')
-      .eq('thread_id', threadData.id)
-      .neq('sender_id', user.id);
+      .update({ read: true })
+      .eq('job_id', jobId)
+      .neq('sender_id', user.id)
+      .eq('read', false)
+      .select('id');
 
-    if (fetchError) {
-      logger.error('mark-read fetch error', fetchError, {
+    if (updateError) {
+      logger.error('mark-read update error', updateError, {
         service: 'messages',
         jobId,
         userId: user.id,
       });
-      throw fetchError;
+      throw updateError;
     }
 
-    // Filter to messages where user is NOT already in read_by
-    const toUpdate = (unreadMsgs ?? []).filter((m: { id: string; read_by: string[] | null }) => {
-      const readBy = m.read_by ?? [];
-      return !readBy.includes(user.id);
-    });
-
-    let updated = 0;
-    for (const msg of toUpdate) {
-      const currentReadBy = (msg as { read_by: string[] | null }).read_by ?? [];
-      const { error: updateError } = await serverSupabase
-        .from('messages')
-        .update({ read_by: [...currentReadBy, user.id] })
-        .eq('id', msg.id);
-
-      if (updateError) {
-        logger.error('mark-read update error', updateError, {
-          service: 'messages',
-          jobId,
-          userId: user.id,
-          messageId: msg.id,
-        });
-      } else {
-        updated++;
-      }
-    }
-
-    return NextResponse.json({ updated });
+    return NextResponse.json({ updated: updateResult?.length ?? 0 });
   }
 );

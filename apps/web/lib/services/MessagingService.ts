@@ -180,17 +180,15 @@ export class MessagingService {
           (payload) => {
             try {
               const row = payload.new as Record<string, unknown>;
-              const readBy = Array.isArray(row.read_by) ? row.read_by as string[] : [];
-              const metadata = (row.metadata ?? {}) as Record<string, unknown>;
               const msg: Message = {
                 id: row.id as string,
-                jobId,
+                jobId: (row.job_id as string) || jobId,
                 senderId: row.sender_id as string,
-                receiverId: '',
+                receiverId: (row.receiver_id as string) || '',
                 messageText: (row.content as string) || '',
                 messageType: ((row.message_type as string) || 'text') as 'text' | 'image' | 'file' | 'system',
-                attachmentUrl: (metadata.attachment_url as string) || undefined,
-                read: readBy.length > 1,
+                attachmentUrl: (row.attachment_url as string) || undefined,
+                read: Boolean(row.read),
                 createdAt: row.created_at as string,
               };
               onNewMessage(msg);

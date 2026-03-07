@@ -7,8 +7,8 @@ import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { isValidUUID } from '@/lib/validation/uuid';
 import {
   buildThreadParticipants,
-  mapActualMessageRow,
-  ActualMessageRow,
+  mapMessageRow,
+  SupabaseMessageRow,
   SupabaseJobRow,
 } from '@/app/api/messages/utils';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -80,29 +80,16 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
     .eq('job_id', jobId)
     .single();
 
-  let messages: ReturnType<typeof mapActualMessageRow>[] = [];
+  let messages: ReturnType<typeof mapMessageRow>[] = [];
   let hasMore = false;
   let nextCursorValue: string | undefined;
 
-  // Fetch messages by thread_id (production schema)
+  // Fetch messages by job_id (actual DB schema)
   {
-    const threadIdToUse = threadData?.id;
-    if (!threadIdToUse) {
-      // No thread yet — return empty
-      const thread: MessageThread = {
-        jobId: job.id,
-        jobTitle: job.title ?? 'Untitled Job',
-        participants: buildThreadParticipants(job),
-        unreadCount: 0,
-        lastMessage: undefined,
-      };
-      return NextResponse.json({ thread, messages: [], nextCursor: undefined, limit });
-    }
-
     let messageQuery = serverSupabase
       .from('messages')
-      .select('id, thread_id, sender_id, content, message_type, metadata, read_by, created_at')
-      .eq('thread_id', threadIdToUse)
+      .select('id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at')
+      .eq('job_id', jobId)
       .order('created_at', { ascending: false })
       .limit(limit + 1);
 
@@ -121,29 +108,27 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (req
       throw messagesError;
     }
 
-    const rows = (messageData ?? []) as unknown as ActualMessageRow[];
+    const rows = (messageData ?? []) as unknown as SupabaseMessageRow[];
     hasMore = rows.length > limit;
     const limitedRows = rows.slice(0, limit);
-    const mappedLimited = limitedRows.map(row => mapActualMessageRow(row, jobId, user.id));
+    const mappedLimited = limitedRows.map(row => mapMessageRow(row));
     nextCursorValue = hasMore ? limitedRows[limitedRows.length - 1]?.created_at : undefined;
     messages = mappedLimited.slice().reverse();
   }
 
   const latestMessage = messages.length > 0 ? messages[messages.length - 1] : undefined;
 
-  // Calculate unread count (messages where user is NOT in read_by)
+  // Calculate unread count (messages not read, sent by other user)
   let unreadCount = 0;
   {
-    const { data: unreadData } = await serverSupabase
+    const { data: unreadData, count } = await serverSupabase
       .from('messages')
-      .select('id, read_by')
-      .eq('thread_id', threadData!.id)
-      .neq('sender_id', user.id);
+      .select('id', { count: 'exact', head: true })
+      .eq('job_id', jobId)
+      .neq('sender_id', user.id)
+      .eq('read', false);
 
-    unreadCount = (unreadData ?? []).filter((m: { read_by: string[] | null }) => {
-      const readBy = m.read_by ?? [];
-      return !readBy.includes(user.id);
-    }).length;
+    unreadCount = count ?? 0;
   }
 
   const thread: MessageThread = {
