@@ -193,7 +193,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
             'X-CSRF-Token': csrfToken,
           },
           body: JSON.stringify({
-            amount: amountInPence,
+            amount: defaultAmount,
             currency: 'gbp',
             jobId,
             contractorId,
