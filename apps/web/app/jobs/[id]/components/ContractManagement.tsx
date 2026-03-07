@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '@/components/ui/Icon';
-import { theme } from '@/lib/theme';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import {
   Shield, CheckCircle2, Circle, Clock, FileText, Building2,
   Scale, Send, PenTool, CalendarCheck, User, Briefcase,
-  Calendar, PoundSterling, AlertCircle, RotateCcw, Trash2, Download,
+  Calendar, PoundSterling, AlertCircle, RotateCcw, Trash2, Download, X,
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -18,7 +17,6 @@ interface ContractorProfile {
   last_name: string | null;
   company_name: string | null;
   profile_image_url: string | null;
-  insurance_number: string | null;
   insurance_expiry_date: string | null;
 }
 
@@ -97,6 +95,7 @@ export function ContractManagement(props: ContractManagementProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { csrfToken } = useCSRF();
 
   const fetchContract = useCallback(async () => {
@@ -218,6 +217,18 @@ export function ContractManagement(props: ContractManagementProps) {
     (userRole === 'homeowner' && !contract.homeowner_signed_at)
   );
 
+  // Close modal on Escape
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsModalOpen(false); };
+    document.addEventListener('keydown', handleEsc);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = '';
+    };
+  }, [isModalOpen]);
+
   // ── Loading ──
   if (loading) {
     return (
@@ -259,15 +270,16 @@ export function ContractManagement(props: ContractManagementProps) {
     ? `${contract.homeowner.first_name} ${contract.homeowner.last_name}`
     : 'Homeowner';
   const logoUrl = contract.contractor?.profile_image_url;
-  const hasInsurance = !!(contract.contractor?.insurance_number || contract.terms?.insurance_provider);
+  const hasInsurance = !!(contract.terms?.insurance_provider);
   const insuranceProvider = (contract.terms?.insurance_provider) as string | undefined;
-  const insurancePolicyNumber = (contract.contractor?.insurance_number || contract.terms?.insurance_policy_number) as string | undefined;
+  const insurancePolicyNumber = (contract.terms?.insurance_policy_number) as string | undefined;
   const visibleTerms = contract.terms
     ? Object.entries(contract.terms).filter(([key]) => !TERMS_HIDDEN_KEYS.includes(key))
     : [];
 
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  // ── Contract Detail (used inside modal) ──
+  const contractDetail = (
+    <div className="bg-white rounded-2xl overflow-hidden">
       {/* ── Header ── */}
       <div className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 px-6 py-6">
         <div className="flex items-start justify-between">
@@ -288,9 +300,11 @@ export function ContractManagement(props: ContractManagementProps) {
               </p>
             </div>
           </div>
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${statusConfig.bg} ${statusConfig.text} border ${statusConfig.border}`}>
-            <StatusIcon className="w-3.5 h-3.5" />
-            {statusConfig.label}
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${statusConfig.bg} ${statusConfig.text} border ${statusConfig.border}`}>
+              <StatusIcon className="w-3.5 h-3.5" />
+              {statusConfig.label}
+            </div>
           </div>
         </div>
       </div>
@@ -299,23 +313,12 @@ export function ContractManagement(props: ContractManagementProps) {
         {/* ── Actions Bar ── */}
         {!isDraft && (
           <div className="flex items-center gap-2 justify-end">
-            <button
-              onClick={handleDownloadPdf}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
-              type="button"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Download PDF
+            <button onClick={handleDownloadPdf} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200" type="button">
+              <Download className="w-3.5 h-3.5" /> Download PDF
             </button>
             {canDelete && (
-              <button
-                onClick={handleDeleteContract}
-                disabled={isDeleting}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200 disabled:opacity-50"
-                type="button"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                {isDeleting ? 'Deleting...' : 'Delete'}
+              <button onClick={handleDeleteContract} disabled={isDeleting} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200 disabled:opacity-50" type="button">
+                <Trash2 className="w-3.5 h-3.5" /> {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             )}
           </div>
@@ -340,28 +343,20 @@ export function ContractManagement(props: ContractManagementProps) {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Parties</h4>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="border border-gray-100 rounded-xl p-4 hover:border-teal-100 transition-colors">
+            <div className="border border-gray-100 rounded-xl p-4">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-600 mb-1.5">Contractor</p>
               <p className="font-semibold text-gray-900 text-sm">{contractorName}</p>
-              {contract.contractor_license_type && (
-                <p className="text-xs text-gray-500 mt-1">{contract.contractor_license_type}</p>
-              )}
-              {contract.contractor_license_registration && (
-                <p className="text-xs text-gray-400">License: {contract.contractor_license_registration}</p>
-              )}
+              {contract.contractor_license_type && <p className="text-xs text-gray-500 mt-1">{contract.contractor_license_type}</p>}
+              {contract.contractor_license_registration && <p className="text-xs text-gray-400">License: {contract.contractor_license_registration}</p>}
               {hasInsurance && (
                 <div className="flex items-center gap-1 mt-2 bg-emerald-50 rounded-md px-2 py-1 w-fit">
                   <Shield className="w-3 h-3 text-emerald-600" />
-                  <span className="text-[10px] text-emerald-700 font-medium">
-                    Insured{insuranceProvider ? ` — ${insuranceProvider}` : ''}
-                  </span>
+                  <span className="text-[10px] text-emerald-700 font-medium">Insured{insuranceProvider ? ` — ${insuranceProvider}` : ''}</span>
                 </div>
               )}
-              {insurancePolicyNumber && (
-                <p className="text-[10px] text-gray-400 mt-1">Policy: {insurancePolicyNumber}</p>
-              )}
+              {insurancePolicyNumber && <p className="text-[10px] text-gray-400 mt-1">Policy: {insurancePolicyNumber}</p>}
             </div>
-            <div className="border border-gray-100 rounded-xl p-4 hover:border-teal-100 transition-colors">
+            <div className="border border-gray-100 rounded-xl p-4">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-600 mb-1.5">Homeowner</p>
               <p className="font-semibold text-gray-900 text-sm">{homeownerName}</p>
             </div>
@@ -376,12 +371,8 @@ export function ContractManagement(props: ContractManagementProps) {
               <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Scope of Work</h4>
             </div>
             <div className="border border-gray-100 rounded-xl p-4">
-              {contract.title && (
-                <p className="font-semibold text-gray-900 text-sm">{contract.title}</p>
-              )}
-              {contract.description && (
-                <p className="text-sm text-gray-600 leading-relaxed mt-1.5 whitespace-pre-wrap">{contract.description}</p>
-              )}
+              {contract.title && <p className="font-semibold text-gray-900 text-sm">{contract.title}</p>}
+              {contract.description && <p className="text-sm text-gray-600 leading-relaxed mt-1.5 whitespace-pre-wrap">{contract.description}</p>}
             </div>
           </div>
         )}
@@ -443,12 +434,8 @@ export function ContractManagement(props: ContractManagementProps) {
             <div className="border border-gray-100 rounded-xl p-4 space-y-2">
               {visibleTerms.map(([key, value]) => (
                 <div key={key} className="flex gap-3">
-                  <span className="text-xs font-medium text-gray-400 min-w-[100px] capitalize">
-                    {key.replace(/_/g, ' ')}
-                  </span>
-                  <span className="text-xs text-gray-700 flex-1 whitespace-pre-wrap">
-                    {typeof value === 'string' ? value : JSON.stringify(value)}
-                  </span>
+                  <span className="text-xs font-medium text-gray-400 min-w-[100px] capitalize">{key.replace(/_/g, ' ')}</span>
+                  <span className="text-xs text-gray-700 flex-1 whitespace-pre-wrap">{typeof value === 'string' ? value : JSON.stringify(value)}</span>
                 </div>
               ))}
             </div>
@@ -469,18 +456,10 @@ export function ContractManagement(props: ContractManagementProps) {
               <div key={label} className={`rounded-xl p-4 border ${signedAt ? 'bg-emerald-50/50 border-emerald-100' : 'bg-gray-50/50 border-gray-100'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">{label}</span>
-                  {signedAt ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  ) : (
-                    <Circle className="w-4 h-4 text-gray-300" />
-                  )}
+                  {signedAt ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Circle className="w-4 h-4 text-gray-300" />}
                 </div>
                 <p className="text-sm font-medium text-gray-900">{name}</p>
-                {signedAt ? (
-                  <p className="text-xs text-emerald-600 mt-1">Signed {formatDateTime(signedAt)}</p>
-                ) : (
-                  <p className="text-xs text-gray-400 mt-1">Awaiting signature</p>
-                )}
+                {signedAt ? <p className="text-xs text-emerald-600 mt-1">Signed {formatDateTime(signedAt)}</p> : <p className="text-xs text-gray-400 mt-1">Awaiting signature</p>}
               </div>
             ))}
           </div>
@@ -493,22 +472,12 @@ export function ContractManagement(props: ContractManagementProps) {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-400">Timeline</h4>
           </div>
           <div className="relative pl-6 space-y-4">
-            {/* Vertical line */}
             <div className="absolute left-[11px] top-1 bottom-1 w-px bg-gray-200" />
-
             <TimelineItem icon={FileText} color="gray" label="Contract Created" date={formatDateTime(contract.created_at)} />
-            {contract.status !== 'draft' && (
-              <TimelineItem icon={Send} color="blue" label="Sent to Homeowner" date={formatDateTime(contract.updated_at)} />
-            )}
-            {contract.contractor_signed_at && (
-              <TimelineItem icon={PenTool} color="green" label="Contractor Signed" date={formatDateTime(contract.contractor_signed_at)} />
-            )}
-            {contract.homeowner_signed_at && (
-              <TimelineItem icon={PenTool} color="green" label="Homeowner Signed" date={formatDateTime(contract.homeowner_signed_at)} />
-            )}
-            {contract.status === 'accepted' && (
-              <TimelineItem icon={CalendarCheck} color="teal" label="Contract Executed" date="Both parties signed" />
-            )}
+            {contract.status !== 'draft' && <TimelineItem icon={Send} color="blue" label="Sent to Homeowner" date={formatDateTime(contract.updated_at)} />}
+            {contract.contractor_signed_at && <TimelineItem icon={PenTool} color="green" label="Contractor Signed" date={formatDateTime(contract.contractor_signed_at)} />}
+            {contract.homeowner_signed_at && <TimelineItem icon={PenTool} color="green" label="Homeowner Signed" date={formatDateTime(contract.homeowner_signed_at)} />}
+            {contract.status === 'accepted' && <TimelineItem icon={CalendarCheck} color="teal" label="Contract Executed" date="Both parties signed" />}
           </div>
         </div>
 
@@ -523,72 +492,23 @@ export function ContractManagement(props: ContractManagementProps) {
         {/* ── Sign / Request Changes Buttons ── */}
         {canSign && !isDraft && (
           <div className="space-y-3">
-            <button
-              onClick={handleSignContract}
-              disabled={isSigning || isRejecting}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2"
-              type="button"
-            >
-              {isSigning ? (
-                <>
-                  <Icon name="loader" size={20} color="white" />
-                  Signing...
-                </>
-              ) : (
-                <>
-                  <PenTool className="w-5 h-5" />
-                  Sign Contract
-                </>
-              )}
+            <button onClick={handleSignContract} disabled={isSigning || isRejecting} className="w-full py-3.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2" type="button">
+              {isSigning ? (<><Icon name="loader" size={20} color="white" /> Signing...</>) : (<><PenTool className="w-5 h-5" /> Sign Contract</>)}
             </button>
-
             {userRole === 'homeowner' && contract.status === 'pending_homeowner' && (
               <>
                 {!showRejectForm ? (
-                  <button
-                    onClick={() => setShowRejectForm(true)}
-                    disabled={isSigning || isRejecting}
-                    className="w-full py-3 px-4 border border-gray-200 hover:border-amber-300 hover:bg-amber-50 text-gray-600 hover:text-amber-700 font-medium rounded-xl transition-all flex items-center justify-center gap-2 text-sm"
-                    type="button"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Request Changes
+                  <button onClick={() => setShowRejectForm(true)} disabled={isSigning || isRejecting} className="w-full py-3 px-4 border border-gray-200 hover:border-amber-300 hover:bg-amber-50 text-gray-600 hover:text-amber-700 font-medium rounded-xl transition-all flex items-center justify-center gap-2 text-sm" type="button">
+                    <RotateCcw className="w-4 h-4" /> Request Changes
                   </button>
                 ) : (
                   <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-4 space-y-3">
                     <p className="text-sm font-medium text-amber-800">What changes would you like?</p>
-                    <textarea
-                      value={rejectReason}
-                      onChange={(e) => setRejectReason(e.target.value)}
-                      placeholder="Describe the changes you'd like the contractor to make..."
-                      className="w-full border border-amber-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none"
-                      rows={3}
-                    />
+                    <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Describe the changes you'd like the contractor to make..." className="w-full border border-amber-200 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none" rows={3} />
                     <div className="flex gap-2 justify-end">
-                      <button
-                        onClick={() => { setShowRejectForm(false); setRejectReason(''); }}
-                        className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700"
-                        type="button"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleRejectContract}
-                        disabled={isRejecting}
-                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5"
-                        type="button"
-                      >
-                        {isRejecting ? (
-                          <>
-                            <Icon name="loader" size={16} color="white" />
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            Send Back to Contractor
-                          </>
-                        )}
+                      <button onClick={() => { setShowRejectForm(false); setRejectReason(''); }} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700" type="button">Cancel</button>
+                      <button onClick={handleRejectContract} disabled={isRejecting} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5" type="button">
+                        {isRejecting ? (<><Icon name="loader" size={16} color="white" /> Sending...</>) : (<><RotateCcw className="w-3.5 h-3.5" /> Send Back to Contractor</>)}
                       </button>
                     </div>
                   </div>
@@ -606,12 +526,124 @@ export function ContractManagement(props: ContractManagementProps) {
           </div>
         )}
 
-        {/* ── Footer ── */}
         <p className="text-[10px] text-gray-300 text-center pt-4 border-t border-gray-50">
           Facilitated by Mintenance. Payments held in escrow. By signing, both parties agree to the above terms.
         </p>
       </div>
     </div>
+  );
+
+  // ── Compact Summary Card (inline on job page) ──
+  return (
+    <>
+      <div
+        className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:border-teal-200 hover:shadow-md transition-all"
+        onClick={() => setIsModalOpen(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsModalOpen(true); }}
+      >
+        <div className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 px-5 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {logoUrl ? (
+                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-white/20 flex-shrink-0 ring-2 ring-white/20">
+                  <Image src={logoUrl} alt="Company logo" fill className="object-contain p-1" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0 ring-2 ring-white/20">
+                  <Building2 className="w-5 h-5 text-white/70" />
+                </div>
+              )}
+              <div>
+                <h3 className="text-white font-bold text-base tracking-tight">Contract Agreement</h3>
+                <p className="text-teal-100/70 text-xs">Ref: {contract.id.slice(0, 8).toUpperCase()}</p>
+              </div>
+            </div>
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${statusConfig.bg} ${statusConfig.text} border ${statusConfig.border}`}>
+              <StatusIcon className="w-3.5 h-3.5" />
+              {statusConfig.label}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-5 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Amount</p>
+                <p className="text-xl font-bold text-gray-900">{formatCurrency(contract.amount)}</p>
+              </div>
+              {contract.title && (
+                <div className="border-l border-gray-200 pl-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Scope</p>
+                  <p className="text-sm text-gray-700 font-medium truncate max-w-[200px]">{contract.title}</p>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex -space-x-1">
+                {contract.contractor_signed_at
+                  ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                  : <Circle className="w-5 h-5 text-gray-300" />
+                }
+                {contract.homeowner_signed_at
+                  ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                  : <Circle className="w-5 h-5 text-gray-300" />
+                }
+              </div>
+              <span className="text-xs text-gray-400">
+                {contract.contractor_signed_at && contract.homeowner_signed_at ? 'Both signed' :
+                  contract.contractor_signed_at || contract.homeowner_signed_at ? '1 of 2 signed' : 'Awaiting signatures'}
+              </span>
+            </div>
+          </div>
+
+          {canSign && !isDraft && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsModalOpen(true); }}
+              className="w-full mt-4 py-2.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 text-sm"
+              type="button"
+            >
+              <PenTool className="w-4 h-4" />
+              Review & Sign Contract
+            </button>
+          )}
+
+          {!canSign && !isDraft && (
+            <p className="text-xs text-teal-600 font-medium mt-3 text-center">Click to view full contract details</p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Modal ── */}
+      {isModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto"
+          onClick={() => setIsModalOpen(false)}
+        >
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+
+          {/* Modal Content */}
+          <div
+            className="relative w-full max-w-2xl mx-4 my-8 z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute -top-3 -right-3 z-20 w-8 h-8 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors"
+              type="button"
+            >
+              <X className="w-4 h-4 text-gray-500" />
+            </button>
+
+            {contractDetail}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
