@@ -330,14 +330,14 @@ function JobPaymentPageContent() {
                 color: theme.colors.textSecondary,
                 marginBottom: '2px'
               }}>
-                Job Budget
+                Amount Due
               </div>
               <div style={{
                 fontSize: theme.typography.fontSize['2xl'],
                 fontWeight: theme.typography.fontWeight.bold,
                 color: theme.colors.success
               }}>
-                £{job.budget?.toLocaleString() || '0'}
+                £{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
           </div>
@@ -372,7 +372,7 @@ function JobPaymentPageContent() {
                 jobId={job.id}
                 contractorId={job.contractor_id || ''}
                 jobTitle={job.title}
-                defaultAmount={job.budget || 0}
+                defaultAmount={totalAmount}
                 onSuccess={handlePaymentSuccess}
                 onError={handlePaymentError}
                 onCancel={handleCancel}

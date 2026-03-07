@@ -37,7 +37,17 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (_re
     throw new ForbiddenError('Only the job homeowner can view payment details');
   }
 
-  const feeBreakdown = FeeCalculationService.calculateFees(job.budget, {
+  // Use accepted bid amount as the payment base (not job budget)
+  const { data: acceptedBid } = await serverSupabase
+    .from('bids')
+    .select('amount')
+    .eq('job_id', jobId)
+    .eq('status', 'accepted')
+    .single();
+
+  const paymentAmount = acceptedBid?.amount ?? job.budget;
+
+  const feeBreakdown = FeeCalculationService.calculateFees(paymentAmount, {
     paymentType: 'final',
   });
 
@@ -58,6 +68,7 @@ export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (_re
       contractorPayout: feeBreakdown.contractorAmount,
     },
     breakdown: {
+      acceptedBidAmount: acceptedBid?.amount ?? null,
       jobBudget: job.budget,
       platformFee: feeBreakdown.platformFee,
       stripeFee: feeBreakdown.stripeFee,
