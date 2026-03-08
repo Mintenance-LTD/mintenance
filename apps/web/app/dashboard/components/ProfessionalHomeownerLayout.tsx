@@ -27,6 +27,7 @@ import {
   CreditCard,
   Video,
   Crown,
+  FolderOpen,
 } from 'lucide-react';
 
 type HomeownerSummary = {
@@ -131,6 +132,7 @@ export function ProfessionalHomeownerLayout({
             ],
           },
           { label: 'Messages', href: '/messages', icon: MessageSquare, badge: 0 },
+          { label: 'Documents', href: '/documents', icon: FolderOpen },
           { label: 'Calendar', href: '/scheduling', icon: Calendar },
           { label: 'Video Calls', href: '/video-calls', icon: Video },
         ],
