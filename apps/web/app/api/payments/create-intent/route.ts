@@ -297,7 +297,7 @@ export const POST = withApiHandler(
         });
       }
 
-      if (escrowError) {
+      if (escrowError || !escrowTransaction) {
         logger.error('Error creating escrow transaction', escrowError, {
           service: 'payments',
           userId: user.id,
