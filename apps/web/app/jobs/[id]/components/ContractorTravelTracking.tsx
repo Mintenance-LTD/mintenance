@@ -159,25 +159,52 @@ export function ContractorTravelTracking({
         backgroundColor: theme.colors.surface,
         border: `1px solid ${theme.colors.border}`,
         borderRadius: theme.borderRadius.lg,
-        padding: theme.spacing[6],
-        textAlign: 'center',
+        overflow: 'hidden',
       }}>
-        <Icon name="mapPin" size={48} color={theme.colors.textTertiary} />
-        <h3 style={{
-          marginTop: theme.spacing[4],
-          marginBottom: theme.spacing[2],
-          fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: theme.colors.textPrimary,
-        }}>
-          Waiting for Contractor
-        </h3>
-        <p style={{
-          color: theme.colors.textSecondary,
-          fontSize: theme.typography.fontSize.base,
-        }}>
-          The contractor will appear on the map when they start travelling to the job location.
-        </p>
+        {/* Map showing job destination */}
+        <div style={{ width: '100%', height: '200px' }}>
+          <DynamicGoogleMap
+            center={destination}
+            zoom={15}
+            onMapLoad={(map) => {
+              mapRef.current = map;
+              new google.maps.Marker({
+                position: destination,
+                map,
+                icon: {
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 10,
+                  fillColor: '#10B981',
+                  fillOpacity: 1,
+                  strokeColor: '#FFFFFF',
+                  strokeWeight: 2,
+                },
+                title: 'Job Location',
+              });
+            }}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
+        <div style={{ padding: `${theme.spacing[4]} ${theme.spacing[5]}`, display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+          <Icon name="mapPin" size={20} color={theme.colors.textTertiary} />
+          <div>
+            <h3 style={{
+              margin: 0,
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.semibold,
+              color: theme.colors.textPrimary,
+            }}>
+              Waiting for Contractor
+            </h3>
+            <p style={{
+              margin: 0,
+              color: theme.colors.textSecondary,
+              fontSize: theme.typography.fontSize.xs,
+            }}>
+              They will appear on the map when travelling to the job location.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }
