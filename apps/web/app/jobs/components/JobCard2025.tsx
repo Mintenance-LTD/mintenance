@@ -286,9 +286,9 @@ export const JobCard2025 = React.memo(function JobCard2025({
             </div>
 
             {/* Budget */}
-            <div className="text-right flex-shrink-0">
-              <div className="text-2xl font-bold text-gray-900">
-                £{job.budget.toLocaleString()}
+            <div className="text-right flex-shrink-0 pl-2">
+              <div className="text-lg font-bold text-gray-900 whitespace-nowrap">
+                £{Number(job.budget).toLocaleString()}
               </div>
               <div className="text-xs text-gray-500">Budget</div>
             </div>

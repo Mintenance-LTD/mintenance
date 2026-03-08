@@ -75,7 +75,7 @@ function getNextAction(status: string): NextAction | undefined {
     case 'completed':
       return { label: 'Review & Approve Work', urgency: 'high' };
     case 'assigned':
-      return { label: 'Contract & Payment Pending', urgency: 'medium' };
+      return { label: 'Awaiting Work Start', urgency: 'medium' };
     case 'in_progress':
       return { label: 'Work In Progress', urgency: 'low' };
     case 'posted':
