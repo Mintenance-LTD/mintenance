@@ -2,13 +2,14 @@
 
 /**
  * OnboardingWrapper Component
- * Enhanced wrapper using the new onboarding system
+ * Wraps page content and shows the non-blocking tutorial guide.
+ * Marks onboarding as complete on the server when finished or skipped,
+ * so the tutorial never shows again.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { TutorialSpotlight } from './TutorialSpotlight';
-import { logger } from '@mintenance/shared';
 
 interface OnboardingWrapperProps {
   children: React.ReactNode;
@@ -21,6 +22,14 @@ export function OnboardingWrapper({
   userType = 'homeowner',
   autoStart = false,
 }: OnboardingWrapperProps) {
+  const markServerComplete = useCallback(async () => {
+    try {
+      await fetch('/api/onboarding/complete', { method: 'POST' });
+    } catch {
+      // Silent fail — localStorage state is the primary guard
+    }
+  }, []);
+
   const {
     isActive,
     currentStep,
@@ -35,10 +44,10 @@ export function OnboardingWrapper({
     userType,
     autoStart,
     onComplete: () => {
-      // logger.info('Onboarding completed!', { service: 'ui' });
+      markServerComplete();
     },
     onSkip: () => {
-      // logger.info('Onboarding skipped', { service: 'ui' });
+      markServerComplete();
     },
   });
 
@@ -46,7 +55,7 @@ export function OnboardingWrapper({
     <>
       {children}
 
-      {/* Tutorial spotlight overlay */}
+      {/* Tutorial guide overlay */}
       {isActive && currentStep && (
         <TutorialSpotlight
           step={currentStep}
@@ -63,4 +72,3 @@ export function OnboardingWrapper({
     </>
   );
 }
-

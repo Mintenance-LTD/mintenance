@@ -1,22 +1,24 @@
 /**
  * Onboarding Flow Definitions
- * Defines step-by-step onboarding flows for homeowners and contractors
+ * Defines step-by-step onboarding flows for homeowners and contractors.
  *
  * IMPORTANT: All steps are purely informational (observe-only).
  * The tutorial NEVER force-navigates users away from the dashboard.
  * Users can visit these pages in their own time via the sidebar navigation.
+ *
+ * targetSelector uses [data-tutorial="..."] attributes on sidebar items.
  */
 
 export interface OnboardingStep {
   id: string;
   title: string;
   description: string;
-  targetSelector?: string; // CSS selector for element to highlight
-  action?: 'click' | 'input' | 'navigate' | 'observe'; // Required action type
+  targetSelector?: string; // CSS selector for sidebar element to highlight
+  action?: 'click' | 'input' | 'navigate' | 'observe';
   skippable: boolean;
-  position?: 'top' | 'bottom' | 'left' | 'right'; // Tooltip position
-  nextLabel?: string; // Custom next button label
-  customContent?: string; // For special step content
+  position?: 'top' | 'bottom' | 'left' | 'right';
+  nextLabel?: string;
+  customContent?: string;
 }
 
 export interface OnboardingFlow {
@@ -34,83 +36,87 @@ export const homeownerFlow: OnboardingFlow = {
   id: 'homeowner-onboarding',
   name: 'Homeowner Onboarding',
   userType: 'homeowner',
-  estimatedMinutes: 3,
+  estimatedMinutes: 2,
   steps: [
     {
       id: 'welcome',
       title: 'Welcome to Mintenance!',
       description:
-        'Your all-in-one platform for finding trusted contractors, managing home projects, and ensuring quality work. Let\'s show you around!',
+        'Your all-in-one platform for finding trusted contractors, managing home projects, and ensuring quality work. Let\'s give you a quick tour of what\'s available!',
       skippable: true,
       nextLabel: 'Get Started',
     },
     {
-      id: 'profile-setup',
-      title: 'Complete Your Profile',
+      id: 'jobs',
+      title: 'Jobs',
       description:
-        'Add your name, location, and a profile photo. This helps contractors understand who they\'re working with. You can do this anytime from Settings.',
+        'This is where you create and manage your maintenance jobs. Post a job describing what you need done, set your budget, and add photos. Contractors in your area will send you bids.',
+      targetSelector: '[data-tutorial="jobs"]',
       action: 'observe',
       position: 'right',
       skippable: true,
       nextLabel: 'Next',
     },
     {
-      id: 'add-property',
-      title: 'Add Your First Property',
+      id: 'messages',
+      title: 'Messages',
       description:
-        'Tell us about your home. This helps us match you with contractors who specialize in your area and property type. You can add properties anytime from the Properties page.',
-      action: 'observe',
-      position: 'bottom',
-      skippable: true,
-      nextLabel: 'Next',
-    },
-    {
-      id: 'post-job',
-      title: 'Post Your First Job',
-      description:
-        'Describe the work you need done. Be specific about the problem and include photos if you have them. Our AI will help match you with the right contractors. Go to Jobs to get started.',
-      action: 'observe',
-      position: 'top',
-      skippable: true,
-      nextLabel: 'Next',
-    },
-    {
-      id: 'contractor-matching',
-      title: 'How Contractor Matching Works',
-      description:
-        'We use AI to analyze your job and match you with qualified contractors in your area. You\'ll receive multiple bids to compare pricing and reviews.',
-      action: 'observe',
-      position: 'bottom',
-      skippable: true,
-      nextLabel: 'Next',
-    },
-    {
-      id: 'review-bids',
-      title: 'Reviewing Bids',
-      description:
-        'When contractors submit bids, you can compare them side-by-side. Check their ratings, reviews, portfolio, and pricing before making a decision. Find bids on your Jobs page.',
-      action: 'observe',
-      position: 'left',
-      skippable: true,
-      nextLabel: 'Next',
-    },
-    {
-      id: 'messaging',
-      title: 'Message Contractors',
-      description:
-        'Ask questions, clarify details, or schedule video calls directly through our messaging system. Everything stays organized in one place. Access Messages from the sidebar.',
+        'Chat directly with contractors about your jobs. Ask questions, discuss details, schedule times, or share documents — all in one place.',
+      targetSelector: '[data-tutorial="messages"]',
       action: 'observe',
       position: 'right',
       skippable: true,
       nextLabel: 'Next',
     },
     {
-      id: 'payment-escrow',
-      title: 'Secure Payments & Escrow',
+      id: 'documents',
+      title: 'Documents',
       description:
-        'Your payment is held in escrow until the job is complete. Release funds milestone by milestone, ensuring quality work at every step.',
+        'View all your contracts, bids, and payment records in one place. You can track the status of each document and see what needs your attention.',
+      targetSelector: '[data-tutorial="documents"]',
       action: 'observe',
-      position: 'bottom',
+      position: 'right',
+      skippable: true,
+      nextLabel: 'Next',
+    },
+    {
+      id: 'properties',
+      title: 'Properties',
+      description:
+        'Add your properties to help contractors understand where the work is needed. You can manage multiple properties and track maintenance history for each one.',
+      targetSelector: '[data-tutorial="properties"]',
+      action: 'observe',
+      position: 'right',
+      skippable: true,
+      nextLabel: 'Next',
+    },
+    {
+      id: 'payments',
+      title: 'Payments & Escrow',
+      description:
+        'Your payments are protected with our escrow system. When you accept a bid, funds are held securely until the job is completed and you approve the work.',
+      targetSelector: '[data-tutorial="payments"]',
+      action: 'observe',
+      position: 'right',
+      skippable: true,
+      nextLabel: 'Next',
+    },
+    {
+      id: 'profile',
+      title: 'Your Profile',
+      description:
+        'Update your profile whenever you like — add your name, photo, and location. This helps contractors know who they\'re working with, but it\'s completely optional.',
+      targetSelector: '[data-tutorial="profile"]',
+      action: 'observe',
+      position: 'right',
+      skippable: true,
+      nextLabel: 'Next',
+    },
+    {
+      id: 'ready',
+      title: 'You\'re All Set!',
+      description:
+        'That\'s the tour! When you\'re ready, head to Jobs to post your first maintenance request. You can explore any of these sections at your own pace.',
       skippable: true,
       nextLabel: 'Finish',
     },
@@ -124,83 +130,87 @@ export const contractorFlow: OnboardingFlow = {
   id: 'contractor-onboarding',
   name: 'Contractor Onboarding',
   userType: 'contractor',
-  estimatedMinutes: 3,
+  estimatedMinutes: 2,
   steps: [
     {
       id: 'welcome',
       title: 'Welcome to Mintenance!',
       description:
-        'Join thousands of contractors finding quality leads, growing their business, and building their reputation. Let\'s show you around!',
+        'Join thousands of contractors finding quality leads and growing their business. Here\'s a quick tour of the platform!',
       skippable: true,
       nextLabel: 'Get Started',
     },
     {
-      id: 'business-profile',
-      title: 'Set Up Your Business Profile',
+      id: 'dashboard',
+      title: 'Your Dashboard',
       description:
-        'Add your business name, bio, contact info, and what makes you unique. You can complete this anytime from your Profile page.',
+        'This is your home base. See your active jobs, pending bids, earnings, and notifications at a glance. Everything you need is accessible from the sidebar.',
+      targetSelector: '[data-tutorial="dashboard"]',
       action: 'observe',
       position: 'right',
       skippable: true,
       nextLabel: 'Next',
     },
     {
-      id: 'skills-certifications',
-      title: 'Add Your Skills & Certifications',
+      id: 'jobs',
+      title: 'Find Jobs',
       description:
-        'List your specialties and upload any licenses or certifications. Verified credentials help you win more jobs. You can add these later from your Profile.',
-      action: 'observe',
-      position: 'bottom',
-      skippable: true,
-      nextLabel: 'Next',
-    },
-    {
-      id: 'portfolio-upload',
-      title: 'Showcase Your Best Work',
-      description:
-        'Upload at least 3 photos of completed projects. High-quality before/after photos significantly increase your bid acceptance rate. You can do this anytime from your Profile.',
-      action: 'observe',
-      position: 'top',
-      skippable: true,
-      nextLabel: 'Next',
-    },
-    {
-      id: 'service-areas',
-      title: 'Set Your Service Areas',
-      description:
-        'Define where you work. You\'ll only see jobs within your service radius, saving you time on irrelevant leads. You can set this up later from your Profile.',
+        'Browse available jobs matched to your skills and location. Our system learns your preferences over time to show you the most relevant opportunities.',
+      targetSelector: '[data-tutorial="jobs"]',
       action: 'observe',
       position: 'right',
       skippable: true,
       nextLabel: 'Next',
     },
     {
-      id: 'discovery-how-it-works',
-      title: 'How Job Discovery Works',
+      id: 'messages',
+      title: 'Messages',
       description:
-        'Browse available jobs matched to your skills and location. Our AI learns your preferences over time. Find jobs from the Jobs page in the sidebar.',
+        'Communicate with homeowners about their jobs. Discuss requirements, share documents, create contracts, and keep everything organised in one thread.',
+      targetSelector: '[data-tutorial="messages"]',
       action: 'observe',
-      position: 'bottom',
+      position: 'right',
       skippable: true,
       nextLabel: 'Next',
     },
     {
-      id: 'bidding-tutorial',
-      title: 'Submitting Your First Bid',
+      id: 'documents',
+      title: 'Documents',
       description:
-        'Provide a detailed quote, timeline, and message. Be transparent and professional. Homeowners can see your profile and reviews.',
+        'Manage your contracts, invoices, and certifications. Upload your qualifications to build trust with potential clients.',
+      targetSelector: '[data-tutorial="documents"]',
       action: 'observe',
-      position: 'left',
+      position: 'right',
       skippable: true,
       nextLabel: 'Next',
     },
     {
-      id: 'subscription-options',
-      title: 'Forever Free - Upgrade Anytime',
+      id: 'calendar',
+      title: 'Calendar',
       description:
-        'Start free with 5 bids/month - no credit card required. Upgrade to Basic (20 bids), Professional (100 bids), or Enterprise (unlimited) whenever you need more. Visit Subscription from the sidebar.',
+        'Keep track of your scheduled jobs, appointments, and availability. Stay organised so you never miss a booking.',
+      targetSelector: '[data-tutorial="calendar"]',
       action: 'observe',
-      position: 'top',
+      position: 'right',
+      skippable: true,
+      nextLabel: 'Next',
+    },
+    {
+      id: 'profile',
+      title: 'Your Profile',
+      description:
+        'Set up your business profile whenever you\'re ready — add your skills, portfolio photos, service areas, and certifications. A complete profile helps you win more jobs.',
+      targetSelector: '[data-tutorial="profile"]',
+      action: 'observe',
+      position: 'right',
+      skippable: true,
+      nextLabel: 'Next',
+    },
+    {
+      id: 'ready',
+      title: 'You\'re All Set!',
+      description:
+        'That\'s the tour! Start by browsing available jobs, or complete your profile to attract more clients. Everything is at your own pace — no rush.',
       skippable: true,
       nextLabel: 'Finish',
     },
