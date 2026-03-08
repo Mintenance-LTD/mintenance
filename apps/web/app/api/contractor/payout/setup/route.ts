@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 /** Type for Supabase edge function error with possible extended properties */
 interface EdgeFunctionError extends Error {
@@ -34,7 +35,7 @@ export const POST = withApiHandler(
     // The service role key should be used for server-side function invocations
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!serviceRoleKey) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
+      throw new InternalServerError('SUPABASE_SERVICE_ROLE_KEY is not configured');
     }
 
     logger.info('Invoking Edge Function', {
@@ -149,15 +150,15 @@ export const POST = withApiHandler(
         responseData: data,
       });
 
-      // Return a more descriptive error message
-      throw new Error(errorMessage);
+      // Return a descriptive error message (BadRequestError surfaces the message to the client)
+      throw new BadRequestError(errorMessage);
     }
 
     const payload = (data ?? {}) as Record<string, unknown>;
     const accountUrl = (payload['accountUrl'] ?? payload['url']) as string | undefined;
 
     if (!accountUrl) {
-      throw new Error('Stripe onboarding link was not returned');
+      throw new InternalServerError('Stripe onboarding link was not returned');
     }
 
     logger.info('Contractor payout setup initiated', {

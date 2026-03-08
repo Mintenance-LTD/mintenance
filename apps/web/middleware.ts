@@ -107,7 +107,7 @@ export async function middleware(request: NextRequest) {
         "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
         "font-src 'self' data: https://fonts.gstatic.com",
         "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com",
-        "frame-src https://js.stripe.com",
+        "frame-src https://js.stripe.com https://www.openstreetmap.org",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
@@ -614,13 +614,13 @@ export async function middleware(request: NextRequest) {
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       connectSrc,
-      "frame-src https://js.stripe.com",
+      "frame-src https://js.stripe.com https://www.openstreetmap.org",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
       "frame-ancestors 'none'"
     ].join('; ');
-    
+
     response.headers.set('Content-Security-Policy', cspHeader);
 
     // CSP Report-Only with nonce — monitors what would break if we enforced nonce-based CSP.
@@ -632,7 +632,7 @@ export async function middleware(request: NextRequest) {
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       connectSrc,
-      "frame-src https://js.stripe.com",
+      "frame-src https://js.stripe.com https://www.openstreetmap.org",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
