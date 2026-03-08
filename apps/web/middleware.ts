@@ -106,8 +106,8 @@ export async function middleware(request: NextRequest) {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
         "font-src 'self' data: https://fonts.gstatic.com",
-        "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com",
-        "frame-src https://js.stripe.com https://www.openstreetmap.org",
+        "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com",
+        "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",
@@ -603,8 +603,8 @@ export async function middleware(request: NextRequest) {
 
     // Set CSP header with nonce — localhost only allowed in development
     const connectSrc = isDevelopment
-      ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"
-      : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://maps.googleapis.com wss:";
+      ? "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:"
+      : "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com wss:";
     // Enforced CSP: 'unsafe-inline' removed from script-src for XSS protection.
     // Styles still allow 'unsafe-inline' as Next.js injects inline styles.
     const cspHeader = [
@@ -614,7 +614,7 @@ export async function middleware(request: NextRequest) {
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       connectSrc,
-      "frame-src https://js.stripe.com https://www.openstreetmap.org",
+      "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -632,7 +632,7 @@ export async function middleware(request: NextRequest) {
       "img-src 'self' data: blob: https: https://maps.googleapis.com https://maps.gstatic.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       connectSrc,
-      "frame-src https://js.stripe.com https://www.openstreetmap.org",
+      "frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
