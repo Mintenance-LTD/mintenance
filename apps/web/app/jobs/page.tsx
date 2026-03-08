@@ -8,9 +8,8 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { JobService } from '@/lib/services/JobService';
 import { LoadingSpinner, ErrorView } from '@/components/ui';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
-import { SmartJobFilters2025, JobFilters } from './components/SmartJobFilters2025';
+import { JobFilters } from './components/SmartJobFilters2025';
 import { JobsToolbar, SortOption } from './components/JobsToolbar';
-import { MobileFilterDrawer, MobileFilterButton } from './components/MobileFilterDrawer';
 import { JobsStatusTabs } from './components/JobsStatusTabs';
 import { JobsGrid } from './components/JobsGrid';
 import { JobsHeroHeader } from './components/JobsHeroHeader';
@@ -93,9 +92,9 @@ function JobsPageContent() {
   const [activeTab, setActiveTab] = useState<FilterStatus>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const { user, loading: loadingUser, error: currentUserError } = useCurrentUser();
 
   useEffect(() => {
@@ -160,8 +159,8 @@ function JobsPageContent() {
           j.budget <= (filters.budgetRange?.max || Infinity)
       );
     }
-    if (filters.searchQuery && filters.searchQuery.trim()) {
-      const q = filters.searchQuery.toLowerCase();
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
       data = data.filter(
         (j) =>
           j.title.toLowerCase().includes(q) ||
@@ -180,7 +179,7 @@ function JobsPageContent() {
         default: return 0;
       }
     });
-  }, [allJobs, filters, activeTab, sortBy]);
+  }, [allJobs, filters, activeTab, sortBy, searchQuery]);
 
   useEffect(() => {
     if (user && user.role === 'contractor') {
@@ -242,65 +241,56 @@ function JobsPageContent() {
         prefersReducedMotion={prefersReducedMotion}
       />
 
-      <div className="w-full space-y-6">
-        <div className="flex flex-col gap-6">
-          <JobsToolbar
-            totalCount={allJobs.length}
-            activeCount={filteredJobs.length}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            sortBy={sortBy}
-            onSortChange={setSortBy}
-            selectionMode={selectionMode}
-            onToggleSelectionMode={() => {
-              setSelectionMode(!selectionMode);
-              if (selectionMode) setSelectedJobs(new Set());
-            }}
-          />
+      <div className="w-full space-y-4">
+        {/* Toolbar + Search */}
+        <JobsToolbar
+          totalCount={allJobs.length}
+          activeCount={filteredJobs.length}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          selectionMode={selectionMode}
+          onToggleSelectionMode={() => {
+            setSelectionMode(!selectionMode);
+            if (selectionMode) setSelectedJobs(new Set());
+          }}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
 
-          <JobsStatusTabs
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            jobCounts={{
-              all: allJobs.length,
-              posted: allJobs.filter(j => j.status === 'posted').length,
-              active: allJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned').length,
-              completed: allJobs.filter(j => j.status === 'completed').length,
-              draft: allJobs.filter(j => j.status === 'draft').length,
-              awaitingAction: allJobs.filter(j => j.nextAction && (j.nextAction.urgency === 'high' || j.nextAction.urgency === 'medium')).length,
-            }}
-            prefersReducedMotion={prefersReducedMotion}
-          />
+        {/* Status Tabs */}
+        <JobsStatusTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          jobCounts={{
+            all: allJobs.length,
+            posted: allJobs.filter(j => j.status === 'posted').length,
+            active: allJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned').length,
+            completed: allJobs.filter(j => j.status === 'completed').length,
+            draft: allJobs.filter(j => j.status === 'draft').length,
+            awaitingAction: allJobs.filter(j => j.nextAction && (j.nextAction.urgency === 'high' || j.nextAction.urgency === 'medium')).length,
+          }}
+          prefersReducedMotion={prefersReducedMotion}
+        />
 
-          <div className="hidden lg:block">
-            <SmartJobFilters2025 onFilterChange={setFilters} initialFilters={filters} />
-          </div>
-
-          <MobileFilterDrawer
-            isOpen={showMobileFilters}
-            onClose={() => setShowMobileFilters(false)}
-            activeFilterCount={Object.keys(filters).length}
-          >
-            <SmartJobFilters2025 onFilterChange={setFilters} initialFilters={filters} />
-          </MobileFilterDrawer>
-
-          <JobsGrid
-            jobs={filteredJobs}
-            allJobsCount={allJobs.length}
-            loading={loading}
-            viewMode={viewMode}
-            prefersReducedMotion={prefersReducedMotion}
-            selectionMode={selectionMode}
-            selectedJobs={selectedJobs}
-            onToggleSelection={(jobId) => {
-              const newSelected = new Set(selectedJobs);
-              if (newSelected.has(jobId)) { newSelected.delete(jobId); }
-              else { newSelected.add(jobId); }
-              setSelectedJobs(newSelected);
-            }}
-            onClearFilters={() => setFilters({})}
-          />
-        </div>
+        {/* Jobs Grid */}
+        <JobsGrid
+          jobs={filteredJobs}
+          allJobsCount={allJobs.length}
+          loading={loading}
+          viewMode={viewMode}
+          prefersReducedMotion={prefersReducedMotion}
+          selectionMode={selectionMode}
+          selectedJobs={selectedJobs}
+          onToggleSelection={(jobId) => {
+            const newSelected = new Set(selectedJobs);
+            if (newSelected.has(jobId)) { newSelected.delete(jobId); }
+            else { newSelected.add(jobId); }
+            setSelectedJobs(newSelected);
+          }}
+          onClearFilters={() => { setFilters({}); setSearchQuery(''); }}
+        />
       </div>
 
       <JobsBulkActionsSection
@@ -308,11 +298,6 @@ function JobsPageContent() {
         selectedJobs={selectedJobs}
         filteredJobs={filteredJobs}
         onCancelSelection={handleCancelSelection}
-      />
-
-      <MobileFilterButton
-        activeFilterCount={Object.keys(filters).length}
-        onClick={() => setShowMobileFilters(true)}
       />
     </HomeownerPageWrapper>
   );

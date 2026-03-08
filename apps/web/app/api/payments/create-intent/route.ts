@@ -256,22 +256,46 @@ export const POST = withApiHandler(
         10000 // 10 second timeout
       );
 
-      // Create escrow transaction record
-      // CRITICAL FIX: Include payer_id (homeowner) and payee_id (contractor) so payment history queries work
-      const { data: escrowTransaction, error: escrowError } = await serverSupabase
+      // Check for existing escrow record to prevent duplicates
+      // (e.g. user refreshes payment page, or idempotency cache expired)
+      const { data: existingEscrow } = await serverSupabase
         .from('escrow_transactions')
-        .insert({
-          job_id: jobId,
-          payer_id: user.id, // Homeowner who pays
-          payee_id: job.contractor_id, // Contractor who receives
-          amount,
-          status: 'pending',
-          payment_intent_id: paymentIntent.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
         .select('id, job_id, payer_id, payee_id, amount, status, payment_intent_id, created_at')
+        .eq('job_id', jobId)
+        .eq('payment_intent_id', paymentIntent.id)
         .single();
+
+      let escrowTransaction = existingEscrow;
+      let escrowError = null;
+
+      if (!existingEscrow) {
+        // Create escrow transaction record
+        // CRITICAL FIX: Include payer_id (homeowner) and payee_id (contractor) so payment history queries work
+        const { data: newEscrow, error: insertError } = await serverSupabase
+          .from('escrow_transactions')
+          .insert({
+            job_id: jobId,
+            payer_id: user.id, // Homeowner who pays
+            payee_id: job.contractor_id, // Contractor who receives
+            amount,
+            status: 'pending',
+            payment_intent_id: paymentIntent.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select('id, job_id, payer_id, payee_id, amount, status, payment_intent_id, created_at')
+          .single();
+        escrowTransaction = newEscrow;
+        escrowError = insertError;
+      } else {
+        logger.info('Reusing existing escrow record for payment intent', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          escrowId: existingEscrow.id,
+          paymentIntentId: paymentIntent.id,
+        });
+      }
 
       if (escrowError) {
         logger.error('Error creating escrow transaction', escrowError, {
