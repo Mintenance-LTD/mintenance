@@ -5,6 +5,7 @@ import { MapPin, AlertCircle, Loader2, X } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { fetchWithCsrf } from '@/lib/csrf-client';
 
 interface LocationSharingProps {
   jobId: string;
@@ -54,7 +55,7 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
     const watchIdValue = navigator.geolocation.watchPosition(
       async (position) => {
         try {
-          const response = await fetch(`/api/contractors/${contractorId}/location`, {
+          const response = await fetchWithCsrf(`/api/contractors/${contractorId}/location`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -98,7 +99,7 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
   const stopLocationSharing = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/jobs/${jobId}/enable-location-sharing`, {
+      const response = await fetchWithCsrf(`/api/jobs/${jobId}/enable-location-sharing`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

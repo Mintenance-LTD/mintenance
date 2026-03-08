@@ -508,6 +508,82 @@ export default async function ContractorJobDetailPage({ params }: { params: Prom
               </div>
             </Card>
           )}
+
+          {/* Job Location Map */}
+          {(job.latitude && job.longitude || job.location) && (
+            <Card padding="lg" hover={false}>
+              <h3 style={{
+                margin: 0,
+                marginBottom: theme.spacing[3],
+                fontSize: theme.typography.fontSize.base,
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+              }}>
+                <MapPin className="h-4 w-4" style={{ color: theme.colors.primary }} />
+                Job Location
+              </h3>
+              {job.location && (
+                <p style={{
+                  margin: 0,
+                  marginBottom: theme.spacing[3],
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                }}>
+                  {job.location}
+                </p>
+              )}
+              <div style={{
+                width: '100%',
+                height: '200px',
+                borderRadius: theme.borderRadius.md,
+                overflow: 'hidden',
+                border: `1px solid ${theme.colors.border}`,
+              }}>
+                {job.latitude && job.longitude ? (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${job.longitude - 0.005},${job.latitude - 0.003},${job.longitude + 0.005},${job.latitude + 0.003}&layer=mapnik&marker=${job.latitude},${job.longitude}`}
+                    title="Job Location Map"
+                  />
+                ) : (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=-2.1,-0.5,2.1,0.5&layer=mapnik`}
+                    title="Job Location Map"
+                  />
+                )}
+              </div>
+              {job.latitude && job.longitude && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${job.latitude},${job.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                    marginTop: theme.spacing[3],
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.medium,
+                    color: theme.colors.primary,
+                    textDecoration: 'none',
+                  }}
+                >
+                  <MapPin className="h-4 w-4" />
+                  Get Directions
+                </a>
+              )}
+            </Card>
+          )}
         </div>
 
         {/* Right Column - Stage-filtered Actions */}
