@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { EmailService } from '@/lib/email-service';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
@@ -196,6 +197,59 @@ export const POST = withApiHandler(
       );
 
       await Promise.all(notificationPromises);
+
+      // Send email notifications (non-blocking)
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.mintenance.co.uk';
+      const { data: homeownerProfile } = await serverSupabase
+        .from('profiles')
+        .select('first_name, last_name, email')
+        .eq('id', user.id)
+        .single();
+
+      const { data: contractorProfile } = job.contractor_id
+        ? await serverSupabase
+            .from('profiles')
+            .select('first_name, last_name, email')
+            .eq('id', job.contractor_id)
+            .single()
+        : { data: null };
+
+      const homeownerName = homeownerProfile
+        ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'Homeowner'
+        : 'Homeowner';
+      const contractorName = contractorProfile
+        ? `${contractorProfile.first_name || ''} ${contractorProfile.last_name || ''}`.trim() || 'Contractor'
+        : 'Contractor';
+
+      const emailPromises: Promise<boolean>[] = [];
+
+      if (homeownerProfile?.email) {
+        emailPromises.push(
+          EmailService.sendPaymentConfirmationEmail(homeownerProfile.email, {
+            homeownerName,
+            jobTitle,
+            amount: Number(amount),
+            contractorName,
+            viewUrl: `${baseUrl}/payments`,
+          })
+        );
+      }
+
+      if (contractorProfile?.email && job.contractor_id) {
+        emailPromises.push(
+          EmailService.sendPaymentReceivedEmail(contractorProfile.email, {
+            contractorName,
+            jobTitle,
+            amount: Number(amount),
+            homeownerName,
+            viewUrl: `${baseUrl}/contractor/jobs/${jobId}`,
+          })
+        );
+      }
+
+      if (emailPromises.length > 0) {
+        await Promise.allSettled(emailPromises);
+      }
     } catch (notifError) {
       logger.error('Failed to create payment confirmation notifications', notifError, { service: 'payments', jobId });
     }

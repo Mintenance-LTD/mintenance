@@ -468,4 +468,137 @@ Building connections helps you grow your network and find more opportunities.
       text,
     });
   }
+
+  /**
+   * Send payment confirmation email to the homeowner
+   */
+  static async sendPaymentConfirmationEmail(
+    homeownerEmail: string,
+    data: {
+      homeownerName: string;
+      jobTitle: string;
+      amount: number;
+      contractorName: string;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const fmtAmount = `£${data.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #0d9488; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+            .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+            .amount-box { background: white; border: 2px solid #0d9488; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
+            .amount { font-size: 32px; font-weight: bold; color: #0d9488; }
+            .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+            .cta { display: inline-block; background-color: #0d9488; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+            .escrow-note { background: #f0fdfa; border-left: 4px solid #0d9488; padding: 12px 16px; border-radius: 4px; margin-top: 20px; font-size: 13px; color: #115e59; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin:0;">Payment Confirmed</h1>
+              <p style="margin:8px 0 0;opacity:0.9;">Your funds are secured in escrow</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.homeownerName},</p>
+              <p>Your payment has been successfully processed and the funds are now held securely in escrow.</p>
+              <div class="amount-box">
+                <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:4px;">Amount Paid</div>
+                <div class="amount">${fmtAmount}</div>
+              </div>
+              <div style="background:white;border-radius:8px;padding:16px;margin:16px 0;">
+                <div class="detail-row"><span style="color:#6b7280;">Job</span><strong>${data.jobTitle}</strong></div>
+                <div class="detail-row"><span style="color:#6b7280;">Contractor</span><strong>${data.contractorName}</strong></div>
+                <div class="detail-row" style="border:none;"><span style="color:#6b7280;">Status</span><strong style="color:#0d9488;">Held in Escrow</strong></div>
+              </div>
+              <div class="escrow-note">
+                <strong>How it works:</strong> Your payment is held safely until the contractor completes the work and you approve it. You're fully protected.
+              </div>
+              <p style="text-align:center;"><a href="${data.viewUrl}" class="cta">View Payment Details</a></p>
+            </div>
+            ${this.getUnsubscribeFooter()}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `Hi ${data.homeownerName},\n\nYour payment of ${fmtAmount} for "${data.jobTitle}" has been confirmed.\n\nContractor: ${data.contractorName}\nStatus: Held in Escrow\n\nView details: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+
+    return this.sendEmail({
+      to: homeownerEmail,
+      subject: `Payment Confirmed - ${fmtAmount} for ${data.jobTitle}`,
+      html,
+      text,
+    });
+  }
+
+  /**
+   * Send payment received notification email to the contractor
+   */
+  static async sendPaymentReceivedEmail(
+    contractorEmail: string,
+    data: {
+      contractorName: string;
+      jobTitle: string;
+      amount: number;
+      homeownerName: string;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const fmtAmount = `£${data.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #0d9488; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+            .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+            .amount-box { background: white; border: 2px solid #059669; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
+            .amount { font-size: 32px; font-weight: bold; color: #059669; }
+            .cta { display: inline-block; background-color: #0d9488; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+            .info-note { background: #f0fdf4; border-left: 4px solid #059669; padding: 12px 16px; border-radius: 4px; margin-top: 20px; font-size: 13px; color: #166534; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin:0;">Payment Secured</h1>
+              <p style="margin:8px 0 0;opacity:0.9;">Funds are ready - you can start work</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.contractorName},</p>
+              <p>Great news! <strong>${data.homeownerName}</strong> has made a payment for your job. The funds are now held securely in escrow.</p>
+              <div class="amount-box">
+                <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:4px;">Amount Secured</div>
+                <div class="amount">${fmtAmount}</div>
+                <div style="font-size:13px;color:#6b7280;margin-top:4px;">for "${data.jobTitle}"</div>
+              </div>
+              <div class="info-note">
+                <strong>Next steps:</strong> You can now start work on this job. Upload before-photos and click "Start Job" when you're ready. Payment will be released once the homeowner approves the completed work.
+              </div>
+              <p style="text-align:center;"><a href="${data.viewUrl}" class="cta">View Job Details</a></p>
+            </div>
+            ${this.getUnsubscribeFooter()}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `Hi ${data.contractorName},\n\n${data.homeownerName} has made a payment of ${fmtAmount} for "${data.jobTitle}". Funds are held in escrow.\n\nYou can now start work. View details: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+
+    return this.sendEmail({
+      to: contractorEmail,
+      subject: `Payment Secured - ${fmtAmount} for ${data.jobTitle}`,
+      html,
+      text,
+    });
+  }
 }

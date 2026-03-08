@@ -20,7 +20,7 @@ export function PaymentsFilters({
   dateRange,
   onDateRangeChange,
 }: PaymentsFiltersProps) {
-  const statusOptions: { label: string; value: StatusFilter }[] = [
+  const statusOptions: { label: string; value: StatusFilter; count?: number }[] = [
     { label: 'All', value: 'all' },
     { label: 'Pending', value: 'pending' },
     { label: 'Completed', value: 'completed' },
@@ -29,44 +29,41 @@ export function PaymentsFilters({
 
   return (
     <MotionDiv
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
-      className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6"
+      transition={{ delay: 0.35 }}
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6"
     >
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        {/* Status Filter */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-gray-700 mr-2">Status:</span>
-          {statusOptions.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => onFilterChange(tab.value)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                filter === tab.value
-                  ? 'bg-teal-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Date Range Filter */}
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-gray-500" />
-          <select
-            value={dateRange}
-            onChange={(e) => onDateRangeChange(e.target.value as DateRange)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+      {/* Status tabs */}
+      <div className="inline-flex items-center bg-gray-100 rounded-xl p-1">
+        {statusOptions.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => onFilterChange(tab.value)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              filter === tab.value
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
           >
-            <option value="all">All Time</option>
-            <option value="7d">Last 7 Days</option>
-            <option value="30d">Last 30 Days</option>
-            <option value="90d">Last 90 Days</option>
-          </select>
-        </div>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Date range */}
+      <div className="relative">
+        <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <select
+          value={dateRange}
+          onChange={(e) => onDateRangeChange(e.target.value as DateRange)}
+          className="pl-8 pr-8 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 font-medium focus:ring-2 focus:ring-teal-500 focus:border-transparent appearance-none cursor-pointer"
+        >
+          <option value="all">All Time</option>
+          <option value="7d">Last 7 Days</option>
+          <option value="30d">Last 30 Days</option>
+          <option value="90d">Last 90 Days</option>
+        </select>
       </div>
     </MotionDiv>
   );

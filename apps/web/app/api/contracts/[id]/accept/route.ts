@@ -19,7 +19,7 @@ export const POST = withApiHandler(
     // SECURITY: Fix IDOR - check ownership in query, not after fetch
     const { data: contract, error: contractError } = await serverSupabase
       .from('contracts')
-      .select('id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at')
+      .select('id, job_id, contractor_id, homeowner_id, status, title, contractor_signed_at, homeowner_signed_at, start_date, end_date')
       .eq('id', contractId)
       .or(`contractor_id.eq.${user.id},homeowner_id.eq.${user.id}`)
       .single();
@@ -212,6 +212,65 @@ export const POST = withApiHandler(
             startDate: updatedContract.start_date,
             endDate: updatedContract.end_date,
             scheduledDate: updatedContract.start_date,
+          });
+        }
+
+        // Create appointment record so it shows on dashboard "Upcoming Appointments"
+        try {
+          const { data: jobDetails } = await serverSupabase
+            .from('jobs')
+            .select('title, location, address')
+            .eq('id', contract.job_id)
+            .single();
+
+          const { data: homeownerProfile } = await serverSupabase
+            .from('profiles')
+            .select('first_name, last_name, email, phone')
+            .eq('id', contract.homeowner_id)
+            .single();
+
+          const appointmentDate = updatedContract.start_date;
+          const clientName = homeownerProfile
+            ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim()
+            : undefined;
+
+          const { error: appointmentError } = await serverSupabase
+            .from('appointments')
+            .insert({
+              contractor_id: contract.contractor_id,
+              client_id: contract.homeowner_id,
+              job_id: contract.job_id,
+              title: jobDetails?.title || updatedContract.title || 'Scheduled Job',
+              appointment_date: appointmentDate,
+              start_time: '09:00',
+              end_time: '17:00',
+              location_type: 'onsite',
+              location_address: jobDetails?.address || jobDetails?.location || null,
+              client_name: clientName || null,
+              client_email: homeownerProfile?.email || null,
+              client_phone: homeownerProfile?.phone || null,
+              status: 'scheduled',
+              notes: `Auto-created from contract "${updatedContract.title || 'Untitled'}" acceptance.`,
+            });
+
+          if (appointmentError) {
+            logger.error('Failed to create appointment from contract', appointmentError, {
+              service: 'contracts',
+              contractId,
+              jobId: contract.job_id,
+            });
+          } else {
+            logger.info('Appointment created from contract acceptance', {
+              service: 'contracts',
+              contractId,
+              jobId: contract.job_id,
+              appointmentDate,
+            });
+          }
+        } catch (appointmentCreationError) {
+          logger.error('Error creating appointment from contract', appointmentCreationError, {
+            service: 'contracts',
+            contractId,
           });
         }
       }

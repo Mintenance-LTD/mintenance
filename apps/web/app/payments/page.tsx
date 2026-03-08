@@ -7,7 +7,7 @@ import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWr
 import { LoadingSpinner } from '@/components/ui';
 import toast from 'react-hot-toast';
 import { useCSRF } from '@/lib/hooks/useCSRF';
-import { ArrowLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { PaymentsHeader } from './components/PaymentsHeader';
 import { PaymentsStatsCards } from './components/PaymentsStatsCards';
 import { PaymentsFilters } from './components/PaymentsFilters';
@@ -45,7 +45,6 @@ interface PaymentData {
   job?: { title: string; description?: string } | null;
   payer?: { first_name: string; last_name: string } | null;
   payee?: { first_name: string; last_name: string } | null;
-  // snake_case aliases from DB
   created_at?: string;
   updated_at?: string;
   job_id?: string;
@@ -70,7 +69,6 @@ export default function PaymentsPage2025() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [refundReason, setRefundReason] = useState('');
 
-  // Fetch transactions
   useEffect(() => {
     if (!user) return;
 
@@ -82,15 +80,12 @@ export default function PaymentsPage2025() {
         const { payments } = await response.json();
         const transformedTransactions: Transaction[] = (payments || []).map((t: PaymentData) => {
           const amount = Number(t.amount) || 0;
-          const subtotal = amount / 1.2;
           const platformFee = amount * 0.05;
           const processingFee = amount * 0.02;
 
-          // Extract contractor name from payee (API returns first_name/last_name)
           const contractorName = t.contractor_name
             || (t.payee ? `${t.payee.first_name || ''} ${t.payee.last_name || ''}`.trim() : undefined);
 
-          // Extract job title from nested job object or flat field
           const jobTitle = t.job_title || t.job?.title;
 
           return {
@@ -106,13 +101,12 @@ export default function PaymentsPage2025() {
             contractor_id: t.contractor_id || t.payeeId,
             release_reason: t.release_reason,
             refund_reason: t.refund_reason,
-            subtotal,
             platformFee,
             processingFee,
           };
         });
         setTransactions(transformedTransactions);
-      } catch (error) {
+      } catch {
         toast.error('Failed to load payment history');
       } finally {
         setLoadingTransactions(false);
@@ -174,7 +168,6 @@ export default function PaymentsPage2025() {
     }
   };
 
-  // Redirect if not logged in
   useEffect(() => {
     if (!loadingUser && !user) {
       router.push('/login?redirect=/payments');
@@ -186,7 +179,6 @@ export default function PaymentsPage2025() {
   }
   if (!user) return null;
 
-  // Filter transactions
   const filteredTransactions = transactions.filter((t) => {
     let matchesStatus = true;
     if (filter === 'pending') matchesStatus = t.status === 'pending' || t.status === 'held';
@@ -204,7 +196,6 @@ export default function PaymentsPage2025() {
     return matchesStatus && matchesDateRange;
   });
 
-  // Calculate stats
   const totalPaid = transactions
     .filter((t) => t.status === 'completed' || t.status === 'released')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -243,15 +234,16 @@ export default function PaymentsPage2025() {
 
   return (
     <HomeownerPageWrapper>
-      <button
-        onClick={() => router.push('/dashboard')}
-        className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        <span className="font-medium">Back to Dashboard</span>
-      </button>
+      <div className="max-w-6xl mx-auto">
+        {/* Back link */}
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6 group"
+        >
+          <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+          Back to Dashboard
+        </button>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <PaymentsHeader onExport={handleExport} />
 
         <PaymentsStatsCards

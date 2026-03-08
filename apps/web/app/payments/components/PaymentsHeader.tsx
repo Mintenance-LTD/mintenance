@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Download } from 'lucide-react';
-import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
+import { Download, Wallet } from 'lucide-react';
+import { MotionDiv } from '@/components/ui/MotionDiv';
 import { fadeIn } from '@/lib/animations/variants';
 
 interface PaymentsHeaderProps {
@@ -17,19 +17,24 @@ export function PaymentsHeader({ onExport }: PaymentsHeaderProps) {
       variants={fadeIn}
       className="mb-8"
     >
-      <div className="flex items-center justify-between mb-2">
-        <h1 className="text-3xl font-bold text-gray-900">Payments</h1>
-        <MotionButton
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
+            <Wallet size={22} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Payments</h1>
+            <p className="text-gray-500 mt-0.5">Manage your payments and view transaction history</p>
+          </div>
+        </div>
+        <button
           onClick={onExport}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
         >
-          <Download className="w-4 h-4" />
-          Export
-        </MotionButton>
+          <Download size={15} />
+          Export CSV
+        </button>
       </div>
-      <p className="text-gray-600">Manage your payments and view transaction history</p>
     </MotionDiv>
   );
 }
