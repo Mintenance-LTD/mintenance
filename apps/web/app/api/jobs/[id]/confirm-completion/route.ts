@@ -4,6 +4,7 @@ import { logger } from '@mintenance/shared';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { EmailService } from '@/lib/email-service';
 
 /**
  * POST /api/jobs/[id]/confirm-completion
@@ -94,6 +95,49 @@ export const POST = withApiHandler({ roles: ['homeowner'], rateLimit: { maxReque
       });
       // Don't fail the request if notification fails
     }
+  }
+
+  // Send email to contractor about work approval and payment release
+  try {
+    const { data: contractorProfile } = await serverSupabase
+      .from('profiles')
+      .select('email, first_name, last_name, company_name')
+      .eq('id', job.contractor_id)
+      .single();
+
+    const { data: homeownerProfile } = await serverSupabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', user.id)
+      .single();
+
+    // Get escrow amount for the email
+    const { data: escrowForEmail } = await serverSupabase
+      .from('escrow_transactions')
+      .select('amount')
+      .eq('job_id', jobId)
+      .in('status', ['held', 'release_pending'])
+      .limit(1)
+      .single();
+
+    if (contractorProfile?.email) {
+      const contractorName = contractorProfile.first_name && contractorProfile.last_name
+        ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+        : contractorProfile.company_name || 'Contractor';
+      const homeownerName = homeownerProfile
+        ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'The homeowner'
+        : 'The homeowner';
+
+      await EmailService.sendWorkApprovedEmail(contractorProfile.email, {
+        contractorName,
+        homeownerName,
+        jobTitle: job.title || 'Job',
+        amount: escrowForEmail ? Number(escrowForEmail.amount) / 100 : 0,
+        viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+      });
+    }
+  } catch (emailError) {
+    logger.error('Failed to send work approved email', emailError, { service: 'jobs', jobId });
   }
 
   // Trigger escrow release workflow

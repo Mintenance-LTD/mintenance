@@ -9,6 +9,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
 import { notifyJobStatusChange } from '@/lib/services/notifications/NotificationHelper';
+import { EmailService } from '@/lib/email-service';
 import { logger } from '@mintenance/shared';
 import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 
@@ -99,6 +100,41 @@ export const POST = withApiHandler(
       homeownerId: job.homeowner_id,
       contractorId: user.id,
     });
+
+    // Send email to homeowner that work has started
+    try {
+      const { data: homeownerProfile } = await serverSupabase
+        .from('profiles')
+        .select('email, first_name, last_name')
+        .eq('id', job.homeowner_id)
+        .single();
+
+      const { data: contractorProfile } = await serverSupabase
+        .from('profiles')
+        .select('first_name, last_name, company_name')
+        .eq('id', user.id)
+        .single();
+
+      if (homeownerProfile?.email) {
+        const homeownerName = homeownerProfile.first_name && homeownerProfile.last_name
+          ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}`
+          : 'there';
+        const contractorName = contractorProfile
+          ? (contractorProfile.first_name && contractorProfile.last_name
+              ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+              : contractorProfile.company_name || 'Your contractor')
+          : 'Your contractor';
+
+        await EmailService.sendJobStartedEmail(homeownerProfile.email, {
+          homeownerName,
+          contractorName,
+          jobTitle: job.title || 'Job',
+          viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${jobId}`,
+        });
+      }
+    } catch (emailError) {
+      logger.error('Failed to send job started email', emailError, { service: 'jobs', jobId });
+    }
 
     logger.info('Job started by contractor', {
       service: 'jobs',

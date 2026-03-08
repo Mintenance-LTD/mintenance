@@ -601,4 +601,348 @@ Building connections helps you grow your network and find more opportunities.
       text,
     });
   }
+
+  /**
+   * Send bid accepted notification to contractor
+   */
+  static async sendBidAcceptedEmail(
+    contractorEmail: string,
+    data: {
+      contractorName: string;
+      homeownerName: string;
+      jobTitle: string;
+      bidAmount: number;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const fmtAmount = `£${data.bidAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head><style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #059669; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+          .amount-box { background: white; border: 2px solid #059669; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
+          .amount { font-size: 28px; font-weight: bold; color: #059669; }
+          .cta { display: inline-block; background-color: #059669; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+          .next-steps { background: #f0fdf4; border-left: 4px solid #059669; padding: 12px 16px; border-radius: 4px; margin-top: 20px; font-size: 13px; color: #166534; }
+        </style></head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin:0;">Your Bid Was Accepted!</h1>
+              <p style="margin:8px 0 0;opacity:0.9;">Congratulations - you've won the job</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.contractorName},</p>
+              <p>Great news! <strong>${data.homeownerName}</strong> has accepted your bid for "<strong>${data.jobTitle}</strong>".</p>
+              <div class="amount-box">
+                <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:4px;">Accepted Bid</div>
+                <div class="amount">${fmtAmount}</div>
+              </div>
+              <div class="next-steps">
+                <strong>Next steps:</strong> Review and sign the contract, then coordinate with the homeowner to schedule the work. A message thread has been created for you to communicate directly.
+              </div>
+              <p style="text-align:center;"><a href="${data.viewUrl}" class="cta">View Job Details</a></p>
+            </div>
+            ${this.getUnsubscribeFooter()}
+          </div>
+        </body>
+      </html>
+    `;
+    const text = `Hi ${data.contractorName},\n\n${data.homeownerName} has accepted your bid of ${fmtAmount} for "${data.jobTitle}".\n\nNext: Review and sign the contract.\n\nView details: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+    return this.sendEmail({ to: contractorEmail, subject: `Bid Accepted - ${data.jobTitle}`, html, text });
+  }
+
+  /**
+   * Send contract signed notification to the other party
+   */
+  static async sendContractSignedEmail(
+    recipientEmail: string,
+    data: {
+      recipientName: string;
+      signerName: string;
+      jobTitle: string;
+      contractTitle: string;
+      isFullyAccepted: boolean;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const statusText = data.isFullyAccepted
+      ? 'Both parties have now signed — the contract is fully accepted!'
+      : `${data.signerName} has signed. Your signature is still required to proceed.`;
+    const headerText = data.isFullyAccepted ? 'Contract Fully Signed' : 'Contract Signed - Action Required';
+    const headerColor = data.isFullyAccepted ? '#059669' : '#d97706';
+    const ctaText = data.isFullyAccepted ? 'View Contract' : 'Review & Sign Now';
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head><style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: ${headerColor}; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+          .status-box { background: white; border: 2px solid ${headerColor}; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
+          .cta { display: inline-block; background-color: ${headerColor}; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+        </style></head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin:0;">${headerText}</h1>
+            </div>
+            <div class="content">
+              <p>Hi ${data.recipientName},</p>
+              <div class="status-box">
+                <p style="margin:0;font-size:15px;">${statusText}</p>
+              </div>
+              <div style="background:white;border-radius:8px;padding:16px;margin:16px 0;">
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px;"><span style="color:#6b7280;">Contract</span><strong>${data.contractTitle}</strong></div>
+                <div style="padding:8px 0;font-size:14px;"><span style="color:#6b7280;">Job</span> <strong>${data.jobTitle}</strong></div>
+              </div>
+              <p style="text-align:center;"><a href="${data.viewUrl}" class="cta">${ctaText}</a></p>
+            </div>
+            ${this.getUnsubscribeFooter()}
+          </div>
+        </body>
+      </html>
+    `;
+    const text = `Hi ${data.recipientName},\n\n${statusText}\n\nContract: ${data.contractTitle}\nJob: ${data.jobTitle}\n\n${data.isFullyAccepted ? 'View' : 'Sign'}: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+    return this.sendEmail({ to: recipientEmail, subject: `${headerText} - ${data.jobTitle}`, html, text });
+  }
+
+  /**
+   * Send job started notification to homeowner
+   */
+  static async sendJobStartedEmail(
+    homeownerEmail: string,
+    data: {
+      homeownerName: string;
+      contractorName: string;
+      jobTitle: string;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head><style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #2563eb; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+          .cta { display: inline-block; background-color: #2563eb; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+          .info-note { background: #eff6ff; border-left: 4px solid #2563eb; padding: 12px 16px; border-radius: 4px; margin-top: 20px; font-size: 13px; color: #1e40af; }
+        </style></head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin:0;">Work Has Started</h1>
+              <p style="margin:8px 0 0;opacity:0.9;">Your contractor is on the job</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.homeownerName},</p>
+              <p><strong>${data.contractorName}</strong> has started work on "<strong>${data.jobTitle}</strong>". Before photos have been uploaded and documented.</p>
+              <div class="info-note">
+                <strong>What happens next:</strong> Once the work is complete, your contractor will upload after photos. You'll be notified to review the before/after comparison and approve the work before payment is released.
+              </div>
+              <p style="text-align:center;"><a href="${data.viewUrl}" class="cta">View Job Progress</a></p>
+            </div>
+            ${this.getUnsubscribeFooter()}
+          </div>
+        </body>
+      </html>
+    `;
+    const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has started work on "${data.jobTitle}". Before photos have been documented.\n\nView progress: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+    return this.sendEmail({ to: homeownerEmail, subject: `Work Started - ${data.jobTitle}`, html, text });
+  }
+
+  /**
+   * Send job completed notification to homeowner (review required)
+   */
+  static async sendJobCompletedEmail(
+    homeownerEmail: string,
+    data: {
+      homeownerName: string;
+      contractorName: string;
+      jobTitle: string;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head><style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #7c3aed; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+          .cta { display: inline-block; background-color: #7c3aed; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+          .review-note { background: #f5f3ff; border-left: 4px solid #7c3aed; padding: 12px 16px; border-radius: 4px; margin-top: 20px; font-size: 13px; color: #5b21b6; }
+        </style></head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin:0;">Job Completed - Review Required</h1>
+              <p style="margin:8px 0 0;opacity:0.9;">Your contractor has finished the work</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.homeownerName},</p>
+              <p><strong>${data.contractorName}</strong> has completed work on "<strong>${data.jobTitle}</strong>" and uploaded after photos for your review.</p>
+              <div class="review-note">
+                <strong>Action required:</strong> Please review the before and after photos using the comparison slider. If you're satisfied, approve the work to release payment. If changes are needed, you can request rework.
+              </div>
+              <p style="text-align:center;"><a href="${data.viewUrl}" class="cta">Review Work Now</a></p>
+              <p style="font-size:12px;color:#6b7280;margin-top:20px;">If you don't respond within 7 days, payment will be automatically released to the contractor.</p>
+            </div>
+            ${this.getUnsubscribeFooter()}
+          </div>
+        </body>
+      </html>
+    `;
+    const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has completed "${data.jobTitle}". Please review the before/after photos and approve or request changes.\n\nReview: ${data.viewUrl}\n\nNote: Payment auto-releases after 7 days if no response.\n\n© ${new Date().getFullYear()} Mintenance.`;
+    return this.sendEmail({ to: homeownerEmail, subject: `Review Required - ${data.jobTitle} Completed`, html, text });
+  }
+
+  /**
+   * Send location sharing enabled notification to homeowner
+   */
+  static async sendLocationSharingEmail(
+    homeownerEmail: string,
+    data: {
+      homeownerName: string;
+      contractorName: string;
+      jobTitle: string;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head><style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #0284c7; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+          .cta { display: inline-block; background-color: #0284c7; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+        </style></head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin:0;">Contractor On The Way</h1>
+              <p style="margin:8px 0 0;opacity:0.9;">Live location tracking is now available</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.homeownerName},</p>
+              <p><strong>${data.contractorName}</strong> has enabled location sharing for "<strong>${data.jobTitle}</strong>". You can now track their live location as they head to your property.</p>
+              <p style="text-align:center;"><a href="${data.viewUrl}" class="cta">Track Location</a></p>
+            </div>
+            ${this.getUnsubscribeFooter()}
+          </div>
+        </body>
+      </html>
+    `;
+    const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has enabled location sharing for "${data.jobTitle}". Track their location: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+    return this.sendEmail({ to: homeownerEmail, subject: `Contractor On The Way - ${data.jobTitle}`, html, text });
+  }
+
+  /**
+   * Send work approved / payment releasing notification to contractor
+   */
+  static async sendWorkApprovedEmail(
+    contractorEmail: string,
+    data: {
+      contractorName: string;
+      homeownerName: string;
+      jobTitle: string;
+      amount: number;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const fmtAmount = `£${data.amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head><style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #059669; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+          .amount-box { background: white; border: 2px solid #059669; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0; }
+          .amount { font-size: 32px; font-weight: bold; color: #059669; }
+          .cta { display: inline-block; background-color: #059669; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+        </style></head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin:0;">Work Approved - Payment Releasing</h1>
+              <p style="margin:8px 0 0;opacity:0.9;">The homeowner is happy with your work</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.contractorName},</p>
+              <p><strong>${data.homeownerName}</strong> has approved the completed work on "<strong>${data.jobTitle}</strong>". Payment is now being released from escrow to your account.</p>
+              <div class="amount-box">
+                <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:4px;">Payment Releasing</div>
+                <div class="amount">${fmtAmount}</div>
+              </div>
+              <p style="text-align:center;"><a href="${data.viewUrl}" class="cta">View Details</a></p>
+            </div>
+            ${this.getUnsubscribeFooter()}
+          </div>
+        </body>
+      </html>
+    `;
+    const text = `Hi ${data.contractorName},\n\n${data.homeownerName} has approved your work on "${data.jobTitle}". Payment of ${fmtAmount} is being released.\n\nView: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+    return this.sendEmail({ to: contractorEmail, subject: `Work Approved - Payment Releasing for ${data.jobTitle}`, html, text });
+  }
+
+  /**
+   * Send changes requested notification to contractor
+   */
+  static async sendChangesRequestedEmail(
+    contractorEmail: string,
+    data: {
+      contractorName: string;
+      homeownerName: string;
+      jobTitle: string;
+      comments: string;
+      viewUrl: string;
+    }
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head><style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #d97706; color: white; padding: 24px; border-radius: 12px 12px 0 0; text-align: center; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; }
+          .comment-box { background: white; border-left: 4px solid #d97706; padding: 15px; border-radius: 4px; margin: 20px 0; }
+          .cta { display: inline-block; background-color: #d97706; color: white; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+        </style></head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1 style="margin:0;">Changes Requested</h1>
+              <p style="margin:8px 0 0;opacity:0.9;">The homeowner needs some adjustments</p>
+            </div>
+            <div class="content">
+              <p>Hi ${data.contractorName},</p>
+              <p><strong>${data.homeownerName}</strong> has reviewed the work on "<strong>${data.jobTitle}</strong>" and is requesting some changes:</p>
+              <div class="comment-box">
+                <p style="margin:0;color:#374151;white-space:pre-wrap;">${data.comments}</p>
+              </div>
+              <p>The job has been reopened for rework. Once you've made the changes, upload new after photos to resubmit for review.</p>
+              <p style="text-align:center;"><a href="${data.viewUrl}" class="cta">View Job Details</a></p>
+            </div>
+            ${this.getUnsubscribeFooter()}
+          </div>
+        </body>
+      </html>
+    `;
+    const text = `Hi ${data.contractorName},\n\n${data.homeownerName} is requesting changes on "${data.jobTitle}":\n\n"${data.comments}"\n\nThe job is reopened for rework. View: ${data.viewUrl}\n\n© ${new Date().getFullYear()} Mintenance.`;
+    return this.sendEmail({ to: contractorEmail, subject: `Changes Requested - ${data.jobTitle}`, html, text });
+  }
 }

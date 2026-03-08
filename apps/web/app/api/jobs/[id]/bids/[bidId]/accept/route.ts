@@ -4,6 +4,7 @@ import { LearningMatchingService } from '@/lib/services/agents/LearningMatchingS
 import { PricingAgent } from '@/lib/services/agents/PricingAgent';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { EmailService } from '@/lib/email-service';
 import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
 import { ForbiddenError, NotFoundError, ConflictError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -227,6 +228,40 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
       jobId,
     });
     // Don't fail the request if notification fails
+  }
+
+  // Send email to contractor about bid acceptance
+  try {
+    const { data: contractorProfile } = await serverSupabase
+      .from('profiles')
+      .select('email, first_name, last_name, company_name')
+      .eq('id', bid.contractor_id)
+      .single();
+
+    const { data: homeownerProfile } = await serverSupabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', user.id)
+      .single();
+
+    if (contractorProfile?.email) {
+      const contractorName = contractorProfile.first_name && contractorProfile.last_name
+        ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+        : contractorProfile.company_name || 'Contractor';
+      const homeownerName = homeownerProfile
+        ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'Homeowner'
+        : 'Homeowner';
+
+      await EmailService.sendBidAcceptedEmail(contractorProfile.email, {
+        contractorName,
+        homeownerName,
+        jobTitle: jobDetails?.title || 'Job',
+        bidAmount: Number(bid.amount || 0),
+        viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+      });
+    }
+  } catch (emailError) {
+    logger.error('Failed to send bid accepted email', emailError, { service: 'jobs', bidId, jobId });
   }
 
   // Notify homeowner that bid was accepted (confirmation)

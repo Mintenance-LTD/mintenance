@@ -9,6 +9,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { EmailService } from '@/lib/email-service';
 import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 
 export const POST = withApiHandler(
@@ -68,6 +69,40 @@ export const POST = withApiHandler(
       type: 'changes_requested',
       actionUrl: `/contractor/jobs/${jobId}`,
     });
+
+    // Send email to contractor about changes requested
+    try {
+      const { data: contractorProfile } = await serverSupabase
+        .from('profiles')
+        .select('email, first_name, last_name, company_name')
+        .eq('id', job.contractor_id)
+        .single();
+
+      const { data: homeownerProfile } = await serverSupabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .single();
+
+      if (contractorProfile?.email) {
+        const contractorName = contractorProfile.first_name && contractorProfile.last_name
+          ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+          : contractorProfile.company_name || 'Contractor';
+        const homeownerName = homeownerProfile
+          ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'The homeowner'
+          : 'The homeowner';
+
+        await EmailService.sendChangesRequestedEmail(contractorProfile.email, {
+          contractorName,
+          homeownerName,
+          jobTitle: job.title || 'Job',
+          comments,
+          viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+        });
+      }
+    } catch (emailError) {
+      logger.error('Failed to send changes requested email', emailError, { service: 'jobs', jobId });
+    }
 
     logger.info('Homeowner requested changes, job rolled back to in_progress', {
       service: 'jobs',

@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PhotoVerificationService } from '@/lib/services/escrow/PhotoVerificationService';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { EmailService } from '@/lib/email-service';
 import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { validateImageUpload } from '@/lib/utils/fileValidation';
@@ -212,6 +213,40 @@ export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (re
               actionUrl: `/contractor/jobs/${jobId}`,
             }),
           ]);
+
+          // Send email to homeowner about job completion
+          try {
+            const { data: homeownerProfile } = await serverSupabase
+              .from('profiles')
+              .select('email, first_name, last_name')
+              .eq('id', job.homeowner_id)
+              .single();
+
+            const { data: contractorProfile } = await serverSupabase
+              .from('profiles')
+              .select('first_name, last_name, company_name')
+              .eq('id', user.id)
+              .single();
+
+            if (homeownerProfile?.email) {
+              const homeownerName = homeownerProfile.first_name && homeownerProfile.last_name
+                ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}` : 'there';
+              const contractorName = contractorProfile
+                ? (contractorProfile.first_name && contractorProfile.last_name
+                    ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+                    : contractorProfile.company_name || 'Your contractor')
+                : 'Your contractor';
+
+              await EmailService.sendJobCompletedEmail(homeownerProfile.email, {
+                homeownerName,
+                contractorName,
+                jobTitle: job.title || 'Job',
+                viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${jobId}`,
+              });
+            }
+          } catch (emailError) {
+            logger.error('Failed to send job completed email', emailError, { service: 'jobs', jobId });
+          }
 
           logger.info('Job auto-completed after photo upload', { service: 'jobs', jobId });
         }

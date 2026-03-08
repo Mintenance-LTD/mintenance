@@ -5,6 +5,7 @@ import { isValidUUID } from '@/lib/validation/uuid';
 import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import { EmailService } from '@/lib/email-service';
 
 export const POST = withApiHandler(
   {},
@@ -135,6 +136,35 @@ export const POST = withApiHandler(
         });
         // Don't fail the request if notification fails
       }
+
+      // Send email to other party about pending signature
+      try {
+        const { data: otherPartyProfile } = await serverSupabase
+          .from('profiles')
+          .select('email, first_name, last_name, company_name')
+          .eq('id', otherPartyId)
+          .single();
+
+        if (otherPartyProfile?.email) {
+          const recipientName = otherPartyProfile.first_name && otherPartyProfile.last_name
+            ? `${otherPartyProfile.first_name} ${otherPartyProfile.last_name}`
+            : otherPartyProfile.company_name || 'there';
+          const viewUrl = otherPartyRole === 'contractor'
+            ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${contract.job_id}`
+            : `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${contract.job_id}`;
+
+          await EmailService.sendContractSignedEmail(otherPartyProfile.email, {
+            recipientName,
+            signerName,
+            jobTitle: updatedContract.title || 'Job',
+            contractTitle: updatedContract.title || 'Contract',
+            isFullyAccepted: false,
+            viewUrl,
+          });
+        }
+      } catch (emailError) {
+        logger.error('Failed to send contract signed email', emailError, { service: 'contracts', contractId });
+      }
     }
 
     // If contract is now accepted, create notifications and schedule job
@@ -163,6 +193,53 @@ export const POST = withApiHandler(
           contractId,
         });
         // Don't fail the request
+      }
+
+      // Send email to both parties about fully accepted contract
+      try {
+        const { data: contractorProfile } = await serverSupabase
+          .from('profiles')
+          .select('email, first_name, last_name, company_name')
+          .eq('id', contract.contractor_id)
+          .single();
+
+        const { data: homeownerProfile2 } = await serverSupabase
+          .from('profiles')
+          .select('email, first_name, last_name')
+          .eq('id', contract.homeowner_id)
+          .single();
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+
+        if (contractorProfile?.email) {
+          const name = contractorProfile.first_name && contractorProfile.last_name
+            ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+            : contractorProfile.company_name || 'Contractor';
+          await EmailService.sendContractSignedEmail(contractorProfile.email, {
+            recipientName: name,
+            signerName: homeownerProfile2 ? `${homeownerProfile2.first_name || ''} ${homeownerProfile2.last_name || ''}`.trim() || 'Homeowner' : 'Homeowner',
+            jobTitle: updatedContract.title || 'Job',
+            contractTitle: updatedContract.title || 'Contract',
+            isFullyAccepted: true,
+            viewUrl: `${baseUrl}/contractor/jobs/${contract.job_id}`,
+          });
+        }
+
+        if (homeownerProfile2?.email) {
+          const name = homeownerProfile2.first_name && homeownerProfile2.last_name
+            ? `${homeownerProfile2.first_name} ${homeownerProfile2.last_name}`
+            : 'Homeowner';
+          await EmailService.sendContractSignedEmail(homeownerProfile2.email, {
+            recipientName: name,
+            signerName: contractorProfile ? (contractorProfile.first_name && contractorProfile.last_name ? `${contractorProfile.first_name} ${contractorProfile.last_name}` : contractorProfile.company_name || 'Contractor') : 'Contractor',
+            jobTitle: updatedContract.title || 'Job',
+            contractTitle: updatedContract.title || 'Contract',
+            isFullyAccepted: true,
+            viewUrl: `${baseUrl}/jobs/${contract.job_id}`,
+          });
+        }
+      } catch (emailError) {
+        logger.error('Failed to send contract accepted emails', emailError, { service: 'contracts', contractId });
       }
 
       // Update job with contract dates and schedule on both calendars
