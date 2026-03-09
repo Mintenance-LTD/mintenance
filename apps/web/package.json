@@ -93,7 +93,7 @@
     "html2canvas": "^1.4.1",
     "jose": "^6.1.0",
     "jspdf": "^4.1.0",
-    "lru-cache": "^11.2.4",
+    "lru-cache": "^11.2.6",
     "lucide-react": "^0.376.0",
     "next": "^16.0.4",
     "node-fetch": "^2.7.0",
