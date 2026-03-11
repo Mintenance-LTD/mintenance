@@ -247,7 +247,37 @@ export async function getGeneratorContent(
 
       if (decision.decision === 'student_only') {
         try {
-          return await callMintAiVLM(enrichedMessages, apiKey);
+          const studentResult = await callMintAiVLM(enrichedMessages, apiKey);
+
+          // Phase 5: Safety recall gate — validate student output before serving
+          try {
+            const { SafetyRecallGate } = await import('../distillation/SafetyRecallGate');
+            const parsed = JSON.parse(studentResult.content);
+            if (parsed?.safetyHazards && parsed?.damageAssessment && parsed?.urgency) {
+              const safetyCheck = SafetyRecallGate.validateStudentSafety(
+                parsed,
+                context.damageCategory
+              );
+              if (!safetyCheck.safe) {
+                logger.warn('Student VLM failed safety gate, falling back to GPT-4o', {
+                  service: 'AssessmentGenerator',
+                  failReason: safetyCheck.failReason,
+                  category: context.damageCategory,
+                });
+                await SafetyRecallGate.recordSafetyViolation(
+                  context.assessmentId || 'unknown',
+                  context.damageCategory,
+                  safetyCheck.failReason || 'unknown',
+                  parsed
+                );
+                return callGPT4o(enrichedMessages, apiKey);
+              }
+            }
+          } catch {
+            // Safety gate parse/check failure is non-fatal — serve student result
+          }
+
+          return studentResult;
         } catch (err) {
           logger.warn('Student VLM failed, falling back to GPT-4o', {
             service: 'AssessmentGenerator',

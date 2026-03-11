@@ -74,7 +74,7 @@ function generateCacheKey(imageUrls: string[]): string {
  * GET /api/building-surveyor/assess
  * Get cache statistics (admin only)
  */
-export const GET = withApiHandler({ auth: false, rateLimit: false }, async (request) => {
+export const GET = withApiHandler({ roles: ['admin'] }, async (request) => {
   let deps: Awaited<ReturnType<typeof loadDependencies>>;
   try {
     deps = await loadDependencies();
@@ -84,9 +84,6 @@ export const GET = withApiHandler({ auth: false, rateLimit: false }, async (requ
       { status: 503 }
     );
   }
-
-  const user = await deps.getCurrentUserFromCookies();
-  if (!user || user.role !== 'admin') throw new deps.ForbiddenError('Admin access required');
 
   return NextResponse.json({
     size: assessmentCache.size,
@@ -105,7 +102,7 @@ export const GET = withApiHandler({ auth: false, rateLimit: false }, async (requ
  * Assess building damage from photos using GPT-4 Vision
  * OWASP Security: Rate limited to prevent API cost abuse
  */
-export const POST = withApiHandler({ auth: false, rateLimit: false }, async (request) => {
+export const POST = withApiHandler({ auth: true, rateLimit: false }, async (request, { user }) => {
   let deps: Awaited<ReturnType<typeof loadDependencies>>;
   try {
     deps = await loadDependencies();
@@ -135,9 +132,6 @@ export const POST = withApiHandler({ auth: false, rateLimit: false }, async (req
   }
 
   await deps.requireCSRF(request);
-
-  const user = await deps.getCurrentUserFromCookies();
-  if (!user) throw new deps.UnauthorizedError('Authentication required');
 
   const body = await request.json();
   const validationResult = deps.buildingAssessRequestSchema.safeParse(body);

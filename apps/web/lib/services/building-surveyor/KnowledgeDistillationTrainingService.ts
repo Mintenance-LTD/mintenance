@@ -274,17 +274,40 @@ export async function trainStudentVLM(options?: {
           .from('training-data')
           .createSignedUrl(storagePath, 3600);
 
-        await fetch(webhookUrl, {
+        const webhookPayload = {
+          jobId,
+          modelVersion: jobInput.modelVersion,
+          storagePath,
+          samplesCount: exportResult.count,
+          config: jobInput.config,
+        };
+
+        // Compute HMAC-SHA256 signature for webhook auth.
+        // Must match Python: json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        const webhookSecret = process.env.MINTENANCE_WEBHOOK_SECRET || '';
+        let authSignature = '';
+        if (webhookSecret) {
+          const { createHmac } = await import('crypto');
+          const sorted = Object.fromEntries(Object.entries(webhookPayload).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
+          const canonical = JSON.stringify(sorted);
+          authSignature = createHmac('sha256', webhookSecret).update(canonical).digest('hex');
+        }
+
+        const webhookResponse = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jobId,
-            modelVersion: jobInput.modelVersion,
-            storagePath,
-            samplesCount: exportResult.count,
-            config: jobInput.config,
-          }),
+          body: JSON.stringify({ ...webhookPayload, authSignature }),
         });
+
+        if (!webhookResponse.ok) {
+          const errorText = await webhookResponse.text().catch(() => 'unknown');
+          logger.error('VLM training webhook failed', {
+            service: 'KnowledgeDistillationService',
+            status: webhookResponse.status,
+            error: errorText.substring(0, 500),
+          });
+          throw new Error(`Training webhook failed: HTTP ${webhookResponse.status}`);
+        }
       }
     }
 
@@ -298,7 +321,10 @@ export async function trainStudentVLM(options?: {
       webhookNotified: !!webhookUrl,
     };
 
-    await updateJobStatus(jobId, 'completed', {
+    // Keep status as 'running' when webhook was fired — the Modal callback will
+    // update to 'completed' with real metrics once the GPU job finishes.
+    // Previously this marked 'completed' prematurely before Modal finished.
+    await updateJobStatus(jobId, webhookUrl ? 'running' : 'completed', {
       metrics,
       outputModelPath: storagePath,
     });

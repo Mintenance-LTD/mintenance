@@ -65,5 +65,48 @@ export const POST = withApiHandler({ auth: false, rateLimit: { maxRequests: 10 }
 
   logger.info('Demo feedback saved successfully', { service: 'demo-feedback', feedbackId: feedback.id, assessmentId, isAccurate });
 
+  // Bridge feedback into training pipeline:
+  // When a user provides corrections, create a ground-truth training label
+  // so the next VLM/YOLO training run can learn from this feedback.
+  if (!isAccurate && (correctedDamageType || correctedSeverity)) {
+    try {
+      // Fetch the original assessment's image URLs
+      const { data: images } = await serverSupabase
+        .from('assessment_images')
+        .select('image_url')
+        .eq('assessment_id', assessmentId)
+        .limit(4);
+
+      const imageUrls = (images || []).map((img: { image_url: string }) => img.image_url).filter(Boolean);
+
+      if (imageUrls.length > 0) {
+        await serverSupabase.from('gpt4_training_labels').insert({
+          assessment_id: assessmentId,
+          image_urls: imageUrls,
+          damage_type: correctedDamageType || assessment.damage_type || 'general_damage',
+          severity: correctedSeverity || 'midway',
+          confidence: 95, // Human corrections are high-confidence ground truth
+          response_quality: 'high',
+          used_in_training: false,
+          source: 'demo_feedback',
+          notes: correctionNotes || null,
+        });
+
+        logger.info('Demo feedback bridged to training pipeline', {
+          service: 'demo-feedback',
+          feedbackId: feedback.id,
+          assessmentId,
+          imageCount: imageUrls.length,
+        });
+      }
+    } catch (bridgeError) {
+      // Non-fatal: feedback is saved even if training bridge fails
+      logger.warn('Failed to bridge demo feedback to training pipeline', {
+        service: 'demo-feedback',
+        error: bridgeError instanceof Error ? bridgeError.message : String(bridgeError),
+      });
+    }
+  }
+
   return NextResponse.json({ success: true, feedbackId: feedback.id, message: isAccurate ? 'Thank you for confirming the accuracy!' : 'Thank you for your feedback. This will help improve our AI.' });
 });
